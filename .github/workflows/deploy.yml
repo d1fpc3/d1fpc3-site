@@ -1,0 +1,48 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # server-dir /public_html/ is the d1fpc3.com web root (per-domain FTP
+      # account u190115570.d1fpc3com is jailed to this site's folder).
+      - name: FTP deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /public_html/
+          local-dir: ./
+          exclude: |
+            **/.git*
+            **/.git*/**
+            README.md
+
+      - name: Verify live site updated
+        run: |
+          sleep 10
+          TITLE=$(curl -s -A "Mozilla/5.0" https://d1fpc3.com/ | grep -o "<title>[^<]*</title>")
+          echo "Live root title: $TITLE"
+          case "$TITLE" in
+            *d1fpc3*) echo "Homepage live." ;;
+            *) echo "::error::Root still serving '$TITLE' — FTP sync did not land."; exit 1 ;;
+          esac
+          TTITLE=$(curl -s -A "Mozilla/5.0" https://d1fpc3.com/templates/ | grep -o "<title>[^<]*</title>")
+          echo "Templates title: $TTITLE"
+          case "$TTITLE" in
+            *"UI Templates"*) echo "Templates live." ;;
+            *) echo "::error::/templates/ not serving expected page."; exit 1 ;;
+          esac
