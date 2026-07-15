@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Unsubscribe | D1FPC3</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <style>
+    :root {
+      --paper: #f4f1ea; --card: #ffffff; --ink: #272320; --ink-soft: #4a443d;
+      --ink-faint: #8a837a; --accent: #5b53c9; --accent-2: #7c6cff; --line: rgba(39,35,32,0.10);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh; display: grid; place-items: center; padding: 24px;
+      background: var(--paper); color: var(--ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .card {
+      width: 100%; max-width: 440px; padding: 36px 32px; text-align: center;
+      background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+      box-shadow: 0 1px 2px rgba(39,35,32,0.05), 0 18px 50px rgba(70,40,160,0.10);
+    }
+    .kicker { font-family: ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+    h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; font-size: 28px; letter-spacing: -0.01em; margin-bottom: 12px; }
+    p { color: var(--ink-soft); font-size: 15px; line-height: 1.6; margin-bottom: 22px; }
+    p .email { color: var(--ink); font-weight: 600; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      font-size: 15px; font-weight: 600; color: #fff; cursor: pointer;
+      background: linear-gradient(180deg, var(--accent-2), var(--accent));
+      border: none; border-radius: 999px; padding: 13px 30px; text-decoration: none;
+      transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn[disabled] { opacity: 0.6; cursor: default; transform: none; }
+    .muted { font-size: 12px; color: var(--ink-faint); margin-top: 18px; margin-bottom: 0; }
+    .muted a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hide { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="kicker">D1FPC3</div>
+
+    <!-- loading -->
+    <div id="state-loading">
+      <h1>One moment...</h1>
+      <p>Checking your unsubscribe link.</p>
+    </div>
+
+    <!-- confirm -->
+    <div id="state-confirm" class="hide">
+      <h1>Unsubscribe</h1>
+      <p>Stop receiving emails at <span class="email" id="confirm-email"></span> about the 7-Day AI Money Plan?</p>
+      <button class="btn" id="confirm-btn"><span id="confirm-label">Unsubscribe me</span></button>
+      <p class="muted">Changed your mind? Just close this tab.</p>
+    </div>
+
+    <!-- done -->
+    <div id="state-done" class="hide">
+      <h1>You're unsubscribed</h1>
+      <p><span class="email" id="done-email"></span> won't receive any more of these emails.</p>
+      <p class="muted">Want back in later? <a href="https://d1fpc3.com/ai">Re-subscribe here</a>.</p>
+    </div>
+
+    <!-- expired / error -->
+    <div id="state-error" class="hide">
+      <h1>Link expired</h1>
+      <p>This unsubscribe link is no longer valid. If you keep getting emails, reply to one with "STOP" and I'll remove you manually.</p>
+      <p class="muted"><a href="https://instagram.com/d1fpc3" target="_blank" rel="noopener">@d1fpc3</a></p>
+    </div>
+  </div>
+
+  <script>
+    const ENDPOINT = 'https://uyyzaynifzbsjciiuqhf.supabase.co/functions/v1/unsubscribe';
+    const token = new URLSearchParams(location.search).get('d');
+
+    const show = (id) => {
+      ['loading','confirm','done','error'].forEach(s =>
+        document.getElementById('state-' + s).classList.toggle('hide', s !== id));
+    };
+
+    async function init() {
+      if (!token) { show('error'); return; }
+      try {
+        const res = await fetch(`${ENDPOINT}?d=${encodeURIComponent(token)}&format=json`);
+        const data = await res.json();
+        if (!data.ok) { show('error'); return; }
+        if (data.already) {
+          document.getElementById('done-email').textContent = data.email || 'You';
+          show('done');
+          return;
+        }
+        document.getElementById('confirm-email').textContent = data.email;
+        document.getElementById('done-email').textContent = data.email;
+        show('confirm');
+      } catch (e) {
+        show('error');
+      }
+    }
+
+    document.getElementById('confirm-btn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      document.getElementById('confirm-label').innerHTML = '<span class="spinner"></span>';
+      try {
+        const res = await fetch(`${ENDPOINT}?d=${encodeURIComponent(token)}&format=json`, { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) { show('done'); }
+        else { show('error'); }
+      } catch (e) {
+        btn.disabled = false;
+        document.getElementById('confirm-label').textContent = 'Try again';
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
