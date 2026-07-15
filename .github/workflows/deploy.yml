@@ -16,15 +16,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # The d1fpc3.com FTP account (u190115570.d1fpc3.com @ ftp.d1fpc3.com) is
-      # jailed directly INTO the web root — files live at /, not /public_html/.
+      # The FTP account's jail root is one level ABOVE the site: it contains
+      # public_html (the d1fpc3.com web root) and Hostinger's DO_NOT_UPLOAD_HERE
+      # marker. The account LOGS IN at public_html, but this action resolves
+      # server-dir absolutely from the jail root — so it must be /public_html/,
+      # never / (a / deploy lands beside the web root, not in it).
       - name: FTP deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /
+          server-dir: /public_html/
           local-dir: ./
           exclude: |
             **/.git*
