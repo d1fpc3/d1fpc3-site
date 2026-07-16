@@ -5170,6 +5170,238 @@
 '<\/script>'
   });
 
+  T.push({ id: 'card-swipe', name: 'Swipe Deck', cat: 'Cards', dark: false, h: 380, code:
+'<style>\n' +
+'.deck { position: relative; width: 240px; height: 300px; font-family: system-ui, sans-serif; }\n' +
+'.deck .sc {\n' +
+'  position: absolute;\n' +
+'  inset: 0;\n' +
+'  border-radius: 20px;\n' +
+'  overflow: hidden;\n' +
+'  background: #fff;\n' +
+'  border: 1px solid #ececef;\n' +
+'  box-shadow: 0 14px 34px -18px rgba(0,0,0,0.3);\n' +
+'  touch-action: none;\n' +
+'  user-select: none;\n' +
+'  transition: transform 0.35s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease;\n' +
+'}\n' +
+'.deck .sc.drag { transition: none; cursor: grabbing; }\n' +
+'.deck .sc .ph { height: 66%; }\n' +
+'.deck .sc:nth-child(3) .ph, .deck .sc .ph.a { background: linear-gradient(135deg, #6366f1, #a855f7); }\n' +
+'.deck .sc .ph.b { background: linear-gradient(135deg, #f59e0b, #ef4444); }\n' +
+'.deck .sc .ph.c { background: linear-gradient(135deg, #10b981, #0ea5e9); }\n' +
+'.deck .sc .who { padding: 14px 16px; }\n' +
+'.deck .sc .who b { display: block; font-size: 15px; color: #0a0a0a; }\n' +
+'.deck .sc .who small { font-size: 12px; color: #999; }\n' +
+'.deck .sc .tag {\n' +
+'  position: absolute;\n' +
+'  top: 16px;\n' +
+'  font: 800 14px/1 system-ui, sans-serif;\n' +
+'  letter-spacing: 0.08em;\n' +
+'  padding: 6px 10px;\n' +
+'  border-radius: 8px;\n' +
+'  border: 2.5px solid;\n' +
+'  opacity: 0;\n' +
+'  background: rgba(255,255,255,0.85);\n' +
+'}\n' +
+'.deck .sc .like { left: 14px; color: #16a34a; border-color: #16a34a; transform: rotate(-12deg); }\n' +
+'.deck .sc .nope { right: 14px; color: #dc2626; border-color: #dc2626; transform: rotate(12deg); }\n' +
+'.deck .hint { position: absolute; left: 0; right: 0; bottom: -34px; margin: 0; text-align: center; font-size: 11.5px; color: #aaa; }\n' +
+'</style>\n' +
+'<div class="deck">\n' +
+'  <div class="sc" data-ph="c"><div class="ph c"></div><div class="who"><b>Nightfall theme</b><small>Dark &middot; high contrast</small></div><span class="tag like">YES</span><span class="tag nope">SKIP</span></div>\n' +
+'  <div class="sc" data-ph="b"><div class="ph b"></div><div class="who"><b>Sunset theme</b><small>Warm &middot; playful</small></div><span class="tag like">YES</span><span class="tag nope">SKIP</span></div>\n' +
+'  <div class="sc" data-ph="a"><div class="ph a"></div><div class="who"><b>Violet theme</b><small>Default &middot; balanced</small></div><span class="tag like">YES</span><span class="tag nope">SKIP</span></div>\n' +
+'  <p class="hint">Drag the top card left or right</p>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var deck = document.querySelector(".deck");\n' +
+'  function settle() {\n' +
+'    var cards = deck.querySelectorAll(".sc");\n' +
+'    cards.forEach(function (c, i) {\n' +
+'      var fromTop = cards.length - 1 - i;\n' +
+'      c.style.transform = "translateY(" + (-8 * fromTop) + "px) scale(" + (1 - 0.05 * fromTop) + ")";\n' +
+'      c.style.zIndex = i;\n' +
+'    });\n' +
+'    arm(cards[cards.length - 1]);\n' +
+'  }\n' +
+'  function arm(card) {\n' +
+'    if (!card || card.dataset.armed) return;\n' +
+'    card.dataset.armed = "1";\n' +
+'    var sx = 0, dx = 0, down = false;\n' +
+'    card.addEventListener("pointerdown", function (e) {\n' +
+'      if (card !== deck.querySelector(".sc:last-of-type")) return;\n' +
+'      down = true; sx = e.clientX; dx = 0;\n' +
+'      card.classList.add("drag");\n' +
+'      card.setPointerCapture(e.pointerId);\n' +
+'    });\n' +
+'    card.addEventListener("pointermove", function (e) {\n' +
+'      if (!down) return;\n' +
+'      dx = e.clientX - sx;\n' +
+'      card.style.transform = "translateX(" + dx + "px) rotate(" + dx / 12 + "deg)";\n' +
+'      card.querySelector(".like").style.opacity = Math.min(dx / 70, 1);\n' +
+'      card.querySelector(".nope").style.opacity = Math.min(-dx / 70, 1);\n' +
+'    });\n' +
+'    card.addEventListener("pointerup", function () {\n' +
+'      if (!down) return;\n' +
+'      down = false;\n' +
+'      card.classList.remove("drag");\n' +
+'      if (Math.abs(dx) > 90) {\n' +
+'        card.style.transform = "translateX(" + (dx > 0 ? 380 : -380) + "px) rotate(" + dx / 6 + "deg)";\n' +
+'        card.style.opacity = "0";\n' +
+'        setTimeout(function () {\n' +
+'          card.querySelectorAll(".tag").forEach(function (t) { t.style.opacity = 0; });\n' +
+'          card.style.opacity = "1";\n' +
+'          deck.insertBefore(card, deck.firstElementChild);\n' +
+'          settle();\n' +
+'        }, 320);\n' +
+'      } else {\n' +
+'        card.querySelectorAll(".tag").forEach(function (t) { t.style.opacity = 0; });\n' +
+'        settle();\n' +
+'      }\n' +
+'    });\n' +
+'  }\n' +
+'  deck.querySelectorAll(".sc").forEach(arm);\n' +
+'  settle();\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'card-book', name: '3D Book Cover', cat: 'Cards', dark: false, h: 340, code:
+'<style>\n' +
+'.bkw { perspective: 1000px; font-family: system-ui, sans-serif; }\n' +
+'.bk {\n' +
+'  position: relative;\n' +
+'  width: 170px; height: 240px;\n' +
+'  transform-style: preserve-3d;\n' +
+'  transform: rotateY(-22deg);\n' +
+'  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);\n' +
+'}\n' +
+'.bkw:hover .bk { transform: rotateY(-14deg); }\n' +
+'.bk .page {\n' +
+'  position: absolute;\n' +
+'  inset: 3px 4px 3px 6px;\n' +
+'  background: #fbf9f4;\n' +
+'  border-radius: 3px 8px 8px 3px;\n' +
+'  box-shadow: inset -14px 0 22px -16px rgba(0,0,0,0.3);\n' +
+'  padding: 20px 16px;\n' +
+'  transform: translateZ(-1px);\n' +
+'}\n' +
+'.bk .page p { margin: 0 0 8px; font: 400 8.5px/1.7 Georgia, serif; color: #777; }\n' +
+'.bk .page b { display: block; font: 700 11px/1.3 Georgia, serif; color: #333; margin-bottom: 10px; }\n' +
+'.bk .cover {\n' +
+'  position: absolute;\n' +
+'  inset: 0;\n' +
+'  border-radius: 4px 10px 10px 4px;\n' +
+'  background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 70%, #6d28d9 100%);\n' +
+'  box-shadow: 0 18px 40px -18px rgba(30,27,75,0.7);\n' +
+'  transform-origin: left center;\n' +
+'  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);\n' +
+'  padding: 24px 18px;\n' +
+'  backface-visibility: hidden;\n' +
+'}\n' +
+'.bkw:hover .cover { transform: rotateY(-58deg); }\n' +
+'.bk .cover::before { content: ""; position: absolute; left: 8px; top: 0; bottom: 0; width: 1.5px; background: rgba(255,255,255,0.18); }\n' +
+'.bk .cover small { display: block; font: 600 8.5px/1 system-ui, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 12px; }\n' +
+'.bk .cover h4 { margin: 0; font: 700 21px/1.2 Georgia, serif; color: #fff; letter-spacing: -0.01em; }\n' +
+'.bk .cover .au { position: absolute; bottom: 22px; left: 18px; font: 500 10px/1 system-ui, sans-serif; color: rgba(255,255,255,0.65); }\n' +
+'</style>\n' +
+'<div class="bkw">\n' +
+'  <div class="bk">\n' +
+'    <div class="page">\n' +
+'      <b>Chapter One</b>\n' +
+'      <p>Nobody ships a design system on purpose. It happens to you, slowly, and then all at once.</p>\n' +
+'      <p>This book is about surviving that moment with your typography intact.</p>\n' +
+'    </div>\n' +
+'    <div class="cover"><small>A field guide</small><h4>Interface, Quietly</h4><span class="au">D. One</span></div>\n' +
+'  </div>\n' +
+'</div>'
+  });
+
+  T.push({ id: 'card-login', name: 'Glass Login Card', cat: 'Cards', dark: true, h: 420, code:
+'<style>\n' +
+'.glw { position: relative; width: 300px; padding: 20px; font-family: system-ui, sans-serif; }\n' +
+'.glw .orb { position: absolute; border-radius: 50%; filter: blur(46px); opacity: 0.7; }\n' +
+'.glw .o1 { width: 190px; height: 190px; background: #7c3aed; top: -50px; left: -40px; animation: gl-drift 9s ease-in-out infinite alternate; }\n' +
+'.glw .o2 { width: 170px; height: 170px; background: #db2777; bottom: -40px; right: -30px; animation: gl-drift 11s ease-in-out infinite alternate-reverse; }\n' +
+'@keyframes gl-drift { to { transform: translate(26px, 20px) scale(1.12); } }\n' +
+'.gl {\n' +
+'  position: relative;\n' +
+'  background: rgba(255,255,255,0.07);\n' +
+'  border: 1px solid rgba(255,255,255,0.16);\n' +
+'  border-radius: 20px;\n' +
+'  padding: 24px 22px;\n' +
+'  backdrop-filter: blur(14px);\n' +
+'  -webkit-backdrop-filter: blur(14px);\n' +
+'}\n' +
+'.gl h3 { margin: 0 0 4px; font-size: 18px; font-weight: 650; color: #fff; }\n' +
+'.gl .sub { margin: 0 0 18px; font-size: 12.5px; color: rgba(255,255,255,0.55); }\n' +
+'.gl .fld { position: relative; margin-bottom: 12px; }\n' +
+'.gl .fld input {\n' +
+'  width: 100%;\n' +
+'  padding: 17px 14px 7px;\n' +
+'  font-size: 14px;\n' +
+'  color: #fff;\n' +
+'  background: rgba(255,255,255,0.06);\n' +
+'  border: 1px solid rgba(255,255,255,0.14);\n' +
+'  border-radius: 11px;\n' +
+'  outline: none;\n' +
+'  transition: border-color 0.2s ease, background 0.2s ease;\n' +
+'}\n' +
+'.gl .fld input:focus { border-color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.1); }\n' +
+'.gl .fld label {\n' +
+'  position: absolute;\n' +
+'  left: 15px; top: 13px;\n' +
+'  font-size: 13.5px;\n' +
+'  color: rgba(255,255,255,0.45);\n' +
+'  pointer-events: none;\n' +
+'  transform-origin: left top;\n' +
+'  transition: transform 0.18s ease, color 0.18s ease;\n' +
+'}\n' +
+'.gl .fld input:focus + label, .gl .fld input:not(:placeholder-shown) + label { transform: translateY(-7px) scale(0.72); color: rgba(255,255,255,0.7); }\n' +
+'.gl .go {\n' +
+'  width: 100%;\n' +
+'  margin: 6px 0 14px;\n' +
+'  padding: 13px;\n' +
+'  border: none;\n' +
+'  border-radius: 11px;\n' +
+'  background: #fff;\n' +
+'  color: #0a0a0a;\n' +
+'  font: 600 14px/1 system-ui, sans-serif;\n' +
+'  cursor: pointer;\n' +
+'  transition: transform 0.15s ease, box-shadow 0.25s ease;\n' +
+'}\n' +
+'.gl .go:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -12px rgba(255,255,255,0.45); }\n' +
+'.gl .or { display: flex; align-items: center; gap: 10px; font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 12px; }\n' +
+'.gl .or::before, .gl .or::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.14); }\n' +
+'.gl .alt { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }\n' +
+'.gl .alt button {\n' +
+'  padding: 11px;\n' +
+'  border: 1px solid rgba(255,255,255,0.16);\n' +
+'  border-radius: 10px;\n' +
+'  background: rgba(255,255,255,0.05);\n' +
+'  color: rgba(255,255,255,0.85);\n' +
+'  font: 600 12.5px/1 system-ui, sans-serif;\n' +
+'  cursor: pointer;\n' +
+'  transition: background 0.2s ease;\n' +
+'}\n' +
+'.gl .alt button:hover { background: rgba(255,255,255,0.12); }\n' +
+'</style>\n' +
+'<div class="glw">\n' +
+'  <span class="orb o1"></span><span class="orb o2"></span>\n' +
+'  <form class="gl" action="https://example.com/login" method="post">\n' +
+'    <h3>Welcome back</h3>\n' +
+'    <p class="sub">Sign in to keep your streak alive.</p>\n' +
+'    <div class="fld"><input type="email" id="gl-em" placeholder=" " autocomplete="email"><label for="gl-em">Email</label></div>\n' +
+'    <div class="fld"><input type="password" id="gl-pw" placeholder=" " autocomplete="current-password"><label for="gl-pw">Password</label></div>\n' +
+'    <button class="go" type="submit">Sign in</button>\n' +
+'    <div class="or">or continue with</div>\n' +
+'    <div class="alt"><button type="button">Google</button><button type="button">GitHub</button></div>\n' +
+'  </form>\n' +
+'</div>'
+  });
+
   /* ── HEROES ──────────────────────────────────────────── */
 
   T.push({ id: 'hero-grid', name: 'Grid Glow Hero', cat: 'Heroes', dark: true, fill: true, wide: true, h: 400, code:
@@ -8283,6 +8515,152 @@
 '<\/script>'
   });
 
+  T.push({ id: 'input-reorder', name: 'Drag to Reorder', cat: 'Inputs', dark: false, h: 340, code:
+'<style>\n' +
+'.rol { position: relative; width: 280px; height: 232px; font-family: system-ui, sans-serif; }\n' +
+'.rol .it {\n' +
+'  position: absolute;\n' +
+'  left: 0; right: 0;\n' +
+'  height: 50px;\n' +
+'  display: flex;\n' +
+'  align-items: center;\n' +
+'  gap: 11px;\n' +
+'  padding: 0 14px;\n' +
+'  background: #fff;\n' +
+'  border: 1px solid #ececef;\n' +
+'  border-radius: 13px;\n' +
+'  touch-action: none;\n' +
+'  user-select: none;\n' +
+'  transition: transform 0.28s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.2s ease;\n' +
+'}\n' +
+'.rol .it.drag { transition: box-shadow 0.2s ease; box-shadow: 0 16px 34px -14px rgba(0,0,0,0.35); z-index: 5; cursor: grabbing; }\n' +
+'.rol .grip { color: #ccc; cursor: grab; display: grid; gap: 3px; }\n' +
+'.rol .grip i { display: block; width: 14px; height: 2px; border-radius: 1px; background: currentColor; }\n' +
+'.rol .it b { font-size: 13.5px; font-weight: 600; color: #0a0a0a; flex: 1; }\n' +
+'.rol .it small { font-size: 11px; color: #999; }\n' +
+'</style>\n' +
+'<div class="rol">\n' +
+'  <div class="it"><span class="grip"><i></i><i></i><i></i></span><b>Hero section</b><small>1</small></div>\n' +
+'  <div class="it"><span class="grip"><i></i><i></i><i></i></span><b>Feature grid</b><small>2</small></div>\n' +
+'  <div class="it"><span class="grip"><i></i><i></i><i></i></span><b>Testimonials</b><small>3</small></div>\n' +
+'  <div class="it"><span class="grip"><i></i><i></i><i></i></span><b>Footer CTA</b><small>4</small></div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var wrap = document.querySelector(".rol");\n' +
+'  var items = Array.prototype.slice.call(wrap.querySelectorAll(".it"));\n' +
+'  var ROW = 60;\n' +
+'  var order = items.slice();\n' +
+'  function layout(skip) {\n' +
+'    order.forEach(function (el, i) {\n' +
+'      if (el !== skip) el.style.transform = "translateY(" + i * ROW + "px)";\n' +
+'      el.querySelector("small").textContent = i + 1;\n' +
+'    });\n' +
+'  }\n' +
+'  items.forEach(function (el) {\n' +
+'    var startY = 0, baseIdx = 0, down = false;\n' +
+'    el.addEventListener("pointerdown", function (e) {\n' +
+'      down = true;\n' +
+'      startY = e.clientY;\n' +
+'      baseIdx = order.indexOf(el);\n' +
+'      el.classList.add("drag");\n' +
+'      el.setPointerCapture(e.pointerId);\n' +
+'    });\n' +
+'    el.addEventListener("pointermove", function (e) {\n' +
+'      if (!down) return;\n' +
+'      var dy = e.clientY - startY;\n' +
+'      el.style.transform = "translateY(" + (baseIdx * ROW + dy) + "px)";\n' +
+'      var target = Math.max(0, Math.min(order.length - 1, Math.round((baseIdx * ROW + dy) / ROW)));\n' +
+'      if (target !== order.indexOf(el)) {\n' +
+'        order.splice(order.indexOf(el), 1);\n' +
+'        order.splice(target, 0, el);\n' +
+'        layout(el);\n' +
+'      }\n' +
+'    });\n' +
+'    el.addEventListener("pointerup", function () {\n' +
+'      if (!down) return;\n' +
+'      down = false;\n' +
+'      el.classList.remove("drag");\n' +
+'      layout();\n' +
+'    });\n' +
+'  });\n' +
+'  layout();\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'input-mood', name: 'Mood Slider', cat: 'Inputs', dark: false, h: 260, code:
+'<style>\n' +
+'.mood { width: 280px; text-align: center; font-family: system-ui, sans-serif; }\n' +
+'.mood .face { font-size: 46px; line-height: 1; display: inline-block; }\n' +
+'.mood .face.pop { animation: mood-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }\n' +
+'@keyframes mood-pop { 50% { transform: scale(1.25); } }\n' +
+'.mood .lbl { display: block; margin: 10px 0 16px; font: 600 13.5px/1 system-ui, sans-serif; color: #0a0a0a; }\n' +
+'.mood input {\n' +
+'  -webkit-appearance: none;\n' +
+'  appearance: none;\n' +
+'  width: 100%;\n' +
+'  height: 8px;\n' +
+'  border-radius: 4px;\n' +
+'  outline: none;\n' +
+'  background: linear-gradient(90deg, #f87171, #fbbf24, #4ade80);\n' +
+'}\n' +
+'.mood input::-webkit-slider-thumb {\n' +
+'  -webkit-appearance: none;\n' +
+'  width: 26px; height: 26px;\n' +
+'  border-radius: 50%;\n' +
+'  background: #fff;\n' +
+'  border: 2.5px solid #0a0a0a;\n' +
+'  cursor: pointer;\n' +
+'  box-shadow: 0 3px 10px rgba(0,0,0,0.25);\n' +
+'}\n' +
+'.mood input::-moz-range-thumb {\n' +
+'  width: 26px; height: 26px;\n' +
+'  border-radius: 50%;\n' +
+'  background: #fff;\n' +
+'  border: 2.5px solid #0a0a0a;\n' +
+'  cursor: pointer;\n' +
+'  box-shadow: 0 3px 10px rgba(0,0,0,0.25);\n' +
+'}\n' +
+'</style>\n' +
+'<div class="mood">\n' +
+'  <span class="face">&#128578;</span>\n' +
+'  <span class="lbl">Pretty good</span>\n' +
+'  <input type="range" min="0" max="100" value="62" aria-label="How was your day?">\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var range = document.querySelector(".mood input");\n' +
+'  var face = document.querySelector(".mood .face");\n' +
+'  var lbl = document.querySelector(".mood .lbl");\n' +
+'  var STOPS = [\n' +
+'    [15, "\\uD83D\\uDE29", "Rough day"],\n' +
+'    [38, "\\uD83D\\uDE10", "Meh"],\n' +
+'    [62, "\\uD83D\\uDE42", "Pretty good"],\n' +
+'    [85, "\\uD83D\\uDE04", "Great"],\n' +
+'    [101, "\\uD83E\\uDD29", "Best day ever"]\n' +
+'  ];\n' +
+'  var cur = 2;\n' +
+'  range.addEventListener("input", function () {\n' +
+'    var v = Number(range.value);\n' +
+'    for (var i = 0; i < STOPS.length; i++) {\n' +
+'      if (v < STOPS[i][0]) {\n' +
+'        if (i !== cur) {\n' +
+'          cur = i;\n' +
+'          face.textContent = STOPS[i][1];\n' +
+'          lbl.textContent = STOPS[i][2];\n' +
+'          face.classList.remove("pop");\n' +
+'          void face.offsetWidth;\n' +
+'          face.classList.add("pop");\n' +
+'        }\n' +
+'        break;\n' +
+'      }\n' +
+'    }\n' +
+'  });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
   /* ── PAYMENTS ────────────────────────────────────────── */
 
   T.push({ id: 'pay-checkout', name: 'Checkout Summary', cat: 'Payments', dark: false, h: 380, code:
@@ -8866,6 +9244,114 @@
 '      btns.forEach(function (x) { x.classList.toggle("on", x === b); });\n' +
 '      go.textContent = "Donate $" + b.dataset.v;\n' +
 '    });\n' +
+'  });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'pay-cardflip', name: 'Card Flip Checkout', cat: 'Payments', dark: false, h: 430, code:
+'<style>\n' +
+'.ccf { width: 300px; font-family: system-ui, sans-serif; }\n' +
+'.ccf .scene { perspective: 1000px; margin-bottom: 16px; }\n' +
+'.ccf .c3d {\n' +
+'  position: relative;\n' +
+'  width: 100%;\n' +
+'  height: 172px;\n' +
+'  transform-style: preserve-3d;\n' +
+'  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);\n' +
+'}\n' +
+'.ccf .c3d.flip { transform: rotateY(180deg); }\n' +
+'.ccf .face {\n' +
+'  position: absolute;\n' +
+'  inset: 0;\n' +
+'  border-radius: 16px;\n' +
+'  backface-visibility: hidden;\n' +
+'  -webkit-backface-visibility: hidden;\n' +
+'  color: #fff;\n' +
+'  overflow: hidden;\n' +
+'}\n' +
+'.ccf .front { background: linear-gradient(135deg, #1e1b4b, #4c1d95 55%, #7c3aed); padding: 18px; }\n' +
+'.ccf .front .chip { width: 34px; height: 25px; border-radius: 6px; background: linear-gradient(135deg, #fcd34d, #d97706); margin-bottom: 22px; }\n' +
+'.ccf .front .num { font: 500 17px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.09em; margin-bottom: 20px; min-height: 17px; }\n' +
+'.ccf .front .row { display: flex; justify-content: space-between; align-items: flex-end; }\n' +
+'.ccf .front small { display: block; font-size: 8.5px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 4px; }\n' +
+'.ccf .front span { font-size: 12.5px; font-weight: 600; letter-spacing: 0.03em; }\n' +
+'.ccf .back { background: linear-gradient(135deg, #17153a, #3b1877); transform: rotateY(180deg); }\n' +
+'.ccf .back .strip { height: 34px; background: #0b0a20; margin-top: 20px; }\n' +
+'.ccf .back .sig { display: flex; align-items: center; gap: 10px; margin: 18px 18px 0; }\n' +
+'.ccf .back .box { flex: 1; height: 30px; background: repeating-linear-gradient(45deg, #efe9dc 0 6px, #e4ddcd 6px 12px); border-radius: 5px; }\n' +
+'.ccf .back .cvv { font: 600 14px/1 ui-monospace, SFMono-Regular, Menlo, monospace; background: #fff; color: #0a0a0a; padding: 8px 10px; border-radius: 5px; min-width: 44px; text-align: center; }\n' +
+'.ccf .back small { display: block; margin: 10px 18px 0; font-size: 8.5px; color: rgba(255,255,255,0.4); }\n' +
+'.ccf .form { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }\n' +
+'.ccf .form input {\n' +
+'  width: 100%;\n' +
+'  padding: 11px 12px;\n' +
+'  font: 500 13px/1 system-ui, sans-serif;\n' +
+'  color: #0a0a0a;\n' +
+'  border: 1.5px solid #e4e4e8;\n' +
+'  border-radius: 10px;\n' +
+'  outline: none;\n' +
+'  background: #fff;\n' +
+'  transition: border-color 0.2s ease, box-shadow 0.2s ease;\n' +
+'}\n' +
+'.ccf .form input:focus { border-color: #0a0a0a; box-shadow: 0 0 0 3px rgba(0,0,0,0.06); }\n' +
+'.ccf .form input::placeholder { color: #aaa; }\n' +
+'.ccf .form .wide { grid-column: 1 / -1; }\n' +
+'</style>\n' +
+'<div class="ccf">\n' +
+'  <div class="scene">\n' +
+'    <div class="c3d">\n' +
+'      <div class="face front">\n' +
+'        <div class="chip"></div>\n' +
+'        <div class="num">&#8226;&#8226;&#8226;&#8226; &#8226;&#8226;&#8226;&#8226; &#8226;&#8226;&#8226;&#8226; &#8226;&#8226;&#8226;&#8226;</div>\n' +
+'        <div class="row">\n' +
+'          <span class="who-w"><small>Card holder</small><span class="who">YOUR NAME</span></span>\n' +
+'          <span class="exp-w"><small>Expires</small><span class="exp">MM/YY</span></span>\n' +
+'        </div>\n' +
+'      </div>\n' +
+'      <div class="face back">\n' +
+'        <div class="strip"></div>\n' +
+'        <div class="sig"><span class="box"></span><span class="cvv">&#8226;&#8226;&#8226;</span></div>\n' +
+'        <small>Flip happens when you focus the CVC field.</small>\n' +
+'      </div>\n' +
+'    </div>\n' +
+'  </div>\n' +
+'  <div class="form">\n' +
+'    <input class="wide in-num" type="text" inputmode="numeric" maxlength="19" placeholder="Card number" aria-label="Card number">\n' +
+'    <input class="wide in-who" type="text" placeholder="Name on card" aria-label="Name on card">\n' +
+'    <input class="in-exp" type="text" inputmode="numeric" maxlength="5" placeholder="MM/YY" aria-label="Expiry">\n' +
+'    <input class="in-cvv" type="text" inputmode="numeric" maxlength="4" placeholder="CVC" aria-label="CVC">\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var wrap = document.querySelector(".ccf");\n' +
+'  var c3d = wrap.querySelector(".c3d");\n' +
+'  var num = wrap.querySelector(".num");\n' +
+'  var who = wrap.querySelector(".who");\n' +
+'  var exp = wrap.querySelector(".exp");\n' +
+'  var cvv = wrap.querySelector(".cvv");\n' +
+'  var inNum = wrap.querySelector(".in-num");\n' +
+'  var inWho = wrap.querySelector(".in-who");\n' +
+'  var inExp = wrap.querySelector(".in-exp");\n' +
+'  var inCvv = wrap.querySelector(".in-cvv");\n' +
+'  var DOTS = "\\u2022\\u2022\\u2022\\u2022 \\u2022\\u2022\\u2022\\u2022 \\u2022\\u2022\\u2022\\u2022 \\u2022\\u2022\\u2022\\u2022";\n' +
+'  inNum.addEventListener("input", function () {\n' +
+'    var d = inNum.value.replace(/\\D/g, "").slice(0, 16);\n' +
+'    inNum.value = d.replace(/(.{4})/g, "$1 ").trim();\n' +
+'    num.textContent = inNum.value || DOTS;\n' +
+'  });\n' +
+'  inWho.addEventListener("input", function () { who.textContent = (inWho.value || "YOUR NAME").toUpperCase(); });\n' +
+'  inExp.addEventListener("input", function () {\n' +
+'    var d = inExp.value.replace(/\\D/g, "").slice(0, 4);\n' +
+'    inExp.value = d.length > 2 ? d.slice(0, 2) + "/" + d.slice(2) : d;\n' +
+'    exp.textContent = inExp.value || "MM/YY";\n' +
+'  });\n' +
+'  inCvv.addEventListener("focus", function () { c3d.classList.add("flip"); });\n' +
+'  inCvv.addEventListener("blur", function () { c3d.classList.remove("flip"); });\n' +
+'  inCvv.addEventListener("input", function () {\n' +
+'    inCvv.value = inCvv.value.replace(/\\D/g, "").slice(0, 4);\n' +
+'    cvv.textContent = inCvv.value || "\\u2022\\u2022\\u2022";\n' +
 '  });\n' +
 '})();\n' +
 '<\/script>'
@@ -11481,6 +11967,86 @@
 '    bar.title = (39 - i) + " days ago: " + (bar.className === "down" ? "outage 22 min" : bar.className === "warn" ? "degraded" : "operational");\n' +
 '    wrap.appendChild(bar);\n' +
 '  }\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'fb-tasks', name: 'Task Check Celebration', cat: 'Feedback', dark: false, h: 340, code:
+'<style>\n' +
+'.tck {\n' +
+'  width: 300px;\n' +
+'  background: #fff;\n' +
+'  border: 1px solid #ececef;\n' +
+'  border-radius: 18px;\n' +
+'  padding: 20px 22px;\n' +
+'  font-family: system-ui, sans-serif;\n' +
+'  box-shadow: 0 10px 30px -18px rgba(0,0,0,0.15);\n' +
+'}\n' +
+'.tck .hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }\n' +
+'.tck h3 { margin: 0; font-size: 15px; font-weight: 600; color: #0a0a0a; }\n' +
+'.tck .ring { position: relative; width: 40px; height: 40px; }\n' +
+'.tck .ring svg { width: 40px; height: 40px; transform: rotate(-90deg); }\n' +
+'.tck .ring .bg { fill: none; stroke: #ececef; stroke-width: 3.5; }\n' +
+'.tck .ring .fg { fill: none; stroke: #0a0a0a; stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 100.5; stroke-dashoffset: 100.5; transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease; }\n' +
+'.tck.done .ring .fg { stroke: #16a34a; }\n' +
+'.tck .ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 700 10px/1 system-ui, sans-serif; color: #0a0a0a; }\n' +
+'.tck .ring .burst { position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; margin: -2.5px; border-radius: 50%; opacity: 0; pointer-events: none; }\n' +
+'.tck.done .ring .burst { animation: tck-burst 0.7s ease-out forwards; }\n' +
+'@keyframes tck-burst {\n' +
+'  0% { opacity: 1; transform: translate(0, 0) scale(1); }\n' +
+'  100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.4); }\n' +
+'}\n' +
+'.tck label { display: flex; align-items: center; gap: 11px; padding: 9px 0; cursor: pointer; }\n' +
+'.tck input { position: absolute; opacity: 0; pointer-events: none; }\n' +
+'.tck .cb {\n' +
+'  width: 21px; height: 21px;\n' +
+'  flex: none;\n' +
+'  border-radius: 7px;\n' +
+'  border: 1.5px solid #d9d9de;\n' +
+'  display: grid;\n' +
+'  place-items: center;\n' +
+'  transition: background 0.2s ease, border-color 0.2s ease;\n' +
+'}\n' +
+'.tck .cb svg { width: 11px; height: 11px; stroke: #fff; stroke-width: 3.5; opacity: 0; transform: scale(0.4); transition: opacity 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }\n' +
+'.tck input:checked + .cb { background: #0a0a0a; border-color: #0a0a0a; }\n' +
+'.tck input:checked + .cb svg { opacity: 1; transform: scale(1); }\n' +
+'.tck .tx { position: relative; font-size: 13.5px; color: #0a0a0a; transition: color 0.25s ease; }\n' +
+'.tck .tx::after { content: ""; position: absolute; left: 0; top: 52%; height: 1.5px; width: 0; background: #999; transition: width 0.3s cubic-bezier(0.77, 0, 0.175, 1); }\n' +
+'.tck input:checked ~ .tx { color: #999; }\n' +
+'.tck input:checked ~ .tx::after { width: 100%; }\n' +
+'</style>\n' +
+'<div class="tck">\n' +
+'  <div class="hd">\n' +
+'    <h3>Today</h3>\n' +
+'    <span class="ring">\n' +
+'      <svg viewBox="0 0 40 40"><circle class="bg" cx="20" cy="20" r="16"/><circle class="fg" cx="20" cy="20" r="16"/></svg>\n' +
+'      <b>1/3</b>\n' +
+'      <span class="burst" style="--tx:22px;--ty:-16px;background:#f59e0b"></span>\n' +
+'      <span class="burst" style="--tx:-20px;--ty:-20px;background:#6366f1"></span>\n' +
+'      <span class="burst" style="--tx:24px;--ty:12px;background:#ec4899"></span>\n' +
+'      <span class="burst" style="--tx:-18px;--ty:18px;background:#22c55e"></span>\n' +
+'      <span class="burst" style="--tx:2px;--ty:-26px;background:#ef4444"></span>\n' +
+'      <span class="burst" style="--tx:-26px;--ty:2px;background:#eab308"></span>\n' +
+'    </span>\n' +
+'  </div>\n' +
+'  <label><input type="checkbox" checked><span class="cb"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="tx">Reply to the client thread</span></label>\n' +
+'  <label><input type="checkbox"><span class="cb"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="tx">Push the pricing update</span></label>\n' +
+'  <label><input type="checkbox"><span class="cb"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="tx">Book Thursday&rsquo;s run</span></label>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var wrap = document.querySelector(".tck");\n' +
+'  var boxes = wrap.querySelectorAll("input");\n' +
+'  var fg = wrap.querySelector(".fg");\n' +
+'  var count = wrap.querySelector(".ring b");\n' +
+'  function draw() {\n' +
+'    var n = wrap.querySelectorAll("input:checked").length;\n' +
+'    count.textContent = n + "/" + boxes.length;\n' +
+'    fg.style.strokeDashoffset = 100.5 * (1 - n / boxes.length);\n' +
+'    wrap.classList.toggle("done", n === boxes.length);\n' +
+'  }\n' +
+'  boxes.forEach(function (b) { b.addEventListener("change", draw); });\n' +
+'  draw();\n' +
 '})();\n' +
 '<\/script>'
   });
