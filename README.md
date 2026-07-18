@@ -4,7 +4,7 @@ Static site for d1fpc3.com, hosted on Hostinger (hPanel).
 
 ## Structure
 
-- `index.html` — homepage (typographic project index: SeenRank, ORC, D1-VolKit)
+- `index.html` — homepage (personal profile: monogram, bio, links, project index, client work)
 - `templates/index.html` — self-contained UI specimen library, reachable only by exact URL (nothing links to it)
 - `ai/` — lead-magnet PDFs and landing page
 - `call/` — booking page
