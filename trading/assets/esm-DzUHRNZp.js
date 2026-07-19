@@ -1,0 +1,1 @@
+import{registerPlugin as e}from"./dist-DuAoa07x.js";var t=e(`PushNotifications`,{});export{t as PushNotifications};

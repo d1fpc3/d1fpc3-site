@@ -1,1 +1,0 @@
-import{registerPlugin as e}from"./dist-Bildscvd.js";var t=e(`PushNotifications`,{});export{t as PushNotifications};
