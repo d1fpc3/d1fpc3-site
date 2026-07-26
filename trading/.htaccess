@@ -1,0 +1,14 @@
+# SPA fallback: client-side routes (/trading/journal, /trading/wick, ...) must
+# serve the app shell, not a 404 from Apache. Without this, a deep link or a
+# hard refresh on any route other than /trading/ dies at the web server before
+# React ever runs.
+#
+# This lives in public/ ON PURPOSE, so Vite copies it into dist/ on every build
+# and it ships with the deploy. It used to exist only in the site repo, where a
+# deploy that cleared the folder silently took it with it and broke every deep
+# link.
+RewriteEngine On
+RewriteBase /trading/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /trading/index.html [L]
