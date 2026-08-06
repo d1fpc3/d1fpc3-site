@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Welcome to Echelon</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="robots" content="noindex">
+  <style>
+    /* Post-checkout. Stripe drops the buyer here with their session id; we
+       trade it for a real session and put them inside the course. No email
+       round-trip, because the moment after paying is the worst possible time
+       to ask someone to go and check their inbox. */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a; --ink: #f4f2ee; --muted: #8f8a80;
+      --faint: #5f5b54; --line: #222020; --gold: #a8842c; --gold-bright: #c9a24a;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .panel { width: 100%; max-width: 420px; }
+
+    .label {
+      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    h1 {
+      font-weight: 700; font-size: clamp(30px, 8vw, 40px);
+      line-height: 1.05; letter-spacing: -0.03em; margin-top: 14px;
+    }
+
+    p.body { margin-top: 14px; color: var(--muted); }
+
+    .spinner {
+      margin-top: 26px; width: 20px; height: 20px;
+      border: 1px solid var(--line); border-top-color: var(--gold);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+
+    .btn {
+      display: inline-block; margin-top: 24px; padding: 14px 28px;
+      background: var(--gold); color: #0a0a0a; font-size: 14px; font-weight: 600;
+      text-decoration: none; border: 1px solid var(--gold); border-radius: 2px;
+      transition: background 0.2s ease;
+    }
+    .btn:hover, .btn:focus-visible { background: var(--gold-bright); }
+
+    .quiet {
+      display: inline-block; margin-top: 18px; font-size: 13px;
+      color: var(--faint); text-decoration: none;
+      border-bottom: 1px solid var(--line);
+    }
+    .quiet:hover { color: var(--gold); border-bottom-color: var(--gold); }
+
+    .fail .label { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="panel" id="panel">
+    <p class="label" id="state-label">Confirming your payment</p>
+    <h1 id="state-title">One moment.</h1>
+    <p class="body" id="state-body">Setting up your access now.</p>
+    <div class="spinner" id="spinner"></div>
+    <div id="actions"></div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+    const SUPABASE_URL = 'https://cqdignbleethroyxxvzr.supabase.co'
+    const SUPABASE_KEY = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x'
+    const APP = '/echelon/app/'
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+    const el = (id) => document.getElementById(id)
+
+    function show({ label, title, body, actions = [], failed = false }) {
+      el('spinner').remove?.()
+      const spinner = el('spinner')
+      if (spinner) spinner.style.display = 'none'
+      el('state-label').textContent = label
+      el('state-title').textContent = title
+      el('state-body').textContent = body
+      if (failed) el('panel').classList.add('fail')
+
+      const host = el('actions')
+      host.textContent = ''
+      for (const a of actions) {
+        const link = document.createElement('a')
+        link.href = a.href
+        link.textContent = a.text
+        link.className = a.primary ? 'btn' : 'quiet'
+        host.appendChild(link)
+        host.appendChild(document.createTextNode(' '))
+      }
+    }
+
+    const sessionId = new URLSearchParams(location.search).get('session_id')
+
+    // Someone already signed in who wanders back here just goes through.
+    const { data: existing } = await supabase.auth.getSession()
+    if (existing?.session && !sessionId) {
+      location.replace(APP)
+    } else if (!sessionId) {
+      show({
+        label: 'Nothing to confirm',
+        title: 'No checkout found.',
+        body: 'This page is where Stripe sends you after buying. If you already have access, sign in instead.',
+        actions: [{ text: 'Sign in', href: APP, primary: true }, { text: 'Back to Echelon', href: '/echelon/' }],
+        failed: true,
+      })
+    } else {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/claim-access`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
+          body: JSON.stringify({ session_id: sessionId }),
+        })
+        const payload = await res.json().catch(() => ({}))
+
+        if (!res.ok) {
+          // The purchase is real either way — the webhook has already granted
+          // access. Only this one-click shortcut failed, so send them to the
+          // ordinary sign-in rather than implying something went wrong.
+          const expired = res.status === 410
+          show({
+            label: expired ? 'Link expired' : 'Almost there',
+            title: expired ? 'That link has expired.' : 'Sign in to continue.',
+            body: 'Your purchase is fine. Sign in with the email you paid with and we will send you a link.',
+            actions: [{ text: 'Sign in', href: APP, primary: true }],
+            failed: true,
+          })
+        } else {
+          const { error } = await supabase.auth.verifyOtp({
+            type: 'magiclink',
+            token_hash: payload.token_hash,
+          })
+          if (error) throw error
+
+          // Drop the session id out of the URL before moving on, so it does
+          // not sit in history or leak through a referrer.
+          history.replaceState(null, '', location.pathname)
+          location.replace(APP)
+        }
+      } catch (err) {
+        console.error('claim failed', err)
+        show({
+          label: 'Almost there',
+          title: 'Sign in to continue.',
+          body: 'Your purchase went through. Sign in with the email you paid with and we will send you a link.',
+          actions: [{ text: 'Sign in', href: APP, primary: true }],
+          failed: true,
+        })
+      }
+    }
+  </script>
+</body>
+</html>

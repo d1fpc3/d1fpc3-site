@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Echelon</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="robots" content="noindex">
+  <style>
+    /* ─────────────────────────────────────────────────────────
+       d1fpc3.com | echelon — members area
+
+       Same language as the sales page. The gate is not here: the
+       browser only ever sees what RLS hands it, and video and
+       files arrive as short-lived signed URLs from an edge
+       function. Hiding a lesson in the UI is presentation, not
+       protection.
+       ───────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a; --ink: #f4f2ee; --muted: #8f8a80;
+      --faint: #5f5b54; --line: #222020; --gold: #a8842c; --gold-bright: #c9a24a;
+    }
+
+    html { height: 100%; }
+
+    body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .label {
+      font-size: 11px; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--faint);
+    }
+
+    .btn {
+      display: inline-block; padding: 13px 26px;
+      background: var(--gold); color: #0a0a0a;
+      font-size: 14px; font-weight: 600; text-decoration: none;
+      border: 1px solid var(--gold); border-radius: 2px; cursor: pointer;
+      font-family: inherit; transition: background 0.2s ease;
+    }
+    .btn:hover, .btn:focus-visible { background: var(--gold-bright); }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+
+    .quiet {
+      background: none; border: none; padding: 0; cursor: pointer;
+      font-family: inherit; font-size: 13px; color: var(--faint);
+      text-decoration: none; border-bottom: 1px solid var(--line);
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+    .quiet:hover, .quiet:focus-visible { color: var(--gold); border-bottom-color: var(--gold); }
+
+    /* ── centred states: signing in, no access ──────────────── */
+
+    .centre {
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; padding: 32px 24px;
+    }
+    .panel { width: 100%; max-width: 400px; }
+    .panel h1 {
+      font-weight: 700; font-size: clamp(30px, 8vw, 40px);
+      line-height: 1.05; letter-spacing: -0.03em; margin-top: 14px;
+    }
+    .panel .body { margin-top: 14px; color: var(--muted); }
+    .panel .eyebrow { color: var(--gold); }
+
+    form.signin { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
+
+    input[type="email"] {
+      width: 100%; padding: 13px 14px; background: transparent;
+      border: 1px solid var(--line); border-radius: 2px;
+      color: var(--ink); font-family: inherit; font-size: 15px;
+    }
+    input[type="email"]:focus {
+      outline: none; border-color: var(--gold);
+    }
+    input[type="email"]::placeholder { color: var(--faint); }
+
+    .form-note { font-size: 13px; color: var(--faint); }
+    .form-error { font-size: 13px; color: #d98b7a; }
+
+    /* ── app shell ──────────────────────────────────────────── */
+
+    .shell { display: none; }
+    .shell.on { display: block; }
+
+    .topbar {
+      border-bottom: 1px solid var(--line);
+      padding: 16px clamp(20px, 5vw, 40px);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .brand { font-weight: 700; letter-spacing: -0.02em; font-size: 17px; }
+    .who { font-size: 12px; color: var(--faint); display: flex; align-items: center; gap: 14px; }
+
+    .layout {
+      max-width: 1060px; margin: 0 auto;
+      padding: clamp(24px, 5vh, 44px) clamp(20px, 5vw, 40px) 80px;
+      display: grid; grid-template-columns: 268px 1fr; gap: clamp(28px, 5vw, 56px);
+      align-items: start;
+    }
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; gap: 30px; }
+    }
+
+    /* ── lesson index ───────────────────────────────────────── */
+
+    .index-module { margin-bottom: 22px; }
+    .index-module-title {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--faint); padding-bottom: 8px; border-bottom: 1px solid var(--line);
+    }
+
+    .index-lesson {
+      display: flex; align-items: baseline; gap: 10px; width: 100%;
+      padding: 10px 0; background: none; border: none;
+      border-bottom: 1px solid var(--line); cursor: pointer;
+      font-family: inherit; font-size: 14px; color: var(--muted);
+      text-align: left; transition: color 0.2s ease;
+    }
+    .index-lesson:hover { color: var(--ink); }
+    .index-lesson.current { color: var(--gold); }
+
+    .tick { font-size: 11px; color: var(--gold); min-width: 1em; }
+    .tick.pending { color: var(--line); }
+    .index-lesson-title { flex: 1; }
+
+    /* ── lesson body ────────────────────────────────────────── */
+
+    .lesson-kind { color: var(--gold); }
+    .lesson-h {
+      font-weight: 600; font-size: clamp(24px, 5vw, 32px);
+      line-height: 1.12; letter-spacing: -0.025em; margin-top: 12px;
+    }
+    .lesson-sum { margin-top: 12px; color: var(--muted); max-width: 56ch; }
+
+    .player {
+      margin-top: 26px; position: relative; width: 100%;
+      aspect-ratio: 16 / 9; border: 1px solid var(--line); background: #000;
+    }
+    .player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+    .prose { margin-top: 26px; max-width: 62ch; color: var(--muted); }
+    .prose h2, .prose h3 {
+      color: var(--ink); font-weight: 600; letter-spacing: -0.015em;
+      margin: 26px 0 10px; font-size: 19px;
+    }
+    .prose h3 { font-size: 16px; }
+    .prose p { margin-bottom: 14px; }
+
+    .notice {
+      margin-top: 26px; padding: 16px 0; border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line); color: var(--faint); font-size: 14px;
+    }
+
+    .lesson-foot {
+      margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line);
+      display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    }
+
+    .empty { color: var(--faint); }
+  </style>
+</head>
+<body>
+
+  <!-- signing in / no access -->
+  <div class="centre" id="gate">
+    <div class="panel" id="gate-panel">
+      <p class="label eyebrow" id="gate-label">Echelon</p>
+      <h1 id="gate-title">Loading…</h1>
+      <p class="body" id="gate-body"></p>
+      <div id="gate-actions"></div>
+    </div>
+  </div>
+
+  <!-- the course -->
+  <div class="shell" id="shell">
+    <div class="topbar">
+      <span class="brand">Echelon</span>
+      <span class="who">
+        <span id="who-email"></span>
+        <button class="quiet" id="signout">Sign out</button>
+      </span>
+    </div>
+    <div class="layout">
+      <nav id="index" aria-label="Lessons"></nav>
+      <main id="lesson"></main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+    const SUPABASE_URL = 'https://cqdignbleethroyxxvzr.supabase.co'
+    const SUPABASE_KEY = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x'
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+    const el = (id) => document.getElementById(id)
+
+    const state = { user: null, modules: [], lessons: [], done: new Set(), currentId: null }
+
+    // ── gate rendering ──────────────────────────────────────
+
+    function gate({ title, body, render }) {
+      el('shell').classList.remove('on')
+      el('gate').style.display = 'flex'
+      el('gate-title').textContent = title
+      el('gate-body').textContent = body ?? ''
+      const host = el('gate-actions')
+      host.textContent = ''
+      render?.(host)
+    }
+
+    function signInScreen(message) {
+      gate({
+        title: 'Sign in.',
+        body: 'Use the email you bought with. We will send you a link — no password to remember.',
+        render(host) {
+          const form = document.createElement('form')
+          form.className = 'signin'
+
+          const input = document.createElement('input')
+          input.type = 'email'
+          input.placeholder = 'you@email.com'
+          input.autocomplete = 'email'
+          input.required = true
+
+          const button = document.createElement('button')
+          button.type = 'submit'
+          button.className = 'btn'
+          button.textContent = 'Send me a link'
+
+          const note = document.createElement('p')
+          note.className = message ? 'form-error' : 'form-note'
+          note.textContent = message ?? ''
+
+          form.append(input, button, note)
+          host.appendChild(form)
+
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            button.disabled = true
+            button.textContent = 'Sending…'
+            const { error } = await supabase.auth.signInWithOtp({
+              email: input.value.trim(),
+              options: { emailRedirectTo: 'https://d1fpc3.com/echelon/app/' },
+            })
+            if (error) {
+              note.className = 'form-error'
+              note.textContent = error.message
+              button.disabled = false
+              button.textContent = 'Send me a link'
+              return
+            }
+            gate({
+              title: 'Check your email.',
+              body: `We sent a sign-in link to ${input.value.trim()}. It works once, and it expires in an hour.`,
+            })
+          })
+        },
+      })
+    }
+
+    function noAccessScreen(email) {
+      gate({
+        title: 'No access on this email.',
+        body: `${email} has not bought Echelon. If you paid with a different address, sign in with that one instead.`,
+        render(host) {
+          const buy = document.createElement('a')
+          buy.className = 'btn'
+          buy.href = '/echelon/'
+          buy.textContent = 'See what Echelon is'
+
+          const other = document.createElement('button')
+          other.className = 'quiet'
+          other.textContent = 'Use a different email'
+          other.style.marginTop = '18px'
+          other.style.display = 'block'
+          other.addEventListener('click', async () => {
+            await supabase.auth.signOut()
+            signInScreen()
+          })
+
+          host.append(buy, other)
+        },
+      })
+    }
+
+    // ── content ─────────────────────────────────────────────
+
+    const KIND_LABEL = { video: 'Video', written: 'Read', download: 'Download', live: 'Live' }
+
+    function renderIndex() {
+      const host = el('index')
+      host.textContent = ''
+
+      for (const mod of state.modules) {
+        const lessons = state.lessons.filter((l) => l.module_id === mod.id)
+        if (!lessons.length) continue
+
+        const wrap = document.createElement('div')
+        wrap.className = 'index-module'
+
+        const title = document.createElement('p')
+        title.className = 'index-module-title'
+        title.textContent = mod.title
+        wrap.appendChild(title)
+
+        for (const lesson of lessons) {
+          const btn = document.createElement('button')
+          btn.className = 'index-lesson' + (lesson.id === state.currentId ? ' current' : '')
+
+          const tick = document.createElement('span')
+          const complete = state.done.has(lesson.id)
+          tick.className = 'tick' + (complete ? '' : ' pending')
+          tick.textContent = complete ? '●' : '○'
+
+          const name = document.createElement('span')
+          name.className = 'index-lesson-title'
+          name.textContent = lesson.title
+
+          btn.append(tick, name)
+          btn.addEventListener('click', () => openLesson(lesson.id))
+          wrap.appendChild(btn)
+        }
+
+        host.appendChild(wrap)
+      }
+    }
+
+    /** Minimal and deliberately text-only: headings and paragraphs, escaped. */
+    function renderProse(host, md) {
+      for (const block of md.split(/\n{2,}/)) {
+        const trimmed = block.trim()
+        if (!trimmed) continue
+        const heading = trimmed.match(/^(#{2,3})\s+(.*)$/)
+        const node = document.createElement(heading ? (heading[1].length === 2 ? 'h2' : 'h3') : 'p')
+        node.textContent = heading ? heading[2] : trimmed
+        host.appendChild(node)
+      }
+    }
+
+    async function signedMedia(lessonId) {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/media-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ lesson_id: lessonId }),
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(payload.error ?? `${res.status}`)
+      return payload
+    }
+
+    async function openLesson(id) {
+      state.currentId = id
+      renderIndex()
+
+      const lesson = state.lessons.find((l) => l.id === id)
+      const host = el('lesson')
+      host.textContent = ''
+      if (!lesson) return
+
+      const kind = document.createElement('p')
+      kind.className = 'label lesson-kind'
+      kind.textContent = KIND_LABEL[lesson.kind] ?? lesson.kind
+      host.appendChild(kind)
+
+      const h = document.createElement('h1')
+      h.className = 'lesson-h'
+      h.textContent = lesson.title
+      host.appendChild(h)
+
+      if (lesson.summary) {
+        const s = document.createElement('p')
+        s.className = 'lesson-sum'
+        s.textContent = lesson.summary
+        host.appendChild(s)
+      }
+
+      if (lesson.kind === 'video') {
+        const player = document.createElement('div')
+        player.className = 'player'
+        host.appendChild(player)
+        try {
+          const { url } = await signedMedia(lesson.id)
+          const frame = document.createElement('iframe')
+          frame.src = url
+          frame.allow = 'accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen'
+          frame.allowFullscreen = true
+          frame.loading = 'lazy'
+          player.appendChild(frame)
+        } catch (err) {
+          player.remove()
+          const notice = document.createElement('p')
+          notice.className = 'notice'
+          notice.textContent = `This video is not playable yet — ${err.message}.`
+          host.appendChild(notice)
+        }
+      }
+
+      if (lesson.kind === 'download') {
+        const notice = document.createElement('div')
+        notice.className = 'lesson-foot'
+        const btn = document.createElement('button')
+        btn.className = 'btn'
+        btn.textContent = 'Download'
+        btn.addEventListener('click', async () => {
+          btn.disabled = true
+          btn.textContent = 'Preparing…'
+          try {
+            const { url } = await signedMedia(lesson.id)
+            location.href = url
+            btn.textContent = 'Download'
+          } catch (err) {
+            btn.textContent = `Not available — ${err.message}`
+          } finally {
+            btn.disabled = false
+          }
+        })
+        notice.appendChild(btn)
+        host.appendChild(notice)
+      }
+
+      if (lesson.kind === 'live') {
+        const notice = document.createElement('p')
+        notice.className = 'notice'
+        notice.textContent = 'Live session. Details are sent by email ahead of each one.'
+        host.appendChild(notice)
+      }
+
+      if (lesson.body_md) {
+        const prose = document.createElement('div')
+        prose.className = 'prose'
+        renderProse(prose, lesson.body_md)
+        host.appendChild(prose)
+      }
+
+      // ── mark complete / next ──
+      const foot = document.createElement('div')
+      foot.className = 'lesson-foot'
+
+      const done = state.done.has(lesson.id)
+      const mark = document.createElement('button')
+      mark.className = done ? 'quiet' : 'btn'
+      mark.textContent = done ? 'Mark as not done' : 'Mark complete'
+      mark.addEventListener('click', async () => {
+        mark.disabled = true
+        const nowDone = !state.done.has(lesson.id)
+        const { error } = await supabase.from('progress').upsert({
+          user_id: state.user.id,
+          lesson_id: lesson.id,
+          completed_at: nowDone ? new Date().toISOString() : null,
+        }, { onConflict: 'user_id,lesson_id' })
+        if (!error) {
+          nowDone ? state.done.add(lesson.id) : state.done.delete(lesson.id)
+          openLesson(lesson.id)
+        } else {
+          mark.disabled = false
+          mark.textContent = 'Could not save'
+        }
+      })
+      foot.appendChild(mark)
+
+      const ordered = state.modules.flatMap((m) => state.lessons.filter((l) => l.module_id === m.id))
+      const at = ordered.findIndex((l) => l.id === lesson.id)
+      const next = ordered[at + 1]
+      if (next) {
+        const nextBtn = document.createElement('button')
+        nextBtn.className = 'quiet'
+        nextBtn.textContent = `Next: ${next.title}`
+        nextBtn.addEventListener('click', () => {
+          openLesson(next.id)
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        })
+        foot.appendChild(nextBtn)
+      }
+
+      host.appendChild(foot)
+    }
+
+    async function loadCourse() {
+      // These come back filtered by RLS: without an active entitlement the
+      // modules query is simply empty. The explicit entitlement check below is
+      // for the message, not the gate.
+      const [{ data: modules }, { data: lessons }, { data: progress }] = await Promise.all([
+        supabase.from('modules').select('id, title, position').order('position'),
+        supabase.from('lessons').select('id, module_id, title, summary, kind, body_md, position').order('position'),
+        supabase.from('progress').select('lesson_id, completed_at'),
+      ])
+
+      state.modules = modules ?? []
+      state.lessons = lessons ?? []
+      state.done = new Set((progress ?? []).filter((p) => p.completed_at).map((p) => p.lesson_id))
+
+      el('gate').style.display = 'none'
+      el('shell').classList.add('on')
+      el('who-email').textContent = state.user.email
+
+      renderIndex()
+      const first = state.modules
+        .flatMap((m) => state.lessons.filter((l) => l.module_id === m.id))[0]
+      if (first) {
+        openLesson(first.id)
+      } else {
+        el('lesson').innerHTML = '<p class="empty">No lessons published yet.</p>'
+      }
+    }
+
+    // ── boot ────────────────────────────────────────────────
+
+    el('signout').addEventListener('click', async () => {
+      await supabase.auth.signOut()
+      location.reload()
+    })
+
+    async function boot() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return signInScreen()
+
+      state.user = session.user
+
+      const { data: ent } = await supabase
+        .from('entitlements')
+        .select('status')
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (!ent) return noAccessScreen(session.user.email)
+      await loadCourse()
+    }
+
+    // Magic-link returns land here with tokens in the URL fragment;
+    // supabase-js consumes them, then fires SIGNED_IN.
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' && !state.user) boot()
+    })
+
+    boot()
+  </script>
+</body>
+</html>
