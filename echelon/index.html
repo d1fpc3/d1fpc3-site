@@ -136,6 +136,19 @@
       transform: none;
     }
 
+    /* The free door. Present, but it must not out-shout the paid one. */
+    .btn.btn-ghost {
+      background: transparent;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+
+    .btn.btn-ghost:hover, .btn.btn-ghost:focus-visible {
+      background: transparent;
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
     .price-note { font-size: 13px; color: var(--muted); }
     .price-note strong { color: var(--ink); font-weight: 600; }
 
@@ -220,6 +233,18 @@
     }
 
     .curriculum-loading, .curriculum-error { margin-top: 26px; color: var(--faint); font-size: 14px; }
+
+    /* ── coming ─────────────────────────────────────────────── */
+
+    .coming-note {
+      margin-top: 22px;
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      color: var(--gold);
+    }
 
     /* ── preview ────────────────────────────────────────────── */
 
@@ -332,11 +357,28 @@
       </div>
     </section>
 
+    <section class="wrap" id="coming">
+      <div class="section-head"><p class="label">On its way</p></div>
+      <h2 id="coming-title"></h2>
+      <p class="section-body" id="coming-body"></p>
+      <p class="coming-note" id="coming-note"></p>
+    </section>
+
     <section class="wrap" id="preview" hidden>
       <div class="section-head"><p class="label">Free preview</p></div>
       <h2 id="preview-title"></h2>
       <p class="section-body">The first lesson, in full, before you pay anything.</p>
       <div class="preview-body" id="preview-body"></div>
+    </section>
+
+    <section class="wrap" id="discord" hidden>
+      <div class="section-head"><p class="label">Free to join</p></div>
+      <h2 id="discord-title"></h2>
+      <p class="section-body" id="discord-body"></p>
+      <div class="buy">
+        <a class="btn btn-ghost" id="discord-cta" href="#" target="_blank" rel="noopener">Join the Discord</a>
+        <span class="price-note"><strong>Free.</strong> <span id="discord-terms"></span></span>
+      </div>
     </section>
 
     <section class="wrap" id="faq">
@@ -361,6 +403,8 @@
       <div class="foot">
         <span>© 2026 d1fpc3</span>
         <span>
+          <a id="foot-discord" href="#" target="_blank" rel="noopener" hidden>Discord</a>
+          <span id="foot-discord-sep" hidden>&nbsp;·&nbsp;</span>
           <a href="/echelon/app/">Already bought? Sign in</a>
           &nbsp;·&nbsp;
           <a href="/">d1fpc3.com</a>
@@ -393,6 +437,14 @@
       insideTitle: 'REPLACE: what they get, stated plainly.',
       insideBody:  'REPLACE: one paragraph on the shape of the thing. The outline below is live — it is the real course structure, read straight from the database.',
 
+      comingTitle: 'The D1 Engine indicator is on its way.',
+      comingBody:  'REPLACE: two sentences on what the indicator does and why it belongs next to this course.',
+      comingNote:  'REPLACE: not released yet — say whether Echelon members get it included, and roughly when.',
+
+      discordTitle: 'Not ready to buy? Start in the Discord.',
+      discordBody:  'REPLACE: what actually happens in there, in two sentences. Give a reason to join beyond the word "community".',
+      discordTerms: 'No card, nothing to cancel.',
+
       faq: [
         { q: 'How long do I have access?',      a: 'Forever. One payment, no renewal.' },
         { q: 'REPLACE: their biggest objection?', a: 'REPLACE: answer it honestly and briefly.' },
@@ -413,6 +465,15 @@
     // ═══════════════════════════════════════════════════════════
     const PAYMENT_LINK = ''
 
+    // ═══════════════════════════════════════════════════════════
+    //  The free Discord invite. Use a permanent, non-expiring
+    //  invite — Discord defaults to 7 days, which would quietly
+    //  turn this into a dead link a week after launch. Left blank,
+    //  the whole section stays hidden rather than shipping a
+    //  button that goes nowhere.
+    // ═══════════════════════════════════════════════════════════
+    const DISCORD_INVITE = ''
+
     const SUPABASE_URL = 'https://cqdignbleethroyxxvzr.supabase.co'
     const SUPABASE_KEY = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x'
 
@@ -426,6 +487,12 @@
     set('for-title', copy.forTitle)
     set('inside-title', copy.insideTitle)
     set('inside-body', copy.insideBody)
+    set('coming-title', copy.comingTitle)
+    set('coming-body', copy.comingBody)
+    set('coming-note', copy.comingNote)
+    set('discord-title', copy.discordTitle)
+    set('discord-body', copy.discordBody)
+    set('discord-terms', copy.discordTerms)
     set('close-title', copy.closeTitle)
     set('close-body', copy.closeBody)
     set('price-top', copy.price)
@@ -453,6 +520,16 @@
       aEl.textContent = a
       item.append(qEl, aEl)
       faqList.appendChild(item)
+    }
+
+    // The Discord section only exists if there is somewhere for it to go.
+    if (DISCORD_INVITE) {
+      document.getElementById('discord-cta').href = DISCORD_INVITE
+      document.getElementById('discord').hidden = false
+      const footLink = document.getElementById('foot-discord')
+      footLink.href = DISCORD_INVITE
+      footLink.hidden = false
+      document.getElementById('foot-discord-sep').hidden = false
     }
 
     for (const id of ['cta-top', 'cta-bottom']) {
