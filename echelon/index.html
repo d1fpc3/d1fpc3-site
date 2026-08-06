@@ -185,18 +185,99 @@
     }
 
     /* ── faq ────────────────────────────────────────────────── */
+    /* The FAQ Accordion from d1fpc3.com/templates (sec-faq), recoloured
+       for this page: same <details> mechanism, same "+" that rotates into
+       a cross, same slide-in on the answer. */
 
-    .faq-item { padding: 19px 0; border-bottom: 1px solid var(--line); }
-    .faq-q { font-weight: 600; letter-spacing: -0.012em; }
-    .faq-a { margin-top: 7px; color: var(--muted); font-size: 15px; max-width: 52ch; }
+    .faq { margin-top: 26px; display: grid; gap: 10px; }
+
+    .faq details {
+      border: 1px solid var(--line-bright);
+      border-radius: 12px;
+      background: #0e0d0c;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    .faq details[open] { border-color: var(--gold); }
+
+    .faq summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 17px 19px;
+      font-size: 15.5px;
+      font-weight: 600;
+      letter-spacing: -0.012em;
+      cursor: pointer;
+    }
+
+    .faq summary::-webkit-details-marker { display: none; }
+
+    .faq summary::after {
+      content: "+";
+      font-size: 21px;
+      font-weight: 400;
+      line-height: 1;
+      color: var(--faint);
+      transition: transform 0.3s cubic-bezier(0.77, 0, 0.175, 1), color 0.2s ease;
+    }
+
+    .faq details[open] summary::after { transform: rotate(45deg); color: var(--gold); }
+
+    .faq summary:focus-visible { outline: 1px solid var(--gold); outline-offset: -3px; }
+
+    .faq .a {
+      padding: 0 19px 17px;
+      font-size: 15px;
+      line-height: 1.62;
+      color: var(--muted);
+      max-width: 52ch;
+      animation: faq-in 0.3s ease;
+    }
+
+    @keyframes faq-in { from { opacity: 0; transform: translateY(-4px); } }
+    @media (prefers-reduced-motion: reduce) { .faq .a { animation: none; } }
 
     /* ── footer ─────────────────────────────────────────────── */
 
-    footer { margin-top: clamp(64px, 12vh, 100px); padding-bottom: 36px; }
+    footer { margin-top: clamp(64px, 12vh, 100px); padding-bottom: 40px; }
 
-    .foot {
+    .foot-top {
       border-top: 1px solid var(--line-bright);
-      padding-top: 17px;
+      padding-top: 26px;
+      display: flex;
+      justify-content: space-between;
+      gap: 26px;
+      flex-wrap: wrap;
+    }
+
+    .foot-brand { font-weight: 700; letter-spacing: -0.025em; font-size: 19px; }
+    .foot-brand span { display: block; font-size: 11.5px; font-weight: 400; letter-spacing: 0.04em; color: var(--faint); margin-top: 3px; }
+
+    .foot-links { display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
+    .foot-links a { color: var(--muted); text-decoration: none; transition: color 0.2s ease; }
+    .foot-links a:hover, .foot-links a:focus-visible { color: var(--gold); }
+
+    .disclaimer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      font-size: 11.5px;
+      line-height: 1.72;
+      color: var(--faint);
+      max-width: 74ch;
+    }
+
+    .disclaimer strong { color: var(--muted); font-weight: 600; }
+    .disclaimer p + p { margin-top: 9px; }
+
+    .foot-base {
+      margin-top: 24px;
+      padding-top: 15px;
+      border-top: 1px solid var(--line);
       font-size: 11.5px;
       letter-spacing: 0.04em;
       color: var(--faint);
@@ -206,8 +287,8 @@
       flex-wrap: wrap;
     }
 
-    .foot a { text-decoration: none; transition: color 0.2s ease; }
-    .foot a:hover, .foot a:focus-visible { color: var(--gold); }
+    .foot-base a { text-decoration: none; transition: color 0.2s ease; }
+    .foot-base a:hover, .foot-base a:focus-visible { color: var(--gold); }
 
     /* ── entrance ───────────────────────────────────────────── */
 
@@ -259,11 +340,6 @@
       <p class="coming-note" id="coming-note"></p>
     </section>
 
-    <section class="wrap" id="faq">
-      <div class="section-head"><p class="label">Questions</p></div>
-      <div id="faq-list"></div>
-    </section>
-
     <section class="wrap">
       <div class="section-head"><p class="label">Get started</p></div>
       <h2 id="close-title"></h2>
@@ -274,19 +350,39 @@
       </div>
     </section>
 
+    <!-- last thing before the footer, on purpose -->
+    <section class="wrap" id="faq">
+      <div class="section-head"><p class="label">Questions</p></div>
+      <div class="faq" id="faq-list"></div>
+    </section>
+
   </main>
 
   <footer>
     <div class="wrap">
-      <div class="foot">
-        <span>© 2026 d1fpc3</span>
-        <span>
-          <a id="foot-discord" href="#" target="_blank" rel="noopener" hidden>Discord</a>
-          <span id="foot-discord-sep" hidden>&nbsp;·&nbsp;</span>
+      <div class="foot-top">
+        <div class="foot-brand">Echelon<span>A course by d1fpc3</span></div>
+        <nav class="foot-links" aria-label="Footer">
+          <a id="foot-discord" href="#" target="_blank" rel="noopener" hidden>Join the Discord</a>
           <a href="/echelon/app/">Already bought? Sign in</a>
-          &nbsp;·&nbsp;
+          <a href="https://www.tradingview.com/u/d1fpc3/" target="_blank" rel="noopener">TradingView</a>
           <a href="/">d1fpc3.com</a>
-        </span>
+        </nav>
+      </div>
+
+      <div class="disclaimer">
+        <p><strong>Risk disclosure.</strong> Trading futures carries a substantial risk of loss and is not suitable for
+        everyone. You can lose more than the money you put in. Only trade with capital you can afford to lose entirely.</p>
+        <p><strong>Not financial advice.</strong> Echelon is educational material describing how one person trades. It is
+        not personalised investment, financial, tax or legal advice, and no part of it is a recommendation to buy or sell
+        anything. What you do with your own money is your decision and your responsibility.</p>
+        <p><strong>No performance promise.</strong> Nothing here is a guarantee or projection of results. Past results,
+        whether real or simulated, do not indicate future returns. Most people who trade futures lose money.</p>
+      </div>
+
+      <div class="foot-base">
+        <span>© 2026 d1fpc3</span>
+        <span>Echelon is not affiliated with, endorsed by, or connected to any exchange or broker.</span>
       </div>
     </div>
   </footer>
@@ -318,7 +414,7 @@
 
       comingTitle: 'The D1 Engine indicator is on its way.',
       comingBody:  'The tool I have been building alongside everything else on my TradingView profile.',
-      comingNote:  'Not released yet. Everyone who buys Echelon gets it free when it ships.',
+      comingNote:  'Not released yet. It will be $25 a month, separate from Echelon.',
 
       faq: [
         { q: 'How long do I have access?',
@@ -379,18 +475,17 @@
     }
 
     const faqList = document.getElementById('faq-list')
-    for (const { q, a } of copy.faq) {
-      const item = document.createElement('div')
-      item.className = 'faq-item'
-      const qEl = document.createElement('p')
-      qEl.className = 'faq-q'
-      qEl.textContent = q
-      const aEl = document.createElement('p')
-      aEl.className = 'faq-a'
-      aEl.textContent = a
-      item.append(qEl, aEl)
+    copy.faq.forEach(({ q, a }, i) => {
+      const item = document.createElement('details')
+      if (i === 0) item.open = true // one answer visible, so the pattern reads as openable
+      const summary = document.createElement('summary')
+      summary.textContent = q
+      const answer = document.createElement('div')
+      answer.className = 'a'
+      answer.textContent = a
+      item.append(summary, answer)
       faqList.appendChild(item)
-    }
+    })
 
     if (DISCORD_INVITE) {
       document.getElementById('discord-cta').href = DISCORD_INVITE
