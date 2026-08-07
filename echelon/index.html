@@ -16,13 +16,13 @@
     /* ─────────────────────────────────────────────────────────
        d1fpc3.com | echelon — sales page
 
-       Deliberately withholding: no curriculum, no lesson list, no
-       counts. What is inside is for people who have paid. The page
-       sells the outcome and the person, not the table of contents.
+       Wide editorial layout: rules run the full width of the page,
+       the section label sits out in the left margin, content sits
+       in a column beside it. That uses a big screen without
+       stretching prose to an unreadable line length.
 
-       House language, inverted for a paid product: flat
-       typographic rows, hairline dividers, sparse gold, no cards
-       and no pills.
+       Deliberately withholding: no curriculum, no lesson list, no
+       counts. What is inside is for people who have paid.
        ───────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -35,6 +35,11 @@
       --line-bright: #35322e;
       --gold: #a8842c;
       --gold-bright: #c9a24a;
+
+      --maxw: 1240px;
+      --gut: clamp(22px, 5vw, 64px);
+      --aside: 210px;
+      --colgap: clamp(28px, 5vw, 72px);
     }
 
     html { height: 100%; scroll-behavior: smooth; }
@@ -52,10 +57,10 @@
 
     .wrap {
       width: 100%;
-      max-width: 660px;
+      max-width: var(--maxw);
       margin: 0 auto;
-      padding-left: clamp(22px, 6vw, 40px);
-      padding-right: clamp(22px, 6vw, 40px);
+      padding-left: var(--gut);
+      padding-right: var(--gut);
     }
 
     a { color: inherit; }
@@ -67,40 +72,71 @@
       color: var(--faint);
     }
 
+    /* ── the two-column section ─────────────────────────────── */
+
+    section { padding: clamp(48px, 8vh, 84px) 0 0; }
+
+    .rule { border-top: 1px solid var(--line-bright); }
+
+    .sec {
+      display: grid;
+      grid-template-columns: var(--aside) minmax(0, 1fr);
+      gap: var(--colgap);
+      padding-top: 26px;
+    }
+
+    /* the label rides along the left margin while you read */
+    .sec-aside { position: sticky; top: 28px; align-self: start; }
+
+    .prose-w { max-width: 62ch; }
+
+    @media (max-width: 900px) {
+      .sec { grid-template-columns: 1fr; gap: 18px; }
+      .sec-aside { position: static; }
+    }
+
     /* ── hero ───────────────────────────────────────────────── */
 
-    header { padding-top: clamp(56px, 14vh, 128px); }
+    header { padding-top: clamp(48px, 11vh, 108px); }
+
+    .hero-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: clamp(24px, 5vw, 64px);
+      align-items: end;
+    }
+
+    @media (max-width: 900px) {
+      .hero-top { grid-template-columns: 1fr; align-items: start; }
+    }
 
     .eyebrow { color: var(--gold); }
 
     h1 {
       font-weight: 700;
-      font-size: clamp(56px, 16vw, 104px);
-      line-height: 0.9;
-      letter-spacing: -0.048em;
+      font-size: clamp(58px, 13vw, 168px);
+      line-height: 0.86;
+      letter-spacing: -0.05em;
       margin-top: 18px;
     }
 
     .sub {
-      margin-top: 26px;
+      margin-top: 28px;
       color: var(--muted);
-      font-size: clamp(17px, 3.6vw, 19px);
-      max-width: 40ch;
+      font-size: clamp(17px, 2.2vw, 21px);
+      max-width: 34ch;
     }
+
+    .hero-buy { padding-bottom: 6px; }
 
     /* ── buy ────────────────────────────────────────────────── */
 
-    .buy {
-      margin-top: 34px;
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      flex-wrap: wrap;
-    }
+    .buy { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    header .buy { margin-top: 36px; }
 
     .btn {
       display: inline-block;
-      padding: 16px 32px;
+      padding: 17px 34px;
       background: var(--gold);
       color: #0a0a0a;
       font-size: 15px;
@@ -135,61 +171,72 @@
     .price-note { font-size: 14px; color: var(--muted); }
     .price-note strong { color: var(--ink); font-weight: 600; }
 
-    /* ── sections ───────────────────────────────────────────── */
-
-    section { padding: clamp(54px, 11vh, 92px) 0 0; }
-
-    .section-head { padding-bottom: 16px; border-bottom: 1px solid var(--line-bright); }
+    /* ── headings ───────────────────────────────────────────── */
 
     h2 {
       font-weight: 600;
-      font-size: clamp(27px, 6vw, 36px);
-      line-height: 1.12;
-      letter-spacing: -0.03em;
-      margin-top: 22px;
-      max-width: 22ch;
+      font-size: clamp(28px, 3.4vw, 44px);
+      line-height: 1.08;
+      letter-spacing: -0.032em;
+      max-width: 20ch;
     }
 
-    .section-body { margin-top: 16px; color: var(--muted); max-width: 50ch; }
+    .section-body { margin-top: 18px; color: var(--muted); max-width: 58ch; }
+
+    /* ── who it's for: real columns on a real screen ────────── */
+
+    .for-grid {
+      list-style: none;
+      margin-top: 34px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .for-grid li {
+      padding: 20px 26px 24px 0;
+      color: var(--muted);
+      position: relative;
+      font-size: 15.5px;
+    }
+
+    .for-grid li + li { border-left: 1px solid var(--line); padding-left: 26px; }
+
+    .for-grid li::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 26px; height: 1px;
+      background: var(--gold);
+    }
+
+    .for-grid li + li::before { left: 26px; }
+
+    @media (max-width: 760px) {
+      .for-grid { grid-template-columns: 1fr; }
+      .for-grid li { padding: 18px 0 20px; border-bottom: 1px solid var(--line); }
+      .for-grid li + li { border-left: none; padding-left: 0; }
+      .for-grid li + li::before { left: 0; }
+    }
 
     /* ── coming ─────────────────────────────────────────────── */
 
     .coming-note {
-      margin-top: 24px;
-      padding: 15px 0;
+      margin-top: 26px;
+      padding: 16px 0;
       border-top: 1px solid var(--line-bright);
       border-bottom: 1px solid var(--line-bright);
-      font-size: 14px;
+      font-size: 14.5px;
       color: var(--gold);
-      max-width: 50ch;
-    }
-
-    /* ── list ───────────────────────────────────────────────── */
-
-    ul.plain { list-style: none; margin-top: 22px; }
-
-    ul.plain li {
-      padding: 14px 0 14px 22px;
-      border-bottom: 1px solid var(--line);
-      color: var(--muted);
-      position: relative;
-      max-width: 52ch;
-    }
-
-    ul.plain li::before {
-      content: "";
-      position: absolute;
-      left: 0; top: 27px; /* centred on the first line, not above it */
-      width: 7px; height: 1px;
-      background: var(--gold);
     }
 
     /* ── faq ────────────────────────────────────────────────── */
-    /* The FAQ Accordion from d1fpc3.com/templates (sec-faq), recoloured
-       for this page: same <details> mechanism, same "+" that rotates into
-       a cross, same slide-in on the answer. */
+    /* The FAQ Accordion from d1fpc3.com/templates (sec-faq), recoloured:
+       same <details> mechanism, same "+" that rotates into a cross, same
+       slide-in on the answer. */
 
-    .faq { margin-top: 26px; display: grid; gap: 10px; }
+    .faq { margin-top: 4px; display: grid; gap: 10px; }
 
     .faq details {
       border: 1px solid var(--line-bright);
@@ -207,8 +254,8 @@
       align-items: center;
       justify-content: space-between;
       gap: 14px;
-      padding: 17px 19px;
-      font-size: 15.5px;
+      padding: 18px 22px;
+      font-size: 16px;
       font-weight: 600;
       letter-spacing: -0.012em;
       cursor: pointer;
@@ -226,15 +273,14 @@
     }
 
     .faq details[open] summary::after { transform: rotate(45deg); color: var(--gold); }
-
     .faq summary:focus-visible { outline: 1px solid var(--gold); outline-offset: -3px; }
 
     .faq .a {
-      padding: 0 19px 17px;
+      padding: 0 22px 18px;
       font-size: 15px;
       line-height: 1.62;
       color: var(--muted);
-      max-width: 52ch;
+      max-width: 62ch;
       animation: faq-in 0.3s ease;
     }
 
@@ -243,40 +289,38 @@
 
     /* ── footer ─────────────────────────────────────────────── */
 
-    footer { margin-top: clamp(64px, 12vh, 100px); padding-bottom: 40px; }
+    footer { margin-top: clamp(56px, 10vh, 96px); padding-bottom: 44px; }
 
     .foot-top {
       border-top: 1px solid var(--line-bright);
-      padding-top: 26px;
-      display: flex;
-      justify-content: space-between;
-      gap: 26px;
-      flex-wrap: wrap;
+      padding-top: 30px;
+      display: grid;
+      grid-template-columns: var(--aside) minmax(0, 1fr) auto;
+      gap: var(--colgap);
+      align-items: start;
     }
 
-    .foot-brand { font-weight: 700; letter-spacing: -0.025em; font-size: 19px; }
-    .foot-brand span { display: block; font-size: 11.5px; font-weight: 400; letter-spacing: 0.04em; color: var(--faint); margin-top: 3px; }
+    @media (max-width: 900px) {
+      .foot-top { grid-template-columns: 1fr; gap: 26px; }
+    }
 
-    .foot-links { display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
+    .foot-brand { font-weight: 700; letter-spacing: -0.028em; font-size: 21px; }
+    .foot-brand span {
+      display: block; font-size: 11.5px; font-weight: 400;
+      letter-spacing: 0.04em; color: var(--faint); margin-top: 4px;
+    }
+
+    .disclaimer { font-size: 11.5px; line-height: 1.75; color: var(--faint); max-width: 78ch; }
+    .disclaimer strong { color: var(--muted); font-weight: 600; }
+    .disclaimer p + p { margin-top: 10px; }
+
+    .foot-links { display: flex; flex-direction: column; gap: 8px; font-size: 13px; white-space: nowrap; }
     .foot-links a { color: var(--muted); text-decoration: none; transition: color 0.2s ease; }
     .foot-links a:hover, .foot-links a:focus-visible { color: var(--gold); }
 
-    .disclaimer {
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid var(--line);
-      font-size: 11.5px;
-      line-height: 1.72;
-      color: var(--faint);
-      max-width: 74ch;
-    }
-
-    .disclaimer strong { color: var(--muted); font-weight: 600; }
-    .disclaimer p + p { margin-top: 9px; }
-
     .foot-base {
-      margin-top: 24px;
-      padding-top: 15px;
+      margin-top: 30px;
+      padding-top: 16px;
       border-top: 1px solid var(--line);
       font-size: 11.5px;
       letter-spacing: 0.04em;
@@ -287,17 +331,13 @@
       flex-wrap: wrap;
     }
 
-    .foot-base a { text-decoration: none; transition: color 0.2s ease; }
-    .foot-base a:hover, .foot-base a:focus-visible { color: var(--gold); }
-
     /* ── entrance ───────────────────────────────────────────── */
 
     @media (prefers-reduced-motion: no-preference) {
       .rise { opacity: 0; transform: translateY(11px); animation: rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-      header .rise:nth-child(1) { animation-delay: 0s; }
-      header .rise:nth-child(2) { animation-delay: 0.07s; }
-      header .rise:nth-child(3) { animation-delay: 0.14s; }
-      header .rise:nth-child(4) { animation-delay: 0.21s; }
+      .rise-1 { animation-delay: 0.06s; }
+      .rise-2 { animation-delay: 0.13s; }
+      .rise-3 { animation-delay: 0.2s; }
       @keyframes rise { to { opacity: 1; transform: none; } }
     }
   </style>
@@ -305,12 +345,18 @@
 <body>
 
   <header class="wrap">
-    <p class="label eyebrow rise" id="eyebrow"></p>
-    <h1 class="rise" id="name"></h1>
-    <p class="sub rise" id="subhead"></p>
-    <div class="buy rise">
-      <a class="btn" id="cta-top" href="#">Get Echelon</a>
-      <span class="price-note"><strong id="price-top"></strong> <span id="price-terms"></span></span>
+    <div class="hero-top">
+      <div>
+        <p class="label eyebrow rise" id="eyebrow"></p>
+        <h1 class="rise rise-1" id="name"></h1>
+        <p class="sub rise rise-2" id="subhead"></p>
+      </div>
+      <div class="hero-buy rise rise-3">
+        <div class="buy">
+          <a class="btn" id="cta-top" href="#">Get Echelon</a>
+          <span class="price-note"><strong id="price-top"></strong> <span id="price-terms"></span></span>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -318,42 +364,65 @@
 
     <!-- The free door, high on the page on purpose. -->
     <section class="wrap" id="discord" hidden>
-      <div class="section-head"><p class="label">Free to join</p></div>
-      <h2 id="discord-title"></h2>
-      <p class="section-body" id="discord-body"></p>
-      <div class="buy">
-        <a class="btn btn-ghost" id="discord-cta" href="#" target="_blank" rel="noopener">Join the Discord</a>
-        <span class="price-note"><strong>Free.</strong> <span id="discord-terms"></span></span>
+      <div class="rule"></div>
+      <div class="sec">
+        <div class="sec-aside"><p class="label">Free to join</p></div>
+        <div class="sec-main">
+          <h2 id="discord-title"></h2>
+          <p class="section-body" id="discord-body"></p>
+          <div class="buy" style="margin-top: 28px;">
+            <a class="btn btn-ghost" id="discord-cta" href="#" target="_blank" rel="noopener">Join the Discord</a>
+            <span class="price-note"><strong>Free.</strong> <span id="discord-terms"></span></span>
+          </div>
+        </div>
       </div>
     </section>
 
     <section class="wrap" id="for">
-      <div class="section-head"><p class="label">Who it's for</p></div>
-      <h2 id="for-title"></h2>
-      <ul class="plain" id="for-list"></ul>
+      <div class="rule"></div>
+      <div class="sec">
+        <div class="sec-aside"><p class="label">Who it's for</p></div>
+        <div class="sec-main">
+          <h2 id="for-title"></h2>
+          <ul class="for-grid" id="for-list"></ul>
+        </div>
+      </div>
     </section>
 
     <section class="wrap" id="coming">
-      <div class="section-head"><p class="label">On its way</p></div>
-      <h2 id="coming-title"></h2>
-      <p class="section-body" id="coming-body"></p>
-      <p class="coming-note" id="coming-note"></p>
+      <div class="rule"></div>
+      <div class="sec">
+        <div class="sec-aside"><p class="label">On its way</p></div>
+        <div class="sec-main">
+          <h2 id="coming-title"></h2>
+          <p class="section-body" id="coming-body"></p>
+          <p class="coming-note" id="coming-note"></p>
+        </div>
+      </div>
     </section>
 
-    <section class="wrap">
-      <div class="section-head"><p class="label">Get started</p></div>
-      <h2 id="close-title"></h2>
-      <p class="section-body" id="close-body"></p>
-      <div class="buy">
-        <a class="btn" id="cta-bottom" href="#">Get Echelon</a>
-        <span class="price-note"><strong id="price-bottom"></strong> <span id="price-terms-2"></span></span>
+    <section class="wrap" id="close">
+      <div class="rule"></div>
+      <div class="sec">
+        <div class="sec-aside"><p class="label">Get started</p></div>
+        <div class="sec-main">
+          <h2 id="close-title"></h2>
+          <p class="section-body" id="close-body"></p>
+          <div class="buy" style="margin-top: 30px;">
+            <a class="btn" id="cta-bottom" href="#">Get Echelon</a>
+            <span class="price-note"><strong id="price-bottom"></strong> <span id="price-terms-2"></span></span>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- last thing before the footer, on purpose -->
     <section class="wrap" id="faq">
-      <div class="section-head"><p class="label">Questions</p></div>
-      <div class="faq" id="faq-list"></div>
+      <div class="rule"></div>
+      <div class="sec">
+        <div class="sec-aside"><p class="label">Questions</p></div>
+        <div class="sec-main faq" id="faq-list"></div>
+      </div>
     </section>
 
   </main>
@@ -362,22 +431,23 @@
     <div class="wrap">
       <div class="foot-top">
         <div class="foot-brand">Echelon<span>A course by d1fpc3</span></div>
+
+        <div class="disclaimer">
+          <p><strong>Risk disclosure.</strong> Trading futures carries a substantial risk of loss and is not suitable for
+          everyone. You can lose more than the money you put in. Only trade with capital you can afford to lose entirely.</p>
+          <p><strong>Not financial advice.</strong> Echelon is educational material describing how one person trades. It is
+          not personalised investment, financial, tax or legal advice, and no part of it is a recommendation to buy or sell
+          anything. What you do with your own money is your decision and your responsibility.</p>
+          <p><strong>No performance promise.</strong> Nothing here is a guarantee or projection of results. Past results,
+          whether real or simulated, do not indicate future returns. Most people who trade futures lose money.</p>
+        </div>
+
         <nav class="foot-links" aria-label="Footer">
           <a id="foot-discord" href="#" target="_blank" rel="noopener" hidden>Join the Discord</a>
           <a href="/echelon/app/">Already bought? Sign in</a>
           <a href="https://www.tradingview.com/u/d1fpc3/" target="_blank" rel="noopener">TradingView</a>
           <a href="/">d1fpc3.com</a>
         </nav>
-      </div>
-
-      <div class="disclaimer">
-        <p><strong>Risk disclosure.</strong> Trading futures carries a substantial risk of loss and is not suitable for
-        everyone. You can lose more than the money you put in. Only trade with capital you can afford to lose entirely.</p>
-        <p><strong>Not financial advice.</strong> Echelon is educational material describing how one person trades. It is
-        not personalised investment, financial, tax or legal advice, and no part of it is a recommendation to buy or sell
-        anything. What you do with your own money is your decision and your responsibility.</p>
-        <p><strong>No performance promise.</strong> Nothing here is a guarantee or projection of results. Past results,
-        whether real or simulated, do not indicate future returns. Most people who trade futures lose money.</p>
       </div>
 
       <div class="foot-base">
@@ -493,7 +563,6 @@
       const footLink = document.getElementById('foot-discord')
       footLink.href = DISCORD_INVITE
       footLink.hidden = false
-      document.getElementById('foot-discord-sep').hidden = false
     }
 
     for (const id of ['cta-top', 'cta-bottom']) {
