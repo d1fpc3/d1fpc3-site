@@ -201,27 +201,62 @@
       .layout { grid-template-columns: 1fr; gap: 30px; }
     }
 
-    /* ── lesson index ───────────────────────────────────────── */
+    /* ── lesson index: table-of-contents rail ───────────────── */
+    /* Continuous hairline down the left, the active item marked by a
+       solid bar sitting on top of it. Recoloured for the dark shell. */
 
-    .index-module { margin-bottom: 22px; }
-    .index-module-title {
-      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--faint); padding-bottom: 8px; border-bottom: 1px solid var(--line);
+    .toc { position: sticky; top: 26px; }
+    @media (max-width: 800px) { .toc { position: static; } }
+
+    .toc-group + .toc-group { margin-top: 24px; }
+
+    .toc .cap {
+      font: 600 10.5px/1 inherit;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--faint);
+      margin-bottom: 10px;
+      padding-left: 14px;
     }
 
-    .index-lesson {
-      display: flex; align-items: baseline; gap: 10px; width: 100%;
-      padding: 10px 0; background: none; border: none;
-      border-bottom: 1px solid var(--line); cursor: pointer;
-      font-family: inherit; font-size: 14px; color: var(--muted);
-      text-align: left; transition: color 0.2s ease;
+    .toc button {
+      position: relative;
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 22px 8px 14px;
+      font-family: inherit;
+      font-size: 13.5px;
+      line-height: 1.45;
+      color: var(--muted);
+      background: none;
+      border: 0;
+      border-left: 1.5px solid var(--line);
+      cursor: pointer;
+      transition: color 0.15s ease;
     }
-    .index-lesson:hover { color: var(--ink); }
-    .index-lesson.current { color: var(--gold); }
 
-    .tick { font-size: 11px; color: var(--gold); min-width: 1em; }
-    .tick.pending { color: var(--line); }
-    .index-lesson-title { flex: 1; }
+    .toc button:hover { color: var(--ink); }
+    .toc button.on { color: var(--gold); font-weight: 600; }
+
+    .toc button.on::before {
+      content: "";
+      position: absolute;
+      left: -1.5px;
+      top: 6px; bottom: 6px;
+      width: 1.5px;
+      background: var(--gold);
+    }
+
+    .toc button:focus-visible { outline: 1px solid var(--gold); outline-offset: -2px; }
+
+    /* progress, kept but quietened to a dot so it does not fight the rail */
+    .toc .done {
+      position: absolute; right: 4px; top: 50%;
+      transform: translateY(-50%);
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--gold); opacity: 0.5;
+    }
 
     /* ── lesson body ────────────────────────────────────────── */
 
@@ -284,7 +319,7 @@
       </span>
     </div>
     <div class="layout">
-      <nav id="index" aria-label="Lessons"></nav>
+      <nav class="toc" id="index" aria-label="Lessons"></nav>
       <main id="lesson"></main>
     </div>
   </div>
@@ -456,33 +491,36 @@
         const lessons = state.lessons.filter((l) => l.module_id === mod.id)
         if (!lessons.length) continue
 
-        const wrap = document.createElement('div')
-        wrap.className = 'index-module'
+        const group = document.createElement('div')
+        group.className = 'toc-group'
 
-        const title = document.createElement('p')
-        title.className = 'index-module-title'
-        title.textContent = mod.title
-        wrap.appendChild(title)
+        const cap = document.createElement('div')
+        cap.className = 'cap'
+        cap.textContent = mod.title
+        group.appendChild(cap)
 
         for (const lesson of lessons) {
           const btn = document.createElement('button')
-          btn.className = 'index-lesson' + (lesson.id === state.currentId ? ' current' : '')
+          btn.type = 'button'
+          const current = lesson.id === state.currentId
+          if (current) {
+            btn.className = 'on'
+            btn.setAttribute('aria-current', 'true')
+          }
+          btn.textContent = lesson.title
 
-          const tick = document.createElement('span')
-          const complete = state.done.has(lesson.id)
-          tick.className = 'tick' + (complete ? '' : ' pending')
-          tick.textContent = complete ? '●' : '○'
+          if (state.done.has(lesson.id)) {
+            const dot = document.createElement('span')
+            dot.className = 'done'
+            dot.title = 'Completed'
+            btn.appendChild(dot)
+          }
 
-          const name = document.createElement('span')
-          name.className = 'index-lesson-title'
-          name.textContent = lesson.title
-
-          btn.append(tick, name)
           btn.addEventListener('click', () => openLesson(lesson.id))
-          wrap.appendChild(btn)
+          group.appendChild(btn)
         }
 
-        host.appendChild(wrap)
+        host.appendChild(group)
       }
     }
 
