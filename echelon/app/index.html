@@ -337,7 +337,7 @@
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
     const el = (id) => document.getElementById(id)
 
-    const state = { user: null, modules: [], lessons: [], done: new Set(), currentId: null }
+    const state = { user: null, isAdmin: false, modules: [], lessons: [], done: new Set(), currentId: null }
 
     // ── gate rendering ──────────────────────────────────────
 
@@ -726,13 +726,15 @@
 
       state.user = session.user
 
-      const { data: ent } = await supabase
-        .from('entitlements')
-        .select('status')
-        .eq('status', 'active')
-        .maybeSingle()
+      // Paid, or runs the place. Admins get in without a purchase row so the
+      // owner never has to fake a sale to look at their own course.
+      const [{ data: ent }, { data: isAdmin }] = await Promise.all([
+        supabase.from('entitlements').select('status').eq('status', 'active').maybeSingle(),
+        supabase.rpc('is_admin'),
+      ])
 
-      if (!ent) return noAccessScreen(session.user.email)
+      if (!ent && !isAdmin) return noAccessScreen(session.user.email)
+      state.isAdmin = !!isAdmin
       await loadCourse()
     }
 
