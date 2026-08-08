@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Echelon · Admin</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    /* ─────────────────────────────────────────────────────────
+       d1fpc3.com | echelon — admin
+
+       This file is public. Everything it can see, it can see
+       because Postgres decided the signed-in user is an admin —
+       never because the page said so. Writes go through the
+       admin-api function, which re-checks server-side.
+
+       Flat typographic, hairline dividers, sparse gold. No cards.
+       ───────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a; --ink: #f4f2ee; --muted: #9d978c;
+      --faint: #6b665e; --line: #242220; --line-bright: #35322e;
+      --gold: #a8842c; --gold-bright: #c9a24a;
+      --bad: #d98b7a; --good: #7ea87a;
+    }
+
+    html { height: 100%; }
+    body {
+      min-height: 100%;
+      background: var(--bg); color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px; line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+
+    /* ── login: the glass card ──────────────────────────────── */
+
+    .centre {
+      min-height: 100dvh; display: flex; align-items: center;
+      justify-content: center; padding: 32px 24px; position: relative;
+    }
+    .orb { position: absolute; border-radius: 50%; filter: blur(66px); opacity: 0.5; pointer-events: none; }
+    .o1 { width: 320px; height: 320px; background: #a8842c; top: 10%; left: 50%; margin-left: -290px;
+          animation: gl-drift 9s ease-in-out infinite alternate; }
+    .o2 { width: 280px; height: 280px; background: #7a4f16; bottom: 12%; left: 50%; margin-left: 40px;
+          animation: gl-drift 11s ease-in-out infinite alternate-reverse; }
+    @keyframes gl-drift { to { transform: translate(30px, 24px) scale(1.14); } }
+    @media (prefers-reduced-motion: reduce) { .orb { animation: none; } }
+
+    .panel {
+      position: relative; width: 100%; max-width: 380px;
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 20px; padding: 28px 24px;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 24px 60px -24px rgba(0,0,0,0.7);
+    }
+    .panel h1 { font-size: 24px; font-weight: 650; letter-spacing: -0.025em; }
+    .panel .body { margin-top: 6px; font-size: 13px; color: rgba(255,255,255,0.55); }
+    .panel .label { color: var(--gold); margin-bottom: 12px; }
+
+    .fld { position: relative; margin-bottom: 12px; }
+    .fld input {
+      width: 100%; padding: 19px 14px 8px;
+      font-family: inherit; font-size: 14.5px; color: #fff;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 11px; outline: none;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .fld input:focus { border-color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.1); }
+    .fld label {
+      position: absolute; left: 15px; top: 15px; font-size: 13.5px;
+      color: rgba(255,255,255,0.45); pointer-events: none;
+      transform-origin: left top; transition: transform 0.18s ease, color 0.18s ease;
+    }
+    .fld input:focus + label, .fld input:not(:placeholder-shown) + label {
+      transform: translateY(-9px) scale(0.72); color: rgba(255,255,255,0.7);
+    }
+
+    .go {
+      width: 100%; margin: 6px 0 0; padding: 14px;
+      border: none; border-radius: 11px; background: #fff; color: #0a0a0a;
+      font: 600 14.5px/1 inherit; font-family: inherit; cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.25s ease, opacity 0.2s ease;
+    }
+    .go:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 28px -12px rgba(255,255,255,0.45); }
+    .go:disabled { opacity: 0.6; cursor: default; }
+
+    .form-error { font-size: 12.5px; color: var(--bad); margin-top: 10px; }
+
+    /* ── shell ──────────────────────────────────────────────── */
+
+    .shell { display: none; }
+    .shell.on { display: block; }
+
+    .topbar {
+      border-bottom: 1px solid var(--line);
+      padding: 15px clamp(18px, 4vw, 36px);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .brand { font-weight: 700; letter-spacing: -0.02em; font-size: 16px; }
+    .brand span { color: var(--gold); font-weight: 500; }
+    .who { font-size: 12px; color: var(--faint); display: flex; align-items: center; gap: 14px; }
+
+    .quiet {
+      background: none; border: none; padding: 0; cursor: pointer;
+      font-family: inherit; font-size: 12.5px; color: var(--faint);
+      text-decoration: none; border-bottom: 1px solid var(--line);
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+    .quiet:hover { color: var(--gold); border-bottom-color: var(--gold); }
+
+    .wrap { max-width: 1120px; margin: 0 auto; padding: clamp(24px, 4vh, 40px) clamp(18px, 4vw, 36px) 80px; }
+
+    /* ── stats: hairlines, no boxes ─────────────────────────── */
+
+    .stats {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--line-bright);
+      border-bottom: 1px solid var(--line-bright);
+    }
+    .stat { padding: 16px 0; }
+    .stat + .stat { border-left: 1px solid var(--line); padding-left: 18px; }
+    .stat-n { font-size: 25px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .stat-l { font-size: 10.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint); margin-top: 2px; }
+    @media (max-width: 620px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .stat:nth-child(3) { border-left: none; padding-left: 0; }
+      .stat:nth-child(3), .stat:nth-child(4) { border-top: 1px solid var(--line); }
+    }
+
+    /* ── sections ───────────────────────────────────────────── */
+
+    section { margin-top: clamp(34px, 5vh, 52px); }
+    .sec-head {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--line-bright); flex-wrap: wrap;
+    }
+
+    /* ── table ──────────────────────────────────────────────── */
+
+    .tbl-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 720px; }
+    th {
+      text-align: left; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--faint); font-weight: 500; padding: 12px 12px 10px 0; border-bottom: 1px solid var(--line);
+    }
+    td { padding: 13px 12px 13px 0; border-bottom: 1px solid var(--line); color: var(--muted); vertical-align: middle; }
+    td.ink { color: var(--ink); }
+    tbody tr:hover td { color: var(--ink); }
+    .num { font-variant-numeric: tabular-nums; }
+
+    .pill-status { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .s-active { color: var(--good); }
+    .s-refunded, .s-revoked { color: var(--bad); }
+
+    .rowbtn {
+      background: none; border: 1px solid var(--line-bright); border-radius: 4px;
+      color: var(--muted); font-family: inherit; font-size: 12px;
+      padding: 5px 11px; cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease;
+    }
+    .rowbtn:hover { border-color: var(--gold); color: var(--gold); }
+    .rowbtn:disabled { opacity: 0.4; cursor: default; }
+
+    .empty { padding: 26px 0; color: var(--faint); font-size: 14px; }
+
+    /* ── grant form ─────────────────────────────────────────── */
+
+    .grant { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .grant input {
+      flex: 1; min-width: 240px; padding: 11px 13px;
+      background: transparent; border: 1px solid var(--line-bright); border-radius: 4px;
+      color: var(--ink); font-family: inherit; font-size: 14px;
+    }
+    .grant input:focus { outline: none; border-color: var(--gold); }
+    .grant input::placeholder { color: var(--faint); }
+    .btn {
+      padding: 11px 22px; background: var(--gold); color: #0a0a0a;
+      border: 1px solid var(--gold); border-radius: 4px;
+      font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .btn:hover:not(:disabled) { background: var(--gold-bright); }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+
+    .msg { margin-top: 10px; font-size: 13px; }
+    .msg.ok { color: var(--good); }
+    .msg.err { color: var(--bad); }
+
+    .foot-note { margin-top: 40px; font-size: 12px; color: var(--faint); }
+  </style>
+</head>
+<body>
+
+  <div class="centre" id="gate">
+    <span class="orb o1" aria-hidden="true"></span>
+    <span class="orb o2" aria-hidden="true"></span>
+    <div class="panel">
+      <p class="label">Echelon</p>
+      <h1 id="gate-title">Admin</h1>
+      <p class="body" id="gate-body">Sign in to manage buyers and access.</p>
+      <div id="gate-actions"></div>
+    </div>
+  </div>
+
+  <div class="shell" id="shell">
+    <div class="topbar">
+      <span class="brand">Echelon <span>Admin</span></span>
+      <span class="who">
+        <span id="who-email"></span>
+        <a class="quiet" href="/echelon/app/">Members view</a>
+        <button class="quiet" id="signout">Sign out</button>
+      </span>
+    </div>
+
+    <div class="wrap">
+      <div class="stats" id="stats"></div>
+
+      <section>
+        <div class="sec-head">
+          <p class="label">Buyers</p>
+          <span class="label" id="buyers-count"></span>
+        </div>
+        <div class="tbl-scroll"><table id="buyers"></table></div>
+        <div class="empty" id="buyers-empty" hidden>No buyers yet.</div>
+
+        <div class="grant">
+          <input type="email" id="grant-email" placeholder="Give someone free access — their email">
+          <button class="btn" id="grant-btn">Grant access</button>
+        </div>
+        <p class="msg" id="grant-msg"></p>
+      </section>
+
+      <section>
+        <div class="sec-head">
+          <p class="label">Curriculum</p>
+          <span class="label" id="lessons-count"></span>
+        </div>
+        <div class="tbl-scroll"><table id="lessons"></table></div>
+      </section>
+
+      <section>
+        <div class="sec-head">
+          <p class="label">Recent Stripe events</p>
+        </div>
+        <div class="tbl-scroll"><table id="events"></table></div>
+        <div class="empty" id="events-empty" hidden>Nothing yet. Events appear here once Stripe is connected.</div>
+      </section>
+
+      <p class="foot-note">
+        Everything on this page is gated in Postgres, not in the browser. Signing in as a
+        non-admin returns empty tables, not a hidden dashboard.
+      </p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+    const SUPABASE_URL = 'https://cqdignbleethroyxxvzr.supabase.co'
+    const SUPABASE_KEY = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x'
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+    const el = (id) => document.getElementById(id)
+    const money = (c) => c == null ? '—' : '$' + (c / 100).toFixed(c % 100 ? 2 : 0)
+    const when = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' }) : '—'
+
+    function loginScreen(message) {
+      el('gate-title').textContent = 'Admin'
+      el('gate-body').textContent = 'Sign in to manage buyers and access.'
+      const host = el('gate-actions')
+      host.textContent = ''
+
+      const form = document.createElement('form')
+      form.style.marginTop = '20px'
+
+      const mk = (id, type, labelText, autocomplete) => {
+        const f = document.createElement('div')
+        f.className = 'fld'
+        const i = document.createElement('input')
+        i.type = type; i.id = id; i.placeholder = ' '; i.required = true
+        i.autocomplete = autocomplete
+        const l = document.createElement('label')
+        l.setAttribute('for', id); l.textContent = labelText
+        f.append(i, l)
+        return { field: f, input: i }
+      }
+
+      const email = mk('adm-email', 'email', 'Email', 'email')
+      const pass = mk('adm-pass', 'password', 'Password', 'current-password')
+
+      const button = document.createElement('button')
+      button.type = 'submit'; button.className = 'go'; button.textContent = 'Sign in'
+
+      const note = document.createElement('p')
+      note.className = 'form-error'
+      note.textContent = message ?? ''
+
+      form.append(email.field, pass.field, button, note)
+      host.appendChild(form)
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        button.disabled = true; button.textContent = 'Signing in…'
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.input.value.trim(),
+          password: pass.input.value,
+        })
+        if (error) {
+          note.textContent = error.message
+          button.disabled = false; button.textContent = 'Sign in'
+          return
+        }
+        boot()
+      })
+    }
+
+    function notAdminScreen(email) {
+      el('gate-title').textContent = 'Not an admin.'
+      el('gate-body').textContent = `${email} does not have admin access.`
+      const host = el('gate-actions')
+      host.textContent = ''
+      const out = document.createElement('button')
+      out.className = 'go'
+      out.style.marginTop = '18px'
+      out.textContent = 'Sign out'
+      out.addEventListener('click', async () => { await supabase.auth.signOut(); location.reload() })
+      host.appendChild(out)
+    }
+
+    async function adminAction(payload) {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-api`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify(payload),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? `${res.status}`)
+      return body
+    }
+
+    function renderStats(buyers) {
+      const active = buyers.filter((b) => b.status === 'active')
+      const paid = buyers.filter((b) => b.source === 'stripe' && b.amount_cents)
+      const revenue = paid.reduce((s, b) => s + (b.amount_cents ?? 0), 0)
+      const cells = [
+        [String(active.length), 'Active'],
+        [money(revenue), 'Revenue'],
+        [String(buyers.filter((b) => b.status !== 'active').length), 'Refunded'],
+        [String(buyers.filter((b) => b.discord_role).length), 'In Discord'],
+      ]
+      const host = el('stats')
+      host.textContent = ''
+      for (const [n, l] of cells) {
+        const d = document.createElement('div'); d.className = 'stat'
+        const a = document.createElement('div'); a.className = 'stat-n'; a.textContent = n
+        const b = document.createElement('div'); b.className = 'stat-l'; b.textContent = l
+        d.append(a, b); host.appendChild(d)
+      }
+    }
+
+    function table(host, cols, rows, build) {
+      host.textContent = ''
+      const thead = document.createElement('thead')
+      const htr = document.createElement('tr')
+      for (const c of cols) { const th = document.createElement('th'); th.textContent = c; htr.appendChild(th) }
+      thead.appendChild(htr)
+      const tbody = document.createElement('tbody')
+      for (const r of rows) tbody.appendChild(build(r))
+      host.append(thead, tbody)
+    }
+
+    function cell(text, cls) {
+      const td = document.createElement('td')
+      if (cls) td.className = cls
+      td.textContent = text
+      return td
+    }
+
+    async function loadBuyers() {
+      const { data } = await supabase
+        .from('admin_buyers')
+        .select('*')
+        .order('granted_at', { ascending: false })
+      const buyers = data ?? []
+
+      renderStats(buyers)
+      el('buyers-count').textContent = `${buyers.length} total`
+      el('buyers-empty').hidden = buyers.length > 0
+
+      table(
+        el('buyers'),
+        ['Email', 'Status', 'Source', 'Paid', 'Granted', 'Discord', 'Done', ''],
+        buyers,
+        (b) => {
+          const tr = document.createElement('tr')
+          tr.append(cell(b.email, 'ink'))
+
+          const st = document.createElement('td')
+          const span = document.createElement('span')
+          span.className = `pill-status s-${b.status}`
+          span.textContent = b.status
+          st.appendChild(span)
+          tr.appendChild(st)
+
+          tr.append(
+            cell(b.source),
+            cell(money(b.amount_cents), 'num'),
+            cell(when(b.granted_at), 'num'),
+            cell(b.discord_username ?? (b.discord_role ? 'linked' : '—')),
+            cell(String(b.lessons_done ?? 0), 'num'),
+          )
+
+          const act = document.createElement('td')
+          const btn = document.createElement('button')
+          btn.className = 'rowbtn'
+          const isActive = b.status === 'active'
+          btn.textContent = isActive ? 'Revoke' : 'Restore'
+          btn.addEventListener('click', async () => {
+            btn.disabled = true
+            btn.textContent = '…'
+            try {
+              await adminAction({ action: isActive ? 'revoke' : 'restore', id: b.id })
+              await loadBuyers()
+            } catch (err) {
+              btn.disabled = false
+              btn.textContent = err.message.slice(0, 20)
+            }
+          })
+          act.appendChild(btn)
+          tr.appendChild(act)
+          return tr
+        },
+      )
+    }
+
+    async function loadLessons() {
+      const [{ data: mods }, { data: lessons }] = await Promise.all([
+        supabase.from('modules').select('id, title, position').order('position'),
+        supabase.from('lessons').select('id, module_id, title, kind, is_published, position').order('position'),
+      ])
+      const modName = new Map((mods ?? []).map((m) => [m.id, m.title]))
+      const ordered = (mods ?? []).flatMap((m) => (lessons ?? []).filter((l) => l.module_id === m.id))
+      el('lessons-count').textContent = `${ordered.length} lessons · ${(mods ?? []).length} modules`
+
+      table(
+        el('lessons'),
+        ['Module', 'Lesson', 'Type', 'Live', ''],
+        ordered,
+        (l) => {
+          const tr = document.createElement('tr')
+          tr.append(
+            cell(modName.get(l.module_id) ?? '—'),
+            cell(l.title, 'ink'),
+            cell(l.kind),
+            cell(l.is_published ? 'yes' : 'no'),
+          )
+          const act = document.createElement('td')
+          const btn = document.createElement('button')
+          btn.className = 'rowbtn'
+          btn.textContent = l.is_published ? 'Unpublish' : 'Publish'
+          btn.addEventListener('click', async () => {
+            btn.disabled = true; btn.textContent = '…'
+            try {
+              await adminAction({ action: 'set_published', id: l.id, value: !l.is_published })
+              await loadLessons()
+            } catch (err) {
+              btn.disabled = false; btn.textContent = err.message.slice(0, 20)
+            }
+          })
+          act.appendChild(btn)
+          tr.appendChild(act)
+          return tr
+        },
+      )
+    }
+
+    async function loadEvents() {
+      const { data } = await supabase
+        .from('stripe_events')
+        .select('id, type, received_at')
+        .order('received_at', { ascending: false })
+        .limit(15)
+      const events = data ?? []
+      el('events-empty').hidden = events.length > 0
+      table(el('events'), ['Type', 'When', 'Event id'], events, (e) => {
+        const tr = document.createElement('tr')
+        tr.append(cell(e.type, 'ink'), cell(when(e.received_at), 'num'), cell(e.id))
+        return tr
+      })
+    }
+
+    el('signout').addEventListener('click', async () => {
+      await supabase.auth.signOut()
+      location.reload()
+    })
+
+    el('grant-btn').addEventListener('click', async () => {
+      const input = el('grant-email')
+      const msg = el('grant-msg')
+      const email = input.value.trim()
+      if (!email) return
+      el('grant-btn').disabled = true
+      msg.className = 'msg'; msg.textContent = 'Granting…'
+      try {
+        await adminAction({ action: 'grant', email })
+        msg.className = 'msg ok'
+        msg.textContent = `${email} now has access.`
+        input.value = ''
+        await loadBuyers()
+      } catch (err) {
+        msg.className = 'msg err'
+        msg.textContent = err.message
+      } finally {
+        el('grant-btn').disabled = false
+      }
+    })
+
+    async function boot() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return loginScreen()
+
+      // Ask the database, not the page.
+      const { data: isAdmin } = await supabase.rpc('is_admin')
+      if (!isAdmin) return notAdminScreen(session.user.email)
+
+      el('gate').style.display = 'none'
+      el('shell').classList.add('on')
+      el('who-email').textContent = session.user.email
+
+      await Promise.all([loadBuyers(), loadLessons(), loadEvents()])
+    }
+
+    boot()
+  </script>
+</body>
+</html>
