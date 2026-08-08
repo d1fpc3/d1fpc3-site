@@ -8,40 +8,49 @@
   <meta name="robots" content="noindex, nofollow">
   <style>
     /* ─────────────────────────────────────────────────────────
-       d1fpc3.com | echelon — admin
+       d1fpc3.com | echelon — admin dashboard
 
-       This file is public. Everything it can see, it can see
-       because Postgres decided the signed-in user is an admin —
-       never because the page said so. Writes go through the
-       admin-api function, which re-checks server-side.
+       A real dashboard shell: fixed sidebar with tabs, the signed-in
+       user pinned bottom-left, a content pane that swaps per tab.
 
-       Flat typographic, hairline dividers, sparse gold. No cards.
+       This file is public. Everything it shows, it shows because
+       Postgres decided the signed-in user is an admin — never
+       because the page said so. Writes go through admin-api, which
+       re-checks server-side.
        ───────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0a0a; --ink: #f4f2ee; --muted: #9d978c;
-      --faint: #6b665e; --line: #242220; --line-bright: #35322e;
-      --gold: #a8842c; --gold-bright: #c9a24a;
-      --bad: #d98b7a; --good: #7ea87a;
+      --bg: #0b0a09;
+      --panel: #131211;
+      --panel-2: #1a1817;
+      --ink: #f4f2ee;
+      --muted: #9d978c;
+      --faint: #6b665e;
+      --line: #262321;
+      --line-bright: #383431;
+      --gold: #c9a24a;
+      --gold-deep: #a8842c;
+      --bad: #d98b7a;
+      --good: #86b57f;
+      --sidebar: 244px;
     }
 
-    html { height: 100%; }
+    html, body { height: 100%; }
     body {
-      min-height: 100%;
       background: var(--bg); color: var(--ink);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      font-size: 15px; line-height: 1.6;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px; line-height: 1.55;
       -webkit-font-smoothing: antialiased;
     }
 
-    .label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+    .label { font-size: 10.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint); }
 
-    /* ── login: the glass card ──────────────────────────────── */
+    /* ════ LOGIN (glass card) ════════════════════════════════ */
 
     .centre {
-      min-height: 100dvh; display: flex; align-items: center;
-      justify-content: center; padding: 32px 24px; position: relative;
+      min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+      padding: 32px 24px; position: relative;
     }
     .orb { position: absolute; border-radius: 50%; filter: blur(66px); opacity: 0.5; pointer-events: none; }
     .o1 { width: 320px; height: 320px; background: #a8842c; top: 10%; left: 50%; margin-left: -290px;
@@ -51,212 +60,371 @@
     @keyframes gl-drift { to { transform: translate(30px, 24px) scale(1.14); } }
     @media (prefers-reduced-motion: reduce) { .orb { animation: none; } }
 
-    .panel {
+    .glass {
       position: relative; width: 100%; max-width: 380px;
-      background: rgba(255,255,255,0.055);
-      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.14);
       border-radius: 20px; padding: 28px 24px;
       backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       box-shadow: 0 24px 60px -24px rgba(0,0,0,0.7);
     }
-    .panel h1 { font-size: 24px; font-weight: 650; letter-spacing: -0.025em; }
-    .panel .body { margin-top: 6px; font-size: 13px; color: rgba(255,255,255,0.55); }
-    .panel .label { color: var(--gold); margin-bottom: 12px; }
+    .glass h1 { font-size: 24px; font-weight: 650; letter-spacing: -0.025em; }
+    .glass .body { margin-top: 6px; font-size: 13px; color: rgba(255,255,255,0.55); }
+    .glass .label { color: var(--gold); margin-bottom: 12px; }
 
     .fld { position: relative; margin-bottom: 12px; }
     .fld input {
-      width: 100%; padding: 19px 14px 8px;
-      font-family: inherit; font-size: 14.5px; color: #fff;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 11px; outline: none;
-      transition: border-color 0.2s ease, background 0.2s ease;
+      width: 100%; padding: 19px 14px 8px; font-family: inherit; font-size: 14.5px; color: #fff;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 11px; outline: none; transition: border-color 0.2s ease, background 0.2s ease;
     }
     .fld input:focus { border-color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.1); }
     .fld label {
-      position: absolute; left: 15px; top: 15px; font-size: 13.5px;
-      color: rgba(255,255,255,0.45); pointer-events: none;
-      transform-origin: left top; transition: transform 0.18s ease, color 0.18s ease;
+      position: absolute; left: 15px; top: 15px; font-size: 13.5px; color: rgba(255,255,255,0.45);
+      pointer-events: none; transform-origin: left top; transition: transform 0.18s ease, color 0.18s ease;
     }
     .fld input:focus + label, .fld input:not(:placeholder-shown) + label {
       transform: translateY(-9px) scale(0.72); color: rgba(255,255,255,0.7);
     }
-
     .go {
-      width: 100%; margin: 6px 0 0; padding: 14px;
-      border: none; border-radius: 11px; background: #fff; color: #0a0a0a;
-      font: 600 14.5px/1 inherit; font-family: inherit; cursor: pointer;
+      width: 100%; margin-top: 6px; padding: 14px; border: none; border-radius: 11px;
+      background: #fff; color: #0a0a0a; font: 600 14.5px/1 inherit; font-family: inherit; cursor: pointer;
       transition: transform 0.15s ease, box-shadow 0.25s ease, opacity 0.2s ease;
     }
     .go:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 28px -12px rgba(255,255,255,0.45); }
     .go:disabled { opacity: 0.6; cursor: default; }
-
     .form-error { font-size: 12.5px; color: var(--bad); margin-top: 10px; }
 
-    /* ── shell ──────────────────────────────────────────────── */
+    /* ════ APP SHELL ═════════════════════════════════════════ */
 
-    .shell { display: none; }
-    .shell.on { display: block; }
+    .app { display: none; min-height: 100dvh; }
+    .app.on { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); }
+
+    /* ── sidebar ─────────────────────────────────────────── */
+
+    .side {
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100dvh;
+    }
+
+    .side-brand {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 20px 18px;
+      font-weight: 700; font-size: 16px; letter-spacing: -0.02em;
+    }
+    .side-brand .dot {
+      width: 22px; height: 22px; border-radius: 7px;
+      background: linear-gradient(140deg, var(--gold), var(--gold-deep));
+    }
+    .side-brand small {
+      font-size: 9.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--gold); background: rgba(201,162,74,0.1);
+      border: 1px solid rgba(201,162,74,0.25); border-radius: 5px; padding: 2px 6px; margin-left: auto;
+    }
+
+    .side-nav { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+
+    .side-cap { padding: 14px 8px 6px; }
+
+    .tab {
+      display: flex; align-items: center; gap: 11px;
+      padding: 9px 12px; border-radius: 8px;
+      background: none; border: 0; width: 100%; text-align: left;
+      font-family: inherit; font-size: 13.5px; font-weight: 500; color: var(--muted);
+      cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+    }
+    .tab:hover { background: var(--panel-2); color: var(--ink); }
+    .tab.on { background: var(--panel-2); color: var(--ink); }
+    .tab.on .ic { color: var(--gold); }
+    .tab .ic { width: 17px; height: 17px; color: var(--faint); flex-shrink: 0; transition: color 0.15s ease; }
+    .tab .count {
+      margin-left: auto; font-size: 11px; font-variant-numeric: tabular-nums;
+      color: var(--faint); background: var(--panel-2); border-radius: 20px; padding: 1px 8px;
+    }
+    .tab.on .count { background: rgba(201,162,74,0.14); color: var(--gold); }
+
+    /* user, pinned bottom-left */
+    .side-user {
+      margin-top: auto; border-top: 1px solid var(--line);
+      padding: 12px; display: flex; align-items: center; gap: 11px;
+    }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+      background: linear-gradient(140deg, var(--gold), var(--gold-deep));
+      color: #1a1207; font-weight: 700; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .side-user .u-meta { min-width: 0; flex: 1; }
+    .side-user .u-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .side-user .u-role { font-size: 11px; color: var(--faint); }
+    .u-signout {
+      background: none; border: 0; color: var(--faint); cursor: pointer; padding: 6px;
+      border-radius: 7px; display: flex; transition: color 0.15s ease, background 0.15s ease;
+    }
+    .u-signout:hover { color: var(--bad); background: var(--panel-2); }
+    .u-signout svg { width: 16px; height: 16px; }
+
+    /* ── main pane ───────────────────────────────────────── */
+
+    .main { min-width: 0; display: flex; flex-direction: column; }
 
     .topbar {
+      position: sticky; top: 0; z-index: 5;
+      background: rgba(11,10,9,0.82); backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--line);
-      padding: 15px clamp(18px, 4vw, 36px);
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 16px; flex-wrap: wrap;
+      padding: 18px clamp(20px, 3vw, 34px);
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
-    .brand { font-weight: 700; letter-spacing: -0.02em; font-size: 16px; }
-    .brand span { color: var(--gold); font-weight: 500; }
-    .who { font-size: 12px; color: var(--faint); display: flex; align-items: center; gap: 14px; }
+    .topbar h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
+    .topbar .crumb { font-size: 12.5px; color: var(--faint); margin-top: 1px; }
 
-    .quiet {
-      background: none; border: none; padding: 0; cursor: pointer;
-      font-family: inherit; font-size: 12.5px; color: var(--faint);
-      text-decoration: none; border-bottom: 1px solid var(--line);
-      transition: color 0.2s ease, border-color 0.2s ease;
+    .pane { padding: clamp(20px, 3vw, 34px); }
+    .view { display: none; }
+    .view.on { display: block; animation: fade 0.25s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
+    @media (prefers-reduced-motion: reduce) { .view.on { animation: none; } }
+
+    /* ── stat cards ──────────────────────────────────────── */
+
+    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+    @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+    .scard {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 17px 18px;
     }
-    .quiet:hover { color: var(--gold); border-bottom-color: var(--gold); }
+    .scard .k { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+    .scard .v { font-size: 27px; font-weight: 700; letter-spacing: -0.02em; margin-top: 7px; font-variant-numeric: tabular-nums; }
+    .scard .d { font-size: 11.5px; color: var(--faint); margin-top: 3px; }
 
-    .wrap { max-width: 1120px; margin: 0 auto; padding: clamp(24px, 4vh, 40px) clamp(18px, 4vw, 36px) 80px; }
+    /* ── panels + tables ─────────────────────────────────── */
 
-    /* ── stats: hairlines, no boxes ─────────────────────────── */
-
-    .stats {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      border-top: 1px solid var(--line-bright);
-      border-bottom: 1px solid var(--line-bright);
+    .block { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+    .block + .block { margin-top: 20px; }
+    .block-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding: 15px 18px; border-bottom: 1px solid var(--line);
     }
-    .stat { padding: 16px 0; }
-    .stat + .stat { border-left: 1px solid var(--line); padding-left: 18px; }
-    .stat-n { font-size: 25px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-    .stat-l { font-size: 10.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint); margin-top: 2px; }
-    @media (max-width: 620px) {
-      .stats { grid-template-columns: repeat(2, 1fr); }
-      .stat:nth-child(3) { border-left: none; padding-left: 0; }
-      .stat:nth-child(3), .stat:nth-child(4) { border-top: 1px solid var(--line); }
-    }
-
-    /* ── sections ───────────────────────────────────────────── */
-
-    section { margin-top: clamp(34px, 5vh, 52px); }
-    .sec-head {
-      display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
-      padding-bottom: 12px; border-bottom: 1px solid var(--line-bright); flex-wrap: wrap;
-    }
-
-    /* ── table ──────────────────────────────────────────────── */
+    .block-head h3 { font-size: 14.5px; font-weight: 650; letter-spacing: -0.01em; }
 
     .tbl-scroll { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 720px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
     th {
-      text-align: left; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--faint); font-weight: 500; padding: 12px 12px 10px 0; border-bottom: 1px solid var(--line);
+      text-align: left; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint);
+      font-weight: 500; padding: 12px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line);
     }
-    td { padding: 13px 12px 13px 0; border-bottom: 1px solid var(--line); color: var(--muted); vertical-align: middle; }
-    td.ink { color: var(--ink); }
-    tbody tr:hover td { color: var(--ink); }
+    td { padding: 13px 14px; border-bottom: 1px solid var(--line); color: var(--muted); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: 0; }
+    td.ink { color: var(--ink); font-weight: 500; }
+    tbody tr:hover td { background: rgba(255,255,255,0.014); }
     .num { font-variant-numeric: tabular-nums; }
 
-    .pill-status { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
-    .s-active { color: var(--good); }
-    .s-refunded, .s-revoked { color: var(--bad); }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+      border-radius: 6px; padding: 3px 8px;
+    }
+    .badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .b-active { color: var(--good); background: rgba(134,181,127,0.12); }
+    .b-refunded, .b-revoked { color: var(--bad); background: rgba(217,139,122,0.12); }
 
     .rowbtn {
-      background: none; border: 1px solid var(--line-bright); border-radius: 4px;
-      color: var(--muted); font-family: inherit; font-size: 12px;
-      padding: 5px 11px; cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease;
+      background: var(--panel-2); border: 1px solid var(--line-bright); border-radius: 7px;
+      color: var(--muted); font-family: inherit; font-size: 12px; padding: 6px 12px; cursor: pointer;
+      transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
     }
-    .rowbtn:hover { border-color: var(--gold); color: var(--gold); }
+    .rowbtn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
     .rowbtn:disabled { opacity: 0.4; cursor: default; }
 
-    .empty { padding: 26px 0; color: var(--faint); font-size: 14px; }
+    .empty { padding: 34px 18px; text-align: center; color: var(--faint); font-size: 13.5px; }
 
-    /* ── grant form ─────────────────────────────────────────── */
+    /* ── forms / buttons ─────────────────────────────────── */
 
-    .grant { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .grant input {
-      flex: 1; min-width: 240px; padding: 11px 13px;
-      background: transparent; border: 1px solid var(--line-bright); border-radius: 4px;
-      color: var(--ink); font-family: inherit; font-size: 14px;
-    }
-    .grant input:focus { outline: none; border-color: var(--gold); }
-    .grant input::placeholder { color: var(--faint); }
     .btn {
-      padding: 11px 22px; background: var(--gold); color: #0a0a0a;
-      border: 1px solid var(--gold); border-radius: 4px;
-      font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-      transition: background 0.2s ease;
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 18px; background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+      color: #1a1207; border: 0; border-radius: 9px;
+      font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+      transition: filter 0.18s ease, transform 0.15s ease;
     }
-    .btn:hover:not(:disabled) { background: var(--gold-bright); }
+    .btn:hover:not(:disabled) { filter: brightness(1.07); transform: translateY(-1px); }
     .btn:disabled { opacity: 0.5; cursor: default; }
 
-    .msg { margin-top: 10px; font-size: 13px; }
-    .msg.ok { color: var(--good); }
-    .msg.err { color: var(--bad); }
+    .inp {
+      padding: 10px 13px; background: var(--bg); border: 1px solid var(--line-bright);
+      border-radius: 9px; color: var(--ink); font-family: inherit; font-size: 13.5px;
+    }
+    .inp:focus { outline: none; border-color: var(--gold); }
+    .inp::placeholder { color: var(--faint); }
 
-    .foot-note { margin-top: 40px; font-size: 12px; color: var(--faint); }
+    .field-row { padding: 16px 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .field-row .inp { flex: 1; min-width: 220px; }
+    .msg { padding: 0 18px 16px; font-size: 12.5px; }
+    .msg.ok { color: var(--good); } .msg.err { color: var(--bad); }
+
+    /* ── settings integration rows ───────────────────────── */
+
+    .intg { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 15px 18px; border-bottom: 1px solid var(--line); }
+    .intg:last-child { border-bottom: 0; }
+    .intg .n { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+    .intg .h { font-size: 12px; color: var(--faint); margin-top: 2px; }
+    .conn { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; }
+    .conn.yes { color: var(--good); } .conn.no { color: var(--faint); }
+    .conn::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    .settings-note {
+      margin: 18px 0 0; padding: 14px 16px; font-size: 12.5px; line-height: 1.6; color: var(--muted);
+      background: var(--panel); border: 1px solid var(--line); border-left: 2px solid var(--gold); border-radius: 10px;
+    }
+    .settings-note code { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--gold); }
+
+    .kv { display: grid; grid-template-columns: 150px 1fr; gap: 2px 16px; padding: 16px 18px; font-size: 13px; }
+    .kv dt { color: var(--faint); }
+    .kv dd { color: var(--ink); word-break: break-all; }
   </style>
 </head>
 <body>
 
+  <!-- ════ LOGIN ════ -->
   <div class="centre" id="gate">
     <span class="orb o1" aria-hidden="true"></span>
     <span class="orb o2" aria-hidden="true"></span>
-    <div class="panel">
+    <div class="glass">
       <p class="label">Echelon</p>
       <h1 id="gate-title">Admin</h1>
-      <p class="body" id="gate-body">Sign in to manage buyers and access.</p>
+      <p class="body" id="gate-body">Sign in to manage the course.</p>
       <div id="gate-actions"></div>
     </div>
   </div>
 
-  <div class="shell" id="shell">
-    <div class="topbar">
-      <span class="brand">Echelon <span>Admin</span></span>
-      <span class="who">
-        <span id="who-email"></span>
-        <a class="quiet" href="/echelon/app/">Members view</a>
-        <button class="quiet" id="signout">Sign out</button>
-      </span>
-    </div>
+  <!-- ════ DASHBOARD ════ -->
+  <div class="app" id="app">
+    <aside class="side">
+      <div class="side-brand">
+        <span class="dot" aria-hidden="true"></span>
+        Echelon <small>Admin</small>
+      </div>
 
-    <div class="wrap">
-      <div class="stats" id="stats"></div>
+      <nav class="side-nav" id="tabs" aria-label="Sections">
+        <p class="side-cap label">Overview</p>
+        <button class="tab on" data-view="overview" data-title="Overview" data-crumb="At a glance">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          Overview
+        </button>
 
-      <section>
-        <div class="sec-head">
-          <p class="label">Buyers</p>
-          <span class="label" id="buyers-count"></span>
+        <p class="side-cap label">Manage</p>
+        <button class="tab" data-view="users" data-title="Users" data-crumb="Buyers and access">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Users <span class="count" id="c-users">—</span>
+        </button>
+        <button class="tab" data-view="billing" data-title="Billing" data-crumb="Revenue and Stripe events">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Billing
+        </button>
+        <button class="tab" data-view="content" data-title="Content" data-crumb="Curriculum and publishing">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Content <span class="count" id="c-content">—</span>
+        </button>
+
+        <p class="side-cap label">Configure</p>
+        <button class="tab" data-view="settings" data-title="Settings" data-crumb="Integrations and project">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </button>
+      </nav>
+
+      <div class="side-user">
+        <div class="avatar" id="u-avatar">D1</div>
+        <div class="u-meta">
+          <div class="u-name" id="u-name">—</div>
+          <div class="u-role">Owner · Admin</div>
         </div>
-        <div class="tbl-scroll"><table id="buyers"></table></div>
-        <div class="empty" id="buyers-empty" hidden>No buyers yet.</div>
+        <button class="u-signout" id="signout" title="Sign out" aria-label="Sign out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </aside>
 
-        <div class="grant">
-          <input type="email" id="grant-email" placeholder="Give someone free access — their email">
-          <button class="btn" id="grant-btn">Grant access</button>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <h2 id="pane-title">Overview</h2>
+          <div class="crumb" id="pane-crumb">At a glance</div>
         </div>
-        <p class="msg" id="grant-msg"></p>
-      </section>
+        <a class="btn" href="/echelon/app/" style="background:var(--panel-2);color:var(--ink);">Open course →</a>
+      </div>
 
-      <section>
-        <div class="sec-head">
-          <p class="label">Curriculum</p>
-          <span class="label" id="lessons-count"></span>
-        </div>
-        <div class="tbl-scroll"><table id="lessons"></table></div>
-      </section>
+      <div class="pane">
+        <!-- OVERVIEW -->
+        <section class="view on" id="v-overview">
+          <div class="cards" id="cards"></div>
+          <div class="block">
+            <div class="block-head"><h3>Latest buyers</h3></div>
+            <div class="tbl-scroll"><table id="recent-buyers"></table></div>
+            <div class="empty" id="recent-empty" hidden>No buyers yet — the page goes live the moment Stripe is connected.</div>
+          </div>
+        </section>
 
-      <section>
-        <div class="sec-head">
-          <p class="label">Recent Stripe events</p>
-        </div>
-        <div class="tbl-scroll"><table id="events"></table></div>
-        <div class="empty" id="events-empty" hidden>Nothing yet. Events appear here once Stripe is connected.</div>
-      </section>
+        <!-- USERS -->
+        <section class="view" id="v-users">
+          <div class="block">
+            <div class="block-head">
+              <h3>Buyers &amp; access</h3>
+              <span class="label" id="users-total"></span>
+            </div>
+            <div class="field-row">
+              <input class="inp" type="email" id="grant-email" placeholder="Grant free access — their email">
+              <button class="btn" id="grant-btn">Grant access</button>
+            </div>
+            <p class="msg" id="grant-msg"></p>
+            <div class="tbl-scroll"><table id="users-table"></table></div>
+            <div class="empty" id="users-empty" hidden>No buyers yet.</div>
+          </div>
+        </section>
 
-      <p class="foot-note">
-        Everything on this page is gated in Postgres, not in the browser. Signing in as a
-        non-admin returns empty tables, not a hidden dashboard.
-      </p>
+        <!-- BILLING -->
+        <section class="view" id="v-billing">
+          <div class="cards" id="billing-cards"></div>
+          <div class="block">
+            <div class="block-head"><h3>Recent Stripe events</h3></div>
+            <div class="tbl-scroll"><table id="events-table"></table></div>
+            <div class="empty" id="events-empty" hidden>No events yet. They appear here once Stripe is connected and a purchase or refund fires.</div>
+          </div>
+          <p class="settings-note" id="billing-note"></p>
+        </section>
+
+        <!-- CONTENT -->
+        <section class="view" id="v-content">
+          <div class="block">
+            <div class="block-head">
+              <h3>Curriculum</h3>
+              <span class="label" id="content-total"></span>
+            </div>
+            <div class="tbl-scroll"><table id="content-table"></table></div>
+          </div>
+        </section>
+
+        <!-- SETTINGS -->
+        <section class="view" id="v-settings">
+          <div class="block">
+            <div class="block-head"><h3>Integrations</h3></div>
+            <div id="integrations"></div>
+          </div>
+          <p class="settings-note">
+            Secrets are set in Supabase, never here — this page only reports whether each one exists.
+            Stripe and Discord keys go in <code>Edge Functions → Secrets</code>; provider logins in
+            <code>Authentication → Providers</code>.
+          </p>
+          <div class="block" style="margin-top:20px;">
+            <div class="block-head"><h3>Project</h3></div>
+            <dl class="kv">
+              <dt>Supabase ref</dt><dd>cqdignbleethroyxxvzr</dd>
+              <dt>Region</dt><dd>us-west-1</dd>
+              <dt>Members area</dt><dd>d1fpc3.com/echelon/app</dd>
+              <dt>Sales page</dt><dd>d1fpc3.com/echelon</dd>
+            </dl>
+          </div>
+        </section>
+      </div>
     </div>
   </div>
 
@@ -271,52 +439,28 @@
     const money = (c) => c == null ? '—' : '$' + (c / 100).toFixed(c % 100 ? 2 : 0)
     const when = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' }) : '—'
 
+    /* ── login ── */
     function loginScreen(message) {
       el('gate-title').textContent = 'Admin'
-      el('gate-body').textContent = 'Sign in to manage buyers and access.'
-      const host = el('gate-actions')
-      host.textContent = ''
-
-      const form = document.createElement('form')
-      form.style.marginTop = '20px'
-
-      const mk = (id, type, labelText, autocomplete) => {
-        const f = document.createElement('div')
-        f.className = 'fld'
-        const i = document.createElement('input')
-        i.type = type; i.id = id; i.placeholder = ' '; i.required = true
-        i.autocomplete = autocomplete
-        const l = document.createElement('label')
-        l.setAttribute('for', id); l.textContent = labelText
-        f.append(i, l)
-        return { field: f, input: i }
+      el('gate-body').textContent = 'Sign in to manage the course.'
+      const host = el('gate-actions'); host.textContent = ''
+      const form = document.createElement('form'); form.style.marginTop = '20px'
+      const mk = (id, type, text, ac) => {
+        const f = document.createElement('div'); f.className = 'fld'
+        const i = document.createElement('input'); i.type = type; i.id = id; i.placeholder = ' '; i.required = true; i.autocomplete = ac
+        const l = document.createElement('label'); l.setAttribute('for', id); l.textContent = text
+        f.append(i, l); return { f, i }
       }
-
       const email = mk('adm-email', 'email', 'Email', 'email')
       const pass = mk('adm-pass', 'password', 'Password', 'current-password')
-
-      const button = document.createElement('button')
-      button.type = 'submit'; button.className = 'go'; button.textContent = 'Sign in'
-
-      const note = document.createElement('p')
-      note.className = 'form-error'
-      note.textContent = message ?? ''
-
-      form.append(email.field, pass.field, button, note)
-      host.appendChild(form)
-
+      const button = document.createElement('button'); button.type = 'submit'; button.className = 'go'; button.textContent = 'Sign in'
+      const note = document.createElement('p'); note.className = 'form-error'; note.textContent = message ?? ''
+      form.append(email.f, pass.f, button, note); host.appendChild(form)
       form.addEventListener('submit', async (e) => {
         e.preventDefault()
         button.disabled = true; button.textContent = 'Signing in…'
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.input.value.trim(),
-          password: pass.input.value,
-        })
-        if (error) {
-          note.textContent = error.message
-          button.disabled = false; button.textContent = 'Sign in'
-          return
-        }
+        const { error } = await supabase.auth.signInWithPassword({ email: email.i.value.trim(), password: pass.i.value })
+        if (error) { note.textContent = error.message; button.disabled = false; button.textContent = 'Sign in'; return }
         boot()
       })
     }
@@ -324,25 +468,18 @@
     function notAdminScreen(email) {
       el('gate-title').textContent = 'Not an admin.'
       el('gate-body').textContent = `${email} does not have admin access.`
-      const host = el('gate-actions')
-      host.textContent = ''
-      const out = document.createElement('button')
-      out.className = 'go'
-      out.style.marginTop = '18px'
-      out.textContent = 'Sign out'
+      const host = el('gate-actions'); host.textContent = ''
+      const out = document.createElement('button'); out.className = 'go'; out.style.marginTop = '18px'; out.textContent = 'Sign out'
       out.addEventListener('click', async () => { await supabase.auth.signOut(); location.reload() })
       host.appendChild(out)
     }
 
+    /* ── admin-api ── */
     async function adminAction(payload) {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-api`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${session?.access_token ?? ''}`,
-        },
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` },
         body: JSON.stringify(payload),
       })
       const body = await res.json().catch(() => ({}))
@@ -350,196 +487,208 @@
       return body
     }
 
-    function renderStats(buyers) {
-      const active = buyers.filter((b) => b.status === 'active')
-      const paid = buyers.filter((b) => b.source === 'stripe' && b.amount_cents)
-      const revenue = paid.reduce((s, b) => s + (b.amount_cents ?? 0), 0)
-      const cells = [
-        [String(active.length), 'Active'],
-        [money(revenue), 'Revenue'],
-        [String(buyers.filter((b) => b.status !== 'active').length), 'Refunded'],
-        [String(buyers.filter((b) => b.discord_role).length), 'In Discord'],
-      ]
-      const host = el('stats')
-      host.textContent = ''
-      for (const [n, l] of cells) {
-        const d = document.createElement('div'); d.className = 'stat'
-        const a = document.createElement('div'); a.className = 'stat-n'; a.textContent = n
-        const b = document.createElement('div'); b.className = 'stat-l'; b.textContent = l
-        d.append(a, b); host.appendChild(d)
-      }
-    }
+    /* ── tab switching ── */
+    const tabs = [...document.querySelectorAll('.tab')]
+    tabs.forEach((tab) => tab.addEventListener('click', () => {
+      tabs.forEach((t) => t.classList.toggle('on', t === tab))
+      const view = tab.dataset.view
+      document.querySelectorAll('.view').forEach((v) => v.classList.toggle('on', v.id === `v-${view}`))
+      el('pane-title').textContent = tab.dataset.title
+      el('pane-crumb').textContent = tab.dataset.crumb
+    }))
 
+    /* ── table helper ── */
     function table(host, cols, rows, build) {
       host.textContent = ''
-      const thead = document.createElement('thead')
-      const htr = document.createElement('tr')
+      const thead = document.createElement('thead'), htr = document.createElement('tr')
       for (const c of cols) { const th = document.createElement('th'); th.textContent = c; htr.appendChild(th) }
       thead.appendChild(htr)
       const tbody = document.createElement('tbody')
       for (const r of rows) tbody.appendChild(build(r))
       host.append(thead, tbody)
     }
-
-    function cell(text, cls) {
+    const cell = (text, cls) => { const td = document.createElement('td'); if (cls) td.className = cls; td.textContent = text; return td }
+    function statusBadge(status) {
       const td = document.createElement('td')
-      if (cls) td.className = cls
-      td.textContent = text
-      return td
+      const s = document.createElement('span'); s.className = `badge b-${status}`; s.textContent = status
+      td.appendChild(s); return td
     }
 
-    async function loadBuyers() {
-      const { data } = await supabase
-        .from('admin_buyers')
-        .select('*')
-        .order('granted_at', { ascending: false })
-      const buyers = data ?? []
+    function scard(host, k, v, d) {
+      const c = document.createElement('div'); c.className = 'scard'
+      const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = k
+      const vv = document.createElement('div'); vv.className = 'v'; vv.textContent = v
+      c.append(kk, vv)
+      if (d) { const dd = document.createElement('div'); dd.className = 'd'; dd.textContent = d; c.appendChild(dd) }
+      host.appendChild(c)
+    }
 
-      renderStats(buyers)
-      el('buyers-count').textContent = `${buyers.length} total`
-      el('buyers-empty').hidden = buyers.length > 0
+    /* ── data ── */
+    let BUYERS = []
 
+    function computeStats() {
+      const active = BUYERS.filter((b) => b.status === 'active')
+      const paid = BUYERS.filter((b) => b.source === 'stripe' && b.amount_cents)
+      const revenue = paid.reduce((s, b) => s + (b.amount_cents ?? 0), 0)
+      return {
+        active: active.length,
+        revenue,
+        refunded: BUYERS.filter((b) => b.status !== 'active').length,
+        discord: BUYERS.filter((b) => b.discord_role).length,
+        comps: BUYERS.filter((b) => b.source === 'comp').length,
+        paidCount: paid.length,
+      }
+    }
+
+    function renderOverview() {
+      const s = computeStats()
+      const host = el('cards'); host.textContent = ''
+      scard(host, 'Active members', String(s.active), `${s.comps} comped`)
+      scard(host, 'Revenue', money(s.revenue), `${s.paidCount} paid`)
+      scard(host, 'Refunded', String(s.refunded))
+      scard(host, 'In Discord', String(s.discord))
+
+      const recent = BUYERS.slice(0, 6)
+      el('recent-empty').hidden = recent.length > 0
+      table(el('recent-buyers'), ['Email', 'Status', 'Paid', 'Joined'], recent, (b) => {
+        const tr = document.createElement('tr')
+        tr.append(cell(b.email, 'ink'), statusBadge(b.status), cell(money(b.amount_cents), 'num'), cell(when(b.granted_at), 'num'))
+        return tr
+      })
+    }
+
+    function renderUsers() {
+      el('c-users').textContent = String(BUYERS.length)
+      el('users-total').textContent = `${BUYERS.length} total`
+      el('users-empty').hidden = BUYERS.length > 0
       table(
-        el('buyers'),
-        ['Email', 'Status', 'Source', 'Paid', 'Granted', 'Discord', 'Done', ''],
-        buyers,
+        el('users-table'),
+        ['Email', 'Status', 'Source', 'Paid', 'Joined', 'Discord', 'Lessons', ''],
+        BUYERS,
         (b) => {
           const tr = document.createElement('tr')
-          tr.append(cell(b.email, 'ink'))
-
-          const st = document.createElement('td')
-          const span = document.createElement('span')
-          span.className = `pill-status s-${b.status}`
-          span.textContent = b.status
-          st.appendChild(span)
-          tr.appendChild(st)
-
-          tr.append(
-            cell(b.source),
-            cell(money(b.amount_cents), 'num'),
-            cell(when(b.granted_at), 'num'),
+          tr.append(cell(b.email, 'ink'), statusBadge(b.status), cell(b.source),
+            cell(money(b.amount_cents), 'num'), cell(when(b.granted_at), 'num'),
             cell(b.discord_username ?? (b.discord_role ? 'linked' : '—')),
-            cell(String(b.lessons_done ?? 0), 'num'),
-          )
-
+            cell(String(b.lessons_done ?? 0), 'num'))
           const act = document.createElement('td')
-          const btn = document.createElement('button')
-          btn.className = 'rowbtn'
+          const btn = document.createElement('button'); btn.className = 'rowbtn'
           const isActive = b.status === 'active'
           btn.textContent = isActive ? 'Revoke' : 'Restore'
           btn.addEventListener('click', async () => {
-            btn.disabled = true
-            btn.textContent = '…'
-            try {
-              await adminAction({ action: isActive ? 'revoke' : 'restore', id: b.id })
-              await loadBuyers()
-            } catch (err) {
-              btn.disabled = false
-              btn.textContent = err.message.slice(0, 20)
-            }
+            btn.disabled = true; btn.textContent = '…'
+            try { await adminAction({ action: isActive ? 'revoke' : 'restore', id: b.id }); await loadBuyers() }
+            catch (err) { btn.disabled = false; btn.textContent = err.message.slice(0, 18) }
           })
-          act.appendChild(btn)
-          tr.appendChild(act)
+          act.appendChild(btn); tr.appendChild(act)
           return tr
         },
       )
     }
 
-    async function loadLessons() {
-      const [{ data: mods }, { data: lessons }] = await Promise.all([
-        supabase.from('modules').select('id, title, position').order('position'),
-        supabase.from('lessons').select('id, module_id, title, kind, is_published, position').order('position'),
-      ])
-      const modName = new Map((mods ?? []).map((m) => [m.id, m.title]))
-      const ordered = (mods ?? []).flatMap((m) => (lessons ?? []).filter((l) => l.module_id === m.id))
-      el('lessons-count').textContent = `${ordered.length} lessons · ${(mods ?? []).length} modules`
+    function renderBilling() {
+      const s = computeStats()
+      const host = el('billing-cards'); host.textContent = ''
+      scard(host, 'Gross revenue', money(s.revenue), 'lifetime')
+      scard(host, 'Paid orders', String(s.paidCount))
+      scard(host, 'Refunded', String(s.refunded))
+      scard(host, 'Avg order', s.paidCount ? money(Math.round(s.revenue / s.paidCount)) : '—')
+    }
 
-      table(
-        el('lessons'),
-        ['Module', 'Lesson', 'Type', 'Live', ''],
-        ordered,
-        (l) => {
-          const tr = document.createElement('tr')
-          tr.append(
-            cell(modName.get(l.module_id) ?? '—'),
-            cell(l.title, 'ink'),
-            cell(l.kind),
-            cell(l.is_published ? 'yes' : 'no'),
-          )
-          const act = document.createElement('td')
-          const btn = document.createElement('button')
-          btn.className = 'rowbtn'
-          btn.textContent = l.is_published ? 'Unpublish' : 'Publish'
-          btn.addEventListener('click', async () => {
-            btn.disabled = true; btn.textContent = '…'
-            try {
-              await adminAction({ action: 'set_published', id: l.id, value: !l.is_published })
-              await loadLessons()
-            } catch (err) {
-              btn.disabled = false; btn.textContent = err.message.slice(0, 20)
-            }
-          })
-          act.appendChild(btn)
-          tr.appendChild(act)
-          return tr
-        },
-      )
+    async function loadBuyers() {
+      const { data } = await supabase.from('admin_buyers').select('*').order('granted_at', { ascending: false })
+      BUYERS = data ?? []
+      renderOverview(); renderUsers(); renderBilling()
     }
 
     async function loadEvents() {
-      const { data } = await supabase
-        .from('stripe_events')
-        .select('id, type, received_at')
-        .order('received_at', { ascending: false })
-        .limit(15)
+      const { data } = await supabase.from('stripe_events').select('id, type, received_at').order('received_at', { ascending: false }).limit(20)
       const events = data ?? []
       el('events-empty').hidden = events.length > 0
-      table(el('events'), ['Type', 'When', 'Event id'], events, (e) => {
+      table(el('events-table'), ['Type', 'When', 'Event id'], events, (e) => {
         const tr = document.createElement('tr')
         tr.append(cell(e.type, 'ink'), cell(when(e.received_at), 'num'), cell(e.id))
         return tr
       })
     }
 
-    el('signout').addEventListener('click', async () => {
-      await supabase.auth.signOut()
-      location.reload()
-    })
+    async function loadContent() {
+      const [{ data: mods }, { data: lessons }] = await Promise.all([
+        supabase.from('modules').select('id, title, position').order('position'),
+        supabase.from('lessons').select('id, module_id, title, kind, is_published, position').order('position'),
+      ])
+      const modName = new Map((mods ?? []).map((m) => [m.id, m.title]))
+      const ordered = (mods ?? []).flatMap((m) => (lessons ?? []).filter((l) => l.module_id === m.id))
+      el('c-content').textContent = String(ordered.length)
+      el('content-total').textContent = `${ordered.length} lessons · ${(mods ?? []).length} modules`
+      table(el('content-table'), ['Module', 'Lesson', 'Type', 'Live', ''], ordered, (l) => {
+        const tr = document.createElement('tr')
+        tr.append(cell(modName.get(l.module_id) ?? '—'), cell(l.title, 'ink'), cell(l.kind), cell(l.is_published ? 'Yes' : 'No'))
+        const act = document.createElement('td')
+        const btn = document.createElement('button'); btn.className = 'rowbtn'
+        btn.textContent = l.is_published ? 'Unpublish' : 'Publish'
+        btn.addEventListener('click', async () => {
+          btn.disabled = true; btn.textContent = '…'
+          try { await adminAction({ action: 'set_published', id: l.id, value: !l.is_published }); await loadContent() }
+          catch (err) { btn.disabled = false; btn.textContent = err.message.slice(0, 18) }
+        })
+        act.appendChild(btn); tr.appendChild(act)
+        return tr
+      })
+    }
+
+    async function loadSettings() {
+      let integrations = {}
+      try { integrations = (await adminAction({ action: 'status' })).integrations ?? {} } catch { /* keep defaults */ }
+      const rows = [
+        ['Stripe — secret key', 'Charges and refunds', integrations.stripe_key],
+        ['Stripe — webhook', 'Grants access on purchase', integrations.stripe_webhook],
+        ['Bunny Stream — library', 'Video hosting', integrations.bunny_library],
+        ['Bunny Stream — token key', 'Signed video URLs', integrations.bunny_token],
+        ['Discord — bot token', 'Auto-join and roles', integrations.discord_bot],
+        ['Discord — guild id', 'Which server', integrations.discord_guild],
+        ['Discord — paid role id', 'Role granted to buyers', integrations.discord_role],
+      ]
+      const host = el('integrations'); host.textContent = ''
+      for (const [name, hint, on] of rows) {
+        const row = document.createElement('div'); row.className = 'intg'
+        const left = document.createElement('div')
+        const n = document.createElement('div'); n.className = 'n'; n.textContent = name
+        const h = document.createElement('div'); h.className = 'h'; h.textContent = hint
+        left.append(n, h)
+        const c = document.createElement('span'); c.className = `conn ${on ? 'yes' : 'no'}`; c.textContent = on ? 'Connected' : 'Not set'
+        row.append(left, c); host.appendChild(row)
+      }
+      const anyStripe = integrations.stripe_key && integrations.stripe_webhook
+      el('billing-note').textContent = anyStripe
+        ? 'Stripe is connected. Purchases and refunds will appear above as they happen.'
+        : 'Stripe is not connected yet, so revenue reads $0. Add STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET in Supabase to start taking payments.'
+    }
+
+    el('signout').addEventListener('click', async () => { await supabase.auth.signOut(); location.reload() })
 
     el('grant-btn').addEventListener('click', async () => {
-      const input = el('grant-email')
-      const msg = el('grant-msg')
-      const email = input.value.trim()
+      const input = el('grant-email'), msg = el('grant-msg'), email = input.value.trim()
       if (!email) return
-      el('grant-btn').disabled = true
-      msg.className = 'msg'; msg.textContent = 'Granting…'
-      try {
-        await adminAction({ action: 'grant', email })
-        msg.className = 'msg ok'
-        msg.textContent = `${email} now has access.`
-        input.value = ''
-        await loadBuyers()
-      } catch (err) {
-        msg.className = 'msg err'
-        msg.textContent = err.message
-      } finally {
-        el('grant-btn').disabled = false
-      }
+      el('grant-btn').disabled = true; msg.className = 'msg'; msg.textContent = 'Granting…'
+      try { await adminAction({ action: 'grant', email }); msg.className = 'msg ok'; msg.textContent = `${email} now has access.`; input.value = ''; await loadBuyers() }
+      catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
+      finally { el('grant-btn').disabled = false }
     })
 
     async function boot() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return loginScreen()
-
-      // Ask the database, not the page.
       const { data: isAdmin } = await supabase.rpc('is_admin')
       if (!isAdmin) return notAdminScreen(session.user.email)
 
       el('gate').style.display = 'none'
-      el('shell').classList.add('on')
-      el('who-email').textContent = session.user.email
+      el('app').classList.add('on')
+      const email = session.user.email
+      el('u-name').textContent = email
+      el('u-avatar').textContent = (email[0] || 'D').toUpperCase() + (email[1] || '1').toUpperCase()
 
-      await Promise.all([loadBuyers(), loadLessons(), loadEvents()])
+      await Promise.all([loadBuyers(), loadEvents(), loadContent(), loadSettings()])
     }
 
     boot()
