@@ -247,7 +247,6 @@
 <body>
   <header class="wrap">
     <div class="monogram rise"><span>d1</span></div>
-    <h1 class="rise">What do you want?</h1>
   </header>
 
   <main class="wrap">
@@ -255,7 +254,7 @@
       <div class="field rise">
         <label class="sr-only" for="want">What do you want</label>
         <textarea id="want" name="want" maxlength="5000" required
-          placeholder="Tell us."></textarea>
+          placeholder="What do you want?"></textarea>
       </div>
 
       <div class="field rise">
@@ -289,8 +288,10 @@
 
   <script>
     (function () {
-      var ENDPOINT = 'https://cqdignbleethroyxxvzr.supabase.co/rest/v1/site_requests';
-      var KEY = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x';
+      // SeenRank's self-hosted form service: stores the submission and emails
+      // the addresses on the form row (intake_forms 'd1fpc3-want').
+      var ENDPOINT = 'https://uyyzaynifzbsjciiuqhf.supabase.co/functions/v1/submit-form';
+      var FORM_ID = 'd1fpc3-want';
 
       var form = document.getElementById('want-form');
       var btn = document.getElementById('send-btn');
@@ -302,7 +303,6 @@
 
         var want = document.getElementById('want').value.trim();
         var email = document.getElementById('email').value.trim();
-        var trap = document.getElementById('website').value;
 
         note.classList.remove('form-error');
         if (want.length < 3) {
@@ -312,26 +312,22 @@
           return;
         }
 
-        // bots fill the hidden field; let them think it worked
-        if (trap) { showSent(); return; }
-
         btn.disabled = true;
         btn.textContent = 'SENDING…';
         note.textContent = '';
 
+        var fd = new FormData();
+        fd.append('form_id', FORM_ID);
+        fd.append('message', want);
+        if (email) fd.append('email', email);
+        fd.append('_gotcha', document.getElementById('website').value || '');
+
+        // Ask submit-form for the JSON (CORS-friendly) response shape rather
+        // than its native 303 redirect, which a cross-origin fetch can't read.
         fetch(ENDPOINT, {
           method: 'POST',
-          headers: {
-            'apikey': KEY,
-            'Authorization': 'Bearer ' + KEY,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify({
-            want: want,
-            email: email || null,
-            source: 'home'
-          })
+          body: fd,
+          headers: { 'Accept': 'application/json', 'X-Requested-With': 'fetch' }
         }).then(function (res) {
           if (!res.ok) throw new Error('bad status ' + res.status);
           showSent();
