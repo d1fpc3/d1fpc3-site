@@ -101,7 +101,9 @@
     }
 
     textarea,
-    input[type="email"] {
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"] {
       display: block;
       width: 100%;
       border: none;
@@ -236,8 +238,10 @@
       .rise:nth-of-type(1) { animation-delay: 0s; }
       header .rise:nth-child(2) { animation-delay: 0.06s; }
       main .rise:nth-child(1) { animation-delay: 0.14s; }
-      main .rise:nth-child(2) { animation-delay: 0.20s; }
+      main .rise:nth-child(2) { animation-delay: 0.18s; }
+      main .rise:nth-child(3) { animation-delay: 0.22s; }
       main .rise:nth-child(4) { animation-delay: 0.26s; }
+      main .rise:nth-child(6) { animation-delay: 0.30s; }
       @keyframes rise {
         to { opacity: 1; transform: none; }
       }
@@ -258,9 +262,21 @@
       </div>
 
       <div class="field rise">
-        <label class="sr-only" for="email">Email, optional</label>
-        <input type="email" id="email" name="email" maxlength="320" autocomplete="email"
-          placeholder="Email (optional)">
+        <label class="sr-only" for="name">Name</label>
+        <input type="text" id="name" name="name" maxlength="120" autocomplete="name" required
+          placeholder="Name">
+      </div>
+
+      <div class="field rise">
+        <label class="sr-only" for="email">Email</label>
+        <input type="email" id="email" name="email" maxlength="320" autocomplete="email" required
+          placeholder="Email">
+      </div>
+
+      <div class="field rise">
+        <label class="sr-only" for="phone">Phone, optional</label>
+        <input type="tel" id="phone" name="phone" maxlength="40" autocomplete="tel"
+          placeholder="Phone (optional)">
       </div>
 
       <div class="leave-blank" aria-hidden="true">
@@ -302,15 +318,19 @@
         e.preventDefault();
 
         var want = document.getElementById('want').value.trim();
+        var name = document.getElementById('name').value.trim();
         var email = document.getElementById('email').value.trim();
+        var phone = document.getElementById('phone').value.trim();
 
         note.classList.remove('form-error');
-        if (want.length < 3) {
+        function fail(msg, el) {
           note.classList.add('form-error');
-          note.textContent = 'Say a little more.';
-          document.getElementById('want').focus();
-          return;
+          note.textContent = msg;
+          el.focus();
         }
+        if (want.length < 3) return fail('Say a little more.', document.getElementById('want'));
+        if (!name) return fail('Name, please.', document.getElementById('name'));
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('A real email, please.', document.getElementById('email'));
 
         btn.disabled = true;
         btn.textContent = 'SENDING…';
@@ -319,7 +339,9 @@
         var fd = new FormData();
         fd.append('form_id', FORM_ID);
         fd.append('message', want);
-        if (email) fd.append('email', email);
+        fd.append('name', name);
+        fd.append('email', email);
+        if (phone) fd.append('phone', phone);
         fd.append('_gotcha', document.getElementById('website').value || '');
 
         // Ask submit-form for the JSON (CORS-friendly) response shape rather
@@ -329,13 +351,16 @@
           body: fd,
           headers: { 'Accept': 'application/json', 'X-Requested-With': 'fetch' }
         }).then(function (res) {
+          if (res.status === 429) throw new Error('rate');
           if (!res.ok) throw new Error('bad status ' + res.status);
           showSent();
-        }).catch(function () {
+        }).catch(function (err) {
           btn.disabled = false;
           btn.textContent = 'SEND';
           note.classList.add('form-error');
-          note.textContent = 'Didn’t go through. Try again.';
+          note.textContent = err.message === 'rate'
+            ? 'That’s plenty for today. Come back tomorrow.'
+            : 'Didn’t go through. Try again.';
         });
       });
 
