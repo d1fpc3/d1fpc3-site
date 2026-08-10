@@ -324,7 +324,7 @@
       <aside class="plate" aria-label="Echelon membership">
         <div class="plate-top">
           <span class="k">Member access</span>
-          <span class="plate-dot"><span class="d"></span>Private</span>
+          <span class="plate-dot"><span class="d"></span><span id="plate-members">Private</span></span>
         </div>
         <div class="plate-mono"><span class="E serif foil sheen">E</span></div>
         <div class="plate-foot">
@@ -352,7 +352,7 @@
         <div class="row reveal"><span class="rn">01</span><span class="rt">Windows</span><span class="rdesc">The times of day that tend to pay, and why the rest of the session doesn't.</span></div>
         <div class="row reveal"><span class="rn">02</span><span class="rt">Setups</span><span class="rdesc">Named, each with an entry trigger and the invalidation that takes you out.</span></div>
         <div class="row reveal"><span class="rn">03</span><span class="rt">Risk</span><span class="rdesc">Sizing off the stop, a daily stop, and the rule for when to stand down entirely.</span></div>
-        <div class="row reveal"><span class="rn">04</span><span class="rt">The room</span><span class="rdesc">A private Discord for members. Levels before the open, honest recaps after the close.</span></div>
+        <div class="row reveal"><span class="rn">04</span><span class="rt">The room</span><span class="rdesc">A private Discord for members. Levels before the open, honest recaps after the close. <span id="room-count"></span></span></div>
       </div>
     </div></section>
 
@@ -483,6 +483,26 @@
     });
 
     if (CONFIG.discordUrl) { var fd = el('foot-discord'); fd.href = CONFIG.discordUrl; fd.hidden = false; }
+
+    /* Live member count, straight from Discord. The permanent invite in
+       CONFIG is the integration point: Discord's public invite endpoint
+       reports the server's member total, so the number on this page is
+       always the number actually in the room. No invite configured (or
+       the request fails) and the plate just keeps saying Private. */
+    (function () {
+      var m = (CONFIG.discordUrl || '').match(/(?:discord\.gg|discord(?:app)?\.com\/invite)\/([\w-]+)/);
+      if (!m) return;
+      fetch('https://discord.com/api/v10/invites/' + m[1] + '?with_counts=true')
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+        .then(function (inv) {
+          var n = inv && inv.approximate_member_count;
+          if (!n) return;
+          var t = Number(n).toLocaleString('en-US') + (n === 1 ? ' member' : ' members');
+          el('plate-members').textContent = t;
+          el('room-count').textContent = 'Currently ' + t + '.';
+        })
+        .catch(function () {});
+    })();
 
     var faqItems = [
       ['What exactly do I get?', 'The written plan: when to trade NQ, what to look for, how to size, when to stand down. Plus the members area at this site and the private room in Discord. The specifics stay behind the purchase.'],
