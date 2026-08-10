@@ -37,10 +37,11 @@ jobs:
       - name: Verify live site updated
         run: |
           sleep 10
+          # The site root IS the Echelon landing page (moved 2026-08-10).
           TITLE=$(curl -s -A "Mozilla/5.0" https://d1fpc3.com/ | grep -o "<title>[^<]*</title>")
           echo "Live root title: $TITLE"
           case "$TITLE" in
-            *d1fpc3*) echo "Homepage live." ;;
+            *Echelon*) echo "Echelon landing live at root." ;;
             *) echo "::error::Root still serving '$TITLE' — FTP sync did not land."; exit 1 ;;
           esac
           TTITLE=$(curl -s -A "Mozilla/5.0" https://d1fpc3.com/templates/ | grep -o "<title>[^<]*</title>")
@@ -49,9 +50,16 @@ jobs:
             *"UI Templates"*) echo "Templates live." ;;
             *) echo "::error::/templates/ not serving expected page."; exit 1 ;;
           esac
-          ETITLE=$(curl -s -A "Mozilla/5.0" https://d1fpc3.com/echelon/ | grep -o "<title>[^<]*</title>")
-          echo "Echelon title: $ETITLE"
-          case "$ETITLE" in
-            *Echelon*) echo "Echelon live." ;;
-            *) echo "::error::/echelon/ not serving expected page."; exit 1 ;;
+          # /echelon/ must 301 to the root now; app/welcome stay put.
+          ECODE=$(curl -s -o /dev/null -w "%{http_code}" -A "Mozilla/5.0" https://d1fpc3.com/echelon/)
+          echo "/echelon/ status: $ECODE"
+          case "$ECODE" in
+            301|308) echo "/echelon/ redirects." ;;
+            *) echo "::error::/echelon/ returned $ECODE, expected a 301 redirect to /."; exit 1 ;;
+          esac
+          ATITLE=$(curl -s -A "Mozilla/5.0" https://d1fpc3.com/echelon/app/ | grep -o "<title>[^<]*</title>")
+          echo "Members area title: $ATITLE"
+          case "$ATITLE" in
+            *Echelon*) echo "Members area live." ;;
+            *) echo "::error::/echelon/app/ not serving expected page."; exit 1 ;;
           esac

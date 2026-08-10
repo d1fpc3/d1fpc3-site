@@ -6,21 +6,31 @@
   <title>Echelon</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0a0908">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340..680&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
   <style>
     /* ─────────────────────────────────────────────────────────
        d1fpc3.com | echelon — members area
 
-       Same language as the sales page. The gate is not here: the
-       browser only ever sees what RLS hands it, and video and
-       files arrive as short-lived signed URLs from an edge
-       function. Hiding a lesson in the UI is presentation, not
-       protection.
+       Same language as the landing page at the site root: warm
+       near-black, Fraunces for the display moments, champagne
+       foil as the one metal, hairlines everywhere else.
+
+       The gate is not here: the browser only ever sees what RLS
+       hands it, and video and files arrive as short-lived signed
+       URLs from an edge function. Hiding a lesson in the UI is
+       presentation, not protection.
        ───────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0a0a; --ink: #f4f2ee; --muted: #8f8a80;
-      --faint: #5f5b54; --line: #222020; --gold: #a8842c; --gold-bright: #c9a24a;
+      --bg: #0a0908; --panel-2: #16130f;
+      --ink: #f2ede3; --muted: #968d7e; --faint: #635c50;
+      --line: rgba(242,237,227,0.09); --line-2: rgba(242,237,227,0.16);
+      --gold: #c9a24a; --gold-bright: #e6cf95; --gold-deep: #a8842c;
+      --foil: linear-gradient(135deg, #6f5620 0%, #c9a24a 26%, #f3e3b6 47%, #fff6df 53%, #c9a24a 74%, #6f5620 100%);
     }
 
     html { height: 100%; }
@@ -29,152 +39,147 @@
       min-height: 100%;
       background: var(--bg);
       color: var(--ink);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       font-size: 15px;
       line-height: 1.7;
       -webkit-font-smoothing: antialiased;
     }
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: radial-gradient(120% 80% at 78% -10%, rgba(201,162,74,0.06), transparent 55%);
+    }
 
     .label {
-      font-size: 11px; letter-spacing: 0.14em;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 11px; font-weight: 500; letter-spacing: 0.16em;
       text-transform: uppercase; color: var(--faint);
     }
 
     .btn {
-      display: inline-block; padding: 13px 26px;
-      background: var(--gold); color: #0a0a0a;
+      display: inline-block; padding: 14px 26px;
+      background: var(--foil); background-size: 200% 100%; color: #1a1305;
       font-size: 14px; font-weight: 600; text-decoration: none;
-      border: 1px solid var(--gold); border-radius: 2px; cursor: pointer;
-      font-family: inherit; transition: background 0.2s ease;
+      border: 0; border-radius: 3px; cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 10px 34px -12px rgba(201,162,74,0.5);
+      transition: transform 0.16s ease, background 0.2s ease, box-shadow 0.24s ease;
     }
-    .btn:hover, .btn:focus-visible { background: var(--gold-bright); }
-    .btn:disabled { opacity: 0.5; cursor: default; }
+    .btn:hover, .btn:focus-visible { transform: translateY(-1px); background-position: 100% 0; }
+    .btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .btn:hover { transform: none; } }
 
     .quiet {
       background: none; border: none; padding: 0; cursor: pointer;
       font-family: inherit; font-size: 13px; color: var(--faint);
-      text-decoration: none; border-bottom: 1px solid var(--line);
+      text-decoration: none; border-bottom: 1px solid var(--line-2);
       transition: color 0.2s ease, border-color 0.2s ease;
     }
-    .quiet:hover, .quiet:focus-visible { color: var(--gold); border-bottom-color: var(--gold); }
+    .quiet:hover, .quiet:focus-visible { color: var(--gold-bright); border-bottom-color: var(--gold); }
 
     /* ── centred states: signing in, no access ──────────────── */
-    /* Glass card over drifting orbs. Gold and amber rather than the
-       purple/pink of the source pattern, so it belongs to Echelon. */
+    /* The buy-panel object from the landing page: near-black panel,
+       hairline border, one champagne edge along the top. */
 
     .centre {
       min-height: 100dvh; display: flex; align-items: center;
       justify-content: center; padding: 32px 24px; position: relative;
     }
 
-    .orb {
-      position: absolute; border-radius: 50%;
-      filter: blur(66px); opacity: 0.55; pointer-events: none;
-    }
-    .o1 {
-      width: 340px; height: 340px; background: #a8842c;
-      top: 8%; left: 50%; margin-left: -300px;
-      animation: gl-drift 9s ease-in-out infinite alternate;
-    }
-    .o2 {
-      width: 300px; height: 300px; background: #7a4f16;
-      bottom: 10%; left: 50%; margin-left: 40px;
-      animation: gl-drift 11s ease-in-out infinite alternate-reverse;
-    }
-    @keyframes gl-drift { to { transform: translate(30px, 24px) scale(1.14); } }
-    @media (prefers-reduced-motion: reduce) { .orb { animation: none; } }
-
     .panel {
       position: relative;
-      width: 100%; max-width: 396px;
-      background: rgba(255,255,255,0.055);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 20px;
-      padding: 28px 24px;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 24px 60px -24px rgba(0,0,0,0.7);
+      width: 100%; max-width: 420px;
+      background: linear-gradient(180deg, var(--panel-2), #080706);
+      border: 1px solid var(--line-2);
+      border-radius: 16px;
+      padding: 34px 30px;
+      box-shadow: 0 50px 90px -50px rgba(0,0,0,0.9);
     }
+    .panel::before { content: ""; display: block; height: 1px; background: var(--foil); opacity: 0.6; margin: -34px -30px 30px; }
 
     .panel h1 {
-      font-weight: 650; font-size: 25px;
-      line-height: 1.15; letter-spacing: -0.025em;
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 500; font-size: 28px;
+      line-height: 1.1; letter-spacing: -0.02em;
     }
-    .panel .body { margin-top: 6px; font-size: 13px; color: rgba(255,255,255,0.55); }
+    .panel .body { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
     .panel .eyebrow { color: var(--gold); margin-bottom: 12px; }
 
     form.signin { margin-top: 20px; }
 
-    /* floating-label field */
-    .fld { position: relative; margin-bottom: 12px; }
+    /* floating-label field: underlined, no filled box */
+    .fld { position: relative; margin-bottom: 16px; }
 
     .fld input {
       width: 100%;
-      padding: 19px 14px 8px;
+      padding: 19px 0 9px;
       font-family: inherit; font-size: 14.5px;
-      color: #fff;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 11px;
+      color: var(--ink);
+      background: transparent;
+      border: 0; border-bottom: 1px solid var(--line-2);
+      border-radius: 0;
       outline: none;
-      transition: border-color 0.2s ease, background 0.2s ease;
+      transition: border-color 0.2s ease;
     }
-    .fld input:focus { border-color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.1); }
+    .fld input:focus { border-bottom-color: var(--gold); }
 
     .fld label {
       position: absolute;
-      left: 15px; top: 15px;
+      left: 0; top: 15px;
       font-size: 13.5px;
-      color: rgba(255,255,255,0.45);
+      color: var(--faint);
       pointer-events: none;
       transform-origin: left top;
       transition: transform 0.18s ease, color 0.18s ease;
     }
     .fld input:focus + label,
     .fld input:not(:placeholder-shown) + label {
-      transform: translateY(-9px) scale(0.72);
-      color: rgba(255,255,255,0.7);
+      transform: translateY(-13px) scale(0.72);
+      color: var(--muted);
     }
 
     .go {
       width: 100%;
-      margin: 6px 0 4px;
-      padding: 14px;
-      border: none; border-radius: 11px;
-      background: #fff; color: #0a0a0a;
+      margin: 10px 0 4px;
+      padding: 15px;
+      border: none; border-radius: 3px;
+      background: var(--foil); background-size: 200% 100%; color: #1a1305;
       font: 600 14.5px/1 inherit;
       font-family: inherit;
       cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.25s ease, opacity 0.2s ease;
+      box-shadow: 0 10px 34px -12px rgba(201,162,74,0.5);
+      transition: transform 0.16s ease, background 0.2s ease, box-shadow 0.24s ease, opacity 0.2s ease;
     }
-    .go:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 28px -12px rgba(255,255,255,0.45); }
+    .go:hover:not(:disabled) { transform: translateY(-1px); background-position: 100% 0; box-shadow: 0 14px 40px -12px rgba(201,162,74,0.62); }
     .go:disabled { opacity: 0.6; cursor: default; }
+    @media (prefers-reduced-motion: reduce) { .go:hover:not(:disabled) { transform: none; } }
 
     .or {
       display: flex; align-items: center; gap: 10px;
-      font-size: 11px; color: rgba(255,255,255,0.4);
-      margin: 16px 0 12px;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--faint);
+      margin: 18px 0 12px;
     }
-    .or::before, .or::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.14); }
+    .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
     .alt { display: grid; gap: 9px; }
 
     .alt button {
       display: flex; align-items: center; justify-content: center; gap: 9px;
-      padding: 12px;
-      border: 1px solid rgba(255,255,255,0.16);
-      border-radius: 10px;
-      background: rgba(255,255,255,0.05);
-      color: rgba(255,255,255,0.85);
+      padding: 13px;
+      border: 1px solid var(--line-2);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--ink);
       font: 600 13px/1 inherit;
       font-family: inherit;
       cursor: pointer;
-      transition: background 0.2s ease, border-color 0.2s ease;
+      transition: color 0.2s ease, border-color 0.2s ease;
     }
-    .alt button:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); }
+    .alt button:hover { border-color: var(--gold); color: var(--gold-bright); }
     .alt button svg { width: 16px; height: 16px; }
 
-    .form-note { font-size: 12.5px; color: rgba(255,255,255,0.42); margin-top: 10px; }
+    .form-note { font-size: 12.5px; color: var(--faint); margin-top: 10px; }
     .form-error { font-size: 12.5px; color: #e0a08d; margin-top: 10px; }
 
     /* ── app shell ──────────────────────────────────────────── */
@@ -188,7 +193,10 @@
       display: flex; align-items: center; justify-content: space-between;
       gap: 16px; flex-wrap: wrap;
     }
-    .brand { font-weight: 700; letter-spacing: -0.02em; font-size: 17px; }
+    .brand {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 13px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase;
+    }
     .who { font-size: 12px; color: var(--faint); display: flex; align-items: center; gap: 14px; }
 
     .layout {
@@ -211,8 +219,9 @@
     .toc-group + .toc-group { margin-top: 24px; }
 
     .toc .cap {
-      font: 600 10.5px/1 inherit;
-      letter-spacing: 0.12em;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 10.5px; font-weight: 500; line-height: 1;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--faint);
       margin-bottom: 10px;
@@ -262,8 +271,9 @@
 
     .lesson-kind { color: var(--gold); }
     .lesson-h {
-      font-weight: 600; font-size: clamp(24px, 5vw, 32px);
-      line-height: 1.12; letter-spacing: -0.025em; margin-top: 12px;
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 500; font-size: clamp(26px, 5vw, 36px);
+      line-height: 1.08; letter-spacing: -0.02em; margin-top: 12px;
     }
     .lesson-sum { margin-top: 12px; color: var(--muted); max-width: 56ch; }
 
@@ -275,10 +285,11 @@
 
     .prose { margin-top: 26px; max-width: 62ch; color: var(--muted); }
     .prose h2, .prose h3 {
-      color: var(--ink); font-weight: 600; letter-spacing: -0.015em;
-      margin: 26px 0 10px; font-size: 19px;
+      font-family: 'Fraunces', Georgia, serif;
+      color: var(--ink); font-weight: 500; letter-spacing: -0.015em;
+      margin: 26px 0 10px; font-size: 21px;
     }
-    .prose h3 { font-size: 16px; }
+    .prose h3 { font-size: 17px; }
     .prose p { margin-bottom: 14px; }
 
     .notice {
@@ -298,8 +309,6 @@
 
   <!-- signing in / no access -->
   <div class="centre" id="gate">
-    <span class="orb o1" aria-hidden="true"></span>
-    <span class="orb o2" aria-hidden="true"></span>
     <div class="panel" id="gate-panel">
       <p class="label eyebrow" id="gate-label">Echelon</p>
       <h1 id="gate-title">Loading…</h1>
@@ -461,7 +470,7 @@
         render(host) {
           const buy = document.createElement('a')
           buy.className = 'btn'
-          buy.href = '/echelon/'
+          buy.href = '/'
           buy.textContent = 'See what Echelon is'
 
           const other = document.createElement('button')
@@ -594,7 +603,7 @@
           player.remove()
           const notice = document.createElement('p')
           notice.className = 'notice'
-          notice.textContent = `This video is not playable yet — ${err.message}.`
+          notice.textContent = `This video is not playable yet (${err.message}).`
           host.appendChild(notice)
         }
       }
@@ -613,7 +622,7 @@
             location.href = url
             btn.textContent = 'Download'
           } catch (err) {
-            btn.textContent = `Not available — ${err.message}`
+            btn.textContent = `Not available (${err.message})`
           } finally {
             btn.disabled = false
           }

@@ -6,23 +6,31 @@
   <title>Welcome to Echelon</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0a0908">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340..680&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
   <style>
     /* Post-checkout. Stripe drops the buyer here with their session id; we
        trade it for a real session and put them inside the course. No email
        round-trip, because the moment after paying is the worst possible time
-       to ask someone to go and check their inbox. */
+       to ask someone to go and check their inbox.
+       Same language as the landing page at the site root. */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0a0a; --ink: #f4f2ee; --muted: #8f8a80;
-      --faint: #5f5b54; --line: #222020; --gold: #a8842c; --gold-bright: #c9a24a;
+      --bg: #0a0908; --panel-2: #16130f;
+      --ink: #f2ede3; --muted: #968d7e; --faint: #635c50;
+      --line: rgba(242,237,227,0.09); --line-2: rgba(242,237,227,0.16);
+      --gold: #c9a24a; --gold-bright: #e6cf95;
+      --foil: linear-gradient(135deg, #6f5620 0%, #c9a24a 26%, #f3e3b6 47%, #fff6df 53%, #c9a24a 74%, #6f5620 100%);
     }
 
     body {
       min-height: 100vh;
       background: var(--bg);
       color: var(--ink);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       font-size: 15px;
       line-height: 1.7;
       display: flex;
@@ -31,43 +39,63 @@
       padding: 32px 24px;
       -webkit-font-smoothing: antialiased;
     }
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: radial-gradient(120% 80% at 78% -10%, rgba(201,162,74,0.06), transparent 55%);
+    }
 
-    .panel { width: 100%; max-width: 420px; }
+    .panel {
+      width: 100%; max-width: 440px;
+      border: 1px solid var(--line-2); border-radius: 16px;
+      padding: 34px 30px;
+      background: linear-gradient(180deg, var(--panel-2), #080706);
+      box-shadow: 0 50px 90px -50px rgba(0,0,0,0.9);
+    }
+    .panel::before { content: ""; display: block; height: 1px; background: var(--foil); opacity: 0.6; margin: -34px -30px 30px; }
 
     .label {
-      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 11px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase;
       color: var(--gold);
     }
 
     h1 {
-      font-weight: 700; font-size: clamp(30px, 8vw, 40px);
-      line-height: 1.05; letter-spacing: -0.03em; margin-top: 14px;
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 500; font-size: clamp(30px, 8vw, 40px);
+      line-height: 1.05; letter-spacing: -0.02em; margin-top: 14px;
     }
 
     p.body { margin-top: 14px; color: var(--muted); }
 
     .spinner {
       margin-top: 26px; width: 20px; height: 20px;
-      border: 1px solid var(--line); border-top-color: var(--gold);
+      border: 1px solid var(--line-2); border-top-color: var(--gold);
       border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
 
     .btn {
-      display: inline-block; margin-top: 24px; padding: 14px 28px;
-      background: var(--gold); color: #0a0a0a; font-size: 14px; font-weight: 600;
-      text-decoration: none; border: 1px solid var(--gold); border-radius: 2px;
-      transition: background 0.2s ease;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-top: 24px; min-height: 48px; padding: 0 28px;
+      background: var(--foil); background-size: 200% 100%; color: #1a1305;
+      font-size: 14px; font-weight: 600; letter-spacing: 0.01em;
+      text-decoration: none; border: 0; border-radius: 3px;
+      box-shadow: 0 10px 34px -12px rgba(201,162,74,0.5);
+      transition: transform 0.16s ease, background 0.2s ease, box-shadow 0.24s ease;
     }
-    .btn:hover, .btn:focus-visible { background: var(--gold-bright); }
+    .btn:hover, .btn:focus-visible { transform: translateY(-1px); background-position: 100% 0; }
+    @media (prefers-reduced-motion: reduce) { .btn:hover { transform: none; } }
 
     .quiet {
-      display: inline-block; margin-top: 18px; font-size: 13px;
+      display: inline-block; margin-top: 18px; margin-left: 4px; font-size: 13px;
       color: var(--faint); text-decoration: none;
-      border-bottom: 1px solid var(--line);
+      border-bottom: 1px solid var(--line-2);
+      transition: color 0.2s ease, border-color 0.2s ease;
     }
-    .quiet:hover { color: var(--gold); border-bottom-color: var(--gold); }
+    .quiet:hover, .quiet:focus-visible { color: var(--gold-bright); border-bottom-color: var(--gold); }
+
+    a:focus-visible { outline: 1px solid var(--gold); outline-offset: 3px; }
 
     .fail .label { color: var(--muted); }
   </style>
@@ -93,9 +121,7 @@
     const el = (id) => document.getElementById(id)
 
     function show({ label, title, body, actions = [], failed = false }) {
-      el('spinner').remove?.()
-      const spinner = el('spinner')
-      if (spinner) spinner.style.display = 'none'
+      el('spinner')?.remove()
       el('state-label').textContent = label
       el('state-title').textContent = title
       el('state-body').textContent = body
@@ -124,7 +150,7 @@
         label: 'Nothing to confirm',
         title: 'No checkout found.',
         body: 'This page is where Stripe sends you after buying. If you already have access, sign in instead.',
-        actions: [{ text: 'Sign in', href: APP, primary: true }, { text: 'Back to Echelon', href: '/echelon/' }],
+        actions: [{ text: 'Sign in', href: APP, primary: true }, { text: 'Back to Echelon', href: '/' }],
         failed: true,
       })
     } else {
