@@ -353,6 +353,10 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           Recaps <span class="count" id="c-recaps">—</span>
         </button>
+        <button class="tab" data-view="codes" data-title="Access codes" data-crumb="Free passes and discounts">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5v2"/><path d="M15 11v2"/><path d="M15 17v2"/><path d="M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
+          Codes <span class="count" id="c-codes">—</span>
+        </button>
 
         <p class="side-cap label">Personal</p>
         <button class="tab" data-view="money" data-title="Money" data-crumb="Accounts, spending and budgets">
@@ -464,6 +468,38 @@
             </div>
             <div class="tbl-scroll"><table id="recaps-table"></table></div>
             <div class="empty" id="recaps-empty" hidden>Nothing yet. Members see recaps the moment you publish one.</div>
+          </div>
+        </section>
+
+        <!-- CODES -->
+        <section class="view" id="v-codes">
+          <div class="block">
+            <div class="block-head"><h3>Mint a code</h3></div>
+            <div class="field-row">
+              <select class="inp" id="code-kind" style="flex:0 1 150px;min-width:130px;">
+                <option value="free">Free access</option>
+                <option value="discount">Discount</option>
+              </select>
+              <input class="inp" id="code-pct" type="number" min="1" max="100" placeholder="% off" style="flex:0 1 90px;min-width:80px;display:none;">
+              <input class="inp" id="code-custom" placeholder="Custom code (blank = random)" style="flex:1;min-width:180px;text-transform:uppercase;">
+              <input class="inp" id="code-uses" type="number" min="1" value="1" title="Max uses" style="flex:0 1 90px;min-width:80px;">
+              <input class="inp" id="code-exp" type="date" title="Expires" style="flex:0 1 160px;min-width:140px;">
+              <input class="inp" id="code-note" placeholder="Note — who it's for" style="flex:1;min-width:160px;">
+              <button class="btn" id="code-create">Create</button>
+            </div>
+            <p class="msg" id="code-msg"></p>
+            <p class="settings-note" style="margin:0 18px 16px;">
+              Free codes are redeemable right now — "Have an access code?" on the members sign-in screen.
+              Discount codes are recorded here and get attached to Stripe checkout once Stripe is connected.
+            </p>
+          </div>
+          <div class="block">
+            <div class="block-head">
+              <h3>All codes</h3>
+              <span class="label" id="codes-total"></span>
+            </div>
+            <div class="tbl-scroll"><table id="codes-table"></table></div>
+            <div class="empty" id="codes-empty" hidden>No codes yet. Mint one above and hand it out.</div>
           </div>
         </section>
 
@@ -719,12 +755,13 @@
       skelRows(el('events-table'), 3, 4)
       skelRows(el('content-table'), 4, 5)
       skelRows(el('recaps-table'), 4, 3)
+      skelRows(el('codes-table'), 6, 3)
       skelRows(el('budget-table'), 4, 3)
       skelRows(el('txn-table'), 5, 7)
       skelRows(el('accounts-table'), 4, 3)
       skelIntg(el('banks'))
       skelIntg(el('integrations'), 4)
-      for (const id of ['c-users', 'c-content', 'c-recaps']) {
+      for (const id of ['c-users', 'c-content', 'c-recaps', 'c-codes']) {
         el(id).textContent = ''; el(id).appendChild(skel('14px', 8))
       }
     }
@@ -938,6 +975,92 @@
         await loadRecaps()
       } catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
       finally { el('recap-save').disabled = false }
+    })
+
+    /* ── access codes ── */
+
+    let CODES = []
+
+    function renderCodes() {
+      el('c-codes').textContent = String(CODES.length)
+      el('codes-total').textContent = `${CODES.length} total`
+      el('codes-empty').hidden = CODES.length > 0
+      table(el('codes-table'), ['Code', 'Kind', 'Uses', 'Expires', 'Status', 'Note', '', ''], CODES, (c) => {
+        const tr = document.createElement('tr')
+        const codeTd = document.createElement('td')
+        const copy = document.createElement('button'); copy.className = 'rowbtn'
+        copy.style.fontFamily = 'ui-monospace, Menlo, monospace'
+        copy.textContent = c.code; copy.title = 'Copy code'
+        copy.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(c.code)
+            copy.textContent = 'copied'; setTimeout(() => { copy.textContent = c.code }, 1100)
+          } catch { /* clipboard denied; the code is still visible */ }
+        })
+        codeTd.appendChild(copy); tr.appendChild(codeTd)
+
+        const spent = c.uses >= c.max_uses
+        tr.append(
+          cell(c.kind === 'discount' ? `${c.percent_off}% off` : 'Free access'),
+          cell(`${c.uses} / ${c.max_uses}`, 'num'),
+          cell(c.expires_at ? when(c.expires_at) : 'never', 'num'),
+        )
+        const st = document.createElement('td')
+        const badge = document.createElement('span')
+        badge.className = `badge ${c.is_active && !spent ? 'b-active' : 'b-revoked'}`
+        badge.textContent = spent ? 'used up' : (c.is_active ? 'active' : 'off')
+        st.appendChild(badge); tr.appendChild(st)
+        tr.appendChild(cell(c.note ?? '—'))
+
+        const mk = (label, fn) => {
+          const td = document.createElement('td')
+          const b = document.createElement('button'); b.className = 'rowbtn'; b.textContent = label
+          b.addEventListener('click', () => fn(b)); td.appendChild(b); return td
+        }
+        tr.appendChild(mk(c.is_active ? 'Disable' : 'Enable', async (b) => {
+          b.disabled = true
+          try { await adminAction({ action: 'code_toggle', id: c.id, value: !c.is_active }); await loadCodes() }
+          catch { b.disabled = false }
+        }))
+        tr.appendChild(mk('Delete', async (b) => {
+          if (!confirm(`Delete ${c.code}? Anyone holding it loses the way in.`)) return
+          b.disabled = true
+          try { await adminAction({ action: 'code_delete', id: c.id }); await loadCodes() }
+          catch { b.disabled = false }
+        }))
+        return tr
+      })
+    }
+
+    async function loadCodes() {
+      const { data } = await supabase.from('access_codes').select('*').order('created_at', { ascending: false })
+      CODES = data ?? []
+      renderCodes()
+    }
+
+    el('code-kind').addEventListener('change', () => {
+      el('code-pct').style.display = el('code-kind').value === 'discount' ? '' : 'none'
+    })
+
+    el('code-create').addEventListener('click', async () => {
+      const msg = el('code-msg'), kind = el('code-kind').value
+      el('code-create').disabled = true; msg.className = 'msg'; msg.textContent = 'Creating…'
+      try {
+        const res = await adminAction({
+          action: 'code_create',
+          kind,
+          code: el('code-custom').value.trim() || undefined,
+          percent_off: kind === 'discount' ? Number(el('code-pct').value) : undefined,
+          max_uses: Number(el('code-uses').value) || 1,
+          expires_at: el('code-exp').value ? new Date(`${el('code-exp').value}T23:59:59`).toISOString() : undefined,
+          note: el('code-note').value.trim() || undefined,
+        })
+        msg.className = 'msg ok'
+        msg.textContent = `${res.code.code} minted${kind === 'free' ? ' — redeemable on the members sign-in screen.' : '.'}`
+        el('code-custom').value = ''; el('code-note').value = ''
+        await loadCodes()
+      } catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
+      finally { el('code-create').disabled = false }
     })
 
     /* ── money (Plaid + budgets) ──
@@ -1265,7 +1388,7 @@
       recapEditor(null)
       paintSkeletons()
       await Promise.all([
-        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(),
+        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(),
         // Money must never block the rest of the dashboard.
         loadMoney().catch(() => renderMoneySetup()),
       ])

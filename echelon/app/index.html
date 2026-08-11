@@ -329,6 +329,57 @@
     @media (prefers-reduced-motion: reduce) { .skel::after { animation: none; } }
     .count .skel { display: inline-block; width: 14px; height: 8px; vertical-align: middle; }
     .player.skel { background: var(--panel-2); border-radius: 10px; }
+
+    /* ── forms (settings) ────────────────────────────────────── */
+
+    .inp {
+      padding: 10px 13px; background: var(--bg); border: 1px solid var(--line-bright);
+      border-radius: 9px; color: var(--ink); font-family: inherit; font-size: 13.5px;
+    }
+    .inp:focus { outline: none; border-color: var(--gold); }
+    .inp::placeholder { color: var(--faint); }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .msg { font-size: 12.5px; }
+    .msg.ok { color: var(--good); } .msg.err { color: var(--bad); }
+    .hint { font-size: 11.5px; color: var(--faint); margin-top: 6px; }
+    .charcount { font-size: 11px; color: var(--faint); text-align: right; margin-top: 4px; }
+    .setgrid { padding: 18px; display: grid; gap: 18px; max-width: 560px; }
+
+    .settings-note {
+      margin: 0 0 20px; padding: 14px 16px; font-size: 12.5px; line-height: 1.6; color: var(--muted);
+      background: var(--panel); border: 1px solid var(--line); border-left: 2px solid var(--gold); border-radius: 10px;
+    }
+    .settings-note a { color: var(--gold); }
+
+    /* ── members directory ───────────────────────────────────── */
+
+    .member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 16px 18px; }
+    .mcard { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--line); border-radius: 12px; padding: 13px; }
+    .pfp, .pfp-s {
+      border-radius: 12px; flex-shrink: 0; overflow: hidden;
+      background: linear-gradient(140deg, var(--gold), var(--gold-deep));
+      color: #1a1207; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pfp { width: 72px; height: 72px; font-size: 24px; border-radius: 18px; }
+    .pfp-s { width: 44px; height: 44px; font-size: 16px; }
+    .pfp img, .pfp-s img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 9px; }
+    .mname { font-weight: 600; font-size: 13.5px; color: var(--ink); display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .mname span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vcheck { width: 15px; height: 15px; color: var(--gold); flex-shrink: 0; }
+    .mbio { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    /* ── avatar cropper ──────────────────────────────────────── */
+
+    .crop-vp {
+      width: 260px; height: 260px; max-width: 100%; border-radius: 14px; overflow: hidden;
+      position: relative; border: 1px solid var(--line-bright); background: #000;
+      touch-action: none; cursor: grab;
+    }
+    .crop-vp img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; user-select: none; pointer-events: none; }
+    .crop-zoom { width: 260px; max-width: 100%; accent-color: var(--gold); }
   </style>
 </head>
 <body>
@@ -353,13 +404,13 @@
       </div>
 
       <nav class="side-nav" id="tabs" aria-label="Sections">
-        <p class="side-cap label">Overview</p>
+        <p class="side-cap label" id="cap-overview">Overview</p>
         <button class="tab on" data-view="overview" data-title="Overview" data-crumb="Where you are">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
           Overview
         </button>
 
-        <p class="side-cap label">Learn</p>
+        <p class="side-cap label" id="cap-learn">Learn</p>
         <button class="tab" data-view="course" data-title="Course" data-crumb="Lessons and progress">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           Course <span class="count" id="c-lessons">—</span>
@@ -367,6 +418,18 @@
         <button class="tab" data-view="recaps" data-title="Trade recaps" data-crumb="Session write-ups">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
           Trade recaps <span class="count" id="c-recaps">—</span>
+        </button>
+
+        <p class="side-cap label">Community</p>
+        <button class="tab" data-view="members" data-title="Members" data-crumb="Who's here">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Members <span class="count" id="c-members">—</span>
+        </button>
+
+        <p class="side-cap label">You</p>
+        <button class="tab" data-view="settings" data-title="Settings" data-crumb="Profile and account">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
         </button>
 
         <p class="side-cap label" id="more-cap" hidden>More</p>
@@ -437,6 +500,85 @@
             <div class="empty" id="recaps-empty" hidden>No recaps posted yet. They land here after each session.</div>
           </div>
         </section>
+
+        <!-- MEMBERS -->
+        <section class="view" id="v-members">
+          <p class="settings-note" id="members-upsell" hidden>
+            You're in on the free tier. The full course and trade recaps come with
+            <a href="/">Echelon</a>.
+          </p>
+          <div class="block">
+            <div class="block-head">
+              <h3>Members</h3>
+              <div class="filters"><input class="inp" id="member-q" type="search" placeholder="Search"></div>
+            </div>
+            <div class="member-grid" id="member-grid"></div>
+            <div class="empty" id="members-empty" hidden>No profiles yet.</div>
+          </div>
+        </section>
+
+        <!-- SETTINGS -->
+        <section class="view" id="v-settings">
+          <div class="block">
+            <div class="block-head"><h3>Profile</h3><span class="label">what other members see</span></div>
+            <div class="setgrid">
+              <div style="display:flex;align-items:center;gap:14px;">
+                <div class="pfp" id="pfp-preview">·</div>
+                <div>
+                  <button class="rowbtn" id="pfp-pick">Change photo</button>
+                  <input type="file" id="pfp-file" accept="image/*" hidden>
+                  <p class="hint">Drag to position, zoom to fit. Saved square at 512px.</p>
+                  <p class="msg" id="pfp-msg"></p>
+                </div>
+              </div>
+              <div id="crop-wrap" hidden style="display:grid;gap:12px;">
+                <div class="crop-vp" id="crop-vp"><img id="crop-img" alt=""></div>
+                <input type="range" class="crop-zoom" id="crop-zoom" min="1" max="3" step="0.01" value="1" aria-label="Zoom">
+                <div class="filters">
+                  <button class="btn" id="crop-save">Save photo</button>
+                  <button class="rowbtn" id="crop-cancel">Cancel</button>
+                </div>
+              </div>
+              <div>
+                <p class="label" style="margin-bottom:6px;">Username</p>
+                <input class="inp" id="set-username" maxlength="20" placeholder="username" autocomplete="off" style="width:100%;">
+                <p class="hint">3–20 characters: letters, digits, dots, underscores.</p>
+              </div>
+              <div>
+                <p class="label" style="margin-bottom:6px;">Bio</p>
+                <textarea class="inp" id="set-bio" maxlength="200" rows="3" style="width:100%;resize:vertical;" placeholder="A line about you"></textarea>
+                <p class="charcount" id="bio-count">0 / 200</p>
+              </div>
+              <div class="filters">
+                <button class="btn" id="profile-save">Save profile</button>
+                <span class="msg" id="profile-msg"></span>
+              </div>
+            </div>
+          </div>
+          <div class="block">
+            <div class="block-head"><h3>Account</h3><span class="label" id="acct-email"></span></div>
+            <div class="setgrid">
+              <div>
+                <p class="label" style="margin-bottom:6px;">Change email</p>
+                <div class="filters">
+                  <input class="inp" id="new-email" type="email" placeholder="new@email.com" style="flex:1;min-width:200px;">
+                  <button class="rowbtn" id="email-save">Update</button>
+                </div>
+                <p class="hint">Confirmation links go to both addresses; the change lands once they're clicked.</p>
+                <p class="msg" id="email-msg"></p>
+              </div>
+              <div>
+                <p class="label" style="margin-bottom:6px;">Password</p>
+                <div class="filters">
+                  <input class="inp" id="new-pass" type="password" placeholder="New password, 8+ characters" autocomplete="new-password" style="flex:1;min-width:200px;">
+                  <button class="rowbtn" id="pass-save">Set password</button>
+                </div>
+                <p class="hint">Optional — sign-in links always work. Forgot it? Use "Forgot password" on the sign-in screen.</p>
+                <p class="msg" id="pass-msg"></p>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   </div>
@@ -454,7 +596,11 @@
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
     const el = (id) => document.getElementById(id)
 
-    const state = { user: null, isAdmin: false, modules: [], lessons: [], done: new Set(), currentId: null, recaps: [], currentRecap: null }
+    const state = {
+      user: null, isAdmin: false, hasCourse: false, profile: null,
+      modules: [], lessons: [], done: new Set(), currentId: null,
+      recaps: [], currentRecap: null, members: [],
+    }
 
     const whenDay = (d) => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) }
 
@@ -534,7 +680,15 @@
           or.className = 'or'
           or.textContent = 'or'
 
-          form.append(field, button, note, or, discordButton(fail))
+          const alts = document.createElement('div')
+          alts.style.cssText = 'display:flex;justify-content:space-between;gap:10px;'
+          const usePw = gateQuiet('Use a password')
+          usePw.addEventListener('click', () => passwordScreen(input.value.trim()))
+          const useCode = gateQuiet('Have an access code?')
+          useCode.addEventListener('click', () => codeScreen(input.value.trim()))
+          alts.append(usePw, useCode)
+
+          form.append(field, button, note, or, discordButton(fail), alts)
           host.appendChild(form)
 
           form.addEventListener('submit', async (e) => {
@@ -560,30 +714,158 @@
       })
     }
 
-    function noAccessScreen(email) {
-      gate({
-        title: 'No access on this email.',
-        body: `${email} has not bought Echelon. If you paid with a different address, sign in with that one instead.`,
-        render(host) {
-          const buy = document.createElement('a')
-          buy.className = 'go'
-          buy.style.display = 'block'
-          buy.style.textAlign = 'center'
-          buy.style.textDecoration = 'none'
-          buy.style.marginTop = '20px'
-          buy.href = '/'
-          buy.textContent = 'See what Echelon is'
+    function gateQuiet(text) {
+      const b = document.createElement('button')
+      b.type = 'button'
+      b.style.cssText = 'background:none;border:0;padding:0;margin-top:14px;cursor:pointer;font-family:inherit;font-size:12.5px;color:rgba(255,255,255,0.45);text-decoration:underline;text-underline-offset:3px;'
+      b.textContent = text
+      return b
+    }
 
-          const other = document.createElement('button')
-          other.className = 'go dim'
-          other.style.marginTop = '10px'
-          other.textContent = 'Use a different email'
-          other.addEventListener('click', async () => {
-            await supabase.auth.signOut()
-            signInScreen()
+    function gateField(id, type, text, ac) {
+      const f = document.createElement('div'); f.className = 'fld'
+      const i = document.createElement('input')
+      i.type = type; i.id = id; i.placeholder = ' '; i.required = true
+      if (ac) i.autocomplete = ac
+      const l = document.createElement('label'); l.setAttribute('for', id); l.textContent = text
+      f.append(i, l)
+      return { f, i }
+    }
+
+    function passwordScreen(prefill) {
+      gate({
+        title: 'Sign in with a password',
+        body: 'If you set one in Settings. Sign-in links always work too.',
+        render(host) {
+          const form = document.createElement('form'); form.style.marginTop = '20px'
+          const em = gateField('pw-email', 'email', 'Email', 'email')
+          if (prefill) em.i.value = prefill
+          const pw = gateField('pw-pass', 'password', 'Password', 'current-password')
+          const button = document.createElement('button')
+          button.type = 'submit'; button.className = 'go'; button.textContent = 'Sign in'
+          const note = document.createElement('p'); note.className = 'form-note'
+          form.append(em.f, pw.f, button, note)
+
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            button.disabled = true; button.textContent = 'Signing in…'
+            const { error } = await supabase.auth.signInWithPassword({
+              email: em.i.value.trim(), password: pw.i.value,
+            })
+            if (error) {
+              note.className = 'form-error'; note.textContent = error.message
+              button.disabled = false; button.textContent = 'Sign in'
+              return
+            }
+            boot()
           })
 
-          host.append(buy, other)
+          const alts = document.createElement('div')
+          alts.style.cssText = 'display:flex;justify-content:space-between;gap:10px;'
+          const forgot = gateQuiet('Forgot password?')
+          forgot.addEventListener('click', async () => {
+            const email = em.i.value.trim()
+            if (!email) { note.className = 'form-error'; note.textContent = 'Type your email first.'; return }
+            forgot.disabled = true
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+              redirectTo: 'https://d1fpc3.com/echelon/app/',
+            })
+            forgot.disabled = false
+            if (error) { note.className = 'form-error'; note.textContent = error.message; return }
+            gate({
+              title: 'Check your email.',
+              body: `A reset link is on its way to ${email}. It brings you back here to choose a new password.`,
+            })
+          })
+          const back = gateQuiet('Use a sign-in link instead')
+          back.addEventListener('click', () => signInScreen())
+          alts.append(back, forgot)
+          form.appendChild(alts)
+          host.appendChild(form)
+        },
+      })
+    }
+
+    function recoveryScreen() {
+      gate({
+        title: 'Choose a new password',
+        body: 'You followed a reset link — set the new one now.',
+        render(host) {
+          const form = document.createElement('form'); form.style.marginTop = '20px'
+          const pw = gateField('rc-pass', 'password', 'New password (8+ characters)', 'new-password')
+          const pw2 = gateField('rc-pass2', 'password', 'Same password again', 'new-password')
+          const button = document.createElement('button')
+          button.type = 'submit'; button.className = 'go'; button.textContent = 'Save password'
+          const note = document.createElement('p'); note.className = 'form-note'
+          form.append(pw.f, pw2.f, button, note)
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            if (pw.i.value.length < 8) { note.className = 'form-error'; note.textContent = '8 characters at least.'; return }
+            if (pw.i.value !== pw2.i.value) { note.className = 'form-error'; note.textContent = 'They do not match.'; return }
+            button.disabled = true; button.textContent = 'Saving…'
+            const { error } = await supabase.auth.updateUser({ password: pw.i.value })
+            if (error) {
+              note.className = 'form-error'; note.textContent = error.message
+              button.disabled = false; button.textContent = 'Save password'
+              return
+            }
+            boot()
+          })
+          host.appendChild(form)
+        },
+      })
+    }
+
+    async function redeemCode(code, email) {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/redeem-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
+        body: JSON.stringify({ code, email }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? `${res.status}`)
+      return body
+    }
+
+    function codeScreen(prefillEmail) {
+      gate({
+        title: 'Redeem an access code',
+        body: 'A code from D1 opens the course without a purchase.',
+        render(host) {
+          const form = document.createElement('form'); form.style.marginTop = '20px'
+          const code = gateField('rd-code', 'text', 'Access code', 'off')
+          code.i.style.textTransform = 'uppercase'
+          const em = gateField('rd-email', 'email', 'Your email', 'email')
+          if (prefillEmail) em.i.value = prefillEmail
+          const button = document.createElement('button')
+          button.type = 'submit'; button.className = 'go'; button.textContent = 'Redeem'
+          const note = document.createElement('p'); note.className = 'form-note'
+          form.append(code.f, em.f, button, note)
+
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            button.disabled = true; button.textContent = 'Checking…'
+            try {
+              const email = em.i.value.trim()
+              await redeemCode(code.i.value.trim(), email)
+              await supabase.auth.signInWithOtp({
+                email,
+                options: { emailRedirectTo: 'https://d1fpc3.com/echelon/app/' },
+              })
+              gate({
+                title: 'You are in.',
+                body: `Code accepted. A sign-in link is on its way to ${email} — it opens the course.`,
+              })
+            } catch (err) {
+              note.className = 'form-error'; note.textContent = err.message
+              button.disabled = false; button.textContent = 'Redeem'
+            }
+          })
+
+          const back = gateQuiet('Back to sign in')
+          back.addEventListener('click', () => signInScreen())
+          form.appendChild(back)
+          host.appendChild(form)
         },
       })
     }
@@ -859,6 +1141,263 @@
       tbl.append(thead, tbody)
     }
 
+    // ── profile + members directory ─────────────────────────
+
+    const USERNAME_RE = /^[A-Za-z0-9_.]{3,20}$/
+
+    async function ensureProfile() {
+      const { data } = await supabase.from('profiles').select('*')
+        .eq('user_id', state.user.id).maybeSingle()
+      if (data) { state.profile = data; return }
+      // First visit: mint a username from the email; they can change it in
+      // Settings. Retry with a suffix if it collides.
+      const base = ((state.user.email ?? 'member').split('@')[0].toLowerCase()
+        .replace(/[^a-z0-9_.]/g, '').slice(0, 14) || 'member').padEnd(3, '0')
+      for (let i = 0; i < 4; i++) {
+        const username = i === 0 ? base : `${base}${Math.floor(Math.random() * 9000 + 1000)}`
+        const { data: created, error } = await supabase.from('profiles')
+          .insert({ user_id: state.user.id, username }).select().single()
+        if (!error) { state.profile = created; return }
+      }
+    }
+
+    function avatarInto(host, profileLike, initialsFrom) {
+      host.textContent = ''
+      if (profileLike?.avatar_url) {
+        const img = document.createElement('img')
+        img.src = profileLike.avatar_url; img.alt = ''
+        host.appendChild(img)
+      } else {
+        const seed = profileLike?.username ?? initialsFrom ?? '··'
+        host.textContent = seed.slice(0, 2).toUpperCase()
+      }
+    }
+
+    const CHECK_SVG = '<svg class="vcheck" viewBox="0 0 24 24" aria-label="Echelon member"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8 12.5l2.6 2.6L16.4 9" stroke="#1a1207" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+
+    function renderMembers() {
+      const q = el('member-q').value.trim().toLowerCase()
+      const rows = state.members.filter((m) =>
+        !q || m.username.toLowerCase().includes(q) || (m.bio ?? '').toLowerCase().includes(q))
+      el('c-members').textContent = String(state.members.length)
+      el('members-empty').hidden = rows.length > 0
+      const host = el('member-grid'); host.textContent = ''
+      for (const m of rows) {
+        const card = document.createElement('div'); card.className = 'mcard'
+        const av = document.createElement('div'); av.className = 'pfp-s'
+        avatarInto(av, m)
+        const right = document.createElement('div'); right.style.minWidth = '0'
+        const name = document.createElement('div'); name.className = 'mname'
+        const nm = document.createElement('span'); nm.textContent = m.username
+        name.appendChild(nm)
+        if (m.is_premium) name.insertAdjacentHTML('beforeend', CHECK_SVG)
+        right.appendChild(name)
+        if (m.bio) {
+          const bio = document.createElement('div'); bio.className = 'mbio'; bio.textContent = m.bio
+          right.appendChild(bio)
+        }
+        card.append(av, right); host.appendChild(card)
+      }
+    }
+
+    async function loadMembers() {
+      const { data } = await supabase.from('member_directory').select('*')
+        .order('is_premium', { ascending: false }).order('username')
+      state.members = data ?? []
+      renderMembers()
+    }
+
+    el('member-q').addEventListener('input', renderMembers)
+
+    // ── settings: profile ───────────────────────────────────
+
+    function renderPfpPreview() {
+      avatarInto(el('pfp-preview'), state.profile, state.user?.email)
+    }
+
+    function renderSidebarUser() {
+      avatarInto(el('u-avatar'), state.profile, state.user?.email)
+      el('u-name').textContent = state.profile ? '@' + state.profile.username : (state.user?.email ?? '—')
+      el('u-role').textContent = state.isAdmin ? 'Owner · Admin' : (state.hasCourse ? 'Member' : 'Free member')
+    }
+
+    function fillSettings() {
+      el('acct-email').textContent = state.user.email ?? ''
+      el('set-username').value = state.profile?.username ?? ''
+      el('set-bio').value = state.profile?.bio ?? ''
+      el('bio-count').textContent = `${el('set-bio').value.length} / 200`
+      renderPfpPreview()
+    }
+
+    el('set-bio').addEventListener('input', () => {
+      el('bio-count').textContent = `${el('set-bio').value.length} / 200`
+    })
+
+    el('profile-save').addEventListener('click', async () => {
+      const msg = el('profile-msg')
+      const username = el('set-username').value.trim()
+      if (!USERNAME_RE.test(username)) {
+        msg.className = 'msg err'; msg.textContent = '3–20 characters: letters, digits, dots, underscores.'
+        return
+      }
+      el('profile-save').disabled = true; msg.className = 'msg'; msg.textContent = 'Saving…'
+      const { data, error } = await supabase.from('profiles')
+        .update({ username, bio: el('set-bio').value.trim() || null })
+        .eq('user_id', state.user.id).select().single()
+      el('profile-save').disabled = false
+      if (error) {
+        msg.className = 'msg err'
+        msg.textContent = /duplicate|unique|23505/i.test(error.message + error.code) ? 'That username is taken.' : error.message
+        return
+      }
+      state.profile = data
+      msg.className = 'msg ok'; msg.textContent = 'Saved.'
+      renderSidebarUser(); loadMembers()
+    })
+
+    // ── settings: account ───────────────────────────────────
+
+    el('email-save').addEventListener('click', async () => {
+      const msg = el('email-msg'), email = el('new-email').value.trim()
+      if (!email) return
+      el('email-save').disabled = true; msg.className = 'msg'; msg.textContent = 'Sending confirmations…'
+      const { error } = await supabase.auth.updateUser(
+        { email },
+        { emailRedirectTo: 'https://d1fpc3.com/echelon/app/' },
+      )
+      el('email-save').disabled = false
+      if (error) { msg.className = 'msg err'; msg.textContent = error.message; return }
+      msg.className = 'msg ok'
+      msg.textContent = 'Check both inboxes — the change lands once the links are clicked.'
+      el('new-email').value = ''
+    })
+
+    el('pass-save').addEventListener('click', async () => {
+      const msg = el('pass-msg'), password = el('new-pass').value
+      if (password.length < 8) { msg.className = 'msg err'; msg.textContent = '8 characters at least.'; return }
+      el('pass-save').disabled = true; msg.className = 'msg'; msg.textContent = 'Saving…'
+      const { error } = await supabase.auth.updateUser({ password })
+      el('pass-save').disabled = false
+      if (error) { msg.className = 'msg err'; msg.textContent = error.message; return }
+      msg.className = 'msg ok'; msg.textContent = 'Password set. It works on the sign-in screen now.'
+      el('new-pass').value = ''
+    })
+
+    // ── settings: avatar cropper ────────────────────────────
+    // One square viewport: drag to pan, slider to zoom, canvas export at
+    // 512px. The math maps the viewport back onto the source image, so what
+    // you see is exactly what uploads.
+
+    const VP = 260
+    const crop = { url: null, iw: 0, ih: 0, scale: 1, min: 1, x: 0, y: 0 }
+
+    function clampCrop() {
+      crop.x = Math.min(0, Math.max(VP - crop.iw * crop.scale, crop.x))
+      crop.y = Math.min(0, Math.max(VP - crop.ih * crop.scale, crop.y))
+    }
+    function applyCrop() {
+      clampCrop()
+      el('crop-img').style.transform = `translate(${crop.x}px, ${crop.y}px) scale(${crop.scale})`
+    }
+
+    el('pfp-pick').addEventListener('click', () => el('pfp-file').click())
+    el('pfp-file').addEventListener('change', () => {
+      const file = el('pfp-file').files[0]
+      if (!file) return
+      if (crop.url) URL.revokeObjectURL(crop.url)
+      crop.url = URL.createObjectURL(file)
+      const img = el('crop-img')
+      img.onload = () => {
+        crop.iw = img.naturalWidth; crop.ih = img.naturalHeight
+        if (!crop.iw || !crop.ih) {
+          el('pfp-msg').className = 'msg err'
+          el('pfp-msg').textContent = 'That image could not be read. Try a JPG or PNG.'
+          return
+        }
+        crop.min = VP / Math.min(crop.iw, crop.ih)
+        crop.scale = crop.min
+        crop.x = (VP - crop.iw * crop.scale) / 2
+        crop.y = (VP - crop.ih * crop.scale) / 2
+        el('crop-zoom').value = '1'
+        el('pfp-msg').textContent = ''
+        el('crop-wrap').hidden = false
+        applyCrop()
+      }
+      img.onerror = () => {
+        el('pfp-msg').className = 'msg err'
+        el('pfp-msg').textContent = 'That image could not be read. Try a JPG or PNG.'
+      }
+      img.src = crop.url
+    })
+
+    el('crop-zoom').addEventListener('input', () => {
+      const next = crop.min * Number(el('crop-zoom').value)
+      // zoom about the viewport centre, not the corner
+      const cx = (VP / 2 - crop.x) / crop.scale
+      const cy = (VP / 2 - crop.y) / crop.scale
+      crop.scale = next
+      crop.x = VP / 2 - cx * crop.scale
+      crop.y = VP / 2 - cy * crop.scale
+      applyCrop()
+    })
+
+    {
+      let px = 0, py = 0, dragging = false
+      const vp = el('crop-vp')
+      vp.addEventListener('pointerdown', (e) => {
+        dragging = true; px = e.clientX; py = e.clientY
+        vp.setPointerCapture(e.pointerId)
+      })
+      vp.addEventListener('pointermove', (e) => {
+        if (!dragging) return
+        crop.x += e.clientX - px; crop.y += e.clientY - py
+        px = e.clientX; py = e.clientY
+        applyCrop()
+      })
+      const stop = () => { dragging = false }
+      vp.addEventListener('pointerup', stop)
+      vp.addEventListener('pointercancel', stop)
+    }
+
+    el('crop-cancel').addEventListener('click', () => {
+      el('crop-wrap').hidden = true
+      el('pfp-file').value = ''
+    })
+
+    el('crop-save').addEventListener('click', async () => {
+      const btn = el('crop-save'), msg = el('pfp-msg')
+      btn.disabled = true; btn.textContent = 'Saving…'; msg.className = 'msg'; msg.textContent = ''
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = canvas.height = 512
+        canvas.getContext('2d').drawImage(
+          el('crop-img'),
+          -crop.x / crop.scale, -crop.y / crop.scale, VP / crop.scale, VP / crop.scale,
+          0, 0, 512, 512,
+        )
+        const blob = await new Promise((res, rej) =>
+          canvas.toBlob((b) => b ? res(b) : rej(new Error('Could not encode the image')), 'image/jpeg', 0.85))
+        const path = `${state.user.id}/avatar.jpg`
+        const { error: upErr } = await supabase.storage.from('avatars')
+          .upload(path, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '3600' })
+        if (upErr) throw upErr
+        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+        const { data, error } = await supabase.from('profiles')
+          .update({ avatar_url: `${publicUrl}?v=${Date.now()}` })
+          .eq('user_id', state.user.id).select().single()
+        if (error) throw error
+        state.profile = data
+        el('crop-wrap').hidden = true
+        el('pfp-file').value = ''
+        renderPfpPreview(); renderSidebarUser(); loadMembers()
+        msg.className = 'msg ok'; msg.textContent = 'Photo updated.'
+      } catch (err) {
+        msg.className = 'msg err'; msg.textContent = err.message
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save photo'
+      }
+    })
+
     // ── skeleton loaders: painted the moment the shell shows ──
 
     const skel = (w, h = 10, mt = 0) => {
@@ -901,7 +1440,16 @@
       }
       tbl.appendChild(tbody)
 
-      for (const id of ['c-lessons', 'c-recaps']) {
+      const mg = el('member-grid'); mg.textContent = ''
+      for (let i = 0; i < 6; i++) {
+        const c = document.createElement('div'); c.className = 'mcard'
+        const av = skel('44px', 44); av.style.flexShrink = '0'; av.style.borderRadius = '12px'
+        const right = document.createElement('div'); right.style.flex = '1'
+        right.append(skel('50%', 11), skel('85%', 9, 8))
+        c.append(av, right); mg.appendChild(c)
+      }
+
+      for (const id of ['c-lessons', 'c-recaps', 'c-members']) {
         el(id).textContent = ''; el(id).appendChild(skel('14px', 8))
       }
     }
@@ -985,10 +1533,7 @@
       el('gate').style.display = 'none'
       el('app').classList.add('on')
 
-      const email = state.user.email
-      el('u-name').textContent = email
-      el('u-avatar').textContent = (email[0] || 'E').toUpperCase() + (email[1] || '·').toUpperCase()
-      el('u-role').textContent = state.isAdmin ? 'Owner · Admin' : 'Member'
+      renderSidebarUser()
 
       el('admin-link').hidden = !state.isAdmin
       if (DISCORD_INVITE) {
@@ -998,22 +1543,35 @@
       }
       el('more-cap').hidden = el('admin-link').hidden && el('discord-link').hidden
 
+      // Free members get the community; the course tabs only exist for people
+      // who own it (RLS would hand them empty lists anyway).
+      for (const id of ['cap-overview', 'cap-learn']) el(id).hidden = !state.hasCourse
+      for (const v of ['overview', 'course', 'recaps']) {
+        document.querySelector(`.tab[data-view="${v}"]`).hidden = !state.hasCourse
+      }
+      el('members-upsell').hidden = state.hasCourse
+      if (!state.hasCourse) showView('members')
+
       paintSkeletons()
 
       // These come back filtered by RLS: without an active entitlement the
       // modules query is simply empty, and trade recaps arrive published-only
-      // for members. Nothing on this page can read other members' rows.
+      // for members. The directory shows usernames and bios, never emails.
       const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }] = await Promise.all([
         supabase.from('modules').select('id, title, position').order('position'),
         supabase.from('lessons').select('id, module_id, title, summary, kind, body_md, position').order('position'),
         supabase.from('progress').select('lesson_id, completed_at'),
         supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published').order('recap_date', { ascending: false }),
+        ensureProfile().then(() => loadMembers()),
       ])
 
       state.modules = modules ?? []
       state.lessons = lessons ?? []
       state.done = new Set((progress ?? []).filter((p) => p.completed_at).map((p) => p.lesson_id))
       state.recaps = recaps ?? []
+
+      renderSidebarUser()
+      fillSettings()
 
       el('c-lessons').textContent = String(state.lessons.length)
 
@@ -1036,21 +1594,23 @@
 
       state.user = session.user
 
-      // Paid, or runs the place. Admins get in without a purchase row so the
-      // owner never has to fake a sale to look at their own course.
+      // Paid, or runs the place, or free tier. Admins get in without a
+      // purchase row; free members get the community and an upgrade path.
       const [{ data: ent }, { data: isAdmin }] = await Promise.all([
         supabase.from('entitlements').select('status').eq('status', 'active').maybeSingle(),
         supabase.rpc('is_admin'),
       ])
 
-      if (!ent && !isAdmin) return noAccessScreen(session.user.email)
       state.isAdmin = !!isAdmin
+      state.hasCourse = !!ent || !!isAdmin
       await loadCourse()
     }
 
     // Magic-link returns land here with tokens in the URL fragment;
-    // supabase-js consumes them, then fires SIGNED_IN.
+    // supabase-js consumes them, then fires SIGNED_IN. Reset links fire
+    // PASSWORD_RECOVERY instead and get the new-password screen.
     supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') return recoveryScreen()
       if (event === 'SIGNED_IN' && !state.user) boot()
     })
 
