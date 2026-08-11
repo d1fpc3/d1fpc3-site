@@ -294,6 +294,22 @@
     .txn-cat-sel:focus { outline: none; border-color: var(--gold); }
     .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .filters .inp { padding: 7px 10px; font-size: 12.5px; }
+
+    /* ── skeleton loaders ────────────────────────────────────── */
+
+    .skel {
+      position: relative; overflow: hidden;
+      background: var(--panel-2); border-radius: 6px; min-height: 8px;
+    }
+    .skel::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+      transform: translateX(-100%);
+      animation: skel-sweep 1.3s ease infinite;
+    }
+    @keyframes skel-sweep { to { transform: translateX(100%); } }
+    @media (prefers-reduced-motion: reduce) { .skel::after { animation: none; } }
+    .count .skel { display: inline-block; width: 14px; height: 8px; vertical-align: middle; }
   </style>
 </head>
 <body>
@@ -656,6 +672,66 @@
       c.append(kk, vv)
       if (d) { const dd = document.createElement('div'); dd.className = 'd'; dd.textContent = d; c.appendChild(dd) }
       host.appendChild(c)
+    }
+
+    /* ── skeleton loaders: painted at boot, replaced as data lands ── */
+
+    const skel = (w, h = 10, mt = 0) => {
+      const s = document.createElement('div'); s.className = 'skel'
+      s.style.width = w; s.style.height = `${h}px`
+      if (mt) s.style.marginTop = `${mt}px`
+      return s
+    }
+
+    function skelCards(host, n = 4) {
+      host.textContent = ''
+      for (let i = 0; i < n; i++) {
+        const c = document.createElement('div'); c.className = 'scard'
+        c.append(skel('58%', 9), skel('42%', 24, 13), skel('34%', 9, 8))
+        host.appendChild(c)
+      }
+    }
+
+    function skelRows(host, cols, rows = 4) {
+      host.textContent = ''
+      const tbody = document.createElement('tbody')
+      for (let r = 0; r < rows; r++) {
+        const tr = document.createElement('tr')
+        for (let c = 0; c < cols; c++) {
+          const td = document.createElement('td')
+          td.appendChild(skel(`${[72, 46, 58, 34][(r + c) % 4]}%`))
+          tr.appendChild(td)
+        }
+        tbody.appendChild(tr)
+      }
+      host.appendChild(tbody)
+    }
+
+    function skelIntg(host, n = 2) {
+      host.textContent = ''
+      for (let i = 0; i < n; i++) {
+        const row = document.createElement('div'); row.className = 'intg'
+        const left = document.createElement('div'); left.style.flex = '1'
+        left.append(skel('34%', 12), skel('22%', 9, 8))
+        row.appendChild(left); host.appendChild(row)
+      }
+    }
+
+    function paintSkeletons() {
+      skelCards(el('cards')); skelCards(el('billing-cards')); skelCards(el('money-cards'))
+      skelRows(el('recent-buyers'), 4, 4)
+      skelRows(el('users-table'), 6, 5)
+      skelRows(el('events-table'), 3, 4)
+      skelRows(el('content-table'), 4, 5)
+      skelRows(el('recaps-table'), 4, 3)
+      skelRows(el('budget-table'), 4, 3)
+      skelRows(el('txn-table'), 5, 7)
+      skelRows(el('accounts-table'), 4, 3)
+      skelIntg(el('banks'))
+      skelIntg(el('integrations'), 4)
+      for (const id of ['c-users', 'c-content', 'c-recaps']) {
+        el(id).textContent = ''; el(id).appendChild(skel('14px', 8))
+      }
     }
 
     /* ── data ── */
@@ -1192,6 +1268,7 @@
 
       monthOptions()
       recapEditor(null)
+      paintSkeletons()
       await Promise.all([
         loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(),
         // Money must never block the rest of the dashboard.

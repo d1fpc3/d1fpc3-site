@@ -316,6 +316,23 @@
 
     .recap-pane { padding: clamp(18px, 3vw, 28px); }
     .recap-pane .lesson-h { margin-top: 8px; }
+
+    /* ── skeleton loaders ────────────────────────────────────── */
+
+    .skel {
+      position: relative; overflow: hidden;
+      background: var(--panel-2); border-radius: 6px; min-height: 8px;
+    }
+    .skel::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+      transform: translateX(-100%);
+      animation: skel-sweep 1.3s ease infinite;
+    }
+    @keyframes skel-sweep { to { transform: translateX(100%); } }
+    @media (prefers-reduced-motion: reduce) { .skel::after { animation: none; } }
+    .count .skel { display: inline-block; width: 14px; height: 8px; vertical-align: middle; }
+    .player.skel { background: var(--panel-2); border-radius: 10px; }
   </style>
 </head>
 <body>
@@ -693,7 +710,7 @@
 
       if (lesson.kind === 'video') {
         const player = document.createElement('div')
-        player.className = 'player'
+        player.className = 'player skel'
         host.appendChild(player)
         try {
           const { url } = await signedMedia(lesson.id)
@@ -702,6 +719,7 @@
           frame.allow = 'accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen'
           frame.allowFullscreen = true
           frame.loading = 'lazy'
+          frame.addEventListener('load', () => player.classList.remove('skel'))
           player.appendChild(frame)
         } catch (err) {
           player.remove()
@@ -846,6 +864,53 @@
       tbl.append(thead, tbody)
     }
 
+    // ── skeleton loaders: painted the moment the shell shows ──
+
+    const skel = (w, h = 10, mt = 0) => {
+      const s = document.createElement('div'); s.className = 'skel'
+      s.style.width = w; s.style.height = `${h}px`
+      if (mt) s.style.marginTop = `${mt}px`
+      return s
+    }
+
+    function skelPane(host) {
+      host.textContent = ''
+      host.append(skel('72px', 9), skel('52%', 22, 12), skel('88%', 10, 14), skel('64%', 10, 8))
+    }
+
+    function paintSkeletons() {
+      const cards = el('ov-cards'); cards.textContent = ''
+      for (let i = 0; i < 4; i++) {
+        const c = document.createElement('div'); c.className = 'scard'
+        c.append(skel('58%', 9), skel('42%', 24, 13), skel('34%', 9, 8))
+        cards.appendChild(c)
+      }
+      skelPane(el('ov-continue')); skelPane(el('ov-recap')); skelPane(el('lesson'))
+
+      const toc = el('index'); toc.textContent = ''
+      for (let g = 0; g < 2; g++) {
+        const group = document.createElement('div'); group.className = 'toc-group'
+        group.appendChild(skel('46%', 9))
+        for (let i = 0; i < 4; i++) group.appendChild(skel(`${[82, 64, 74, 58][i]}%`, 10, 12))
+        toc.appendChild(group)
+      }
+
+      const tbl = el('recaps-table'); tbl.textContent = ''
+      const tbody = document.createElement('tbody')
+      for (let r = 0; r < 4; r++) {
+        const tr = document.createElement('tr')
+        for (const w of ['48%', '72%', '30%']) {
+          const td = document.createElement('td'); td.appendChild(skel(w)); tr.appendChild(td)
+        }
+        tbody.appendChild(tr)
+      }
+      tbl.appendChild(tbody)
+
+      for (const id of ['c-lessons', 'c-recaps']) {
+        el(id).textContent = ''; el(id).appendChild(skel('14px', 8))
+      }
+    }
+
     // ── overview ────────────────────────────────────────────
 
     function scard(host, k, v, d) {
@@ -920,21 +985,8 @@
     })
 
     async function loadCourse() {
-      // These come back filtered by RLS: without an active entitlement the
-      // modules query is simply empty, and trade recaps arrive published-only
-      // for members. Nothing on this page can read other members' rows.
-      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }] = await Promise.all([
-        supabase.from('modules').select('id, title, position').order('position'),
-        supabase.from('lessons').select('id, module_id, title, summary, kind, body_md, position').order('position'),
-        supabase.from('progress').select('lesson_id, completed_at'),
-        supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published').order('recap_date', { ascending: false }),
-      ])
-
-      state.modules = modules ?? []
-      state.lessons = lessons ?? []
-      state.done = new Set((progress ?? []).filter((p) => p.completed_at).map((p) => p.lesson_id))
-      state.recaps = recaps ?? []
-
+      // Show the shell straight away — everything the session already knows
+      // renders now, and skeletons hold every seat data has not filled yet.
       el('gate').style.display = 'none'
       el('app').classList.add('on')
 
@@ -950,6 +1002,23 @@
         link.hidden = false
       }
       el('more-cap').hidden = el('admin-link').hidden && el('discord-link').hidden
+
+      paintSkeletons()
+
+      // These come back filtered by RLS: without an active entitlement the
+      // modules query is simply empty, and trade recaps arrive published-only
+      // for members. Nothing on this page can read other members' rows.
+      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }] = await Promise.all([
+        supabase.from('modules').select('id, title, position').order('position'),
+        supabase.from('lessons').select('id, module_id, title, summary, kind, body_md, position').order('position'),
+        supabase.from('progress').select('lesson_id, completed_at'),
+        supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published').order('recap_date', { ascending: false }),
+      ])
+
+      state.modules = modules ?? []
+      state.lessons = lessons ?? []
+      state.done = new Set((progress ?? []).filter((p) => p.completed_at).map((p) => p.lesson_id))
+      state.recaps = recaps ?? []
 
       el('c-lessons').textContent = String(state.lessons.length)
 
