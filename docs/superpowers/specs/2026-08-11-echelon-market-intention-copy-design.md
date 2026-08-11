@@ -70,6 +70,7 @@ Keep the $200 one-time price, lifetime access, included updates, members area, p
 
 Update answers so they consistently describe:
 
+- A lead question, “What model will you teach me?”, answered plainly: Echelon does not teach a mechanical model. It teaches discretionary concepts that help members see NQ clearly, because D1 believes discretionary interpretation is more useful than rigid mechanical rules.
 - A course teaching concepts for reading NQ's context and intention
 - D1's session breakdowns and private member room
 - An intermediate audience that already understands futures mechanics
