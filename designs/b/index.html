@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Echelon · Option B — Order ticket</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0b0a09">
+  <style>
+    /* Option B — "Order ticket".
+       Buying the course is framed as the one order a trader actually
+       controls: a sticky order-entry ticket rides the right rail while the
+       pitch scrolls. Dashboard palette, trading vernacular, mono numerals. */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    :root {
+      --bg: #0b0a09; --panel: #131211; --panel-2: #1a1817;
+      --ink: #f4f2ee; --muted: #9d978c; --faint: #6b665e;
+      --line: #262321; --line-bright: #383431;
+      --gold: #c9a24a; --gold-deep: #a8842c;
+      --mono: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+    }
+
+    body {
+      background: var(--bg); color: var(--ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    ::selection { background: rgba(201,162,74,0.25); }
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+    .col { max-width: 1120px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 40px); }
+    .label { font-size: 10.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint); }
+    .mono { font-family: var(--mono); }
+
+    .top { border-bottom: 1px solid var(--line); }
+    .top .col { display: flex; align-items: center; justify-content: space-between; padding-top: 18px; padding-bottom: 18px; }
+    .brand { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
+    .brand small {
+      font-size: 9.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--gold); background: rgba(201,162,74,0.1);
+      border: 1px solid rgba(201,162,74,0.25); border-radius: 5px; padding: 2px 6px; margin-left: 10px;
+    }
+    .quiet { color: var(--muted); font-size: 13.5px; border-bottom: 1px solid var(--line-bright); padding-bottom: 2px; }
+    .quiet:hover { color: var(--gold); border-color: var(--gold); }
+
+    /* two-rail layout */
+    .wrap { display: grid; grid-template-columns: minmax(0, 1fr) 372px; gap: clamp(28px, 4vw, 56px); align-items: start; padding-top: clamp(44px, 8vh, 84px); }
+    @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+
+    .hero h1 { font-size: clamp(36px, 5.6vw, 62px); font-weight: 700; letter-spacing: -0.04em; line-height: 1.02; }
+    .hero h1 .tick { color: var(--gold); font-family: var(--mono); font-size: 0.55em; vertical-align: super; letter-spacing: 0; }
+    .hero .sub { margin-top: 20px; max-width: 54ch; color: var(--muted); font-size: 16px; }
+
+    .rows { margin-top: clamp(36px, 6vh, 56px); }
+    .row {
+      display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 18px;
+      border-top: 1px solid var(--line); padding: 20px 0;
+    }
+    .row:last-child { border-bottom: 1px solid var(--line); }
+    @media (max-width: 560px) { .row { grid-template-columns: 1fr; gap: 6px; } }
+    .row .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); padding-top: 3px; }
+    .row .t { font-weight: 650; font-size: 16.5px; letter-spacing: -0.01em; }
+    .row .d { margin-top: 4px; color: var(--muted); font-size: 14px; max-width: 56ch; }
+
+    .not-for { margin-top: 34px; color: var(--muted); font-size: 14px; }
+    .not-for b { color: var(--ink); font-weight: 650; }
+
+    /* faq, tight */
+    .faq { margin-top: clamp(36px, 6vh, 56px); }
+    .faq details { border-top: 1px solid var(--line); }
+    .faq details:last-of-type { border-bottom: 1px solid var(--line); }
+    .faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; gap: 16px; padding: 15px 0; font-weight: 600; font-size: 14.5px; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary .mk { font-family: var(--mono); color: var(--faint); }
+    .faq details[open] summary .mk { color: var(--gold); }
+    .faq .a { padding: 0 0 16px; color: var(--muted); font-size: 13.5px; max-width: 60ch; }
+
+    /* the ticket */
+    .ticket {
+      position: sticky; top: 24px;
+      background: var(--panel); border: 1px solid var(--line-bright); border-radius: 16px;
+      overflow: hidden; box-shadow: 0 40px 90px -50px rgba(0,0,0,0.9);
+    }
+    @media (max-width: 900px) { .ticket { position: static; } }
+    .t-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--panel-2);
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .t-head .sym { color: var(--ink); font-weight: 600; }
+    .t-head .side { color: var(--gold); }
+    .t-rows { padding: 6px 18px; }
+    .t-row {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 14px;
+      padding: 11px 0; border-top: 1px solid var(--line); font-size: 13px;
+    }
+    .t-row:first-child { border-top: 0; }
+    .t-row .k { color: var(--faint); }
+    .t-row .v { font-family: var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+    .t-row .v.gold { color: var(--gold); }
+    .t-price { padding: 16px 18px 4px; display: flex; align-items: baseline; gap: 10px; }
+    .t-price .n { font-family: var(--mono); font-size: 42px; font-weight: 700; letter-spacing: -0.02em; }
+    .t-price .c { color: var(--faint); font-size: 12px; }
+    .t-cta { padding: 14px 18px 18px; }
+    .t-btn {
+      width: 100%; padding: 15px; border: 0; border-radius: 10px; cursor: pointer;
+      background: linear-gradient(135deg, var(--gold), var(--gold-deep)); color: #1a1207;
+      font: 700 14px/1 inherit; font-family: inherit; letter-spacing: 0.01em;
+      transition: filter 0.18s ease, transform 0.15s ease;
+    }
+    .t-btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
+    .t-btn[aria-disabled="true"] { filter: saturate(0.4) brightness(0.8); cursor: not-allowed; transform: none; }
+    .t-fine { padding: 0 18px 16px; font-size: 11.5px; color: var(--faint); }
+    .t-alt { padding: 0 18px 18px; font-size: 12.5px; }
+
+    footer { margin-top: clamp(48px, 9vh, 88px); border-top: 1px solid var(--line); padding: 26px 0 40px; }
+    .risk { color: var(--faint); font-size: 12px; line-height: 1.7; max-width: 88ch; }
+    .base { margin-top: 18px; display: flex; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+    .base a:hover { color: var(--gold); }
+  </style>
+</head>
+<body>
+
+  <header class="top"><div class="col">
+    <span class="brand">Echelon <small>NQ</small></span>
+    <a class="quiet" href="/echelon/app/">Members sign in</a>
+  </div></header>
+
+  <main class="col">
+    <div class="wrap">
+      <div>
+        <div class="hero">
+          <h1>The one order<br>you can't lose on.<span class="tick">ECH</span></h1>
+          <p class="sub">Everything else you buy on this market can go against you. Learning to read NQ's context and intention is the position that only appreciates. $200, once, filled instantly.</p>
+        </div>
+
+        <div class="rows">
+          <div class="row"><span class="k">Fill 01</span><div><p class="t">The course</p><p class="d">18 lessons on context, intention and confirmation. Why NQ moves, not a bag of setups. Once you see it, you cannot unsee it.</p></div></div>
+          <div class="row"><span class="k">Fill 02</span><div><p class="t">Trade recaps, after the close</p><p class="d">D1's session write-ups land in the members area. What the tape did, what it meant, what was worth taking.</p></div></div>
+          <div class="row"><span class="k">Fill 03</span><div><p class="t">The room</p><p class="d">A private Discord of people studying the same session you just traded. <span data-members>Members only</span>.</p></div></div>
+        </div>
+
+        <p class="not-for"><b>Not for beginners.</b> You should already trade NQ and have real screen time. No signals, no calls. If you only want entries, this is not for you.</p>
+
+        <div class="faq">
+          <details><summary>What model do you teach?<span class="mk">+</span></summary><p class="a">Not a mechanical one. Discretionary concepts for seeing NQ clearly. Context and judgment matter; the detailed work stays inside.</p></details>
+          <details><summary>How do I get in after I buy?<span class="mk">+</span></summary><p class="a">You land in the members area the moment you pay. You come back with your email or with Discord.</p></details>
+          <details><summary>Refunds?<span class="mk">+</span></summary><p class="a">No. The product is information; once read, it cannot be returned. One payment, access for good, updates included.</p></details>
+        </div>
+      </div>
+
+      <aside class="ticket" aria-label="Order Echelon">
+        <div class="t-head"><span class="sym">ECHELON</span><span class="side">BUY</span></div>
+        <div class="t-price"><span class="n">200.00</span><span class="c">USD · market</span></div>
+        <div class="t-rows">
+          <div class="t-row"><span class="k">Qty</span><span class="v">1 seat</span></div>
+          <div class="t-row"><span class="k">Type</span><span class="v">One payment</span></div>
+          <div class="t-row"><span class="k">Fill</span><span class="v gold">Instant</span></div>
+          <div class="t-row"><span class="k">Expiry</span><span class="v">Never · lifetime</span></div>
+          <div class="t-row"><span class="k">Open interest</span><span class="v gold" data-members-count>274 members</span></div>
+        </div>
+        <div class="t-cta"><button class="t-btn" data-buy type="button">Submit order · $200</button></div>
+        <p class="t-fine">No refunds. The product is information. Educational only, not financial advice.</p>
+        <p class="t-alt"><a class="quiet" href="/echelon/app/">Already filled? Sign in</a></p>
+      </aside>
+    </div>
+  </main>
+
+  <footer><div class="col">
+    <p class="risk">Trading futures involves substantial risk of loss and is not suitable for every investor. Past performance does not guarantee future results. Echelon is an educational product, not financial advice. Most retail futures traders lose money.</p>
+    <div class="base">
+      <span>© 2026 Echelon · d1fpc3</span>
+      <span style="display:flex;gap:22px;">
+        <a id="foot-discord" href="#" target="_blank" rel="noopener" hidden>Discord</a>
+        <a href="https://www.tradingview.com/u/d1fpc3/" target="_blank" rel="noopener">TradingView</a>
+      </span>
+    </div>
+  </div></footer>
+
+  <script>
+  (function () {
+    'use strict';
+    var CONFIG = { checkoutUrl: '', discordUrl: 'https://discord.gg/FAQD5Cr5p7' };
+
+    document.querySelectorAll('[data-buy]').forEach(function (btn) {
+      if (CONFIG.checkoutUrl) btn.addEventListener('click', function () { location.href = CONFIG.checkoutUrl; });
+      else { btn.setAttribute('aria-disabled', 'true'); btn.textContent = 'Checkout not connected yet'; }
+    });
+
+    if (CONFIG.discordUrl) {
+      var fd = document.getElementById('foot-discord');
+      fd.href = CONFIG.discordUrl; fd.hidden = false;
+    }
+
+    var m = (CONFIG.discordUrl || '').match(/(?:discord\.gg|discord(?:app)?\.com\/invite)\/([\w-]+)/);
+    if (m) {
+      fetch('https://discord.com/api/v10/invites/' + m[1] + '?with_counts=true')
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+        .then(function (inv) {
+          var n = inv && inv.approximate_member_count;
+          if (!n) return;
+          document.querySelectorAll('[data-members]').forEach(function (s) {
+            s.textContent = Number(n).toLocaleString('en-US') + ' already in';
+          });
+          document.querySelectorAll('[data-members-count]').forEach(function (s) {
+            s.textContent = Number(n).toLocaleString('en-US') + ' members';
+          });
+        })
+        .catch(function () {});
+    }
+  })();
+  </script>
+</body>
+</html>
