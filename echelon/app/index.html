@@ -5,331 +5,427 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Echelon</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#0a0908">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340..680&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0b0a09">
   <style>
     /* ─────────────────────────────────────────────────────────
        d1fpc3.com | echelon — members area
 
-       Same language as the landing page at the site root: warm
-       near-black, Fraunces for the display moments, champagne
-       foil as the one metal, hairlines everywhere else.
+       Same shell as the admin dashboard, deliberately: fixed
+       sidebar with tabs, the signed-in user pinned bottom-left,
+       a content pane that swaps per tab.
 
        The gate is not here: the browser only ever sees what RLS
        hands it, and video and files arrive as short-lived signed
        URLs from an edge function. Hiding a lesson in the UI is
-       presentation, not protection.
+       presentation, not protection. Nothing on this page can list
+       other members — entitlement rows are RLS'd to your own.
        ───────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0908; --panel-2: #16130f;
-      --ink: #f2ede3; --muted: #968d7e; --faint: #635c50;
-      --line: rgba(242,237,227,0.09); --line-2: rgba(242,237,227,0.16);
-      --gold: #c9a24a; --gold-bright: #e6cf95; --gold-deep: #a8842c;
-      --foil: linear-gradient(135deg, #6f5620 0%, #c9a24a 26%, #f3e3b6 47%, #fff6df 53%, #c9a24a 74%, #6f5620 100%);
+      --bg: #0b0a09;
+      --panel: #131211;
+      --panel-2: #1a1817;
+      --ink: #f4f2ee;
+      --muted: #9d978c;
+      --faint: #6b665e;
+      --line: #262321;
+      --line-bright: #383431;
+      --gold: #c9a24a;
+      --gold-deep: #a8842c;
+      --bad: #d98b7a;
+      --good: #86b57f;
+      --sidebar: 244px;
     }
 
-    html { height: 100%; }
-
+    html, body { height: 100%; }
     body {
-      min-height: 100%;
-      background: var(--bg);
-      color: var(--ink);
-      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      font-size: 15px;
-      line-height: 1.7;
+      background: var(--bg); color: var(--ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px; line-height: 1.55;
       -webkit-font-smoothing: antialiased;
     }
-    body::before {
-      content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-      background: radial-gradient(120% 80% at 78% -10%, rgba(201,162,74,0.06), transparent 55%);
-    }
 
-    .label {
-      font-family: 'IBM Plex Mono', ui-monospace, monospace;
-      font-size: 11px; font-weight: 500; letter-spacing: 0.16em;
-      text-transform: uppercase; color: var(--faint);
-    }
+    .label { font-size: 10.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint); }
 
-    .btn {
-      display: inline-block; padding: 14px 26px;
-      background: var(--foil); background-size: 200% 100%; color: #1a1305;
-      font-size: 14px; font-weight: 600; text-decoration: none;
-      border: 0; border-radius: 3px; cursor: pointer;
-      font-family: inherit;
-      box-shadow: 0 10px 34px -12px rgba(201,162,74,0.5);
-      transition: transform 0.16s ease, background 0.2s ease, box-shadow 0.24s ease;
-    }
-    .btn:hover, .btn:focus-visible { transform: translateY(-1px); background-position: 100% 0; }
-    .btn:disabled { opacity: 0.5; cursor: default; transform: none; }
-    @media (prefers-reduced-motion: reduce) { .btn:hover { transform: none; } }
-
-    .quiet {
-      background: none; border: none; padding: 0; cursor: pointer;
-      font-family: inherit; font-size: 13px; color: var(--faint);
-      text-decoration: none; border-bottom: 1px solid var(--line-2);
-      transition: color 0.2s ease, border-color 0.2s ease;
-    }
-    .quiet:hover, .quiet:focus-visible { color: var(--gold-bright); border-bottom-color: var(--gold); }
-
-    /* ── centred states: signing in, no access ──────────────── */
-    /* The buy-panel object from the landing page: near-black panel,
-       hairline border, one champagne edge along the top. */
+    /* ════ GATE (glass card) ═════════════════════════════════ */
 
     .centre {
-      min-height: 100dvh; display: flex; align-items: center;
-      justify-content: center; padding: 32px 24px; position: relative;
+      min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+      padding: 32px 24px; position: relative;
     }
+    .orb { position: absolute; border-radius: 50%; filter: blur(66px); opacity: 0.5; pointer-events: none; }
+    .o1 { width: 320px; height: 320px; background: #a8842c; top: 10%; left: 50%; margin-left: -290px;
+          animation: gl-drift 9s ease-in-out infinite alternate; }
+    .o2 { width: 280px; height: 280px; background: #7a4f16; bottom: 12%; left: 50%; margin-left: 40px;
+          animation: gl-drift 11s ease-in-out infinite alternate-reverse; }
+    @keyframes gl-drift { to { transform: translate(30px, 24px) scale(1.14); } }
+    @media (prefers-reduced-motion: reduce) { .orb { animation: none; } }
 
-    .panel {
-      position: relative;
-      width: 100%; max-width: 420px;
-      background: linear-gradient(180deg, var(--panel-2), #080706);
-      border: 1px solid var(--line-2);
-      border-radius: 16px;
-      padding: 34px 30px;
-      box-shadow: 0 50px 90px -50px rgba(0,0,0,0.9);
+    .glass {
+      position: relative; width: 100%; max-width: 380px;
+      background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 20px; padding: 28px 24px;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 24px 60px -24px rgba(0,0,0,0.7);
     }
-    .panel::before { content: ""; display: block; height: 1px; background: var(--foil); opacity: 0.6; margin: -34px -30px 30px; }
+    .glass h1 { font-size: 24px; font-weight: 650; letter-spacing: -0.025em; }
+    .glass .body { margin-top: 6px; font-size: 13px; color: rgba(255,255,255,0.55); }
+    .glass .label { color: var(--gold); margin-bottom: 12px; }
 
-    .panel h1 {
-      font-family: 'Fraunces', Georgia, serif;
-      font-weight: 500; font-size: 28px;
-      line-height: 1.1; letter-spacing: -0.02em;
-    }
-    .panel .body { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
-    .panel .eyebrow { color: var(--gold); margin-bottom: 12px; }
-
-    form.signin { margin-top: 20px; }
-
-    /* floating-label field: underlined, no filled box */
-    .fld { position: relative; margin-bottom: 16px; }
-
+    .fld { position: relative; margin-bottom: 12px; }
     .fld input {
-      width: 100%;
-      padding: 19px 0 9px;
-      font-family: inherit; font-size: 14.5px;
-      color: var(--ink);
-      background: transparent;
-      border: 0; border-bottom: 1px solid var(--line-2);
-      border-radius: 0;
-      outline: none;
-      transition: border-color 0.2s ease;
+      width: 100%; padding: 19px 14px 8px; font-family: inherit; font-size: 14.5px; color: #fff;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 11px; outline: none; transition: border-color 0.2s ease, background 0.2s ease;
     }
-    .fld input:focus { border-bottom-color: var(--gold); }
-
+    .fld input:focus { border-color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.1); }
     .fld label {
-      position: absolute;
-      left: 0; top: 15px;
-      font-size: 13.5px;
-      color: var(--faint);
-      pointer-events: none;
-      transform-origin: left top;
-      transition: transform 0.18s ease, color 0.18s ease;
+      position: absolute; left: 15px; top: 15px; font-size: 13.5px; color: rgba(255,255,255,0.45);
+      pointer-events: none; transform-origin: left top; transition: transform 0.18s ease, color 0.18s ease;
     }
-    .fld input:focus + label,
-    .fld input:not(:placeholder-shown) + label {
-      transform: translateY(-13px) scale(0.72);
-      color: var(--muted);
+    .fld input:focus + label, .fld input:not(:placeholder-shown) + label {
+      transform: translateY(-9px) scale(0.72); color: rgba(255,255,255,0.7);
     }
-
     .go {
-      width: 100%;
-      margin: 10px 0 4px;
-      padding: 15px;
-      border: none; border-radius: 3px;
-      background: var(--foil); background-size: 200% 100%; color: #1a1305;
-      font: 600 14.5px/1 inherit;
-      font-family: inherit;
-      cursor: pointer;
-      box-shadow: 0 10px 34px -12px rgba(201,162,74,0.5);
-      transition: transform 0.16s ease, background 0.2s ease, box-shadow 0.24s ease, opacity 0.2s ease;
+      width: 100%; margin-top: 6px; padding: 14px; border: none; border-radius: 11px;
+      background: #fff; color: #0a0a0a; font: 600 14.5px/1 inherit; font-family: inherit; cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.25s ease, opacity 0.2s ease;
     }
-    .go:hover:not(:disabled) { transform: translateY(-1px); background-position: 100% 0; box-shadow: 0 14px 40px -12px rgba(201,162,74,0.62); }
+    .go:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 28px -12px rgba(255,255,255,0.45); }
     .go:disabled { opacity: 0.6; cursor: default; }
-    @media (prefers-reduced-motion: reduce) { .go:hover:not(:disabled) { transform: none; } }
+    .go.dim { background: rgba(255,255,255,0.08); color: #fff; }
+    .form-note { font-size: 12.5px; color: rgba(255,255,255,0.45); margin-top: 10px; }
+    .form-error { font-size: 12.5px; color: var(--bad); margin-top: 10px; }
 
     .or {
       display: flex; align-items: center; gap: 10px;
-      font-family: 'IBM Plex Mono', ui-monospace, monospace;
       font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--faint);
-      margin: 18px 0 12px;
+      color: rgba(255,255,255,0.35); margin: 16px 0 12px;
     }
-    .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+    .or::before, .or::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.12); }
 
-    .alt { display: grid; gap: 9px; }
+    /* ════ APP SHELL (identical to admin) ════════════════════ */
 
-    .alt button {
-      display: flex; align-items: center; justify-content: center; gap: 9px;
-      padding: 13px;
-      border: 1px solid var(--line-2);
-      border-radius: 3px;
-      background: transparent;
-      color: var(--ink);
-      font: 600 13px/1 inherit;
-      font-family: inherit;
-      cursor: pointer;
-      transition: color 0.2s ease, border-color 0.2s ease;
+    .app { display: none; min-height: 100dvh; }
+    .app.on { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); }
+
+    .side {
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100dvh;
     }
-    .alt button:hover { border-color: var(--gold); color: var(--gold-bright); }
-    .alt button svg { width: 16px; height: 16px; }
 
-    .form-note { font-size: 12.5px; color: var(--faint); margin-top: 10px; }
-    .form-error { font-size: 12.5px; color: #e0a08d; margin-top: 10px; }
+    .side-brand {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 20px 18px;
+      font-weight: 700; font-size: 16px; letter-spacing: -0.02em;
+    }
+    .side-brand .dot {
+      width: 22px; height: 22px; border-radius: 7px;
+      background: linear-gradient(140deg, var(--gold), var(--gold-deep));
+    }
+    .side-brand small {
+      font-size: 9.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--gold); background: rgba(201,162,74,0.1);
+      border: 1px solid rgba(201,162,74,0.25); border-radius: 5px; padding: 2px 6px; margin-left: auto;
+    }
 
-    /* ── app shell ──────────────────────────────────────────── */
+    .side-nav { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
 
-    .shell { display: none; }
-    .shell.on { display: block; }
+    .side-cap { padding: 14px 8px 6px; }
+
+    .tab {
+      display: flex; align-items: center; gap: 11px;
+      padding: 9px 12px; border-radius: 8px;
+      background: none; border: 0; width: 100%; text-align: left;
+      font-family: inherit; font-size: 13.5px; font-weight: 500; color: var(--muted);
+      cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+      text-decoration: none;
+    }
+    .tab:hover { background: var(--panel-2); color: var(--ink); }
+    .tab.on { background: var(--panel-2); color: var(--ink); }
+    .tab.on .ic { color: var(--gold); }
+    .tab .ic { width: 17px; height: 17px; color: var(--faint); flex-shrink: 0; transition: color 0.15s ease; }
+    .tab .count {
+      margin-left: auto; font-size: 11px; font-variant-numeric: tabular-nums;
+      color: var(--faint); background: var(--panel-2); border-radius: 20px; padding: 1px 8px;
+    }
+    .tab.on .count { background: rgba(201,162,74,0.14); color: var(--gold); }
+
+    .side-user {
+      margin-top: auto; border-top: 1px solid var(--line);
+      padding: 12px; display: flex; align-items: center; gap: 11px;
+    }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+      background: linear-gradient(140deg, var(--gold), var(--gold-deep));
+      color: #1a1207; font-weight: 700; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .side-user .u-meta { min-width: 0; flex: 1; }
+    .side-user .u-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .side-user .u-role { font-size: 11px; color: var(--faint); }
+    .u-signout {
+      background: none; border: 0; color: var(--faint); cursor: pointer; padding: 6px;
+      border-radius: 7px; display: flex; transition: color 0.15s ease, background 0.15s ease;
+    }
+    .u-signout:hover { color: var(--bad); background: var(--panel-2); }
+    .u-signout svg { width: 16px; height: 16px; }
+
+    .main { min-width: 0; display: flex; flex-direction: column; }
 
     .topbar {
+      position: sticky; top: 0; z-index: 5;
+      background: rgba(11,10,9,0.82); backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--line);
-      padding: 16px clamp(20px, 5vw, 40px);
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 16px; flex-wrap: wrap;
+      padding: 18px clamp(20px, 3vw, 34px);
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
-    .brand {
-      font-family: 'IBM Plex Mono', ui-monospace, monospace;
-      font-size: 13px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase;
+    .topbar h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
+    .topbar .crumb { font-size: 12.5px; color: var(--faint); margin-top: 1px; }
+
+    .pane { padding: clamp(20px, 3vw, 34px); }
+    .view { display: none; }
+    .view.on { display: block; animation: fade 0.25s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
+    @media (prefers-reduced-motion: reduce) { .view.on { animation: none; } }
+
+    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+    @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+    .scard {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 17px 18px;
     }
-    .who { font-size: 12px; color: var(--faint); display: flex; align-items: center; gap: 14px; }
+    .scard .k { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+    .scard .v { font-size: 27px; font-weight: 700; letter-spacing: -0.02em; margin-top: 7px; font-variant-numeric: tabular-nums; }
+    .scard .d { font-size: 11.5px; color: var(--faint); margin-top: 3px; }
 
-    .layout {
-      max-width: 1060px; margin: 0 auto;
-      padding: clamp(24px, 5vh, 44px) clamp(20px, 5vw, 40px) 80px;
-      display: grid; grid-template-columns: 268px 1fr; gap: clamp(28px, 5vw, 56px);
-      align-items: start;
+    .block { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+    .block + .block { margin-top: 20px; }
+    .block-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding: 15px 18px; border-bottom: 1px solid var(--line);
     }
-    @media (max-width: 800px) {
-      .layout { grid-template-columns: 1fr; gap: 30px; }
+    .block-head h3 { font-size: 14.5px; font-weight: 650; letter-spacing: -0.01em; }
+
+    .tbl-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 480px; }
+    th {
+      text-align: left; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint);
+      font-weight: 500; padding: 12px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line);
     }
+    td { padding: 13px 14px; border-bottom: 1px solid var(--line); color: var(--muted); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: 0; }
+    td.ink { color: var(--ink); font-weight: 500; }
+    tbody tr { cursor: default; }
+    tbody tr.rowlink { cursor: pointer; }
+    tbody tr:hover td { background: rgba(255,255,255,0.014); }
+    .num { font-variant-numeric: tabular-nums; }
 
-    /* ── lesson index: table-of-contents rail ───────────────── */
-    /* Continuous hairline down the left, the active item marked by a
-       solid bar sitting on top of it. Recoloured for the dark shell. */
-
-    .toc { position: sticky; top: 26px; }
-    @media (max-width: 800px) { .toc { position: static; } }
-
-    .toc-group + .toc-group { margin-top: 24px; }
-
-    .toc .cap {
-      font-family: 'IBM Plex Mono', ui-monospace, monospace;
-      font-size: 10.5px; font-weight: 500; line-height: 1;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--faint);
-      margin-bottom: 10px;
-      padding-left: 14px;
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+      border-radius: 6px; padding: 3px 8px;
     }
+    .badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .b-live { color: var(--good); background: rgba(134,181,127,0.12); }
+    .b-draft { color: var(--faint); background: var(--panel-2); }
 
+    .rowbtn {
+      background: var(--panel-2); border: 1px solid var(--line-bright); border-radius: 7px;
+      color: var(--muted); font-family: inherit; font-size: 12px; padding: 6px 12px; cursor: pointer;
+      transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+    }
+    .rowbtn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+    .rowbtn:disabled { opacity: 0.4; cursor: default; }
+
+    .empty { padding: 34px 18px; text-align: center; color: var(--faint); font-size: 13.5px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 18px; background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+      color: #1a1207; border: 0; border-radius: 9px;
+      font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+      transition: filter 0.18s ease, transform 0.15s ease;
+      text-decoration: none;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.07); transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+
+    /* ── course: toc rail + lesson pane ──────────────────────── */
+
+    .course-grid {
+      display: grid; grid-template-columns: 240px minmax(0, 1fr);
+      gap: 24px; align-items: start;
+    }
+    @media (max-width: 860px) { .course-grid { grid-template-columns: 1fr; } }
+
+    .toc { position: sticky; top: 92px; }
+    @media (max-width: 860px) { .toc { position: static; } }
+    .toc-group + .toc-group { margin-top: 20px; }
+    .toc .cap { padding: 0 0 8px 14px; }
     .toc button {
-      position: relative;
-      display: block;
-      width: 100%;
-      text-align: left;
-      padding: 8px 22px 8px 14px;
-      font-family: inherit;
-      font-size: 13.5px;
-      line-height: 1.45;
-      color: var(--muted);
-      background: none;
-      border: 0;
-      border-left: 1.5px solid var(--line);
-      cursor: pointer;
-      transition: color 0.15s ease;
+      position: relative; display: block; width: 100%; text-align: left;
+      padding: 7px 22px 7px 14px;
+      font-family: inherit; font-size: 13px; line-height: 1.45; color: var(--muted);
+      background: none; border: 0; border-left: 1.5px solid var(--line);
+      cursor: pointer; transition: color 0.15s ease;
     }
-
     .toc button:hover { color: var(--ink); }
     .toc button.on { color: var(--gold); font-weight: 600; }
-
     .toc button.on::before {
-      content: "";
-      position: absolute;
-      left: -1.5px;
-      top: 6px; bottom: 6px;
-      width: 1.5px;
-      background: var(--gold);
+      content: ""; position: absolute; left: -1.5px; top: 6px; bottom: 6px;
+      width: 1.5px; background: var(--gold);
     }
-
     .toc button:focus-visible { outline: 1px solid var(--gold); outline-offset: -2px; }
-
-    /* progress, kept but quietened to a dot so it does not fight the rail */
     .toc .done {
-      position: absolute; right: 4px; top: 50%;
-      transform: translateY(-50%);
-      width: 5px; height: 5px; border-radius: 50%;
-      background: var(--gold); opacity: 0.5;
+      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+      width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: 0.5;
     }
 
-    /* ── lesson body ────────────────────────────────────────── */
-
+    .lesson-pane { padding: clamp(18px, 3vw, 28px); }
     .lesson-kind { color: var(--gold); }
-    .lesson-h {
-      font-family: 'Fraunces', Georgia, serif;
-      font-weight: 500; font-size: clamp(26px, 5vw, 36px);
-      line-height: 1.08; letter-spacing: -0.02em; margin-top: 12px;
-    }
-    .lesson-sum { margin-top: 12px; color: var(--muted); max-width: 56ch; }
+    .lesson-h { font-size: clamp(21px, 3.5vw, 27px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-top: 10px; }
+    .lesson-sum { margin-top: 10px; color: var(--muted); max-width: 58ch; font-size: 13.5px; }
 
     .player {
-      margin-top: 26px; position: relative; width: 100%;
-      aspect-ratio: 16 / 9; border: 1px solid var(--line); background: #000;
+      margin-top: 22px; position: relative; width: 100%;
+      aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: 10px;
+      background: #000; overflow: hidden;
     }
     .player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
-    .prose { margin-top: 26px; max-width: 62ch; color: var(--muted); }
-    .prose h2, .prose h3 {
-      font-family: 'Fraunces', Georgia, serif;
-      color: var(--ink); font-weight: 500; letter-spacing: -0.015em;
-      margin: 26px 0 10px; font-size: 21px;
-    }
-    .prose h3 { font-size: 17px; }
-    .prose p { margin-bottom: 14px; }
+    .prose { margin-top: 22px; max-width: 62ch; color: var(--muted); font-size: 13.5px; line-height: 1.7; }
+    .prose h2, .prose h3 { color: var(--ink); font-weight: 650; letter-spacing: -0.015em; margin: 22px 0 8px; font-size: 16.5px; }
+    .prose h3 { font-size: 14.5px; }
+    .prose p { margin-bottom: 12px; }
 
     .notice {
-      margin-top: 26px; padding: 16px 0; border-top: 1px solid var(--line);
-      border-bottom: 1px solid var(--line); color: var(--faint); font-size: 14px;
+      margin-top: 22px; padding: 14px 0; border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line); color: var(--faint); font-size: 13px;
     }
 
     .lesson-foot {
-      margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line);
-      display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+      margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line);
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
     }
 
-    .empty { color: var(--faint); }
+    /* ── recap reader ────────────────────────────────────────── */
+
+    .recap-pane { padding: clamp(18px, 3vw, 28px); }
+    .recap-pane .lesson-h { margin-top: 8px; }
   </style>
 </head>
 <body>
 
-  <!-- signing in / no access -->
+  <!-- ════ GATE ════ -->
   <div class="centre" id="gate">
-    <div class="panel" id="gate-panel">
-      <p class="label eyebrow" id="gate-label">Echelon</p>
-      <h1 id="gate-title">Loading…</h1>
+    <span class="orb o1" aria-hidden="true"></span>
+    <span class="orb o2" aria-hidden="true"></span>
+    <div class="glass">
+      <p class="label" id="gate-label">Echelon</p>
+      <h1 id="gate-title">One moment…</h1>
       <p class="body" id="gate-body"></p>
       <div id="gate-actions"></div>
     </div>
   </div>
 
-  <!-- the course -->
-  <div class="shell" id="shell">
-    <div class="topbar">
-      <span class="brand">Echelon</span>
-      <span class="who">
-        <span id="who-email"></span>
-        <a class="quiet" id="discord-link" href="#" target="_blank" rel="noopener" hidden>Discord</a>
-        <button class="quiet" id="signout">Sign out</button>
-      </span>
-    </div>
-    <div class="layout">
-      <nav class="toc" id="index" aria-label="Lessons"></nav>
-      <main id="lesson"></main>
+  <!-- ════ DASHBOARD ════ -->
+  <div class="app" id="app">
+    <aside class="side">
+      <div class="side-brand">
+        <span class="dot" aria-hidden="true"></span>
+        Echelon <small>Members</small>
+      </div>
+
+      <nav class="side-nav" id="tabs" aria-label="Sections">
+        <p class="side-cap label">Overview</p>
+        <button class="tab on" data-view="overview" data-title="Overview" data-crumb="Where you are">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          Overview
+        </button>
+
+        <p class="side-cap label">Learn</p>
+        <button class="tab" data-view="course" data-title="Course" data-crumb="Lessons and progress">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Course <span class="count" id="c-lessons">—</span>
+        </button>
+        <button class="tab" data-view="recaps" data-title="Trade recaps" data-crumb="Session write-ups">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          Trade recaps <span class="count" id="c-recaps">—</span>
+        </button>
+
+        <p class="side-cap label" id="more-cap" hidden>More</p>
+        <a class="tab" id="discord-link" href="#" target="_blank" rel="noopener" hidden>
+          <svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.056c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029ZM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.096 2.157 2.42 0 1.332-.955 2.418-2.157 2.418Zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.096 2.157 2.42 0 1.332-.946 2.418-2.157 2.418Z"/></svg>
+          Discord
+        </a>
+        <a class="tab" id="admin-link" href="/echelon/admin/" hidden>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Admin
+        </a>
+      </nav>
+
+      <div class="side-user">
+        <div class="avatar" id="u-avatar">·</div>
+        <div class="u-meta">
+          <div class="u-name" id="u-name">—</div>
+          <div class="u-role" id="u-role">Member</div>
+        </div>
+        <button class="u-signout" id="signout" title="Sign out" aria-label="Sign out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <h2 id="pane-title">Overview</h2>
+          <div class="crumb" id="pane-crumb">Where you are</div>
+        </div>
+      </div>
+
+      <div class="pane">
+        <!-- OVERVIEW -->
+        <section class="view on" id="v-overview">
+          <div class="cards" id="ov-cards"></div>
+          <div class="block">
+            <div class="block-head"><h3>Pick up where you left off</h3></div>
+            <div class="lesson-pane" id="ov-continue"></div>
+          </div>
+          <div class="block">
+            <div class="block-head"><h3>Latest trade recap</h3></div>
+            <div class="lesson-pane" id="ov-recap"><p class="empty" style="padding:0;text-align:left;">No recaps yet.</p></div>
+          </div>
+        </section>
+
+        <!-- COURSE -->
+        <section class="view" id="v-course">
+          <div class="course-grid">
+            <nav class="toc" id="index" aria-label="Lessons"></nav>
+            <div class="block"><main class="lesson-pane" id="lesson"></main></div>
+          </div>
+        </section>
+
+        <!-- RECAPS -->
+        <section class="view" id="v-recaps">
+          <div class="block" id="recap-reader-block" hidden>
+            <div class="block-head"><h3 id="recap-reader-date">Recap</h3></div>
+            <div class="recap-pane" id="recap-reader"></div>
+          </div>
+          <div class="block">
+            <div class="block-head">
+              <h3>All recaps</h3>
+              <span class="label" id="recaps-total"></span>
+            </div>
+            <div class="tbl-scroll"><table id="recaps-table"></table></div>
+            <div class="empty" id="recaps-empty" hidden>No recaps posted yet. They land here after each session.</div>
+          </div>
+        </section>
+      </div>
     </div>
   </div>
 
@@ -346,12 +442,14 @@
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
     const el = (id) => document.getElementById(id)
 
-    const state = { user: null, isAdmin: false, modules: [], lessons: [], done: new Set(), currentId: null }
+    const state = { user: null, isAdmin: false, modules: [], lessons: [], done: new Set(), currentId: null, recaps: [], currentRecap: null }
+
+    const whenDay = (d) => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) }
 
     // ── gate rendering ──────────────────────────────────────
 
     function gate({ title, body, render }) {
-      el('shell').classList.remove('on')
+      el('app').classList.remove('on')
       el('gate').style.display = 'flex'
       el('gate-title').textContent = title
       el('gate-body').textContent = body ?? ''
@@ -360,20 +458,11 @@
       render?.(host)
     }
 
-    const DISCORD_MARK = 'M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.056c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029ZM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.096 2.157 2.42 0 1.332-.955 2.418-2.157 2.418Zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.096 2.157 2.42 0 1.332-.946 2.418-2.157 2.418Z'
-
     function discordButton(onError) {
       const btn = document.createElement('button')
       btn.type = 'button'
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-      svg.setAttribute('viewBox', '0 0 24 24')
-      svg.setAttribute('fill', 'currentColor')
-      svg.setAttribute('aria-hidden', 'true')
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-      path.setAttribute('d', DISCORD_MARK)
-      svg.appendChild(path)
-      btn.append(svg, document.createTextNode('Discord'))
-
+      btn.className = 'go dim'
+      btn.textContent = 'Continue with Discord'
       btn.addEventListener('click', async () => {
         btn.disabled = true
         // guilds.join is what lets us drop a buyer into the server with their
@@ -403,7 +492,7 @@
         body: 'Sign in with the email you bought with. No password to remember.',
         render(host) {
           const form = document.createElement('form')
-          form.className = 'signin'
+          form.style.marginTop = '20px'
 
           const field = document.createElement('div')
           field.className = 'fld'
@@ -431,13 +520,9 @@
 
           const or = document.createElement('div')
           or.className = 'or'
-          or.textContent = 'or continue with'
+          or.textContent = 'or'
 
-          const alt = document.createElement('div')
-          alt.className = 'alt'
-          alt.appendChild(discordButton(fail))
-
-          form.append(field, button, note, or, alt)
+          form.append(field, button, note, or, discordButton(fail))
           host.appendChild(form)
 
           form.addEventListener('submit', async (e) => {
@@ -469,15 +554,18 @@
         body: `${email} has not bought Echelon. If you paid with a different address, sign in with that one instead.`,
         render(host) {
           const buy = document.createElement('a')
-          buy.className = 'btn'
+          buy.className = 'go'
+          buy.style.display = 'block'
+          buy.style.textAlign = 'center'
+          buy.style.textDecoration = 'none'
+          buy.style.marginTop = '20px'
           buy.href = '/'
           buy.textContent = 'See what Echelon is'
 
           const other = document.createElement('button')
-          other.className = 'quiet'
+          other.className = 'go dim'
+          other.style.marginTop = '10px'
           other.textContent = 'Use a different email'
-          other.style.marginTop = '18px'
-          other.style.display = 'block'
           other.addEventListener('click', async () => {
             await supabase.auth.signOut()
             signInScreen()
@@ -488,9 +576,24 @@
       })
     }
 
+    /* ── tab switching ── */
+    const tabs = [...document.querySelectorAll('.tab[data-view]')]
+    function showView(view) {
+      tabs.forEach((t) => t.classList.toggle('on', t.dataset.view === view))
+      document.querySelectorAll('.view').forEach((v) => v.classList.toggle('on', v.id === `v-${view}`))
+      const tab = tabs.find((t) => t.dataset.view === view)
+      el('pane-title').textContent = tab.dataset.title
+      el('pane-crumb').textContent = tab.dataset.crumb
+    }
+    tabs.forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)))
+
     // ── content ─────────────────────────────────────────────
 
     const KIND_LABEL = { video: 'Video', written: 'Read', download: 'Download', live: 'Live' }
+
+    function orderedLessons() {
+      return state.modules.flatMap((m) => state.lessons.filter((l) => l.module_id === m.id))
+    }
 
     function renderIndex() {
       const host = el('index')
@@ -504,7 +607,7 @@
         group.className = 'toc-group'
 
         const cap = document.createElement('div')
-        cap.className = 'cap'
+        cap.className = 'cap label'
         cap.textContent = mod.title
         group.appendChild(cap)
 
@@ -564,6 +667,7 @@
     async function openLesson(id) {
       state.currentId = id
       renderIndex()
+      renderOverview()
 
       const lesson = state.lessons.find((l) => l.id === id)
       const host = el('lesson')
@@ -651,7 +755,7 @@
 
       const done = state.done.has(lesson.id)
       const mark = document.createElement('button')
-      mark.className = done ? 'quiet' : 'btn'
+      mark.className = done ? 'rowbtn' : 'btn'
       mark.textContent = done ? 'Mark as not done' : 'Mark complete'
       mark.addEventListener('click', async () => {
         mark.disabled = true
@@ -671,12 +775,12 @@
       })
       foot.appendChild(mark)
 
-      const ordered = state.modules.flatMap((m) => state.lessons.filter((l) => l.module_id === m.id))
+      const ordered = orderedLessons()
       const at = ordered.findIndex((l) => l.id === lesson.id)
       const next = ordered[at + 1]
       if (next) {
         const nextBtn = document.createElement('button')
-        nextBtn.className = 'quiet'
+        nextBtn.className = 'rowbtn'
         nextBtn.textContent = `Next: ${next.title}`
         nextBtn.addEventListener('click', () => {
           openLesson(next.id)
@@ -688,37 +792,123 @@
       host.appendChild(foot)
     }
 
-    async function loadCourse() {
-      // These come back filtered by RLS: without an active entitlement the
-      // modules query is simply empty. The explicit entitlement check below is
-      // for the message, not the gate.
-      const [{ data: modules }, { data: lessons }, { data: progress }] = await Promise.all([
-        supabase.from('modules').select('id, title, position').order('position'),
-        supabase.from('lessons').select('id, module_id, title, summary, kind, body_md, position').order('position'),
-        supabase.from('progress').select('lesson_id, completed_at'),
-      ])
+    // ── recaps ──────────────────────────────────────────────
 
-      state.modules = modules ?? []
-      state.lessons = lessons ?? []
-      state.done = new Set((progress ?? []).filter((p) => p.completed_at).map((p) => p.lesson_id))
+    function openRecap(id) {
+      state.currentRecap = id
+      const r = state.recaps.find((x) => x.id === id)
+      const blockEl = el('recap-reader-block')
+      if (!r) { blockEl.hidden = true; return }
+      blockEl.hidden = false
+      el('recap-reader-date').textContent = whenDay(r.recap_date)
+      const host = el('recap-reader')
+      host.textContent = ''
+      const h = document.createElement('h1')
+      h.className = 'lesson-h'
+      h.textContent = r.title
+      host.appendChild(h)
+      const prose = document.createElement('div')
+      prose.className = 'prose'
+      if (r.body_md) renderProse(prose, r.body_md)
+      else { const p = document.createElement('p'); p.textContent = 'No notes on this one.'; prose.appendChild(p) }
+      host.appendChild(prose)
+      renderRecapList()
+    }
 
-      el('gate').style.display = 'none'
-      el('shell').classList.add('on')
-      el('who-email').textContent = state.user.email
+    function renderRecapList() {
+      el('c-recaps').textContent = String(state.recaps.length)
+      el('recaps-total').textContent = `${state.recaps.length} total`
+      el('recaps-empty').hidden = state.recaps.length > 0
+      const tbl = el('recaps-table')
+      tbl.textContent = ''
+      if (!state.recaps.length) return
+      const thead = document.createElement('thead'), htr = document.createElement('tr')
+      for (const c of ['Date', 'Title', '']) { const th = document.createElement('th'); th.textContent = c; htr.appendChild(th) }
+      thead.appendChild(htr)
+      const tbody = document.createElement('tbody')
+      for (const r of state.recaps) {
+        const tr = document.createElement('tr')
+        tr.className = 'rowlink'
+        const d = document.createElement('td'); d.className = 'num'; d.textContent = whenDay(r.recap_date)
+        const t = document.createElement('td'); t.className = 'ink'; t.textContent = r.title
+        const b = document.createElement('td')
+        if (r.is_published === false) {
+          const badge = document.createElement('span'); badge.className = 'badge b-draft'; badge.textContent = 'draft'
+          b.appendChild(badge)
+        } else if (r.id === state.currentRecap) {
+          const badge = document.createElement('span'); badge.className = 'badge b-live'; badge.textContent = 'reading'
+          b.appendChild(badge)
+        }
+        tr.append(d, t, b)
+        tr.addEventListener('click', () => { openRecap(r.id); window.scrollTo({ top: 0, behavior: 'smooth' }) })
+        tbody.appendChild(tr)
+      }
+      tbl.append(thead, tbody)
+    }
 
-      if (DISCORD_INVITE) {
-        const link = el('discord-link')
-        link.href = DISCORD_INVITE
-        link.hidden = false
+    // ── overview ────────────────────────────────────────────
+
+    function scard(host, k, v, d) {
+      const c = document.createElement('div'); c.className = 'scard'
+      const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = k
+      const vv = document.createElement('div'); vv.className = 'v'; vv.textContent = v
+      c.append(kk, vv)
+      if (d) { const dd = document.createElement('div'); dd.className = 'd'; dd.textContent = d; c.appendChild(dd) }
+      host.appendChild(c)
+    }
+
+    function renderOverview() {
+      const total = state.lessons.length
+      const done = [...state.done].filter((id) => state.lessons.some((l) => l.id === id)).length
+      const pct = total ? Math.round((done / total) * 100) : 0
+
+      const cards = el('ov-cards'); cards.textContent = ''
+      scard(cards, 'Course progress', `${pct}%`, `${done} of ${total} lessons`)
+      scard(cards, 'Lessons left', String(total - done))
+      scard(cards, 'Trade recaps', String(state.recaps.length))
+      scard(cards, 'Member since', state.user
+        ? new Date(state.user.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
+        : '—')
+
+      const cont = el('ov-continue'); cont.textContent = ''
+      const nextUp = orderedLessons().find((l) => !state.done.has(l.id)) ?? orderedLessons()[0]
+      if (!nextUp) {
+        const p = document.createElement('p'); p.className = 'lesson-sum'; p.style.marginTop = '0'
+        p.textContent = 'No lessons published yet.'
+        cont.appendChild(p)
+      } else {
+        const kind = document.createElement('p'); kind.className = 'label lesson-kind'
+        kind.textContent = KIND_LABEL[nextUp.kind] ?? nextUp.kind
+        const h = document.createElement('h1'); h.className = 'lesson-h'; h.textContent = nextUp.title
+        cont.append(kind, h)
+        if (nextUp.summary) {
+          const s = document.createElement('p'); s.className = 'lesson-sum'; s.textContent = nextUp.summary
+          cont.appendChild(s)
+        }
+        const foot = document.createElement('div'); foot.className = 'lesson-foot'
+        const go = document.createElement('button'); go.className = 'btn'
+        go.textContent = done ? 'Continue' : 'Start the course'
+        go.addEventListener('click', () => { showView('course'); openLesson(nextUp.id) })
+        foot.appendChild(go)
+        cont.appendChild(foot)
       }
 
-      renderIndex()
-      const first = state.modules
-        .flatMap((m) => state.lessons.filter((l) => l.module_id === m.id))[0]
-      if (first) {
-        openLesson(first.id)
+      const rec = el('ov-recap'); rec.textContent = ''
+      const latest = state.recaps[0]
+      if (!latest) {
+        const p = document.createElement('p'); p.className = 'lesson-sum'; p.style.marginTop = '0'
+        p.textContent = 'No recaps yet. They land here after each session.'
+        rec.appendChild(p)
       } else {
-        el('lesson').innerHTML = '<p class="empty">No lessons published yet.</p>'
+        const kind = document.createElement('p'); kind.className = 'label lesson-kind'
+        kind.textContent = whenDay(latest.recap_date)
+        const h = document.createElement('h1'); h.className = 'lesson-h'; h.textContent = latest.title
+        rec.append(kind, h)
+        const foot = document.createElement('div'); foot.className = 'lesson-foot'
+        const go = document.createElement('button'); go.className = 'btn'; go.textContent = 'Read it'
+        go.addEventListener('click', () => { showView('recaps'); openRecap(latest.id) })
+        foot.appendChild(go)
+        rec.appendChild(foot)
       }
     }
 
@@ -728,6 +918,53 @@
       await supabase.auth.signOut()
       location.reload()
     })
+
+    async function loadCourse() {
+      // These come back filtered by RLS: without an active entitlement the
+      // modules query is simply empty, and trade recaps arrive published-only
+      // for members. Nothing on this page can read other members' rows.
+      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }] = await Promise.all([
+        supabase.from('modules').select('id, title, position').order('position'),
+        supabase.from('lessons').select('id, module_id, title, summary, kind, body_md, position').order('position'),
+        supabase.from('progress').select('lesson_id, completed_at'),
+        supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published').order('recap_date', { ascending: false }),
+      ])
+
+      state.modules = modules ?? []
+      state.lessons = lessons ?? []
+      state.done = new Set((progress ?? []).filter((p) => p.completed_at).map((p) => p.lesson_id))
+      state.recaps = recaps ?? []
+
+      el('gate').style.display = 'none'
+      el('app').classList.add('on')
+
+      const email = state.user.email
+      el('u-name').textContent = email
+      el('u-avatar').textContent = (email[0] || 'E').toUpperCase() + (email[1] || '·').toUpperCase()
+      el('u-role').textContent = state.isAdmin ? 'Owner · Admin' : 'Member'
+
+      el('admin-link').hidden = !state.isAdmin
+      if (DISCORD_INVITE) {
+        const link = el('discord-link')
+        link.href = DISCORD_INVITE
+        link.hidden = false
+      }
+      el('more-cap').hidden = el('admin-link').hidden && el('discord-link').hidden
+
+      el('c-lessons').textContent = String(state.lessons.length)
+
+      renderIndex()
+      renderRecapList()
+      if (state.recaps[0]) openRecap(state.recaps[0].id)
+      renderOverview()
+
+      const first = orderedLessons()[0]
+      if (first) {
+        openLesson(first.id)
+      } else {
+        el('lesson').innerHTML = '<p class="empty">No lessons published yet.</p>'
+      }
+    }
 
     async function boot() {
       const { data: { session } } = await supabase.auth.getSession()
