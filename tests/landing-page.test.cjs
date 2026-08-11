@@ -50,6 +50,7 @@ test('landing stylesheet implements the approved visual and responsive contract'
   assert.match(css, /--night:\s*#081018/i)
   assert.match(css, /--gunmetal:\s*#14202a/i)
   assert.match(css, /--frost:\s*#f2f5f6/i)
+  assert.match(css, /--steel-dim:\s*#73838d/i)
   assert.match(css, /--brass:\s*#b98b46/i)
   assert.match(css, /\.session-spine/)
   assert.match(css, /\.product-stage/)
