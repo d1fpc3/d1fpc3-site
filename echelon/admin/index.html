@@ -913,6 +913,29 @@
       return plaidLinkReady
     }
 
+    function openPlaidLink({ token, item, receivedRedirectUri }) {
+      const msg = el('banks-msg')
+      const handler = Plaid.create({
+        token,
+        ...(receivedRedirectUri ? { receivedRedirectUri } : {}),
+        onSuccess: async (public_token, metadata) => {
+          sessionStorage.removeItem('echelon_plaid_link')
+          msg.className = 'msg'; msg.textContent = 'Linking and syncing…'
+          try {
+            if (item) await plaidAction({ action: 'sync', item })
+            else await plaidAction({ action: 'exchange', public_token, institution: metadata.institution })
+            msg.className = 'msg ok'; msg.textContent = 'Bank connected.'
+            await loadMoney()
+          } catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
+        },
+        onExit: () => {
+          sessionStorage.removeItem('echelon_plaid_link')
+          if (msg.textContent === 'Opening Plaid…') msg.textContent = ''
+        },
+      })
+      handler.open()
+    }
+
     async function connectBank(itemForUpdate) {
       const msg = el('banks-msg'); msg.className = 'msg'; msg.textContent = 'Opening Plaid…'
       try {
@@ -920,21 +943,27 @@
         const { link_token } = await plaidAction(
           itemForUpdate ? { action: 'update_link_token', item: itemForUpdate } : { action: 'create_link_token' },
         )
-        const handler = Plaid.create({
-          token: link_token,
-          onSuccess: async (public_token, metadata) => {
-            msg.textContent = 'Linking and syncing…'
-            try {
-              if (itemForUpdate) await plaidAction({ action: 'sync', item: itemForUpdate })
-              else await plaidAction({ action: 'exchange', public_token, institution: metadata.institution })
-              msg.className = 'msg ok'; msg.textContent = 'Bank connected.'
-              await loadMoney()
-            } catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
-          },
-          onExit: () => { if (msg.textContent === 'Opening Plaid…') msg.textContent = '' },
-        })
-        handler.open()
+        // OAuth banks bounce through the bank's own site and back here; the
+        // same link token has to survive that round-trip.
+        sessionStorage.setItem('echelon_plaid_link', JSON.stringify({ token: link_token, item: itemForUpdate ?? null }))
+        openPlaidLink({ token: link_token, item: itemForUpdate })
       } catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
+    }
+
+    // Returning leg of a bank OAuth round-trip: reopen Link with the same
+    // token plus the URI the bank sent us back to.
+    async function resumePlaidOAuth() {
+      if (!new URLSearchParams(location.search).has('oauth_state_id')) return
+      const saved = sessionStorage.getItem('echelon_plaid_link')
+      const receivedRedirectUri = location.href
+      history.replaceState(null, '', location.pathname)
+      if (!saved) return
+      document.querySelector('.tab[data-view="money"]')?.click()
+      try {
+        await loadPlaidLink()
+        const { token, item } = JSON.parse(saved)
+        openPlaidLink({ token, item, receivedRedirectUri })
+      } catch { /* harmless — Connect bank again starts fresh */ }
     }
 
     function moneyStats() {
@@ -1168,6 +1197,7 @@
         // Money must never block the rest of the dashboard.
         loadMoney().catch(() => renderMoneySetup()),
       ])
+      resumePlaidOAuth()
     }
 
     // Magic-link returns land with tokens in the URL fragment; supabase-js
