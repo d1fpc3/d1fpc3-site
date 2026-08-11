@@ -388,6 +388,42 @@
     .recap-pane { padding: clamp(18px, 3vw, 28px); }
     .recap-pane .lesson-h { margin-top: 8px; }
 
+    /* ── mobile: the sidebar becomes a drawer ────────────────── */
+
+    .menu-btn {
+      display: none; background: none; border: 1px solid var(--line-bright);
+      border-radius: 8px; color: var(--muted); padding: 7px; cursor: pointer; flex-shrink: 0;
+    }
+    .menu-btn svg { width: 18px; height: 18px; display: block; }
+    .tb-title { margin-right: auto; min-width: 0; }
+    .scrim {
+      position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,0.5);
+      opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+    }
+
+    @media (max-width: 840px) {
+      .app.on { display: block; }
+      .menu-btn { display: flex; }
+      .side {
+        position: fixed; top: 0; bottom: 0; left: 0; width: min(300px, 84vw); z-index: 60;
+        transform: translateX(-100%); transition: transform 0.25s ease;
+        box-shadow: 0 0 60px rgba(0,0,0,0.55);
+      }
+      .nav-open .side { transform: translateX(0); }
+      .nav-open .scrim { opacity: 1; pointer-events: auto; }
+      .block-head { flex-wrap: wrap; }
+      /* the drawer always shows full labels, whatever the desktop rail says */
+      .side-collapse { display: none; }
+      .rail .side-brand { padding: 20px 20px 18px; justify-content: flex-start; }
+      .rail .brand-name, .rail .side-brand small { display: inline-block; }
+      .rail .side-nav { padding: 8px 12px; }
+      .rail .tab { font-size: 13.5px; gap: 11px; justify-content: flex-start; padding: 9px 12px; }
+      .rail .tab .count { display: inline-block; }
+      .rail .side-user { flex-direction: row; padding: 12px; gap: 11px; }
+      .rail .side-user .u-meta { display: block; }
+    }
+    @media (prefers-reduced-motion: reduce) { .side, .scrim { transition: none; } }
+
     /* ── skeleton loaders ────────────────────────────────────── */
 
     .skel {
@@ -567,9 +603,14 @@
       </div>
     </aside>
 
+    <div class="scrim" id="scrim"></div>
+
     <div class="main">
       <div class="topbar">
-        <div>
+        <button class="menu-btn" id="menu-btn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="tb-title">
           <h2 id="pane-title">Overview</h2>
           <div class="crumb" id="pane-crumb">Where you are</div>
         </div>
@@ -1056,6 +1097,12 @@
       el('pane-crumb').textContent = tab.dataset.crumb
     }
     tabs.forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)))
+
+    /* ── mobile drawer ── */
+    el('menu-btn').addEventListener('click', () => el('app').classList.toggle('nav-open'))
+    el('scrim').addEventListener('click', () => el('app').classList.remove('nav-open'))
+    document.querySelectorAll('.side-nav .tab').forEach((t) =>
+      t.addEventListener('click', () => el('app').classList.remove('nav-open')))
 
     /* ── collapsible sidebar ── */
     const RAIL_KEY = 'echelon-rail'
