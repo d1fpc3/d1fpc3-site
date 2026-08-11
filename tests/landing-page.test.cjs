@@ -6,6 +6,8 @@ const vm = require('node:vm')
 
 const root = path.resolve(__dirname, '..')
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
+const cssPath = path.join(root, 'landing.css')
+const css = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : ''
 const scriptPath = path.join(root, 'landing.js')
 const script = fs.existsSync(scriptPath) ? fs.readFileSync(scriptPath, 'utf8') : ''
 const context = {
@@ -42,6 +44,19 @@ test('root page retains honest product and risk language', () => {
   assert.match(html, /not signals/i)
   assert.match(html, /substantial risk of loss/i)
   assert.doesNotMatch(html, /win rate|guaranteed profit|limited seats/i)
+})
+
+test('landing stylesheet implements the approved visual and responsive contract', () => {
+  assert.match(css, /--night:\s*#081018/i)
+  assert.match(css, /--gunmetal:\s*#14202a/i)
+  assert.match(css, /--frost:\s*#f2f5f6/i)
+  assert.match(css, /--brass:\s*#b98b46/i)
+  assert.match(css, /\.session-spine/)
+  assert.match(css, /\.product-stage/)
+  assert.match(css, /@media\s*\(max-width:\s*900px\)/)
+  assert.match(css, /@media\s*\(max-width:\s*700px\)/)
+  assert.match(css, /prefers-reduced-motion:\s*reduce/)
+  assert.match(css, /:focus-visible/)
 })
 
 test('landing script parses Discord invite URLs', () => {
