@@ -42,6 +42,29 @@
       --sidebar: 244px;
     }
 
+    /* light theme: same bones, paper palette. The sign-in gate stays dark
+       on purpose — the door is black, the house has lights. */
+    :root[data-theme="light"] {
+      --bg: #f6f4f0;
+      --panel: #ffffff;
+      --panel-2: #efece6;
+      --ink: #1a1815;
+      --muted: #5f5a51;
+      --faint: #8a847a;
+      --line: #e4e0d8;
+      --line-bright: #d3cec4;
+      --gold: #a8842c;
+      --gold-deep: #8a6a1e;
+      --bad: #b4543c;
+      --good: #4e7d46;
+    }
+    :root[data-theme="light"] .topbar { background: rgba(246,244,240,0.85); }
+    :root[data-theme="light"] tbody tr:hover td { background: rgba(0,0,0,0.02); }
+    :root[data-theme="light"] .skel::after {
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent);
+    }
+    :root[data-theme="light"] .centre { background: #0b0a09; }
+
     html, body { height: 100%; }
     body {
       background: var(--bg); color: var(--ink);
@@ -167,8 +190,51 @@
     }
     .tab.on .count { background: rgba(201,162,74,0.14); color: var(--gold); }
 
-    .side-user {
+    /* collapsible rail: icons only, choice remembered */
+    .side-collapse {
+      background: none; border: 0; color: var(--faint); cursor: pointer; padding: 4px;
+      border-radius: 6px; display: flex; margin-left: 6px;
+      transition: color 0.15s ease, background 0.15s ease, transform 0.25s ease;
+    }
+    .side-collapse:hover { color: var(--ink); background: var(--panel-2); }
+    .side-collapse svg { width: 16px; height: 16px; }
+    .app.rail { grid-template-columns: 68px minmax(0, 1fr); }
+    .rail .side-brand { padding: 20px 10px 18px; justify-content: center; }
+    .rail .brand-name, .rail .side-brand small { display: none; }
+    .rail .side-collapse { margin-left: 0; transform: rotate(180deg); }
+    .rail .side-cap { display: none; }
+    .rail .side-nav { padding: 8px 10px; }
+    .rail .tab { font-size: 0; gap: 0; justify-content: center; padding: 11px; }
+    .rail .tab .count { display: none; }
+    .rail .side-theme { justify-content: center; padding: 12px 6px; }
+    .rail .side-theme .label { display: none; }
+    .rail .side-theme .tgl { transform: scale(0.85); }
+    .rail .side-user { flex-direction: column; padding: 10px 6px; gap: 8px; }
+    .rail .side-user .u-meta { display: none; }
+
+    /* theme switch, pinned above the user card */
+    .side-theme {
       margin-top: auto; border-top: 1px solid var(--line);
+      padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .tgl { position: relative; display: inline-block; width: 54px; height: 31px; }
+    .tgl input { opacity: 0; width: 0; height: 0; }
+    .tgl .track {
+      position: absolute; inset: 0; background: #d9d9de;
+      border-radius: 999px; cursor: pointer; transition: background 0.25s ease;
+    }
+    .tgl .track::before {
+      content: ""; position: absolute; width: 27px; height: 27px; top: 2px; left: 2px;
+      background: #fff; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .tgl input:checked + .track { background: linear-gradient(135deg, var(--gold), var(--gold-deep)); }
+    .tgl input:checked + .track::before { transform: translateX(23px); }
+    .tgl input:focus-visible + .track { outline: 2px solid var(--gold); outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { .tgl .track, .tgl .track::before { transition: none; } }
+
+    .side-user {
+      border-top: 1px solid var(--line);
       padding: 12px; display: flex; align-items: center; gap: 11px;
     }
     .avatar {
@@ -392,6 +458,41 @@
     .mbio { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5;
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
+    /* ── review prompt ───────────────────────────────────────── */
+
+    .review-pop {
+      position: fixed; right: 18px; bottom: 18px; z-index: 40;
+      width: 300px; max-width: calc(100vw - 36px);
+      background: var(--panel); border: 1px solid var(--line-bright);
+      border-radius: 14px; padding: 16px;
+      box-shadow: 0 18px 50px -18px rgba(0,0,0,0.6);
+      animation: pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes pop-in { from { opacity: 0; transform: translateY(10px); } }
+    @media (prefers-reduced-motion: reduce) { .review-pop { animation: none; } }
+    .review-pop h4 { font-size: 13.5px; font-weight: 650; margin-bottom: 10px; padding-right: 22px; }
+    .review-pop .x {
+      position: absolute; top: 10px; right: 12px;
+      background: none; border: 0; cursor: pointer;
+      color: var(--faint); font-size: 16px; line-height: 1; padding: 2px;
+    }
+    .review-pop .x:hover { color: var(--ink); }
+
+    .rate { display: inline-flex; flex-direction: row-reverse; gap: 4px; }
+    .rate input { position: absolute; opacity: 0; pointer-events: none; }
+    .rate label { cursor: pointer; color: var(--line-bright); transition: color 0.15s ease, transform 0.15s ease; }
+    .rate label svg { width: 30px; height: 30px; display: block; }
+    .rate label:hover,
+    .rate label:hover ~ label,
+    .rate input:checked ~ label { color: var(--gold); }
+    .rate label:hover { transform: scale(1.15); }
+
+    /* ── password strength meter ─────────────────────────────── */
+
+    .pwmeter { display: flex; gap: 6px; margin: 10px 0 5px; }
+    .pwmeter i { flex: 1; height: 5px; border-radius: 999px; background: var(--panel-2); transition: background 0.3s ease; }
+    .pwhint { font-size: 11.5px; color: var(--faint); min-height: 1em; transition: color 0.3s ease; }
+
     /* ── avatar cropper ──────────────────────────────────────── */
 
     /* the hidden attribute must always win over the display rule */
@@ -424,7 +525,10 @@
   <div class="app" id="app">
     <aside class="side">
       <div class="side-brand">
-        Echelon <small>Members</small>
+        <span class="brand-name">Echelon</span> <small>Members</small>
+        <button class="side-collapse" id="side-collapse" title="Collapse sidebar" aria-label="Collapse sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
       </div>
 
       <nav class="side-nav" id="tabs" aria-label="Sections">
@@ -466,6 +570,14 @@
           Admin
         </a>
       </nav>
+
+      <div class="side-theme">
+        <span class="label">Dark mode</span>
+        <label class="tgl">
+          <input type="checkbox" id="theme-toggle">
+          <span class="track"></span>
+        </label>
+      </div>
 
       <div class="side-user">
         <div class="avatar" id="u-avatar">·</div>
@@ -597,6 +709,7 @@
                   <input class="inp" id="new-pass" type="password" placeholder="New password, 8+ characters" autocomplete="new-password" style="flex:1;min-width:200px;">
                   <button class="rowbtn" id="pass-save">Set password</button>
                 </div>
+                <div id="pw-meter-host"></div>
                 <p class="hint">Optional — sign-in links always work. Forgot it? Use "Forgot password" on the sign-in screen.</p>
                 <p class="msg" id="pass-msg"></p>
               </div>
@@ -617,6 +730,24 @@
     </div>
   </div>
 
+  <!-- review prompt: shows on open until a review exists -->
+  <div class="review-pop" id="review-pop" hidden>
+    <button class="x" id="review-x" aria-label="Not now">×</button>
+    <h4>How's Echelon so far?</h4>
+    <div class="rate" id="rate">
+      <input type="radio" name="rate" id="r5" value="5"><label for="r5" aria-label="5 stars"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></label>
+      <input type="radio" name="rate" id="r4" value="4"><label for="r4" aria-label="4 stars"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></label>
+      <input type="radio" name="rate" id="r3" value="3"><label for="r3" aria-label="3 stars"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></label>
+      <input type="radio" name="rate" id="r2" value="2"><label for="r2" aria-label="2 stars"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></label>
+      <input type="radio" name="rate" id="r1" value="1"><label for="r1" aria-label="1 star"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></label>
+    </div>
+    <textarea class="inp" id="review-text" rows="2" maxlength="300" placeholder="Say a little more (optional)" style="width:100%;margin-top:10px;resize:none;"></textarea>
+    <div class="filters" style="margin-top:10px;">
+      <button class="btn" id="review-send" style="padding:8px 14px;font-size:12.5px;">Send</button>
+      <span class="msg" id="review-msg"></span>
+    </div>
+  </div>
+
   <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -629,6 +760,23 @@
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
     const el = (id) => document.getElementById(id)
+
+    /* ── theme: system by default, sticky once toggled ── */
+    const THEME_KEY = 'echelon-theme'
+    const sysDark = window.matchMedia('(prefers-color-scheme: dark)')
+    function applyTheme() {
+      const stored = localStorage.getItem(THEME_KEY)
+      const dark = stored ? stored === 'dark' : sysDark.matches
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b0a09' : '#f6f4f0')
+      el('theme-toggle').checked = dark
+    }
+    applyTheme()
+    sysDark.addEventListener('change', () => { if (!localStorage.getItem(THEME_KEY)) applyTheme() })
+    el('theme-toggle').addEventListener('change', () => {
+      localStorage.setItem(THEME_KEY, el('theme-toggle').checked ? 'dark' : 'light')
+      applyTheme()
+    })
 
     const state = {
       user: null, isAdmin: false, hasCourse: false, profile: null,
@@ -827,11 +975,14 @@
         render(host) {
           const form = document.createElement('form'); form.style.marginTop = '20px'
           const pw = gateField('rc-pass', 'password', 'New password (8+ characters)', 'new-password')
+          const meterHost = document.createElement('div')
+          meterHost.style.margin = '0 0 12px'
+          attachPwMeter(pw.i, meterHost)
           const pw2 = gateField('rc-pass2', 'password', 'Same password again', 'new-password')
           const button = document.createElement('button')
           button.type = 'submit'; button.className = 'go'; button.textContent = 'Save password'
           const note = document.createElement('p'); note.className = 'form-note'
-          form.append(pw.f, pw2.f, button, note)
+          form.append(pw.f, meterHost, pw2.f, button, note)
           form.addEventListener('submit', async (e) => {
             e.preventDefault()
             if (pw.i.value.length < 8) { note.className = 'form-error'; note.textContent = '8 characters at least.'; return }
@@ -914,6 +1065,15 @@
       el('pane-crumb').textContent = tab.dataset.crumb
     }
     tabs.forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)))
+
+    /* ── collapsible sidebar ── */
+    const RAIL_KEY = 'echelon-rail'
+    document.querySelectorAll('.tab').forEach((t) => { t.title = (t.dataset.title ?? t.textContent).trim() })
+    el('app').classList.toggle('rail', localStorage.getItem(RAIL_KEY) === '1')
+    el('side-collapse').addEventListener('click', () => {
+      const on = el('app').classList.toggle('rail')
+      localStorage.setItem(RAIL_KEY, on ? '1' : '')
+    })
 
     // ── content ─────────────────────────────────────────────
 
@@ -1323,6 +1483,72 @@
       if (error) { msg.className = 'msg err'; msg.textContent = error.message; return }
       msg.className = 'msg ok'; msg.textContent = 'Password set. It works on the sign-in screen now.'
       el('new-pass').value = ''
+    })
+
+    // ── password strength meter (Settings + reset screen) ──
+
+    function attachPwMeter(input, host) {
+      const meter = document.createElement('div'); meter.className = 'pwmeter'
+      for (let i = 0; i < 4; i++) meter.appendChild(document.createElement('i'))
+      const hint = document.createElement('div'); hint.className = 'pwhint'
+      const resting = 'Use 8+ characters with numbers and symbols'
+      hint.textContent = resting
+      host.append(meter, hint)
+      const LEVELS = [
+        { c: '#ef4444', t: 'Too weak' },
+        { c: '#f59e0b', t: 'Getting there' },
+        { c: '#eab308', t: 'Decent' },
+        { c: '#16a34a', t: 'Strong password' },
+      ]
+      input.addEventListener('input', () => {
+        const v = input.value
+        let score = 0
+        if (v.length >= 8) score++
+        if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++
+        if (/\d/.test(v)) score++
+        if (/[^A-Za-z0-9]/.test(v)) score++
+        for (let i = 0; i < 4; i++) {
+          meter.children[i].style.background = v && i < score ? LEVELS[score - 1].c : ''
+        }
+        hint.textContent = v ? (score ? LEVELS[score - 1].t : 'Too weak') : resting
+        hint.style.color = v && score ? LEVELS[score - 1].c : ''
+      })
+    }
+
+    attachPwMeter(el('new-pass'), el('pw-meter-host'))
+
+    // ── review prompt: every open, until they leave one ─────
+
+    async function maybeReviewPrompt() {
+      if (sessionStorage.getItem('echelon-review-dismissed')) return
+      const { data } = await supabase.from('reviews').select('rating')
+        .eq('user_id', state.user.id).maybeSingle()
+      if (data) return
+      el('review-pop').hidden = false
+    }
+
+    el('review-x').addEventListener('click', () => {
+      sessionStorage.setItem('echelon-review-dismissed', '1')
+      el('review-pop').hidden = true
+    })
+
+    el('review-send').addEventListener('click', async () => {
+      const msg = el('review-msg')
+      const checked = document.querySelector('input[name="rate"]:checked')
+      if (!checked) { msg.className = 'msg err'; msg.textContent = 'Stars first.'; return }
+      el('review-send').disabled = true; msg.className = 'msg'; msg.textContent = 'Sending…'
+      const { error } = await supabase.from('reviews').upsert({
+        user_id: state.user.id,
+        rating: Number(checked.value),
+        comment: el('review-text').value.trim() || null,
+      }, { onConflict: 'user_id' })
+      if (error) {
+        msg.className = 'msg err'; msg.textContent = error.message
+        el('review-send').disabled = false
+        return
+      }
+      msg.className = 'msg ok'; msg.textContent = 'Thank you.'
+      setTimeout(() => { el('review-pop').hidden = true }, 1100)
     })
 
     // ── settings: delete account ────────────────────────────

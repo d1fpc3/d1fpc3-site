@@ -39,6 +39,29 @@
       --sidebar: 244px;
     }
 
+    /* light theme: same bones, paper palette. The login gate stays dark
+       on purpose — the door is black, the house has lights. */
+    :root[data-theme="light"] {
+      --bg: #f6f4f0;
+      --panel: #ffffff;
+      --panel-2: #efece6;
+      --ink: #1a1815;
+      --muted: #5f5a51;
+      --faint: #8a847a;
+      --line: #e4e0d8;
+      --line-bright: #d3cec4;
+      --gold: #a8842c;
+      --gold-deep: #8a6a1e;
+      --bad: #b4543c;
+      --good: #4e7d46;
+    }
+    :root[data-theme="light"] .topbar { background: rgba(246,244,240,0.85); }
+    :root[data-theme="light"] tbody tr:hover td { background: rgba(0,0,0,0.02); }
+    :root[data-theme="light"] .skel::after {
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent);
+    }
+    :root[data-theme="light"] .centre { background: #0b0a09; }
+
     html, body { height: 100%; }
     body {
       background: var(--bg); color: var(--ink);
@@ -156,9 +179,52 @@
     }
     .tab.on .count { background: rgba(201,162,74,0.14); color: var(--gold); }
 
+    /* collapsible rail: icons only, choice remembered */
+    .side-collapse {
+      background: none; border: 0; color: var(--faint); cursor: pointer; padding: 4px;
+      border-radius: 6px; display: flex; margin-left: 6px;
+      transition: color 0.15s ease, background 0.15s ease, transform 0.25s ease;
+    }
+    .side-collapse:hover { color: var(--ink); background: var(--panel-2); }
+    .side-collapse svg { width: 16px; height: 16px; }
+    .app.rail { grid-template-columns: 68px minmax(0, 1fr); }
+    .rail .side-brand { padding: 20px 10px 18px; justify-content: center; }
+    .rail .brand-name, .rail .side-brand small { display: none; }
+    .rail .side-collapse { margin-left: 0; transform: rotate(180deg); }
+    .rail .side-cap { display: none; }
+    .rail .side-nav { padding: 8px 10px; }
+    .rail .tab { font-size: 0; gap: 0; justify-content: center; padding: 11px; }
+    .rail .tab .count { display: none; }
+    .rail .side-theme { justify-content: center; padding: 12px 6px; }
+    .rail .side-theme .label { display: none; }
+    .rail .side-theme .tgl { transform: scale(0.85); }
+    .rail .side-user { flex-direction: column; padding: 10px 6px; gap: 8px; }
+    .rail .side-user .u-meta { display: none; }
+
+    /* theme switch, pinned above the user card */
+    .side-theme {
+      margin-top: auto; border-top: 1px solid var(--line);
+      padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .tgl { position: relative; display: inline-block; width: 54px; height: 31px; }
+    .tgl input { opacity: 0; width: 0; height: 0; }
+    .tgl .track {
+      position: absolute; inset: 0; background: #d9d9de;
+      border-radius: 999px; cursor: pointer; transition: background 0.25s ease;
+    }
+    .tgl .track::before {
+      content: ""; position: absolute; width: 27px; height: 27px; top: 2px; left: 2px;
+      background: #fff; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .tgl input:checked + .track { background: linear-gradient(135deg, var(--gold), var(--gold-deep)); }
+    .tgl input:checked + .track::before { transform: translateX(23px); }
+    .tgl input:focus-visible + .track { outline: 2px solid var(--gold); outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { .tgl .track, .tgl .track::before { transition: none; } }
+
     /* user, pinned bottom-left */
     .side-user {
-      margin-top: auto; border-top: 1px solid var(--line);
+      border-top: 1px solid var(--line);
       padding: 12px; display: flex; align-items: center; gap: 11px;
     }
     .avatar {
@@ -229,6 +295,9 @@
     td.ink { color: var(--ink); font-weight: 500; }
     tbody tr:hover td { background: rgba(255,255,255,0.014); }
     .num { font-variant-numeric: tabular-nums; }
+
+    .oid { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--faint); }
+    .stars { color: var(--gold); letter-spacing: 2px; font-size: 13px; }
 
     .badge {
       display: inline-flex; align-items: center; gap: 6px;
@@ -342,7 +411,10 @@
   <div class="app" id="app">
     <aside class="side">
       <div class="side-brand">
-        Echelon <small>Admin</small>
+        <span class="brand-name">Echelon</span> <small>Admin</small>
+        <button class="side-collapse" id="side-collapse" title="Collapse sidebar" aria-label="Collapse sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
       </div>
 
       <nav class="side-nav" id="tabs" aria-label="Sections">
@@ -387,6 +459,14 @@
         </button>
       </nav>
 
+      <div class="side-theme">
+        <span class="label">Dark mode</span>
+        <label class="tgl">
+          <input type="checkbox" id="theme-toggle">
+          <span class="track"></span>
+        </label>
+      </div>
+
       <div class="side-user">
         <div class="avatar" id="u-avatar">D1</div>
         <div class="u-meta">
@@ -417,6 +497,11 @@
             <div class="tbl-scroll"><table id="recent-buyers"></table></div>
             <div class="empty" id="recent-empty" hidden>No buyers yet — the page goes live the moment Stripe is connected.</div>
           </div>
+          <div class="block">
+            <div class="block-head"><h3>Reviews</h3><span class="label" id="reviews-avg"></span></div>
+            <div class="tbl-scroll"><table id="reviews-table"></table></div>
+            <div class="empty" id="reviews-empty" hidden>No reviews yet. Members get a little prompt when they open the course.</div>
+          </div>
         </section>
 
         <!-- USERS -->
@@ -439,6 +524,11 @@
         <!-- BILLING -->
         <section class="view" id="v-billing">
           <div class="cards" id="billing-cards"></div>
+          <div class="block">
+            <div class="block-head"><h3>Orders</h3><span class="label" id="orders-total"></span></div>
+            <div class="tbl-scroll"><table id="orders-table"></table></div>
+            <div class="empty" id="orders-empty" hidden>No orders yet. Every Stripe purchase lands here the moment it happens.</div>
+          </div>
           <div class="block">
             <div class="block-head"><h3>Recent Stripe events</h3></div>
             <div class="tbl-scroll"><table id="events-table"></table></div>
@@ -605,6 +695,31 @@
     const money = (c) => c == null ? '—' : '$' + (c / 100).toFixed(c % 100 ? 2 : 0)
     const when = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' }) : '—'
 
+    /* ── theme: system by default, sticky once toggled ── */
+    const THEME_KEY = 'echelon-theme'
+    const sysDark = window.matchMedia('(prefers-color-scheme: dark)')
+    function applyTheme() {
+      const stored = localStorage.getItem(THEME_KEY)
+      const dark = stored ? stored === 'dark' : sysDark.matches
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+      el('theme-toggle').checked = dark
+    }
+    applyTheme()
+    sysDark.addEventListener('change', () => { if (!localStorage.getItem(THEME_KEY)) applyTheme() })
+    el('theme-toggle').addEventListener('change', () => {
+      localStorage.setItem(THEME_KEY, el('theme-toggle').checked ? 'dark' : 'light')
+      applyTheme()
+    })
+
+    /* ── collapsible sidebar ── */
+    const RAIL_KEY = 'echelon-rail'
+    document.querySelectorAll('.tab').forEach((t) => { t.title = (t.dataset.title ?? t.textContent).trim() })
+    el('app').classList.toggle('rail', localStorage.getItem(RAIL_KEY) === '1')
+    el('side-collapse').addEventListener('click', () => {
+      const on = el('app').classList.toggle('rail')
+      localStorage.setItem(RAIL_KEY, on ? '1' : '')
+    })
+
     /* ── login ── */
     function loginScreen(message) {
       el('gate-title').textContent = 'Admin'
@@ -767,6 +882,8 @@
     function paintSkeletons() {
       skelCards(el('cards')); skelCards(el('billing-cards')); skelCards(el('money-cards'))
       skelRows(el('recent-buyers'), 4, 4)
+      skelRows(el('reviews-table'), 4, 3)
+      skelRows(el('orders-table'), 5, 4)
       skelRows(el('users-table'), 6, 5)
       skelRows(el('events-table'), 3, 4)
       skelRows(el('content-table'), 4, 5)
@@ -852,6 +969,49 @@
       scard(host, 'Paid orders', String(s.paidCount))
       scard(host, 'Refunded', String(s.refunded))
       scard(host, 'Avg order', s.paidCount ? money(Math.round(s.revenue / s.paidCount)) : '—')
+
+      const orders = BUYERS.filter((b) => b.source === 'stripe')
+      el('orders-total').textContent = orders.length ? `${orders.length} total` : ''
+      el('orders-empty').hidden = orders.length > 0
+      const STATUS = { active: 'Paid', refunded: 'Refunded', revoked: 'Revoked' }
+      table(el('orders-table'), ['Order', 'Customer', 'Amount', 'When', 'Status'], orders, (b) => {
+        const tr = document.createElement('tr')
+        tr.append(
+          cell(`#${(b.id ?? '').slice(0, 6)}`, 'oid'),
+          cell(b.email, 'ink'),
+          cell(money(b.amount_cents), 'num'),
+          cell(when(b.granted_at), 'num'),
+        )
+        const st = document.createElement('td')
+        const badge = document.createElement('span')
+        badge.className = `badge ${b.status === 'active' ? 'b-active' : 'b-refunded'}`
+        badge.textContent = STATUS[b.status] ?? b.status
+        st.appendChild(badge); tr.appendChild(st)
+        return tr
+      })
+    }
+
+    async function loadReviews() {
+      const [{ data: reviews }, { data: profiles }] = await Promise.all([
+        supabase.from('reviews').select('*').order('updated_at', { ascending: false }).limit(30),
+        supabase.from('profiles').select('user_id, username'),
+      ])
+      const nameOf = new Map((profiles ?? []).map((p) => [p.user_id, p.username]))
+      const rows = reviews ?? []
+      el('reviews-empty').hidden = rows.length > 0
+      el('reviews-avg').textContent = rows.length
+        ? `${(rows.reduce((s, r) => s + r.rating, 0) / rows.length).toFixed(1)} avg · ${rows.length} total`
+        : ''
+      table(el('reviews-table'), ['Member', 'Rating', 'Comment', 'When'], rows, (r) => {
+        const tr = document.createElement('tr')
+        tr.append(cell(nameOf.get(r.user_id) ?? 'former member', 'ink'))
+        const st = document.createElement('td')
+        const sp = document.createElement('span'); sp.className = 'stars'
+        sp.textContent = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating)
+        st.appendChild(sp); tr.appendChild(st)
+        tr.append(cell(r.comment ?? '—'), cell(when(r.updated_at), 'num'))
+        return tr
+      })
     }
 
     async function loadBuyers() {
@@ -1404,7 +1564,7 @@
       recapEditor(null)
       paintSkeletons()
       await Promise.all([
-        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(),
+        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(),
         // Money must never block the rest of the dashboard.
         loadMoney().catch(() => renderMoneySetup()),
       ])
