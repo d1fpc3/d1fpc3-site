@@ -381,11 +381,19 @@
     .mname { font-weight: 600; font-size: 13.5px; color: var(--ink); display: flex; align-items: center; gap: 6px; min-width: 0; }
     .mname span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .vcheck { width: 15px; height: 15px; color: var(--gold); flex-shrink: 0; }
+    .mtag {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--gold); background: rgba(201,162,74,0.1);
+      border: 1px solid rgba(201,162,74,0.25); border-radius: 5px; padding: 1px 5px; flex-shrink: 0;
+    }
     .mbio { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5;
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
     /* ── avatar cropper ──────────────────────────────────────── */
 
+    /* the hidden attribute must always win over the display rule */
+    #crop-wrap { display: grid; gap: 12px; }
+    #crop-wrap[hidden] { display: none; }
     .crop-vp {
       width: 260px; height: 260px; max-width: 100%; border-radius: 14px; overflow: hidden;
       position: relative; border: 1px solid var(--line-bright); background: #000;
@@ -544,7 +552,7 @@
                   <p class="msg" id="pfp-msg"></p>
                 </div>
               </div>
-              <div id="crop-wrap" hidden style="display:grid;gap:12px;">
+              <div id="crop-wrap" hidden>
                 <div class="crop-vp" id="crop-vp"><img id="crop-img" alt=""></div>
                 <input type="range" class="crop-zoom" id="crop-zoom" min="1" max="3" step="0.01" value="1" aria-label="Zoom">
                 <div class="filters">
@@ -1204,6 +1212,12 @@
         const nm = document.createElement('span'); nm.textContent = m.username
         name.appendChild(nm)
         if (m.is_premium) name.insertAdjacentHTML('beforeend', CHECK_SVG)
+        if (m.is_admin) {
+          const tag = document.createElement('span')
+          tag.className = 'mtag'
+          tag.textContent = 'Admin'
+          name.appendChild(tag)
+        }
         right.appendChild(name)
         if (m.bio) {
           const bio = document.createElement('div'); bio.className = 'mbio'; bio.textContent = m.bio
@@ -1215,7 +1229,9 @@
 
     async function loadMembers() {
       const { data } = await supabase.from('member_directory').select('*')
-        .order('is_premium', { ascending: false }).order('username')
+        .order('is_admin', { ascending: false })
+        .order('is_premium', { ascending: false })
+        .order('username')
       state.members = data ?? []
       renderMembers()
     }
