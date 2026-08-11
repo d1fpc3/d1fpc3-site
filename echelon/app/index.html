@@ -600,6 +600,19 @@
                 <p class="hint">Optional — sign-in links always work. Forgot it? Use "Forgot password" on the sign-in screen.</p>
                 <p class="msg" id="pass-msg"></p>
               </div>
+              <div style="border-top:1px solid var(--line);padding-top:18px;">
+                <p class="label" style="margin-bottom:6px;color:var(--bad);">Delete account</p>
+                <p class="hint" style="margin:0 0 10px;">
+                  Removes your profile, photo, progress and sign-in — for good.
+                  If you bought Echelon, the purchase stays attached to your email
+                  and comes back if you ever sign in again.
+                </p>
+                <div class="filters">
+                  <input class="inp" id="del-confirm" placeholder='Type DELETE to arm the button' autocomplete="off" style="flex:1;min-width:200px;">
+                  <button class="rowbtn" id="del-account" disabled style="color:var(--bad);border-color:rgba(217,139,122,0.4);">Delete my account</button>
+                </div>
+                <p class="msg" id="del-msg"></p>
+              </div>
             </div>
           </div>
         </section>
@@ -1313,6 +1326,33 @@
       if (error) { msg.className = 'msg err'; msg.textContent = error.message; return }
       msg.className = 'msg ok'; msg.textContent = 'Password set. It works on the sign-in screen now.'
       el('new-pass').value = ''
+    })
+
+    // ── settings: delete account ────────────────────────────
+
+    el('del-confirm').addEventListener('input', () => {
+      el('del-account').disabled = el('del-confirm').value.trim() !== 'DELETE'
+    })
+
+    el('del-account').addEventListener('click', async () => {
+      const msg = el('del-msg')
+      if (!confirm('Last call — this cannot be undone. Delete the account?')) return
+      el('del-account').disabled = true; msg.className = 'msg'; msg.textContent = 'Deleting…'
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` },
+          body: JSON.stringify({ confirm: 'DELETE' }),
+        })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(body.error ?? `${res.status}`)
+        await supabase.auth.signOut().catch(() => {})
+        gate({ title: 'Account deleted.', body: 'Everything about you is gone. Thanks for passing through.' })
+      } catch (err) {
+        msg.className = 'msg err'; msg.textContent = err.message
+        el('del-account').disabled = false
+      }
     })
 
     // ── settings: avatar cropper ────────────────────────────
