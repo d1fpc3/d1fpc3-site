@@ -289,6 +289,46 @@
     tbody tr:hover td { background: rgba(255,255,255,0.014); }
     .num { font-variant-numeric: tabular-nums; }
 
+    /* ── page editor ─────────────────────────────────────────── */
+
+    .pe-wrap { max-width: 780px; margin: 0 auto; padding: 26px clamp(18px, 3vw, 34px) 34px; }
+    .pe-title {
+      width: 100%; background: none; border: 0; outline: none;
+      color: var(--ink); font-family: inherit;
+      font-size: 27px; font-weight: 700; letter-spacing: -0.02em;
+    }
+    .pe-title::placeholder, .pe-summary::placeholder { color: var(--faint); }
+    .pe-summary {
+      width: 100%; background: none; border: 0; outline: none;
+      color: var(--muted); font-family: inherit; font-size: 14px; margin: 6px 0 22px;
+    }
+    .pe-block {
+      position: relative; border: 1px solid transparent; border-radius: 10px;
+      padding: 8px 100px 8px 10px; margin: 2px -10px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .pe-block:hover, .pe-block:focus-within { border-color: var(--line); background: rgba(255,255,255,0.012); }
+    .pe-controls { position: absolute; top: 6px; right: 8px; display: none; gap: 4px; }
+    .pe-block:hover .pe-controls, .pe-block:focus-within .pe-controls { display: flex; }
+    .pe-h-input {
+      width: 100%; background: none; border: 0; outline: none;
+      color: var(--ink); font-family: inherit;
+      font-size: 19px; font-weight: 700; letter-spacing: -0.015em;
+    }
+    .pe-h-input::placeholder, .pe-t-area::placeholder { color: var(--faint); }
+    .pe-t-area {
+      width: 100%; background: none; border: 0; outline: none; resize: none;
+      color: var(--muted); font-family: inherit; font-size: 13.5px; line-height: 1.7;
+      overflow: hidden; display: block;
+    }
+    .pe-media {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      border: 1px dashed var(--line-bright); border-radius: 10px; padding: 14px;
+    }
+    .pe-media .nm { flex: 1; min-width: 120px; font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pe-media .tp { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); flex-shrink: 0; }
+    .pe-add { display: flex; align-items: center; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+
     .oid { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--faint); }
     .stars { color: var(--gold); letter-spacing: 2px; font-size: 13px; }
 
@@ -517,38 +557,35 @@
 
         <!-- CONTENT -->
         <section class="view" id="v-content">
-          <div class="block">
-            <div class="block-head">
-              <h3 id="lesson-editor-title">New lesson</h3>
-              <button class="rowbtn" id="lesson-new" hidden>Start a new one</button>
+          <div id="page-editor" hidden>
+            <div class="block">
+              <div class="block-head">
+                <div class="filters">
+                  <button class="rowbtn" id="pe-back">← Course</button>
+                  <select class="inp" id="pe-module" style="width:190px;"></select>
+                </div>
+                <div class="filters">
+                  <span class="msg" id="pe-msg"></span>
+                  <button class="btn" id="pe-save">Save</button>
+                </div>
+              </div>
+              <div class="pe-wrap">
+                <input class="pe-title" id="pe-title" placeholder="Lesson title" maxlength="120" autocomplete="off">
+                <input class="pe-summary" id="pe-summary" placeholder="One-line summary (optional)" maxlength="200" autocomplete="off">
+                <div id="pe-blocks"></div>
+                <div class="pe-add">
+                  <span class="label">Add</span>
+                  <button class="rowbtn" data-add="heading">Header</button>
+                  <button class="rowbtn" data-add="text">Text</button>
+                  <button class="rowbtn" data-add="video">Video</button>
+                  <button class="rowbtn" data-add="file">File</button>
+                </div>
+              </div>
             </div>
-            <div class="field-row">
-              <select class="inp" id="le-module" style="flex:0 1 210px;min-width:170px;"></select>
-              <select class="inp" id="le-kind" style="flex:0 1 130px;min-width:110px;">
-                <option value="video">Video</option>
-                <option value="written">Written</option>
-                <option value="download">Download</option>
-                <option value="live">Live</option>
-              </select>
-              <input class="inp" id="le-title" placeholder="Lesson title" style="flex:1;min-width:200px;">
-            </div>
-            <div class="field-row" style="padding-top:0;">
-              <input class="inp" id="le-summary" placeholder="One-line summary (optional)" style="flex:1;">
-            </div>
-            <div class="field-row" id="le-body-row" style="padding-top:0;" hidden>
-              <textarea class="inp" id="le-body" rows="6" style="width:100%;resize:vertical;line-height:1.6;" placeholder="Lesson text. Blank line between paragraphs; ## for a heading."></textarea>
-            </div>
-            <div class="field-row" id="le-file-row" style="padding-top:0;">
-              <input type="file" id="le-file" hidden>
-              <button class="rowbtn" id="le-file-pick">Choose video file</button>
-              <span class="label" id="le-file-name"></span>
-            </div>
-            <div class="field-row" style="padding-top:0;">
-              <button class="btn" id="le-save">Save lesson</button>
-              <span class="msg" id="le-msg"></span>
-            </div>
+            <input type="file" id="pe-file-input" hidden>
           </div>
 
+          <div id="course-list-wrap">
           <div class="block">
             <div class="block-head">
               <h3>Course</h3>
@@ -569,6 +606,7 @@
             </div>
             <div class="tbl-scroll"><table id="viewers-table"></table></div>
             <div class="empty" id="viewers-empty" hidden>No one has opened this yet.</div>
+          </div>
           </div>
         </section>
 
@@ -1075,11 +1113,10 @@
 
     let MODS = [], LESSONS = [], VIEWS = []
     let PROFILE_NAMES = new Map()
-    const LE = { editing: null, file: null }
     const KINDS = { video: 'Video', written: 'Written', download: 'Download', live: 'Live' }
 
     function fillModuleSelect() {
-      const sel = el('le-module'); const keep = sel.value
+      const sel = el('pe-module'); const keep = sel.value
       sel.textContent = ''
       const ph = document.createElement('option'); ph.value = ''; ph.textContent = 'Category…'
       sel.appendChild(ph)
@@ -1090,71 +1127,187 @@
       if (MODS.some((m) => m.id === keep)) sel.value = keep
     }
 
-    function syncKindRows() {
-      const kind = el('le-kind').value
-      el('le-body-row').hidden = kind !== 'written'
-      el('le-file-row').hidden = !(kind === 'video' || kind === 'download')
-      el('le-file-pick').textContent = kind === 'download' ? 'Choose file' : 'Choose video file'
-      el('le-file').accept = kind === 'video' ? 'video/*' : ''
-    }
+    /* ── the page editor ──
+       A lesson is edited as a whole page: an ordered stack of blocks
+       (header / text / video / file). Media uploads the moment it is
+       chosen; Save writes the block list. */
 
-    function lessonEditor(l) {
-      LE.editing = l?.id ?? null
-      LE.file = null
-      el('lesson-editor-title').textContent = l ? `Edit: ${l.title}` : 'New lesson'
-      el('lesson-new').hidden = !l
-      if (l) el('le-module').value = l.module_id
-      el('le-kind').value = l?.kind ?? 'video'
-      el('le-title').value = l?.title ?? ''
-      el('le-summary').value = l?.summary ?? ''
-      el('le-body').value = l?.body_md ?? ''
-      el('le-file').value = ''
-      el('le-file-name').textContent = l?.storage_path ? `current: ${l.storage_path.split('/').pop()}` : ''
-      el('le-msg').textContent = ''
-      syncKindRows()
-    }
+    const PE = { id: null, blocks: [] }
+    let peUploadTarget = null
 
-    el('le-kind').addEventListener('change', syncKindRows)
-    el('le-file-pick').addEventListener('click', () => el('le-file').click())
-    el('le-file').addEventListener('change', () => {
-      LE.file = el('le-file').files[0] ?? null
-      el('le-file-name').textContent = LE.file
-        ? `${LE.file.name} · ${(LE.file.size / 1048576).toFixed(1)}MB`
-        : ''
-    })
-    el('lesson-new').addEventListener('click', () => lessonEditor(null))
-
-    el('le-save').addEventListener('click', async () => {
-      const msg = el('le-msg')
-      const kind = el('le-kind').value, title = el('le-title').value.trim(), moduleId = el('le-module').value
-      if (!title || !moduleId) { msg.className = 'msg err'; msg.textContent = 'Title and category, both.'; return }
-      if (!LE.editing && (kind === 'video' || kind === 'download') && !LE.file) {
-        msg.className = 'msg err'; msg.textContent = kind === 'video' ? 'Choose the video file.' : 'Choose the file.'
-        return
+    function legacyToBlocks(l) {
+      const blocks = []
+      if (l?.video_provider === 'storage' && l.storage_path) {
+        blocks.push({ type: 'video', path: l.storage_path, name: l.storage_path.split('/').pop() })
       }
-      el('le-save').disabled = true; msg.className = 'msg'
-      try {
-        const payload = { action: 'lesson_save', title, module_id: moduleId, kind, summary: el('le-summary').value }
-        if (LE.editing) payload.id = LE.editing
-        if (kind === 'written') payload.body_md = el('le-body').value
-        if (LE.file) {
-          msg.textContent = `Uploading ${LE.file.name}… keep this tab open.`
-          const clean = LE.file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')
-          const path = `${kind}/${crypto.randomUUID()}/${clean}`
-          const { error: upErr } = await supabase.storage.from('lesson-files')
-            .upload(path, LE.file, { contentType: LE.file.type || undefined })
-          if (upErr) throw upErr
-          payload.storage_path = path
-          if (kind === 'video') { payload.video_provider = 'storage'; payload.video_id = null }
+      if (l?.kind === 'download' && l.storage_path) {
+        blocks.push({ type: 'file', path: l.storage_path, name: l.storage_path.split('/').pop(), label: l.title })
+      }
+      if (l?.body_md) blocks.push({ type: 'text', md: l.body_md })
+      if (!blocks.length) blocks.push({ type: 'text', md: '' })
+      return blocks
+    }
+
+    function openPageEditor(l, moduleId) {
+      PE.id = l?.id ?? null
+      PE.blocks = Array.isArray(l?.blocks) && l.blocks.length
+        ? JSON.parse(JSON.stringify(l.blocks))
+        : legacyToBlocks(l)
+      el('pe-title').value = l?.title ?? ''
+      el('pe-summary').value = l?.summary ?? ''
+      fillModuleSelect()
+      el('pe-module').value = l?.module_id ?? moduleId ?? ''
+      el('pe-msg').textContent = ''
+      el('course-list-wrap').hidden = true
+      el('page-editor').hidden = false
+      peRender()
+      if (!l) el('pe-title').focus()
+      window.scrollTo({ top: 0 })
+    }
+
+    function closePageEditor() {
+      el('page-editor').hidden = true
+      el('course-list-wrap').hidden = false
+    }
+    el('pe-back').addEventListener('click', closePageEditor)
+
+    const grow = (ta) => { ta.style.height = 'auto'; ta.style.height = `${ta.scrollHeight}px` }
+
+    function peRender() {
+      const host = el('pe-blocks'); host.textContent = ''
+      PE.blocks.forEach((b, i) => {
+        const row = document.createElement('div'); row.className = 'pe-block'
+
+        if (b.type === 'heading') {
+          const input = document.createElement('input')
+          input.className = 'pe-h-input'; input.placeholder = 'Header'
+          input.value = b.text ?? ''
+          input.addEventListener('input', () => { b.text = input.value })
+          row.appendChild(input)
+        } else if (b.type === 'text') {
+          const ta = document.createElement('textarea')
+          ta.className = 'pe-t-area'; ta.rows = 1
+          ta.placeholder = 'Write. Blank line between paragraphs.'
+          ta.value = b.md ?? ''
+          ta.addEventListener('input', () => { b.md = ta.value; grow(ta) })
+          row.appendChild(ta)
+          queueMicrotask(() => grow(ta))
+        } else {
+          const box = document.createElement('div'); box.className = 'pe-media'
+          const tp = document.createElement('span'); tp.className = 'tp'
+          tp.textContent = b.type === 'video' ? 'Video' : 'File'
+          const nm = document.createElement('span'); nm.className = 'nm'
+          nm.textContent = b.uploading
+            ? 'Uploading… keep this tab open.'
+            : (b.name ?? b.path?.split('/').pop() ?? 'Nothing chosen yet')
+          const pick = document.createElement('button'); pick.className = 'rowbtn'
+          pick.textContent = b.path ? 'Replace' : 'Choose'
+          pick.disabled = !!b.uploading
+          pick.addEventListener('click', () => {
+            peUploadTarget = b
+            el('pe-file-input').accept = b.type === 'video' ? 'video/*' : ''
+            el('pe-file-input').click()
+          })
+          box.append(tp, nm, pick)
+          if (b.type === 'file') {
+            const label = document.createElement('input')
+            label.className = 'inp'; label.placeholder = 'Button label'
+            label.style.cssText = 'max-width:170px;font-size:12px;padding:7px 10px;'
+            label.value = b.label ?? ''
+            label.addEventListener('input', () => { b.label = label.value })
+            box.appendChild(label)
+          }
+          row.appendChild(box)
         }
-        msg.textContent = 'Saving…'
-        await adminAction(payload)
+
+        const controls = document.createElement('div'); controls.className = 'pe-controls'
+        const mk = (t, title, fn) => {
+          const btn = document.createElement('button'); btn.className = 'rowbtn'
+          btn.textContent = t; btn.title = title
+          btn.addEventListener('click', fn)
+          return btn
+        }
+        controls.append(
+          mk('↑', 'Move up', () => { if (i > 0) { [PE.blocks[i - 1], PE.blocks[i]] = [PE.blocks[i], PE.blocks[i - 1]]; peRender() } }),
+          mk('↓', 'Move down', () => { if (i < PE.blocks.length - 1) { [PE.blocks[i + 1], PE.blocks[i]] = [PE.blocks[i], PE.blocks[i + 1]]; peRender() } }),
+          mk('✕', 'Remove block', () => { PE.blocks.splice(i, 1); peRender() }),
+        )
+        row.appendChild(controls)
+        host.appendChild(row)
+      })
+    }
+
+    document.querySelectorAll('#page-editor [data-add]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.add
+        PE.blocks.push(
+          type === 'heading' ? { type, text: '' }
+            : type === 'text' ? { type, md: '' }
+            : { type, path: null },
+        )
+        peRender()
+        el('pe-blocks').lastElementChild?.querySelector('input, textarea, button')?.focus()
+      })
+    })
+
+    el('pe-file-input').addEventListener('change', async () => {
+      const f = el('pe-file-input').files[0], b = peUploadTarget
+      el('pe-file-input').value = ''
+      if (!f || !b) return
+      b.uploading = true; peRender()
+      try {
+        const clean = f.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')
+        const path = `${b.type}/${crypto.randomUUID()}/${clean}`
+        const { error } = await supabase.storage.from('lesson-files')
+          .upload(path, f, { contentType: f.type || undefined })
+        if (error) throw error
+        b.path = path; b.name = f.name
+        if (b.type === 'file' && !b.label) b.label = f.name
+      } catch (err) {
+        el('pe-msg').className = 'msg err'; el('pe-msg').textContent = err.message
+      }
+      delete b.uploading
+      peRender()
+    })
+
+    el('pe-save').addEventListener('click', async () => {
+      const msg = el('pe-msg')
+      const title = el('pe-title').value.trim(), moduleId = el('pe-module').value
+      if (!title || !moduleId) { msg.className = 'msg err'; msg.textContent = 'Title and category, both.'; return }
+      const blocks = PE.blocks
+        .filter((b) =>
+          (b.type === 'heading' && b.text?.trim()) ||
+          (b.type === 'text' && b.md?.trim()) ||
+          ((b.type === 'video' || b.type === 'file') && b.path))
+        .map(({ type, text, md, path, label, name }) => {
+          const out = { type }
+          if (text !== undefined) out.text = text
+          if (md !== undefined) out.md = md
+          if (path) out.path = path
+          if (label) out.label = label
+          if (name) out.name = name
+          return out
+        })
+      const kind = blocks.some((b) => b.type === 'video') ? 'video'
+        : blocks.some((b) => b.type === 'file') ? 'download' : 'written'
+      el('pe-save').disabled = true; msg.className = 'msg'; msg.textContent = 'Saving…'
+      try {
+        const res = await adminAction({
+          action: 'lesson_save',
+          ...(PE.id ? { id: PE.id } : {}),
+          title,
+          summary: el('pe-summary').value,
+          module_id: moduleId,
+          kind,
+          blocks,
+          body_md: '',
+        })
+        if (!PE.id) PE.id = res.id
         msg.className = 'msg ok'
-        msg.textContent = LE.editing ? 'Saved.' : 'Saved as a draft — publish it in the course list when ready.'
-        if (!LE.editing) lessonEditor(null)
-        await loadContent()
+        msg.textContent = 'Saved. Publish it from the course list when it is ready.'
+        loadContent()
       } catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
-      finally { el('le-save').disabled = false }
+      finally { el('pe-save').disabled = false }
     })
 
     el('cat-add').addEventListener('click', async () => {
@@ -1215,6 +1368,7 @@
         if (m.summary) { const h = document.createElement('div'); h.className = 'h'; h.textContent = m.summary; left.appendChild(h) }
         const controls = document.createElement('div'); controls.className = 'filters'
         controls.append(
+          mkBtn('+ Lesson', 'Write a new lesson page in this category', () => openPageEditor(null, m.id)),
           mkBtn('↑', 'Move up', act({ action: 'module_move', id: m.id, dir: 'up' })),
           mkBtn('↓', 'Move down', act({ action: 'module_move', id: m.id, dir: 'down' })),
           mkBtn('Rename', '', async () => {
@@ -1259,7 +1413,7 @@
           tr.appendChild(pubTd)
 
           const editTd = document.createElement('td')
-          editTd.appendChild(mkBtn('Edit', '', () => { lessonEditor(l); window.scrollTo({ top: 0, behavior: 'smooth' }) }))
+          editTd.appendChild(mkBtn('Edit', 'Open the page editor', () => openPageEditor(l)))
           tr.appendChild(editTd)
 
           const delTd = document.createElement('td')
@@ -1279,7 +1433,7 @@
     async function loadContent() {
       const [{ data: mods }, { data: lessons }, { data: views }, { data: profs }] = await Promise.all([
         supabase.from('modules').select('*').order('position'),
-        supabase.from('lessons').select('id, module_id, title, summary, kind, body_md, video_provider, video_id, storage_path, is_published, position').order('position'),
+        supabase.from('lessons').select('id, module_id, title, summary, kind, body_md, blocks, video_provider, video_id, storage_path, is_published, position').order('position'),
         supabase.from('lesson_views').select('*'),
         supabase.from('profiles').select('user_id, username'),
       ])
@@ -1797,7 +1951,6 @@
 
       monthOptions()
       recapEditor(null)
-      lessonEditor(null)
       paintSkeletons()
       await Promise.all([
         loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(),
