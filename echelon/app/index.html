@@ -861,69 +861,85 @@
     function signInScreen(message) {
       gate({
         title: 'Welcome back',
-        body: 'Sign in with the email you bought with. No password to remember.',
+        body: 'Sign in to the members area.',
         render(host) {
           const form = document.createElement('form')
           form.style.marginTop = '20px'
 
-          const field = document.createElement('div')
-          field.className = 'fld'
-          const input = document.createElement('input')
-          input.type = 'email'
-          input.id = 'signin-email'
-          input.placeholder = ' '        // the floating label depends on :placeholder-shown
-          input.autocomplete = 'email'
-          input.required = true
-          const label = document.createElement('label')
-          label.setAttribute('for', 'signin-email')
-          label.textContent = 'Email'
-          field.append(input, label)
+          const em = gateField('signin-email', 'email', 'Email', 'email')
+          const pw = gateField('signin-pass', 'password', 'Password', 'current-password')
 
           const button = document.createElement('button')
           button.type = 'submit'
           button.className = 'go'
-          button.textContent = 'Send me a sign-in link'
+          button.textContent = 'Sign in'
 
           const note = document.createElement('p')
           note.className = message ? 'form-error' : 'form-note'
           note.textContent = message ?? ''
-
           const fail = (text) => { note.className = 'form-error'; note.textContent = text }
+
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            button.disabled = true; button.textContent = 'Signing in…'
+            const { error } = await supabase.auth.signInWithPassword({
+              email: em.i.value.trim(), password: pw.i.value,
+            })
+            if (error) {
+              fail(/invalid login credentials/i.test(error.message)
+                ? 'Wrong password, or none set yet. "Email me a sign-in link" below always works.'
+                : error.message)
+              button.disabled = false; button.textContent = 'Sign in'
+              return
+            }
+            boot()
+          })
+
+          const alts = document.createElement('div')
+          alts.style.cssText = 'display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;'
+          const link = gateQuiet('Email me a sign-in link')
+          link.addEventListener('click', async () => {
+            const email = em.i.value.trim()
+            if (!email) { fail('Type your email first.'); return }
+            link.disabled = true
+            const { error } = await supabase.auth.signInWithOtp({
+              email,
+              options: { emailRedirectTo: 'https://d1fpc3.com/echelon/app/' },
+            })
+            link.disabled = false
+            if (error) { fail(error.message); return }
+            gate({
+              title: 'Check your email.',
+              body: `A sign-in link is on its way to ${email}. It works once, and it expires in an hour.`,
+            })
+          })
+          const forgot = gateQuiet('Forgot password?')
+          forgot.addEventListener('click', async () => {
+            const email = em.i.value.trim()
+            if (!email) { fail('Type your email first.'); return }
+            forgot.disabled = true
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+              redirectTo: 'https://d1fpc3.com/echelon/app/',
+            })
+            forgot.disabled = false
+            if (error) { fail(error.message); return }
+            gate({
+              title: 'Check your email.',
+              body: `A reset link is on its way to ${email}. It brings you back here to choose a new password.`,
+            })
+          })
+          alts.append(link, forgot)
 
           const or = document.createElement('div')
           or.className = 'or'
           or.textContent = 'or'
 
-          const alts = document.createElement('div')
-          alts.style.cssText = 'display:flex;justify-content:space-between;gap:10px;'
-          const usePw = gateQuiet('Use a password')
-          usePw.addEventListener('click', () => passwordScreen(input.value.trim()))
-          const useCode = gateQuiet('Have an access code?')
-          useCode.addEventListener('click', () => codeScreen(input.value.trim()))
-          alts.append(usePw, useCode)
+          const code = gateQuiet('Have an access code?')
+          code.style.display = 'block'
+          code.addEventListener('click', () => codeScreen(em.i.value.trim()))
 
-          form.append(field, button, note, or, discordButton(fail), alts)
+          form.append(em.f, pw.f, button, note, alts, or, discordButton(fail), code)
           host.appendChild(form)
-
-          form.addEventListener('submit', async (e) => {
-            e.preventDefault()
-            button.disabled = true
-            button.textContent = 'Sending…'
-            const { error } = await supabase.auth.signInWithOtp({
-              email: input.value.trim(),
-              options: { emailRedirectTo: 'https://d1fpc3.com/echelon/app/' },
-            })
-            if (error) {
-              fail(error.message)
-              button.disabled = false
-              button.textContent = 'Send me a sign-in link'
-              return
-            }
-            gate({
-              title: 'Check your email.',
-              body: `We sent a sign-in link to ${input.value.trim()}. It works once, and it expires in an hour.`,
-            })
-          })
         },
       })
     }
@@ -946,59 +962,6 @@
       return { f, i }
     }
 
-    function passwordScreen(prefill) {
-      gate({
-        title: 'Sign in with a password',
-        body: 'If you set one in Settings. Sign-in links always work too.',
-        render(host) {
-          const form = document.createElement('form'); form.style.marginTop = '20px'
-          const em = gateField('pw-email', 'email', 'Email', 'email')
-          if (prefill) em.i.value = prefill
-          const pw = gateField('pw-pass', 'password', 'Password', 'current-password')
-          const button = document.createElement('button')
-          button.type = 'submit'; button.className = 'go'; button.textContent = 'Sign in'
-          const note = document.createElement('p'); note.className = 'form-note'
-          form.append(em.f, pw.f, button, note)
-
-          form.addEventListener('submit', async (e) => {
-            e.preventDefault()
-            button.disabled = true; button.textContent = 'Signing in…'
-            const { error } = await supabase.auth.signInWithPassword({
-              email: em.i.value.trim(), password: pw.i.value,
-            })
-            if (error) {
-              note.className = 'form-error'; note.textContent = error.message
-              button.disabled = false; button.textContent = 'Sign in'
-              return
-            }
-            boot()
-          })
-
-          const alts = document.createElement('div')
-          alts.style.cssText = 'display:flex;justify-content:space-between;gap:10px;'
-          const forgot = gateQuiet('Forgot password?')
-          forgot.addEventListener('click', async () => {
-            const email = em.i.value.trim()
-            if (!email) { note.className = 'form-error'; note.textContent = 'Type your email first.'; return }
-            forgot.disabled = true
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-              redirectTo: 'https://d1fpc3.com/echelon/app/',
-            })
-            forgot.disabled = false
-            if (error) { note.className = 'form-error'; note.textContent = error.message; return }
-            gate({
-              title: 'Check your email.',
-              body: `A reset link is on its way to ${email}. It brings you back here to choose a new password.`,
-            })
-          })
-          const back = gateQuiet('Use a sign-in link instead')
-          back.addEventListener('click', () => signInScreen())
-          alts.append(back, forgot)
-          form.appendChild(alts)
-          host.appendChild(form)
-        },
-      })
-    }
 
     function recoveryScreen() {
       gate({
