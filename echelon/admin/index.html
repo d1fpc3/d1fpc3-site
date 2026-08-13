@@ -1131,7 +1131,7 @@
       el('reviews-avg').textContent = rows.length
         ? `${(rows.reduce((s, r) => s + r.rating, 0) / rows.length).toFixed(1)} avg · ${rows.length} total`
         : ''
-      table(el('reviews-table'), ['Member', 'Rating', 'Comment', 'When'], rows, (r) => {
+      table(el('reviews-table'), ['Member', 'Rating', 'Comment', 'When', 'Landing'], rows, (r) => {
         const tr = document.createElement('tr')
         tr.append(cell(nameOf.get(r.user_id) ?? 'former member', 'ink'))
         const st = document.createElement('td')
@@ -1139,6 +1139,17 @@
         sp.textContent = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating)
         st.appendChild(sp); tr.appendChild(st)
         tr.append(cell(r.comment ?? '—'), cell(when(r.updated_at), 'num'))
+        // Approving publishes the member's username and avatar on the sales
+        // page, so it stays a per-review decision made here.
+        const td = document.createElement('td')
+        const b = document.createElement('button'); b.className = 'rowbtn'
+        b.textContent = r.approved ? 'Shown · remove' : 'Show on landing'
+        b.addEventListener('click', async () => {
+          b.disabled = true
+          try { await adminAction({ action: 'review_approve', id: r.user_id, value: !r.approved }); await loadReviews() }
+          catch { b.disabled = false }
+        })
+        td.appendChild(b); tr.appendChild(td)
         return tr
       })
     }
