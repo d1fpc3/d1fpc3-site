@@ -448,6 +448,16 @@
     .gex-foot .k { color: var(--muted); }
     .gex-empty { padding: 60px 18px; text-align: center; color: var(--faint); font-size: 13.5px; }
     .tier { color: var(--gold); letter-spacing: 1px; font-size: 12px; }
+    /* chart + levels side by side when the pane is wide enough for both */
+    .gex-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+    .gex-grid > .block { margin-top: 0; }
+    @media (min-width: 1240px) { .gex-grid { grid-template-columns: minmax(0, 1fr) minmax(330px, 400px); } }
+    .gex-levels table { min-width: 0; font-size: 12.5px; }
+    .gex-levels th { padding: 8px 10px; }
+    .gex-levels td { padding: 5px 10px; white-space: nowrap; }
+    .gex-levels td.lvl-name small { font-size: 10.5px; }
+    .gex-levels .tbl-scroll { overflow-y: auto; }
+    .gex-stamp { padding: 9px 14px 11px; border-top: 1px solid var(--line); }
     td.lvl-name { color: var(--ink); font-weight: 500; }
     td.lvl-name small { color: var(--faint); font-weight: 400; margin-left: 6px; }
 
@@ -819,6 +829,7 @@
         <section class="view" id="v-gex">
           <div class="gex-read" id="gex-read"></div>
 
+          <div class="gex-grid" id="gex-grid">
           <div class="block">
             <div class="block-head">
               <h3 id="gex-chart-title">Gamma surface</h3>
@@ -847,16 +858,14 @@
             <div class="gex-foot" id="gex-foot"></div>
           </div>
 
-          <div class="block">
+          <div class="block gex-levels">
             <div class="block-head">
               <h3>Levels</h3>
-              <span class="label" id="gex-stamp"></span>
-            </div>
-            <div class="field-row">
-              <input class="inp" id="gex-marks" placeholder="Mark your own levels on the charts: NQ or QQQ prices, comma separated (30250, 735)">
               <button class="rowbtn" id="gex-copy">Copy pineData</button>
             </div>
-            <div class="tbl-scroll"><table id="gex-table"></table></div>
+            <div class="tbl-scroll" id="gex-levels-scroll"><table id="gex-table"></table></div>
+            <div class="gex-stamp label" id="gex-stamp"></div>
+          </div>
           </div>
         </section>
 
@@ -2097,7 +2106,6 @@
       set: localStorage.getItem('echelon-gex-set') || 'zdte',
       scale: localStorage.getItem('echelon-gex-scale') || 'linear',
       yaw: -0.5, pitch: 0.66,
-      marks: localStorage.getItem('echelon-gex-marks') || '',
     }
     const GEX_FONT = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
     const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
@@ -2122,13 +2130,9 @@
     const expLabel = (tag, wd = true) => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', ...(wd ? { weekday: 'short' } : {}), month: 'numeric', day: 'numeric' }).format(expDate(tag))
     const etStamp = (iso) => new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso)) + ' ET'
     const gexNQ = (k) => { const c = GEX.data.conversion; return Math.round(k * c.divisor + c.basis) }
-    const gexQQQ = (nq) => { const c = GEX.data.conversion; return (nq - c.basis) / c.divisor }
     const gexRows = (set) => { const m = GEX.data.surface.expiries.length; return set === 'zdte' ? [0] : set === 'swing' ? [...Array(m).keys()].slice(1) : [...Array(m).keys()] }
     const gexAt = (rows, j) => rows.reduce((s, i) => s + GEX.data.surface.gexM[i][j], 0)
     const gexAtStrike = (rows, k) => { const j = GEX.data.surface.strikes.indexOf(k); return j < 0 ? null : gexAt(rows, j) }
-    // typed marks: anything above 5000 is an NQ price, converted to the QQQ axis for drawing
-    const gexMarks = () => GEX.marks.split(/[,\s]+/).map((s) => Number(s)).filter((n) => n > 0)
-      .map((n) => ({ raw: n, k: n > 5000 ? gexQQQ(n) : n, label: String(n) }))
     const niceStep = (span, target = 4) => { const raw = span / target, p = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / p; return (f >= 5 ? 5 : f >= 2 ? 2 : 1) * p }
 
     async function loadGex(force = false) {
@@ -2158,7 +2162,6 @@
       fig('QQQ spot', d.spot.toFixed(2), '', d.marketOpen ? 'market open · CBOE ~15 min delayed' : 'market closed · last snapshot')
       fig('NQ', Math.round(d.nq).toLocaleString(), '', `= QQQ × ${d.conversion.divisor} + ${d.conversion.basis} (as of ${d.conversion.asOf ?? '—'})`)
       el('gex-stamp').textContent = `Updated ${etStamp(d.generatedAt)}`
-      el('gex-marks').value = GEX.marks
       renderGexTable()
       syncGexControls()
       drawGex()
@@ -2199,7 +2202,7 @@
         push('Gamma flip', 'swing', d.swing.flip, null)
       }
       for (const r of d.rLevels ?? []) push(`Γ${r.rank}`, 'concentration', { qqq: r.strike, nq: r.nq, tier: r.tier }, r.gexM)
-      table(el('gex-table'), ['Level', 'QQQ strike', 'NQ', 'GEX $M / 1%', 'Confluence'], rows, (r) => {
+      table(el('gex-table'), ['Level', 'QQQ', 'NQ', 'GEX $M', 'Conf.'], rows, (r) => {
         const tr = document.createElement('tr')
         const n = document.createElement('td'); n.className = 'lvl-name'; n.textContent = r.name
         const sm = document.createElement('small'); sm.textContent = r.sub; n.appendChild(sm)
@@ -2214,7 +2217,21 @@
     function gexCanvas() {
       const c = el('gex-canvas'), stage = el('gex-stage')
       const w = Math.max(320, stage.clientWidth - 20)
-      const h = GEX.view === 'surface' ? Math.round(Math.min(720, Math.max(380, w * 0.5))) : Math.round(Math.min(760, Math.max(440, w * 0.62)))
+      // fit the space left below the stage at scroll 0 (foot + pane padding reserved), within sane bounds
+      const docTop = stage.getBoundingClientRect().top + window.scrollY
+      const avail = window.innerHeight - docTop - 46 - 34
+      // side by side with the levels table: grow to its natural height when the viewport allows,
+      // so the two blocks line up and the table needs no inner scroll
+      let want = 0
+      if (getComputedStyle(el('gex-grid')).gridTemplateColumns.trim().split(/\s+/).length > 1) {
+        const scroll = el('gex-levels-scroll'), lvBlock = scroll.closest('.block'), chartBlock = stage.closest('.block')
+        const natural = lvBlock.offsetHeight - scroll.offsetHeight + el('gex-table').offsetHeight
+        want = natural - (chartBlock.offsetHeight - c.offsetHeight)
+      }
+      const base = GEX.view === 'surface' ? w * 0.5 : w * 0.62
+      const h = GEX.view === 'surface'
+        ? Math.round(Math.max(380, Math.min(720, avail, Math.max(base, want))))
+        : Math.round(Math.max(440, Math.min(760, avail, Math.max(base, want))))
       const dpr = Math.min(2, window.devicePixelRatio || 1)
       if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr) }
       c.style.height = h + 'px'
@@ -2226,6 +2243,14 @@
       if (!GEX.data || !el('v-gex').classList.contains('on')) return
       const empty = el('gex-empty'); empty.hidden = true
       if (GEX.view === 'surface') drawSurface(); else drawProfile()
+      // side by side: the levels table may never outgrow the chart block (it scrolls inside instead)
+      const grid = el('gex-grid'), scroll = el('gex-levels-scroll'), chartBlock = el('gex-stage').closest('.block')
+      const twoCol = getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length > 1
+      if (twoCol) {
+        const lv = scroll.closest('.block')
+        const chrome = lv.offsetHeight - scroll.offsetHeight
+        scroll.style.maxHeight = Math.max(160, chartBlock.offsetHeight - chrome) + 'px'
+      } else scroll.style.maxHeight = ''
     }
     const scheduleDraw = () => { if (GEX.raf) return; GEX.raf = requestAnimationFrame(() => { GEX.raf = 0; drawGex() }) }
 
@@ -2412,7 +2437,6 @@
       if (d.zdte.putWall) levels.push({ k: d.zdte.putWall.qqq, col: t.bad, w: 1.4, dash: [6, 4], label: `PW ${d.zdte.putWall.qqq}` })
       if (d.swing?.callWall) levels.push({ k: d.swing.callWall.qqq, col: t.good, w: 1.4, dash: [2, 4], label: `CW* ${d.swing.callWall.qqq}` })
       if (d.swing?.putWall) levels.push({ k: d.swing.putWall.qqq, col: t.bad, w: 1.4, dash: [2, 4], label: `PW* ${d.swing.putWall.qqq}` })
-      for (const mk of gexMarks()) levels.push({ k: mk.k, col: t.ink, w: 1.4, dash: [6, 5], label: mk.label })
       const zAtRow = (a, k) => {   // surface height along a sub-row at strike k (between resampled columns)
         let b = 0; while (b < C - 2 && cols[b + 1].k <= k) b++
         const k0 = cols[b].k, k1 = cols[b + 1].k, u = k1 > k0 ? Math.max(0, Math.min(1, (k - k0) / (k1 - k0))) : 0
@@ -2476,7 +2500,7 @@
       const { ctx, w, h } = gexCanvas()
       const t = gexTokens(), d = GEX.data
       const dpr = Math.min(2, window.devicePixelRatio || 1)
-      const key = [w, h, dpr, GEX.yaw.toFixed(4), GEX.pitch.toFixed(4), GEX.scale, !!GEX.drag, GEX.marks, d.generatedAt, document.documentElement.getAttribute('data-theme')].join('|')
+      const key = [w, h, dpr, GEX.yaw.toFixed(4), GEX.pitch.toFixed(4), GEX.scale, !!GEX.drag, d.generatedAt, document.documentElement.getAttribute('data-theme')].join('|')
       if (!GEX.scene || GEX.scene.key !== key) GEX.scene = { key, ...surfaceScene(w, h, dpr) }
       ctx.drawImage(GEX.scene.canvas, 0, 0, w, h)
       GEX.pick = GEX.scene.pick
@@ -2542,7 +2566,6 @@
         if (d.swing.callWall) lv.push({ k: d.swing.callWall.qqq, col: t.good, dash: [2, 4], label: `CW* ${d.swing.callWall.qqq} · ${d.swing.callWall.nq}` })
         if (d.swing.putWall) lv.push({ k: d.swing.putWall.qqq, col: t.bad, dash: [2, 4], label: `PW* ${d.swing.putWall.qqq} · ${d.swing.putWall.nq}` })
       }
-      for (const mk of gexMarks()) lv.push({ k: mk.k, col: t.ink, dash: [6, 5], label: mk.label })
       const placed = []
       for (const L of lv) {
         if (L.k < kmin - kstep || L.k > kmax + kstep) continue
@@ -2629,7 +2652,6 @@
       el('gex-view').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; GEX.view = b.dataset.v; localStorage.setItem('echelon-gex-view', GEX.view); GEX.hover = null; el('gex-tip').hidden = true; syncGexControls(); drawGex() })
       el('gex-set').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; GEX.set = b.dataset.s; localStorage.setItem('echelon-gex-set', GEX.set); GEX.hover = null; syncGexControls(); drawGex() })
       el('gex-scale').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; GEX.scale = b.dataset.z; localStorage.setItem('echelon-gex-scale', GEX.scale); syncGexControls(); drawGex() })
-      el('gex-marks').addEventListener('input', () => { GEX.marks = el('gex-marks').value; localStorage.setItem('echelon-gex-marks', GEX.marks); scheduleDraw() })
       el('gex-refresh').addEventListener('click', async () => {
         const btn = el('gex-refresh'); btn.disabled = true; btn.textContent = 'Refreshing…'
         try { await loadGex(true) } catch (err) { el('gex-stamp').textContent = `Refresh failed: ${err.message}` }
@@ -2642,6 +2664,7 @@
         setTimeout(() => { btn.textContent = 'Copy pineData' }, 1400)
       })
       new ResizeObserver(() => scheduleDraw()).observe(el('gex-stage'))
+      window.addEventListener('resize', scheduleDraw)
       new MutationObserver(() => scheduleDraw()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
     }
     // called when the tab is shown: draw what we have, refetch if it is getting old, poll while visible

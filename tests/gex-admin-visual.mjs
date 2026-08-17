@@ -56,9 +56,13 @@ await page.dblclick("#gex-canvas");
 await page.click('#gex-scale button[data-z="sqrt"]'); await page.waitForTimeout(200);
 await shot("gex-surface-sqrt");
 await page.click('#gex-scale button[data-z="linear"]');
-// marks input
-await page.fill("#gex-marks", "30250, 735"); await page.waitForTimeout(250);
-await shot("gex-surface-marks");
+// one-screen check: at a typical desktop window, chart + levels table should both be within the viewport at scroll 0
+await page.setViewportSize({ width: 1600, height: 900 }); await page.waitForTimeout(500);
+await page.evaluate(() => window.scrollTo(0, 0));
+const fit = await page.evaluate(() => { const t = document.getElementById("gex-table").getBoundingClientRect(), c = document.getElementById("gex-canvas").getBoundingClientRect(); return { tableBottom: Math.round(t.bottom), canvasBottom: Math.round(c.bottom), inner: window.innerHeight, sideBySide: Math.abs(t.top - c.top) < 200 }; });
+console.log("one-screen @1600x900:", JSON.stringify(fit));
+await shot("gex-onescreen-1600x900");
+await page.setViewportSize({ width, height }); await page.waitForTimeout(400);
 // profile
 await page.click('#gex-view button[data-v="profile"]'); await page.waitForTimeout(300);
 await shot("gex-profile-0dte");
