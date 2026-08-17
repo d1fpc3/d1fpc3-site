@@ -2214,7 +2214,7 @@
     function gexCanvas() {
       const c = el('gex-canvas'), stage = el('gex-stage')
       const w = Math.max(320, stage.clientWidth - 20)
-      const h = GEX.view === 'surface' ? Math.round(Math.min(560, Math.max(380, w * 0.56))) : Math.round(Math.min(760, Math.max(440, w * 0.62)))
+      const h = GEX.view === 'surface' ? Math.round(Math.min(720, Math.max(380, w * 0.5))) : Math.round(Math.min(760, Math.max(440, w * 0.62)))
       const dpr = Math.min(2, window.devicePixelRatio || 1)
       if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr) }
       c.style.height = h + 'px'
@@ -2251,11 +2251,13 @@
     }
 
     /* ── surface: X strike, Y expiry, Z $M — a smooth, shaded, colour-mapped surface ──
-       The strike x expiry grid is subdivided (bilinear, so no value is invented or
-       overshot), every facet is coloured by its height on a continuous rainbow (turbo)
-       and lit from the front-left, and the facets are painter-sorted far to near.
-       Spot, walls and your marks are draped over the terrain; a colour bar on the
-       left carries the value scale. Drag rotates, hover picks the nearest grid point. */
+       The strike x expiry grid is resampled with a shape-preserving cubic (PCHIP): every
+       real grid point keeps its exact value, nothing overshoots, and the flanks between
+       points become smooth bells instead of pyramids. Facets are coloured by height on a
+       continuous rainbow (turbo), lit from the front-left, and painter-sorted far → near.
+       The heavy scene is rendered ONCE into an offscreen bitmap and cached by everything
+       that can change it; hover only composites a marker on top. Spot, walls and your
+       marks are draped over the terrain; a colour bar on the left is the value scale. */
     // turbo (Google's perceptual rainbow), polynomial fit, trimmed of its near-black ends
     function turbo(x) {
       x = 0.04 + 0.9 * Math.max(0, Math.min(1, x))
@@ -2266,8 +2268,25 @@
       return [r, g, b].map((c) => Math.max(0, Math.min(1, c)))
     }
     const TURBO = Array.from({ length: 256 }, (_, i) => turbo(i / 255))
-    function drawSurface() {
-      const { ctx, w, h } = gexCanvas()
+    // PCHIP (Fritsch–Carlson) slopes: monotone between samples, so no overshoot next to a spike
+    function pchipSlopes(x, y) {
+      const n = x.length, d = new Array(n).fill(0)
+      if (n < 2) return d
+      const h = [], del = []
+      for (let i = 0; i < n - 1; i++) { h.push(x[i + 1] - x[i] || 1e-9); del.push((y[i + 1] - y[i]) / h[i]) }
+      if (n === 2) { d[0] = d[1] = del[0]; return d }
+      for (let i = 1; i < n - 1; i++) {
+        if (del[i - 1] * del[i] <= 0) { d[i] = 0; continue }
+        const w1 = 2 * h[i] + h[i - 1], w2 = h[i] + 2 * h[i - 1]
+        d[i] = (w1 + w2) / (w1 / del[i - 1] + w2 / del[i])
+      }
+      const end = (h0, h1, d0, d1) => { let s = ((2 * h0 + h1) * d0 - h0 * d1) / (h0 + h1); if (Math.sign(s) !== Math.sign(d0)) s = 0; else if (Math.sign(d0) !== Math.sign(d1) && Math.abs(s) > Math.abs(3 * d0)) s = 3 * d0; return s }
+      d[0] = end(h[0], h[1], del[0], del[1]); d[n - 1] = end(h[n - 2], h[n - 3], del[n - 2], del[n - 3])
+      return d
+    }
+    const hermite = (y0, y1, d0, d1, hh, t) => { const t2 = t * t, t3 = t2 * t; return (2 * t3 - 3 * t2 + 1) * y0 + (t3 - 2 * t2 + t) * hh * d0 + (-2 * t3 + 3 * t2) * y1 + (t3 - t2) * hh * d1 }
+
+    function surfaceScene(w, h, dpr) {
       const t = gexTokens(), d = GEX.data, S = d.surface
       const K = S.strikes, E = S.expiries, n = K.length, m = E.length
       const kmin = K[0], kmax = K[n - 1], kmid = (kmin + kmax) / 2, kspan = Math.max(1, kmax - kmin)
@@ -2276,7 +2295,7 @@
       if (!zmax) zmax = 1
       const sqrtMode = GEX.scale === 'sqrt'
       const zf = sqrtMode ? (v) => Math.sign(v) * Math.sqrt(Math.abs(v) / zmax) : (v) => v / zmax
-      const XW = 1, YW = 0.62, ZH = 0.5
+      const XW = 1, YW = 0.62, ZH = 0.56
       const zTop = Math.max(0.06, zf(vpos) * ZH), zBot = Math.min(-0.06, zf(vneg) * ZH)
       const cy = Math.cos(GEX.yaw), sy = Math.sin(GEX.yaw), cp = Math.cos(GEX.pitch), sp = Math.sin(GEX.pitch)
       const rot = (x, y, z) => { const x1 = x * cy - y * sy, y1 = x * sy + y * cy; return { sx: x1, up: z * cp + y1 * sp, dep: y1 * cp - z * sp } }
@@ -2293,53 +2312,81 @@
       const wz = (v) => zf(v) * ZH
       const yF = -YW, yB = YW, xL = -XW, xR = XW
       const zFloor = zBot
-      const tOf = (z) => (z - zBot) / (zTop - zBot)   // 0..1 in drawn height, feeds the colour map
+      const tOf = (z) => (z - zBot) / (zTop - zBot)
 
-      // box: floor grid, the two far walls (whichever are farther from the camera), rungs at value ticks
+      const can = GEX.sceneCanvas || (GEX.sceneCanvas = document.createElement('canvas'))
+      can.width = Math.round(w * dpr); can.height = Math.round(h * dpr)   // setting the size also clears it
+      const ctx = can.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      const line = (a, b) => { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke() }
+      const poly = (pts) => { ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (let q = 1; q < pts.length; q++) ctx.lineTo(pts[q].x, pts[q].y); ctx.closePath() }
+
+      // box: faint far-wall fills, floor grid, wall grids, rungs at value ticks
+      const yFar = rot(0, yB, 0).dep > rot(0, yF, 0).dep ? yB : yF, yNear = yFar === yB ? yF : yB
+      const xFar = rot(xL, 0, 0).dep > rot(xR, 0, 0).dep ? xL : xR, xNear = xFar === xL ? xR : xL
+      ctx.fillStyle = alpha(t.panel2, 0.55)
+      poly([P(xL, yFar, zFloor), P(xR, yFar, zFloor), P(xR, yFar, zTop), P(xL, yFar, zTop)]); ctx.fill()
+      poly([P(xFar, yF, zFloor), P(xFar, yB, zFloor), P(xFar, yB, zTop), P(xFar, yF, zTop)]); ctx.fill()
       ctx.font = `500 10.5px ${GEX_FONT}`
       ctx.lineWidth = 1; ctx.strokeStyle = t.line
       const kstep = niceStep(kspan, 8)
-      const line = (a, b) => { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke() }
-      const yFar = rot(0, yB, 0).dep > rot(0, yF, 0).dep ? yB : yF, yNear = yFar === yB ? yF : yB
-      const xFar = rot(xL, 0, 0).dep > rot(xR, 0, 0).dep ? xL : xR, xNear = xFar === xL ? xR : xL
       const zstep = niceStep(Math.max(vpos, -vneg), 3)
       const zTicks = []; for (let v = -Math.floor(-vneg / zstep) * zstep; v <= vpos + 1e-9; v += zstep) zTicks.push(v)
-      for (let k = Math.ceil(kmin / kstep) * kstep; k <= kmax; k += kstep) {
-        line(P(wx(k), yF, zFloor), P(wx(k), yB, zFloor))
-        line(P(wx(k), yFar, zFloor), P(wx(k), yFar, zTop))
-      }
-      for (let i = 0; i < m; i++) {
-        line(P(xL, wy(i), zFloor), P(xR, wy(i), zFloor))
-        line(P(xFar, wy(i), zFloor), P(xFar, wy(i), zTop))
-      }
+      for (let k = Math.ceil(kmin / kstep) * kstep; k <= kmax; k += kstep) { line(P(wx(k), yF, zFloor), P(wx(k), yB, zFloor)); line(P(wx(k), yFar, zFloor), P(wx(k), yFar, zTop)) }
+      for (let i = 0; i < m; i++) { line(P(xL, wy(i), zFloor), P(xR, wy(i), zFloor)); line(P(xFar, wy(i), zFloor), P(xFar, wy(i), zTop)) }
       for (const v of zTicks) { line(P(xL, yFar, wz(v)), P(xR, yFar, wz(v))); line(P(xFar, yF, wz(v)), P(xFar, yB, wz(v))) }
-      for (let k = Math.ceil(kmin / kstep) * kstep; k <= kmax; k += kstep) {
-        const a = P(wx(k), yNear, zFloor); haloText(ctx, String(k), a.x, a.y + 14, t.muted, t.panel, 'center')
-      }
-      for (let i = 0; i < m; i++) if (m <= 12 || i % 2 === 0 || i === m - 1) {
+      // box edges a touch brighter so the volume reads
+      ctx.strokeStyle = t.lineB
+      line(P(xL, yF, zFloor), P(xR, yF, zFloor)); line(P(xL, yB, zFloor), P(xR, yB, zFloor)); line(P(xL, yF, zFloor), P(xL, yB, zFloor)); line(P(xR, yF, zFloor), P(xR, yB, zFloor))
+      line(P(xFar, yFar, zFloor), P(xFar, yFar, zTop))
+      for (let k = Math.ceil(kmin / kstep) * kstep; k <= kmax; k += kstep) { const a = P(wx(k), yNear, zFloor); haloText(ctx, String(k), a.x, a.y + 14, t.muted, t.panel, 'center') }
+      // expiry labels: every row when there is room, else every other (0DTE always)
+      const rowPx = Math.hypot(P(xNear, wy(1), zFloor).x - P(xNear, wy(0), zFloor).x, P(xNear, wy(1), zFloor).y - P(xNear, wy(0), zFloor).y)
+      const every = rowPx >= 13 ? 1 : 2
+      for (let i = 0; i < m; i++) if (i % every === 0 || i === m - 1) {
         const a = P(xNear, wy(i), zFloor)
         const lab = i === 0 ? `0DTE ${expLabel(E[i].expiry, false)}` : expLabel(E[i].expiry, false)
         haloText(ctx, lab, a.x + (xNear === xR ? 8 : -8), a.y + 3, i === 0 ? t.ink : t.faint, t.panel, xNear === xR ? 'left' : 'right')
       }
       const fl = P(xL, yNear, zFloor), fr = P(xR, yNear, zFloor)
       haloText(ctx, 'QQQ strike →', (fl.x + fr.x) / 2, Math.max(fl.y, fr.y) + 30, t.faint, t.panel, 'center')
+      const eEnd = P(xNear, wy(m - 1), zFloor)
+      haloText(ctx, 'expiry', eEnd.x + (xNear === xR ? 8 : -8), eEnd.y - 12, t.faint, t.panel, xNear === xR ? 'left' : 'right')
 
-      // subdivided vertex grid (coarser while dragging so rotation stays fluid)
+      // resample: columns adapt to strike spacing ($5 gaps get more steps than $1 gaps)
       const fast = !!GEX.drag
-      const SX = fast ? 1 : 2, SY = fast ? 2 : 4
-      const C = (n - 1) * SX + 1, R = (m - 1) * SY + 1
-      const G = new Array(R)
-      for (let a = 0; a < R; a++) {
-        const i = Math.min(m - 2, Math.floor(a / SY)), v = a === R - 1 ? 1 : (a - i * SY) / SY
-        const row = new Array(C)
-        for (let b = 0; b < C; b++) {
-          const j = Math.min(n - 2, Math.floor(b / SX)), u = b === C - 1 ? 1 : (b - j * SX) / SX
-          const val = (1 - u) * (1 - v) * S.gexM[i][j] + u * (1 - v) * S.gexM[i][j + 1] + (1 - u) * v * S.gexM[i + 1][j] + u * v * S.gexM[i + 1][j + 1]
-          const X = wx(K[j] + (K[j + 1] - K[j]) * u), Y = wy(i + v), Z = wz(val)
+      let minGap = 1e9; for (let j = 1; j < n; j++) minGap = Math.min(minGap, K[j] - K[j - 1])
+      const cols = []   // {k, j, u}
+      for (let j = 0; j < n - 1; j++) {
+        const gap = K[j + 1] - K[j]
+        const steps = fast ? 1 : Math.max(2, Math.min(4, Math.round(2 * gap / minGap)))
+        for (let q = 0; q < steps; q++) cols.push({ k: K[j] + gap * (q / steps), j, u: q / steps })
+      }
+      cols.push({ k: K[n - 1], j: n - 2, u: 1 })
+      const C = cols.length
+      const SY = fast ? 1 : 3, R = (m - 1) * SY + 1
+      const colOfStrike = new Array(n); { let c = 0; for (let j = 0; j < n; j++) { while (c < C - 1 && cols[c].k < K[j] - 1e-9) c++; colOfStrike[j] = c } }
+      // pass 1: along strikes for each real expiry, in drawn-height space (smooth in √ mode too)
+      const zRows = S.gexM.map((row) => row.map(wz))
+      const tmp = new Array(m)
+      for (let i = 0; i < m; i++) {
+        const y = zRows[i], dv = pchipSlopes(K, y), out = new Float64Array(C)
+        for (let b = 0; b < C; b++) { const c = cols[b]; out[b] = hermite(y[c.j], y[c.j + 1], dv[c.j], dv[c.j + 1], K[c.j + 1] - K[c.j], c.u) }
+        tmp[i] = out
+      }
+      // pass 2: along expiries for each column
+      const EI = [...Array(m).keys()]
+      const G = new Array(R); for (let a = 0; a < R; a++) G[a] = new Array(C)
+      const colY = new Array(m)
+      for (let b = 0; b < C; b++) {
+        for (let i = 0; i < m; i++) colY[i] = tmp[i][b]
+        const dv = pchipSlopes(EI, colY)
+        for (let a = 0; a < R; a++) {
+          const i = Math.min(m - 2, Math.floor(a / SY)), v = a === R - 1 ? 1 : (a - i * SY) / SY
+          const Z = hermite(colY[i], colY[i + 1], dv[i], dv[i + 1], 1, v)
+          const X = wx(cols[b].k), Y = wy(i + v)
           const p = P(X, Y, Z)
-          row[b] = { X, Y, Z, x: p.x, y: p.y }
+          G[a][b] = { X, Y, Z, x: p.x, y: p.y }
         }
-        G[a] = row
       }
       // facets: colour = height on the rainbow, shade = facing the light (front-left, above)
       const L = [-0.45, -0.55, 0.7], Ln = Math.hypot(...L); L[0] /= Ln; L[1] /= Ln; L[2] /= Ln
@@ -2347,13 +2394,12 @@
       for (let a = 0; a < R - 1; a++) for (let b = 0; b < C - 1; b++) {
         const p00 = G[a][b], p01 = G[a][b + 1], p10 = G[a + 1][b], p11 = G[a + 1][b + 1]
         const zc = (p00.Z + p01.Z + p10.Z + p11.Z) / 4
-        // normal from the diagonals (world units, z stretched so relief shows)
         const d1x = p11.X - p00.X, d1y = p11.Y - p00.Y, d1z = (p11.Z - p00.Z) * 1.6
         const d2x = p10.X - p01.X, d2y = p10.Y - p01.Y, d2z = (p10.Z - p01.Z) * 1.6
         let nx = d1y * d2z - d1z * d2y, ny = d1z * d2x - d1x * d2z, nz = d1x * d2y - d1y * d2x
         const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl
         if (nz < 0) { nx = -nx; ny = -ny; nz = -nz }
-        const shade = 0.66 + 0.34 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2])
+        const shade = 0.6 + 0.4 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2])
         const c = TURBO[Math.max(0, Math.min(255, Math.round(tOf(zc) * 255)))]
         const col = `rgb(${Math.round(c[0] * 255 * shade)},${Math.round(c[1] * 255 * shade)},${Math.round(c[2] * 255 * shade)})`
         const cen = rot((p00.X + p11.X) / 2, (p00.Y + p11.Y) / 2, zc)
@@ -2362,17 +2408,15 @@
       // draped level lines, one piece per sub-row so they interleave correctly with the facets
       const levels = []
       levels.push({ k: d.spot, col: t.gold, w: 2, dash: [], label: `spot ${d.spot.toFixed(1)}` })
-      if (d.zdte.callWall) levels.push({ k: d.zdte.callWall.qqq, col: t.good, w: 1.6, dash: [6, 4], label: `CW ${d.zdte.callWall.qqq}` })
-      if (d.zdte.putWall) levels.push({ k: d.zdte.putWall.qqq, col: t.bad, w: 1.6, dash: [6, 4], label: `PW ${d.zdte.putWall.qqq}` })
-      if (d.swing?.callWall) levels.push({ k: d.swing.callWall.qqq, col: t.good, w: 1.6, dash: [2, 4], label: `CW* ${d.swing.callWall.qqq}` })
-      if (d.swing?.putWall) levels.push({ k: d.swing.putWall.qqq, col: t.bad, w: 1.6, dash: [2, 4], label: `PW* ${d.swing.putWall.qqq}` })
-      for (const mk of gexMarks()) levels.push({ k: mk.k, col: t.ink, w: 1.6, dash: [6, 5], label: mk.label })
-      const zAtRow = (a, k) => {   // surface height along a sub-row at strike k (linear between grid strikes)
-        let j = 0; while (j < n - 2 && K[j + 1] < k) j++
-        const u = K[j + 1] > K[j] ? Math.max(0, Math.min(1, (k - K[j]) / (K[j + 1] - K[j]))) : 0
-        const b = j * SX
-        const z0 = G[a][b].Z, z1 = G[a][Math.min(C - 1, b + SX)].Z
-        return z0 + (z1 - z0) * u
+      if (d.zdte.callWall) levels.push({ k: d.zdte.callWall.qqq, col: t.good, w: 1.4, dash: [6, 4], label: `CW ${d.zdte.callWall.qqq}` })
+      if (d.zdte.putWall) levels.push({ k: d.zdte.putWall.qqq, col: t.bad, w: 1.4, dash: [6, 4], label: `PW ${d.zdte.putWall.qqq}` })
+      if (d.swing?.callWall) levels.push({ k: d.swing.callWall.qqq, col: t.good, w: 1.4, dash: [2, 4], label: `CW* ${d.swing.callWall.qqq}` })
+      if (d.swing?.putWall) levels.push({ k: d.swing.putWall.qqq, col: t.bad, w: 1.4, dash: [2, 4], label: `PW* ${d.swing.putWall.qqq}` })
+      for (const mk of gexMarks()) levels.push({ k: mk.k, col: t.ink, w: 1.4, dash: [6, 5], label: mk.label })
+      const zAtRow = (a, k) => {   // surface height along a sub-row at strike k (between resampled columns)
+        let b = 0; while (b < C - 2 && cols[b + 1].k <= k) b++
+        const k0 = cols[b].k, k1 = cols[b + 1].k, u = k1 > k0 ? Math.max(0, Math.min(1, (k - k0) / (k1 - k0))) : 0
+        return G[a][b].Z + (G[a][b + 1].Z - G[a][b].Z) * u
       }
       const labels = []
       for (const Lv of levels) {
@@ -2391,29 +2435,15 @@
         if (it.q) {
           ctx.beginPath(); ctx.moveTo(it.q[0].x, it.q[0].y); ctx.lineTo(it.q[1].x, it.q[1].y); ctx.lineTo(it.q[2].x, it.q[2].y); ctx.lineTo(it.q[3].x, it.q[3].y); ctx.closePath()
           ctx.fillStyle = it.col; ctx.fill()
-          // hairline in the same colour hides the anti-aliasing seams between facets
-          ctx.strokeStyle = it.col; ctx.lineWidth = 0.7; ctx.stroke()
+          ctx.strokeStyle = it.col; ctx.lineWidth = 0.7; ctx.stroke()   // same-colour hairline hides AA seams
         } else {
-          ctx.save(); ctx.strokeStyle = alpha(t.panel, 0.85); ctx.lineWidth = it.w + 2.5; ctx.setLineDash([]); line(it.seg[0], it.seg[1])
+          ctx.save(); ctx.strokeStyle = alpha(t.panel, 0.8); ctx.lineWidth = it.w + 2.2; ctx.setLineDash([]); line(it.seg[0], it.seg[1])
           ctx.strokeStyle = it.col; ctx.lineWidth = it.w; ctx.setLineDash(it.dash); line(it.seg[0], it.seg[1]); ctx.restore()
         }
       }
       ctx.font = `600 10.5px ${GEX_FONT}`
       for (const lb of placeLabels(labels, 66)) haloText(ctx, lb.txt, lb.x, lb.baseY - 8 - lb.lvl * 13, lb.col, t.panel, 'center')
       ctx.font = `500 10.5px ${GEX_FONT}`
-
-      // hover targets = the real grid points
-      const pick = []
-      for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) { const p = G[i * SY][j * SX]; pick.push({ i, j, x: p.x, y: p.y }) }
-      GEX.pick = pick
-      if (GEX.hover) {
-        const hv = pick.find((p) => p.i === GEX.hover.i && p.j === GEX.hover.j)
-        if (hv) {
-          const foot = P(wx(K[hv.j]), wy(hv.i), zFloor)
-          ctx.save(); ctx.strokeStyle = alpha(t.ink, 0.6); ctx.setLineDash([2, 3]); ctx.lineWidth = 1; line(hv, foot); ctx.restore()
-          ctx.beginPath(); ctx.arc(hv.x, hv.y, 4.5, 0, Math.PI * 2); ctx.fillStyle = t.ink; ctx.fill(); ctx.strokeStyle = t.panel; ctx.lineWidth = 1.5; ctx.stroke()
-        }
-      }
 
       // colour bar = the value scale, on the left
       const bx = narrow ? 10 : 22, bw = 12, by0 = padT + 10, by1 = h - padB - 10
@@ -2422,12 +2452,10 @@
       ctx.fillStyle = grad; ctx.fillRect(bx, by0, bw, by1 - by0)
       ctx.strokeStyle = t.lineB; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, by0 + 0.5, bw - 1, by1 - by0 - 1)
       const barY = (v) => by1 - tOf(wz(v)) * (by1 - by0)
-      if (!narrow) {
-        for (const v of zTicks) {
-          const y = barY(v)
-          ctx.beginPath(); ctx.moveTo(bx + bw, y); ctx.lineTo(bx + bw + 4, y); ctx.stroke()
-          haloText(ctx, Math.abs(v) < 1e-9 ? '0' : fmtM(v), bx + bw + 8, y + 3.5, Math.abs(v) < 1e-9 ? t.muted : t.faint, t.panel, 'left')
-        }
+      if (!narrow) for (const v of zTicks) {
+        const y = barY(v)
+        ctx.beginPath(); ctx.moveTo(bx + bw, y); ctx.lineTo(bx + bw + 4, y); ctx.stroke()
+        haloText(ctx, Math.abs(v) < 1e-9 ? '0' : fmtM(v), bx + bw + 8, y + 3.5, Math.abs(v) < 1e-9 ? t.muted : t.faint, t.panel, 'left')
       }
       ctx.font = `600 10.5px ${GEX_FONT}`
       haloText(ctx, `max ${fmtM(vpos)}`, bx, by0 - 8, t.ink, t.panel, 'left')
@@ -2435,6 +2463,31 @@
       ctx.font = `500 10.5px ${GEX_FONT}`
       haloText(ctx, '$M per 1%' + (sqrtMode ? ' (√)' : ''), bx, by0 - 22, t.faint, t.panel, 'left')
 
+      // hover targets = the real grid points, with their floor foot for the drop line
+      const pick = []
+      for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) {
+        const p = G[i * SY][colOfStrike[j]], f = P(wx(K[j]), wy(i), zFloor)
+        pick.push({ i, j, x: p.x, y: p.y, fx: f.x, fy: f.y })
+      }
+      return { canvas: can, pick }
+    }
+
+    function drawSurface() {
+      const { ctx, w, h } = gexCanvas()
+      const t = gexTokens(), d = GEX.data
+      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      const key = [w, h, dpr, GEX.yaw.toFixed(4), GEX.pitch.toFixed(4), GEX.scale, !!GEX.drag, GEX.marks, d.generatedAt, document.documentElement.getAttribute('data-theme')].join('|')
+      if (!GEX.scene || GEX.scene.key !== key) GEX.scene = { key, ...surfaceScene(w, h, dpr) }
+      ctx.drawImage(GEX.scene.canvas, 0, 0, w, h)
+      GEX.pick = GEX.scene.pick
+      if (GEX.hover) {
+        const hv = GEX.pick.find((p) => p.i === GEX.hover.i && p.j === GEX.hover.j)
+        if (hv) {
+          ctx.save(); ctx.strokeStyle = alpha(t.ink, 0.6); ctx.setLineDash([2, 3]); ctx.lineWidth = 1
+          ctx.beginPath(); ctx.moveTo(hv.x, hv.y); ctx.lineTo(hv.fx, hv.fy); ctx.stroke(); ctx.restore()
+          ctx.beginPath(); ctx.arc(hv.x, hv.y, 4.5, 0, Math.PI * 2); ctx.fillStyle = t.ink; ctx.fill(); ctx.strokeStyle = t.panel; ctx.lineWidth = 1.5; ctx.stroke()
+        }
+      }
       gexLegend([], 'Colour and height are GEX, blue low to red high · drag to rotate · double-click resets · hover a point for the numbers')
     }
 
