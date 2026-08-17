@@ -2092,7 +2092,7 @@
        Colours read the live theme tokens, so both charts follow dark/light. */
     const GEX_URL = 'https://gex-worker.frankiepc3.workers.dev'
     const GEX = {
-      data: null, loadedAt: 0, timer: null, raf: 0, bars: [], rows: [], hover: null, drag: null,
+      data: null, loadedAt: 0, timer: null, raf: 0, pick: [], rows: [], hover: null, drag: null,
       view: localStorage.getItem('echelon-gex-view') || 'surface',
       set: localStorage.getItem('echelon-gex-set') || 'zdte',
       scale: localStorage.getItem('echelon-gex-scale') || 'linear',
@@ -2115,7 +2115,7 @@
     const fmtM = (v, signed = true) => {
       if (v == null || isNaN(v)) return '—'
       const a = Math.abs(v)
-      const s = a >= 1000 ? (a / 1000).toFixed(2) + 'B' : a >= 100 ? a.toFixed(0) + 'M' : a.toFixed(1) + 'M'
+      const s = a >= 1000 ? (a / 1000).toFixed(2) + 'B' : a >= 100 ? a.toFixed(0) + 'M' : (Number.isInteger(a) ? String(a) : a.toFixed(1)) + 'M'
       return (v < 0 ? '−' : signed && v > 0 ? '+' : '') + s
     }
     const expDate = (tag) => new Date(Date.UTC(2000 + +tag.slice(0, 2), +tag.slice(2, 4) - 1, +tag.slice(4, 6)))
@@ -2173,12 +2173,16 @@
       const setName = { zdte: '0DTE', swing: 'Swing', all: 'All expiries' }[GEX.set]
       el('gex-chart-title').textContent = GEX.view === 'surface' ? 'Gamma surface' : `Gamma profile · ${setName}`
       el('gex-canvas').classList.toggle('profile', GEX.view === 'profile')
-      const t = gexTokens(), f = el('gex-foot'); f.textContent = ''
-      const sw = (c, txt) => { const s = document.createElement('span'); const i = document.createElement('i'); i.className = 'sw'; i.style.background = c; s.append(i, txt); return s }
-      f.append(sw(t.good, 'positive (call gamma, pins)'), sw(t.bad, 'negative (put gamma, accelerates)'), sw(t.gold, 'spot'))
-      const hint = document.createElement('span'); hint.className = 'k'
-      hint.textContent = GEX.view === 'surface' ? 'Drag to rotate · double-click resets · hover a bar for the numbers' : 'Hover a strike for the numbers · walls and flip for the chosen set'
-      f.appendChild(hint)
+    }
+    // legend row under the chart: [{col, txt}] swatches + a hint; each renderer supplies its own
+    function gexLegend(entries, hintTxt, title) {
+      const f = el('gex-foot'); f.textContent = ''
+      if (title) { const tt = document.createElement('span'); tt.className = 'k'; tt.textContent = title; f.appendChild(tt) }
+      for (const e of entries) {
+        const s = document.createElement('span'); const i = document.createElement('i'); i.className = 'sw'; i.style.background = e.col
+        s.append(i, e.txt); f.appendChild(s)
+      }
+      const hint = document.createElement('span'); hint.className = 'k'; hint.textContent = hintTxt; f.appendChild(hint)
     }
 
     function renderGexTable() {
@@ -2246,22 +2250,25 @@
       return items
     }
 
-    /* ── surface: X strike, Y expiry, Z $M ── */
+    /* ── surface: X strike, Y expiry, Z $M — a continuous mesh, Excel-surface style ──
+       Vertices are the strike x expiry grid, height = GEX. Quads are flat-filled by the
+       value BAND their mean falls in (diverging: salmon below zero, green above, pale
+       near zero) with a wireframe on top, painter-sorted far to near. Spot, walls and
+       your marks are draped over the terrain as lines and labelled at the back edge. */
     function drawSurface() {
       const { ctx, w, h } = gexCanvas()
       const t = gexTokens(), d = GEX.data, S = d.surface
       const K = S.strikes, E = S.expiries, n = K.length, m = E.length
       const kmin = K[0], kmax = K[n - 1], kmid = (kmin + kmax) / 2, kspan = Math.max(1, kmax - kmin)
-      let zmax = 0; for (const row of S.gexM) for (const v of row) zmax = Math.max(zmax, Math.abs(v))
+      let zmax = 0, vpos = 0, vneg = 0
+      for (const row of S.gexM) for (const v of row) { zmax = Math.max(zmax, Math.abs(v)); if (v > vpos) vpos = v; if (v < vneg) vneg = v }
       if (!zmax) zmax = 1
-      const zf = GEX.scale === 'sqrt' ? (v) => Math.sign(v) * Math.sqrt(Math.abs(v) / zmax) : (v) => v / zmax
+      const sqrtMode = GEX.scale === 'sqrt'
+      const zf = sqrtMode ? (v) => Math.sign(v) * Math.sqrt(Math.abs(v) / zmax) : (v) => v / zmax
       const XW = 1, YW = 0.62, ZH = 0.5
-      // actual vertical extent of the field, so a one-sided book does not waste half the canvas
-      let vpos = 0, vneg = 0; for (const row of S.gexM) for (const v of row) { if (v > vpos) vpos = v; if (v < vneg) vneg = v }
       const zTop = Math.max(0.06, zf(vpos) * ZH), zBot = Math.min(-0.06, zf(vneg) * ZH)
       const cy = Math.cos(GEX.yaw), sy = Math.sin(GEX.yaw), cp = Math.cos(GEX.pitch), sp = Math.sin(GEX.pitch)
       const rot = (x, y, z) => { const x1 = x * cy - y * sy, y1 = x * sy + y * cy; return { sx: x1, up: z * cp + y1 * sp, dep: y1 * cp - z * sp } }
-      // fit the bounding box into the canvas, leaving room for the z axis on the left and labels below
       let minx = 1e9, maxx = -1e9, minu = 1e9, maxu = -1e9
       for (const x of [-XW - 0.08, XW + 0.16]) for (const y of [-YW, YW]) for (const z of [zBot, zTop]) { const p = rot(x, y, z); minx = Math.min(minx, p.sx); maxx = Math.max(maxx, p.sx); minu = Math.min(minu, p.up); maxu = Math.max(maxu, p.up) }
       const padL = w < 560 ? 58 : 74, padR = w < 560 ? 34 : 60, padT = 40, padB = 46
@@ -2271,104 +2278,147 @@
       const P = (x, y, z) => { const p = rot(x, y, z); return { x: cx + p.sx * scale, y: cyy - p.up * scale, d: p.dep } }
       const wx = (k) => ((k - kmid) / kspan) * 2 * XW
       const wy = (i) => (m > 1 ? i / (m - 1) - 0.5 : 0) * 2 * YW
-      const yF = -YW - 0.02, yB = YW + 0.02  // front / back edges of the plane
-      const rowGap = m > 1 ? 2 * YW / (m - 1) : 0.4
-      let kgap = 1e9; for (let j = 1; j < n; j++) kgap = Math.min(kgap, K[j] - K[j - 1])
-      const hx = Math.max(0.004, (kgap / kspan) * 2 * XW * 0.36), hy = Math.max(0.01, rowGap * 0.34)
+      const wz = (v) => zf(v) * ZH
+      const yF = -YW, yB = YW, xL = -XW, xR = XW
+      const zFloor = zBot  // the box floor is the value-axis minimum, as in a spreadsheet surface chart
 
-      // plane grid: strike lines along depth, one line per expiry row
+      // value bands. Linear: nice equal steps. Sqrt: equal steps in the drawn (sqrt) space,
+      // so every band is the same visual height and the labels carry the true edges.
+      const edges = []
+      if (!sqrtMode) {
+        const step = niceStep(vpos - vneg, 4)
+        for (let e = Math.floor(vneg / step) * step; e <= Math.ceil(vpos / step) * step + 1e-9; e += step) edges.push(Math.round(e * 100) / 100)
+      } else {
+        const N = 4, side = []
+        for (let k = 1; k <= N; k++) side.push(Math.round((k / N) * (k / N) * zmax))
+        for (let k = N; k >= 1; k--) edges.push(-side[k - 1])
+        edges.push(0)
+        for (let k = 1; k <= N; k++) edges.push(side[k - 1])
+      }
+      // drop bands entirely outside the data
+      while (edges.length > 2 && edges[1] <= vneg) edges.shift()
+      while (edges.length > 2 && edges[edges.length - 2] >= vpos) edges.pop()
+      const nb = edges.length - 1
+      let zeroIx = edges.findIndex((e) => e >= 0); if (zeroIx < 0) zeroIx = nb
+      const negN = zeroIx, posN = nb - zeroIx
+      const bandCol = (b) => {
+        if (b < zeroIx) { const k = zeroIx - b; return mix(t.bad, t.panel, negN > 1 ? 0.7 * (1 - (k - 1) / (negN - 1)) : 0.15) }
+        const k = b - zeroIx + 1; return mix(t.good, t.panel, posN > 1 ? 0.7 * (1 - (k - 1) / (posN - 1)) : 0.15)
+      }
+      const bandOf = (v) => { let b = 0; while (b < nb - 1 && v >= edges[b + 1]) b++; return b }
+      const meshCol = alpha(mix(t.ink, t.panel, 0.45), 0.9)
+
+      // box: floor grid + the two far walls (whichever edges are farther from the camera)
       ctx.font = `500 10.5px ${GEX_FONT}`
+      ctx.lineWidth = 1; ctx.strokeStyle = t.line
       const kstep = niceStep(kspan, 8)
-      ctx.strokeStyle = t.line; ctx.lineWidth = 1
+      const line = (a, b) => { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke() }
+      const yFar = rot(0, yB, 0).dep > rot(0, yF, 0).dep ? yB : yF, yNear = yFar === yB ? yF : yB
+      const xFar = rot(xL, 0, 0).dep > rot(xR, 0, 0).dep ? xL : xR, xNear = xFar === xL ? xR : xL
+      const zstep = niceStep(Math.max(vpos, -vneg), 3)
+      const zTicks = []; for (let v = -Math.floor(-vneg / zstep) * zstep; v <= vpos + 1e-9; v += zstep) zTicks.push(v)
       for (let k = Math.ceil(kmin / kstep) * kstep; k <= kmax; k += kstep) {
-        const a = P(wx(k), yF, 0), b = P(wx(k), yB, 0)
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke()
-        haloText(ctx, String(k), a.x, a.y + 14, t.muted, t.panel, 'center')
+        line(P(wx(k), yF, zFloor), P(wx(k), yB, zFloor))                 // floor, along depth
+        line(P(wx(k), yFar, zFloor), P(wx(k), yFar, zTop))               // far wall, vertical
       }
-      // expiry labels ride the right edge, clear of the z axis at the front-left corner
       for (let i = 0; i < m; i++) {
-        const a = P(-XW - 0.02, wy(i), 0), b = P(XW + 0.02, wy(i), 0)
-        ctx.strokeStyle = i === 0 ? t.lineB : t.line
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke()
-        if (m <= 12 || i % 2 === 0 || i === m - 1) {
-          const lab = i === 0 ? `0DTE ${expLabel(E[i].expiry, false)}` : expLabel(E[i].expiry, false)
-          haloText(ctx, lab, b.x + 8, b.y + 3, i === 0 ? t.ink : t.faint, t.panel, 'left')
-        }
+        line(P(xL, wy(i), zFloor), P(xR, wy(i), zFloor))                 // floor, along strikes
+        line(P(xFar, wy(i), zFloor), P(xFar, wy(i), zTop))               // side wall, vertical
       }
-      // axis titles
-      const fl = P(-XW - 0.02, yF, 0), fr = P(XW + 0.02, yF, 0)
+      for (const v of zTicks) {                                          // wall rungs at value ticks
+        line(P(xL, yFar, wz(v)), P(xR, yFar, wz(v)))
+        line(P(xFar, yF, wz(v)), P(xFar, yB, wz(v)))
+      }
+      // labels: strikes along the near edge, expiries along the near side edge
+      for (let k = Math.ceil(kmin / kstep) * kstep; k <= kmax; k += kstep) {
+        const a = P(wx(k), yNear, zFloor); haloText(ctx, String(k), a.x, a.y + 14, t.muted, t.panel, 'center')
+      }
+      for (let i = 0; i < m; i++) if (m <= 12 || i % 2 === 0 || i === m - 1) {
+        const a = P(xNear, wy(i), zFloor)
+        const lab = i === 0 ? `0DTE ${expLabel(E[i].expiry, false)}` : expLabel(E[i].expiry, false)
+        haloText(ctx, lab, a.x + (xNear === xR ? 8 : -8), a.y + 3, i === 0 ? t.ink : t.faint, t.panel, xNear === xR ? 'left' : 'right')
+      }
+      const fl = P(xL, yNear, zFloor), fr = P(xR, yNear, zFloor)
       haloText(ctx, 'QQQ strike →', (fl.x + fr.x) / 2, Math.max(fl.y, fr.y) + 30, t.faint, t.panel, 'center')
 
-      // level lines on the plane (spot, walls, marks) drawn before bars so bars sit on top
-      const lines = []
-      lines.push({ k: d.spot, col: t.gold, dash: [], label: `spot ${d.spot.toFixed(1)}`, w: 1.5 })
-      if (d.zdte.callWall) lines.push({ k: d.zdte.callWall.qqq, col: t.good, dash: [5, 4], label: `CW ${d.zdte.callWall.qqq}`, w: 1 })
-      if (d.zdte.putWall) lines.push({ k: d.zdte.putWall.qqq, col: t.bad, dash: [5, 4], label: `PW ${d.zdte.putWall.qqq}`, w: 1 })
-      if (d.swing?.callWall) lines.push({ k: d.swing.callWall.qqq, col: t.good, dash: [2, 4], label: `CW* ${d.swing.callWall.qqq}`, w: 1 })
-      if (d.swing?.putWall) lines.push({ k: d.swing.putWall.qqq, col: t.bad, dash: [2, 4], label: `PW* ${d.swing.putWall.qqq}`, w: 1 })
-      for (const mk of gexMarks()) if (mk.k >= kmin && mk.k <= kmax) lines.push({ k: mk.k, col: t.ink, dash: [6, 5], label: mk.label, w: 1 })
+      // draw list: mesh quads + draped level segments, painter-sorted far → near
+      const V = (i, j) => P(wx(K[j]), wy(i), wz(S.gexM[i][j]))
+      const items = []
+      for (let i = 0; i < m - 1; i++) for (let j = 0; j < n - 1; j++) {
+        const v = (S.gexM[i][j] + S.gexM[i][j + 1] + S.gexM[i + 1][j] + S.gexM[i + 1][j + 1]) / 4
+        const c = rot(wx((K[j] + K[j + 1]) / 2), wy(i + 0.5), wz(v))
+        items.push({ q: [V(i, j), V(i, j + 1), V(i + 1, j + 1), V(i + 1, j)], col: bandCol(bandOf(v)), dep: c.dep })
+      }
+      const levels = []
+      levels.push({ k: d.spot, col: t.gold, w: 2, dash: [], label: `spot ${d.spot.toFixed(1)}` })
+      if (d.zdte.callWall) levels.push({ k: d.zdte.callWall.qqq, col: t.good, w: 1.5, dash: [5, 4], label: `CW ${d.zdte.callWall.qqq}` })
+      if (d.zdte.putWall) levels.push({ k: d.zdte.putWall.qqq, col: t.bad, w: 1.5, dash: [5, 4], label: `PW ${d.zdte.putWall.qqq}` })
+      if (d.swing?.callWall) levels.push({ k: d.swing.callWall.qqq, col: t.good, w: 1.5, dash: [2, 4], label: `CW* ${d.swing.callWall.qqq}` })
+      if (d.swing?.putWall) levels.push({ k: d.swing.putWall.qqq, col: t.bad, w: 1.5, dash: [2, 4], label: `PW* ${d.swing.putWall.qqq}` })
+      for (const mk of gexMarks()) levels.push({ k: mk.k, col: t.ink, w: 1.5, dash: [6, 5], label: mk.label })
+      // height of the surface at an arbitrary strike, per row (linear between neighbours)
+      const zAt = (i, k) => {
+        let j = 0; while (j < n - 2 && K[j + 1] < k) j++
+        const a = K[j], b = K[j + 1], f = b > a ? Math.max(0, Math.min(1, (k - a) / (b - a))) : 0
+        return wz(S.gexM[i][j] + (S.gexM[i][j + 1] - S.gexM[i][j]) * f)
+      }
       const labels = []
-      for (const L of lines) {
+      for (const L of levels) {
         if (L.k < kmin || L.k > kmax) continue
-        const a = P(wx(L.k), yF, 0), b = P(wx(L.k), yB, 0)
-        ctx.save(); ctx.strokeStyle = alpha(L.col, L.k === d.spot ? 0.95 : 0.7); ctx.lineWidth = L.w; ctx.setLineDash(L.dash)
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.restore()
-        labels.push({ x: b.x, y: b.y, txt: L.label, col: L.col })
+        for (let i = 0; i < m - 1; i++) {
+          const a = P(wx(L.k), wy(i), zAt(i, L.k) + 0.004), b = P(wx(L.k), wy(i + 1), zAt(i + 1, L.k) + 0.004)
+          items.push({ seg: [a, b], col: L.col, w: L.w, dash: L.dash, dep: rot(wx(L.k), wy(i + 0.5), 0).dep - 0.03 })
+        }
+        const back = P(wx(L.k), yB, zAt(m - 1, L.k))
+        labels.push({ x: back.x, y: back.y, txt: L.label, col: L.col })
       }
-      for (const lb of placeLabels(labels, 66)) haloText(ctx, lb.txt, lb.x, lb.baseY - 6 - lb.lvl * 13, lb.col, t.panel, 'center')
-
-      // bars, painter's order (far first)
-      const bars = []
-      for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) {
-        const v = S.gexM[i][j]; if (Math.abs(v) < 0.05) continue
-        const c = rot(wx(K[j]), wy(i), 0)
-        bars.push({ i, j, v, x: wx(K[j]), y: wy(i), z: zf(v) * ZH, dep: c.dep })
+      items.sort((a, b) => b.dep - a.dep)
+      ctx.lineJoin = 'round'
+      for (const it of items) {
+        if (it.q) {
+          ctx.beginPath(); ctx.moveTo(it.q[0].x, it.q[0].y); for (let q = 1; q < 4; q++) ctx.lineTo(it.q[q].x, it.q[q].y); ctx.closePath()
+          ctx.fillStyle = it.col; ctx.fill()
+          ctx.strokeStyle = meshCol; ctx.lineWidth = 0.6; ctx.stroke()
+        } else {
+          ctx.save(); ctx.strokeStyle = t.panel; ctx.lineWidth = it.w + 2; ctx.setLineDash([]); line(it.seg[0], it.seg[1])
+          ctx.strokeStyle = it.col; ctx.lineWidth = it.w; ctx.setLineDash(it.dash); line(it.seg[0], it.seg[1]); ctx.restore()
+        }
       }
-      bars.sort((a, b) => b.dep - a.dep)
-      const hov = GEX.hover
-      const quad = (pts, fill, stroke) => {
-        ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (let q = 1; q < pts.length; q++) ctx.lineTo(pts[q].x, pts[q].y); ctx.closePath()
-        ctx.fillStyle = fill; ctx.fill(); if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke() }
-      }
-      const pick = []
-      for (const b of bars) {
-        const base = b.v >= 0 ? t.good : t.bad
-        const isHov = hov && hov.i === b.i && hov.j === b.j
-        const top = isHov ? mix(base, t.ink, 0.35) : base
-        const side1 = mix(base, t.panel, 0.32), side2 = mix(base, t.panel, 0.48)
-        const x0 = b.x - hx, x1 = b.x + hx, y0 = b.y - hy, y1 = b.y + hy
-        const zLo = Math.min(0, b.z), zHi = Math.max(0, b.z)
-        const c = (x, y, z) => P(x, y, z)
-        // four sides, far to near by their own depth
-        const sides = [
-          { pts: [c(x0, y0, zLo), c(x1, y0, zLo), c(x1, y0, zHi), c(x0, y0, zHi)], d: rot(b.x, y0, 0).dep, col: side1 },
-          { pts: [c(x1, y0, zLo), c(x1, y1, zLo), c(x1, y1, zHi), c(x1, y0, zHi)], d: rot(x1, b.y, 0).dep, col: side2 },
-          { pts: [c(x1, y1, zLo), c(x0, y1, zLo), c(x0, y1, zHi), c(x1, y1, zHi)], d: rot(b.x, y1, 0).dep, col: side1 },
-          { pts: [c(x0, y1, zLo), c(x0, y0, zLo), c(x0, y0, zHi), c(x0, y1, zHi)], d: rot(x0, b.y, 0).dep, col: side2 },
-        ].sort((p, q) => q.d - p.d)
-        for (const s of sides) quad(s.pts, isHov ? mix(s.col, t.ink, 0.25) : s.col)
-        // the up-facing cap: the top for a positive bar, the footprint at the plane for a negative one
-        const capZ = zHi
-        const cap = [c(x0, y0, capZ), c(x1, y0, capZ), c(x1, y1, capZ), c(x0, y1, capZ)]
-        quad(cap, top, isHov ? t.ink : null)
-        const tip = P(b.x, b.y, b.z)
-        pick.push({ i: b.i, j: b.j, v: b.v, x: tip.x, y: tip.y })
-      }
-      GEX.bars = pick
-
-      // z axis at the front-left corner, spanning only the field's real extent
-      const zx = -XW - 0.05
-      const za = P(zx, yF, zBot), zb = P(zx, yF, zTop)
-      ctx.strokeStyle = t.lineB; ctx.lineWidth = 1
-      ctx.beginPath(); ctx.moveTo(za.x, za.y); ctx.lineTo(zb.x, zb.y); ctx.stroke()
-      const zstep = niceStep(Math.max(vpos, -vneg), 3)
+      ctx.font = `600 10.5px ${GEX_FONT}`
+      for (const lb of placeLabels(labels, 66)) haloText(ctx, lb.txt, lb.x, lb.baseY - 8 - lb.lvl * 13, lb.col, t.panel, 'center')
       ctx.font = `500 10.5px ${GEX_FONT}`
-      for (let v = -Math.floor(-vneg / zstep) * zstep; v <= vpos + 1e-9; v += zstep) {
-        const p = P(zx, yF, zf(v) * ZH)
+
+      // hover targets = the vertices
+      const pick = []
+      for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) { const p = V(i, j); pick.push({ i, j, x: p.x, y: p.y }) }
+      GEX.pick = pick
+      // hovered vertex: ring + drop line to the floor
+      if (GEX.hover) {
+        const hv = pick.find((p) => p.i === GEX.hover.i && p.j === GEX.hover.j)
+        if (hv) {
+          const foot = P(wx(K[hv.j]), wy(hv.i), zFloor)
+          ctx.save(); ctx.strokeStyle = alpha(t.ink, 0.5); ctx.setLineDash([2, 3]); ctx.lineWidth = 1; line(hv, foot); ctx.restore()
+          ctx.beginPath(); ctx.arc(hv.x, hv.y, 4.5, 0, Math.PI * 2); ctx.fillStyle = t.ink; ctx.fill(); ctx.strokeStyle = t.panel; ctx.lineWidth = 1.5; ctx.stroke()
+        }
+      }
+
+      // value axis on the near-left vertical edge
+      const zx = xNear === xR ? xL : xR  // the edge opposite the expiry labels
+      const za = P(zx, yNear, zBot), zb = P(zx, yNear, zTop)
+      ctx.strokeStyle = t.lineB; ctx.lineWidth = 1; line(za, zb)
+      for (const v of zTicks) {
+        const p = P(zx, yNear, wz(v))
         ctx.beginPath(); ctx.moveTo(p.x - 4, p.y); ctx.lineTo(p.x, p.y); ctx.stroke()
         haloText(ctx, Math.abs(v) < 1e-9 ? '0' : fmtM(v), p.x - 7, p.y + 3.5, Math.abs(v) < 1e-9 ? t.muted : t.faint, t.panel, 'right')
       }
-      haloText(ctx, '$M per 1% move' + (GEX.scale === 'sqrt' ? ' (√ scale)' : ''), zb.x - 7, zb.y - 12, t.faint, t.panel, 'right')
+      const zTitle = '$M per 1% move' + (sqrtMode ? ' (√ scale)' : '')
+      haloText(ctx, zTitle, Math.max(4, zb.x - 7 - ctx.measureText(zTitle).width), zb.y - 12, t.faint, t.panel, 'left')
+
+      // legend: the bands, low to high
+      const edgeTxt = (v) => (Math.abs(v) < 1e-9 ? '0' : fmtM(v, false))
+      const bandTxt = (b) => `${edgeTxt(edges[b])} to ${edgeTxt(edges[b + 1])}`
+      gexLegend([...Array(nb).keys()].map((b) => ({ col: bandCol(b), txt: bandTxt(b) })),
+        'Drag to rotate · double-click resets · hover a point for the numbers', 'GEX $M per 1%:')
     }
 
     /* ── profile: one set summed per strike, price vertical, GEX horizontal ── */
@@ -2451,6 +2501,8 @@
       ctx.font = `600 10.5px ${GEX_FONT}`
       for (const lb of placeLabels(placed, 13)) haloText(ctx, lb.txt, padL + pw - 6, lb.baseY - 4 - lb.lvl * 12, lb.col, t.panel, 'right')
       ctx.font = `500 10.5px ${GEX_FONT}`
+      gexLegend([{ col: t.good, txt: 'positive (call gamma, pins)' }, { col: t.bad, txt: 'negative (put gamma, accelerates)' }, { col: t.gold, txt: 'spot' }],
+        'Hover a strike for the numbers · walls and flip for the chosen set')
     }
 
     /* hover + tooltip */
@@ -2465,8 +2517,8 @@
       const d = GEX.data; if (!d) return
       let best = null
       if (GEX.view === 'surface') {
-        let bd = 12 * 12
-        for (const b of GEX.bars) { const dx = b.x - mx, dy = b.y - my, dd = dx * dx + dy * dy; if (dd < bd) { bd = dd; best = b } }
+        let bd = 14 * 14
+        for (const b of GEX.pick || []) { const dx = b.x - mx, dy = b.y - my, dd = dx * dx + dy * dy; if (dd < bd) { bd = dd; best = b } }
         const nxt = best ? { i: best.i, j: best.j } : null
         if ((nxt?.i !== GEX.hover?.i) || (nxt?.j !== GEX.hover?.j)) { GEX.hover = nxt; scheduleDraw() }
         if (best) {
