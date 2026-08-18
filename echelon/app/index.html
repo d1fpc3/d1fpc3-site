@@ -372,6 +372,12 @@
     .prose h2, .prose h3 { color: var(--ink); font-weight: 650; letter-spacing: -0.015em; margin: 22px 0 8px; font-size: 16.5px; }
     .prose h3 { font-size: 14.5px; }
     .prose p { margin-bottom: 12px; }
+    .prose strong { color: var(--ink); font-weight: 600; }
+    .prose ul, .prose ol { margin: 0 0 14px 1.2em; padding: 0; }
+    .prose li { margin-bottom: 6px; padding-left: 4px; }
+    .prose li::marker { color: var(--gold); }
+    .prose blockquote { margin: 0 0 14px; padding: 2px 0 2px 14px; border-left: 2px solid var(--gold); color: var(--ink); }
+    .prose blockquote p:last-child { margin-bottom: 0; }
 
     .notice {
       margin-top: 22px; padding: 14px 0; border-top: 1px solid var(--line);
@@ -1125,15 +1131,57 @@
       }
     }
 
-    /** Minimal and deliberately text-only: headings and paragraphs, escaped. */
+    /**
+     * Minimal and deliberately text-only markdown: ## / ### headings, paragraphs,
+     * "- " bullet lists, "1. " numbered lists, "> " quotes and **bold** spans.
+     * Everything lands via textContent, never innerHTML.
+     */
+    function inlineText(node, text) {
+      const parts = text.split(/\*\*(.+?)\*\*/)
+      parts.forEach((part, i) => {
+        if (!part) return
+        if (i % 2 === 1) {
+          const b = document.createElement('strong'); b.textContent = part; node.appendChild(b)
+        } else {
+          node.appendChild(document.createTextNode(part))
+        }
+      })
+    }
     function renderProse(host, md) {
       for (const block of md.split(/\n{2,}/)) {
         const trimmed = block.trim()
         if (!trimmed) continue
         const heading = trimmed.match(/^(#{2,3})\s+(.*)$/)
-        const node = document.createElement(heading ? (heading[1].length === 2 ? 'h2' : 'h3') : 'p')
-        node.textContent = heading ? heading[2] : trimmed
-        host.appendChild(node)
+        if (heading) {
+          const h = document.createElement(heading[1].length === 2 ? 'h2' : 'h3')
+          h.textContent = heading[2]
+          host.appendChild(h)
+          continue
+        }
+        const lines = trimmed.split('\n')
+        const isUl = lines.every((l) => /^[-*]\s+/.test(l))
+        const isOl = lines.every((l) => /^\d+[.)]\s+/.test(l))
+        if (isUl || isOl) {
+          const list = document.createElement(isUl ? 'ul' : 'ol')
+          for (const l of lines) {
+            const li = document.createElement('li')
+            inlineText(li, l.replace(isUl ? /^[-*]\s+/ : /^\d+[.)]\s+/, ''))
+            list.appendChild(li)
+          }
+          host.appendChild(list)
+          continue
+        }
+        if (lines.every((l) => /^>\s?/.test(l))) {
+          const q = document.createElement('blockquote')
+          const p = document.createElement('p')
+          inlineText(p, lines.map((l) => l.replace(/^>\s?/, '')).join(' '))
+          q.appendChild(p)
+          host.appendChild(q)
+          continue
+        }
+        const p = document.createElement('p')
+        inlineText(p, lines.join(' '))
+        host.appendChild(p)
       }
     }
 
