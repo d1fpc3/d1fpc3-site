@@ -649,6 +649,10 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2.2-5.3A2 2 0 0 1 7 6.5h10a2 2 0 0 1 1.8 1.2L21 13"/><path d="M2 13h20v4a1 1 0 0 1-1 1h-1.5a1 1 0 0 1-1-1v-1H5.5v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/><circle cx="7" cy="14.5" r="0.6"/><circle cx="17" cy="14.5" r="0.6"/></svg>
           Cars
         </button>
+        <button class="tab" data-view="memes" data-title="Memecoins" data-crumb="Trading playbook, researched Aug 2026">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 9.5h.01"/><path d="M15.5 9.5h.01"/><path d="M7.5 14.5c1.2 1.7 2.7 2.5 4.5 2.5s3.3-.8 4.5-2.5"/><path d="M12 3v2"/><path d="M10 3.5 12 5l2-1.5"/></svg>
+          Memecoins
+        </button>
         <button class="tab" data-view="settings" data-title="Settings" data-crumb="Integrations and project">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Settings
@@ -957,6 +961,22 @@
           </div>
         </section>
 
+        <!-- MEMECOINS: trading playbook (body lives in memecoins.html, generated from the research) -->
+        <section class="view" id="v-memes">
+          <div class="pb-bar">
+            <div class="pb-meta">
+              <span class="label">Playbook</span>
+              <span id="memes-status">Research date August 19, 2026 · six parallel research passes · Solana first, Base/BNB/ETH second</span>
+            </div>
+          </div>
+          <div class="pb-layout">
+            <nav class="pb-toc" id="memes-toc" aria-label="Sections" hidden></nav>
+            <div class="pb-body" id="memes-body">
+              <p class="pb-loading">Loading the playbook…</p>
+            </div>
+          </div>
+        </section>
+
         <!-- SETTINGS -->
         <section class="view" id="v-settings">
           <div class="block">
@@ -1126,7 +1146,7 @@
       el('pane-title').textContent = tab.dataset.title
       el('pane-crumb').textContent = tab.dataset.crumb
       if (view === 'gex') gexShown()
-      if (view === 'cars') carsShown()
+      if (PLAYBOOKS[view]) playbookShown(view)
     }))
 
     /* ── table helper ── */
@@ -2770,28 +2790,32 @@
       }, 5 * 60 * 1000)
     }
 
-    /* ── cars: exotic car buying playbook ──
-       The body is a generated fragment (playbook.html, built from the same
-       source as the .docx) fetched once on first open; the section index is
-       built from its h2s and follows the reader with a scroll spy. */
-    const CARS = { loaded: false, loading: null }
-    function carsShown() {
-      if (CARS.loaded || CARS.loading) return
-      const body = el('cars-body')
-      CARS.loading = fetch('playbook.html', { cache: 'no-cache' })
+    /* ── playbook readers (cars, memecoins) ──
+       Each body is a generated fragment (playbook.html / memecoins.html)
+       fetched once on first open; the section index ships inside the fragment
+       as <template id="pb-toc-src"> and follows the reader with a scroll spy. */
+    const PLAYBOOKS = {
+      cars:  { file: 'playbook.html',  body: 'cars-body',  toc: 'cars-toc',  loaded: false, loading: null },
+      memes: { file: 'memecoins.html', body: 'memes-body', toc: 'memes-toc', loaded: false, loading: null },
+    }
+    function playbookShown(key) {
+      const pb = PLAYBOOKS[key]
+      if (!pb || pb.loaded || pb.loading) return
+      const body = el(pb.body)
+      pb.loading = fetch(pb.file, { cache: 'no-cache' })
         .then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.text() })
         .then((html) => {
           body.innerHTML = html
           const tocSrc = body.querySelector('#pb-toc-src')
-          const toc = el('cars-toc')
-          if (tocSrc) { toc.innerHTML = tocSrc.innerHTML; tocSrc.remove(); toc.hidden = false; carsSpy() }
-          CARS.loaded = true
+          const toc = el(pb.toc)
+          if (tocSrc) { toc.innerHTML = tocSrc.innerHTML; tocSrc.remove(); toc.hidden = false; playbookSpy(pb.toc) }
+          pb.loaded = true
         })
         .catch((err) => { body.innerHTML = ''; const p = document.createElement('p'); p.className = 'pb-error'; p.textContent = `Could not load the playbook (${err.message}).`; body.appendChild(p) })
-        .finally(() => { CARS.loading = null })
+        .finally(() => { pb.loading = null })
     }
-    function carsSpy() {
-      const links = [...el('cars-toc').querySelectorAll('a[href^="#"]')]
+    function playbookSpy(tocId) {
+      const links = [...el(tocId).querySelectorAll('a[href^="#"]')]
       const heads = links.map((a) => document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean)
       if (!heads.length) return
       const mark = (id) => links.forEach((a) => a.classList.toggle('on', a.getAttribute('href') === `#${id}`))
