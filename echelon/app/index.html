@@ -342,7 +342,29 @@
     @media (max-width: 860px) { .course-grid { grid-template-columns: 1fr; } }
 
     .toc { position: sticky; top: 92px; }
-    @media (max-width: 860px) { .toc { position: static; } }
+    .toc-toggle { display: none; }
+    @media (max-width: 860px) {
+      .toc { position: static; display: none; }
+      .course-grid.toc-open .toc {
+        display: block; background: var(--panel); border: 1px solid var(--line);
+        border-radius: 14px; padding: 14px 12px 10px; margin-top: -8px;
+        animation: fade 0.2s ease;
+      }
+      .toc-toggle {
+        display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+        padding: 13px 14px 13px 16px; color: var(--ink); font-family: inherit; cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .toc-toggle:active { background: var(--panel-2); }
+      .toc-toggle .tt-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+      .toc-toggle .tt-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
+      .toc-toggle .tt-pos { font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .toc-toggle .tt-chev { width: 18px; height: 18px; color: var(--faint); flex-shrink: 0; transition: transform 0.2s ease; }
+      .course-grid.toc-open .toc-toggle .tt-chev { transform: rotate(180deg); }
+      .course-grid.toc-open .toc-toggle { border-color: var(--line-bright); }
+      .toc button { padding: 10px 22px 10px 14px; font-size: 14px; }
+    }
     .toc-group + .toc-group { margin-top: 20px; }
     .toc .cap { padding: 0 0 8px 14px; }
     .toc button {
@@ -438,6 +460,55 @@
       .side:not(.open) .side-user .u-meta { display: block; }
     }
     @media (prefers-reduced-motion: reduce) { .side, .scrim { transition: none; } }
+
+    /* ── phone polish ─────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .topbar { padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top)); gap: 12px; }
+      .topbar h2 { font-size: 17px; }
+      .topbar .crumb { font-size: 12px; }
+      .pane { padding: 16px; padding-bottom: max(28px, env(safe-area-inset-bottom)); }
+      .cards { gap: 10px; margin-bottom: 18px; }
+      .scard { padding: 14px 15px; border-radius: 12px; }
+      .scard .k { font-size: 10px; }
+      .scard .v { font-size: 23px; }
+      .block { border-radius: 12px; }
+      .block + .block { margin-top: 14px; }
+      .block-head { padding: 13px 15px; }
+      .lesson-pane, .recap-pane { padding: 18px 16px 20px; }
+      .lesson-h { font-size: 21px; }
+      .prose { font-size: 14px; line-height: 1.75; max-width: none; }
+      .lesson-foot { gap: 10px; }
+      .lesson-foot .btn, .lesson-foot .rowbtn { flex: 1 1 auto; justify-content: center; text-align: center; min-height: 42px; }
+      .rowbtn { padding: 9px 12px; }
+      .side { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+      .course-grid { gap: 14px; }
+      .block-head .filters, .block-head .filters .inp { width: 100%; }
+      .block-head .filters { flex-basis: 100%; }
+    }
+
+    /* ── pull to refresh (touch) ──────────────────────────────── */
+    html, body { overscroll-behavior-y: contain; }
+    .ptr {
+      position: fixed; left: 50%; top: 0; z-index: 50;
+      width: 38px; height: 38px; margin-left: -19px; border-radius: 50%;
+      background: var(--panel); border: 1px solid var(--line-bright);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+      display: flex; align-items: center; justify-content: center;
+      transform: translateY(-56px); opacity: 0;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      pointer-events: none;
+    }
+    :root[data-theme="light"] .ptr { box-shadow: 0 6px 24px rgba(0,0,0,0.12); }
+    body.ptr-pulling .ptr { transition: none; }
+    body.ptr-pulling .ptr, body.ptr-busy .ptr { opacity: 1; }
+    .ptr svg { width: 18px; height: 18px; color: var(--gold); transition: transform 0.15s ease; }
+    body.ptr-armed .ptr svg { transform: rotate(180deg); }
+    .ptr .ring { display: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(201,162,74,0.25); border-top-color: var(--gold); animation: ptr-spin 0.8s linear infinite; }
+    body.ptr-busy .ptr { transform: translateY(var(--ptr-rest, 76px)); }
+    body.ptr-busy .ptr svg { display: none; }
+    body.ptr-busy .ptr .ring { display: block; }
+    @keyframes ptr-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .ptr { transition: none; } }
 
     /* ── skeleton loaders ────────────────────────────────────── */
 
@@ -617,6 +688,10 @@
     </aside>
 
     <div class="scrim" id="scrim"></div>
+    <div class="ptr" id="ptr" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      <span class="ring"></span>
+    </div>
 
     <div class="main">
       <div class="topbar">
@@ -645,9 +720,18 @@
 
         <!-- COURSE -->
         <section class="view" id="v-course">
-          <div class="course-grid">
+          <div class="course-grid" id="course-grid">
+            <!-- phones: the 41-item index folds behind this bar so the lesson is what you land on -->
+            <button type="button" class="toc-toggle" id="toc-toggle" aria-expanded="false" aria-controls="index">
+              <span class="tt-meta">
+                <span class="label" id="tt-mod">Lessons</span>
+                <span class="tt-title" id="tt-title">Pick a lesson</span>
+              </span>
+              <span class="tt-pos" id="tt-pos"></span>
+              <svg class="tt-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
             <nav class="toc" id="index" aria-label="Lessons"></nav>
-            <div class="block"><main class="lesson-pane" id="lesson"></main></div>
+            <div class="block" id="lesson-block"><main class="lesson-pane" id="lesson"></main></div>
           </div>
         </section>
 
@@ -755,13 +839,13 @@
                   <button class="rowbtn" id="pass-save">Set password</button>
                 </div>
                 <div id="pw-meter-host"></div>
-                <p class="hint">Optional — sign-in links always work. Forgot it? Use "Forgot password" on the sign-in screen.</p>
+                <p class="hint">Optional. Sign-in links always work. Forgot it? Use "Forgot password" on the sign-in screen.</p>
                 <p class="msg" id="pass-msg"></p>
               </div>
               <div style="border-top:1px solid var(--line);padding-top:18px;">
                 <p class="label" style="margin-bottom:6px;color:var(--bad);">Delete account</p>
                 <p class="hint" style="margin:0 0 10px;">
-                  Removes your profile, photo, progress and sign-in — for good.
+                  Removes your profile, photo, progress and sign-in, for good.
                   If you bought Echelon, the purchase stays attached to your email
                   and comes back if you ever sign in again.
                 </p>
@@ -979,7 +1063,7 @@
     function recoveryScreen() {
       gate({
         title: 'Choose a new password',
-        body: 'You followed a reset link — set the new one now.',
+        body: 'You followed a reset link. Set the new one now.',
         render(host) {
           const form = document.createElement('form'); form.style.marginTop = '20px'
           const pw = gateField('rc-pass', 'password', 'New password (8+ characters)', 'new-password')
@@ -1047,7 +1131,7 @@
               })
               gate({
                 title: 'You are in.',
-                body: `Code accepted. A sign-in link is on its way to ${email} — it opens the course.`,
+                body: `Code accepted. A sign-in link is on its way to ${email}. It opens the course.`,
               })
             } catch (err) {
               note.className = 'form-error'; note.textContent = err.message
@@ -1071,6 +1155,7 @@
       const tab = tabs.find((t) => t.dataset.view === view)
       el('pane-title').textContent = tab.dataset.title
       el('pane-crumb').textContent = tab.dataset.crumb
+      window.scrollTo({ top: 0 })
     }
     tabs.forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)))
 
@@ -1111,9 +1196,34 @@
       return state.modules.flatMap((m) => state.lessons.filter((l) => l.module_id === m.id))
     }
 
+    /* ── phone index bar: folds the TOC, names the current lesson ── */
+    const isPhone = () => matchMedia('(max-width: 860px)').matches
+    el('toc-toggle').addEventListener('click', () => {
+      const open = el('course-grid').classList.toggle('toc-open')
+      el('toc-toggle').setAttribute('aria-expanded', String(open))
+      if (open) el('index').querySelector('button.on')?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    })
+    function renderTocToggle() {
+      const lesson = state.lessons.find((l) => l.id === state.currentId)
+      const mod = lesson && state.modules.find((m) => m.id === lesson.module_id)
+      const ordered = orderedLessons()
+      const at = lesson ? ordered.findIndex((l) => l.id === lesson.id) : -1
+      el('tt-mod').textContent = mod?.title ?? 'Lessons'
+      el('tt-title').textContent = lesson?.title ?? 'Pick a lesson'
+      el('tt-pos').textContent = at >= 0 ? `${at + 1} of ${ordered.length}` : (ordered.length ? `${ordered.length} lessons` : '')
+    }
+    /** Bring the lesson block to the top of the viewport (under the sticky topbar). */
+    function scrollToLesson(smooth = true) {
+      const block = el('lesson-block')
+      const bar = document.querySelector('.topbar').getBoundingClientRect().height
+      const top = Math.max(0, block.getBoundingClientRect().top + window.scrollY - bar - 10)
+      window.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' })
+    }
+
     function renderIndex() {
       const host = el('index')
       host.textContent = ''
+      renderTocToggle()
 
       for (const mod of state.modules) {
         const lessons = state.lessons.filter((l) => l.module_id === mod.id)
@@ -1144,7 +1254,14 @@
             btn.appendChild(dot)
           }
 
-          btn.addEventListener('click', () => openLesson(lesson.id))
+          btn.addEventListener('click', () => {
+            openLesson(lesson.id)
+            if (isPhone()) {
+              el('course-grid').classList.remove('toc-open')
+              el('toc-toggle').setAttribute('aria-expanded', 'false')
+              scrollToLesson()
+            }
+          })
           group.appendChild(btn)
         }
 
@@ -1402,7 +1519,7 @@
         nextBtn.textContent = `Next: ${next.title}`
         nextBtn.addEventListener('click', () => {
           openLesson(next.id)
-          window.scrollTo({ top: 0, behavior: 'smooth' })
+          scrollToLesson()
         })
         foot.appendChild(nextBtn)
       }
@@ -1599,7 +1716,7 @@
       el('email-save').disabled = false
       if (error) { msg.className = 'msg err'; msg.textContent = error.message; return }
       msg.className = 'msg ok'
-      msg.textContent = 'Check both inboxes — the change lands once the links are clicked.'
+      msg.textContent = 'Check both inboxes. The change lands once the links are clicked.'
       el('new-email').value = ''
     })
 
@@ -1916,7 +2033,7 @@
         const foot = document.createElement('div'); foot.className = 'lesson-foot'
         const go = document.createElement('button'); go.className = 'btn'
         go.textContent = done ? 'Continue' : 'Start the course'
-        go.addEventListener('click', () => { showView('course'); openLesson(nextUp.id) })
+        go.addEventListener('click', () => { showView('course'); openLesson(nextUp.id); scrollToLesson(false) })
         foot.appendChild(go)
         cont.appendChild(foot)
       }
@@ -1969,6 +2086,17 @@
       el('members-upsell').hidden = state.hasCourse
       if (!state.hasCourse) showView('members')
 
+      await fetchAndRender()
+    }
+
+    /**
+     * Paint skeletons into every data seat, fetch everything, render. Used by
+     * the first load AND by pull-to-refresh, so a refresh looks exactly like a
+     * fresh open: every pane goes back to its skeleton until its data lands.
+     * The lesson / recap you were reading is re-opened if it still exists.
+     */
+    async function fetchAndRender() {
+      const keepLesson = state.currentId, keepRecap = state.currentRecap
       paintSkeletons()
 
       // These come back filtered by RLS: without an active entitlement the
@@ -1994,15 +2122,70 @@
 
       renderIndex()
       renderRecapList()
-      if (state.recaps[0]) openRecap(state.recaps[0].id)
+      const recap = state.recaps.find((r) => r.id === keepRecap) ?? state.recaps[0]
+      if (recap) openRecap(recap.id)
       renderOverview()
 
-      const first = orderedLessons()[0]
-      if (first) {
-        openLesson(first.id)
+      const lesson = state.lessons.find((l) => l.id === keepLesson) ?? orderedLessons()[0]
+      if (lesson) {
+        openLesson(lesson.id)
       } else {
         el('lesson').innerHTML = '<p class="empty">No lessons published yet.</p>'
       }
+    }
+
+    /* ── pull to refresh (touch only) ──
+       Finger down at the very top of the page, drag down past the threshold,
+       let go: the disc spins, every pane drops back to its skeleton, data
+       refetches, the disc tucks away. Under threshold it just snaps back.
+       Ignored while the drawer is open, while typing, or mid-refresh. */
+    {
+      const ptr = el('ptr'), THRESH = 72, MAXPULL = 120
+      let startY = 0, pulling = false, armed = false, busy = false
+      const setPull = (d) => {
+        const eased = Math.min(MAXPULL, d * 0.55)
+        ptr.style.transform = `translateY(${eased - 46}px)`
+        ptr.style.opacity = String(Math.min(1, d / 40))
+        const nowArmed = d >= THRESH
+        if (nowArmed !== armed) { armed = nowArmed; document.body.classList.toggle('ptr-armed', armed) }
+      }
+      const reset = () => {
+        pulling = false; armed = false
+        document.body.classList.remove('ptr-pulling', 'ptr-armed')
+        ptr.style.transform = ''; ptr.style.opacity = ''
+      }
+      const canStart = () =>
+        !busy && window.scrollY <= 0 && el('app').classList.contains('on') &&
+        !el('app').classList.contains('nav-open') &&
+        !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')
+      document.addEventListener('touchstart', (e) => {
+        if (!canStart() || e.touches.length !== 1) return
+        startY = e.touches[0].clientY; pulling = true
+      }, { passive: true })
+      document.addEventListener('touchmove', (e) => {
+        if (!pulling) return
+        const d = e.touches[0].clientY - startY
+        if (d <= 0 || window.scrollY > 0) { if (document.body.classList.contains('ptr-pulling')) reset(); else pulling = false; return }
+        document.body.classList.add('ptr-pulling')
+        setPull(d)
+      }, { passive: true })
+      const finish = async () => {
+        if (!pulling) return
+        const fire = armed
+        reset()
+        if (!fire) return
+        busy = true
+        document.documentElement.style.setProperty('--ptr-rest', `${Math.round(document.querySelector('.topbar').getBoundingClientRect().height + 12)}px`)
+        document.body.classList.add('ptr-busy')
+        const started = Date.now()
+        try { await fetchAndRender() } catch (err) { console.warn('refresh failed', err) }
+        // hold the spinner long enough to read as "it did something"
+        await new Promise((r) => setTimeout(r, Math.max(0, 650 - (Date.now() - started))))
+        document.body.classList.remove('ptr-busy')
+        busy = false
+      }
+      document.addEventListener('touchend', finish, { passive: true })
+      document.addEventListener('touchcancel', reset, { passive: true })
     }
 
     async function boot() {
