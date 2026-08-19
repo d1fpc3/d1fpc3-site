@@ -48,6 +48,12 @@ const session = await (await fetch(`${SB}/auth/v1/verify`, {
   body: JSON.stringify({ type: "magiclink", token_hash: link.hashed_token }),
 })).json();
 if (!session.access_token) throw new Error("verify failed: " + JSON.stringify(session).slice(0, 200));
+// Seed a completed course_intake so the adaptive gate does not intercept the
+// course/lesson checks below (the intake flow has its own harness).
+await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
+  method: "POST", headers: { Authorization: `Bearer ${mgmt}`, "Content-Type": "application/json" },
+  body: JSON.stringify({ query: `insert into course_intake (user_id, answers, completed_at) select id, '{}'::jsonb, now() from auth.users where email = '${email.replace(/'/g, "''")}' on conflict (user_id) do update set completed_at = now()` }),
+});
 console.log(`session minted for ${email}`);
 
 // ── browser ─────────────────────────────────────────────────────

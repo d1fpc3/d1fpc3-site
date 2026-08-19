@@ -386,6 +386,79 @@
       width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: 0.5;
     }
 
+    /* ── adaptive intake ─────────────────────────────────────── */
+
+    .course-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      margin-bottom: 16px;
+    }
+    .course-head .ch-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .course-head .ch-note { font-size: 12.5px; color: var(--faint); }
+
+    .intake { max-width: 640px; margin: 0 auto; }
+    .intake-card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+      padding: clamp(22px, 4vw, 34px); animation: fade 0.25s ease;
+    }
+    .intake .eyebrow { color: var(--gold); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
+    .intake .dots { display: flex; gap: 6px; margin: 16px 0 0; }
+    .intake .dots i {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--line-bright);
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .intake .dots i.on { background: var(--gold); }
+    .intake .dots i.past { background: rgba(201,162,74,0.45); }
+    .intake .q {
+      font-size: clamp(20px, 3.4vw, 26px); font-weight: 700; letter-spacing: -0.02em;
+      line-height: 1.2; margin-top: 18px;
+    }
+    .intake .q-sub { margin-top: 10px; color: var(--muted); font-size: 13.5px; }
+    .intake .choices { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+    .intake .choice {
+      flex: 1 1 200px; min-height: 52px; padding: 14px 16px; text-align: left;
+      background: var(--panel-2); border: 1px solid var(--line-bright); border-radius: 12px;
+      color: var(--ink); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .intake .choice small { font-weight: 400; font-size: 12px; color: var(--faint); }
+    .intake .choice:hover { border-color: var(--gold); }
+    .intake .choice:active { transform: translateY(1px); }
+    .intake .choice.yes:hover { border-color: var(--good); }
+    .intake .explain {
+      margin-top: 20px; border-top: 1px solid var(--line); padding-top: 18px; animation: fade 0.2s ease;
+    }
+    .intake .explain .tag {
+      display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+      color: var(--gold); background: rgba(201,162,74,0.1); border: 1px solid rgba(201,162,74,0.25);
+      border-radius: 6px; padding: 2px 8px; margin-bottom: 12px;
+    }
+    .intake .explain .prose { margin-top: 0; }
+    .intake .foot { display: flex; align-items: center; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+    .intake .skip {
+      background: none; border: 0; color: var(--faint); font-family: inherit; font-size: 12.5px;
+      cursor: pointer; padding: 6px 2px; margin-left: auto;
+    }
+    .intake .skip:hover { color: var(--muted); }
+    .intake .summary-list { margin: 18px 0 6px; display: flex; flex-direction: column; gap: 8px; }
+    .intake .summary-row {
+      display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--muted);
+      padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+    }
+    .intake .summary-row .s-ic { width: 16px; height: 16px; flex-shrink: 0; }
+    .intake .summary-row.review .s-ic { color: var(--gold); }
+    .intake .summary-row.known .s-ic { color: var(--good); }
+    .intake .summary-row b { color: var(--ink); font-weight: 600; }
+
+    /* adaptive chips on the TOC */
+    .toc button .chip {
+      margin-left: 8px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; border-radius: 5px; padding: 1px 5px; vertical-align: middle;
+    }
+    .toc button .chip.rec { color: var(--gold); background: rgba(201,162,74,0.12); }
+    .toc button.known-lesson { color: var(--faint); }
+    .toc button .chip.known { color: var(--good); background: rgba(134,181,127,0.12); }
+
     .lesson-pane { padding: clamp(18px, 3vw, 28px); }
     .lesson-kind { color: var(--gold); }
     .lesson-h { font-size: clamp(21px, 3.5vw, 27px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-top: 10px; }
@@ -720,6 +793,17 @@
 
         <!-- COURSE -->
         <section class="view" id="v-course">
+          <!-- adaptive intake: shown until the member finishes the starting-point check -->
+          <div class="intake" id="intake" hidden></div>
+
+          <div class="course-head" id="course-head" hidden>
+            <div class="ch-meta">
+              <span class="label">Your path</span>
+              <span class="ch-note" id="ch-note"></span>
+            </div>
+            <button type="button" class="rowbtn" id="intake-redo">Adjust starting point</button>
+          </div>
+
           <div class="course-grid" id="course-grid">
             <!-- phones: the 41-item index folds behind this bar so the lesson is what you land on -->
             <button type="button" class="toc-toggle" id="toc-toggle" aria-expanded="false" aria-controls="index">
@@ -910,7 +994,7 @@
     const state = {
       user: null, isAdmin: false, hasCourse: false, profile: null,
       modules: [], lessons: [], done: new Set(), currentId: null,
-      recaps: [], currentRecap: null, members: [],
+      recaps: [], currentRecap: null, members: [], intake: null,
     }
 
     const whenDay = (d) => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) }
@@ -1196,6 +1280,238 @@
       return state.modules.flatMap((m) => state.lessons.filter((l) => l.module_id === m.id))
     }
 
+    /* ── adaptive intake: the starting-point check ────────────────
+       On first entry to the course a member answers a short yes/no per
+       foundational concept. "No" reveals a tight explainer on the spot; the
+       matching lesson then gets a "Start here" chip and the course opens to it.
+       "Yes" marks the concept known (a muted "Known" chip). Answers persist in
+       course_intake and can be redone. Each concept points at ONE primary
+       lesson (by slug) so the chips stay uncluttered. */
+    const INTAKE = [
+      {
+        key: 'liquidity', lesson: 'the-three-windows',
+        q: 'Do you understand what liquidity is?',
+        sub: 'Where resting orders sit, and why price is pulled toward them.',
+        explain: `
+**Liquidity is resting orders.** Anywhere a lot of orders are waiting to be filled, there is liquidity, and orders always cluster just above obvious highs and just below obvious lows, because that is where stop losses and breakout orders sit.
+
+Above a high is a pool of buy orders. Below a low is a pool of sell orders. A large trader cannot get filled without them, so price is pulled toward the pools: it runs a low, triggers the sells, absorbs them, and reverses. From outside it looks like the low "failed and bounced." It was a fill.
+
+So the market moves from one pool to the next. Learn to mark the obvious ones, the prior day high and low, the Asia range, equal highs and lows, and you already know where price is likely headed.`,
+      },
+      {
+        key: 'smart-money', lesson: 'smart-money',
+        q: 'Do you understand what smart money is doing?',
+        sub: 'Who is on the other side of your orders, and what they need from you.',
+        explain: `
+**Smart money is size that cannot get filled without liquidity.** Institutions and algorithms working large orders need a lot of traders doing the opposite thing at the same moment, and the cleanest place to find that is a cluster of stops past an obvious level.
+
+So they run the level. Push price into the pool, trigger the orders, absorb them, reverse. What looks like a stop hunt is just a large player taking the fill they need.
+
+Two consequences: the obvious trade is usually the trap, because obvious is where the orders are, and the sweep, not the reaction, is the signal. You want your orders where theirs are, not where the crowd's are.`,
+      },
+      {
+        key: 'inducement', lesson: 'what-inducement-is',
+        q: 'Do you understand how the market induces you (inducement)?',
+        sub: 'The pullback or break that creates the crowd it is about to trap.',
+        explain: `
+**Inducement is any move that creates orders in the place the market intends to trade through.** Usually it is a pullback: the market makes a high, dips, shows a clean "buy the dip," lets people buy it, and now there are stops under the dip to go and take.
+
+The dip was the inducement. The stops are the liquidity. The sweep of them is the fill. It happens on every timeframe, all day, because it is how size gets filled.
+
+In this course the first pullback after a new high is "the IDM", and its sweep is what confirms the move. Once you expect the obvious pullback to be swept, you stop being surprised when it is, and you start planning around it.`,
+      },
+      {
+        key: 'structure', lesson: 'bos-and-choch',
+        q: 'Can you read market structure (BoS and CHoCH)?',
+        sub: 'Break of Structure is continuation. Change of Character is a flip.',
+        explain: `
+**Structure only ever continues or flips, and each has a test.** A **Break of Structure (BoS)** is a body close through the last confirmed swing: the trend is continuing. A **Change of Character (CHoCH)** is a body close through the protected swing on the other side: the trend is over.
+
+Two words carry it. **Body close**, not a wick, or it is a sweep, not a break. And **confirmed**: a high is not a real high until the pullback under it (its inducement) has been swept first.
+
+Get those and the chart reads the same way every time: a leg makes an extreme, its first pullback is the inducement, the sweep confirms the extreme, and a body close through it is the break.`,
+      },
+      {
+        key: 'order-blocks', lesson: 'what-an-order-block-is',
+        q: 'Do you know what an order block and mitigation are?',
+        sub: 'The candle where size filled, and what happens when price returns to it.',
+        explain: `
+**An order block is the last opposite candle before an impulsive move**, the last down candle before price delivered up, or the last up candle before it delivered down. That is where the size that drove the move filled, and large orders rarely fill completely on the first pass, so price comes back for the rest.
+
+That return is **mitigation**, and the first touch of the block is the entry: stop just beyond it (if the block fails, the reason is gone), target at the next pool.
+
+A valid block took liquidity and left an imbalance in front of it. Not every red candle is a block, and one price already traded back through is spent.`,
+      },
+      {
+        key: 'po3', lesson: 'po3-and-the-cycle',
+        q: 'Do you understand Power of Three (PO3)?',
+        sub: 'Accumulation, manipulation, distribution, the shape of a candle.',
+        explain: `
+**Power of Three is what a higher timeframe candle does:** it opens and accumulates, pushes against its eventual direction to manipulate one side, then distributes to the other side and closes. Accumulation, manipulation, distribution.
+
+That is the same cycle this course teaches, described per candle. Build-up is accumulation, the inducement is manipulation, the expansion is distribution, the return before the close is mitigation.
+
+Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side of the open gets taken first, then the other side is the delivery. It frames which leg of the bigger candle you are trading, and tells you when the real move has not started yet.`,
+      },
+    ]
+    const CONCEPT_BY_LESSON = Object.fromEntries(INTAKE.map((c) => [c.lesson, c.key]))
+
+    function conceptVerdictForLesson(slug) {
+      const key = CONCEPT_BY_LESSON[slug]
+      if (!key || !state.intake?.completed_at) return null
+      return state.intake.answers?.[key] ?? null   // 'review' | 'known' | null
+    }
+    function firstRecommendedLesson() {
+      if (!state.intake?.completed_at) return null
+      return orderedLessons().find((l) => conceptVerdictForLesson(l.slug) === 'review' && !state.done.has(l.id)) ?? null
+    }
+
+    async function saveIntake(answers, completed) {
+      const payload = { user_id: state.user.id, answers, completed_at: completed ? new Date().toISOString() : null }
+      const { error } = await supabase.from('course_intake').upsert(payload, { onConflict: 'user_id' })
+      if (!error) state.intake = { answers, completed_at: payload.completed_at }
+      return !error
+    }
+
+    /** Show / hide the intake vs the course grid based on completion. */
+    function applyIntakeGate() {
+      const intakeDone = !!state.intake?.completed_at
+      el('intake').hidden = intakeDone
+      el('course-grid').hidden = !intakeDone
+      el('course-head').hidden = !intakeDone
+      if (intakeDone) {
+        const vals = INTAKE.map((c) => state.intake.answers?.[c.key])
+        const review = vals.filter((v) => v === 'review').length
+        const known = vals.filter((v) => v === 'known').length
+        el('ch-note').textContent = review
+          ? `${review} to review first, ${known} you already know`
+          : 'You know the fundamentals. Straight into the setups.'
+      } else {
+        renderIntake()
+      }
+    }
+
+    let intakeDraft = null
+    function renderIntake(seed) {
+      intakeDraft = seed ?? { ...(state.intake?.answers ?? {}) }
+      const firstUnanswered = INTAKE.findIndex((c) => !(c.key in intakeDraft))
+      renderIntakeStep(firstUnanswered < 0 ? INTAKE.length : firstUnanswered)
+    }
+
+    function renderIntakeStep(i) {
+      const host = el('intake'); host.textContent = ''
+      if (i >= INTAKE.length) return renderIntakeSummary()
+
+      const c = INTAKE[i]
+      const card = document.createElement('div'); card.className = 'intake-card'
+
+      const eyebrow = document.createElement('div'); eyebrow.className = 'eyebrow'
+      eyebrow.textContent = i === 0 ? 'Before you start' : 'Starting point'
+      card.appendChild(eyebrow)
+
+      const dots = document.createElement('div'); dots.className = 'dots'
+      INTAKE.forEach((_, k) => { const d = document.createElement('i'); d.className = k === i ? 'on' : (k < i ? 'past' : ''); dots.appendChild(d) })
+      card.appendChild(dots)
+
+      const q = document.createElement('div'); q.className = 'q'; q.textContent = c.q; card.appendChild(q)
+      const sub = document.createElement('div'); sub.className = 'q-sub'; sub.textContent = c.sub; card.appendChild(sub)
+
+      const choices = document.createElement('div'); choices.className = 'choices'
+      const yes = document.createElement('button'); yes.className = 'choice yes'
+      yes.innerHTML = '<span>Yes, I have this</span><small>Skip straight past it</small>'
+      const no = document.createElement('button'); no.className = 'choice'
+      no.innerHTML = '<span>Not really</span><small>Give me the quick version</small>'
+      choices.append(yes, no); card.appendChild(choices)
+
+      yes.addEventListener('click', () => { intakeDraft[c.key] = 'known'; renderIntakeStep(i + 1) })
+      no.addEventListener('click', () => {
+        intakeDraft[c.key] = 'review'
+        choices.remove()
+        const ex = document.createElement('div'); ex.className = 'explain'
+        const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = 'The quick version'
+        const prose = document.createElement('div'); prose.className = 'prose'
+        renderProse(prose, c.explain.trim())
+        ex.append(tag, prose)
+        const foot = document.createElement('div'); foot.className = 'foot'
+        const cont = document.createElement('button'); cont.className = 'btn'
+        cont.textContent = i + 1 >= INTAKE.length ? 'Finish' : 'Got it, continue'
+        cont.addEventListener('click', () => renderIntakeStep(i + 1))
+        foot.appendChild(cont)
+        ex.appendChild(foot)
+        card.appendChild(ex)
+      })
+
+      const foot = document.createElement('div'); foot.className = 'foot'
+      const skip = document.createElement('button'); skip.className = 'skip'; skip.textContent = 'Skip, I know the basics'
+      skip.addEventListener('click', () => {
+        for (const cc of INTAKE) if (!(cc.key in intakeDraft)) intakeDraft[cc.key] = 'known'
+        renderIntakeSummary()
+      })
+      foot.appendChild(skip); card.appendChild(foot)
+
+      host.appendChild(card)
+      host.scrollIntoView({ block: 'nearest' })
+    }
+
+    function renderIntakeSummary() {
+      const host = el('intake'); host.textContent = ''
+      const card = document.createElement('div'); card.className = 'intake-card'
+
+      const eyebrow = document.createElement('div'); eyebrow.className = 'eyebrow'; eyebrow.textContent = 'Your path'
+      card.appendChild(eyebrow)
+      const review = INTAKE.filter((c) => intakeDraft[c.key] === 'review')
+      const q = document.createElement('div'); q.className = 'q'
+      q.textContent = review.length ? 'Here is where to start' : 'You are set'
+      card.appendChild(q)
+      const sub = document.createElement('div'); sub.className = 'q-sub'
+      sub.textContent = review.length
+        ? 'We will open the course at the first topic to review and mark it on the way through. The rest is there whenever you want it.'
+        : 'You told us you know the fundamentals, so we will drop you straight into the lessons. Redo this any time.'
+      card.appendChild(sub)
+
+      const list = document.createElement('div'); list.className = 'summary-list'
+      const icon = (rev) => rev
+        ? '<svg class="s-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12l7 7 7-7"/></svg>'
+        : '<svg class="s-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>'
+      for (const c of INTAKE) {
+        const rev = intakeDraft[c.key] === 'review'
+        const row = document.createElement('div'); row.className = `summary-row ${rev ? 'review' : 'known'}`
+        row.innerHTML = icon(rev)
+        const txt = document.createElement('span')
+        const b = document.createElement('b'); b.textContent = c.q.replace(/^(Do you understand|Can you read|Do you know) /, '').replace(/\?$/, '')
+        txt.append(rev ? 'Review: ' : 'Known: ', b)
+        row.appendChild(txt)
+        list.appendChild(row)
+      }
+      card.appendChild(list)
+
+      const foot = document.createElement('div'); foot.className = 'foot'
+      const enter = document.createElement('button'); enter.className = 'btn'; enter.textContent = 'Enter the course'
+      enter.addEventListener('click', async () => {
+        enter.disabled = true; enter.textContent = 'Saving...'
+        await saveIntake(intakeDraft, true)
+        renderIndex()
+        applyIntakeGate()
+        const rec = firstRecommendedLesson() ?? orderedLessons()[0]
+        if (rec) { openLesson(rec.id); if (isPhone()) scrollToLesson(false) }
+      })
+      const back = document.createElement('button'); back.className = 'rowbtn'; back.textContent = 'Back'
+      back.addEventListener('click', () => renderIntakeStep(INTAKE.length - 1))
+      foot.append(enter, back); card.appendChild(foot)
+
+      host.appendChild(card)
+      host.scrollIntoView({ block: 'nearest' })
+    }
+
+    el('intake-redo').addEventListener('click', () => {
+      el('course-grid').hidden = true
+      el('course-head').hidden = true
+      el('intake').hidden = false
+      renderIntake({})
+      el('intake').scrollIntoView({ block: 'start', behavior: 'smooth' })
+    })
+
     /* ── phone index bar: folds the TOC, names the current lesson ── */
     const isPhone = () => matchMedia('(max-width: 860px)').matches
     el('toc-toggle').addEventListener('click', () => {
@@ -1246,6 +1562,18 @@
             btn.setAttribute('aria-current', 'true')
           }
           btn.textContent = lesson.title
+
+          // Adaptive chips: concepts the member flagged to review get "Start here",
+          // ones they said they know get a muted "Known" (only before completion).
+          const verdict = conceptVerdictForLesson(lesson.slug)
+          if (verdict === 'review' && !state.done.has(lesson.id)) {
+            const chip = document.createElement('span'); chip.className = 'chip rec'; chip.textContent = 'Start here'
+            btn.appendChild(chip)
+          } else if (verdict === 'known' && !state.done.has(lesson.id)) {
+            btn.classList.add('known-lesson')
+            const chip = document.createElement('span'); chip.className = 'chip known'; chip.textContent = 'Known'
+            btn.appendChild(chip)
+          }
 
           if (state.done.has(lesson.id)) {
             const dot = document.createElement('span')
@@ -2102,11 +2430,12 @@
       // These come back filtered by RLS: without an active entitlement the
       // modules query is simply empty, and trade recaps arrive published-only
       // for members. The directory shows usernames and bios, never emails.
-      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }] = await Promise.all([
+      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: intake }] = await Promise.all([
         supabase.from('modules').select('id, title, position').order('position'),
-        supabase.from('lessons').select('id, module_id, title, summary, kind, body_md, blocks, position').order('position'),
+        supabase.from('lessons').select('id, module_id, slug, title, summary, kind, body_md, blocks, position').order('position'),
         supabase.from('progress').select('lesson_id, completed_at'),
         supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published').order('recap_date', { ascending: false }),
+        supabase.from('course_intake').select('answers, completed_at').maybeSingle(),
         ensureProfile().then(() => loadMembers()),
       ])
 
@@ -2114,6 +2443,7 @@
       state.lessons = lessons ?? []
       state.done = new Set((progress ?? []).filter((p) => p.completed_at).map((p) => p.lesson_id))
       state.recaps = recaps ?? []
+      state.intake = intake ?? null
 
       renderSidebarUser()
       fillSettings()
@@ -2126,12 +2456,15 @@
       if (recap) openRecap(recap.id)
       renderOverview()
 
-      const lesson = state.lessons.find((l) => l.id === keepLesson) ?? orderedLessons()[0]
+      const lesson = state.lessons.find((l) => l.id === keepLesson) ?? firstRecommendedLesson() ?? orderedLessons()[0]
       if (lesson) {
         openLesson(lesson.id)
       } else {
         el('lesson').innerHTML = '<p class="empty">No lessons published yet.</p>'
       }
+
+      // Adaptive: gate the course behind the starting-point check until it is done.
+      applyIntakeGate()
     }
 
     /* ── pull to refresh (touch only) ──
