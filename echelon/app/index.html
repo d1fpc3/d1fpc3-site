@@ -40,6 +40,7 @@
       --bad: #d98b7a;
       --good: #86b57f;
       --sidebar: 244px;
+      --rail: 68px;
     }
 
     /* light theme: same bones, paper palette. The sign-in gate stays dark
@@ -148,19 +149,27 @@
     /* ════ APP SHELL (identical to admin) ════════════════════ */
 
     .app { display: none; min-height: 100dvh; }
-    .app.on { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); }
+    /* desktop: the sidebar rests as a 68px icon rail and expands OVER the
+       content on hover / keyboard focus (see .side.open), so the page never
+       reflows. The grid column stays at rail width; the aside overflows it. */
+    .app.on { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); }
 
     .side {
       background: var(--panel);
       border-right: 1px solid var(--line);
       display: flex; flex-direction: column;
       position: sticky; top: 0; height: 100dvh;
+      width: var(--rail); z-index: 30; overflow: hidden;
+      transition: width 0.2s ease, box-shadow 0.2s ease;
     }
+    .side.open { width: var(--sidebar); box-shadow: 18px 0 40px rgba(0,0,0,0.35); }
+    :root[data-theme="light"] .side.open { box-shadow: 18px 0 40px rgba(0,0,0,0.12); }
 
     .side-brand {
       display: flex; align-items: center; gap: 10px;
       padding: 20px 20px 18px;
       font-weight: 700; font-size: 16px; letter-spacing: -0.02em;
+      white-space: nowrap;
     }
     .side-brand small {
       font-size: 9.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
@@ -190,24 +199,23 @@
     }
     .tab.on .count { background: rgba(201,162,74,0.14); color: var(--gold); }
 
-    /* collapsible rail: icons only, choice remembered */
-    .side-collapse {
-      background: none; border: 0; color: var(--faint); cursor: pointer; padding: 4px;
-      border-radius: 6px; display: flex; margin-left: 6px;
-      transition: color 0.15s ease, background 0.15s ease, transform 0.25s ease;
+    /* the resting rail: icons only. Expanded (.side.open) is the plain layout above. */
+    .side-brand .brand-mark {
+      width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+      display: none; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; letter-spacing: -0.03em; color: #1a1207;
+      background: linear-gradient(140deg, var(--gold), var(--gold-deep));
     }
-    .side-collapse:hover { color: var(--ink); background: var(--panel-2); }
-    .side-collapse svg { width: 16px; height: 16px; }
-    .app.rail { grid-template-columns: 68px minmax(0, 1fr); }
-    .rail .side-brand { padding: 20px 10px 18px; justify-content: center; }
-    .rail .brand-name, .rail .side-brand small { display: none; }
-    .rail .side-collapse { margin-left: 0; transform: rotate(180deg); }
-    .rail .side-cap { display: none; }
-    .rail .side-nav { padding: 8px 10px; }
-    .rail .tab { font-size: 0; gap: 0; justify-content: center; padding: 11px; }
-    .rail .tab .count { display: none; }
-    .rail .side-user { flex-direction: column; padding: 10px 6px; gap: 8px; }
-    .rail .side-user .u-meta { display: none; }
+    .side:not(.open) .side-brand { padding: 18px 0 16px; justify-content: center; }
+    .side:not(.open) .side-brand .brand-mark { display: flex; }
+    .side:not(.open) .brand-name, .side:not(.open) .side-brand small { display: none; }
+    .side:not(.open) .side-cap { display: none; }
+    .side:not(.open) .side-nav { padding: 8px 10px; }
+    .side:not(.open) .tab { font-size: 0; gap: 0; justify-content: center; padding: 11px; }
+    .side:not(.open) .tab .count { display: none; }
+    .side:not(.open) .side-user { flex-direction: column; padding: 10px 6px; gap: 8px; }
+    .side:not(.open) .side-user .u-meta { display: none; }
+    .tab { white-space: nowrap; }
 
     /* theme switch (lives in Settings) */
     .tgl { position: relative; display: inline-block; width: 54px; height: 31px; }
@@ -410,7 +418,7 @@
     @media (max-width: 840px) {
       .app.on { display: block; }
       .menu-btn { display: flex; }
-      .side {
+      .side, .side.open {
         position: fixed; top: 0; bottom: 0; left: 0; width: min(300px, 84vw); z-index: 60;
         transform: translateX(-100%); transition: transform 0.25s ease;
         box-shadow: 0 0 60px rgba(0,0,0,0.55);
@@ -418,15 +426,16 @@
       .nav-open .side { transform: translateX(0); }
       .nav-open .scrim { opacity: 1; pointer-events: auto; }
       .block-head { flex-wrap: wrap; }
-      /* the drawer always shows full labels, whatever the desktop rail says */
-      .side-collapse { display: none; }
-      .rail .side-brand { padding: 20px 20px 18px; justify-content: flex-start; }
-      .rail .brand-name, .rail .side-brand small { display: inline-block; }
-      .rail .side-nav { padding: 8px 12px; }
-      .rail .tab { font-size: 13.5px; gap: 11px; justify-content: flex-start; padding: 9px 12px; }
-      .rail .tab .count { display: inline-block; }
-      .rail .side-user { flex-direction: row; padding: 12px; gap: 11px; }
-      .rail .side-user .u-meta { display: block; }
+      /* the drawer always shows full labels, whatever the desktop rail is doing */
+      .side:not(.open) .side-brand { padding: 20px 20px 18px; justify-content: flex-start; }
+      .side:not(.open) .side-brand .brand-mark { display: none; }
+      .side:not(.open) .brand-name, .side:not(.open) .side-brand small { display: inline-block; }
+      .side:not(.open) .side-cap { display: block; }
+      .side:not(.open) .side-nav { padding: 8px 12px; }
+      .side:not(.open) .tab { font-size: 13.5px; gap: 11px; justify-content: flex-start; padding: 9px 12px; }
+      .side:not(.open) .tab .count { display: inline-block; }
+      .side:not(.open) .side-user { flex-direction: row; padding: 12px; gap: 11px; }
+      .side:not(.open) .side-user .u-meta { display: block; }
     }
     @media (prefers-reduced-motion: reduce) { .side, .scrim { transition: none; } }
 
@@ -560,10 +569,8 @@
   <div class="app" id="app">
     <aside class="side">
       <div class="side-brand">
+        <span class="brand-mark" aria-hidden="true">E</span>
         <span class="brand-name">Echelon</span> <small>Members</small>
-        <button class="side-collapse" id="side-collapse" title="Collapse sidebar" aria-label="Collapse sidebar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
       </div>
 
       <nav class="side-nav" id="tabs" aria-label="Sections">
@@ -1073,14 +1080,28 @@
     document.querySelectorAll('.side-nav .tab').forEach((t) =>
       t.addEventListener('click', () => el('app').classList.remove('nav-open')))
 
-    /* ── collapsible sidebar ── */
-    const RAIL_KEY = 'echelon-rail'
+    /* ── hover sidebar (desktop) ──
+       Rests as an icon rail; opens while the pointer is over it or a control
+       inside it has keyboard focus, closes when both leave. A short close
+       delay stops it flickering when the pointer skims the edge. On touch
+       screens the <840px drawer takes over and this is inert. */
+    localStorage.removeItem('echelon-rail') // pre-hover preference, no longer read
     document.querySelectorAll('.tab').forEach((t) => { t.title = (t.dataset.title ?? t.textContent).trim() })
-    el('app').classList.toggle('rail', localStorage.getItem(RAIL_KEY) === '1')
-    el('side-collapse').addEventListener('click', () => {
-      const on = el('app').classList.toggle('rail')
-      localStorage.setItem(RAIL_KEY, on ? '1' : '')
-    })
+    {
+      const side = document.querySelector('.side')
+      let closeT = 0, hovered = false
+      const open = () => { clearTimeout(closeT); side.classList.add('open') }
+      const close = () => {
+        clearTimeout(closeT)
+        closeT = setTimeout(() => { if (!hovered && !side.contains(document.activeElement)) side.classList.remove('open') }, 160)
+      }
+      side.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hovered = true; open() } })
+      side.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { hovered = false; close() } })
+      side.addEventListener('focusin', open)
+      side.addEventListener('focusout', close)
+      // a tab click moves focus into the content; let the rail fold back
+      side.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => { if (!hovered) close() }))
+    }
 
     // ── content ─────────────────────────────────────────────
 
