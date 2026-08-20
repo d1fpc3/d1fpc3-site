@@ -1236,6 +1236,8 @@
     function showView(view) {
       tabs.forEach((t) => t.classList.toggle('on', t.dataset.view === view))
       document.querySelectorAll('.view').forEach((v) => v.classList.toggle('on', v.id === `v-${view}`))
+      // a view left behind must not keep narrating in the background
+      document.querySelectorAll('.view:not(.on) video').forEach((v) => v.pause())
       const tab = tabs.find((t) => t.dataset.view === view)
       el('pane-title').textContent = tab.dataset.title
       el('pane-crumb').textContent = tab.dataset.crumb
@@ -1268,8 +1270,19 @@
       side.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { hovered = false; close() } })
       side.addEventListener('focusin', open)
       side.addEventListener('focusout', close)
-      // a tab click moves focus into the content; let the rail fold back
-      side.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => { if (!hovered) close() }))
+      // A click leaves focus ON the tab button, which the close guard reads as
+      // "keyboard user, hold open" — so blur it, then fold as soon as the
+      // pointer is gone. Keyboard activation (Enter) keeps focus behavior via
+      // focusin/focusout alone.
+      side.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
+        t.blur()
+        if (!hovered) close()
+      }))
+      // Belt and braces: the pointer showing up over the content means the
+      // rail was left behind (a missed pointerleave, an edge flick) — fold it.
+      document.querySelector('.pane').addEventListener('pointerenter', (e) => {
+        if (e.pointerType === 'mouse') { hovered = false; close() }
+      })
     }
 
     // ── content ─────────────────────────────────────────────
