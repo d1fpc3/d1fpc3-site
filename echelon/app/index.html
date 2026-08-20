@@ -994,7 +994,7 @@
     const state = {
       user: null, isAdmin: false, hasCourse: false, profile: null,
       modules: [], lessons: [], done: new Set(), currentId: null,
-      recaps: [], currentRecap: null, members: [], intake: null,
+      recaps: [], currentRecap: null, members: [], intake: null, owned: new Set(),
     }
 
     const whenDay = (d) => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) }
@@ -2529,13 +2529,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       // Paid, or runs the place, or free tier. Admins get in without a
       // purchase row; free members get the community and an upgrade path.
-      const [{ data: ent }, { data: isAdmin }] = await Promise.all([
-        supabase.from('entitlements').select('status').eq('status', 'active').maybeSingle(),
+      // Entitlements are now per-product (course + indicators), so read them
+      // all rather than a single row.
+      const [{ data: ents }, { data: isAdmin }] = await Promise.all([
+        supabase.from('entitlements').select('product, status, interval').eq('status', 'active'),
         supabase.rpc('is_admin'),
       ])
 
       state.isAdmin = !!isAdmin
-      state.hasCourse = !!ent || !!isAdmin
+      state.owned = new Set((ents ?? []).map((e) => e.product))
+      state.hasCourse = state.owned.has('course') || !!isAdmin
       await loadCourse()
     }
 
