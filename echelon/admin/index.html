@@ -419,6 +419,9 @@
     .gex-read .v.pos { color: var(--good); } .gex-read .v.neg { color: var(--bad); }
     .gex-read .d { font-size: 11.5px; color: var(--faint); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     @media (max-width: 900px) { .gex-read { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; } .gex-read > div:nth-child(2) { border-right: 0; } }
+    .gex-regime { border-top: 1px solid var(--line); margin: -6px 0 24px; padding-top: 12px; font-size: 13px; line-height: 1.6; color: var(--muted); max-width: 880px; }
+    .gex-regime b { font-weight: 600; }
+    .gex-regime b.neg { color: var(--bad); } .gex-regime b.pos { color: var(--good); } .gex-regime b.mix { color: var(--gold); }
 
     /* text segmented toggle: ink + gold underline for the active choice, nothing boxed */
     .seg { display: inline-flex; gap: 2px; align-items: center; }
@@ -905,6 +908,7 @@
         <!-- GEX -->
         <section class="view" id="v-gex">
           <div class="gex-read" id="gex-read"></div>
+          <div class="gex-regime" id="gex-regime" hidden></div>
 
           <div class="gex-grid" id="gex-grid">
           <div class="block">
@@ -2322,10 +2326,40 @@
       fig('Swing net GEX', s ? fmtM(s.netGexM) : '—', s && s.netGexM >= 0 ? 'pos' : 'neg', s ? `${s.expiries} expiries out to 60d` : 'no swing horizon')
       fig('QQQ spot', d.spot.toFixed(2), '', d.marketOpen ? 'market open · CBOE ~15 min delayed' : 'market closed · last snapshot')
       fig('NQ', Math.round(d.nq).toLocaleString(), '', `= QQQ × ${d.conversion.divisor} + ${d.conversion.basis} (as of ${d.conversion.asOf ?? '—'})`)
+      renderRegime(d)
       el('gex-stamp').textContent = `Updated ${etStamp(d.generatedAt)}`
       renderGexTable()
       syncGexControls()
       drawGex()
+    }
+
+    /* the plain-English line under the figures: is gamma negative or positive,
+       what that means for how price behaves today, and where the guardrails sit */
+    function renderRegime(d) {
+      const rg = el('gex-regime')
+      const z = d.zdte.netGexM, s = d.swing ? d.swing.netGexM : null
+      const nqOf = (lvl) => lvl ? Math.round(lvl.nq ?? gexNQ(lvl.qqq)).toLocaleString() : null
+      const call = nqOf(d.zdte.callWall), put = nqOf(d.zdte.putWall)
+      const lead = (cls, txt) => `<b class="${cls}">${txt}</b>`
+      let msg
+      if (z < 0 && (s == null || s < 0)) {
+        msg = `${lead('neg', 'Negative gamma')} — dealers hedge in the same direction as price, so moves get amplified. Expect expansion: breaks keep going, bounces are sharp but short-lived, and fading a move means fighting the hedging flow.`
+        if (put) msg += ` The put wall at ${put} is the downside magnet${call ? `; the call wall at ${call} is the ceiling` : ''}.`
+      } else if (z >= 0 && (s == null || s >= 0)) {
+        msg = `${lead('pos', 'Positive gamma')} — dealers hedge against price, absorbing moves. Expect compression: pushes stall, dips get bought, and price drifts back toward the big strikes.`
+        if (put && call) msg += ` Edges to fade: put wall ${put} below, call wall ${call} above.`
+      } else if (z < 0) {
+        msg = `${lead('mix', 'Mixed')} — negative today, positive further out. Expect whippy intraday swings inside a range that still mean-reverts over the next few days; trust the walls more than the trend.`
+      } else {
+        msg = `${lead('mix', 'Mixed')} — calm today, negative further out. Intraday chop is likely, but multi-day moves can still run; keep an eye on the swing walls.`
+      }
+      const flip = d.zdte.flip
+      if (flip) {
+        const below = d.spot < flip.qqq
+        msg += ` Spot is ${below ? 'below' : 'above'} the flip at ${Math.round(flip.nq ?? gexNQ(flip.qqq)).toLocaleString()} — ${below ? 'the amplifier side; a rally only gets trustworthy once it reclaims that level' : 'the calmer side; moves tend to slow into it'}.`
+      }
+      rg.innerHTML = msg
+      rg.hidden = false
     }
 
     function syncGexControls() {
