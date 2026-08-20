@@ -801,10 +801,12 @@
               <input class="inp" id="recap-date" type="date" style="flex:0 1 170px;min-width:150px;">
             </div>
             <div class="field-row" style="padding-top:0;">
-              <textarea class="inp" id="recap-body" rows="9" style="width:100%;resize:vertical;line-height:1.6;" placeholder="The recap. Blank line between paragraphs; ## for a heading."></textarea>
+              <textarea class="inp" id="recap-body" rows="9" style="width:100%;resize:vertical;line-height:1.6;" placeholder="The recap. Blank line between paragraphs; ## for a heading. Paste or drop a video to attach it."></textarea>
             </div>
             <div class="field-row" style="padding-top:0;">
               <button class="btn" id="recap-save">Save</button>
+              <button class="rowbtn" id="recap-video">Attach video</button>
+              <input type="file" id="recap-video-input" accept="video/*" hidden>
             </div>
             <p class="msg" id="recap-msg"></p>
           </div>
@@ -1796,6 +1798,56 @@
       RECAPS = data ?? []
       renderRecaps()
     }
+
+    /* Videos paste (or drop, or pick) straight into the composer: the file
+       uploads into the private lesson-files bucket under recaps/ and the body
+       carries a [video:path] line the app swaps for a signed player. */
+    let recapUploading = 0
+    async function recapAttachVideo(f) {
+      const body = el('recap-body'), msg = el('recap-msg')
+      if (!f) return
+      if (!f.type.startsWith('video/')) {
+        msg.className = 'msg err'; msg.textContent = 'That is not a video file.'
+        return
+      }
+      const marker = `[uploading ${f.name}…]`
+      const at = body.selectionEnd ?? body.value.length
+      const before = body.value.slice(0, at), after = body.value.slice(at)
+      const pad = before && !before.endsWith('\n') ? '\n\n' : before.endsWith('\n\n') || !before ? '' : '\n'
+      body.value = `${before}${pad}${marker}\n${after}`
+      recapUploading++
+      el('recap-save').disabled = true
+      msg.className = 'msg'; msg.textContent = `Uploading ${f.name} — keep this tab open.`
+      try {
+        const safe = f.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')
+        const path = `recaps/${Date.now()}-${safe}`
+        const { error } = await supabase.storage.from('lesson-files')
+          .upload(path, f, { contentType: f.type || undefined })
+        if (error) throw error
+        body.value = body.value.replace(marker, `[video:${path}]`)
+        msg.className = 'msg ok'; msg.textContent = 'Video attached — members get an inline player. Save when ready.'
+      } catch (err) {
+        body.value = body.value.replace(marker + '\n', '').replace(marker, '')
+        msg.className = 'msg err'; msg.textContent = `Upload failed: ${err.message}`
+      } finally {
+        recapUploading--
+        if (!recapUploading) el('recap-save').disabled = false
+      }
+    }
+    el('recap-body').addEventListener('paste', (e) => {
+      const f = [...(e.clipboardData?.files ?? [])].find((x) => x.type.startsWith('video/'))
+      if (f) { e.preventDefault(); recapAttachVideo(f) }
+    })
+    el('recap-body').addEventListener('dragover', (e) => e.preventDefault())
+    el('recap-body').addEventListener('drop', (e) => {
+      const f = [...(e.dataTransfer?.files ?? [])].find((x) => x.type.startsWith('video/'))
+      if (f) { e.preventDefault(); recapAttachVideo(f) }
+    })
+    el('recap-video').addEventListener('click', () => el('recap-video-input').click())
+    el('recap-video-input').addEventListener('change', () => {
+      recapAttachVideo(el('recap-video-input').files[0])
+      el('recap-video-input').value = ''
+    })
 
     el('recap-new').addEventListener('click', () => recapEditor(null))
     el('recap-save').addEventListener('click', async () => {
