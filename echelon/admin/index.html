@@ -908,6 +908,12 @@
             <div class="tbl-scroll"><table id="chan-table"></table></div>
           </div>
           <div class="block">
+            <div class="block-head"><h3>Access requests</h3><span class="label" id="app-total"></span></div>
+            <p class="settings-note" style="margin:0 0 2px;">People applying for free access at <b>/echelon/apply/</b>. Approving comps the course and creates their account, so their sign-in link works.</p>
+            <div class="tbl-scroll"><table id="app-table"></table></div>
+            <div class="empty" id="app-empty" hidden>No requests yet.</div>
+          </div>
+          <div class="block">
             <div class="block-head"><h3>Moderators</h3><span class="label" id="mod-total"></span></div>
             <p class="settings-note" style="margin:0 0 2px;">Mods can delete any message and post in announcement channels. You are the owner and always can.</p>
             <div class="tbl-scroll"><table id="mod-table"></table></div>
@@ -1543,8 +1549,8 @@
       })
     }
 
-    /* ── community: channels + moderators ── */
-    let cmChannels = [], cmMods = new Set(), cmDir = []
+    /* ── community: channels + moderators + access requests ── */
+    let cmChannels = [], cmMods = new Set(), cmDir = [], cmApps = []
     async function loadCommunity() {
       const [{ data: ch }, { data: mods }, { data: dir }] = await Promise.all([
         supabase.from('channels').select('*').order('position'),
@@ -1553,6 +1559,45 @@
       ])
       cmChannels = ch ?? []; cmMods = new Set((mods ?? []).map((m) => m.user_id)); cmDir = dir ?? []
       renderChannels(); renderMods(); renderModPicker(el('mod-q').value || '')
+      loadApplications()
+    }
+    async function loadApplications() {
+      try { const r = await adminAction({ action: 'app_list' }); cmApps = r.applications ?? [] }
+      catch { cmApps = [] }
+      renderApplications()
+    }
+    function renderApplications() {
+      const pending = cmApps.filter((a) => a.status === 'pending')
+      el('app-total').textContent = pending.length ? String(pending.length) : ''
+      el('app-empty').hidden = cmApps.length > 0
+      table(el('app-table'), ['Applicant', 'How they know D1', 'When', ''], cmApps, (a) => {
+        const tr = document.createElement('tr')
+        const who = document.createElement('td'); who.className = 'ink'
+        const nm = document.createElement('div'); nm.textContent = a.name || a.email; nm.style.fontWeight = '600'
+        const em = document.createElement('div'); em.textContent = a.email; em.style.color = 'var(--faint)'; em.style.fontSize = '12px'
+        who.append(nm, em); tr.appendChild(who)
+        tr.appendChild(cell(a.note || '—'))
+        tr.appendChild(cell(new Date(a.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })))
+        const act = document.createElement('td')
+        if (a.status === 'pending') {
+          const ok = document.createElement('button'); ok.className = 'rowbtn'; ok.textContent = 'Approve'
+          ok.addEventListener('click', async () => {
+            ok.disabled = true
+            try { await adminAction({ action: 'app_approve', id: a.id }); await loadApplications() } catch (e) { alert(e.message); ok.disabled = false }
+          })
+          const no = document.createElement('button'); no.className = 'rowbtn'; no.textContent = 'Deny'; no.style.marginLeft = '6px'
+          no.addEventListener('click', async () => {
+            if (!confirm(`Deny ${a.email}?`)) return
+            no.disabled = true
+            try { await adminAction({ action: 'app_deny', id: a.id }); await loadApplications() } catch (e) { no.disabled = false }
+          })
+          act.append(ok, no)
+        } else {
+          const b = document.createElement('span'); b.className = 'badge ' + (a.status === 'approved' ? 'b-active' : 'b-neutral'); b.textContent = a.status
+          act.appendChild(b)
+        }
+        tr.appendChild(act); return tr
+      })
     }
     function renderChannels() {
       el('chan-total').textContent = cmChannels.length ? String(cmChannels.length) : ''
