@@ -1176,11 +1176,35 @@
     </div>
   </div>
 
+  <style>
+    .co-scrim{position:fixed;inset:0;z-index:200;background:rgba(6,5,4,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+    .co-scrim.on{display:flex}
+    .co-panel{position:relative;width:100%;max-width:480px;background:#fff;border-radius:16px;box-shadow:0 30px 80px -20px rgba(0,0,0,.6);overflow:hidden}
+    .co-top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#0b0a09;color:#f2ede3}
+    .co-top b{font-size:13px;letter-spacing:.06em;text-transform:uppercase;font-weight:650}
+    .co-x{background:none;border:0;color:#c9c0b2;font-size:22px;line-height:1;cursor:pointer;padding:2px 6px}
+    .co-x:hover{color:#fff}
+    .co-mount{min-height:320px}
+    .co-loading{padding:60px 20px;text-align:center;color:#6f675d;font-size:14px}
+    .co-spin{width:26px;height:26px;margin:0 auto 14px;border:3px solid #e5e0d6;border-top-color:#c9a24a;border-radius:50%;animation:cospin .8s linear infinite}
+    @keyframes cospin{to{transform:rotate(360deg)}}
+    .co-err{padding:40px 24px;text-align:center;color:#b4483a;font-size:14px}
+    .co-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:210;background:#0b0a09;color:#f2ede3;border:1px solid #3a352f;border-radius:12px;padding:12px 18px;font-size:14px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:min(440px,90vw);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
+    .co-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  </style>
+  <div class="co-scrim" id="co-scrim" role="dialog" aria-modal="true" aria-label="Checkout">
+    <div class="co-panel">
+      <div class="co-top"><b id="co-title">Checkout</b><button class="co-x" id="co-x" type="button" aria-label="Close">&times;</button></div>
+      <div class="co-mount"><div class="co-loading" id="co-loading"><div class="co-spin"></div>Loading secure checkout…</div><div id="echelon-checkout"></div></div>
+    </div>
+  </div>
+
   <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
     const SUPABASE_URL = 'https://cqdignbleethroyxxvzr.supabase.co'
     const SUPABASE_KEY = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x'
+    const STRIPE_PK = 'pk_live_51U6czvA2gVheocXUyUDf9yMnpgR3yXrUFcOV9QJ0Ebrnr7igg18xMtwcqTfgqqnxJ2qzMQ3ZpohXSmMouTCXI5bI00RbUxCAJe'
 
     // Keep this the same permanent invite used on the sales page. Blank hides
     // the link rather than shipping a button that goes nowhere.
@@ -2686,6 +2710,57 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function tvRowFor(product) { return state.tvAccess.find((t) => t.product === product) }
     function knownTvUsername() { return state.tvAccess.find((t) => t.tv_username)?.tv_username ?? '' }
 
+    function toast(msg, ms = 4500) {
+      let t = el('co-toast')
+      if (!t) { t = document.createElement('div'); t.id = 'co-toast'; t.className = 'co-toast'; document.body.appendChild(t) }
+      t.textContent = msg; t.classList.add('on')
+      clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), ms)
+    }
+
+    // ── On-page Stripe checkout (embedded, no redirect) ──
+    let _stripeJs = null, _coInstance = null
+    function loadStripeJs() {
+      if (_stripeJs) return _stripeJs
+      _stripeJs = new Promise((resolve, reject) => {
+        if (window.Stripe) return resolve()
+        const s = document.createElement('script')
+        s.src = 'https://js.stripe.com/v3/'; s.async = true
+        s.onload = resolve; s.onerror = () => reject(new Error('Could not load Stripe.'))
+        document.head.appendChild(s)
+      })
+      return _stripeJs
+    }
+    function closeCheckout() {
+      el('co-scrim').classList.remove('on'); document.body.style.overflow = ''
+      if (_coInstance) { try { _coInstance.destroy() } catch {} _coInstance = null }
+      el('echelon-checkout').innerHTML = ''
+    }
+    async function openCheckout(product, interval, title) {
+      el('co-title').textContent = title || 'Checkout'
+      el('co-scrim').classList.add('on'); document.body.style.overflow = 'hidden'
+      const loading = el('co-loading')
+      loading.style.display = ''; loading.className = 'co-loading'
+      loading.innerHTML = '<div class="co-spin"></div>Loading secure checkout…'
+      el('echelon-checkout').innerHTML = ''
+      try {
+        await loadStripeJs()
+        const stripe = window.Stripe(STRIPE_PK)
+        const fetchClientSecret = () => fetch(`${SUPABASE_URL}/functions/v1/create-checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
+          body: JSON.stringify({ product, interval, email: state.user?.email }),
+        }).then((r) => r.json()).then((d) => { if (d.error) throw new Error(d.error); return d.client_secret })
+        _coInstance = await stripe.initEmbeddedCheckout({ fetchClientSecret })
+        loading.style.display = 'none'
+        _coInstance.mount('#echelon-checkout')
+      } catch (e) {
+        loading.className = 'co-err'; loading.textContent = e.message || 'Checkout could not load.'
+      }
+    }
+    el('co-x').addEventListener('click', closeCheckout)
+    el('co-scrim').addEventListener('click', (e) => { if (e.target === el('co-scrim')) closeCheckout() })
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && el('co-scrim').classList.contains('on')) closeCheckout() })
+
     function renderStore() {
       const host = el('store-grid'); if (!host) return
       host.textContent = ''
@@ -2732,14 +2807,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const buy = document.createElement('div'); buy.className = 'p-buy'
           const cfg = STORE[p.key]
           if (cfg?.month) {
-            const a = document.createElement('a'); a.className = 'btn'; a.href = cfg.month.url
-            a.target = '_blank'; a.rel = 'noopener'; a.textContent = `Subscribe ${usd(cfg.month.cents)}/mo`
-            buy.appendChild(a)
+            const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'
+            b.textContent = `Subscribe ${usd(cfg.month.cents)}/mo`
+            b.addEventListener('click', () => openCheckout(p.key, 'month', p.name))
+            buy.appendChild(b)
           }
           if (cfg?.one_time) {
-            const a = document.createElement('a'); a.className = 'rowbtn'; a.href = cfg.one_time.url
-            a.target = '_blank'; a.rel = 'noopener'; a.textContent = `Buy once ${usd(cfg.one_time.cents)}`
-            buy.appendChild(a)
+            const b = document.createElement('button'); b.className = 'rowbtn'; b.type = 'button'
+            b.textContent = `Buy once ${usd(cfg.one_time.cents)}`
+            b.addEventListener('click', () => openCheckout(p.key, 'one_time', p.name))
+            buy.appendChild(b)
           }
           card.appendChild(buy)
           const note = document.createElement('p'); note.className = 'p-price-note'
@@ -3217,6 +3294,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const tab = v && document.querySelector(`.tab[data-view="${v}"]`)
         if (tab && !tab.hidden) showView(v)
         history.replaceState(null, '', location.pathname)
+      }
+
+      // Return from an indicator purchase (embedded checkout return_url).
+      const bought = new URLSearchParams(location.search).get('bought')
+      if (bought) {
+        showView('indicators')
+        toast('Payment complete. Setting up your access, this can take a moment.')
+        history.replaceState(null, '', location.pathname)
+        // The webhook grants the entitlement a beat after payment; re-read shortly.
+        setTimeout(async () => {
+          const { data: ents } = await supabase.from('entitlements').select('product, status, interval').eq('status', 'active')
+          state.owned = new Set((ents ?? []).map((e) => e.product))
+          renderStore()
+        }, 4000)
       }
     }
 
