@@ -340,6 +340,8 @@
     .badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
     .b-active { color: var(--good); background: rgba(134,181,127,0.12); }
     .b-refunded, .b-revoked { color: var(--bad); background: rgba(217,139,122,0.12); }
+    .b-pending { color: var(--gold); background: rgba(201,162,74,0.12); }
+    .b-neutral { color: var(--faint); background: var(--panel-2); }
 
     .rowbtn {
       background: var(--panel-2); border: 1px solid var(--line-bright); border-radius: 7px;
@@ -624,6 +626,10 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Users <span class="count" id="c-users">—</span>
         </button>
+        <button class="tab" data-view="access" data-title="TradingView access" data-crumb="Grant and remove indicator access">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          TV access <span class="count" id="c-access">—</span>
+        </button>
         <button class="tab" data-view="billing" data-title="Billing" data-crumb="Revenue and Stripe events">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           Billing
@@ -718,6 +724,26 @@
             <p class="msg" id="grant-msg"></p>
             <div class="tbl-scroll"><table id="users-table"></table></div>
             <div class="empty" id="users-empty" hidden>No buyers yet.</div>
+          </div>
+        </section>
+
+        <!-- TRADINGVIEW ACCESS -->
+        <section class="view" id="v-access">
+          <div class="block">
+            <div class="block-head">
+              <h3>To action</h3>
+              <span class="label" id="access-pending-total"></span>
+            </div>
+            <p class="settings-note" style="margin:0 0 2px;">
+              Each row is a TradingView job. For <b>Add</b>, open the script's Manage access and invite the username, then click Mark added. For <b>Remove</b>, delete them, then Mark removed. Rows waiting on the member for a username sit in the lower table.
+            </p>
+            <div class="tbl-scroll"><table id="access-table"></table></div>
+            <div class="empty" id="access-empty" hidden>Nothing to action. New purchases and cancellations show up here.</div>
+          </div>
+          <div class="block">
+            <div class="block-head"><h3>Everyone with an indicator</h3><span class="label" id="access-all-total"></span></div>
+            <div class="tbl-scroll"><table id="access-all-table"></table></div>
+            <div class="empty" id="access-all-empty" hidden>No indicator access yet.</div>
           </div>
         </section>
 
@@ -1374,6 +1400,89 @@
       const { data } = await supabase.from('admin_buyers').select('*').order('granted_at', { ascending: false })
       BUYERS = data ?? []
       renderOverview(); renderUsers(); renderBilling()
+    }
+
+    /* ── TradingView access queue ──
+       Every indicator sale/cancel becomes a job here. tv_list is service-side
+       (RLS hides other people's rows from the browser). Grant/remove flip state
+       AFTER you have actually added/removed the username inside TradingView. */
+    const TV_PRODUCT = {
+      'd1-gex': { name: 'D1 GEX', manage: 'https://www.tradingview.com/script/1IGwzZWk-D1-GEX/' },
+      'd1-lit': { name: 'D1 LIT', manage: null },
+    }
+    const TV_STATE = {
+      needs_username: { label: 'Needs username', badge: 'b-neutral' },
+      pending_grant: { label: 'Add', badge: 'b-pending' },
+      granted: { label: 'Active', badge: 'b-active' },
+      pending_revoke: { label: 'Remove', badge: 'b-pending' },
+      revoked: { label: 'Removed', badge: 'b-revoked' },
+    }
+
+    async function loadTvAccess() {
+      let rows = []
+      try { rows = (await adminAction({ action: 'tv_list' })).rows ?? [] } catch { rows = [] }
+      const toAction = rows.filter((r) => r.state === 'pending_grant' || r.state === 'pending_revoke')
+      const rest = rows.filter((r) => r.state !== 'pending_grant' && r.state !== 'pending_revoke')
+
+      const cnt = el('c-access'); cnt.textContent = ''
+      cnt.textContent = String(toAction.length)
+      el('access-pending-total').textContent = toAction.length ? `${toAction.length} waiting` : ''
+      el('access-all-total').textContent = rows.length ? `${rows.length}` : ''
+      el('access-empty').hidden = toAction.length > 0
+      el('access-all-empty').hidden = rows.length > 0
+
+      const nameOf = (p) => TV_PRODUCT[p]?.name ?? p
+      const badge = (state) => {
+        const td = document.createElement('td'); const s = TV_STATE[state] ?? { label: state, badge: 'b-neutral' }
+        const b = document.createElement('span'); b.className = `badge ${s.badge}`; b.textContent = s.label
+        td.appendChild(b); return td
+      }
+      const manageCell = (p) => {
+        const td = document.createElement('td'); const m = TV_PRODUCT[p]?.manage
+        if (m) { const a = document.createElement('a'); a.href = m; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Manage access ↗'; a.style.color = 'var(--gold)'; a.style.textDecoration = 'none'; td.appendChild(a) }
+        else { td.appendChild(document.createTextNode('not published')) ; td.className = 'faint' }
+        return td
+      }
+      const actionCell = (r) => {
+        const td = document.createElement('td')
+        const isGrant = r.state === 'pending_grant'
+        const b = document.createElement('button'); b.className = 'rowbtn'
+        b.textContent = isGrant ? 'Mark added' : 'Mark removed'
+        b.addEventListener('click', async () => {
+          b.disabled = true
+          try { await adminAction({ action: isGrant ? 'tv_grant' : 'tv_revoke', id: r.id }); await loadTvAccess() }
+          catch (e) { b.disabled = false; b.textContent = 'Failed' }
+        })
+        td.appendChild(b); return td
+      }
+
+      // to-action table
+      el('access-table').textContent = ''
+      table(el('access-table'), ['Member', 'Indicator', 'TradingView username', 'Job', 'TradingView', 'Action'], toAction, (r) => {
+        const tr = document.createElement('tr')
+        tr.append(cell(r.email, 'ink'), cell(nameOf(r.product)), cell(r.tv_username ?? '—', 'ink'))
+        tr.appendChild(badge(r.state))
+        tr.appendChild(manageCell(r.product))
+        tr.appendChild(actionCell(r))
+        return tr
+      })
+
+      // everyone table (granted / needs_username / revoked)
+      el('access-all-table').textContent = ''
+      table(el('access-all-table'), ['Member', 'Indicator', 'TradingView username', 'State', ''], rest, (r) => {
+        const tr = document.createElement('tr')
+        tr.append(cell(r.email, 'ink'), cell(nameOf(r.product)), cell(r.tv_username ?? '—'))
+        tr.appendChild(badge(r.state))
+        // let the owner pull a currently-active grant, or re-add a removed one
+        const td = document.createElement('td')
+        if (r.state === 'granted') {
+          const b = document.createElement('button'); b.className = 'rowbtn'; b.textContent = 'Remove'
+          b.addEventListener('click', async () => { b.disabled = true; try { await adminAction({ action: 'tv_revoke', id: r.id }); await loadTvAccess() } catch { b.disabled = false } })
+          td.appendChild(b)
+        }
+        tr.appendChild(td)
+        return tr
+      })
     }
 
     async function loadEvents() {
@@ -2943,7 +3052,7 @@
       recapEditor(null)
       paintSkeletons()
       await Promise.all([
-        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(),
+        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(), loadTvAccess(),
         // Money must never block the rest of the dashboard.
         loadMoney().catch(() => renderMoneySetup()),
         // GEX is an outside feed (gex-worker); warm the readout + table, never block on it.
