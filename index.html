@@ -339,6 +339,25 @@
       .demo { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
       @keyframes rise { from { opacity: 0; transform: translateY(26px); } }
     }
+
+    /* On-page Stripe checkout (embedded, no redirect) */
+    .co-scrim { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,4,0.72);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+    .co-scrim.on { display: flex; }
+    .co-panel { position: relative; width: 100%; max-width: 480px; background: #fff; border-radius: 16px;
+      box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6); overflow: hidden; }
+    .co-top { display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; background: #0b0a09; color: #f2ede3; }
+    .co-top b { font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 650; }
+    .co-x { background: none; border: 0; color: #c9c0b2; font-size: 22px; line-height: 1; cursor: pointer; padding: 2px 6px; }
+    .co-x:hover { color: #fff; }
+    .co-mount { min-height: 320px; }
+    .co-loading { padding: 60px 20px; text-align: center; color: #6f675d; font-size: 14px; }
+    .co-spin { width: 26px; height: 26px; margin: 0 auto 14px; border: 3px solid #e5e0d6;
+      border-top-color: #c9a24a; border-radius: 50%; animation: cospin 0.8s linear infinite; }
+    @keyframes cospin { to { transform: rotate(360deg); } }
+    .co-err { padding: 40px 24px; text-align: center; color: #b4483a; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -481,6 +500,17 @@
     </div>
   </div></footer>
 
+  <!-- On-page Stripe checkout -->
+  <div class="co-scrim" id="co-scrim" role="dialog" aria-modal="true" aria-label="Checkout">
+    <div class="co-panel">
+      <div class="co-top"><b>Get Echelon</b><button class="co-x" id="co-x" type="button" aria-label="Close">&times;</button></div>
+      <div class="co-mount" id="co-mount">
+        <div class="co-loading" id="co-loading"><div class="co-spin"></div>Loading secure checkout…</div>
+        <div id="echelon-checkout"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
   (function () {
     'use strict';
@@ -493,6 +523,65 @@
                     link hides and the live counter stays quiet.
        ═══════════════════════════════════════════════════════════ */
     var CONFIG = { checkoutUrl: 'https://buy.stripe.com/14A5kC5LU75j4zwdbyg7e06', discordUrl: 'https://discord.gg/FAQD5Cr5p7' };
+
+    /* ── On-page Stripe checkout (embedded, no redirect to stripe.com) ── */
+    var STRIPE_PK = 'pk_live_51U6czvA2gVheocXUyUDf9yMnpgR3yXrUFcOV9QJ0Ebrnr7igg18xMtwcqTfgqqnxJ2qzMQ3ZpohXSmMouTCXI5bI00RbUxCAJe';
+    var CHECKOUT_FN = 'https://cqdignbleethroyxxvzr.supabase.co/functions/v1/create-checkout';
+    var SB_ANON = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x';
+    var _stripeJs = null, _coInstance = null;
+    function loadStripeJs() {
+      if (_stripeJs) return _stripeJs;
+      _stripeJs = new Promise(function (resolve, reject) {
+        if (window.Stripe) return resolve();
+        var s = document.createElement('script');
+        s.src = 'https://js.stripe.com/v3/'; s.async = true;
+        s.onload = resolve; s.onerror = function () { reject(new Error('Could not load Stripe.')); };
+        document.head.appendChild(s);
+      });
+      return _stripeJs;
+    }
+    function closeCheckout() {
+      var scrim = document.getElementById('co-scrim');
+      scrim.classList.remove('on');
+      document.body.style.overflow = '';
+      if (_coInstance) { try { _coInstance.destroy(); } catch (e) {} _coInstance = null; }
+      document.getElementById('echelon-checkout').innerHTML = '';
+    }
+    async function openCheckout(product, interval) {
+      var scrim = document.getElementById('co-scrim');
+      var loading = document.getElementById('co-loading');
+      var mount = document.getElementById('echelon-checkout');
+      scrim.classList.add('on'); document.body.style.overflow = 'hidden';
+      loading.style.display = ''; loading.className = 'co-loading';
+      loading.innerHTML = '<div class="co-spin"></div>Loading secure checkout…';
+      mount.innerHTML = '';
+      try {
+        await loadStripeJs();
+        var stripe = window.Stripe(STRIPE_PK);
+        var code = (document.getElementById('promo-code') || {}).value;
+        var fetchClientSecret = function () {
+          return fetch(CHECKOUT_FN, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: SB_ANON },
+            body: JSON.stringify({ product: product, interval: interval, promo: (code || '').trim() || undefined }),
+          }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d.error) throw new Error(d.error);
+            return d.client_secret;
+          });
+        };
+        _coInstance = await stripe.initEmbeddedCheckout({ fetchClientSecret: fetchClientSecret });
+        loading.style.display = 'none';
+        _coInstance.mount('#echelon-checkout');
+      } catch (e) {
+        loading.className = 'co-err';
+        loading.textContent = e.message || 'Checkout could not load. Please try again.';
+      }
+    }
+    document.getElementById('co-x').addEventListener('click', closeCheckout);
+    document.getElementById('co-scrim').addEventListener('click', function (e) {
+      if (e.target === document.getElementById('co-scrim')) closeCheckout();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCheckout(); });
 
     /* Gold dust: a few dozen motes drifting slowly, barely there. The
        dust belongs to the hero: it fades with scroll and the loop stops
@@ -583,10 +672,7 @@
     document.querySelectorAll('[data-buy]').forEach(function (btn) {
       if (CONFIG.checkoutUrl) {
         btn.addEventListener('click', function () {
-          var url = CONFIG.checkoutUrl;
-          var code = (document.getElementById('promo-code').value || '').trim().toUpperCase();
-          if (code) url += (url.indexOf('?') < 0 ? '?' : '&') + 'prefilled_promo_code=' + encodeURIComponent(code);
-          location.href = url;
+          openCheckout('course');
         });
       } else if (btn.closest('.glass')) {
         btn.hidden = true;
