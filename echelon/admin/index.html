@@ -648,6 +648,10 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5v2"/><path d="M15 11v2"/><path d="M15 17v2"/><path d="M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
           Codes <span class="count" id="c-codes">—</span>
         </button>
+        <button class="tab" data-view="community" data-title="Community" data-crumb="Channels and moderators">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          Community
+        </button>
         <button class="tab" data-view="money" data-title="Money" data-crumb="Accounts, spending and budgets">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           Money
@@ -884,6 +888,32 @@
         </section>
 
         <!-- MONEY -->
+        <!-- COMMUNITY: channels + moderators -->
+        <section class="view" id="v-community">
+          <div class="block">
+            <div class="block-head"><h3>Channels</h3><span class="label" id="chan-total"></span></div>
+            <div class="field-row">
+              <input class="inp" id="chan-name" placeholder="New channel name" style="flex:2;">
+              <select class="inp" id="chan-kind">
+                <option value="channel">Channel (everyone posts)</option>
+                <option value="announcement">Announcement (only staff post)</option>
+              </select>
+              <button class="btn" id="chan-create">Create</button>
+            </div>
+            <p class="msg" id="chan-msg"></p>
+            <div class="tbl-scroll"><table id="chan-table"></table></div>
+          </div>
+          <div class="block">
+            <div class="block-head"><h3>Moderators</h3><span class="label" id="mod-total"></span></div>
+            <p class="settings-note" style="margin:0 0 2px;">Mods can delete any message and post in announcement channels. You are the owner and always can.</p>
+            <div class="tbl-scroll"><table id="mod-table"></table></div>
+            <div class="field-row">
+              <input class="inp" id="mod-q" type="search" placeholder="Search members to promote">
+            </div>
+            <div class="tbl-scroll"><table id="mod-picker"></table></div>
+          </div>
+        </section>
+
         <section class="view" id="v-money">
           <p class="settings-note" id="money-setup" hidden style="margin:0 0 20px;"></p>
           <div class="cards" id="money-cards"></div>
@@ -1491,6 +1521,65 @@
         return tr
       })
     }
+
+    /* ── community: channels + moderators ── */
+    let cmChannels = [], cmMods = new Set(), cmDir = []
+    async function loadCommunity() {
+      const [{ data: ch }, { data: mods }, { data: dir }] = await Promise.all([
+        supabase.from('channels').select('*').order('position'),
+        supabase.from('mods').select('user_id'),
+        supabase.from('member_directory').select('user_id, username'),
+      ])
+      cmChannels = ch ?? []; cmMods = new Set((mods ?? []).map((m) => m.user_id)); cmDir = dir ?? []
+      renderChannels(); renderMods(); renderModPicker(el('mod-q').value || '')
+    }
+    function renderChannels() {
+      el('chan-total').textContent = cmChannels.length ? String(cmChannels.length) : ''
+      table(el('chan-table'), ['Channel', 'Type', ''], cmChannels, (c) => {
+        const tr = document.createElement('tr')
+        tr.appendChild(cell(c.name, 'ink'))
+        const t = document.createElement('td'); const b = document.createElement('span')
+        b.className = 'badge ' + (c.kind === 'announcement' ? 'b-pending' : 'b-neutral')
+        b.textContent = c.kind === 'announcement' ? 'Announcement' : 'Channel'; t.appendChild(b); tr.appendChild(t)
+        const act = document.createElement('td')
+        const del = document.createElement('button'); del.className = 'rowbtn'; del.textContent = 'Delete'
+        del.addEventListener('click', async () => {
+          if (!confirm(`Delete #${c.name} and all its messages?`)) return
+          del.disabled = true
+          try { await adminAction({ action: 'channel_delete', id: c.id }); await loadCommunity() } catch { del.disabled = false }
+        })
+        act.appendChild(del); tr.appendChild(act); return tr
+      })
+    }
+    function renderMods() {
+      const rows = cmDir.filter((d) => cmMods.has(d.user_id))
+      el('mod-total').textContent = rows.length ? String(rows.length) : ''
+      table(el('mod-table'), ['Moderator', ''], rows, (d) => {
+        const tr = document.createElement('tr'); tr.appendChild(cell('@' + d.username, 'ink'))
+        const td = document.createElement('td'); const b = document.createElement('button'); b.className = 'rowbtn'; b.textContent = 'Remove'
+        b.addEventListener('click', async () => { b.disabled = true; try { await adminAction({ action: 'mod_remove', id: d.user_id }); await loadCommunity() } catch { b.disabled = false } })
+        td.appendChild(b); tr.appendChild(td); return tr
+      })
+    }
+    function renderModPicker(q) {
+      const term = (q || '').trim().toLowerCase()
+      const people = cmDir.filter((d) => !cmMods.has(d.user_id) && (!term || d.username.toLowerCase().includes(term))).slice(0, 25)
+      table(el('mod-picker'), ['Member', ''], people, (d) => {
+        const tr = document.createElement('tr'); tr.appendChild(cell('@' + d.username))
+        const td = document.createElement('td'); const b = document.createElement('button'); b.className = 'rowbtn'; b.textContent = 'Make mod'
+        b.addEventListener('click', async () => { b.disabled = true; try { await adminAction({ action: 'mod_add', id: d.user_id }); await loadCommunity() } catch { b.disabled = false } })
+        td.appendChild(b); tr.appendChild(td); return tr
+      })
+    }
+    el('chan-create').addEventListener('click', async () => {
+      const name = el('chan-name').value.trim(), msg = el('chan-msg')
+      if (!name) { msg.className = 'msg err'; msg.textContent = 'Name it first.'; return }
+      el('chan-create').disabled = true; msg.className = 'msg'; msg.textContent = 'Creating…'
+      try { await adminAction({ action: 'channel_save', title: name, kind: el('chan-kind').value }); el('chan-name').value = ''; msg.className = 'msg ok'; msg.textContent = 'Created.'; await loadCommunity() }
+      catch (e) { msg.className = 'msg err'; msg.textContent = e.message }
+      el('chan-create').disabled = false
+    })
+    el('mod-q').addEventListener('input', (e) => renderModPicker(e.target.value))
 
     async function loadEvents() {
       const { data } = await supabase.from('stripe_events').select('id, type, received_at').order('received_at', { ascending: false }).limit(20)
@@ -3070,7 +3159,7 @@
       recapEditor(null)
       paintSkeletons()
       await Promise.all([
-        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(), loadTvAccess(),
+        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(), loadTvAccess(), loadCommunity(),
         // Money must never block the rest of the dashboard.
         loadMoney().catch(() => renderMoneySetup()),
         // GEX is an outside feed (gex-worker); warm the readout + table, never block on it.
