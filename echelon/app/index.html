@@ -621,6 +621,39 @@
     }
     .settings-note a { color: var(--gold); }
 
+    /* ── indicators store ────────────────────────────────────── */
+
+    .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .prod {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+      padding: 20px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .prod.owned { border-color: rgba(201,162,74,0.35); }
+    .prod .p-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .prod h3 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+    .prod .p-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 5px; padding: 2px 7px; }
+    .prod .p-tag.bundle { color: var(--gold); background: rgba(201,162,74,0.12); }
+    .prod .p-blurb { font-size: 13px; color: var(--muted); line-height: 1.6; flex: 1; }
+    .prod .p-buy { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    .prod .p-buy .btn, .prod .p-buy .rowbtn { justify-content: center; text-align: center; min-height: 42px; }
+    .prod .p-strike { text-decoration: line-through; color: var(--faint); font-weight: 400; margin-right: 6px; }
+    .prod .p-own {
+      display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink);
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px;
+    }
+    .prod .p-own svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--gold); }
+    .prod .p-status {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+      border-radius: 6px; padding: 3px 9px;
+    }
+    .prod .p-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .p-status.granted { color: var(--good); background: rgba(134,181,127,0.12); }
+    .p-status.pending { color: var(--gold); background: rgba(201,162,74,0.12); }
+    .p-status.gone { color: var(--bad); background: rgba(208,138,122,0.12); }
+    .prod .p-link { font-size: 12.5px; color: var(--gold); text-decoration: none; }
+    .prod .p-link:hover { text-decoration: underline; }
+    .prod .p-price-note { font-size: 11.5px; color: var(--faint); text-align: center; }
+
     /* ── members directory ───────────────────────────────────── */
 
     .member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 16px 18px; }
@@ -730,6 +763,10 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
           Trade recaps <span class="count" id="c-recaps">—</span>
         </button>
+        <button class="tab" data-view="indicators" data-title="Indicators" data-crumb="Charts and access">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Indicators
+        </button>
         <button class="tab" data-view="members" data-title="Members" data-crumb="Who's here">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Members <span class="count" id="c-members">—</span>
@@ -836,6 +873,22 @@
         </section>
 
         <!-- MEMBERS -->
+        <!-- INDICATORS store -->
+        <section class="view" id="v-indicators">
+          <div class="block" id="store-tv" hidden>
+            <div class="block-head"><h3>Your TradingView username</h3></div>
+            <div class="setgrid" style="max-width:none;">
+              <p class="hint" style="margin:0;">Access to the invite-only scripts is granted to this TradingView account. Set it once and it applies to every indicator you own.</p>
+              <div class="filters">
+                <input class="inp" id="tv-username" type="text" autocomplete="off" spellcheck="false" placeholder="your TradingView username" style="min-width:240px;">
+                <button class="btn" id="tv-save" type="button">Save</button>
+              </div>
+              <p class="msg" id="tv-msg"></p>
+            </div>
+          </div>
+          <div class="store-grid" id="store-grid"></div>
+        </section>
+
         <section class="view" id="v-members">
           <p class="settings-note" id="members-upsell" hidden>
             You're in on the free tier. The full course and trade recaps come with
@@ -995,7 +1048,26 @@
       user: null, isAdmin: false, hasCourse: false, profile: null,
       modules: [], lessons: [], done: new Set(), currentId: null,
       recaps: [], currentRecap: null, members: [], intake: null, owned: new Set(),
+      products: [], tvAccess: [],
     }
+
+    // Live Stripe payment links + prices for the indicator store. Product keys
+    // match the products table / Stripe price metadata. Amounts in cents.
+    const STORE = {
+      'd1-gex': {
+        one_time: { url: 'https://buy.stripe.com/aFacN44HQ1KZea61sQg7e00', cents: 14700 },
+        month:    { url: 'https://buy.stripe.com/cNi8wOeiq9drd62fjGg7e01', cents: 1900 },
+      },
+      'd1-lit': {
+        one_time: { url: 'https://buy.stripe.com/eVq8wOeiqcpD3vs3AYg7e02', cents: 19700 },
+        month:    { url: 'https://buy.stripe.com/3cIdR85LUcpDc1Y1sQg7e03', cents: 2900 },
+      },
+      'indicators-bundle': {
+        one_time: { url: 'https://buy.stripe.com/eVq9ASeiqdtHc1Yc7ug7e04', cents: 29700 },
+        month:    { url: 'https://buy.stripe.com/3cI9AS8Y64Xbc1YefCg7e05', cents: 3900 },
+      },
+    }
+    const usd = (c) => '$' + (c / 100).toLocaleString(undefined, { minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2 })
 
     const whenDay = (d) => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) }
 
@@ -2350,6 +2422,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       tbl.appendChild(tbody)
 
+      const sg = el('store-grid'); sg.textContent = ''
+      for (let i = 0; i < 3; i++) {
+        const c = document.createElement('div'); c.className = 'prod'
+        c.append(skel('50%', 15), skel('92%', 9, 12), skel('70%', 9, 6), skel('100%', 40, 14))
+        sg.appendChild(c)
+      }
+
       const mg = el('member-grid'); mg.textContent = ''
       for (let i = 0; i < 6; i++) {
         const c = document.createElement('div'); c.className = 'mcard'
@@ -2430,6 +2509,115 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     }
 
+    // ── indicators store ────────────────────────────────────
+
+    const TV_STATUS = {
+      needs_username: { cls: 'pending', label: 'Add your TradingView username' },
+      pending_grant: { cls: 'pending', label: 'Access being added' },
+      granted: { cls: 'granted', label: 'Access active' },
+      pending_revoke: { cls: 'gone', label: 'Access ending' },
+      revoked: { cls: 'gone', label: 'Access removed' },
+    }
+    const checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>'
+
+    function tvRowFor(product) { return state.tvAccess.find((t) => t.product === product) }
+    function knownTvUsername() { return state.tvAccess.find((t) => t.tv_username)?.tv_username ?? '' }
+
+    function renderStore() {
+      const host = el('store-grid'); if (!host) return
+      host.textContent = ''
+
+      const ownsBundle = state.owned.has('d1-gex') && state.owned.has('d1-lit')
+      const cards = state.products.filter((p) => p.kind === 'indicator' || p.kind === 'bundle')
+
+      for (const p of cards) {
+        const owned = p.kind === 'bundle' ? ownsBundle : state.owned.has(p.key)
+        const card = document.createElement('div'); card.className = 'prod' + (owned ? ' owned' : '')
+
+        const top = document.createElement('div'); top.className = 'p-top'
+        const h = document.createElement('h3'); h.textContent = p.name; top.appendChild(h)
+        if (p.kind === 'bundle') { const tg = document.createElement('span'); tg.className = 'p-tag bundle'; tg.textContent = 'Save'; top.appendChild(tg) }
+        card.appendChild(top)
+
+        const blurb = document.createElement('p'); blurb.className = 'p-blurb'; blurb.textContent = p.blurb ?? ''
+        card.appendChild(blurb)
+
+        if (p.tv_script_url) {
+          const a = document.createElement('a'); a.className = 'p-link'; a.href = p.tv_script_url
+          a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'View on TradingView →'
+          card.appendChild(a)
+        }
+
+        if (owned) {
+          const own = document.createElement('div'); own.className = 'p-own'
+          own.innerHTML = checkIcon
+          const span = document.createElement('span'); span.textContent = p.kind === 'bundle' ? 'You own both' : 'You own this'
+          own.appendChild(span); card.appendChild(own)
+
+          // access status: for a bundle, summarise the two components
+          const comps = p.kind === 'bundle' ? p.bundle_of : [p.key]
+          for (const c of comps) {
+            const row = tvRowFor(c)
+            const st = TV_STATUS[row?.state ?? 'needs_username']
+            const line = document.createElement('div'); line.style.display = 'flex'; line.style.alignItems = 'center'; line.style.gap = '8px'
+            const badge = document.createElement('span'); badge.className = 'p-status ' + st.cls
+            badge.textContent = st.label
+            if (p.kind === 'bundle') { const nm = document.createElement('span'); nm.className = 'hint'; nm.style.margin = '0'; nm.textContent = c === 'd1-gex' ? 'GEX' : 'LIT'; line.appendChild(nm) }
+            line.appendChild(badge); card.appendChild(line)
+          }
+        } else {
+          const buy = document.createElement('div'); buy.className = 'p-buy'
+          const cfg = STORE[p.key]
+          if (cfg?.month) {
+            const a = document.createElement('a'); a.className = 'btn'; a.href = cfg.month.url
+            a.target = '_blank'; a.rel = 'noopener'; a.textContent = `Subscribe ${usd(cfg.month.cents)}/mo`
+            buy.appendChild(a)
+          }
+          if (cfg?.one_time) {
+            const a = document.createElement('a'); a.className = 'rowbtn'; a.href = cfg.one_time.url
+            a.target = '_blank'; a.rel = 'noopener'; a.textContent = `Buy once ${usd(cfg.one_time.cents)}`
+            buy.appendChild(a)
+          }
+          card.appendChild(buy)
+          const note = document.createElement('p'); note.className = 'p-price-note'
+          note.textContent = 'You choose your TradingView username at checkout.'
+          card.appendChild(note)
+        }
+
+        host.appendChild(card)
+      }
+
+      // username capture block: shown once they own any indicator
+      const ownsAny = state.owned.has('d1-gex') || state.owned.has('d1-lit')
+      const tvBlock = el('store-tv')
+      tvBlock.hidden = !ownsAny
+      if (ownsAny) {
+        const input = el('tv-username')
+        if (document.activeElement !== input) input.value = knownTvUsername()
+      }
+    }
+
+    el('tv-save').addEventListener('click', async () => {
+      const input = el('tv-username'), msg = el('tv-msg'), btn = el('tv-save')
+      const name = input.value.trim()
+      if (!/^[A-Za-z0-9_]{2,30}$/.test(name)) {
+        msg.className = 'msg err'; msg.textContent = 'Letters, digits and underscores only (2 to 30 characters).'
+        return
+      }
+      btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Saving…'
+      const { error } = await supabase.rpc('set_tv_username', { p_username: name })
+      if (error) {
+        msg.className = 'msg err'; msg.textContent = error.message
+      } else {
+        msg.className = 'msg ok'; msg.textContent = 'Saved. Your access is queued.'
+        state.tvAccess = state.tvAccess.map((t) => ({
+          ...t, tv_username: name, state: t.state === 'needs_username' ? 'pending_grant' : t.state,
+        }))
+        renderStore()
+      }
+      btn.disabled = false
+    })
+
     // ── boot ────────────────────────────────────────────────
 
     el('signout').addEventListener('click', async () => {
@@ -2475,12 +2663,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // These come back filtered by RLS: without an active entitlement the
       // modules query is simply empty, and trade recaps arrive published-only
       // for members. The directory shows usernames and bios, never emails.
-      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: intake }] = await Promise.all([
+      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: intake }, { data: products }, { data: tvAccess }] = await Promise.all([
         supabase.from('modules').select('id, title, position').order('position'),
         supabase.from('lessons').select('id, module_id, slug, title, summary, kind, body_md, blocks, position').order('position'),
         supabase.from('progress').select('lesson_id, completed_at'),
         supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published').order('recap_date', { ascending: false }),
         supabase.from('course_intake').select('answers, completed_at').maybeSingle(),
+        supabase.from('products').select('key, name, kind, blurb, tv_script_name, tv_script_url, bundle_of, position').eq('is_active', true).order('position'),
+        supabase.from('tv_access').select('product, state, tv_username'),
         ensureProfile().then(() => loadMembers()),
       ])
 
@@ -2489,6 +2679,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.done = new Set((progress ?? []).filter((p) => p.completed_at).map((p) => p.lesson_id))
       state.recaps = recaps ?? []
       state.intake = intake ?? null
+      state.products = products ?? []
+      state.tvAccess = tvAccess ?? []
 
       renderSidebarUser()
       fillSettings()
@@ -2500,6 +2692,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const recap = state.recaps.find((r) => r.id === keepRecap) ?? state.recaps[0]
       if (recap) openRecap(recap.id)
       renderOverview()
+      renderStore()
 
       const lesson = state.lessons.find((l) => l.id === keepLesson) ?? firstRecommendedLesson() ?? orderedLessons()[0]
       if (lesson) {
