@@ -516,9 +516,11 @@
       .side, .side.open {
         position: fixed; top: 0; bottom: 0; left: 0; width: min(300px, 84vw); z-index: 60;
         transform: translateX(-100%); transition: transform 0.25s ease;
-        box-shadow: 0 0 60px rgba(0,0,0,0.55);
+        box-shadow: none;
       }
-      .nav-open .side { transform: translateX(0); }
+      /* Shadow only while open — otherwise the closed drawer's 60px blur bleeds
+         onto the screen from the left edge (very visible in light mode). */
+      .nav-open .side { transform: translateX(0); box-shadow: 0 0 60px rgba(0,0,0,0.55); }
       .nav-open .scrim { opacity: 1; pointer-events: auto; }
       .block-head { flex-wrap: wrap; }
       /* the drawer always shows full labels, whatever the desktop rail is doing */
@@ -2236,11 +2238,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const name = document.createElement('div'); name.className = 'mname'
         const nm = document.createElement('span'); nm.textContent = m.username
         name.appendChild(nm)
-        if (m.is_premium) name.insertAdjacentHTML('beforeend', CHECK_SVG)
-        if (m.is_admin) {
+        if (m.is_premium || m.is_admin || m.is_mod) name.insertAdjacentHTML('beforeend', CHECK_SVG)
+        if (m.is_admin || m.is_mod) {
           const tag = document.createElement('span')
           tag.className = 'mtag'
-          tag.textContent = 'Admin'
+          tag.textContent = m.is_admin ? 'Admin' : 'Mod'
           name.appendChild(tag)
         }
         right.appendChild(name)
