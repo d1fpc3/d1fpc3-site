@@ -142,6 +142,75 @@
       transition: border-color 0.2s ease;
     }
     .psx a.enter:hover, .psx a.enter:focus-visible { border-color: #0a0a0a; }
+
+    /* ── onboarding ── */
+    .onb { width: 100%; max-width: 580px; }
+    .onb .step { display: none; }
+    .onb .step.on { display: block; animation: fade 0.4s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(8px); } }
+    @media (prefers-reduced-motion: reduce) { .onb .step.on { animation: none; } }
+
+    .onb .card {
+      border: 1px solid var(--line-2); border-radius: 18px; padding: clamp(24px, 5vw, 38px);
+      background: linear-gradient(180deg, var(--panel-2), #080706);
+      box-shadow: 0 50px 90px -50px rgba(0,0,0,0.9);
+    }
+    .onb .card::before { content: ""; display: block; height: 1px; background: var(--foil); opacity: 0.6; margin: -1px -1px 26px; border-radius: 18px 18px 0 0; }
+
+    .welcome-hero { text-align: center; padding: 6px 0 2px; }
+    .welcome-hero .paid { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); }
+    .welcome-hero .paid b { color: #86b57f; }
+    .welcome-hero .wl {
+      font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: clamp(34px, 9vw, 54px);
+      line-height: 1.04; letter-spacing: -0.02em; margin: 16px 0 0;
+      background: var(--foil); background-size: 220% auto; -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: shine 3.4s linear infinite;
+    }
+    @keyframes shine { to { background-position: 220% center; } }
+    @media (prefers-reduced-motion: reduce) { .welcome-hero .wl { animation: none; } }
+    .welcome-hero p { margin-top: 14px; color: var(--muted); max-width: 40ch; margin-left: auto; margin-right: auto; }
+
+    .onb h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: clamp(24px, 5vw, 32px); letter-spacing: -0.02em; line-height: 1.1; }
+    .onb .lede { margin-top: 10px; color: var(--muted); }
+
+    .pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+    @media (max-width: 460px) { .pillars { grid-template-columns: 1fr; } }
+    .pillar { border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; background: rgba(255,255,255,0.012); }
+    .pillar b { display: block; font-size: 13.5px; color: var(--ink); font-weight: 600; }
+    .pillar span { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+
+    .qgroup { margin-top: 22px; }
+    .qgroup .q { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      border: 1px solid var(--line-2); border-radius: 999px; padding: 8px 15px; font-size: 13px;
+      color: var(--muted); background: none; cursor: pointer; font-family: inherit;
+      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    }
+    .chip:hover { border-color: var(--line-2); color: var(--ink); }
+    .chip.on { border-color: var(--gold); color: var(--gold-bright); background: rgba(201,162,74,0.1); }
+
+    .jump { display: grid; gap: 10px; margin-top: 22px; }
+    .jumpcard {
+      display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--ink);
+      border: 1px solid var(--line-2); border-radius: 14px; padding: 15px 16px;
+      transition: border-color 0.18s ease, transform 0.12s ease, background 0.18s ease;
+    }
+    .jumpcard:hover, .jumpcard:focus-visible { border-color: var(--gold); transform: translateY(-1px); background: rgba(201,162,74,0.05); }
+    .jumpcard .ji { width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(201,162,74,0.12); color: var(--gold); }
+    .jumpcard .ji svg { width: 20px; height: 20px; }
+    .jumpcard .jt b { display: block; font-size: 14.5px; font-weight: 600; }
+    .jumpcard .jt span { font-size: 12.5px; color: var(--muted); }
+    .jumpcard .arr { margin-left: auto; color: var(--faint); }
+
+    .stepfoot { margin-top: 24px; display: flex; align-items: center; gap: 14px; }
+    .onb .btn { margin-top: 0; }
+    .dots { display: flex; gap: 6px; margin-left: auto; }
+    .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line-2); }
+    .dots i.on { background: var(--gold); }
+    .skip { background: none; border: 0; color: var(--faint); font: inherit; font-size: 13px; cursor: pointer; }
+    .skip:hover { color: var(--muted); }
   </style>
 </head>
 <body>
@@ -153,12 +222,78 @@
     <div id="actions"></div>
   </div>
 
-  <div class="psx" id="psx" hidden>
-    <svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="25"/><path d="M17 29l8 8 14-16"/></svg>
-    <b>Payment complete</b>
-    <div class="amt">$200.00</div>
-    <small id="psx-who">Welcome to Echelon</small>
-    <a class="enter" id="psx-enter" href="/echelon/app/">Open the course →</a>
+  <div class="onb" id="onb" hidden>
+    <!-- 1. welcome -->
+    <div class="step on card" data-step="welcome">
+      <div class="welcome-hero">
+        <div class="paid"><b>✓ Payment confirmed</b> · you're in</div>
+        <div class="wl">Welcome to<br>Echelon</div>
+        <p>You just got the whole thing. Let's take sixty seconds to set it up around how you trade.</p>
+      </div>
+      <div class="stepfoot">
+        <button class="btn" data-next>Let's set it up</button>
+        <button class="skip" data-skip>Skip, take me in</button>
+      </div>
+    </div>
+
+    <!-- 2. what you'll learn -->
+    <div class="step card" data-step="learn">
+      <span class="label">What you'll learn in here</span>
+      <h2>Read the tape like the desk does.</h2>
+      <p class="lede">Not signals. The why underneath every move, so you can call it yourself.</p>
+      <div class="pillars" id="pillars"></div>
+      <div class="stepfoot">
+        <button class="btn" data-next>Continue</button>
+        <span class="dots" data-dots></span>
+      </div>
+    </div>
+
+    <!-- 3. questionnaire -->
+    <div class="step card" data-step="you">
+      <span class="label">A little about you</span>
+      <h2>So we start you in the right place.</h2>
+      <div class="qgroup">
+        <div class="q">What do you trade?</div>
+        <div class="chips" id="q-trades"></div>
+      </div>
+      <div class="qgroup">
+        <div class="q">How long have you been at it?</div>
+        <div class="chips" id="q-exp"></div>
+      </div>
+      <div class="qgroup">
+        <div class="q">Which of these do you already understand? Tap the ones you know.</div>
+        <div class="chips" id="q-know"></div>
+      </div>
+      <div class="stepfoot">
+        <button class="btn" id="onb-save" data-next>Save and continue</button>
+        <span class="dots" data-dots></span>
+      </div>
+      <p class="body" id="onb-msg" style="margin-top:12px;font-size:12.5px;"></p>
+    </div>
+
+    <!-- 4. jump in -->
+    <div class="step card" data-step="start">
+      <span class="label">You're set</span>
+      <h2 id="start-h">Where do you want to start?</h2>
+      <p class="lede" id="start-lede">Jump into anything. It's all unlocked.</p>
+      <div class="jump">
+        <a class="jumpcard" href="/echelon/app/?start=study">
+          <span class="ji"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+          <span class="jt"><b id="study-b">Start studying</b><span>Begin with your first lesson</span></span>
+          <span class="arr">→</span>
+        </a>
+        <a class="jumpcard" href="/echelon/app/?start=recaps">
+          <span class="ji"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+          <span class="jt"><b>Watch a trade recap</b><span>See a real session broken down</span></span>
+          <span class="arr">→</span>
+        </a>
+        <a class="jumpcard" href="/echelon/app/?start=chat">
+          <span class="ji"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
+          <span class="jt"><b>Say hello in the chat</b><span>Meet the room</span></span>
+          <span class="arr">→</span>
+        </a>
+      </div>
+    </div>
   </div>
 
   <script type="module">
@@ -191,12 +326,80 @@
       }
     }
 
-    const sessionId = new URLSearchParams(location.search).get('session_id')
+    // ── onboarding ──
+    const PILLARS = [
+      ['Liquidity', 'Where price is actually headed, and why.'],
+      ['Inducement', 'The trap that funds the real move.'],
+      ['Market structure', 'Trend, breaks, and the moment it flips.'],
+      ['Order blocks', 'Where the desk filled, so where you enter.'],
+      ['The daily cycle', 'Asia builds, London traps, New York delivers.'],
+      ['The entry model', 'Location, permission, trigger, in order.'],
+    ]
+    const CONCEPTS = [
+      ['liquidity', 'Liquidity'], ['smart-money', 'Smart money'], ['inducement', 'Inducement'],
+      ['structure', 'Market structure'], ['order-blocks', 'Order blocks'], ['po3', 'Power of three'],
+    ]
+    const TRADES = ['Futures', 'Forex', 'Stocks', 'Options', 'Crypto']
+    const EXP = ['Just starting', 'Under a year', '1 to 3 years', '3+ years']
+    const pick = { trades: new Set(), exp: null, know: new Set() }
+    const STEPS = ['welcome', 'learn', 'you', 'start']
+    let stepIdx = 0
 
-    // Someone already signed in who wanders back here just goes through.
+    function chipBtn(text, on, onClick) {
+      const b = document.createElement('button'); b.className = 'chip' + (on ? ' on' : ''); b.type = 'button'; b.textContent = text
+      b.addEventListener('click', () => onClick(b)); return b
+    }
+    function renderOnb() {
+      const ph = el('pillars'); ph.textContent = ''
+      for (const [t, d] of PILLARS) { const c = document.createElement('div'); c.className = 'pillar'; const b = document.createElement('b'); b.textContent = t; const s = document.createElement('span'); s.textContent = d; c.append(b, s); ph.appendChild(c) }
+      const tr = el('q-trades'); tr.textContent = ''
+      for (const t of TRADES) tr.appendChild(chipBtn(t, pick.trades.has(t), (b) => { b.classList.toggle('on'); pick.trades.has(t) ? pick.trades.delete(t) : pick.trades.add(t) }))
+      const ex = el('q-exp'); ex.textContent = ''
+      for (const e of EXP) ex.appendChild(chipBtn(e, pick.exp === e, (b) => { [...ex.children].forEach((c) => c.classList.remove('on')); b.classList.add('on'); pick.exp = e }))
+      const kn = el('q-know'); kn.textContent = ''
+      for (const [k, label] of CONCEPTS) kn.appendChild(chipBtn(label, pick.know.has(k), (b) => { b.classList.toggle('on'); pick.know.has(k) ? pick.know.delete(k) : pick.know.add(k) }))
+      for (const d of document.querySelectorAll('[data-dots]')) { d.textContent = ''; for (let i = 0; i < STEPS.length; i++) d.appendChild(document.createElement('i')) }
+    }
+    function goStep(i) {
+      stepIdx = Math.max(0, Math.min(STEPS.length - 1, i))
+      document.querySelectorAll('.onb .step').forEach((s) => s.classList.toggle('on', s.dataset.step === STEPS[stepIdx]))
+      document.querySelectorAll('[data-dots]').forEach((d) => [...d.children].forEach((x, k) => x.classList.toggle('on', k <= stepIdx)))
+      window.scrollTo({ top: 0 })
+    }
+    async function saveOnb() {
+      const msg = el('onb-msg'), btn = el('onb-save')
+      btn.disabled = true; msg.textContent = 'Saving…'
+      const { data: { session } } = await supabase.auth.getSession()
+      const answers = {}; for (const [k] of CONCEPTS) answers[k] = pick.know.has(k) ? 'known' : 'review'
+      const { error } = await supabase.from('course_intake').upsert({
+        user_id: session?.user?.id, answers, completed_at: new Date().toISOString(),
+        trades: [...pick.trades], experience: pick.exp,
+      }, { onConflict: 'user_id' })
+      btn.disabled = false
+      if (error) msg.textContent = 'Could not save that, but you can set it later. Carry on.'
+      const review = CONCEPTS.filter(([k]) => !pick.know.has(k)).length
+      el('start-lede').textContent = review
+        ? `We'll open you on the first of the ${review} topic${review > 1 ? 's' : ''} you flagged. It's all unlocked.`
+        : 'You know the fundamentals, so jump into whatever you want. It’s all unlocked.'
+      goStep(3)
+    }
+    function startOnboarding() {
+      el('onb').hidden = false
+      renderOnb(); goStep(0)
+      document.querySelectorAll('[data-next]').forEach((b) => { if (b.id !== 'onb-save') b.addEventListener('click', () => goStep(stepIdx + 1)) })
+      el('onb-save').addEventListener('click', saveOnb)
+      document.querySelectorAll('[data-skip]').forEach((b) => b.addEventListener('click', () => { location.href = APP }))
+    }
+
+    const params = new URLSearchParams(location.search)
+    const sessionId = params.get('session_id')
+
+    // Someone already signed in who wanders back here just goes through
+    // (unless they explicitly asked to run onboarding again).
     const { data: existing } = await supabase.auth.getSession()
     if (existing?.session && !sessionId) {
-      location.replace(APP)
+      if (params.get('onboarding')) { el('panel').hidden = true; startOnboarding() }
+      else location.replace(APP)
     } else if (!sessionId) {
       show({
         label: 'Nothing to confirm',
@@ -237,13 +440,9 @@
           // not sit in history or leak through a referrer.
           history.replaceState(null, '', location.pathname)
 
-          // The receipt moment: circle draws, check lands, then they enter.
-          const { data: fresh } = await supabase.auth.getSession()
-          const email = fresh?.session?.user?.email
-          if (email) el('psx-who').textContent = `Signed in as ${email}`
+          // Straight into the welcome, no inbox detour.
           el('panel').hidden = true
-          el('psx').hidden = false
-          el('psx-enter').focus()
+          startOnboarding()
         }
       } catch (err) {
         console.error('claim failed', err)

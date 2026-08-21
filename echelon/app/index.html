@@ -866,9 +866,9 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
           Overview
         </button>
-        <button class="tab" data-view="course" data-title="Course" data-crumb="Lessons and progress">
+        <button class="tab" data-view="course" data-title="Study" data-crumb="Lessons and progress">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          Course <span class="count" id="c-lessons">—</span>
+          Study <span class="count" id="c-lessons">—</span>
         </button>
         <button class="tab" data-view="chat" data-title="Chat" data-crumb="The Echelon room">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
@@ -1732,7 +1732,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       card.appendChild(list)
 
       const foot = document.createElement('div'); foot.className = 'foot'
-      const enter = document.createElement('button'); enter.className = 'btn'; enter.textContent = 'Enter the course'
+      const enter = document.createElement('button'); enter.className = 'btn'; enter.textContent = 'Start studying'
       enter.addEventListener('click', async () => {
         enter.disabled = true; enter.textContent = 'Saving...'
         await saveIntake(intakeDraft, true)
@@ -2644,7 +2644,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
         const foot = document.createElement('div'); foot.className = 'lesson-foot'
         const go = document.createElement('button'); go.className = 'btn'
-        go.textContent = done ? 'Continue' : 'Start the course'
+        go.textContent = done ? 'Continue' : 'Start studying'
         go.addEventListener('click', () => { showView('course'); openLesson(nextUp.id); scrollToLesson(false) })
         foot.appendChild(go)
         cont.appendChild(foot)
@@ -3195,6 +3195,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.owned = new Set((ents ?? []).map((e) => e.product))
       state.hasCourse = state.owned.has('course') || !!isAdmin
       await loadCourse()
+
+      // Deep-link from the welcome onboarding: ?start=study|recaps|chat
+      const start = new URLSearchParams(location.search).get('start')
+      if (start) {
+        const map = { study: 'course', course: 'course', recaps: 'recaps', chat: 'chat', indicators: 'indicators', members: 'members' }
+        const v = map[start]
+        const tab = v && document.querySelector(`.tab[data-view="${v}"]`)
+        if (tab && !tab.hidden) showView(v)
+        history.replaceState(null, '', location.pathname)
+      }
     }
 
     // Magic-link returns land here with tokens in the URL fragment;
