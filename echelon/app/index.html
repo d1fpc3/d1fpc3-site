@@ -728,7 +728,12 @@
     .m-body { min-width: 0; flex: 1; }
     .m-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 1px; }
     .m-name { font-size: 13.5px; font-weight: 650; color: var(--ink); }
-    .m-name .badge-mod { font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gold); background: rgba(201,162,74,0.12); border-radius: 4px; padding: 1px 5px; margin-left: 5px; vertical-align: middle; }
+    .m-name .badge-mod { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gold); background: rgba(201,162,74,0.12); border-radius: 4px; padding: 1px 5px 1px 4px; margin-left: 5px; vertical-align: middle; }
+    .m-name .badge-mod.owner { color: #f0d488; background: rgba(201,162,74,0.2); }
+    .m-name .badge-mod .vf { width: 11px; height: 11px; flex-shrink: 0; }
+    .m-name .badge-mod .vf-seal { fill: var(--gold); }
+    .m-name .badge-mod.owner .vf-seal { fill: #f0d488; }
+    .m-name .badge-mod .vf-check { fill: none; stroke: #1a1207; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
     .m-time { font-size: 11px; color: var(--faint); }
     .m-text { font-size: 13.5px; line-height: 1.5; color: var(--muted); white-space: pre-wrap; word-break: break-word; }
     .m-text.removed { color: var(--faint); font-style: italic; }
@@ -1049,10 +1054,6 @@
         </section>
 
         <section class="view" id="v-members">
-          <p class="settings-note" id="members-upsell" hidden>
-            You're in on the free tier. The full course and trade recaps come with
-            <a href="/">Echelon</a>.
-          </p>
           <div class="block">
             <div class="block-head">
               <h3>Members</h3>
@@ -1204,7 +1205,7 @@
     })
 
     const state = {
-      user: null, isAdmin: false, hasCourse: false, profile: null,
+      user: null, isAdmin: false, isMod: false, hasCourse: false, profile: null,
       modules: [], lessons: [], done: new Set(), currentId: null,
       recaps: [], currentRecap: null, members: [], intake: null, owned: new Set(),
       products: [], tvAccess: [], reviews: [],
@@ -2271,7 +2272,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function renderSidebarUser() {
       avatarInto(el('u-avatar'), state.profile, state.user?.email)
       el('u-name').textContent = state.profile ? '@' + state.profile.username : (state.user?.email ?? '—')
-      el('u-role').textContent = state.isAdmin ? 'Owner · Admin' : (state.hasCourse ? 'Member' : 'Free member')
+      el('u-role').textContent = state.isAdmin ? 'Owner' : (state.isMod ? 'Moderator' : 'Member')
     }
 
     function fillSettings() {
@@ -2854,6 +2855,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (uid === state.user?.id && state.profile) return { username: state.profile.username, avatar_url: state.profile.avatar_url }
       return chat.byUser[uid] || (state.members || []).find((m) => m.user_id === uid) || { username: 'member', avatar_url: null }
     }
+    // A gold verified seal + role tag for staff (owner / mod), driven by the
+    // chat_staff view so it shows the same to everyone in the room.
+    const VERIFIED_SVG = '<svg class="vf" viewBox="0 0 24 24" aria-hidden="true"><path class="vf-seal" d="M12 1.6l2.7 1.9 3.3.1.9 3.2 2.4 2.3-1.2 3.1 1.2 3.1-2.4 2.3-.9 3.2-3.3.1L12 22.4l-2.7-1.9-3.3-.1-.9-3.2L2.7 15l1.2-3.1L2.7 8.8l2.4-2.3.9-3.2 3.3-.1z"/><path class="vf-check" d="M8.3 12.4l2.4 2.4 4.9-5.1"/></svg>'
+    function staffBadge(uid) {
+      const role = chat.staff?.get(uid)
+      if (!role) return ''
+      return '<span class="badge-mod' + (role === 'owner' ? ' owner' : '') + '">' + VERIFIED_SVG + (role === 'owner' ? 'owner' : 'mod') + '</span>'
+    }
     function avatarNode(info, cls) {
       if (info.avatar_url) { const i = document.createElement('img'); i.className = cls; i.src = info.avatar_url; i.alt = ''; return i }
       const d = document.createElement('div'); d.className = cls + ' gold'; d.textContent = (info.username || '?')[0].toUpperCase(); return d
@@ -2863,13 +2872,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function loadChat() {
       chat.byUser = Object.fromEntries((state.members || []).map((m) => [m.user_id, m]))
       if (state.profile) chat.byUser[state.user.id] = { user_id: state.user.id, username: state.profile.username, avatar_url: state.profile.avatar_url }
-      const [{ data: ch }, { data: mods }, { data: dms }] = await Promise.all([
+      const [{ data: ch }, { data: mods }, { data: staff }, { data: dms }] = await Promise.all([
         supabase.from('channels').select('*').order('position'),
         supabase.from('mods').select('user_id'),
+        supabase.from('chat_staff').select('user_id, role'),
         supabase.from('dm_threads').select('*').order('last_at', { ascending: false }),
       ])
       chat.channels = ch ?? []
       chat.modSet = new Set((mods ?? []).map((m) => m.user_id))
+      chat.staff = new Map((staff ?? []).map((s) => [s.user_id, s.role]))
       chat.isStaff = state.isAdmin || chat.modSet.has(state.user.id)
       chat.dms = dms ?? []
       chat.loaded = true
@@ -2965,8 +2976,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (!grouped) {
           const head = document.createElement('div'); head.className = 'm-head'
           const nm = document.createElement('span'); nm.className = 'm-name'; nm.textContent = info.username
-          if (state.isAdmin && m.user_id === state.user.id) nm.innerHTML += '<span class="badge-mod">owner</span>'
-          else if (chat.modSet.has(m.user_id)) nm.innerHTML += '<span class="badge-mod">mod</span>'
+          nm.innerHTML += staffBadge(m.user_id)
           const tm = document.createElement('span'); tm.className = 'm-time'; tm.textContent = t.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
           head.append(nm, tm); bodyWrap.appendChild(head)
         }
@@ -3054,13 +3064,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         link.href = DISCORD_INVITE
         link.hidden = false
       }
-      // Free members get the community; the course tabs only exist for people
-      // who own it (RLS would hand them empty lists anyway).
+      // Non-course members get the community; the course tabs only exist for
+      // people who own it (RLS would hand them empty lists anyway).
       for (const v of ['overview', 'course', 'recaps']) {
         document.querySelector(`.tab[data-view="${v}"]`).hidden = !state.hasCourse
       }
-      el('members-upsell').hidden = state.hasCourse
-      if (!state.hasCourse) showView('members')
+      if (!state.hasCourse) showView(state.isMod ? 'chat' : 'members')
 
       await fetchAndRender()
     }
@@ -3182,16 +3191,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       state.user = session.user
 
-      // Paid, or runs the place, or free tier. Admins get in without a
-      // purchase row; free members get the community and an upgrade path.
+      // Paid, staff, or a plain member. Admins and mods get in without a
+      // purchase row; members without the course still get the community.
       // Entitlements are now per-product (course + indicators), so read them
       // all rather than a single row.
-      const [{ data: ents }, { data: isAdmin }] = await Promise.all([
+      const [{ data: ents }, { data: isAdmin }, { data: modRow }] = await Promise.all([
         supabase.from('entitlements').select('product, status, interval').eq('status', 'active'),
         supabase.rpc('is_admin'),
+        supabase.from('mods').select('user_id').eq('user_id', session.user.id).maybeSingle(),
       ])
 
       state.isAdmin = !!isAdmin
+      state.isMod = !!modRow
       state.owned = new Set((ents ?? []).map((e) => e.product))
       state.hasCourse = state.owned.has('course') || !!isAdmin
       await loadCourse()
