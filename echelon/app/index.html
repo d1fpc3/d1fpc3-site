@@ -760,6 +760,17 @@
     .m-preview .pv-site { font-size: 10.5px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.05em; }
     .m-preview .pv-title { font-size: 13px; font-weight: 650; color: var(--ink); margin: 2px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .m-preview .pv-desc { font-size: 12px; color: var(--faint); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    /* poll */
+    .m-poll { margin-top: 5px; max-width: 420px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--panel); }
+    .m-poll .pl-q { font-size: 13.5px; font-weight: 650; color: var(--ink); margin-bottom: 10px; }
+    .m-poll .pl-opt { position: relative; border: 1px solid var(--line-bright); border-radius: 8px; padding: 8px 12px; margin-bottom: 7px; cursor: pointer; overflow: hidden; }
+    .m-poll .pl-opt:hover { border-color: var(--gold); }
+    .m-poll .pl-opt.mine { border-color: var(--gold); }
+    .m-poll .pl-bar { position: absolute; inset: 0; background: rgba(201,162,74,0.14); width: 0; transition: width 0.35s ease; }
+    .m-poll .pl-opt.mine .pl-bar { background: rgba(201,162,74,0.26); }
+    .m-poll .pl-row { position: relative; display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--ink); }
+    .m-poll .pl-pct { color: var(--faint); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+    .m-poll .pl-total { font-size: 11.5px; color: var(--faint); margin-top: 3px; }
     .m-del { position: absolute; top: 4px; right: 6px; opacity: 0; background: var(--panel-2); border: 1px solid var(--line-bright); color: var(--faint);
       border-radius: 6px; padding: 4px; cursor: pointer; transition: opacity 0.12s ease; display: inline-flex; }
     .m-del svg { width: 14px; height: 14px; display: block; }
@@ -1064,12 +1075,28 @@
                 <button class="cc-img" id="cc-img-btn" type="button" aria-label="Add image" title="Add image">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
                 </button>
+                <button class="cc-img" id="cc-poll-btn" type="button" aria-label="Create poll" title="Create poll">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </button>
                 <textarea id="chat-input" rows="1" placeholder="Message" maxlength="4000"></textarea>
                 <button class="btn" id="chat-send" aria-label="Send">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
               </div>
               <p class="chat-locked" id="chat-locked" hidden>Only the team posts here.</p>
+            </div>
+          </div>
+          <!-- Poll composer -->
+          <div class="dmpick-scrim" id="pollmodal" hidden>
+            <div class="dmpick" style="max-width:440px;">
+              <div class="block-head"><h3>New poll</h3><button class="rowbtn" id="poll-x">Close</button></div>
+              <div style="padding:14px 16px; display:flex; flex-direction:column; gap:10px; overflow-y:auto;">
+                <input class="inp" id="poll-q" placeholder="Ask a question" maxlength="200">
+                <div id="poll-opts" style="display:flex; flex-direction:column; gap:8px;"></div>
+                <button class="rowbtn" id="poll-add" type="button" style="align-self:flex-start;">Add option</button>
+                <button class="btn" id="poll-post" type="button">Post poll</button>
+                <p class="msg" id="poll-msg"></p>
+              </div>
             </div>
           </div>
           <!-- DM picker -->
@@ -3155,9 +3182,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       el('chat-log').innerHTML = '<p class="cr-empty">Loading…</p>'
       const col = type === 'channel' ? 'channel_id' : 'dm_id'
-      const { data } = await supabase.from('messages').select('id, user_id, body, created_at, edited_at, deleted_at, image_url')
+      const { data } = await supabase.from('messages').select('id, user_id, body, created_at, edited_at, deleted_at, image_url, poll')
         .eq(col, id).is('deleted_at', null).order('created_at').limit(200)
       chat.msgs = data ?? []
+      await loadPollVotes()
       renderLog(true)
       subscribeRoom(type, id)
       markRead(type + ':' + id)
@@ -3177,6 +3205,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (p.new.deleted_at) chat.msgs.splice(i, 1); else chat.msgs[i] = p.new
           renderLog()
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => schedulePollRefresh())
         .subscribe()
     }
 
@@ -3239,6 +3268,85 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       card.appendChild(b); host.appendChild(card)
     }
 
+    // ── polls ──
+    let _pollT = 0
+    async function loadPollVotes() {
+      chat.pollVotes = chat.pollVotes || new Map()
+      const ids = chat.msgs.filter((m) => m.poll).map((m) => m.id)
+      if (!ids.length) { chat.pollVotes = new Map(); return }
+      const { data } = await supabase.from('poll_votes').select('message_id, user_id, choice').in('message_id', ids)
+      const map = new Map()
+      for (const id of ids) map.set(id, { counts: [], total: 0, mine: null })
+      for (const v of data || []) {
+        const e = map.get(v.message_id); if (!e) continue
+        e.counts[v.choice] = (e.counts[v.choice] || 0) + 1; e.total++
+        if (v.user_id === state.user.id) e.mine = v.choice
+      }
+      chat.pollVotes = map
+    }
+    function schedulePollRefresh() { clearTimeout(_pollT); _pollT = setTimeout(async () => { await loadPollVotes(); renderLog() }, 500) }
+    function renderPoll(host, m) {
+      const poll = m.poll
+      const v = chat.pollVotes?.get(m.id) || { counts: [], total: 0, mine: null }
+      const wrap = document.createElement('div'); wrap.className = 'm-poll'
+      const q = document.createElement('div'); q.className = 'pl-q'; q.textContent = poll.q; wrap.appendChild(q)
+      poll.opts.forEach((opt, i) => {
+        const count = v.counts[i] || 0
+        const pct = v.total ? Math.round((count / v.total) * 100) : 0
+        const o = document.createElement('div'); o.className = 'pl-opt' + (v.mine === i ? ' mine' : '')
+        const bar = document.createElement('div'); bar.className = 'pl-bar'; bar.style.width = pct + '%'; o.appendChild(bar)
+        const row = document.createElement('div'); row.className = 'pl-row'
+        const label = document.createElement('span'); label.textContent = (v.mine === i ? '✓ ' : '') + opt
+        const p = document.createElement('span'); p.className = 'pl-pct'; p.textContent = v.total ? pct + '%' : ''
+        row.append(label, p); o.appendChild(row)
+        o.addEventListener('click', () => votePoll(m.id, i))
+        wrap.appendChild(o)
+      })
+      const tot = document.createElement('div'); tot.className = 'pl-total'; tot.textContent = v.total + (v.total === 1 ? ' vote' : ' votes')
+      wrap.appendChild(tot); host.appendChild(wrap)
+    }
+    async function votePoll(mid, choice) {
+      chat.pollVotes = chat.pollVotes || new Map()
+      const v = chat.pollVotes.get(mid) || { counts: [], total: 0, mine: null }
+      if (v.mine === choice) return
+      if (v.mine != null) { v.counts[v.mine] = Math.max(0, (v.counts[v.mine] || 0) - 1); v.total-- }
+      v.counts[choice] = (v.counts[choice] || 0) + 1; v.total++; v.mine = choice
+      chat.pollVotes.set(mid, v); renderLog()
+      await supabase.from('poll_votes').upsert({ message_id: mid, user_id: state.user.id, choice }, { onConflict: 'message_id,user_id' })
+    }
+
+    // poll composer
+    function addPollOption() {
+      const opts = el('poll-opts'); if (opts.children.length >= 6) return
+      const inp = document.createElement('input'); inp.className = 'inp'; inp.placeholder = 'Option ' + (opts.children.length + 1); inp.maxLength = 80
+      opts.appendChild(inp)
+    }
+    el('cc-poll-btn').addEventListener('click', () => {
+      el('poll-q').value = ''; el('poll-msg').textContent = ''; el('poll-opts').innerHTML = ''
+      addPollOption(); addPollOption(); el('pollmodal').hidden = false
+    })
+    el('poll-x').addEventListener('click', () => { el('pollmodal').hidden = true })
+    el('pollmodal').addEventListener('click', (e) => { if (e.target === el('pollmodal')) el('pollmodal').hidden = true })
+    el('poll-add').addEventListener('click', addPollOption)
+    el('poll-post').addEventListener('click', async () => {
+      const q = el('poll-q').value.trim()
+      const opts = [...el('poll-opts').querySelectorAll('input')].map((i) => i.value.trim()).filter(Boolean)
+      const msg = el('poll-msg')
+      if (!q) { msg.className = 'msg err'; msg.textContent = 'Add a question.'; return }
+      if (opts.length < 2) { msg.className = 'msg err'; msg.textContent = 'Add at least two options.'; return }
+      if (!chat.cur) return
+      el('poll-post').disabled = true; msg.className = 'msg'; msg.textContent = 'Posting…'
+      const col = chat.cur.type === 'channel' ? 'channel_id' : 'dm_id'
+      const { data, error } = await supabase.from('messages')
+        .insert({ [col]: chat.cur.id, user_id: state.user.id, body: null, poll: { q, opts } }).select().single()
+      el('poll-post').disabled = false
+      if (error) { msg.className = 'msg err'; msg.textContent = error.message; return }
+      el('pollmodal').hidden = true
+      if (!chat.msgs.some((m) => m.id === data.id)) {
+        chat.msgs.push(data); (chat.pollVotes = chat.pollVotes || new Map()).set(data.id, { counts: [], total: 0, mine: null }); renderLog(true)
+      }
+    })
+
     function renderLog(forceBottom) {
       const log = el('chat-log')
       const nearBottom = forceBottom || (log.scrollHeight - log.scrollTop - log.clientHeight < 120)
@@ -3269,6 +3377,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           else linkifyInto(txt, m.body)
           bodyWrap.appendChild(txt)
         }
+        if (m.poll) renderPoll(bodyWrap, m)
         if (m.image_url) {
           const img = document.createElement('img'); img.className = 'm-img'; img.src = m.image_url; img.alt = 'image'; img.loading = 'lazy'
           img.addEventListener('click', () => window.open(m.image_url, '_blank', 'noopener'))
@@ -3329,7 +3438,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const img = pendingImage; clearPending()
       const col = chat.cur.type === 'channel' ? 'channel_id' : 'dm_id'
       const { data, error } = await supabase.from('messages')
-        .insert({ [col]: chat.cur.id, user_id: state.user.id, body: body || '', image_url: img || null }).select().single()
+        .insert({ [col]: chat.cur.id, user_id: state.user.id, body: body || null, image_url: img || null }).select().single()
       if (error) {
         input.value = body
         if (img) { pendingImage = img; el('cc-thumb').src = img; el('cc-pending').classList.add('on') }
