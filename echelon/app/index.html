@@ -95,7 +95,10 @@
       min-height: 100dvh; display: flex; align-items: center; justify-content: center;
       padding: 32px 24px; position: relative; overflow: hidden;
     }
-    .orb { position: absolute; border-radius: 50%; filter: blur(66px); opacity: 0.5; pointer-events: none; }
+    /* Orbs only show on an actual sign-in screen (gate .lit), never during the
+       brief session-restore on refresh, so a signed-in reload never flashes gold. */
+    .orb { position: absolute; border-radius: 50%; filter: blur(66px); opacity: 0.5; pointer-events: none; display: none; }
+    .centre.lit .orb { display: block; }
     .o1 { width: 320px; height: 320px; background: #a8842c; top: 10%; left: 50%; margin-left: -290px;
           animation: gl-drift 9s ease-in-out infinite alternate; }
     .o2 { width: 280px; height: 280px; background: #7a4f16; bottom: 12%; left: 50%; margin-left: 40px;
@@ -1192,10 +1195,14 @@
             </div>
           </div>
           <div class="block" id="desktop-block" hidden>
-            <div class="block-head"><h3>Echelon for Windows</h3><span class="label">Desktop app</span></div>
-            <p class="hint" style="margin:0 0 12px;">Run Echelon in its own window. Same sign-in, and it updates itself. Members only.</p>
-            <button class="rowbtn" id="desktop-dl">Download for Windows</button>
-            <p class="msg" id="desktop-msg"></p>
+            <div class="block-head"><h3>Echelon for Windows</h3></div>
+            <div class="setgrid" style="max-width:none;">
+              <p class="hint" style="margin:0;">Run Echelon in its own window on your PC. Same sign-in, and it keeps itself up to date.</p>
+              <div class="filters">
+                <button class="btn" id="desktop-dl" type="button">Download for Windows</button>
+              </div>
+              <p class="msg" id="desktop-msg"></p>
+            </div>
           </div>
           <div class="block">
             <div class="block-head"><h3>Account</h3><span class="label" id="acct-email"></span></div>
@@ -1366,6 +1373,7 @@
     function gate({ title, body, render }) {
       el('app').classList.remove('on')
       el('gate').style.display = 'flex'
+      el('gate').classList.add('lit')
       el('gate-title').textContent = title
       el('gate-body').textContent = body ?? ''
       const host = el('gate-actions')
@@ -3386,7 +3394,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const previewUrl = (m.body || '').match(/https?:\/\/[^\s<]+/)?.[0]
         if (previewUrl) addLinkPreview(bodyWrap, previewUrl)
         row.appendChild(bodyWrap)
-        if (m.user_id === state.user.id || chat.isStaff) {
+        if (chat.isStaff) {
           const del = document.createElement('button'); del.className = 'm-del'; del.title = 'Delete'
           del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
           del.addEventListener('click', () => { if (confirm('Delete this message?')) deleteMessage(m.id) })
