@@ -306,6 +306,48 @@
     tbody tr:hover td { background: rgba(255,255,255,0.014); }
     .num { font-variant-numeric: tabular-nums; }
 
+    /* ── GEX dashboard (ported from admin) ── */
+    .gex-read { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 22px; }
+    .gex-read > div { padding: 2px 18px 8px 0; border-right: 1px solid var(--line); margin-right: 18px; min-width: 0; }
+    .gex-read > div:last-child { border-right: 0; margin-right: 0; }
+    .gex-read .v { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-top: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .gex-read .v.pos { color: var(--good); } .gex-read .v.neg { color: var(--bad); }
+    .gex-read .d { font-size: 11.5px; color: var(--faint); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    @media (max-width: 900px) { .gex-read { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; } .gex-read > div:nth-child(2) { border-right: 0; } }
+    .gex-regime { border-top: 1px solid var(--line); margin: -6px 0 24px; padding-top: 12px; font-size: 13px; line-height: 1.6; color: var(--muted); max-width: 880px; }
+    .gex-regime b { font-weight: 600; }
+    .gex-regime b.neg { color: var(--bad); } .gex-regime b.pos { color: var(--good); } .gex-regime b.mix { color: var(--gold); }
+    .seg { display: inline-flex; gap: 2px; align-items: center; }
+    .seg button { background: none; border: 0; padding: 6px 8px 5px; cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 500; color: var(--faint); border-bottom: 1.5px solid transparent; transition: color 0.15s ease, border-color 0.15s ease; }
+    .seg button:hover { color: var(--ink); }
+    .seg button.on { color: var(--ink); border-bottom-color: var(--gold); }
+    .seg + .seg { margin-left: 10px; padding-left: 12px; border-left: 1px solid var(--line); }
+    .gex-stage { position: relative; padding: 6px 10px 2px; }
+    .gex-stage canvas { display: block; width: 100%; height: auto; cursor: grab; touch-action: none; }
+    .gex-stage canvas.grabbing { cursor: grabbing; }
+    .gex-stage canvas.profile { cursor: crosshair; }
+    .gex-tip { position: absolute; z-index: 3; pointer-events: none; background: var(--panel-2); border: 1px solid var(--line-bright); border-radius: 8px; padding: 8px 11px; font-size: 12px; line-height: 1.5; color: var(--muted); white-space: nowrap; box-shadow: 0 10px 30px -12px rgba(0,0,0,0.6); }
+    .gex-tip b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .gex-tip .pos { color: var(--good); } .gex-tip .neg { color: var(--bad); }
+    .gex-foot { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; padding: 8px 18px 14px; font-size: 11.5px; color: var(--faint); }
+    .gex-foot .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+    .gex-foot .k { color: var(--muted); }
+    .gex-empty { padding: 60px 18px; text-align: center; color: var(--faint); font-size: 13.5px; }
+    .tier { color: var(--gold); letter-spacing: 1px; font-size: 12px; }
+    .gex-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+    .gex-grid > .block { margin-top: 0; }
+    @media (min-width: 1240px) { .gex-grid { grid-template-columns: minmax(0, 1fr) minmax(330px, 400px); } }
+    .gex-levels table { min-width: 0; font-size: 12.5px; }
+    .gex-levels th { padding: 8px 10px; }
+    .gex-levels td { padding: 5px 10px; white-space: nowrap; }
+    .gex-levels td.lvl-name small { font-size: 10.5px; }
+    .gex-levels .tbl-scroll { overflow-y: auto; }
+    .gex-stamp { padding: 9px 14px 11px; border-top: 1px solid var(--line); }
+    .gex-sheet-head { border-top: 1px solid var(--line); }
+    .gex-sheet { margin: 0; padding: 10px 14px 14px; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); overflow-x: auto; white-space: pre; }
+    td.lvl-name { color: var(--ink); font-weight: 500; }
+    td.lvl-name small { color: var(--faint); font-weight: 400; margin-left: 6px; }
+
     .badge {
       display: inline-flex; align-items: center; gap: 6px;
       font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
@@ -939,6 +981,10 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           Indicators
         </button>
+        <button class="tab" id="gex-tab" data-view="gex" data-title="GEX" data-crumb="QQQ gamma exposure, mapped to NQ" hidden>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+          GEX
+        </button>
         <button class="tab" data-view="members" data-title="Members" data-crumb="Who's here">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Members <span class="count" id="c-members">—</span>
@@ -1128,6 +1174,54 @@
             </div>
           </div>
           <div class="store-grid" id="store-grid"></div>
+        </section>
+
+        <!-- GEX dashboard (GEX subscribers only) -->
+        <section class="view" id="v-gex">
+          <div class="gex-read" id="gex-read"></div>
+          <div class="gex-regime" id="gex-regime" hidden></div>
+          <div class="gex-grid" id="gex-grid">
+          <div class="block">
+            <div class="block-head">
+              <h3 id="gex-chart-title">Gamma surface</h3>
+              <div class="filters">
+                <span class="seg" id="gex-view" role="tablist" aria-label="Chart">
+                  <button class="on" data-v="surface">Surface</button>
+                  <button data-v="profile">Profile</button>
+                </span>
+                <span class="seg" id="gex-set" aria-label="Expiry set" hidden>
+                  <button class="on" data-s="zdte">0DTE</button>
+                  <button data-s="swing">Swing</button>
+                  <button data-s="all">All</button>
+                </span>
+                <span class="seg" id="gex-scale" aria-label="Height scale">
+                  <button class="on" data-z="linear">Linear</button>
+                  <button data-z="sqrt">&#8730; scale</button>
+                </span>
+                <button class="rowbtn" id="gex-refresh">Refresh</button>
+              </div>
+            </div>
+            <div class="gex-stage" id="gex-stage">
+              <canvas id="gex-canvas" aria-label="QQQ gamma exposure by strike and expiry"></canvas>
+              <div class="gex-tip" id="gex-tip" hidden></div>
+            </div>
+            <div class="gex-empty" id="gex-empty" hidden>Loading the latest chain from gex-worker&#8230;</div>
+            <div class="gex-foot" id="gex-foot"></div>
+          </div>
+          <div class="block gex-levels">
+            <div class="block-head">
+              <h3>Levels</h3>
+              <button class="rowbtn" id="gex-copy" hidden>Copy pineData</button>
+            </div>
+            <div class="tbl-scroll" id="gex-levels-scroll"><table id="gex-table"></table></div>
+            <div class="block-head gex-sheet-head">
+              <h3>Daily sheet</h3>
+              <button class="rowbtn" id="gex-sheet-copy">Copy sheet</button>
+            </div>
+            <pre class="gex-sheet" id="gex-sheet" hidden></pre>
+            <div class="gex-stamp label" id="gex-stamp"></div>
+          </div>
+          </div>
         </section>
 
         <section class="view" id="v-members">
@@ -1614,6 +1708,7 @@
       window.scrollTo({ top: 0 })
       if (view === 'chat' && !chat.loaded) loadChat()
       if (view === 'recaps') markRead('recaps')
+      if (view === 'gex') gexShown()
     }
     tabs.forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)))
 
@@ -2938,6 +3033,599 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     el('co-scrim').addEventListener('click', (e) => { if (e.target === el('co-scrim')) closeCheckout() })
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && el('co-scrim').classList.contains('on')) closeCheckout() })
 
+    // table helpers (used by the GEX levels table)
+    function table(host, cols, rows, build) {
+      host.textContent = ''
+      const thead = document.createElement('thead'), htr = document.createElement('tr')
+      for (const c of cols) { const th = document.createElement('th'); th.textContent = c; htr.appendChild(th) }
+      thead.appendChild(htr)
+      const tbody = document.createElement('tbody')
+      for (const r of rows) tbody.appendChild(build(r))
+      host.append(thead, tbody)
+    }
+    const cell = (text, cls) => { const td = document.createElement('td'); if (cls) td.className = cls; td.textContent = text; return td }
+
+    /* ── GEX: QQQ gamma exposure by strike and expiry, mapped to NQ (data from the
+       public gex-worker snapshot; canvas surface + profile, follows the theme). ── */
+    const GEX_URL = 'https://gex-worker.frankiepc3.workers.dev'
+    const GEX = {
+      data: null, loadedAt: 0, timer: null, raf: 0, pick: [], rows: [], hover: null, drag: null,
+      view: localStorage.getItem('echelon-gex-view') || 'surface',
+      set: localStorage.getItem('echelon-gex-set') || 'zdte',
+      scale: localStorage.getItem('echelon-gex-scale') || 'linear',
+      yaw: -0.5, pitch: 0.66,
+    }
+    const GEX_FONT = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+    const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
+    const gexTokens = () => ({
+      ink: cssVar('--ink'), muted: cssVar('--muted'), faint: cssVar('--faint'), line: cssVar('--line'),
+      lineB: cssVar('--line-bright'), gold: cssVar('--gold'), good: cssVar('--good'), bad: cssVar('--bad'),
+      panel: cssVar('--panel'), panel2: cssVar('--panel-2'),
+    })
+    function mix(a, b, t) {
+      const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
+      const A = p(a), B = p(b)
+      return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('')
+    }
+    const alpha = (hex, a) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)); return `rgba(${r},${g},${b},${a})` }
+    const fmtM = (v, signed = true) => {
+      if (v == null || isNaN(v)) return '—'
+      const a = Math.abs(v)
+      const s = a >= 1000 ? (a / 1000).toFixed(2) + 'B' : a >= 100 ? a.toFixed(0) + 'M' : (Number.isInteger(a) ? String(a) : a.toFixed(1)) + 'M'
+      return (v < 0 ? '−' : signed && v > 0 ? '+' : '') + s
+    }
+    const expDate = (tag) => new Date(Date.UTC(2000 + +tag.slice(0, 2), +tag.slice(2, 4) - 1, +tag.slice(4, 6)))
+    const expLabel = (tag, wd = true) => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', ...(wd ? { weekday: 'short' } : {}), month: 'numeric', day: 'numeric' }).format(expDate(tag))
+    const etStamp = (iso) => new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso)) + ' ET'
+    const gexNQ = (k) => { const c = GEX.data.conversion; return Math.round(k * c.divisor + c.basis) }
+    const gexRows = (set) => { const m = GEX.data.surface.expiries.length; return set === 'zdte' ? [0] : set === 'swing' ? [...Array(m).keys()].slice(1) : [...Array(m).keys()] }
+    const gexAt = (rows, j) => rows.reduce((s, i) => s + GEX.data.surface.gexM[i][j], 0)
+    const gexAtStrike = (rows, k) => { const j = GEX.data.surface.strikes.indexOf(k); return j < 0 ? null : gexAt(rows, j) }
+    const niceStep = (span, target = 4) => { const raw = span / target, p = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / p; return (f >= 5 ? 5 : f >= 2 ? 2 : 1) * p }
+
+    async function loadGex(force = false) {
+      const url = force ? `${GEX_URL}/refresh` : `${GEX_URL}/gex.json`
+      const res = await fetch(url, { cache: 'no-store' })
+      if (!res.ok) throw new Error(`gex-worker ${res.status}`)
+      const d = await res.json()
+      if (!d.surface) throw new Error('snapshot has no surface yet')
+      GEX.data = d; GEX.loadedAt = Date.now()
+      renderGex()
+    }
+
+    function renderGex() {
+      const d = GEX.data
+      if (!d) return
+      const rd = el('gex-read'); rd.textContent = ''
+      const fig = (k, v, cls, desc) => {
+        const w = document.createElement('div')
+        const a = document.createElement('div'); a.className = 'label'; a.textContent = k
+        const b = document.createElement('div'); b.className = 'v' + (cls ? ' ' + cls : ''); b.textContent = v
+        const c = document.createElement('div'); c.className = 'd'; c.textContent = desc
+        w.append(a, b, c); rd.appendChild(w)
+      }
+      const z = d.zdte, s = d.swing
+      fig('0DTE net GEX', fmtM(z.netGexM), z.netGexM >= 0 ? 'pos' : 'neg', `${expLabel(z.expiry)} · ${z.dte} DTE · ${d.regime}`)
+      fig('Swing net GEX', s ? fmtM(s.netGexM) : '—', s && s.netGexM >= 0 ? 'pos' : 'neg', s ? `${s.expiries} expiries out to 60d` : 'no swing horizon')
+      fig('QQQ spot', d.spot.toFixed(2), '', d.marketOpen ? 'market open · CBOE ~15 min delayed' : 'market closed · last snapshot')
+      fig('NQ', Math.round(d.nq).toLocaleString(), '', `= QQQ × ${d.conversion.divisor} + ${d.conversion.basis} (as of ${d.conversion.asOf ?? '—'})`)
+      renderRegime(d)
+      el('gex-sheet').textContent = d.levelsText || ''
+      el('gex-sheet').hidden = !d.levelsText
+      el('gex-sheet-copy').parentElement.hidden = !d.levelsText
+      el('gex-stamp').textContent = `Updated ${etStamp(d.generatedAt)}`
+      renderGexTable()
+      syncGexControls()
+      drawGex()
+    }
+
+    function renderRegime(d) {
+      const rg = el('gex-regime')
+      const z = d.zdte.netGexM, s = d.swing ? d.swing.netGexM : null
+      const nqOf = (lvl) => lvl ? Math.round(lvl.nq ?? gexNQ(lvl.qqq)).toLocaleString() : null
+      const call = nqOf(d.zdte.callWall), put = nqOf(d.zdte.putWall)
+      const lead = (cls, txt) => `<b class="${cls}">${txt}</b>`
+      let msg
+      if (z < 0 && (s == null || s < 0)) {
+        msg = `${lead('neg', 'Negative gamma')} — dealers hedge in the same direction as price, so moves get amplified. Expect expansion: breaks keep going, bounces are sharp but short-lived, and fading a move means fighting the hedging flow.`
+        if (put) msg += ` The put wall at ${put} is the downside magnet${call ? `; the call wall at ${call} is the ceiling` : ''}.`
+      } else if (z >= 0 && (s == null || s >= 0)) {
+        msg = `${lead('pos', 'Positive gamma')} — dealers hedge against price, absorbing moves. Expect compression: pushes stall, dips get bought, and price drifts back toward the big strikes.`
+        if (put && call) msg += ` Edges to fade: put wall ${put} below, call wall ${call} above.`
+      } else if (z < 0) {
+        msg = `${lead('mix', 'Mixed')} — negative today, positive further out. Expect whippy intraday swings inside a range that still mean-reverts over the next few days; trust the walls more than the trend.`
+      } else {
+        msg = `${lead('mix', 'Mixed')} — calm today, negative further out. Intraday chop is likely, but multi-day moves can still run; keep an eye on the swing walls.`
+      }
+      const flip = d.zdte.flip
+      if (flip) {
+        const below = d.spot < flip.qqq
+        msg += ` Spot is ${below ? 'below' : 'above'} the flip at ${Math.round(flip.nq ?? gexNQ(flip.qqq)).toLocaleString()} — ${below ? 'the amplifier side; a rally only gets trustworthy once it reclaims that level' : 'the calmer side; moves tend to slow into it'}.`
+      }
+      rg.innerHTML = msg
+      rg.hidden = false
+    }
+
+    function syncGexControls() {
+      el('gex-view').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === GEX.view))
+      el('gex-set').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.s === GEX.set))
+      el('gex-scale').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.z === GEX.scale))
+      el('gex-set').hidden = GEX.view !== 'profile'
+      el('gex-scale').hidden = GEX.view !== 'surface'
+      const setName = { zdte: '0DTE', swing: 'Swing', all: 'All expiries' }[GEX.set]
+      el('gex-chart-title').textContent = GEX.view === 'surface' ? 'Gamma surface' : `Gamma profile · ${setName}`
+      el('gex-canvas').classList.toggle('profile', GEX.view === 'profile')
+    }
+    function gexLegend(entries, hintTxt, title) {
+      const f = el('gex-foot'); f.textContent = ''
+      if (title) { const tt = document.createElement('span'); tt.className = 'k'; tt.textContent = title; f.appendChild(tt) }
+      for (const e of entries) {
+        const s = document.createElement('span'); const i = document.createElement('i'); i.className = 'sw'; i.style.background = e.col
+        s.append(i, e.txt); f.appendChild(s)
+      }
+      const hint = document.createElement('span'); hint.className = 'k'; hint.textContent = hintTxt; f.appendChild(hint)
+    }
+
+    function renderGexTable() {
+      const d = GEX.data, S = d.surface
+      const r0 = gexRows('zdte'), rs = gexRows('swing')
+      const rows = []
+      const push = (name, sub, lvl, gex) => { if (lvl) rows.push({ name, sub, qqq: lvl.qqq, nq: lvl.nq ?? gexNQ(lvl.qqq), gex, tier: lvl.tier || 0 }) }
+      push('Call wall', '0DTE', d.zdte.callWall, gexAtStrike(r0, d.zdte.callWall?.qqq))
+      push('Put wall', '0DTE', d.zdte.putWall, gexAtStrike(r0, d.zdte.putWall?.qqq))
+      push('Gamma flip', '0DTE', d.zdte.flip, null)
+      if (d.swing) {
+        push('Call wall', 'swing', d.swing.callWall, gexAtStrike(rs, d.swing.callWall?.qqq))
+        push('Put wall', 'swing', d.swing.putWall, gexAtStrike(rs, d.swing.putWall?.qqq))
+        push('Gamma flip', 'swing', d.swing.flip, null)
+      }
+      for (const r of d.rLevels ?? []) push(`Γ${r.rank}`, 'concentration', { qqq: r.strike, nq: r.nq, tier: r.tier }, r.gexM)
+      table(el('gex-table'), ['Level', 'QQQ', 'NQ', 'GEX $M', 'Conf.'], rows, (r) => {
+        const tr = document.createElement('tr')
+        const n = document.createElement('td'); n.className = 'lvl-name'; n.textContent = r.name
+        const sm = document.createElement('small'); sm.textContent = r.sub; n.appendChild(sm)
+        const g = cell(r.gex == null ? '—' : fmtM(r.gex), 'num'); if (r.gex != null) g.style.color = r.gex >= 0 ? 'var(--good)' : 'var(--bad)'
+        const tier = document.createElement('td'); const ts = document.createElement('span'); ts.className = 'tier'; ts.textContent = r.tier ? '•'.repeat(r.tier) : '—'; tier.appendChild(ts)
+        tr.append(n, cell(String(r.qqq), 'num ink'), cell(r.nq.toLocaleString(), 'num'), g, tier)
+        return tr
+      })
+    }
+
+    function gexCanvas() {
+      const c = el('gex-canvas'), stage = el('gex-stage')
+      const w = Math.max(320, stage.clientWidth - 20)
+      const docTop = stage.getBoundingClientRect().top + window.scrollY
+      const avail = window.innerHeight - docTop - 46 - 34
+      let want = 0
+      if (getComputedStyle(el('gex-grid')).gridTemplateColumns.trim().split(/\s+/).length > 1) {
+        const scroll = el('gex-levels-scroll'), lvBlock = scroll.closest('.block'), chartBlock = stage.closest('.block')
+        const natural = lvBlock.offsetHeight - scroll.offsetHeight + el('gex-table').offsetHeight
+        want = natural - (chartBlock.offsetHeight - c.offsetHeight)
+      }
+      const base = GEX.view === 'surface' ? w * 0.5 : w * 0.62
+      const h = GEX.view === 'surface'
+        ? Math.round(Math.max(380, Math.min(720, avail, Math.max(base, want))))
+        : Math.round(Math.max(440, Math.min(760, avail, Math.max(base, want))))
+      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr) }
+      c.style.height = h + 'px'
+      const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      ctx.clearRect(0, 0, w, h)
+      return { ctx, w, h }
+    }
+    function drawGex() {
+      if (!GEX.data || !el('v-gex').classList.contains('on')) return
+      const empty = el('gex-empty'); empty.hidden = true
+      if (GEX.view === 'surface') drawSurface(); else drawProfile()
+      const grid = el('gex-grid'), scroll = el('gex-levels-scroll'), chartBlock = el('gex-stage').closest('.block')
+      const twoCol = getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length > 1
+      if (twoCol) {
+        const lv = scroll.closest('.block')
+        const chrome = lv.offsetHeight - scroll.offsetHeight
+        scroll.style.maxHeight = Math.max(160, chartBlock.offsetHeight - chrome) + 'px'
+      } else scroll.style.maxHeight = ''
+    }
+    const scheduleDraw = () => { if (GEX.raf) return; GEX.raf = requestAnimationFrame(() => { GEX.raf = 0; drawGex() }) }
+
+    function haloText(ctx, txt, x, y, color, panel, align = 'left', base = 'alphabetic') {
+      ctx.textAlign = align; ctx.textBaseline = base
+      ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = panel; ctx.strokeText(txt, x, y)
+      ctx.fillStyle = color; ctx.fillText(txt, x, y)
+    }
+    function placeLabels(items, minGap = 46) {
+      items.sort((a, b) => a.x - b.x)
+      let last = -1e9, lvl = 0, cluster = []
+      const close = () => { const top = Math.min(...cluster.map((c) => c.y)); for (const c of cluster) c.baseY = top; cluster = [] }
+      for (const it of items) {
+        if (it.x - last < minGap) lvl += 1; else { if (cluster.length) close(); lvl = 0 }
+        it.lvl = lvl; cluster.push(it); last = it.x
+      }
+      if (cluster.length) close()
+      return items
+    }
+    function turbo(x) {
+      x = 0.04 + 0.9 * Math.max(0, Math.min(1, x))
+      const x2 = x * x, x3 = x2 * x, x4 = x3 * x, x5 = x4 * x
+      const r = 0.13572138 + 4.61539260 * x - 42.66032258 * x2 + 132.13108234 * x3 - 152.94239396 * x4 + 59.28637943 * x5
+      const g = 0.09140261 + 2.19418839 * x + 4.84296658 * x2 - 14.18503333 * x3 + 4.27729857 * x4 + 2.82956604 * x5
+      const b = 0.10667330 + 12.64194608 * x - 60.58204836 * x2 + 110.36276771 * x3 - 89.90310912 * x4 + 27.34824973 * x5
+      return [r, g, b].map((c) => Math.max(0, Math.min(1, c)))
+    }
+    const TURBO = Array.from({ length: 256 }, (_, i) => turbo(i / 255))
+    function pchipSlopes(x, y) {
+      const n = x.length, d = new Array(n).fill(0)
+      if (n < 2) return d
+      const h = [], del = []
+      for (let i = 0; i < n - 1; i++) { h.push(x[i + 1] - x[i] || 1e-9); del.push((y[i + 1] - y[i]) / h[i]) }
+      if (n === 2) { d[0] = d[1] = del[0]; return d }
+      for (let i = 1; i < n - 1; i++) {
+        if (del[i - 1] * del[i] <= 0) { d[i] = 0; continue }
+        const w1 = 2 * h[i] + h[i - 1], w2 = h[i] + 2 * h[i - 1]
+        d[i] = (w1 + w2) / (w1 / del[i - 1] + w2 / del[i])
+      }
+      const end = (h0, h1, d0, d1) => { let s = ((2 * h0 + h1) * d0 - h0 * d1) / (h0 + h1); if (Math.sign(s) !== Math.sign(d0)) s = 0; else if (Math.sign(d0) !== Math.sign(d1) && Math.abs(s) > Math.abs(3 * d0)) s = 3 * d0; return s }
+      d[0] = end(h[0], h[1], del[0], del[1]); d[n - 1] = end(h[n - 2], h[n - 3], del[n - 2], del[n - 3])
+      return d
+    }
+    const hermite = (y0, y1, d0, d1, hh, t) => { const t2 = t * t, t3 = t2 * t; return (2 * t3 - 3 * t2 + 1) * y0 + (t3 - 2 * t2 + t) * hh * d0 + (-2 * t3 + 3 * t2) * y1 + (t3 - t2) * hh * d1 }
+
+    function surfaceScene(w, h, dpr) {
+      const t = gexTokens(), d = GEX.data, S = d.surface
+      const K = S.strikes, E = S.expiries, n = K.length, m = E.length
+      const kmin = K[0], kmax = K[n - 1], kmid = (kmin + kmax) / 2, kspan = Math.max(1, kmax - kmin)
+      let zmax = 0, vpos = 0, vneg = 0
+      for (const row of S.gexM) for (const v of row) { zmax = Math.max(zmax, Math.abs(v)); if (v > vpos) vpos = v; if (v < vneg) vneg = v }
+      if (!zmax) zmax = 1
+      const sqrtMode = GEX.scale === 'sqrt'
+      const zf = sqrtMode ? (v) => Math.sign(v) * Math.sqrt(Math.abs(v) / zmax) : (v) => v / zmax
+      const XW = 1, YW = 0.62, ZH = 0.56
+      const zTop = Math.max(0.06, zf(vpos) * ZH), zBot = Math.min(-0.06, zf(vneg) * ZH)
+      const cy = Math.cos(GEX.yaw), sy = Math.sin(GEX.yaw), cp = Math.cos(GEX.pitch), sp = Math.sin(GEX.pitch)
+      const rot = (x, y, z) => { const x1 = x * cy - y * sy, y1 = x * sy + y * cy; return { sx: x1, up: z * cp + y1 * sp, dep: y1 * cp - z * sp } }
+      let minx = 1e9, maxx = -1e9, minu = 1e9, maxu = -1e9
+      for (const x of [-XW - 0.04, XW + 0.16]) for (const y of [-YW, YW]) for (const z of [zBot, zTop]) { const p = rot(x, y, z); minx = Math.min(minx, p.sx); maxx = Math.max(maxx, p.sx); minu = Math.min(minu, p.up); maxu = Math.max(maxu, p.up) }
+      const narrow = w < 560
+      const padL = narrow ? 44 : 104, padR = narrow ? 34 : 60, padT = 40, padB = 46
+      const scale = Math.min((w - padL - padR) / (maxx - minx), (h - padT - padB) / (maxu - minu))
+      const cx = padL + (w - padL - padR) / 2 - (minx + maxx) / 2 * scale
+      const cyy = padT + (h - padT - padB) / 2 + (minu + maxu) / 2 * scale
+      const P = (x, y, z) => { const p = rot(x, y, z); return { x: cx + p.sx * scale, y: cyy - p.up * scale, d: p.dep } }
+      const wx = (k) => ((k - kmid) / kspan) * 2 * XW
+      const wy = (i) => (m > 1 ? i / (m - 1) - 0.5 : 0) * 2 * YW
+      const wz = (v) => zf(v) * ZH
+      const yF = -YW, yB = YW, xL = -XW, xR = XW
+      const zFloor = zBot
+      const tOf = (z) => (z - zBot) / (zTop - zBot)
+
+      const can = GEX.sceneCanvas || (GEX.sceneCanvas = document.createElement('canvas'))
+      can.width = Math.round(w * dpr); can.height = Math.round(h * dpr)
+      const ctx = can.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      const line = (a, b) => { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke() }
+      const poly = (pts) => { ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (let q = 1; q < pts.length; q++) ctx.lineTo(pts[q].x, pts[q].y); ctx.closePath() }
+
+      const yFar = rot(0, yB, 0).dep > rot(0, yF, 0).dep ? yB : yF, yNear = yFar === yB ? yF : yB
+      const xFar = rot(xL, 0, 0).dep > rot(xR, 0, 0).dep ? xL : xR, xNear = xFar === xL ? xR : xL
+      ctx.fillStyle = alpha(t.panel2, 0.55)
+      poly([P(xL, yFar, zFloor), P(xR, yFar, zFloor), P(xR, yFar, zTop), P(xL, yFar, zTop)]); ctx.fill()
+      poly([P(xFar, yF, zFloor), P(xFar, yB, zFloor), P(xFar, yB, zTop), P(xFar, yF, zTop)]); ctx.fill()
+      ctx.font = `500 10.5px ${GEX_FONT}`
+      ctx.lineWidth = 1; ctx.strokeStyle = t.line
+      const kstep = niceStep(kspan, 8)
+      const zstep = niceStep(Math.max(vpos, -vneg), 3)
+      const zTicks = []; for (let v = -Math.floor(-vneg / zstep) * zstep; v <= vpos + 1e-9; v += zstep) zTicks.push(v)
+      for (let k = Math.ceil(kmin / kstep) * kstep; k <= kmax; k += kstep) { line(P(wx(k), yF, zFloor), P(wx(k), yB, zFloor)); line(P(wx(k), yFar, zFloor), P(wx(k), yFar, zTop)) }
+      for (let i = 0; i < m; i++) { line(P(xL, wy(i), zFloor), P(xR, wy(i), zFloor)); line(P(xFar, wy(i), zFloor), P(xFar, wy(i), zTop)) }
+      for (const v of zTicks) { line(P(xL, yFar, wz(v)), P(xR, yFar, wz(v))); line(P(xFar, yF, wz(v)), P(xFar, yB, wz(v))) }
+      ctx.strokeStyle = t.lineB
+      line(P(xL, yF, zFloor), P(xR, yF, zFloor)); line(P(xL, yB, zFloor), P(xR, yB, zFloor)); line(P(xL, yF, zFloor), P(xL, yB, zFloor)); line(P(xR, yF, zFloor), P(xR, yB, zFloor))
+      line(P(xFar, yFar, zFloor), P(xFar, yFar, zTop))
+      for (let k = Math.ceil(kmin / kstep) * kstep; k <= kmax; k += kstep) { const a = P(wx(k), yNear, zFloor); haloText(ctx, String(k), a.x, a.y + 14, t.muted, t.panel, 'center') }
+      const rowPx = Math.hypot(P(xNear, wy(1), zFloor).x - P(xNear, wy(0), zFloor).x, P(xNear, wy(1), zFloor).y - P(xNear, wy(0), zFloor).y)
+      const every = rowPx >= 13 ? 1 : 2
+      for (let i = 0; i < m; i++) if (i % every === 0 || i === m - 1) {
+        const a = P(xNear, wy(i), zFloor)
+        const lab = i === 0 ? `0DTE ${expLabel(E[i].expiry, false)}` : expLabel(E[i].expiry, false)
+        haloText(ctx, lab, a.x + (xNear === xR ? 8 : -8), a.y + 3, i === 0 ? t.ink : t.faint, t.panel, xNear === xR ? 'left' : 'right')
+      }
+      const fl = P(xL, yNear, zFloor), fr = P(xR, yNear, zFloor)
+      haloText(ctx, 'QQQ strike →', (fl.x + fr.x) / 2, Math.max(fl.y, fr.y) + 30, t.faint, t.panel, 'center')
+      const eEnd = P(xNear, wy(m - 1), zFloor)
+      haloText(ctx, 'expiry', eEnd.x + (xNear === xR ? 8 : -8), eEnd.y - 12, t.faint, t.panel, xNear === xR ? 'left' : 'right')
+
+      const fast = !!GEX.drag
+      let minGap = 1e9; for (let j = 1; j < n; j++) minGap = Math.min(minGap, K[j] - K[j - 1])
+      const cols = []
+      for (let j = 0; j < n - 1; j++) {
+        const gap = K[j + 1] - K[j]
+        const steps = fast ? 1 : Math.max(2, Math.min(4, Math.round(2 * gap / minGap)))
+        for (let q = 0; q < steps; q++) cols.push({ k: K[j] + gap * (q / steps), j, u: q / steps })
+      }
+      cols.push({ k: K[n - 1], j: n - 2, u: 1 })
+      const C = cols.length
+      const SY = fast ? 1 : 3, R = (m - 1) * SY + 1
+      const colOfStrike = new Array(n); { let c = 0; for (let j = 0; j < n; j++) { while (c < C - 1 && cols[c].k < K[j] - 1e-9) c++; colOfStrike[j] = c } }
+      const zRows = S.gexM.map((row) => row.map(wz))
+      const tmp = new Array(m)
+      for (let i = 0; i < m; i++) {
+        const y = zRows[i], dv = pchipSlopes(K, y), out = new Float64Array(C)
+        for (let b = 0; b < C; b++) { const c = cols[b]; out[b] = hermite(y[c.j], y[c.j + 1], dv[c.j], dv[c.j + 1], K[c.j + 1] - K[c.j], c.u) }
+        tmp[i] = out
+      }
+      const EI = [...Array(m).keys()]
+      const G = new Array(R); for (let a = 0; a < R; a++) G[a] = new Array(C)
+      const colY = new Array(m)
+      for (let b = 0; b < C; b++) {
+        for (let i = 0; i < m; i++) colY[i] = tmp[i][b]
+        const dv = pchipSlopes(EI, colY)
+        for (let a = 0; a < R; a++) {
+          const i = Math.min(m - 2, Math.floor(a / SY)), v = a === R - 1 ? 1 : (a - i * SY) / SY
+          const Z = hermite(colY[i], colY[i + 1], dv[i], dv[i + 1], 1, v)
+          const X = wx(cols[b].k), Y = wy(i + v)
+          const p = P(X, Y, Z)
+          G[a][b] = { X, Y, Z, x: p.x, y: p.y }
+        }
+      }
+      const L = [-0.45, -0.55, 0.7], Ln = Math.hypot(...L); L[0] /= Ln; L[1] /= Ln; L[2] /= Ln
+      const items = []
+      for (let a = 0; a < R - 1; a++) for (let b = 0; b < C - 1; b++) {
+        const p00 = G[a][b], p01 = G[a][b + 1], p10 = G[a + 1][b], p11 = G[a + 1][b + 1]
+        const zc = (p00.Z + p01.Z + p10.Z + p11.Z) / 4
+        const d1x = p11.X - p00.X, d1y = p11.Y - p00.Y, d1z = (p11.Z - p00.Z) * 1.6
+        const d2x = p10.X - p01.X, d2y = p10.Y - p01.Y, d2z = (p10.Z - p01.Z) * 1.6
+        let nx = d1y * d2z - d1z * d2y, ny = d1z * d2x - d1x * d2z, nz = d1x * d2y - d1y * d2x
+        const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl
+        if (nz < 0) { nx = -nx; ny = -ny; nz = -nz }
+        const shade = 0.6 + 0.4 * Math.max(0, nx * L[0] + ny * L[1] + nz * L[2])
+        const c = TURBO[Math.max(0, Math.min(255, Math.round(tOf(zc) * 255)))]
+        const col = `rgb(${Math.round(c[0] * 255 * shade)},${Math.round(c[1] * 255 * shade)},${Math.round(c[2] * 255 * shade)})`
+        const cen = rot((p00.X + p11.X) / 2, (p00.Y + p11.Y) / 2, zc)
+        items.push({ q: [p00, p01, p11, p10], col, dep: cen.dep })
+      }
+      const levels = []
+      levels.push({ k: d.spot, col: t.gold, w: 2, dash: [], label: `spot ${d.spot.toFixed(1)}` })
+      if (d.zdte.callWall) levels.push({ k: d.zdte.callWall.qqq, col: t.good, w: 1.4, dash: [6, 4], label: `CW ${d.zdte.callWall.qqq}` })
+      if (d.zdte.putWall) levels.push({ k: d.zdte.putWall.qqq, col: t.bad, w: 1.4, dash: [6, 4], label: `PW ${d.zdte.putWall.qqq}` })
+      if (d.swing?.callWall) levels.push({ k: d.swing.callWall.qqq, col: t.good, w: 1.4, dash: [2, 4], label: `CW* ${d.swing.callWall.qqq}` })
+      if (d.swing?.putWall) levels.push({ k: d.swing.putWall.qqq, col: t.bad, w: 1.4, dash: [2, 4], label: `PW* ${d.swing.putWall.qqq}` })
+      const zAtRow = (a, k) => {
+        let b = 0; while (b < C - 2 && cols[b + 1].k <= k) b++
+        const k0 = cols[b].k, k1 = cols[b + 1].k, u = k1 > k0 ? Math.max(0, Math.min(1, (k - k0) / (k1 - k0))) : 0
+        return G[a][b].Z + (G[a][b + 1].Z - G[a][b].Z) * u
+      }
+      const labels = []
+      for (const Lv of levels) {
+        if (Lv.k < kmin || Lv.k > kmax) continue
+        for (let a = 0; a < R - 1; a++) {
+          const y0 = G[a][0].Y, y1 = G[a + 1][0].Y
+          const pa = P(wx(Lv.k), y0, zAtRow(a, Lv.k) + 0.005), pb = P(wx(Lv.k), y1, zAtRow(a + 1, Lv.k) + 0.005)
+          items.push({ seg: [pa, pb], col: Lv.col, w: Lv.w, dash: Lv.dash, dep: rot(wx(Lv.k), (y0 + y1) / 2, 0).dep - 0.03 })
+        }
+        const back = P(wx(Lv.k), yB, zAtRow(R - 1, Lv.k))
+        labels.push({ x: back.x, y: back.y, txt: Lv.label, col: Lv.col })
+      }
+      items.sort((p, q) => q.dep - p.dep)
+      ctx.lineJoin = 'round'
+      for (const it of items) {
+        if (it.q) {
+          ctx.beginPath(); ctx.moveTo(it.q[0].x, it.q[0].y); ctx.lineTo(it.q[1].x, it.q[1].y); ctx.lineTo(it.q[2].x, it.q[2].y); ctx.lineTo(it.q[3].x, it.q[3].y); ctx.closePath()
+          ctx.fillStyle = it.col; ctx.fill()
+          ctx.strokeStyle = it.col; ctx.lineWidth = 0.7; ctx.stroke()
+        } else {
+          ctx.save(); ctx.strokeStyle = alpha(t.panel, 0.8); ctx.lineWidth = it.w + 2.2; ctx.setLineDash([]); line(it.seg[0], it.seg[1])
+          ctx.strokeStyle = it.col; ctx.lineWidth = it.w; ctx.setLineDash(it.dash); line(it.seg[0], it.seg[1]); ctx.restore()
+        }
+      }
+      ctx.font = `600 10.5px ${GEX_FONT}`
+      for (const lb of placeLabels(labels, 66)) haloText(ctx, lb.txt, lb.x, lb.baseY - 8 - lb.lvl * 13, lb.col, t.panel, 'center')
+      ctx.font = `500 10.5px ${GEX_FONT}`
+
+      const bx = narrow ? 10 : 22, bw = 12, by0 = padT + 10, by1 = h - padB - 10
+      const grad = ctx.createLinearGradient(0, by1, 0, by0)
+      for (let s = 0; s <= 24; s++) { const c = TURBO[Math.round((s / 24) * 255)]; grad.addColorStop(s / 24, `rgb(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)})`) }
+      ctx.fillStyle = grad; ctx.fillRect(bx, by0, bw, by1 - by0)
+      ctx.strokeStyle = t.lineB; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, by0 + 0.5, bw - 1, by1 - by0 - 1)
+      const barY = (v) => by1 - tOf(wz(v)) * (by1 - by0)
+      if (!narrow) for (const v of zTicks) {
+        const y = barY(v)
+        ctx.beginPath(); ctx.moveTo(bx + bw, y); ctx.lineTo(bx + bw + 4, y); ctx.stroke()
+        haloText(ctx, Math.abs(v) < 1e-9 ? '0' : fmtM(v), bx + bw + 8, y + 3.5, Math.abs(v) < 1e-9 ? t.muted : t.faint, t.panel, 'left')
+      }
+      ctx.font = `600 10.5px ${GEX_FONT}`
+      haloText(ctx, `max ${fmtM(vpos)}`, bx, by0 - 8, t.ink, t.panel, 'left')
+      haloText(ctx, `min ${fmtM(vneg)}`, bx, by1 + 15, t.ink, t.panel, 'left')
+      ctx.font = `500 10.5px ${GEX_FONT}`
+      haloText(ctx, '$M per 1%' + (sqrtMode ? ' (√)' : ''), bx, by0 - 22, t.faint, t.panel, 'left')
+
+      const pick = []
+      for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) {
+        const p = G[i * SY][colOfStrike[j]], f = P(wx(K[j]), wy(i), zFloor)
+        pick.push({ i, j, x: p.x, y: p.y, fx: f.x, fy: f.y })
+      }
+      return { canvas: can, pick }
+    }
+
+    function drawSurface() {
+      const { ctx, w, h } = gexCanvas()
+      const t = gexTokens(), d = GEX.data
+      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      const key = [w, h, dpr, GEX.yaw.toFixed(4), GEX.pitch.toFixed(4), GEX.scale, !!GEX.drag, d.generatedAt, document.documentElement.getAttribute('data-theme')].join('|')
+      if (!GEX.scene || GEX.scene.key !== key) GEX.scene = { key, ...surfaceScene(w, h, dpr) }
+      ctx.drawImage(GEX.scene.canvas, 0, 0, w, h)
+      GEX.pick = GEX.scene.pick
+      if (GEX.hover) {
+        const hv = GEX.pick.find((p) => p.i === GEX.hover.i && p.j === GEX.hover.j)
+        if (hv) {
+          ctx.save(); ctx.strokeStyle = alpha(t.ink, 0.6); ctx.setLineDash([2, 3]); ctx.lineWidth = 1
+          ctx.beginPath(); ctx.moveTo(hv.x, hv.y); ctx.lineTo(hv.fx, hv.fy); ctx.stroke(); ctx.restore()
+          ctx.beginPath(); ctx.arc(hv.x, hv.y, 4.5, 0, Math.PI * 2); ctx.fillStyle = t.ink; ctx.fill(); ctx.strokeStyle = t.panel; ctx.lineWidth = 1.5; ctx.stroke()
+        }
+      }
+      gexLegend([], 'Colour and height are GEX, blue low to red high · drag to rotate · double-click resets · hover a point for the numbers')
+    }
+
+    function drawProfile() {
+      const { ctx, w, h } = gexCanvas()
+      const t = gexTokens(), d = GEX.data, S = d.surface
+      const rows = gexRows(GEX.set)
+      const K = S.strikes, n = K.length
+      const vals = K.map((_, j) => gexAt(rows, j))
+      const kmin = K[0], kmax = K[n - 1], kspan = Math.max(1, kmax - kmin)
+      let vmin = Math.min(0, ...vals), vmax = Math.max(0, ...vals)
+      if (vmax - vmin < 1e-9) { vmax = 1 }
+      const padL = 60, padR = 96, padT = 26, padB = 34
+      const pw = w - padL - padR, ph = h - padT - padB
+      const X = (v) => padL + ((v - vmin) / (vmax - vmin)) * pw
+      const Y = (k) => padT + (1 - (k - kmin) / kspan) * ph
+      let kgap = 1e9; for (let j = 1; j < n; j++) kgap = Math.min(kgap, K[j] - K[j - 1])
+      const bh = Math.max(2, (kgap / kspan) * ph - 2)
+
+      ctx.font = `500 10.5px ${GEX_FONT}`
+      const vstep = niceStep(vmax - vmin, 5)
+      ctx.lineWidth = 1
+      for (let v = Math.ceil(vmin / vstep) * vstep; v <= vmax + 1e-9; v += vstep) {
+        const x = X(v)
+        ctx.strokeStyle = Math.abs(v) < 1e-9 ? t.lineB : t.line
+        ctx.beginPath(); ctx.moveTo(x, padT - 4); ctx.lineTo(x, padT + ph); ctx.stroke()
+        haloText(ctx, Math.abs(v) < 1e-9 ? '0' : fmtM(v), x, padT + ph + 16, t.faint, t.panel, 'center')
+      }
+      const kstep = niceStep(kspan, 9)
+      for (let k = Math.ceil(kmin / kstep) * kstep; k <= kmax; k += kstep) {
+        const y = Y(k)
+        ctx.strokeStyle = t.line; ctx.beginPath(); ctx.moveTo(padL - 4, y); ctx.lineTo(padL + pw, y); ctx.stroke()
+        haloText(ctx, String(k), padL - 9, y + 3.5, t.muted, t.panel, 'right')
+        haloText(ctx, gexNQ(k).toLocaleString(), padL + pw + 9, y + 3.5, t.faint, t.panel, 'left')
+      }
+      haloText(ctx, 'QQQ', padL - 9, padT - 10, t.faint, t.panel, 'right')
+      haloText(ctx, 'NQ', padL + pw + 9, padT - 10, t.faint, t.panel, 'left')
+      haloText(ctx, '$M per 1% move', padL + pw / 2, padT + ph + 30, t.faint, t.panel, 'center')
+
+      const set = GEX.set === 'swing' ? d.swing : d.zdte
+      const lv = []
+      lv.push({ k: d.spot, col: t.gold, dash: [], label: `spot ${d.spot.toFixed(2)} · ${Math.round(d.nq).toLocaleString()}`, w: 1.5 })
+      const star = GEX.set === 'swing' ? '*' : ''
+      if (set?.callWall) lv.push({ k: set.callWall.qqq, col: t.good, dash: [5, 4], label: `CW${star} ${set.callWall.qqq} · ${set.callWall.nq}` })
+      if (set?.putWall) lv.push({ k: set.putWall.qqq, col: t.bad, dash: [5, 4], label: `PW${star} ${set.putWall.qqq} · ${set.putWall.nq}` })
+      if (set?.flip) lv.push({ k: set.flip.qqq, col: t.muted, dash: [2, 3], label: `flip${star} ${set.flip.qqq} · ${set.flip.nq}` })
+      if (GEX.set === 'all' && d.swing) {
+        if (d.swing.callWall) lv.push({ k: d.swing.callWall.qqq, col: t.good, dash: [2, 4], label: `CW* ${d.swing.callWall.qqq} · ${d.swing.callWall.nq}` })
+        if (d.swing.putWall) lv.push({ k: d.swing.putWall.qqq, col: t.bad, dash: [2, 4], label: `PW* ${d.swing.putWall.qqq} · ${d.swing.putWall.nq}` })
+      }
+      const placed = []
+      for (const L of lv) {
+        if (L.k < kmin - kstep || L.k > kmax + kstep) continue
+        const y = Math.max(padT, Math.min(padT + ph, Y(L.k)))
+        ctx.save(); ctx.strokeStyle = alpha(L.col, 0.85); ctx.lineWidth = L.w || 1; ctx.setLineDash(L.dash)
+        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke(); ctx.restore()
+        placed.push({ x: y, y, txt: L.label, col: L.col })
+      }
+
+      const x0 = X(0), hov = GEX.hover
+      GEX.rows = []
+      for (let j = 0; j < n; j++) {
+        const v = vals[j], y = Y(K[j])
+        const isHov = hov && hov.j === j
+        const base = v >= 0 ? t.good : t.bad
+        ctx.fillStyle = isHov ? mix(base, t.ink, 0.35) : base
+        const xa = Math.min(x0, X(v)), xb = Math.max(x0, X(v))
+        if (Math.abs(v) >= 0.05) ctx.fillRect(xa, y - bh / 2, Math.max(1, xb - xa), bh)
+        GEX.rows.push({ j, y, v })
+      }
+      if (hov) { const r = GEX.rows[hov.j]; if (r) { ctx.strokeStyle = alpha(t.ink, 0.35); ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(padL, r.y); ctx.lineTo(padL + pw, r.y); ctx.stroke(); ctx.setLineDash([]) } }
+
+      ctx.font = `600 10.5px ${GEX_FONT}`
+      for (const lb of placeLabels(placed, 13)) haloText(ctx, lb.txt, padL + pw - 6, lb.baseY - 4 - lb.lvl * 12, lb.col, t.panel, 'right')
+      ctx.font = `500 10.5px ${GEX_FONT}`
+      gexLegend([{ col: t.good, txt: 'positive (call gamma, pins)' }, { col: t.bad, txt: 'negative (put gamma, accelerates)' }, { col: t.gold, txt: 'spot' }],
+        'Hover a strike for the numbers · walls and flip for the chosen set')
+    }
+
+    function gexTip(html, mx, my) {
+      const tip = el('gex-tip'), stage = el('gex-stage')
+      tip.hidden = false; tip.innerHTML = html
+      const tw = tip.offsetWidth, sw = stage.clientWidth
+      tip.style.left = (mx + 16 + tw > sw ? mx - tw - 12 : mx + 16) + 'px'
+      tip.style.top = Math.max(0, my - 14) + 'px'
+    }
+    function gexHover(mx, my) {
+      const d = GEX.data; if (!d) return
+      let best = null
+      if (GEX.view === 'surface') {
+        let bd = 14 * 14
+        for (const b of GEX.pick || []) { const dx = b.x - mx, dy = b.y - my, dd = dx * dx + dy * dy; if (dd < bd) { bd = dd; best = b } }
+        const nxt = best ? { i: best.i, j: best.j } : null
+        if ((nxt?.i !== GEX.hover?.i) || (nxt?.j !== GEX.hover?.j)) { GEX.hover = nxt; scheduleDraw() }
+        if (best) {
+          const S = d.surface, e = S.expiries[best.i], k = S.strikes[best.j], v = S.gexM[best.i][best.j]
+          gexTip(`<b>${best.i === 0 ? '0DTE · ' : ''}${expLabel(e.expiry)}</b> · ${e.dte} DTE<br>QQQ <b>${k}</b> → NQ <b>${gexNQ(k).toLocaleString()}</b><br><span class="${v >= 0 ? 'pos' : 'neg'}"><b>${fmtM(v)}</b></span> per 1% · expiry net ${fmtM(e.netGexM)}`, mx, my)
+        } else el('gex-tip').hidden = true
+      } else {
+        let bd = 1e9
+        for (const r of GEX.rows) { const dd = Math.abs(r.y - my); if (dd < bd) { bd = dd; best = r } }
+        if (bd > 14) best = null
+        const nxt = best ? { j: best.j } : null
+        if (nxt?.j !== GEX.hover?.j) { GEX.hover = nxt; scheduleDraw() }
+        if (best) {
+          const S = d.surface, k = S.strikes[best.j]
+          const lad = GEX.set === 'zdte' ? d.ladder?.find((r) => r.strike === k) : null
+          const setName = { zdte: '0DTE', swing: 'swing', all: 'all expiries' }[GEX.set]
+          gexTip(`QQQ <b>${k}</b> → NQ <b>${gexNQ(k).toLocaleString()}</b><br><span class="${best.v >= 0 ? 'pos' : 'neg'}"><b>${fmtM(best.v)}</b></span> per 1% · ${setName}${lad ? `<br>OI calls <b>${lad.callOI.toLocaleString()}</b> · puts <b>${lad.putOI.toLocaleString()}</b>` : ''}`, mx, my)
+        } else el('gex-tip').hidden = true
+      }
+    }
+    {
+      const c = el('gex-canvas')
+      const pos = (e) => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top } }
+      c.addEventListener('pointerdown', (e) => { if (GEX.view !== 'surface') return; GEX.drag = { x: e.clientX, y: e.clientY, moved: false }; c.setPointerCapture(e.pointerId); c.classList.add('grabbing') })
+      c.addEventListener('pointermove', (e) => {
+        if (GEX.drag) {
+          const dx = e.clientX - GEX.drag.x, dy = e.clientY - GEX.drag.y
+          GEX.drag.x = e.clientX; GEX.drag.y = e.clientY; GEX.drag.moved = true
+          GEX.yaw += dx * 0.006; GEX.pitch = Math.max(0.12, Math.min(1.4, GEX.pitch - dy * 0.005))
+          el('gex-tip').hidden = true; GEX.hover = null; scheduleDraw(); return
+        }
+        const p = pos(e); gexHover(p.x, p.y)
+      })
+      const endDrag = () => { if (!GEX.drag) return; GEX.drag = null; c.classList.remove('grabbing'); scheduleDraw() }
+      c.addEventListener('pointerup', endDrag); c.addEventListener('pointercancel', endDrag)
+      c.addEventListener('pointerleave', () => { if (!GEX.drag) { GEX.hover = null; el('gex-tip').hidden = true; scheduleDraw() } })
+      c.addEventListener('dblclick', () => { GEX.yaw = -0.5; GEX.pitch = 0.66; scheduleDraw() })
+      el('gex-view').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; GEX.view = b.dataset.v; localStorage.setItem('echelon-gex-view', GEX.view); GEX.hover = null; el('gex-tip').hidden = true; syncGexControls(); drawGex() })
+      el('gex-set').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; GEX.set = b.dataset.s; localStorage.setItem('echelon-gex-set', GEX.set); GEX.hover = null; syncGexControls(); drawGex() })
+      el('gex-scale').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; GEX.scale = b.dataset.z; localStorage.setItem('echelon-gex-scale', GEX.scale); syncGexControls(); drawGex() })
+      el('gex-refresh').addEventListener('click', async () => {
+        const btn = el('gex-refresh'); btn.disabled = true; btn.textContent = 'Refreshing…'
+        try { await loadGex(true) } catch (err) { el('gex-stamp').textContent = `Refresh failed: ${err.message}` }
+        finally { btn.disabled = false; btn.textContent = 'Refresh' }
+      })
+      el('gex-copy').addEventListener('click', async () => {
+        if (!GEX.data) return
+        const btn = el('gex-copy')
+        try { await navigator.clipboard.writeText(GEX.data.pineData); btn.textContent = 'Copied' } catch { btn.textContent = 'Copy failed' }
+        setTimeout(() => { btn.textContent = 'Copy pineData' }, 1400)
+      })
+      el('gex-sheet-copy').addEventListener('click', async () => {
+        if (!GEX.data?.levelsText) return
+        const btn = el('gex-sheet-copy')
+        try { await navigator.clipboard.writeText(GEX.data.levelsText); btn.textContent = 'Copied' } catch { btn.textContent = 'Copy failed' }
+        setTimeout(() => { btn.textContent = 'Copy sheet' }, 1400)
+      })
+      new ResizeObserver(() => scheduleDraw()).observe(el('gex-stage'))
+      window.addEventListener('resize', scheduleDraw)
+      new MutationObserver(() => scheduleDraw()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    }
+    function gexShown() {
+      const stale = Date.now() - GEX.loadedAt > 5 * 60 * 1000
+      if (!GEX.data || stale) {
+        if (!GEX.data) el('gex-empty').hidden = false
+        loadGex().catch((err) => { const e = el('gex-empty'); e.hidden = false; e.textContent = `Could not reach gex-worker: ${err.message}` })
+      } else drawGex()
+      clearInterval(GEX.timer)
+      GEX.timer = setInterval(() => {
+        if (!el('v-gex').classList.contains('on')) { clearInterval(GEX.timer); GEX.timer = null; return }
+        loadGex().catch(() => {})
+      }, 5 * 60 * 1000)
+    }
+
     function renderStore() {
       const host = el('store-grid'); if (!host) return
       host.textContent = ''
@@ -3506,6 +4194,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderSidebarUser()
 
       el('admin-link').hidden = !state.isAdmin
+      el('gex-tab').hidden = !(state.owned.has('d1-gex') || state.isAdmin)
       if (DISCORD_INVITE) {
         const link = el('discord-link')
         link.href = DISCORD_INVITE
