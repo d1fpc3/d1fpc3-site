@@ -1121,6 +1121,12 @@
               </div>
             </div>
           </div>
+          <div class="block" id="desktop-block" hidden>
+            <div class="block-head"><h3>Echelon for Windows</h3><span class="label">Desktop app</span></div>
+            <p class="hint" style="margin:0 0 12px;">Run Echelon in its own window. Same sign-in, and it updates itself. Members only.</p>
+            <button class="rowbtn" id="desktop-dl">Download for Windows</button>
+            <p class="msg" id="desktop-msg"></p>
+          </div>
           <div class="block">
             <div class="block-head"><h3>Account</h3><span class="label" id="acct-email"></span></div>
             <div class="setgrid">
@@ -1270,7 +1276,7 @@
     const STORE = {
       'd1-gex': {
         one_time: { url: 'https://buy.stripe.com/aFacN44HQ1KZea61sQg7e00', cents: 14700 },
-        month:    { url: 'https://buy.stripe.com/cNi8wOeiq9drd62fjGg7e01', cents: 2000 },
+        month:    { url: 'https://buy.stripe.com/cNi8wOeiq9drd62fjGg7e01', cents: 3500 },
       },
       'd1-lit': {
         one_time: { url: 'https://buy.stripe.com/eVq8wOeiqcpD3vs3AYg7e02', cents: 19700 },
@@ -2411,6 +2417,29 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('new-email').value = ''
     })
 
+    // Members-only desktop app download.
+    function memberCanDownload() { return state.owned.size > 0 || state.isMod || state.isAdmin }
+    function initDesktopPanel() {
+      const block = el('desktop-block'); if (!block) return
+      block.hidden = !!window.echelonDesktop || !memberCanDownload()
+    }
+    el('desktop-dl')?.addEventListener('click', async () => {
+      const btn = el('desktop-dl'), msg = el('desktop-msg')
+      btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Preparing your download…'
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/desktop-download`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}` },
+        })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(body.error || 'Could not prepare the download.')
+        msg.className = 'msg ok'; msg.textContent = 'Starting download…'
+        window.location.href = body.url
+      } catch (e) { msg.className = 'msg err'; msg.textContent = e.message }
+      btn.disabled = false
+    })
+
     el('pass-save').addEventListener('click', async () => {
       const msg = el('pass-msg'), password = el('new-pass').value
       if (password.length < 8) { msg.className = 'msg err'; msg.textContent = '8 characters at least.'; return }
@@ -3372,7 +3401,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.owned = new Set((ents ?? []).map((e) => e.product))
       state.hasCourse = state.owned.has('course') || !!isAdmin
       await loadCourse()
-      refreshBadges(); watchBadges()
+      refreshBadges(); watchBadges(); initDesktopPanel()
 
       // Deep-link from the welcome onboarding: ?start=study|recaps|chat
       const start = new URLSearchParams(location.search).get('start')
