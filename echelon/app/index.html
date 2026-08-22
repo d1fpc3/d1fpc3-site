@@ -542,6 +542,39 @@
     .recap-pane { padding: clamp(18px, 3vw, 28px); }
     .recap-pane .lesson-h { margin-top: 8px; }
 
+    /* ── member recaps: composer + flat feed ─────────────────── */
+
+    .mr-composer { padding: 16px clamp(18px, 3vw, 28px) 18px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+    .mr-composer input[type="text"], .mr-composer textarea {
+      background: var(--bg); border: 1px solid var(--line-bright); border-radius: 8px;
+      color: var(--ink); font-family: inherit; font-size: 13.5px; padding: 10px 12px; width: 100%;
+    }
+    .mr-composer input[type="text"]:focus, .mr-composer textarea:focus { outline: none; border-color: var(--gold); }
+    .mr-composer textarea { resize: vertical; min-height: 64px; }
+    .mr-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .mr-actions .hint { margin: 0; }
+    .mr-pending { display: flex; gap: 8px; flex-wrap: wrap; }
+    .mr-pending:empty { display: none; }
+    .mr-chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); border: 1px solid var(--line-bright); border-radius: 8px; padding: 5px 8px; max-width: 240px; }
+    .mr-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mr-chip img { width: 26px; height: 26px; object-fit: cover; border-radius: 5px; }
+    .mr-chip button { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; padding: 0 2px; }
+    .mr-chip button:hover { color: var(--ink); }
+    .mr-item { padding: 16px clamp(18px, 3vw, 28px) 18px; border-bottom: 1px solid var(--line); }
+    .mr-item:last-child { border-bottom: 0; }
+    .mr-head { display: flex; align-items: center; gap: 9px; }
+    .mr-av { width: 24px; height: 24px; border-radius: 7px; object-fit: cover; flex-shrink: 0; background: var(--panel-2); }
+    div.mr-av.gold { display: flex; align-items: center; justify-content: center; font: 700 12px/1 inherit; color: #1a1207; background: linear-gradient(135deg, var(--gold), var(--gold-deep)); }
+    .mr-head .who { font-weight: 600; font-size: 13.5px; }
+    .mr-head .when { color: var(--faint); font-size: 12px; }
+    .mr-head .mr-del { margin-left: auto; background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 12px; }
+    .mr-head .mr-del:hover { color: var(--bad); }
+    .mr-title { font-size: 14.5px; font-weight: 600; margin-top: 9px; }
+    .mr-body { color: var(--muted); font-size: 13.5px; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 4px; }
+    .mr-media { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 11px; }
+    .mr-media a img { width: 100%; max-height: 260px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; }
+    .mr-media video { width: 100%; max-height: 320px; border-radius: 8px; border: 1px solid var(--line); background: #000; }
+
     /* ── mobile: the sidebar becomes a drawer ────────────────── */
 
     .menu-btn {
@@ -1088,6 +1121,24 @@
             <div class="tbl-scroll"><table id="recaps-table"></table></div>
             <div class="empty" id="recaps-empty" hidden>No recaps posted yet. They land here after each session.</div>
           </div>
+          <div class="block">
+            <div class="block-head">
+              <h3>Member recaps</h3>
+              <span class="label" id="mr-total"></span>
+            </div>
+            <div class="mr-composer">
+              <input type="text" id="mr-title" maxlength="120" placeholder="Title — the session, the setup">
+              <textarea id="mr-body" maxlength="5000" placeholder="What you saw, what you took, how it went."></textarea>
+              <div class="mr-pending" id="mr-pending"></div>
+              <div class="mr-actions">
+                <input type="file" id="mr-file" accept="image/*,video/*" multiple hidden>
+                <button class="rowbtn" id="mr-attach" type="button">Attach screenshots or video</button>
+                <button class="btn" id="mr-post" type="button">Post recap</button>
+              </div>
+            </div>
+            <div id="mr-feed"></div>
+            <div class="empty" id="mr-empty" hidden>No member recaps yet. Share the first one.</div>
+          </div>
         </section>
 
         <!-- MEMBERS -->
@@ -1438,7 +1489,7 @@
     const state = {
       user: null, isAdmin: false, isMod: false, hasCourse: false, profile: null,
       modules: [], lessons: [], done: new Set(), currentId: null,
-      recaps: [], currentRecap: null, members: [], intake: null, owned: new Set(),
+      recaps: [], currentRecap: null, memberRecaps: [], members: [], intake: null, owned: new Set(),
       products: [], tvAccess: [], reviews: [],
     }
 
@@ -2431,6 +2482,130 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       tbl.append(thead, tbody)
     }
+
+    // ── member recaps: anyone signed in can post their own ──
+
+    const MR_MAX_MEDIA = 8
+    let mrPending = []            // [{ url, kind, path, name }]
+    const mrUploads = new Set()   // in-flight upload promises
+
+    function mrRenderPending() {
+      const host = el('mr-pending'); host.textContent = ''
+      for (const m of mrPending) {
+        const chip = document.createElement('div'); chip.className = 'mr-chip'
+        if (m.url && m.kind === 'image') { const i = document.createElement('img'); i.src = m.url; i.alt = ''; chip.appendChild(i) }
+        const lbl = document.createElement('span'); lbl.textContent = m.url ? m.name : `Uploading ${m.name}…`
+        chip.appendChild(lbl)
+        const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove')
+        x.addEventListener('click', () => { mrPending = mrPending.filter((p) => p !== m); mrRenderPending() })
+        chip.appendChild(x)
+        host.appendChild(chip)
+      }
+    }
+
+    function mrAttach(file) {
+      if (!file) return
+      const kind = file.type.startsWith('video/') ? 'video' : file.type.startsWith('image/') ? 'image' : null
+      if (!kind) { toast('Only images and videos can be attached.'); return }
+      if (kind === 'image' && file.size > 10 * 1024 * 1024) { toast(`${file.name} is over 10MB.`); return }
+      if (kind === 'video' && file.size > 500 * 1024 * 1024) { toast(`${file.name} is over 500MB.`); return }
+      if (mrPending.length >= MR_MAX_MEDIA) { toast(`Up to ${MR_MAX_MEDIA} attachments per recap.`); return }
+      const entry = { url: null, kind, path: null, name: file.name }
+      mrPending.push(entry); mrRenderPending()
+      const ext = (file.name.split('.').pop() || file.type.split('/')[1] || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin'
+      const path = `${state.user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+      const job = supabase.storage.from('recap-media').upload(path, file, { contentType: file.type, upsert: false })
+        .then(({ error }) => {
+          if (error) throw error
+          entry.url = supabase.storage.from('recap-media').getPublicUrl(path).data.publicUrl
+          entry.path = path
+          mrRenderPending()
+        })
+        .catch(() => {
+          mrPending = mrPending.filter((p) => p !== entry); mrRenderPending()
+          toast(`Could not upload ${file.name}.`)
+        })
+        .finally(() => mrUploads.delete(job))
+      mrUploads.add(job)
+    }
+
+    async function mrPost() {
+      const title = el('mr-title').value.trim()
+      if (!title) { toast('Give your recap a title.'); el('mr-title').focus(); return }
+      const btn = el('mr-post'); btn.disabled = true
+      if (mrUploads.size) { btn.textContent = 'Uploading…'; await Promise.allSettled([...mrUploads]) }
+      btn.textContent = 'Post recap'
+      const body = el('mr-body').value.trim()
+      const media = mrPending.filter((m) => m.url).map(({ url, kind }) => ({ url, kind }))
+      const { data, error } = await supabase.from('member_recaps')
+        .insert({ user_id: state.user.id, title, body: body || null, media }).select().single()
+      btn.disabled = false
+      if (error) { toast('Could not post the recap.'); return }
+      el('mr-title').value = ''; el('mr-body').value = ''; el('mr-file').value = ''
+      mrPending = []; mrRenderPending()
+      state.memberRecaps.unshift(data)
+      renderMemberRecaps()
+    }
+
+    async function mrDelete(r) {
+      if (!confirm('Delete this recap?')) return
+      const { error } = await supabase.from('member_recaps').delete().eq('id', r.id)
+      if (error) { toast('Could not delete that.'); return }
+      // best-effort: clear its media out of storage (RLS allows own or staff)
+      const paths = (r.media ?? [])
+        .map((m) => decodeURIComponent((m.url || '').split('/recap-media/')[1] || ''))
+        .filter(Boolean)
+      if (paths.length) supabase.storage.from('recap-media').remove(paths).catch(() => {})
+      state.memberRecaps = state.memberRecaps.filter((x) => x.id !== r.id)
+      renderMemberRecaps()
+    }
+
+    function renderMemberRecaps() {
+      const feed = el('mr-feed'); if (!feed) return
+      el('mr-total').textContent = state.memberRecaps.length ? `${state.memberRecaps.length} total` : ''
+      el('mr-empty').hidden = state.memberRecaps.length > 0
+      feed.textContent = ''
+      for (const r of state.memberRecaps) {
+        const info = chatUser(r.user_id)
+        const item = document.createElement('article'); item.className = 'mr-item'
+        const head = document.createElement('div'); head.className = 'mr-head'
+        head.appendChild(avatarNode(info, 'mr-av'))
+        const who = document.createElement('span'); who.className = 'who'; who.textContent = info.username
+        const when = document.createElement('span'); when.className = 'when'
+        when.textContent = new Date(r.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+        head.append(who, when)
+        if (r.user_id === state.user?.id || state.isMod || state.isAdmin) {
+          const del = document.createElement('button'); del.className = 'mr-del'; del.type = 'button'; del.textContent = 'Delete'
+          del.addEventListener('click', () => mrDelete(r))
+          head.appendChild(del)
+        }
+        item.appendChild(head)
+        const h = document.createElement('div'); h.className = 'mr-title'; h.textContent = r.title
+        item.appendChild(h)
+        if (r.body) { const b = document.createElement('div'); b.className = 'mr-body'; b.textContent = r.body; item.appendChild(b) }
+        const media = Array.isArray(r.media) ? r.media : []
+        if (media.length) {
+          const grid = document.createElement('div'); grid.className = 'mr-media'
+          for (const m of media) {
+            if (!m?.url) continue
+            if (m.kind === 'video') {
+              const v = document.createElement('video'); v.src = m.url; v.controls = true; v.preload = 'metadata'
+              grid.appendChild(v)
+            } else {
+              const a = document.createElement('a'); a.href = m.url; a.target = '_blank'; a.rel = 'noopener'
+              const i = document.createElement('img'); i.src = m.url; i.alt = r.title; i.loading = 'lazy'
+              a.appendChild(i); grid.appendChild(a)
+            }
+          }
+          item.appendChild(grid)
+        }
+        feed.appendChild(item)
+      }
+    }
+
+    el('mr-attach').addEventListener('click', () => el('mr-file').click())
+    el('mr-file').addEventListener('change', (e) => { for (const f of e.target.files ?? []) mrAttach(f); e.target.value = '' })
+    el('mr-post').addEventListener('click', mrPost)
 
     // ── profile + members directory ─────────────────────────
 
@@ -4223,11 +4398,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // These come back filtered by RLS: without an active entitlement the
       // modules query is simply empty, and trade recaps arrive published-only
       // for members. The directory shows usernames and bios, never emails.
-      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: intake }, { data: products }, { data: tvAccess }, { data: reviews }] = await Promise.all([
+      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: memberRecaps }, { data: intake }, { data: products }, { data: tvAccess }, { data: reviews }] = await Promise.all([
         supabase.from('modules').select('id, title, position').order('position'),
         supabase.from('lessons').select('id, module_id, slug, title, summary, kind, body_md, blocks, position').order('position'),
         supabase.from('progress').select('lesson_id, completed_at'),
         supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published').order('recap_date', { ascending: false }),
+        supabase.from('member_recaps').select('id, user_id, title, body, media, created_at').order('created_at', { ascending: false }).limit(100),
         supabase.from('course_intake').select('answers, completed_at').maybeSingle(),
         supabase.from('products').select('key, name, kind, blurb, tv_script_name, tv_script_url, bundle_of, position').eq('is_active', true).order('position'),
         supabase.from('tv_access').select('product, state, tv_username'),
@@ -4239,6 +4415,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.lessons = lessons ?? []
       state.done = new Set((progress ?? []).filter((p) => p.completed_at).map((p) => p.lesson_id))
       state.recaps = recaps ?? []
+      state.memberRecaps = memberRecaps ?? []
       state.intake = intake ?? null
       state.products = products ?? []
       state.tvAccess = tvAccess ?? []
@@ -4251,6 +4428,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       renderIndex()
       renderRecapList()
+      renderMemberRecaps()
       const recap = state.recaps.find((r) => r.id === keepRecap) ?? state.recaps[0]
       if (recap) openRecap(recap.id)
       renderOverview()
