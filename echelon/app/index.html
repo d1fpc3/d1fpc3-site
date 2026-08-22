@@ -880,10 +880,12 @@
         <button class="tab" data-view="chat" data-title="Chat" data-crumb="The Echelon room">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
           Chat <span class="count" id="c-chat" hidden></span>
+          <span class="notif" id="n-chat" hidden></span>
         </button>
         <button class="tab" data-view="recaps" data-title="Trade recaps" data-crumb="Session write-ups">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
           Trade recaps <span class="count" id="c-recaps">—</span>
+          <span class="notif" id="n-recaps" hidden></span>
         </button>
         <button class="tab" data-view="indicators" data-title="Indicators" data-crumb="Charts and access">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -1191,11 +1193,37 @@
     .co-err{padding:40px 24px;text-align:center;color:#b4483a;font-size:14px}
     .co-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:210;background:#0b0a09;color:#f2ede3;border:1px solid #3a352f;border-radius:12px;padding:12px 18px;font-size:14px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:min(440px,90vw);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
     .co-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+    /* member profile card */
+    .mm-scrim{position:fixed;inset:0;z-index:190;background:rgba(6,5,4,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
+    .mm-scrim.on{display:flex}
+    .mm-card{position:relative;width:100%;max-width:340px;background:var(--panel);border:1px solid var(--line-bright);border-radius:16px;padding:30px 24px 24px;text-align:center}
+    .mm-x{position:absolute;top:8px;right:10px;background:none;border:0;color:var(--faint);font-size:24px;line-height:1;cursor:pointer;padding:4px 8px}
+    .mm-x:hover{color:var(--ink)}
+    .mm-av{width:88px;height:88px;border-radius:20px;margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(140deg,var(--gold),var(--gold-deep));color:#1a1207;font-size:32px;font-weight:700}
+    .mm-av img{width:100%;height:100%;object-fit:cover}
+    .mm-name{font-size:18px;font-weight:650;color:var(--ink);display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+    .mm-name .vcheck{width:16px;height:16px;color:var(--gold)}
+    .mm-name .mtag{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);background:rgba(201,162,74,.14);border-radius:5px;padding:2px 6px}
+    .mm-bio{color:var(--faint);font-size:14px;margin-top:10px;line-height:1.5;white-space:pre-wrap}
+    .mm-msg{margin-top:22px;width:100%;border:0;border-radius:11px;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold-deep));color:#1a1207;padding:12px;font-weight:700;font-size:14px}
+    /* orange unread notification badge on nav tabs */
+    .tab{position:relative}
+    .notif{position:absolute;top:5px;right:8px;min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:#e8843a;color:#fff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 2px var(--bg);pointer-events:none}
   </style>
   <div class="co-scrim" id="co-scrim" role="dialog" aria-modal="true" aria-label="Checkout">
     <div class="co-panel">
       <div class="co-top"><b id="co-title">Checkout</b><button class="co-x" id="co-x" type="button" aria-label="Close">&times;</button></div>
       <div class="co-mount"><div class="co-loading" id="co-loading"><div class="co-spin"></div>Loading secure checkout…</div><div id="echelon-checkout"></div></div>
+    </div>
+  </div>
+
+  <div class="mm-scrim" id="mm-scrim" role="dialog" aria-modal="true" aria-label="Member">
+    <div class="mm-card">
+      <button class="mm-x" id="mm-x" type="button" aria-label="Close">&times;</button>
+      <div class="mm-av" id="mm-av"></div>
+      <div class="mm-name" id="mm-name"></div>
+      <div class="mm-bio" id="mm-bio"></div>
+      <button class="mm-msg" id="mm-msg" type="button">Message</button>
     </div>
   </div>
 
@@ -1501,6 +1529,7 @@
       el('pane-crumb').textContent = tab.dataset.crumb
       window.scrollTo({ top: 0 })
       if (view === 'chat' && !chat.loaded) loadChat()
+      if (view === 'recaps') markRead('recaps')
     }
     tabs.forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)))
 
@@ -2274,9 +2303,39 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const bio = document.createElement('div'); bio.className = 'mbio'; bio.textContent = m.bio
           right.appendChild(bio)
         }
-        card.append(av, right); host.appendChild(card)
+        card.append(av, right)
+        card.style.cursor = 'pointer'
+        card.setAttribute('role', 'button'); card.tabIndex = 0
+        card.addEventListener('click', () => openMemberProfile(m))
+        card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMemberProfile(m) } })
+        host.appendChild(card)
       }
     }
+
+    // Member profile card -> open a DM.
+    function openMemberProfile(m) {
+      avatarInto(el('mm-av'), m, m.username)
+      const name = el('mm-name'); name.textContent = '@' + m.username
+      if (m.is_premium || m.is_admin || m.is_mod) name.insertAdjacentHTML('beforeend', CHECK_SVG)
+      if (m.is_admin || m.is_mod) {
+        const t = document.createElement('span'); t.className = 'mtag'; t.textContent = m.is_admin ? 'Admin' : 'Mod'; name.appendChild(t)
+      }
+      el('mm-bio').textContent = m.bio || ''
+      const msg = el('mm-msg')
+      const isSelf = m.user_id === state.user?.id
+      msg.style.display = isSelf ? 'none' : ''
+      msg.onclick = () => { closeMemberProfile(); messageMember(m.user_id) }
+      el('mm-scrim').classList.add('on'); document.body.style.overflow = 'hidden'
+    }
+    function closeMemberProfile() { el('mm-scrim').classList.remove('on'); document.body.style.overflow = '' }
+    async function messageMember(uid) {
+      showView('chat')
+      if (!chat.loaded) await loadChat()
+      await startDm(uid)
+    }
+    el('mm-x').addEventListener('click', closeMemberProfile)
+    el('mm-scrim').addEventListener('click', (e) => { if (e.target === el('mm-scrim')) closeMemberProfile() })
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && el('mm-scrim').classList.contains('on')) closeMemberProfile() })
 
     async function loadMembers() {
       const { data } = await supabase.from('member_directory').select('*')
@@ -3018,6 +3077,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chat.msgs = data ?? []
       renderLog(true)
       subscribeRoom(type, id)
+      markRead(type + ':' + id)
     }
 
     function subscribeRoom(type, id) {
@@ -3034,6 +3094,33 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (p.new.deleted_at) chat.msgs.splice(i, 1); else chat.msgs[i] = p.new
           renderLog()
         })
+        .subscribe()
+    }
+
+    // ── nav unread badges (orange) ──
+    let _badgeT = 0
+    function setNotif(id, n) {
+      const b = el(id); if (!b) return
+      if (n > 0) { b.textContent = n > 99 ? '99+' : String(n); b.hidden = false } else { b.hidden = true }
+    }
+    async function refreshBadges() {
+      try {
+        const { data } = await supabase.rpc('unread_summary').single()
+        setNotif('n-chat', data?.chat || 0); setNotif('n-recaps', data?.recaps || 0)
+      } catch {}
+    }
+    function scheduleBadges() { clearTimeout(_badgeT); _badgeT = setTimeout(refreshBadges, 700) }
+    function markRead(scope) { supabase.rpc('mark_read', { p_scope: scope }).then(refreshBadges, () => {}) }
+    function watchBadges() {
+      supabase.channel('badges')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => {
+          const m = p.new
+          const scope = m.channel_id ? 'channel:' + m.channel_id : 'dm:' + m.dm_id
+          const cur = chat.cur ? chat.cur.type + ':' + chat.cur.id : null
+          if (scope === cur && el('v-chat').classList.contains('on')) markRead(scope)
+          else scheduleBadges()
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_recaps' }, () => scheduleBadges())
         .subscribe()
     }
 
@@ -3285,6 +3372,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.owned = new Set((ents ?? []).map((e) => e.product))
       state.hasCourse = state.owned.has('course') || !!isAdmin
       await loadCourse()
+      refreshBadges(); watchBadges()
 
       // Deep-link from the welcome onboarding: ?start=study|recaps|chat
       const start = new URLSearchParams(location.search).get('start')
