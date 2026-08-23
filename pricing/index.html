@@ -99,6 +99,25 @@
     .ind-side { display: flex; flex-direction: column; gap: 8px; padding-top: 3px; }
     .ind-side .note { color: var(--faint); font-size: 11.5px; text-align: center; }
 
+    /* live GEX preview: the real feed drawn small */
+    .gexprev { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 12px; background: var(--panel); max-width: 560px; }
+    .gp-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 11.5px; margin-bottom: 10px; }
+    .gp-live { color: var(--gold); display: inline-flex; gap: 6px; align-items: center; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 10.5px; }
+    .gp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+    @media (prefers-reduced-motion: no-preference) { .gp-dot { animation: gp-pulse 2s ease infinite; } }
+    @keyframes gp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .gp-regime { font-weight: 700; letter-spacing: 0.05em; font-size: 10.5px; text-transform: uppercase; }
+    .gp-regime.neg { color: #ef5350; }
+    .gp-regime.pos { color: #26a69a; }
+    .gp-nq { color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+    #gp-canvas { width: 100%; height: 140px; display: block; }
+    .gp-levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
+    .gp-lv { font-size: 11px; color: var(--faint); }
+    .gp-lv b { display: block; color: var(--ink); font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 650; }
+    .feat { list-style: none; margin-top: 14px; display: grid; gap: 7px; max-width: 60ch; }
+    .feat li { position: relative; padding-left: 22px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .feat li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--gold); font-weight: 700; }
+
     footer { margin-top: clamp(52px, 9vh, 92px); border-top: 1px solid var(--line); padding: 26px 0 40px; }
     .risk { color: var(--faint); font-size: 11.5px; max-width: 78ch; }
     .base { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-top: 18px; color: var(--muted); font-size: 12.5px; }
@@ -164,7 +183,24 @@
     <section class="ind">
       <div>
         <h3>D1 GEX</h3>
-        <p>QQQ gamma exposure mapped onto NQ: the walls, the flip, the regime — refreshed from the live option chain every 15 minutes. Subscribers also get the live GEX dashboard inside the members area.</p>
+        <p>QQQ gamma exposure mapped onto NQ: the walls, the flip, the regime — refreshed from the live option chain every 15 minutes. This is the actual feed, right now:</p>
+        <div class="gexprev" id="gexprev" hidden>
+          <div class="gp-top">
+            <span class="gp-live"><span class="gp-dot"></span>Live</span>
+            <span class="gp-regime" id="gp-regime"></span>
+            <span class="gp-nq" id="gp-nq"></span>
+          </div>
+          <canvas id="gp-canvas" aria-label="Live QQQ gamma profile by strike, positive piles teal, negative red, spot marked in gold"></canvas>
+          <div class="gp-levels" id="gp-levels"></div>
+        </div>
+        <ul class="feat">
+          <li>Listed NQ prices for every level: call wall, put wall, gamma flip, and the ten biggest concentrations</li>
+          <li>Rotating 3D gamma surface by strike and expiry — 0DTE, swing, or the whole board</li>
+          <li>Positive / negative regime read rewritten on every print</li>
+          <li>Copyable daily levels sheet for your journal or Discord</li>
+          <li>The live GEX dashboard inside the members area</li>
+          <li>Invite-only TradingView script on your own chart</li>
+        </ul>
         <a class="more" href="/echelon/gex/">More about GEX →</a>
       </div>
       <div class="ind-side">
@@ -288,6 +324,56 @@
       document.getElementById('code-note').hidden = !row.classList.contains('open');
       if (row.classList.contains('open')) document.getElementById('promo-code').focus();
     });
+
+    /* Live GEX preview: the same public feed the product runs on, drawn
+       small. Net gamma per strike as bars, spot in gold, walls listed. */
+    fetch('https://gex-worker.frankiepc3.workers.dev/gex.json')
+      .then(function (r) { return r.ok ? r.json() : null })
+      .then(function (j) {
+        if (!j || !j.surface || !j.surface.strikes || !j.surface.strikes.length) return;
+        var wrap = document.getElementById('gexprev'); wrap.hidden = false;
+        var reg = document.getElementById('gp-regime');
+        var neg = (j.regime || '').indexOf('neg') === 0;
+        reg.textContent = neg ? 'Negative gamma — accelerating' : 'Positive gamma — absorbing';
+        reg.className = 'gp-regime ' + (neg ? 'neg' : 'pos');
+        document.getElementById('gp-nq').textContent = 'NQ ' + Math.round(j.nq).toLocaleString() + ' · QQQ ' + j.spot;
+        var lv = [
+          ['Call wall', j.swing && j.swing.callWall && j.swing.callWall.nq],
+          ['Put wall', j.swing && j.swing.putWall && j.swing.putWall.nq],
+          ['Gamma flip', j.swing && j.swing.flip && j.swing.flip.nq],
+          ['Γ1 magnet', j.rLevels && j.rLevels[0] && j.rLevels[0].nq],
+        ];
+        var host = document.getElementById('gp-levels');
+        lv.forEach(function (p) {
+          var d = document.createElement('div'); d.className = 'gp-lv';
+          var s = document.createElement('span'); s.textContent = p[0];
+          var b = document.createElement('b'); b.textContent = p[1] ? 'NQ ' + Math.round(p[1]).toLocaleString() : '—';
+          d.appendChild(s); d.appendChild(b); host.appendChild(d);
+        });
+        var cv = document.getElementById('gp-canvas');
+        var W = cv.clientWidth || 520, H = 140;
+        var dpr = Math.min(2, window.devicePixelRatio || 1);
+        cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+        var ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+        var s = j.surface, n = s.strikes.length;
+        var prof = [];
+        for (var i = 0; i < n; i++) { var t = 0; for (var e = 0; e < s.gexM.length; e++) t += s.gexM[e][i] || 0; prof.push(t); }
+        var max = 1; prof.forEach(function (v) { if (Math.abs(v) > max) max = Math.abs(v); });
+        var zero = H * 0.52, bw = W / n;
+        for (var k = 0; k < n; k++) {
+          var h = (prof[k] / max) * (H * 0.44);
+          ctx.fillStyle = prof[k] >= 0 ? 'rgba(38,166,154,0.85)' : 'rgba(239,83,80,0.85)';
+          if (h >= 0) ctx.fillRect(k * bw + 0.5, zero - h, Math.max(1, bw - 1.2), h || 1);
+          else ctx.fillRect(k * bw + 0.5, zero, Math.max(1, bw - 1.2), -h);
+        }
+        ctx.fillStyle = 'rgba(157,151,140,0.35)'; ctx.fillRect(0, zero, W, 1);
+        var si = 0, best = 1e9;
+        s.strikes.forEach(function (kk, i2) { var d2 = Math.abs(kk - j.spot); if (d2 < best) { best = d2; si = i2; } });
+        ctx.fillStyle = '#c9a24a'; ctx.fillRect(si * bw, 6, 1.6, H - 12);
+        ctx.font = '10px ui-monospace, monospace'; ctx.fillStyle = '#c9a24a';
+        ctx.fillText('spot', Math.min(si * bw + 5, W - 30), 14);
+      })
+      .catch(function () {});
   })();
   </script>
 </body>
