@@ -251,6 +251,31 @@
     .faq details[open] summary .mk { color: var(--gold); }
     .faq .a { padding: 0 20px 16px; color: var(--muted); font-size: 13.5px; max-width: 64ch; }
 
+    /* member trade proof: horizontal snap carousel, gentle auto-advance */
+    .trades-wrap { margin-top: clamp(52px, 9vh, 92px); }
+    .trades-wrap .label { display: block; margin-bottom: 16px; }
+    .tr-car { position: relative; }
+    .tr-track { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+    .tr-track::-webkit-scrollbar { display: none; }
+    .tr-track img {
+      height: clamp(220px, 34vw, 340px); width: auto; max-width: 86vw;
+      object-fit: contain; background: var(--panel);
+      border: 1px solid var(--line); border-radius: 14px;
+      scroll-snap-align: center; flex-shrink: 0;
+    }
+    .tr-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 38px; height: 38px; border-radius: 50%;
+      border: 1px solid var(--line-bright); background: rgba(11,10,9,0.72);
+      color: var(--ink); cursor: pointer; font-size: 20px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .tr-nav:hover { border-color: var(--gold); color: var(--gold); }
+    .tr-prev { left: 10px; }
+    .tr-next { right: 10px; }
+    .tr-cap { color: var(--faint); font-size: 12.5px; margin-top: 12px; }
+
     /* the free room: one wide panel above the footer */
     .disc-wrap { padding: clamp(52px, 9vh, 92px) 0 0; }
     .disc {
@@ -433,6 +458,16 @@
     <div class="rev-wrap" id="reviews" hidden><div class="col">
       <span class="label">From the members</span>
       <div class="grid3" id="rev-grid"></div>
+    </div></div>
+
+    <div class="trades-wrap" id="trades" hidden><div class="col">
+      <span class="label">Trades from the room</span>
+      <div class="tr-car">
+        <div class="tr-track" id="tr-track" aria-label="Member trade screenshots"></div>
+        <button class="tr-nav tr-prev" id="tr-prev" type="button" aria-label="Previous">&#8249;</button>
+        <button class="tr-nav tr-next" id="tr-next" type="button" aria-label="Next">&#8250;</button>
+      </div>
+      <p class="tr-cap">Screenshots members shared after trading what the course teaches. Their results, not a promise of yours.</p>
     </div></div>
 
     <div class="how-wrap"><div class="col">
@@ -882,6 +917,42 @@
 
     fetchEchelon(); fetchDiscord(); fetchReviews();
     setInterval(function () { fetchEchelon(); fetchDiscord(); }, 60000);
+  })();
+  </script>
+  <script>
+  // Member trade carousel. Photos are published to /echelon/trades/ by
+  // scripts/sync-trades.mjs (drop folder: Desktop\Echelon Trades). The whole
+  // section stays hidden until the manifest lists at least one photo.
+  (function () {
+    fetch('/echelon/trades/trades.json')
+      .then(function (r) { return r.ok ? r.json() : null })
+      .then(function (list) {
+        if (!Array.isArray(list) || !list.length) return;
+        var wrap = document.getElementById('trades'), track = document.getElementById('tr-track');
+        list.forEach(function (f) {
+          var img = document.createElement('img');
+          img.src = '/echelon/trades/' + f;
+          img.alt = 'Member trade screenshot';
+          img.loading = 'lazy';
+          track.appendChild(img);
+        });
+        wrap.hidden = false;
+        var step = function () { return Math.max(240, track.clientWidth * 0.7) };
+        document.getElementById('tr-prev').addEventListener('click', function () { track.scrollBy({ left: -step(), behavior: 'smooth' }) });
+        document.getElementById('tr-next').addEventListener('click', function () { track.scrollBy({ left: step(), behavior: 'smooth' }) });
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var hold = false;
+        wrap.addEventListener('pointerenter', function () { hold = true });
+        wrap.addEventListener('pointerleave', function () { hold = false });
+        wrap.addEventListener('touchstart', function () { hold = true }, { passive: true });
+        setInterval(function () {
+          if (hold || document.hidden) return;
+          var atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 8;
+          if (atEnd) track.scrollTo({ left: 0, behavior: 'smooth' });
+          else track.scrollBy({ left: step(), behavior: 'smooth' });
+        }, 5000);
+      })
+      .catch(function () {});
   })();
   </script>
 </body>

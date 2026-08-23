@@ -524,6 +524,43 @@
       animation: skel-sweep 1.3s ease infinite;
     }
     @keyframes skel-sweep { to { transform: translateX(100%); } }
+
+    /* ── guided walkthrough: questionnaire cards + gliding spotlight ── */
+    .tour-ring {
+      position: fixed; z-index: 90; pointer-events: none;
+      border: 2px solid var(--gold); border-radius: 12px;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+      transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1), top 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                  width 0.35s cubic-bezier(0.4, 0, 0.2, 1), height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tour-ring::after {
+      content: ""; position: absolute; inset: -2px; border-radius: 12px;
+      border: 2px solid var(--gold); animation: tour-pulse 1.8s ease infinite;
+    }
+    @keyframes tour-pulse { 0% { transform: scale(1); opacity: 0.55; } 70%, 100% { transform: scale(1.05); opacity: 0; } }
+    .tour-card {
+      position: fixed; z-index: 91; width: min(400px, calc(100vw - 32px));
+      background: var(--panel); border: 1px solid var(--line-bright); border-radius: 16px;
+      padding: 22px 24px 20px; box-shadow: 0 16px 44px rgba(0, 0, 0, 0.55);
+    }
+    .tour-card.anim { animation: tour-in 0.3s cubic-bezier(0.2, 0.7, 0.3, 1); }
+    @keyframes tour-in { from { opacity: 0; transform: translateY(14px) scale(0.985); } }
+    .tour-card .eyebrow { color: var(--gold); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
+    .tour-card .q { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; margin-top: 8px; }
+    .tour-card .a { color: var(--muted); font-size: 13.5px; line-height: 1.6; margin-top: 8px; }
+    .tour-card .dots { display: flex; gap: 5px; margin-top: 16px; flex-wrap: wrap; }
+    .tour-card .dots i { width: 12px; height: 4px; border-radius: 2px; background: var(--line-bright); transition: background 0.25s ease, width 0.25s ease; }
+    .tour-card .dots i.past { background: rgba(201, 162, 74, 0.45); }
+    .tour-card .dots i.on { background: var(--gold); width: 22px; }
+    .tour-foot { display: flex; align-items: center; gap: 12px; margin-top: 15px; }
+    .tour-step { color: var(--faint); font-size: 11.5px; }
+    .tour-skip { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 12.5px; }
+    .tour-skip:hover { color: var(--ink); }
+    .tour-foot .btn { margin-left: auto; padding: 10px 24px; }
+    @media (prefers-reduced-motion: reduce) {
+      .tour-ring { transition: none; }
+      .tour-ring::after, .tour-card.anim { animation: none; }
+    }
     @media (prefers-reduced-motion: reduce) { .skel::after { animation: none; } }
     .count .skel { display: inline-block; width: 14px; height: 8px; vertical-align: middle; }
 
@@ -709,6 +746,7 @@
           <h2 id="pane-title">Overview</h2>
           <div class="crumb" id="pane-crumb">At a glance</div>
         </div>
+        <button class="rowbtn" id="admin-tour-btn" type="button" title="Replay the guided walkthrough">Walkthrough</button>
         <a class="btn" href="/echelon/app/" style="background:var(--panel-2);color:var(--ink);">Open course →</a>
       </div>
 
@@ -1282,6 +1320,108 @@
       if (view === 'gex') gexShown()
       if (PLAYBOOKS[view]) playbookShown(view)
     }))
+
+    /* ── guided walkthrough: every screen, one card at a time ── */
+    const ADMIN_TOUR = [
+      { view: 'overview', sel: '#cards', t: 'The pulse', b: 'Headline numbers, refreshed on every load — revenue, members, course progress across everyone. When something moves, it shows here first.' },
+      { view: 'overview', sel: '#recent-buyers', t: 'Latest buyers and reviews', b: 'Every purchase lands the moment Stripe fires, newest reviews below. Approving a review is what publishes it to the landing page — nothing goes public without you.' },
+      { view: 'users', sel: '#grant-email', t: 'Grant access by email', b: 'Type an email, hit Grant: the course is comped and an account is created so their sign-in link has something to land on. The ledger below is every entitlement — revoke or restore per row.' },
+      { view: 'access', sel: '#access-table', t: 'The TradingView queue', b: 'Every indicator sale queues here with the buyer’s TV username. The worker adds them on TradingView automatically every 15 minutes; the buttons are your manual fallback if it ever cannot.' },
+      { view: 'billing', sel: '#billing-cards', t: 'Money in', b: 'Revenue at a glance, the order ledger, and the raw Stripe events exactly as the webhook received them — the audit trail for when something looks off.' },
+      { view: 'content', sel: '#course-list-wrap', t: 'The course builder', b: 'Categories and lessons, reordered with the arrows. Opening a lesson gives you the block editor — text, headings, video, files — and Viewers shows who actually watched what.' },
+      { view: 'recaps', sel: '#recap-title', t: 'Write the session recap', b: 'Title, date, write-up. Blank line between paragraphs, ## for headings, paste or drop a video straight in. Save keeps it a draft — members only ever see what you publish.' },
+      { view: 'codes', sel: '#code-custom', t: 'Mint a pass', b: 'Free codes comp the course at redemption; discount codes shave a percentage at checkout. Cap the uses, set an expiry, note who it was for.' },
+      { view: 'community', sel: '#chan-table', t: 'Channels', b: 'Create, reorder and delete the chat rooms. Announcements are staff-post-only by design, and deleting a channel takes its messages with it.' },
+      { view: 'community', sel: '#app-table', t: 'Access requests', b: 'People applying for free access at /echelon/apply. Approve comps the course and creates their account in one motion; Deny just closes it out.' },
+      { view: 'community', sel: '#mod-table', t: 'Moderators', b: 'Promote anyone from the search below. Mods moderate chat, post announcements, and get the GEX dashboard free. Remove takes it all back instantly.' },
+      { view: 'perms', sel: '#perm-table', t: 'What each role can do', b: 'Live switches, enforced by the database — not just hidden buttons. Turn images off for members and the upload button disappears AND the write is refused server-side.' },
+      { view: 'perms', sel: '#perm-chan-table', t: 'Posting, per channel', b: 'Everyone, mods only, or just you — decided per channel. Reading is untouched; this only controls who can speak where.' },
+      { view: 'money', sel: '#v-money .block', t: 'Money', b: 'Plaid-fed accounts, spending and budgets. Still waiting on the production Plaid secret — the moment it lands, Sync pulls everything live.' },
+      { view: 'gex', sel: '#gex-stage', t: 'Your gamma board', b: 'The same dashboard members pay $35 a month for, plus the admin extras. It recomputes from the live QQQ chain every 15 minutes and re-maps every level onto NQ.' },
+      { view: 'gex', sel: '#gex-copy', t: 'Copy pineData', b: 'Admin-only: the levels in the exact format the D1 GEX TradingView indicator eats. The daily job republishes the script on its own — this is the manual path.' },
+      { view: 'msnr', sel: '#v-msnr .block', t: 'The playbooks', b: 'MSNR, exotic cars, the Civic sheet, memecoins — research write-ups that live in the dashboard. This one carries twelve chart figures; the others read the same way.' },
+      { view: 'settings', sel: '#integrations', t: 'Settings', b: 'Which secrets are wired — booleans only, the page never sees the values. And that is every screen. The Walkthrough button up top replays this any time.' },
+    ]
+    const tour = { on: false, i: 0, ring: null, card: null }
+    function tourTarget() { return document.querySelector(ADMIN_TOUR[tour.i].sel) }
+    function tourVisible(sel) {
+      const t = document.querySelector(sel)
+      if (!t) return false
+      const r = t.getBoundingClientRect()
+      return r.width > 4 && r.height > 4
+    }
+    function startAdminTour() {
+      if (tour.on) return
+      tour.on = true
+      tour.ring = document.createElement('div'); tour.ring.className = 'tour-ring'
+      tour.card = document.createElement('div'); tour.card.className = 'tour-card'
+      document.body.append(tour.ring, tour.card)
+      window.addEventListener('resize', tourPlace)
+      window.addEventListener('scroll', tourPlace, true)
+      tourStep(0)
+    }
+    function tourStep(i) {
+      let tabBtn = null
+      while (i < ADMIN_TOUR.length) {
+        const s = ADMIN_TOUR[i]
+        tabBtn = tabs.find((t) => t.dataset.view === s.view)
+        if (tabBtn && !tabBtn.classList.contains('on')) tabBtn.click()
+        if (tourVisible(s.sel)) break
+        i++
+      }
+      if (i >= ADMIN_TOUR.length) return endAdminTour(true)
+      tour.i = i
+      const s = ADMIN_TOUR[i]
+      document.querySelector(s.sel).scrollIntoView({ block: 'center', behavior: 'smooth' })
+      const card = tour.card
+      card.textContent = ''
+      const eye = document.createElement('div'); eye.className = 'eyebrow'
+      eye.textContent = `Walkthrough · ${tabBtn?.dataset.title ?? s.view}`
+      const q = document.createElement('div'); q.className = 'q'; q.textContent = s.t
+      const a = document.createElement('div'); a.className = 'a'; a.textContent = s.b
+      const dots = document.createElement('div'); dots.className = 'dots'
+      ADMIN_TOUR.forEach((_, d) => {
+        const dot = document.createElement('i')
+        if (d < i) dot.className = 'past'; else if (d === i) dot.className = 'on'
+        dots.appendChild(dot)
+      })
+      const foot = document.createElement('div'); foot.className = 'tour-foot'
+      const step = document.createElement('span'); step.className = 'tour-step'; step.textContent = `${i + 1} of ${ADMIN_TOUR.length}`
+      const skip = document.createElement('button'); skip.className = 'tour-skip'; skip.type = 'button'; skip.textContent = 'Skip'
+      skip.addEventListener('click', () => endAdminTour(true))
+      const last = i >= ADMIN_TOUR.length - 1
+      const next = document.createElement('button'); next.className = 'btn'; next.type = 'button'; next.textContent = last ? 'Done' : 'OK'
+      next.addEventListener('click', () => { last ? endAdminTour(true) : tourStep(tour.i + 1) })
+      foot.append(step, skip, next)
+      card.append(eye, q, a, dots, foot)
+      card.classList.remove('anim'); void card.offsetWidth; card.classList.add('anim')
+      setTimeout(tourPlace, 80)
+      setTimeout(tourPlace, 450)
+    }
+    function tourPlace() {
+      if (!tour.on) return
+      const t = tourTarget(); if (!t) return
+      const r = t.getBoundingClientRect(), pad = 8
+      Object.assign(tour.ring.style, {
+        left: `${r.left - pad}px`, top: `${r.top - pad}px`,
+        width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px`,
+      })
+      const cw = tour.card.offsetWidth || 400, ch = tour.card.offsetHeight || 200
+      let top = r.bottom + pad + 16
+      if (top + ch > innerHeight - 12) top = Math.max(12, r.top - pad - ch - 16)
+      const left = Math.min(Math.max(12, r.left), Math.max(12, innerWidth - cw - 12))
+      Object.assign(tour.card.style, { left: `${left}px`, top: `${top}px` })
+    }
+    function endAdminTour(markDone) {
+      if (!tour.on) return
+      tour.on = false
+      tour.ring?.remove(); tour.card?.remove()
+      tour.ring = tour.card = null
+      window.removeEventListener('resize', tourPlace)
+      window.removeEventListener('scroll', tourPlace, true)
+      if (markDone) localStorage.setItem('echelon-admin-tour', '1')
+    }
+    el('admin-tour-btn').addEventListener('click', () => { endAdminTour(false); startAdminTour() })
 
     /* ── table helper ── */
     function table(host, cols, rows, build) {
@@ -3342,6 +3482,8 @@
         // GEX is an outside feed (gex-worker); warm the readout + table, never block on it.
         loadGex().catch(() => {}),
       ])
+      // First visit after this ships: walk every screen once, then stay quiet.
+      if (!localStorage.getItem('echelon-admin-tour')) setTimeout(startAdminTour, 1200)
       resumePlaidOAuth()
     }
 
