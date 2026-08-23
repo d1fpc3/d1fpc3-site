@@ -803,7 +803,14 @@
 
     /* ── indicators store ────────────────────────────────────── */
 
-    .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; align-items: start; }
+    .tvu-row { display: flex; align-items: center; justify-content: space-between; gap: 12px 28px; flex-wrap: wrap; padding: 15px 18px; }
+    .tvu-copy h3 { font-size: 14.5px; font-weight: 650; letter-spacing: -0.01em; }
+    .tvu-copy .hint { margin: 3px 0 0; max-width: 56ch; }
+    .tvu-form { display: flex; gap: 8px; flex-shrink: 0; }
+    .tvu-form .inp { min-width: 230px; }
+    #store-tv .msg { margin: 0; padding: 0 18px 13px; }
+    #store-tv .msg:empty { display: none; }
     .prod {
       background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
       padding: 20px; display: flex; flex-direction: column; gap: 12px;
@@ -1348,15 +1355,17 @@
         <!-- INDICATORS store -->
         <section class="view" id="v-indicators">
           <div class="block" id="store-tv" hidden>
-            <div class="block-head"><h3>Your TradingView username</h3></div>
-            <div class="setgrid" style="max-width:none;">
-              <p class="hint" style="margin:0;">Access to the invite-only scripts is granted to this TradingView account. Set it once and it applies to every indicator you own.</p>
-              <div class="filters">
-                <input class="inp" id="tv-username" type="text" autocomplete="off" spellcheck="false" placeholder="your TradingView username" style="min-width:240px;">
+            <div class="tvu-row">
+              <div class="tvu-copy">
+                <h3>Your TradingView username</h3>
+                <p class="hint">Access to the invite-only scripts is granted to this account for every indicator you own. It can change at most once every 7 days.</p>
+              </div>
+              <div class="tvu-form">
+                <input class="inp" id="tv-username" type="text" autocomplete="off" spellcheck="false" placeholder="your TradingView username">
                 <button class="btn" id="tv-save" type="button">Save</button>
               </div>
-              <p class="msg" id="tv-msg"></p>
             </div>
+            <p class="msg" id="tv-msg"></p>
           </div>
           <div class="store-grid" id="store-grid"></div>
         </section>
@@ -4175,7 +4184,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
         const top = document.createElement('div'); top.className = 'p-top'
         const h = document.createElement('h3'); h.textContent = p.name; top.appendChild(h)
-        if (p.kind === 'bundle') { const tg = document.createElement('span'); tg.className = 'p-tag bundle'; tg.textContent = 'Save'; top.appendChild(tg) }
+        if (p.kind === 'bundle' && !owned) { const tg = document.createElement('span'); tg.className = 'p-tag bundle'; tg.textContent = 'Save'; top.appendChild(tg) }
         card.appendChild(top)
 
         const blurb = document.createElement('p'); blurb.className = 'p-blurb'; blurb.textContent = p.blurb ?? ''
@@ -4317,7 +4326,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Saving…'
       const { error } = await supabase.rpc('set_tv_username', { p_username: name })
       if (error) {
-        msg.className = 'msg err'; msg.textContent = error.message
+        msg.className = 'msg err'
+        const cool = /cooldown:(.+)/.exec(error.message)
+        msg.textContent = cool
+          ? `Your username can only change once a week — try again after ${cool[1].trim()}.`
+          : error.message === 'invalid_username'
+            ? 'Letters, digits and underscores only (2 to 30 characters).'
+            : error.message
       } else {
         msg.className = 'msg ok'; msg.textContent = 'Saved. Your access is queued.'
         state.tvAccess = state.tvAccess.map((t) => ({
