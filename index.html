@@ -275,19 +275,21 @@
     .tr-prev { left: 10px; }
     .tr-next { right: 10px; }
 
-    /* live GEX teaser: one quiet strip, feed-fed, links to pricing */
+    /* live GEX teaser: flat and typographic — hairlines, numbers, no ornament */
     .gexbar-wrap { margin-top: clamp(40px, 7vh, 64px); }
     .gexbar {
-      display: flex; align-items: center; gap: 16px 22px; flex-wrap: wrap;
-      border: 1px solid var(--line); border-radius: 14px; background: var(--panel);
-      padding: 15px 20px; font-size: 13px; transition: border-color 0.15s ease;
+      display: block; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+      padding: 18px 2px 22px;
     }
-    .gexbar:hover { border-color: var(--gold); }
-    .gb-regime { font-weight: 700; letter-spacing: 0.05em; font-size: 11px; text-transform: uppercase; }
+    .gb-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+    .gb-regime { font-weight: 700; letter-spacing: 0.1em; font-size: 10.5px; text-transform: uppercase; }
     .gb-regime.neg { color: #ef5350; }
     .gb-regime.pos { color: #26a69a; }
-    .gb-levels { color: var(--muted); font-variant-numeric: tabular-nums; }
-    .gb-cta { margin-left: auto; color: var(--gold); font-weight: 600; white-space: nowrap; }
+    .gb-go { margin-left: auto; color: var(--muted); font-size: 12.5px; transition: color 0.15s ease; white-space: nowrap; }
+    .gexbar:hover .gb-go { color: var(--gold); }
+    .gb-stats { display: flex; gap: clamp(30px, 7vw, 72px); margin-top: 14px; flex-wrap: wrap; }
+    .gb-stat b { display: block; font-size: clamp(22px, 3.4vw, 31px); font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .gb-stat span { display: block; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint); margin-top: 5px; }
 
     /* the free room: one wide panel above the footer */
     .disc-wrap { padding: clamp(52px, 9vh, 92px) 0 0; }
@@ -453,10 +455,16 @@
 
     <div class="gexbar-wrap" id="gexbar" hidden><div class="col">
       <a class="gexbar" href="/pricing/">
-        <span class="live"><span class="dot" aria-hidden="true"></span>D1 GEX</span>
-        <span class="gb-regime" id="gb-regime"></span>
-        <span class="gb-levels" id="gb-levels"></span>
-        <span class="gb-cta">The live board &rarr;</span>
+        <div class="gb-head">
+          <span class="label">D1 GEX · right now</span>
+          <span class="gb-regime" id="gb-regime"></span>
+          <span class="gb-go">The live board &rarr;</span>
+        </div>
+        <div class="gb-stats">
+          <div class="gb-stat"><b id="gb-nq">&#8212;</b><span>NQ</span></div>
+          <div class="gb-stat"><b id="gb-cw">&#8212;</b><span>Call wall</span></div>
+          <div class="gb-stat"><b id="gb-pw">&#8212;</b><span>Put wall</span></div>
+        </div>
       </a>
     </div></div>
 
@@ -839,12 +847,11 @@
         if (!j || !j.nq) return;
         var neg = (j.regime || '').indexOf('neg') === 0;
         var reg = document.getElementById('gb-regime');
-        reg.textContent = neg ? 'Negative gamma: accelerating' : 'Positive gamma: absorbing';
+        reg.textContent = neg ? 'Negative gamma' : 'Positive gamma';
         reg.className = 'gb-regime ' + (neg ? 'neg' : 'pos');
-        var bits = ['NQ ' + Math.round(j.nq).toLocaleString()];
-        if (j.swing && j.swing.callWall) bits.push('call wall ' + Math.round(j.swing.callWall.nq).toLocaleString());
-        if (j.swing && j.swing.putWall) bits.push('put wall ' + Math.round(j.swing.putWall.nq).toLocaleString());
-        document.getElementById('gb-levels').textContent = bits.join(' · ');
+        document.getElementById('gb-nq').textContent = Math.round(j.nq).toLocaleString();
+        if (j.swing && j.swing.callWall) document.getElementById('gb-cw').textContent = Math.round(j.swing.callWall.nq).toLocaleString();
+        if (j.swing && j.swing.putWall) document.getElementById('gb-pw').textContent = Math.round(j.swing.putWall.nq).toLocaleString();
         document.getElementById('gexbar').hidden = false;
       })
       .catch(function () {});
