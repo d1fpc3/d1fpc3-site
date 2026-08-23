@@ -3482,8 +3482,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (!res.ok) return
         const d = await res.json()
         if (!d.generatedAt) return
-        // Pre-warm the dashboard with what we just paid for.
-        if (d.surface) { GEX.data = d; GEX.loadedAt = Date.now() }
+        // Deliberately does NOT touch GEX.data: feeding the dashboard's
+        // cache from here once made gexShown skip its full render and the
+        // page opened blank (8/22). The badge only reads and lights up.
         const seen = localStorage.getItem(GEX_SEEN_KEY)
         const isNew = !seen || new Date(d.generatedAt) > new Date(seen)
         const b = el('n-gex')
