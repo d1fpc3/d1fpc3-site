@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Pricing · Echelon by d1</title>
+  <link rel="icon" type="image/svg+xml" href="/echelon-favicon.svg">
+  <link rel="apple-touch-icon" href="/echelon/assets/logo-mark.png">
+  <meta name="description" content="Echelon pricing: the course is one payment for lifetime access. The D1 GEX and D1 LIT TradingView indicators are sold separately, monthly or one-time.">
+  <meta name="theme-color" content="#0b0a09">
+  <meta name="color-scheme" content="dark">
+  <link rel="canonical" href="https://d1fpc3.com/pricing/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Echelon by d1">
+  <meta property="og:url" content="https://d1fpc3.com/pricing/">
+  <meta property="og:title" content="Pricing · Echelon by d1">
+  <meta property="og:description" content="The course: one payment, lifetime access. The indicators: monthly or one-time, sold separately.">
+  <script async src="https://seenrank.com/pixel.js" data-sr-site="d19bf048-ec87-453a-aa7f-b264637a7360"></script>
+  <style>
+    /* d1fpc3.com/pricing — every number in one place, off the landing.
+       Course checkout is the same embedded Stripe flow the landing used;
+       indicators buy through the live Payment Links (they collect the
+       TradingView username and access is granted automatically). */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    :root {
+      color-scheme: dark;
+      --bg: #0b0a09; --panel: #131211; --panel-2: #1a1817;
+      --ink: #f4f2ee; --muted: #9d978c; --faint: #6b665e;
+      --line: #262321; --line-bright: #383431;
+      --gold: #c9a24a; --gold-deep: #a8842c;
+    }
+
+    body {
+      background: var(--bg); color: var(--ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    ::selection { background: rgba(201,162,74,0.25); }
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+    .col { max-width: 860px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 40px); }
+    .label { font-size: 10.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint); }
+
+    .top { border-bottom: 1px solid var(--line); }
+    .top .col { display: flex; align-items: center; justify-content: space-between; padding-top: 18px; padding-bottom: 18px; gap: 14px; }
+    .brand { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
+    .quiet { color: var(--muted); font-size: 13.5px; border-bottom: 1px solid var(--line-bright); padding-bottom: 2px; }
+    .quiet:hover { color: var(--gold); border-color: var(--gold); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 13px 26px; background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+      color: #1a1207; border: 0; border-radius: 10px;
+      font: 600 14px/1 inherit; font-family: inherit; cursor: pointer;
+      transition: filter 0.18s ease, transform 0.15s ease;
+    }
+    .btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
+    .once {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 12px 22px; border: 1px solid var(--line-bright);
+      border-radius: 10px; font: 600 14px/1 inherit; color: var(--ink); background: none;
+      cursor: pointer; font-family: inherit;
+    }
+    .once:hover { border-color: var(--gold); color: var(--gold); }
+
+    main { padding: clamp(44px, 8vh, 76px) 0 0; }
+    h1 { font-size: clamp(30px, 5vw, 40px); letter-spacing: -0.03em; line-height: 1.12; }
+    .sub { color: var(--muted); font-size: 15.5px; margin-top: 12px; max-width: 54ch; }
+
+    /* the course: the flagship row */
+    .course { margin-top: 44px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 30px 2px 34px; display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 8px 56px; align-items: start; }
+    @media (max-width: 760px) { .course { grid-template-columns: 1fr; gap: 18px; } }
+    .course h2 { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; }
+    .course .what { color: var(--muted); font-size: 13.5px; line-height: 1.65; margin-top: 8px; max-width: 60ch; }
+    .price { font-size: 42px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+    .per { color: var(--faint); font-size: 12.5px; margin-top: 5px; }
+    .course-side { display: flex; flex-direction: column; gap: 12px; }
+    .course-side .btn { min-height: 44px; }
+    .code-row { font-size: 12.5px; }
+    .code-row .lnk { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 12.5px; border-bottom: 1px solid var(--line-bright); padding: 0 0 1px; }
+    .code-row .lnk:hover { color: var(--gold); border-color: var(--gold); }
+    .code-row input { display: none; margin-top: 8px; width: 100%; background: none; border: 1px solid var(--line-bright); border-radius: 8px; color: var(--ink); font: inherit; font-size: 13px; padding: 9px 11px; text-transform: uppercase; }
+    .code-row.open input { display: block; }
+    .code-row .cn { color: var(--faint); font-size: 11.5px; margin-top: 7px; }
+    .fine { color: var(--faint); font-size: 11.5px; }
+
+    /* indicators: flat rows */
+    .ind-cap { margin: 40px 0 0; padding-bottom: 10px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .ind { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 4px 56px; align-items: start; padding: 24px 2px 28px; border-bottom: 1px solid var(--line); }
+    @media (max-width: 760px) { .ind { grid-template-columns: 1fr; gap: 14px; } }
+    .ind h3 { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+    .ind .tag { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 5px; padding: 2px 7px; color: var(--gold); background: rgba(201,162,74,0.12); vertical-align: 2px; margin-left: 8px; }
+    .ind p { color: var(--muted); font-size: 13.5px; line-height: 1.65; margin-top: 6px; max-width: 60ch; }
+    .ind .more { font-size: 12.5px; color: var(--gold); display: inline-block; margin-top: 8px; }
+    .ind .more:hover { text-decoration: underline; }
+    .ind-side { display: flex; flex-direction: column; gap: 8px; padding-top: 3px; }
+    .ind-side .note { color: var(--faint); font-size: 11.5px; text-align: center; }
+
+    footer { margin-top: clamp(52px, 9vh, 92px); border-top: 1px solid var(--line); padding: 26px 0 40px; }
+    .risk { color: var(--faint); font-size: 11.5px; max-width: 78ch; }
+    .base { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-top: 18px; color: var(--muted); font-size: 12.5px; }
+
+    /* embedded Stripe checkout (same flow the landing used) */
+    .co-scrim { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,4,0.72);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+    .co-scrim.on { display: flex; }
+    .co-panel { position: relative; width: 100%; max-width: 480px; background: #fff; border-radius: 16px;
+      box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6); overflow: hidden; }
+    .co-top { display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; background: #0b0a09; color: #f2ede3; }
+    .co-top b { font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 650; }
+    .co-x { background: none; border: 0; color: #c9c0b2; font-size: 22px; line-height: 1; cursor: pointer; padding: 2px 6px; }
+    .co-x:hover { color: #fff; }
+    .co-mount { min-height: 320px; }
+    .co-loading { padding: 60px 20px; text-align: center; color: #6f675d; font-size: 14px; }
+    .co-spin { width: 26px; height: 26px; margin: 0 auto 14px; border: 3px solid #e5e0d6;
+      border-top-color: #c9a24a; border-radius: 50%; animation: cospin 0.8s linear infinite; }
+    @keyframes cospin { to { transform: rotate(360deg); } }
+    .co-err { padding: 40px 24px; text-align: center; color: #b4483a; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="top"><div class="col">
+    <a class="brand" href="/"><img src="/echelon/assets/logo-mark.png" alt="" width="26" height="26" style="border-radius:6px;vertical-align:-7px;margin-right:9px">Echelon</a>
+    <nav style="display:flex;gap:22px;align-items:center;">
+      <a class="quiet" href="/echelon/app/">Sign in</a>
+    </nav>
+  </div></header>
+
+  <main><div class="col">
+    <span class="label">Pricing</span>
+    <h1 style="margin-top:10px;">One payment for the course.<br>The indicators are separate.</h1>
+    <p class="sub">No tiers, no upsells inside the course. Everything Echelon teaches is behind one price, and the TradingView indicators are their own thing — take them or leave them.</p>
+
+    <section class="course" id="course">
+      <div>
+        <h2>Echelon — the course</h2>
+        <p class="what">The full course on reading NQ's context and intention, our session recaps after each close, the members area with your own trading dashboard, and the private member room. Lifetime access, updates included, nothing recurring.</p>
+      </div>
+      <div class="course-side">
+        <div>
+          <div class="price">$200</div>
+          <div class="per">once · lifetime access</div>
+        </div>
+        <button class="btn" id="buy-course" type="button">Get Echelon</button>
+        <div class="code-row" id="code-row">
+          <button class="lnk" type="button" id="code-toggle">Have a code?</button>
+          <input type="text" id="promo-code" placeholder="CODE" autocomplete="off" aria-label="Access or discount code">
+          <p class="cn" id="code-note" hidden>Discount codes apply at checkout. A free access code redeems at <a href="/echelon/app/" style="border-bottom:1px solid var(--line-bright);">sign in</a>.</p>
+        </div>
+        <p class="fine">Checkout by Stripe. No refunds. The product is information.</p>
+      </div>
+    </section>
+
+    <div class="ind-cap">
+      <span class="label">TradingView indicators · sold separately</span>
+      <span class="fine">Username collected at checkout · access added automatically</span>
+    </div>
+
+    <section class="ind">
+      <div>
+        <h3>D1 GEX</h3>
+        <p>QQQ gamma exposure mapped onto NQ: the walls, the flip, the regime — refreshed from the live option chain every 15 minutes. Subscribers also get the live GEX dashboard inside the members area.</p>
+        <a class="more" href="/echelon/gex/">More about GEX →</a>
+      </div>
+      <div class="ind-side">
+        <a class="btn" href="https://buy.stripe.com/cNi8wOeiq9drd62fjGg7e01">Subscribe · $35/mo</a>
+        <a class="once" href="https://buy.stripe.com/aFacN44HQ1KZea61sQg7e00">Buy once · $147</a>
+      </div>
+    </section>
+
+    <section class="ind">
+      <div>
+        <h3>D1 LIT</h3>
+        <p>The LIT structure indicator: PDH/PDL, order blocks, inducement and the daily cycle, drawn on your chart the way the course teaches it. Invite-only TradingView script.</p>
+      </div>
+      <div class="ind-side">
+        <a class="btn" href="https://buy.stripe.com/3cIdR85LUcpDc1Y1sQg7e03">Subscribe · $20/mo</a>
+        <a class="once" href="https://buy.stripe.com/eVq8wOeiqcpD3vs3AYg7e02">Buy once · $197</a>
+      </div>
+    </section>
+
+    <section class="ind">
+      <div>
+        <h3>GEX + LIT bundle<span class="tag">Save</span></h3>
+        <p>Both indicators together — the gamma map and the structure read on one chart.</p>
+      </div>
+      <div class="ind-side">
+        <a class="btn" href="https://buy.stripe.com/3cI9AS8Y64Xbc1YefCg7e05">Subscribe · $35/mo</a>
+        <a class="once" href="https://buy.stripe.com/eVq9ASeiqdtHc1Yc7ug7e04">Buy once · $297</a>
+      </div>
+    </section>
+
+    <p class="fine" style="margin-top:26px;">Already a member? The indicators are also in your app under Indicators, and cancelling a subscription removes script access.</p>
+  </div></main>
+
+  <footer><div class="col">
+    <p class="risk">Trading futures involves substantial risk of loss and is not suitable for every investor. Leverage works against you as well as for you. Past performance, yours or anyone else's, does not guarantee future results. Only risk capital you can afford to lose. Echelon is an educational product, not financial advice. The author is not a registered investment or commodity trading advisor. Most retail futures traders lose money.</p>
+    <div class="base">
+      <span>© 2026 Echelon · d1fpc3</span>
+      <span style="display:flex;gap:22px;flex-wrap:wrap;">
+        <a href="/">Home</a>
+        <a href="https://www.tradingview.com/u/d1fpc3/" target="_blank" rel="noopener">TradingView</a>
+        <a href="/terms/">Terms</a>
+      </span>
+    </div>
+  </div></footer>
+
+  <!-- On-page Stripe checkout -->
+  <div class="co-scrim" id="co-scrim" role="dialog" aria-modal="true" aria-label="Checkout">
+    <div class="co-panel">
+      <div class="co-top"><b>Get Echelon</b><button class="co-x" id="co-x" type="button" aria-label="Close">&times;</button></div>
+      <div class="co-mount" id="co-mount">
+        <div class="co-loading" id="co-loading"><div class="co-spin"></div>Loading secure checkout…</div>
+        <div id="echelon-checkout"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+    var STRIPE_PK = 'pk_live_51U6czvA2gVheocXUyUDf9yMnpgR3yXrUFcOV9QJ0Ebrnr7igg18xMtwcqTfgqqnxJ2qzMQ3ZpohXSmMouTCXI5bI00RbUxCAJe';
+    var CHECKOUT_FN = 'https://cqdignbleethroyxxvzr.supabase.co/functions/v1/create-checkout';
+    var SB_ANON = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x';
+    var _stripeJs = null, _coInstance = null;
+    function loadStripeJs() {
+      if (_stripeJs) return _stripeJs;
+      _stripeJs = new Promise(function (resolve, reject) {
+        if (window.Stripe) return resolve();
+        var s = document.createElement('script');
+        s.src = 'https://js.stripe.com/v3/'; s.async = true;
+        s.onload = resolve; s.onerror = function () { reject(new Error('Could not load Stripe.')); };
+        document.head.appendChild(s);
+      });
+      return _stripeJs;
+    }
+    function closeCheckout() {
+      document.getElementById('co-scrim').classList.remove('on');
+      document.body.style.overflow = '';
+      if (_coInstance) { try { _coInstance.destroy(); } catch (e) {} _coInstance = null; }
+      document.getElementById('echelon-checkout').innerHTML = '';
+    }
+    async function openCheckout(product, interval) {
+      var loading = document.getElementById('co-loading');
+      var mount = document.getElementById('echelon-checkout');
+      document.getElementById('co-scrim').classList.add('on');
+      document.body.style.overflow = 'hidden';
+      loading.style.display = ''; loading.className = 'co-loading';
+      loading.innerHTML = '<div class="co-spin"></div>Loading secure checkout…';
+      mount.innerHTML = '';
+      try {
+        await loadStripeJs();
+        var stripe = window.Stripe(STRIPE_PK);
+        var code = (document.getElementById('promo-code') || {}).value;
+        var fetchClientSecret = function () {
+          return fetch(CHECKOUT_FN, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: SB_ANON },
+            body: JSON.stringify({ product: product, interval: interval, promo: (code || '').trim() || undefined }),
+          }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d.error) throw new Error(d.error);
+            return d.client_secret;
+          });
+        };
+        _coInstance = await stripe.initEmbeddedCheckout({ fetchClientSecret: fetchClientSecret });
+        loading.style.display = 'none';
+        _coInstance.mount('#echelon-checkout');
+      } catch (e) {
+        loading.className = 'co-err';
+        loading.textContent = e.message || 'Checkout could not load. Please try again.';
+      }
+    }
+    document.getElementById('buy-course').addEventListener('click', function () { openCheckout('course'); });
+    document.getElementById('co-x').addEventListener('click', closeCheckout);
+    document.getElementById('co-scrim').addEventListener('click', function (e) {
+      if (e.target === document.getElementById('co-scrim')) closeCheckout();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCheckout(); });
+
+    document.getElementById('code-toggle').addEventListener('click', function () {
+      var row = document.getElementById('code-row');
+      row.classList.toggle('open');
+      document.getElementById('code-note').hidden = !row.classList.contains('open');
+      if (row.classList.contains('open')) document.getElementById('promo-code').focus();
+    });
+  })();
+  </script>
+</body>
+</html>
