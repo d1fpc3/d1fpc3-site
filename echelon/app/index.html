@@ -651,6 +651,30 @@
     }
     .viewas select { background: var(--bg); border: 1px solid var(--line-bright); border-radius: 7px; color: var(--ink); font-family: inherit; font-size: 12.5px; padding: 5px 7px; }
 
+    /* ── GEX onboarding: purchase intro + pointer tour ───────── */
+    .tour-ring {
+      position: fixed; z-index: 90; pointer-events: none;
+      border: 2px solid var(--gold); border-radius: 12px;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+      transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease;
+    }
+    .tour-card {
+      position: fixed; z-index: 91; width: min(330px, calc(100vw - 32px));
+      background: var(--panel); border: 1px solid var(--line-bright); border-radius: 12px;
+      padding: 15px 17px; box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+    }
+    .tour-card h4 { font-size: 14px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 5px; }
+    .tour-card p { color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .tour-foot { display: flex; align-items: center; gap: 12px; margin-top: 13px; }
+    .tour-step { color: var(--faint); font-size: 11.5px; }
+    .tour-skip { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 12px; }
+    .tour-skip:hover { color: var(--ink); }
+    .tour-foot .btn { margin-left: auto; padding: 9px 20px; }
+    .gi-body { padding: 16px 18px 18px; display: grid; gap: 11px; }
+    .gi-body p { color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+    .gi-body p b { color: var(--ink); }
+    .gi-body .btn { justify-content: center; margin-top: 4px; }
+
     /* ── mobile: the sidebar becomes a drawer ────────────────── */
 
     .menu-btn {
@@ -1284,6 +1308,18 @@
               <p class="chat-locked" id="chat-locked" hidden>Only the team posts here.</p>
             </div>
           </div>
+          <!-- Post-purchase GEX intro -->
+          <div class="dmpick-scrim" id="gexintro" hidden>
+            <div class="dmpick" style="max-width:480px;">
+              <div class="block-head"><h3>You've got D1 GEX</h3><button class="rowbtn" id="gexintro-later" type="button">Later</button></div>
+              <div class="gi-body">
+                <p><b>What it is.</b> Dealers who sell QQQ options are forced to hedge them. GEX measures how much of that forced hedging sits at every strike, and maps it onto NQ prices you can trade against.</p>
+                <p><b>Why it matters.</b> In positive gamma, hedging absorbs moves: expect chop, fades, pins. In negative gamma, hedging chases price: expect trend and fast tails. The board tells you which tape you're in before the open.</p>
+                <p><b>It stays current.</b> The whole board recomputes from the live option chain every 15 minutes, around the clock. Your TradingView access is being added now if it isn't already.</p>
+                <button class="btn" id="gexintro-go" type="button">Show me around</button>
+              </div>
+            </div>
+          </div>
           <!-- Poll composer -->
           <div class="dmpick-scrim" id="pollmodal" hidden>
             <div class="dmpick" style="max-width:440px;">
@@ -1348,6 +1384,7 @@
                   <button data-z="sqrt">&#8730; scale</button>
                 </span>
                 <button class="rowbtn" id="gex-refresh">Refresh</button>
+                <button class="rowbtn" id="gex-tour-btn" title="Replay the walkthrough">Tour</button>
               </div>
             </div>
             <div class="gex-stage" id="gex-stage">
@@ -1373,7 +1410,7 @@
           </div>
 
           <!-- How GEX works: the breakdown members see with their subscription -->
-          <div class="block gex-about">
+          <div class="block gex-about" id="gex-about">
             <div class="block-head"><h3>How GEX works</h3></div>
             <div class="ga-rows">
               <div class="ga-row"><b>What you're looking at</b><span>Market makers who sell QQQ options have to hedge them by buying and selling the underlying. GEX (gamma exposure) estimates how much forced hedging sits at each strike, in dollars per 1% move. Where the piles are big, price behaves differently moving through them.</span></div>
@@ -1873,6 +1910,7 @@
       if (view === 'chat' && !chat.loaded) loadChat()
       if (view === 'recaps') markRead('recaps')
       if (view === 'gex') gexShown()
+      if (view !== 'gex') endGexTour(false)
     }
     tabs.forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)))
 
@@ -4031,7 +4069,92 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (!el('v-gex').classList.contains('on')) { clearInterval(GEX.timer); GEX.timer = null; return }
         loadGex().catch(() => {})
       }, 5 * 60 * 1000)
+      // First visit: walk them through the board once, pointer by pointer.
+      if (!localStorage.getItem('echelon-gex-tour')) setTimeout(() => startGexTour(), 900)
     }
+
+    // ── GEX guided tour: spotlight one element, explain, OK to the next ──
+    const GEX_TOUR = [
+      { el: 'gex-read', title: 'The read', body: 'One sentence, rewritten on every print: where spot sits in the gamma field and what the hedging pressure means for the session.' },
+      { el: 'gex-regime', title: 'The regime', body: 'Positive gamma: dealers absorb moves. Expect chop, fades, pins. Negative gamma: dealers chase moves. Expect trend and fast tails. This line decides how to treat every level below.' },
+      { el: 'gex-view', title: 'Two angles', body: 'Surface shows gamma by strike and expiry. Profile flattens it to one bar per strike. Same board, two views.' },
+      { el: 'gex-set', title: '0DTE vs Swing', body: "0DTE reads only today's expiry, where intraday hedging is most violent. Swing stacks the later expiries for the bigger structure." },
+      { el: 'gex-stage', title: 'The gamma surface', body: 'Every pile is dealer hedging parked at a strike. Big positive piles act as brakes and magnets; negative piles accelerate price through them. Hover a pile for its numbers.' },
+      { el: 'gex-table', title: 'Levels, in NQ points', body: 'Call wall, put wall, gamma flip and the ten biggest concentrations, each translated from QQQ into an NQ price you can drop straight on your chart.' },
+      { el: 'gex-sheet-copy', title: 'The daily sheet', body: 'One tap copies the whole board as text for your journal or the Discord before the open.' },
+      { el: 'gex-about', title: 'The full breakdown', body: 'Everything explained properly, and it stays on this page with your access. That is the tour. Good hunting.' },
+    ]
+    const tour = { on: false, i: 0, ring: null, card: null }
+    function startGexTour() {
+      if (tour.on) return
+      if (!el('v-gex').classList.contains('on')) showView('gex')
+      tour.on = true
+      tour.ring = document.createElement('div'); tour.ring.className = 'tour-ring'
+      tour.card = document.createElement('div'); tour.card.className = 'tour-card'
+      document.body.append(tour.ring, tour.card)
+      window.addEventListener('resize', tourPlace)
+      window.addEventListener('scroll', tourPlace, true)
+      tourStep(0)
+    }
+    function tourVisible(id) {
+      const t = el(id)
+      if (!t || t.hidden || t.offsetParent === null) return false
+      const r = t.getBoundingClientRect()
+      return r.width > 4 && r.height > 4
+    }
+    function tourStep(i) {
+      while (i < GEX_TOUR.length && !tourVisible(GEX_TOUR[i].el)) i++
+      if (i >= GEX_TOUR.length) return endGexTour(true)
+      tour.i = i
+      const s = GEX_TOUR[i]
+      el(s.el).scrollIntoView({ block: 'center', behavior: 'smooth' })
+      tour.card.textContent = ''
+      const h = document.createElement('h4'); h.textContent = s.title
+      const p = document.createElement('p'); p.textContent = s.body
+      const foot = document.createElement('div'); foot.className = 'tour-foot'
+      const step = document.createElement('span'); step.className = 'tour-step'
+      step.textContent = `${i + 1} of ${GEX_TOUR.length}`
+      const skip = document.createElement('button'); skip.className = 'tour-skip'; skip.type = 'button'; skip.textContent = 'Skip'
+      skip.addEventListener('click', () => endGexTour(true))
+      const last = !GEX_TOUR.slice(i + 1).some((x) => tourVisible(x.el))
+      const next = document.createElement('button'); next.className = 'btn'; next.type = 'button'
+      next.textContent = last ? 'Done' : 'OK'
+      next.addEventListener('click', () => { last ? endGexTour(true) : tourStep(tour.i + 1) })
+      foot.append(step, skip, next)
+      tour.card.append(h, p, foot)
+      setTimeout(tourPlace, 60)
+      setTimeout(tourPlace, 420)
+    }
+    function tourPlace() {
+      if (!tour.on) return
+      const t = el(GEX_TOUR[tour.i].el); if (!t) return
+      const r = t.getBoundingClientRect(), pad = 8
+      Object.assign(tour.ring.style, {
+        left: `${r.left - pad}px`, top: `${r.top - pad}px`,
+        width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px`,
+      })
+      const cw = tour.card.offsetWidth || 330, ch = tour.card.offsetHeight || 150
+      let top = r.bottom + pad + 14
+      if (top + ch > innerHeight - 12) top = Math.max(12, r.top - pad - ch - 14)
+      const left = Math.min(Math.max(12, r.left), Math.max(12, innerWidth - cw - 12))
+      Object.assign(tour.card.style, { left: `${left}px`, top: `${top}px` })
+    }
+    function endGexTour(markDone) {
+      if (!tour.on) return
+      tour.on = false
+      tour.ring?.remove(); tour.card?.remove()
+      tour.ring = tour.card = null
+      window.removeEventListener('resize', tourPlace)
+      window.removeEventListener('scroll', tourPlace, true)
+      if (markDone) localStorage.setItem('echelon-gex-tour', '1')
+    }
+    el('gex-tour-btn').addEventListener('click', () => { endGexTour(false); startGexTour() })
+    el('gexintro-later').addEventListener('click', () => { el('gexintro').hidden = true })
+    el('gexintro-go').addEventListener('click', () => {
+      el('gexintro').hidden = true
+      localStorage.removeItem('echelon-gex-tour')
+      showView('gex')
+    })
 
     function renderStore() {
       const host = el('store-grid'); if (!host) return
@@ -4837,6 +4960,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const { data: ents } = await supabase.from('entitlements').select('product, status, interval').eq('status', 'active')
           state.owned = new Set((ents ?? []).map((e) => e.product))
           renderStore()
+          // A GEX purchase unlocks the tab right now, no reload needed —
+          // then the intro says what they just bought and offers the tour.
+          el('gex-tab').hidden = !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)
+          if ((bought === 'd1-gex' || bought === 'indicators-bundle') && state.owned.has('d1-gex')) {
+            localStorage.removeItem('echelon-gex-tour')
+            el('gexintro').hidden = false
+          }
         }, 4000)
       }
     }
