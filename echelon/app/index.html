@@ -574,6 +574,32 @@
     .mr-media { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 11px; }
     .mr-media a img { width: 100%; max-height: 260px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; }
     .mr-media video { width: 100%; max-height: 320px; border-radius: 8px; border: 1px solid var(--line); background: #000; }
+    .mr-actions select, .mr-actions input[type="number"] {
+      background: var(--bg); border: 1px solid var(--line-bright); border-radius: 8px;
+      color: var(--ink); font-family: inherit; font-size: 13px; padding: 9px 10px;
+    }
+    .mr-actions input[type="number"] { width: 72px; }
+    .mr-actions .btn { margin-left: auto; }
+    .mr-out { font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 6px; padding: 2px 7px; border: 1px solid var(--line-bright); color: var(--muted); }
+    .mr-out.win { color: var(--good); border-color: var(--good); }
+    .mr-out.loss { color: var(--bad); border-color: var(--bad); }
+
+    /* announcements on the personal dashboard */
+    .ann-item { padding: 14px clamp(18px, 3vw, 28px); border-bottom: 1px solid var(--line); }
+    .ann-item:last-child { border-bottom: 0; }
+    .ann-top { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--faint); margin-bottom: 4px; }
+    .ann-top b { color: var(--gold); font-weight: 600; }
+    .ann-body { font-size: 13.5px; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+    /* owner-only view-as switcher */
+    .viewas {
+      position: fixed; right: 14px; bottom: 14px; z-index: 80;
+      display: flex; align-items: center; gap: 8px;
+      background: var(--panel); border: 1px solid var(--gold); border-radius: 10px;
+      padding: 8px 10px; font-size: 12px; color: var(--muted);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .viewas select { background: var(--bg); border: 1px solid var(--line-bright); border-radius: 7px; color: var(--ink); font-family: inherit; font-size: 12.5px; padding: 5px 7px; }
 
     /* ── mobile: the sidebar becomes a drawer ────────────────── */
 
@@ -1068,15 +1094,46 @@
       <div class="pane">
         <!-- OVERVIEW -->
         <section class="view on" id="v-overview">
-          <div class="cards" id="ov-cards"></div>
+          <div class="cards" id="ov-mystats"></div>
           <div class="block">
-            <div class="block-head"><h3>Pick up where you left off</h3></div>
-            <div class="lesson-pane" id="ov-continue"></div>
+            <div class="block-head">
+              <h3>Your recaps</h3>
+              <span class="label" id="mr-total"></span>
+            </div>
+            <div class="mr-composer">
+              <input type="text" id="mr-title" maxlength="120" placeholder="Title — the session, the setup">
+              <textarea id="mr-body" maxlength="5000" placeholder="What you saw, what you took, how it went."></textarea>
+              <div class="mr-pending" id="mr-pending"></div>
+              <div class="mr-actions">
+                <select id="mr-outcome" aria-label="Outcome">
+                  <option value="">Outcome</option>
+                  <option value="win">Win</option>
+                  <option value="loss">Loss</option>
+                  <option value="flat">Flat</option>
+                </select>
+                <input type="number" id="mr-r" step="0.1" min="-100" max="100" placeholder="R" aria-label="R multiple">
+                <input type="file" id="mr-file" accept="image/*,video/*" multiple hidden>
+                <button class="rowbtn" id="mr-attach" type="button">Attach media</button>
+                <button class="btn" id="mr-post" type="button">Post recap</button>
+              </div>
+            </div>
+            <div id="mr-feed"></div>
+            <div class="empty" id="mr-empty" hidden>No recaps yet. Log your first session.</div>
+          </div>
+          <div class="block">
+            <div class="block-head"><h3>Announcements</h3></div>
+            <div id="ov-ann"></div>
+            <div class="empty" id="ov-ann-empty" hidden>Nothing announced yet.</div>
           </div>
           <div class="block">
             <div class="block-head"><h3>Latest trade recap</h3></div>
             <div class="lesson-pane" id="ov-recap"><p class="empty" style="padding:0;text-align:left;">No recaps yet.</p></div>
           </div>
+          <div class="block">
+            <div class="block-head"><h3>Pick up where you left off</h3></div>
+            <div class="lesson-pane" id="ov-continue"></div>
+          </div>
+          <div class="cards" id="ov-cards" style="margin-top:20px;margin-bottom:0;"></div>
         </section>
 
         <!-- COURSE -->
@@ -1120,24 +1177,6 @@
             </div>
             <div class="tbl-scroll"><table id="recaps-table"></table></div>
             <div class="empty" id="recaps-empty" hidden>No recaps posted yet. They land here after each session.</div>
-          </div>
-          <div class="block">
-            <div class="block-head">
-              <h3>Member recaps</h3>
-              <span class="label" id="mr-total"></span>
-            </div>
-            <div class="mr-composer">
-              <input type="text" id="mr-title" maxlength="120" placeholder="Title — the session, the setup">
-              <textarea id="mr-body" maxlength="5000" placeholder="What you saw, what you took, how it went."></textarea>
-              <div class="mr-pending" id="mr-pending"></div>
-              <div class="mr-actions">
-                <input type="file" id="mr-file" accept="image/*,video/*" multiple hidden>
-                <button class="rowbtn" id="mr-attach" type="button">Attach screenshots or video</button>
-                <button class="btn" id="mr-post" type="button">Post recap</button>
-              </div>
-            </div>
-            <div id="mr-feed"></div>
-            <div class="empty" id="mr-empty" hidden>No member recaps yet. Share the first one.</div>
           </div>
         </section>
 
@@ -2537,11 +2576,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       btn.textContent = 'Post recap'
       const body = el('mr-body').value.trim()
       const media = mrPending.filter((m) => m.url).map(({ url, kind }) => ({ url, kind }))
+      const outcome = el('mr-outcome').value || null
+      const rRaw = el('mr-r').value.trim()
+      const r = rRaw === '' ? null : Number(rRaw)
+      if (r !== null && (!Number.isFinite(r) || r < -100 || r > 100)) { toast('R should be a number like 2.5 or -1.'); return }
       const { data, error } = await supabase.from('member_recaps')
-        .insert({ user_id: state.user.id, title, body: body || null, media }).select().single()
+        .insert({ user_id: state.user.id, title, body: body || null, media, outcome, r }).select().single()
       btn.disabled = false
       if (error) { toast('Could not post the recap.'); return }
       el('mr-title').value = ''; el('mr-body').value = ''; el('mr-file').value = ''
+      el('mr-outcome').value = ''; el('mr-r').value = ''
       mrPending = []; mrRenderPending()
       state.memberRecaps.unshift(data)
       renderMemberRecaps()
@@ -2574,6 +2618,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const when = document.createElement('span'); when.className = 'when'
         when.textContent = new Date(r.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
         head.append(who, when)
+        if (r.outcome) {
+          const oc = document.createElement('span'); oc.className = 'mr-out ' + r.outcome
+          oc.textContent = r.outcome + (r.r !== null && r.r !== undefined ? ` ${r.r > 0 ? '+' : ''}${r.r}R` : '')
+          head.appendChild(oc)
+        }
         if (r.user_id === state.user?.id || state.isMod || state.isAdmin) {
           const del = document.createElement('button'); del.className = 'mr-del'; del.type = 'button'; del.textContent = 'Delete'
           del.addEventListener('click', () => mrDelete(r))
@@ -2601,11 +2650,52 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
         feed.appendChild(item)
       }
+      renderMyStats()
     }
 
     el('mr-attach').addEventListener('click', () => el('mr-file').click())
     el('mr-file').addEventListener('change', (e) => { for (const f of e.target.files ?? []) mrAttach(f); e.target.value = '' })
     el('mr-post').addEventListener('click', mrPost)
+
+    // Personal trading stats, computed from what they log. No trades logged
+    // with an outcome yet -> the tiles stay honest with an em dash.
+    function renderMyStats() {
+      const host = el('ov-mystats'); if (!host) return
+      host.textContent = ''
+      const rs = state.memberRecaps
+      const weekAgo = Date.now() - 7 * 24 * 3600 * 1000
+      const thisWeek = rs.filter((r) => new Date(r.created_at).getTime() >= weekAgo).length
+      const wins = rs.filter((r) => r.outcome === 'win').length
+      const losses = rs.filter((r) => r.outcome === 'loss').length
+      const decided = wins + losses
+      const netR = rs.reduce((s, r) => s + (typeof r.r === 'number' ? r.r : Number(r.r) || 0), 0)
+      const hasR = rs.some((r) => r.r !== null && r.r !== undefined)
+      scard(host, 'Recaps logged', String(rs.length))
+      scard(host, 'This week', String(thisWeek))
+      scard(host, 'Win rate', decided ? `${Math.round((wins / decided) * 100)}%` : '—', decided ? `${wins}W / ${losses}L` : 'log outcomes to track')
+      scard(host, 'Net R', hasR ? `${netR > 0 ? '+' : ''}${Math.round(netR * 10) / 10}R` : '—', hasR ? '' : 'log R to track')
+    }
+
+    function renderAnnouncements() {
+      const host = el('ov-ann'); if (!host) return
+      host.textContent = ''
+      const msgs = state.annMsgs ?? []
+      el('ov-ann-empty').hidden = msgs.length > 0
+      for (const m of msgs) {
+        const item = document.createElement('div'); item.className = 'ann-item'
+        const top = document.createElement('div'); top.className = 'ann-top'
+        const ch = document.createElement('b'); ch.textContent = m.channels?.name ?? 'Announcements'
+        const when = document.createElement('span')
+        when.textContent = new Date(m.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+        top.append(ch, when); item.appendChild(top)
+        const body = document.createElement('div'); body.className = 'ann-body'
+        body.textContent = m.body || (m.image_url ? 'Posted an image.' : '')
+        item.appendChild(body)
+        item.style.cursor = 'pointer'
+        item.addEventListener('click', () => { showView('chat'); if (m.channel_id) openConversation('channel', m.channel_id) })
+        host.appendChild(item)
+      }
+    }
 
     // ── profile + members directory ─────────────────────────
 
@@ -2688,7 +2778,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('mm-bio').textContent = m.bio || ''
       const msg = el('mm-msg')
       const isSelf = m.user_id === state.user?.id
-      msg.style.display = isSelf ? 'none' : ''
+      msg.style.display = (isSelf || !chatPerm('dm')) ? 'none' : ''
       msg.onclick = () => { closeMemberProfile(); messageMember(m.user_id) }
       el('mm-scrim').classList.add('on'); document.body.style.overflow = 'hidden'
     }
@@ -3968,7 +4058,24 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     })
 
     // ── chat ────────────────────────────────────────────────
-    const chat = { channels: [], dms: [], byUser: {}, modSet: new Set(), isStaff: false, cur: null, sub: null, loaded: false, msgs: [] }
+    const chat = { channels: [], dms: [], byUser: {}, modSet: new Set(), isStaff: false, permsByRole: {}, cur: null, sub: null, loaded: false, msgs: [] }
+
+    // Role capabilities from chat_role_perms (the admin Permissions tab).
+    // The database enforces these in RLS; this only shapes the UI to match.
+    function chatPerm(cap) {
+      const role = state.isAdmin ? 'admin'
+        : (state.isMod || chat.modSet.has(state.user?.id)) ? 'mod' : 'member'
+      if (role === 'admin') return true
+      const row = chat.permsByRole[role]
+      if (!row) return true
+      const col = { post: 'can_post', images: 'can_send_images', polls: 'can_create_polls', dm: 'can_dm', delete: 'can_delete_others' }[cap]
+      return !!row[col]
+    }
+    function applyChatPerms() {
+      el('cc-img-btn').hidden = !chatPerm('images')
+      el('cc-poll-btn').hidden = !chatPerm('polls')
+      el('dm-new').hidden = !chatPerm('dm')
+    }
 
     function chatUser(uid) {
       if (uid === state.user?.id && state.profile) return { username: state.profile.username, avatar_url: state.profile.avatar_url }
@@ -3991,17 +4098,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function loadChat() {
       chat.byUser = Object.fromEntries((state.members || []).map((m) => [m.user_id, m]))
       if (state.profile) chat.byUser[state.user.id] = { user_id: state.user.id, username: state.profile.username, avatar_url: state.profile.avatar_url }
-      const [{ data: ch }, { data: mods }, { data: staff }, { data: dms }] = await Promise.all([
+      const [{ data: ch }, { data: mods }, { data: staff }, { data: dms }, { data: perms }] = await Promise.all([
         supabase.from('channels').select('*').order('position'),
         supabase.from('mods').select('user_id'),
         supabase.from('chat_staff').select('user_id, role'),
         supabase.from('dm_threads').select('*').order('last_at', { ascending: false }),
+        supabase.from('chat_role_perms').select('*'),
       ])
       chat.channels = ch ?? []
       chat.modSet = new Set((mods ?? []).map((m) => m.user_id))
       chat.staff = new Map((staff ?? []).map((s) => [s.user_id, s.role]))
-      chat.isStaff = state.isAdmin || chat.modSet.has(state.user.id)
+      chat.isStaff = state.isAdmin || state.isMod || chat.modSet.has(state.user.id)
+      chat.permsByRole = Object.fromEntries((perms ?? []).map((p) => [p.role, p]))
       chat.dms = dms ?? []
+      applyChatPerms()
       chat.loaded = true
       renderChatRail()
       if (!chat.cur && !isPhone()) {
@@ -4037,17 +4147,24 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('chat').classList.add('open-convo')
       renderChatRail()
 
-      let name = 'Chat', topic = '', announcement = false
+      let name = 'Chat', topic = '', announcement = false, postRole = 'all'
       if (type === 'channel') {
         const c = chat.channels.find((x) => x.id === id)
         name = c ? (c.kind === 'announcement' ? c.name : '# ' + c.name) : 'Channel'; topic = c?.topic ?? ''
         announcement = c?.kind === 'announcement'
+        postRole = c?.post_role ?? 'all'
       } else {
         const dm = chat.dms.find((x) => x.id === id); name = dm ? chatUser(otherOf(dm)).username : 'Direct message'; topic = ''
       }
       el('chat-name').textContent = name; el('chat-topic').textContent = topic
 
-      const canPost = type === 'dm' || !announcement || chat.isStaff
+      let canPost = chatPerm('post')
+      if (type === 'dm') canPost = canPost && chatPerm('dm')
+      else {
+        if (announcement && !chat.isStaff) canPost = false
+        if (postRole === 'mods' && !chat.isStaff) canPost = false
+        if (postRole === 'admin' && !state.isAdmin) canPost = false
+      }
       el('chat-composer').style.display = canPost ? '' : 'none'
       el('chat-locked').hidden = canPost
 
@@ -4257,7 +4374,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const previewUrl = (m.body || '').match(/https?:\/\/[^\s<]+/)?.[0]
         if (previewUrl) addLinkPreview(bodyWrap, previewUrl)
         row.appendChild(bodyWrap)
-        if (m.user_id === state.user.id || chat.isStaff) {
+        if (m.user_id === state.user.id || (chat.isStaff && chatPerm('delete'))) {
           const del = document.createElement('button'); del.className = 'm-del'; del.title = 'Delete'
           del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
           del.addEventListener('click', () => { if (confirm('Delete this message?')) deleteMessage(m.id) })
@@ -4398,12 +4515,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // These come back filtered by RLS: without an active entitlement the
       // modules query is simply empty, and trade recaps arrive published-only
       // for members. The directory shows usernames and bios, never emails.
-      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: memberRecaps }, { data: intake }, { data: products }, { data: tvAccess }, { data: reviews }] = await Promise.all([
+      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: memberRecaps }, { data: annMsgs }, { data: intake }, { data: products }, { data: tvAccess }, { data: reviews }] = await Promise.all([
         supabase.from('modules').select('id, title, position').order('position'),
         supabase.from('lessons').select('id, module_id, slug, title, summary, kind, body_md, blocks, position').order('position'),
         supabase.from('progress').select('lesson_id, completed_at'),
         supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published').order('recap_date', { ascending: false }),
-        supabase.from('member_recaps').select('id, user_id, title, body, media, created_at').order('created_at', { ascending: false }).limit(100),
+        supabase.from('member_recaps').select('id, user_id, title, body, media, outcome, r, created_at').eq('user_id', state.user.id).order('created_at', { ascending: false }).limit(100),
+        supabase.from('messages').select('id, channel_id, body, image_url, created_at, channels!inner(kind, name)').eq('channels.kind', 'announcement').is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
         supabase.from('course_intake').select('answers, completed_at').maybeSingle(),
         supabase.from('products').select('key, name, kind, blurb, tv_script_name, tv_script_url, bundle_of, position').eq('is_active', true).order('position'),
         supabase.from('tv_access').select('product, state, tv_username'),
@@ -4416,6 +4534,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.done = new Set((progress ?? []).filter((p) => p.completed_at).map((p) => p.lesson_id))
       state.recaps = recaps ?? []
       state.memberRecaps = memberRecaps ?? []
+      state.annMsgs = annMsgs ?? []
       state.intake = intake ?? null
       state.products = products ?? []
       state.tvAccess = tvAccess ?? []
@@ -4429,6 +4548,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderIndex()
       renderRecapList()
       renderMemberRecaps()
+      renderMyStats()
+      renderAnnouncements()
       const recap = state.recaps.find((r) => r.id === keepRecap) ?? state.recaps[0]
       if (recap) openRecap(recap.id)
       renderOverview()
@@ -4499,6 +4620,25 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       document.addEventListener('touchcancel', reset, { passive: true })
     }
 
+    // Floating switcher, only mounted for the real owner. Changing it reloads
+    // so every gate re-derives from the simulated role.
+    function initViewAs(cur) {
+      const bar = document.createElement('div'); bar.className = 'viewas'
+      const lbl = document.createElement('span'); lbl.textContent = 'Viewing as'
+      const sel = document.createElement('select'); sel.setAttribute('aria-label', 'View the app as')
+      for (const [v, t] of [['owner', 'Owner'], ['mod', 'Mod'], ['member', 'Member']]) {
+        const o = document.createElement('option'); o.value = v; o.textContent = t
+        if (v === cur) o.selected = true
+        sel.appendChild(o)
+      }
+      sel.addEventListener('change', () => {
+        if (sel.value === 'owner') sessionStorage.removeItem('echelon-view-as')
+        else sessionStorage.setItem('echelon-view-as', sel.value)
+        location.reload()
+      })
+      bar.append(lbl, sel); document.body.appendChild(bar)
+    }
+
     async function boot() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return signInScreen()
@@ -4517,8 +4657,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       state.isAdmin = !!isAdmin
       state.isMod = !!modRow
+
+      // View-as: the owner can preview the app as a mod or a plain member.
+      // Client-side only — the database still knows who you really are.
+      state.realAdmin = !!isAdmin
+      const viewAs = sessionStorage.getItem('echelon-view-as')
+      if (state.realAdmin && (viewAs === 'mod' || viewAs === 'member')) {
+        state.isAdmin = false
+        state.isMod = viewAs === 'mod'
+      }
+      if (state.realAdmin) initViewAs(viewAs === 'mod' || viewAs === 'member' ? viewAs : 'owner')
+
       state.owned = new Set((ents ?? []).map((e) => e.product))
-      state.hasCourse = state.owned.has('course') || !!isAdmin
+      state.hasCourse = state.owned.has('course') || state.isAdmin
       await loadCourse()
       refreshBadges(); watchBadges(); initDesktopPanel()
 
