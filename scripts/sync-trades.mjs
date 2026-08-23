@@ -10,6 +10,7 @@
 // Run from the repo root:  node scripts/sync-trades.mjs   — then commit + push.
 import fs from 'node:fs'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import { createRequire } from 'node:module'
 
 // sharp lives in the gex-worker project; borrow it rather than adding a
@@ -32,7 +33,6 @@ const skipped = fs.existsSync(SRC)
 const out = []
 for (const f of files.sort()) {
   const base = path.basename(f, path.extname(f)).toLowerCase().replace(/[^a-z0-9_-]+/g, '-')
-  const name = `${base}.webp`
   const img = sharp(path.join(SRC, f))
   const meta = await img.metadata()
   let pipeline = img
@@ -45,7 +45,11 @@ for (const f of files.sort()) {
   } else {
     console.log(`${f}: published as-is (${meta.width}x${meta.height})`)
   }
-  await pipeline.webp({ quality: 86 }).toFile(path.join(DEST, name))
+  // Display size is ~340px tall; 720 keeps retina crisp at a fraction of the
+  // decode cost. Content-hashed names bust browser caches on any change.
+  const buf = await pipeline.resize({ height: 720, withoutEnlargement: true }).webp({ quality: 86 }).toBuffer()
+  const name = `${base}-${crypto.createHash('md5').update(buf).digest('hex').slice(0, 8)}.webp`
+  fs.writeFileSync(path.join(DEST, name), buf)
   out.push(name)
 }
 

@@ -255,13 +255,13 @@
     .trades-wrap { margin-top: clamp(52px, 9vh, 92px); }
     .trades-wrap .label { display: block; margin-bottom: 16px; }
     .tr-car { position: relative; }
-    .tr-track { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
-    .tr-track::-webkit-scrollbar { display: none; }
+    .tr-track { overflow: hidden; }
+    .tr-inner { display: flex; gap: 14px; will-change: transform; }
     .tr-track img {
       height: clamp(220px, 34vw, 340px); width: auto; max-width: 86vw;
       object-fit: contain; background: var(--panel);
       border: 1px solid var(--line); border-radius: 14px;
-      scroll-snap-align: center; flex-shrink: 0;
+      flex-shrink: 0; user-select: none;
     }
     .tr-nav {
       position: absolute; top: 50%; transform: translateY(-50%);
@@ -274,7 +274,6 @@
     .tr-nav:hover { border-color: var(--gold); color: var(--gold); }
     .tr-prev { left: 10px; }
     .tr-next { right: 10px; }
-    .tr-cap { color: var(--faint); font-size: 12.5px; margin-top: 12px; }
 
     /* the free room: one wide panel above the footer */
     .disc-wrap { padding: clamp(52px, 9vh, 92px) 0 0; }
@@ -387,7 +386,7 @@
   <main>
     <div class="hero"><div class="col">
       <h1>Trade with <em>clarity.</em></h1>
-      <p class="def"><b>clarity</b> <i>noun</i> the quality of being clear and easy to understand; the state of seeing what the market is actually doing, not what you hope it will do.</p>
+      <p class="def"><b>clarity</b> the quality of being clear and easy to understand; the state of seeing what the market is actually doing, not what you hope it will do.</p>
       <div class="act">
         <button class="btn" data-buy type="button">Get Echelon</button>
         <a class="quiet" href="/echelon/app/">Members sign in</a>
@@ -817,39 +816,52 @@
       .then(function (list) {
         if (!Array.isArray(list) || !list.length) return;
         var wrap = document.getElementById('trades'), track = document.getElementById('tr-track');
+        /* Never-ending marquee on a GPU transform (scrollLeft janks): the
+           list is doubled inside an inner strip that drifts every frame and
+           wraps invisibly at the first copy's end. Pauses under a pointer. */
+        var inner = document.createElement('div'); inner.className = 'tr-inner';
+        track.appendChild(inner);
         var addAll = function (hidden) {
           list.forEach(function (f) {
             var img = document.createElement('img');
             img.src = '/echelon/trades/' + f;
             img.alt = hidden ? '' : 'Member trade screenshot';
+            img.draggable = false;
             if (hidden) img.setAttribute('aria-hidden', 'true');
-            track.appendChild(img);
+            inner.appendChild(img);
           });
         };
-        addAll(false);
+        addAll(false); addAll(true);
         wrap.hidden = false;
-        var step = function () { return Math.max(240, track.clientWidth * 0.7) };
-        document.getElementById('tr-prev').addEventListener('click', function () { track.scrollBy({ left: -step(), behavior: 'smooth' }) });
-        document.getElementById('tr-next').addEventListener('click', function () { track.scrollBy({ left: step(), behavior: 'smooth' }) });
-        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-        /* Never-ending marquee: the list is doubled and the track drifts a
-           little every frame; passing the first copy's end snaps back one
-           copy-width, which is invisible. Pauses under a pointer or touch. */
-        addAll(true);
-        track.style.scrollSnapType = 'none';
-        var hold = false;
+        var offset = 0, hold = false, last = null;
+        var half = function () { return inner.scrollWidth / 2 };
+        var apply = function () { inner.style.transform = 'translate3d(' + (-offset) + 'px,0,0)' };
+        var nudge = function (dir) {
+          var h = half();
+          offset += dir * Math.max(240, track.clientWidth * 0.7);
+          if (h > 0) offset = ((offset % h) + h) % h;
+          apply();
+        };
+        document.getElementById('tr-prev').addEventListener('click', function () { nudge(-1) });
+        document.getElementById('tr-next').addEventListener('click', function () { nudge(1) });
         wrap.addEventListener('pointerenter', function () { hold = true });
         wrap.addEventListener('pointerleave', function () { hold = false });
         wrap.addEventListener('touchstart', function () { hold = true }, { passive: true });
         wrap.addEventListener('touchend', function () { setTimeout(function () { hold = false }, 4000) }, { passive: true });
-        (function tick() {
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var SPEED = 28; /* px per second */
+        function tick(t) {
+          if (last === null) last = t;
+          var dt = Math.min(100, t - last); last = t;
           if (!hold && !document.hidden) {
-            var half = track.scrollWidth / 2;
-            track.scrollLeft += 0.6;
-            if (half > 0 && track.scrollLeft >= half) track.scrollLeft -= half;
+            offset += SPEED * dt / 1000;
+            var h = half();
+            if (h > 0 && offset >= h) offset -= h;
+            apply();
           }
           requestAnimationFrame(tick);
-        })();
+        }
+        requestAnimationFrame(tick);
       })
       .catch(function () {});
   })();
