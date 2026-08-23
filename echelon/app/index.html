@@ -3322,6 +3322,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const done = [...state.done].filter((id) => state.lessons.some((l) => l.id === id)).length
       const pct = total ? Math.round((done / total) * 100) : 0
 
+      // Course-only seats disappear for members without the course; the
+      // personal dashboard above them works for everyone.
+      el('ov-cards').hidden = !state.hasCourse
+      el('ov-continue').closest('.ov-sec').hidden = !state.hasCourse
+      el('ov-recap').closest('.ov-sec').hidden = !state.hasCourse
+
       const cards = el('ov-cards'); cards.textContent = ''
       scard(cards, 'Course progress', `${pct}%`, `${done} of ${total} lessons`)
       scard(cards, 'Lessons left', String(total - done))
@@ -4758,12 +4764,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         link.href = DISCORD_INVITE
         link.hidden = false
       }
-      // Non-course members get the community; the course tabs only exist for
-      // people who own it (RLS would hand them empty lists anyway).
-      for (const v of ['overview', 'course', 'recaps']) {
+      // Everyone gets the Overview — it's their personal dashboard (recaps,
+      // stats, announcements). Only the course tabs stay behind the purchase
+      // (RLS would hand them empty lists anyway).
+      for (const v of ['course', 'recaps']) {
         document.querySelector(`.tab[data-view="${v}"]`).hidden = !state.hasCourse
       }
-      if (!state.hasCourse) showView(state.isMod ? 'chat' : 'members')
 
       await fetchAndRender()
     }
