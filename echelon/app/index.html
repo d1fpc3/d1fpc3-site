@@ -343,6 +343,14 @@
     .gex-levels td.lvl-name small { font-size: 10.5px; }
     .gex-levels .tbl-scroll { overflow-y: auto; }
     .gex-stamp { padding: 9px 14px 11px; border-top: 1px solid var(--line); }
+    .gex-about { margin-top: 26px; }
+    .ga-rows { padding: 0 18px 6px; }
+    .ga-row { display: grid; grid-template-columns: 190px 1fr; gap: 18px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.6; }
+    .ga-row:first-child { border-top: 0; }
+    .ga-row b { color: var(--ink); font-weight: 600; font-size: 12.5px; letter-spacing: 0.01em; padding-top: 1px; }
+    .ga-row > span { color: var(--muted); }
+    .ga-row #ga-conv, .ga-row #ga-stamp { color: var(--ink); font-variant-numeric: tabular-nums; }
+    @media (max-width: 700px) { .ga-row { grid-template-columns: 1fr; gap: 4px; } }
     .gex-sheet-head { border-top: 1px solid var(--line); }
     .gex-sheet { margin: 0; padding: 10px 14px 14px; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); overflow-x: auto; white-space: pre; }
     td.lvl-name { color: var(--ink); font-weight: 500; }
@@ -1086,6 +1094,7 @@
         <button class="tab" id="gex-tab" data-view="gex" data-title="GEX" data-crumb="QQQ gamma exposure, mapped to NQ" hidden>
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
           GEX
+          <span class="notif" id="n-gex" hidden></span>
         </button>
         <button class="tab" data-view="members" data-title="Members" data-crumb="Who's here">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -1362,6 +1371,21 @@
             <pre class="gex-sheet" id="gex-sheet" hidden></pre>
             <div class="gex-stamp label" id="gex-stamp"></div>
           </div>
+          </div>
+
+          <!-- How GEX works: the breakdown members see with their subscription -->
+          <div class="block gex-about">
+            <div class="block-head"><h3>How GEX works</h3></div>
+            <div class="ga-rows">
+              <div class="ga-row"><b>What you're looking at</b><span>Market makers who sell QQQ options have to hedge them by buying and selling the underlying. GEX (gamma exposure) estimates how much forced hedging sits at each strike, in dollars per 1% move. Where the piles are big, price behaves differently moving through them.</span></div>
+              <div class="ga-row"><b>Call wall / put wall</b><span>The strikes carrying the largest positive and negative gamma. Price tends to slow, stall, or pin into a wall because dealer hedging leans against the move there.</span></div>
+              <div class="ga-row"><b>Gamma flip</b><span>The level where net dealer gamma changes sign. Above it, hedging dampens moves; below it, hedging chases price and moves get faster. When no flip prints, the sign never crosses inside the strike range.</span></div>
+              <div class="ga-row"><b>Regime</b><span>Net positive gamma: dealers absorb flow, expect chop and mean reversion. Net negative gamma: dealers amplify flow, expect trend and fast tails. The regime line above reads this for you on every print.</span></div>
+              <div class="ga-row"><b>0DTE vs Swing</b><span>0DTE reads only today's expiry, where hedging pressure is most violent intraday. Swing stacks the later expiries out to roughly 60 days for the bigger structure.</span></div>
+              <div class="ga-row"><b>&Gamma;1 to &Gamma;10</b><span>The ten biggest gamma concentrations on the board, ranked by absolute size, either side of spot. These are the magnet and brake candidates beyond the walls.</span></div>
+              <div class="ga-row"><b>NQ mapping</b><span>Everything is computed on QQQ, then mapped onto NQ with a live-refit ratio: <span id="ga-conv">&#8212;</span>. The ratio is re-fit from live prices on every print, so NQ levels stay honest as the spread drifts.</span></div>
+              <div class="ga-row"><b>How often it refreshes</b><span>The worker recomputes the whole board from the live QQQ option chain every 15 minutes, around the clock (CBOE data is ~15 minutes delayed). This page re-pulls every 5 minutes while open, and the GEX tab shows an orange dot whenever a new print lands that you haven't seen. Last print: <span id="ga-stamp">&#8212;</span>.</span></div>
+            </div>
           </div>
         </section>
 
@@ -3436,6 +3460,41 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderGex()
     }
 
+    // ── New-print notification on the GEX tab ─────────────────────
+    // The worker prints a fresh board every 15 minutes (generatedAt moves).
+    // While the member is elsewhere in the app we poll every 5 minutes and
+    // light an orange dot on the GEX tab if there's a print they haven't
+    // seen. Opening (or watching) the dashboard marks the print seen.
+    const GEX_SEEN_KEY = 'echelon-gex-seen'
+    function gexMarkSeen(iso) {
+      if (!iso) return
+      localStorage.setItem(GEX_SEEN_KEY, iso)
+      const b = el('n-gex'); if (b) b.hidden = true
+    }
+    async function checkGexNews() {
+      const tab = el('gex-tab')
+      if (!tab || tab.hidden) return
+      try {
+        // Viewing the dashboard: its own 5-min poll handles freshness and
+        // renderGex marks the print seen. Nothing to do here.
+        if (el('v-gex').classList.contains('on')) return
+        const res = await fetch(`${GEX_URL}/gex.json`, { cache: 'no-store' })
+        if (!res.ok) return
+        const d = await res.json()
+        if (!d.generatedAt) return
+        // Pre-warm the dashboard with what we just paid for.
+        if (d.surface) { GEX.data = d; GEX.loadedAt = Date.now() }
+        const seen = localStorage.getItem(GEX_SEEN_KEY)
+        const isNew = !seen || new Date(d.generatedAt) > new Date(seen)
+        const b = el('n-gex')
+        if (b) { b.textContent = '•'; b.hidden = !isNew }
+      } catch { /* badge is best-effort */ }
+    }
+    function watchGexNews() {
+      checkGexNews()
+      setInterval(checkGexNews, 5 * 60 * 1000)
+    }
+
     function renderGex() {
       const d = GEX.data
       if (!d) return
@@ -3457,6 +3516,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('gex-sheet').hidden = !d.levelsText
       el('gex-sheet-copy').parentElement.hidden = !d.levelsText
       el('gex-stamp').textContent = `Updated ${etStamp(d.generatedAt)}`
+      // The member is looking at this print: clear the new-levels dot.
+      if (el('v-gex').classList.contains('on')) gexMarkSeen(d.generatedAt)
+      // Dynamic bits of the "How GEX works" breakdown.
+      const conv = el('ga-conv'); if (conv) conv.textContent = `NQ = QQQ × ${d.conversion.divisor} + ${d.conversion.basis}`
+      const gstamp = el('ga-stamp'); if (gstamp) gstamp.textContent = etStamp(d.generatedAt)
       renderGexTable()
       syncGexControls()
       drawGex()
@@ -4565,6 +4629,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       el('admin-link').hidden = !state.isAdmin
       el('gex-tab').hidden = !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)
+      if (!el('gex-tab').hidden) watchGexNews()
       if (DISCORD_INVITE) {
         const link = el('discord-link')
         link.href = DISCORD_INVITE
