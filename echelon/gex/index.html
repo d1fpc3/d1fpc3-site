@@ -116,7 +116,10 @@
 </head>
 <body>
   <header class="top"><div class="col">
-    <a class="brand" href="/">Echelon <span style="color:var(--faint);font-weight:500;">by d1</span></a>
+    <span style="display:flex;align-items:center;gap:18px;">
+      <a class="quiet" href="/" id="back-link">&larr; Back</a>
+      <a class="brand" href="/">Echelon <span style="color:var(--faint);font-weight:500;">by d1</span></a>
+    </span>
     <a class="quiet" href="/echelon/app/">Member sign in</a>
   </div></header>
 
@@ -133,16 +136,16 @@
       </div>
       <canvas id="gp-canvas" aria-label="Live QQQ gamma profile by strike, positive piles teal, negative red, spot marked in gold"></canvas>
       <div class="gp-levels" id="gp-levels"></div>
-      <p class="gp-cap">This is the actual feed, right now — not a mockup. Buying puts it on your TradingView chart.</p>
+      <p class="gp-cap">This is the actual feed, right now, not a mockup. Buying puts it on your TradingView chart.</p>
     </div>
 
     <ul class="feat">
       <li>Listed NQ prices for every level: call wall, put wall, gamma flip, and the ten biggest gamma concentrations</li>
-      <li>Rotating 3D gamma surface by strike and expiry — 0DTE, swing, or the whole board</li>
+      <li>Rotating 3D gamma surface by strike and expiry: 0DTE, swing, or the whole board</li>
       <li>Positive / negative regime read rewritten on every print</li>
       <li>Copyable daily levels sheet</li>
       <li>The live GEX dashboard inside the Echelon members area</li>
-      <li>Invite-only TradingView script, refreshed every 15 minutes around the clock</li>
+      <li>Invite-only TradingView script, recomputed every 15 minutes through the trading day</li>
     </ul>
 
     <div class="what">
@@ -158,6 +161,7 @@
     </div>
     <p class="fine">No membership required. Cancelling a subscription removes script access. <a href="https://www.tradingview.com/script/1IGwzZWk-D1-GEX/" target="_blank" rel="noopener">View the script on TradingView</a>.</p>
     <p class="fine">Already an Echelon member? GEX lives in your app under Indicators, with a live gamma dashboard included.</p>
+    <p class="fine">Need help with anything, before or after buying? Email <a href="mailto:d1fpc3@gmail.com">d1fpc3@gmail.com</a>.</p>
   </div></main>
 
   <footer><div class="col">
@@ -172,6 +176,12 @@
   </div></footer>
 
   <script>
+  /* Back goes where they came from when that was one of our pages, else home. */
+  document.getElementById('back-link').addEventListener('click', function (e) {
+    if (history.length > 1 && document.referrer.indexOf(location.origin) === 0) {
+      e.preventDefault(); history.back();
+    }
+  });
   /* Live GEX preview: the same public feed the product runs on, drawn small. */
   (function () {
     fetch('https://gex-worker.frankiepc3.workers.dev/gex.json')
@@ -181,7 +191,7 @@
         var wrap = document.getElementById('gexprev'); wrap.hidden = false;
         var reg = document.getElementById('gp-regime');
         var neg = (j.regime || '').indexOf('neg') === 0;
-        reg.textContent = neg ? 'Negative gamma — accelerating' : 'Positive gamma — absorbing';
+        reg.textContent = neg ? 'Negative gamma: accelerating' : 'Positive gamma: absorbing';
         reg.className = 'gp-regime ' + (neg ? 'neg' : 'pos');
         document.getElementById('gp-nq').textContent = 'NQ ' + Math.round(j.nq).toLocaleString() + ' · QQQ ' + j.spot;
         var lv = [
