@@ -275,6 +275,20 @@
     .tr-prev { left: 10px; }
     .tr-next { right: 10px; }
 
+    /* live GEX teaser: one quiet strip, feed-fed, links to pricing */
+    .gexbar-wrap { margin-top: clamp(40px, 7vh, 64px); }
+    .gexbar {
+      display: flex; align-items: center; gap: 16px 22px; flex-wrap: wrap;
+      border: 1px solid var(--line); border-radius: 14px; background: var(--panel);
+      padding: 15px 20px; font-size: 13px; transition: border-color 0.15s ease;
+    }
+    .gexbar:hover { border-color: var(--gold); }
+    .gb-regime { font-weight: 700; letter-spacing: 0.05em; font-size: 11px; text-transform: uppercase; }
+    .gb-regime.neg { color: #ef5350; }
+    .gb-regime.pos { color: #26a69a; }
+    .gb-levels { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .gb-cta { margin-left: auto; color: var(--gold); font-weight: 600; white-space: nowrap; }
+
     /* the free room: one wide panel above the footer */
     .disc-wrap { padding: clamp(52px, 9vh, 92px) 0 0; }
     .disc {
@@ -435,6 +449,15 @@
         <div class="panel"><div class="k">Trade recaps</div><div class="v">After the close</div><p>Our session write-ups land in the app. What the tape did, what it meant, what was worth taking.</p><p class="rc" data-recap hidden></p></div>
         <div class="panel"><div class="k">The room</div><div class="v"><span class="live"><span class="dot" aria-hidden="true"></span><span data-echelon-count>Members</span></span></div><p>The private member room where the same session gets studied by everyone who owns the course.</p></div>
       </div>
+    </div></div>
+
+    <div class="gexbar-wrap" id="gexbar" hidden><div class="col">
+      <a class="gexbar" href="/pricing/">
+        <span class="live"><span class="dot" aria-hidden="true"></span>D1 GEX</span>
+        <span class="gb-regime" id="gb-regime"></span>
+        <span class="gb-levels" id="gb-levels"></span>
+        <span class="gb-cta">The live board &rarr;</span>
+      </a>
     </div></div>
 
     <div class="rev-wrap" id="reviews" hidden><div class="col">
@@ -804,6 +827,27 @@
 
     fetchEchelon(); fetchDiscord(); fetchReviews();
     setInterval(function () { fetchEchelon(); fetchDiscord(); }, 60000);
+  })();
+  </script>
+  <script>
+  // Live GEX teaser strip: same public worker feed the product runs on.
+  // Fails silent — the strip just never appears.
+  (function () {
+    fetch('https://gex-worker.frankiepc3.workers.dev/gex.json')
+      .then(function (r) { return r.ok ? r.json() : null })
+      .then(function (j) {
+        if (!j || !j.nq) return;
+        var neg = (j.regime || '').indexOf('neg') === 0;
+        var reg = document.getElementById('gb-regime');
+        reg.textContent = neg ? 'Negative gamma: accelerating' : 'Positive gamma: absorbing';
+        reg.className = 'gb-regime ' + (neg ? 'neg' : 'pos');
+        var bits = ['NQ ' + Math.round(j.nq).toLocaleString()];
+        if (j.swing && j.swing.callWall) bits.push('call wall ' + Math.round(j.swing.callWall.nq).toLocaleString());
+        if (j.swing && j.swing.putWall) bits.push('put wall ' + Math.round(j.swing.putWall.nq).toLocaleString());
+        document.getElementById('gb-levels').textContent = bits.join(' · ');
+        document.getElementById('gexbar').hidden = false;
+      })
+      .catch(function () {});
   })();
   </script>
   <script>
