@@ -819,28 +819,39 @@
       .then(function (list) {
         if (!Array.isArray(list) || !list.length) return;
         var wrap = document.getElementById('trades'), track = document.getElementById('tr-track');
-        list.forEach(function (f) {
-          var img = document.createElement('img');
-          img.src = '/echelon/trades/' + f;
-          img.alt = 'Member trade screenshot';
-          img.loading = 'lazy';
-          track.appendChild(img);
-        });
+        var addAll = function (hidden) {
+          list.forEach(function (f) {
+            var img = document.createElement('img');
+            img.src = '/echelon/trades/' + f;
+            img.alt = hidden ? '' : 'Member trade screenshot';
+            if (hidden) img.setAttribute('aria-hidden', 'true');
+            track.appendChild(img);
+          });
+        };
+        addAll(false);
         wrap.hidden = false;
         var step = function () { return Math.max(240, track.clientWidth * 0.7) };
         document.getElementById('tr-prev').addEventListener('click', function () { track.scrollBy({ left: -step(), behavior: 'smooth' }) });
         document.getElementById('tr-next').addEventListener('click', function () { track.scrollBy({ left: step(), behavior: 'smooth' }) });
         if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        /* Never-ending marquee: the list is doubled and the track drifts a
+           little every frame; passing the first copy's end snaps back one
+           copy-width, which is invisible. Pauses under a pointer or touch. */
+        addAll(true);
+        track.style.scrollSnapType = 'none';
         var hold = false;
         wrap.addEventListener('pointerenter', function () { hold = true });
         wrap.addEventListener('pointerleave', function () { hold = false });
         wrap.addEventListener('touchstart', function () { hold = true }, { passive: true });
-        setInterval(function () {
-          if (hold || document.hidden) return;
-          var atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 8;
-          if (atEnd) track.scrollTo({ left: 0, behavior: 'smooth' });
-          else track.scrollBy({ left: step(), behavior: 'smooth' });
-        }, 5000);
+        wrap.addEventListener('touchend', function () { setTimeout(function () { hold = false }, 4000) }, { passive: true });
+        (function tick() {
+          if (!hold && !document.hidden) {
+            var half = track.scrollWidth / 2;
+            track.scrollLeft += 0.6;
+            if (half > 0 && track.scrollLeft >= half) track.scrollLeft -= half;
+          }
+          requestAnimationFrame(tick);
+        })();
       })
       .catch(function () {});
   })();
