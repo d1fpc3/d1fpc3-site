@@ -3657,17 +3657,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     // ── New-print notification on the GEX tab ─────────────────────
-    // The worker prints a fresh board every 15 minutes (generatedAt moves).
-    // While the member is elsewhere in the app we poll every 5 minutes and
-    // light an orange dot on the GEX tab if there's a print they haven't
-    // seen. Opening (or watching) the dashboard marks the print seen.
+    // The worker prints a fresh board every 15 minutes (generatedAt moves),
+    // so "a print you haven't viewed" exists on almost every visit and a dot
+    // keyed to that is just always on (D1, 8/24). The dot now means one
+    // thing: a NEW board landed while you were here. Opening the app takes
+    // the current print as the baseline, silently; the 5-minute poll lights
+    // the dot only for prints newer than that. Opening (or watching) the
+    // dashboard still marks the print seen.
     const GEX_SEEN_KEY = 'echelon-gex-seen'
     function gexMarkSeen(iso) {
       if (!iso) return
       localStorage.setItem(GEX_SEEN_KEY, iso)
       const b = el('n-gex'); if (b) b.hidden = true
     }
-    async function checkGexNews() {
+    async function checkGexNews(init) {
       const tab = el('gex-tab')
       if (!tab || tab.hidden) return
       try {
@@ -3682,14 +3685,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         // cache from here once made gexShown skip its full render and the
         // page opened blank (8/22). The badge only reads and lights up.
         const seen = localStorage.getItem(GEX_SEEN_KEY)
+        if (init) {
+          if (!seen || new Date(d.generatedAt) > new Date(seen)) gexMarkSeen(d.generatedAt)
+          return
+        }
         const isNew = !seen || new Date(d.generatedAt) > new Date(seen)
         const b = el('n-gex')
         if (b) { b.textContent = '•'; b.hidden = !isNew }
       } catch { /* badge is best-effort */ }
     }
     function watchGexNews() {
-      checkGexNews()
-      setInterval(checkGexNews, 5 * 60 * 1000)
+      checkGexNews(true)
+      setInterval(() => checkGexNews(), 5 * 60 * 1000)
     }
 
     function renderGex() {
