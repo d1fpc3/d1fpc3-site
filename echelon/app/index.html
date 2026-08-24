@@ -651,6 +651,9 @@
     }
     .viewas select { background: var(--bg); border: 1px solid var(--line-bright); border-radius: 7px; color: var(--ink); font-family: inherit; font-size: 12.5px; padding: 5px 7px; }
 
+    /* review popup: the writer, boxless inside the modal */
+    #rev-body .p-rev-write { background: none; border: 0; padding: 0; }
+
     /* first-entry onboarding overlay: the intake look, over the app */
     .onb-scrim {
       position: fixed; inset: 0; z-index: 75;
@@ -1329,6 +1332,13 @@
           </div>
           <!-- First-entry onboarding: who are you, so the room fits you -->
           <div class="onb-scrim" id="onb" hidden><div class="intake" id="onb-host" style="width:100%;"></div></div>
+          <!-- Review popup: stars + a line, per indicator -->
+          <div class="dmpick-scrim" id="revmodal" hidden>
+            <div class="dmpick" style="max-width:430px;">
+              <div class="block-head"><h3 id="rev-title">Leave a review</h3><button class="rowbtn" id="rev-x" type="button">Close</button></div>
+              <div id="rev-body" style="padding:16px 18px 18px;"></div>
+            </div>
+          </div>
           <!-- Post-purchase GEX intro -->
           <div class="dmpick-scrim" id="gexintro" hidden>
             <div class="dmpick" style="max-width:480px;">
@@ -4364,6 +4374,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           .upsert({ product: p.key, user_id: state.user.id, rating, comment: ta.value.trim() || null }, { onConflict: 'user_id,product' }).select().single()
         if (error) { msg.className = 'p-rev-msg msg err'; msg.textContent = error.message; btn.disabled = false; return }
         state.reviews = [data, ...state.reviews.filter((r) => !(r.product === p.key && r.user_id === state.user.id))]
+        el('revmodal').hidden = true
+        toast('Review posted. Appreciate it.')
         renderStore()
       })
       actions.append(btn, msg)
@@ -4371,7 +4383,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const del = document.createElement('button'); del.className = 'p-rev-more'; del.textContent = 'Delete'
         del.addEventListener('click', async () => {
           await supabase.from('product_reviews').delete().eq('product', p.key).eq('user_id', state.user.id)
-          state.reviews = state.reviews.filter((r) => !(r.product === p.key && r.user_id === state.user.id)); renderStore()
+          state.reviews = state.reviews.filter((r) => !(r.product === p.key && r.user_id === state.user.id))
+          el('revmodal').hidden = true
+          renderStore()
         })
         actions.appendChild(del)
       }
@@ -4396,9 +4410,24 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           wrap.appendChild(more)
         }
       }
-      if (owned) wrap.appendChild(reviewWriter(p, rows.find((r) => r.user_id === state.user.id)))
+      if (owned) {
+        const mine = rows.find((r) => r.user_id === state.user.id)
+        const b = document.createElement('button'); b.className = 'rowbtn'; b.type = 'button'
+        b.style.alignSelf = 'flex-start'
+        b.textContent = mine ? 'Edit your review' : 'Leave a review'
+        b.addEventListener('click', () => openReviewModal(p, mine))
+        wrap.appendChild(b)
+      }
       if (wrap.children.length) card.appendChild(wrap)
     }
+    function openReviewModal(p, mine) {
+      el('rev-title').textContent = (mine ? 'Your review · ' : 'Leave a review · ') + p.name
+      const body = el('rev-body'); body.textContent = ''
+      body.appendChild(reviewWriter(p, mine))
+      el('revmodal').hidden = false
+    }
+    el('rev-x').addEventListener('click', () => { el('revmodal').hidden = true })
+    el('revmodal').addEventListener('click', (e) => { if (e.target === el('revmodal')) el('revmodal').hidden = true })
 
     el('tv-save').addEventListener('click', async () => {
       const input = el('tv-username'), msg = el('tv-msg'), btn = el('tv-save')
