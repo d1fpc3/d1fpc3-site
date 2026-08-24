@@ -534,6 +534,27 @@
     .prose blockquote { margin: 0 0 14px; padding: 2px 0 2px 14px; border-left: 2px solid var(--gold); color: var(--ink); }
     .prose blockquote p:last-child { margin-bottom: 0; }
 
+    /* Inline concept diagrams (block type 'diagram', authored in the course
+       file as SVG with these classes so both themes work):
+       pl price line · gl guide line · zn gold zone · zr red zone · zg grey zone
+       cu/cd up and down candles · lb label text (lg gold variant) */
+    .diagram { margin: 18px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 16px 14px 10px; max-width: 680px; }
+    .diagram svg { display: block; width: 100%; height: auto; }
+    .diagram .pl { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    .diagram .gl { fill: none; stroke: var(--muted); stroke-width: 1; opacity: 0.55; }
+    .diagram .zn { fill: rgba(201,162,74,0.16); stroke: rgba(201,162,74,0.55); }
+    .diagram .zr { fill: rgba(217,100,80,0.16); stroke: rgba(217,100,80,0.5); }
+    .diagram .zg { fill: rgba(157,151,140,0.16); stroke: rgba(157,151,140,0.45); }
+    .diagram .cu { fill: var(--ink); }
+    .diagram .cd { fill: rgba(217,100,80,0.85); }
+    .diagram .cw { stroke: var(--muted); stroke-width: 1.2; }
+    .diagram .lb { font: 600 11px Inter, -apple-system, sans-serif; fill: var(--muted); letter-spacing: 0.09em; text-transform: uppercase; }
+    .diagram .lg { fill: var(--gold); }
+    .diagram figcaption { margin: 10px 2px 4px; font-size: 12px; color: var(--faint); }
+    .media-img { padding: 6px; }
+    .media-img img { display: block; width: 100%; height: auto; border-radius: 8px; }
+    .media-img.skel { min-height: 160px; }
+
     .notice {
       margin-top: 22px; padding: 14px 0; border-top: 1px solid var(--line);
       border-bottom: 1px solid var(--line); color: var(--faint); font-size: 13px;
@@ -2465,6 +2486,37 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
                 notice.textContent = `This video is not playable yet (${err.message}).`
                 host.appendChild(notice)
               })
+          } else if (b.type === 'image' && b.path) {
+            // D1's own drawings and chart shots, served signed like video.
+            const fig = document.createElement('figure')
+            fig.className = 'diagram media-img skel'
+            host.appendChild(fig)
+            signedMedia(lesson.id, b.path)
+              .then((media) => {
+                const img = document.createElement('img')
+                img.src = media.url
+                img.alt = b.alt || ''
+                img.loading = 'lazy'
+                img.addEventListener('load', () => fig.classList.remove('skel'))
+                fig.appendChild(img)
+                if (b.caption) {
+                  const cap = document.createElement('figcaption')
+                  cap.textContent = b.caption
+                  fig.appendChild(cap)
+                }
+              })
+              .catch(() => fig.remove())
+          } else if (b.type === 'diagram' && typeof b.svg === 'string' && b.svg.trim().startsWith('<svg')) {
+            // First-party concept drawings authored in the course file.
+            const fig = document.createElement('figure')
+            fig.className = 'diagram'
+            fig.innerHTML = b.svg
+            if (b.caption) {
+              const cap = document.createElement('figcaption')
+              cap.textContent = b.caption
+              fig.appendChild(cap)
+            }
+            host.appendChild(fig)
           } else if (b.type === 'file' && b.path) {
             const foot = document.createElement('div'); foot.className = 'lesson-foot'
             const btn = document.createElement('button'); btn.className = 'btn'

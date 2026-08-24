@@ -476,6 +476,16 @@
     }
     .menu-btn svg { width: 18px; height: 18px; display: block; }
     .tb-title { margin-right: auto; min-width: 0; }
+    .tb-title h2, .tb-title .crumb { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .topbar .rowbtn, .topbar .btn { white-space: nowrap; flex-shrink: 0; }
+    /* phones: title + one action, nothing wraps, nothing overlaps */
+    @media (max-width: 640px) {
+      .topbar { padding: 12px 16px; gap: 12px; }
+      .topbar h2 { font-size: 17px; }
+      .topbar .crumb { display: none; }
+      .topbar #admin-tour-btn { display: none; }
+      .topbar .btn { padding: 9px 14px; font-size: 12.5px; }
+    }
     .scrim {
       position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,0.5);
       opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
@@ -916,6 +926,7 @@
                   <button class="rowbtn" data-add="heading">Header</button>
                   <button class="rowbtn" data-add="text">Text</button>
                   <button class="rowbtn" data-add="video">Video</button>
+                  <button class="rowbtn" data-add="image">Image</button>
                   <button class="rowbtn" data-add="file">File</button>
                 </div>
               </div>
@@ -2141,10 +2152,20 @@
           ta.addEventListener('input', () => { b.md = ta.value; grow(ta) })
           row.appendChild(ta)
           queueMicrotask(() => grow(ta))
+        } else if (b.type === 'diagram') {
+          // Authored in content/lit-course.mjs. Movable and removable here,
+          // but the drawing itself is edited in the course file.
+          const box = document.createElement('div'); box.className = 'pe-media'
+          const tp = document.createElement('span'); tp.className = 'tp'
+          tp.textContent = 'Diagram'
+          const nm = document.createElement('span'); nm.className = 'nm'
+          nm.textContent = (b.caption || 'Inline drawing') + ' · edited in the course file'
+          box.append(tp, nm)
+          row.appendChild(box)
         } else {
           const box = document.createElement('div'); box.className = 'pe-media'
           const tp = document.createElement('span'); tp.className = 'tp'
-          tp.textContent = b.type === 'video' ? 'Video' : 'File'
+          tp.textContent = b.type === 'video' ? 'Video' : b.type === 'image' ? 'Image' : 'File'
           const nm = document.createElement('span'); nm.className = 'nm'
           nm.textContent = b.uploading
             ? 'Uploading… keep this tab open.'
@@ -2154,7 +2175,7 @@
           pick.disabled = !!b.uploading
           pick.addEventListener('click', () => {
             peUploadTarget = b
-            el('pe-file-input').accept = b.type === 'video' ? 'video/*' : ''
+            el('pe-file-input').accept = b.type === 'video' ? 'video/*' : b.type === 'image' ? 'image/*' : ''
             el('pe-file-input').click()
           })
           box.append(tp, nm, pick)
@@ -2227,14 +2248,17 @@
         .filter((b) =>
           (b.type === 'heading' && b.text?.trim()) ||
           (b.type === 'text' && b.md?.trim()) ||
-          ((b.type === 'video' || b.type === 'file') && b.path))
-        .map(({ type, text, md, path, label, name }) => {
+          (b.type === 'diagram' && b.svg) ||
+          ((b.type === 'video' || b.type === 'file' || b.type === 'image') && b.path))
+        .map(({ type, text, md, path, label, name, svg, caption }) => {
           const out = { type }
           if (text !== undefined) out.text = text
           if (md !== undefined) out.md = md
           if (path) out.path = path
           if (label) out.label = label
           if (name) out.name = name
+          if (svg) out.svg = svg
+          if (caption) out.caption = caption
           return out
         })
       const kind = blocks.some((b) => b.type === 'video') ? 'video'
