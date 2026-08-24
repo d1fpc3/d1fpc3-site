@@ -803,7 +803,17 @@
       background: var(--panel-2); border-radius: 6px; min-height: 8px;
     }
 
-    /* risk calculator: three inputs, one honest sentence */
+    /* risk calculator: a quiet icon up top, three inputs, one honest sentence */
+    .ov-hero { position: relative; }
+    .rc-btn {
+      position: absolute; top: 2px; right: 0;
+      background: none; border: 1px solid var(--line-bright); border-radius: 9px;
+      color: var(--muted); padding: 8px; cursor: pointer; display: inline-flex;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .rc-btn:hover { color: var(--gold); border-color: var(--gold); }
+    .rc-btn svg { width: 18px; height: 18px; }
+    .rc-btn svg circle { fill: currentColor; }
     .rc-row { display: flex; gap: 12px; flex-wrap: wrap; }
     .rc-row label { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 130px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .rc-row .inp { width: 100%; }
@@ -1253,6 +1263,9 @@
           <header class="ov-hero">
             <p class="ov-hi" id="ov-hi">Welcome back.</p>
             <p class="ov-date" id="ov-date"></p>
+            <button class="rc-btn" id="rc-open" type="button" title="Risk calculator" aria-label="Risk calculator">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="6.5" x2="15" y2="6.5"/><circle cx="9" cy="11.5" r="0.6"/><circle cx="12" cy="11.5" r="0.6"/><circle cx="15" cy="11.5" r="0.6"/><circle cx="9" cy="15" r="0.6"/><circle cx="12" cy="15" r="0.6"/><circle cx="15" cy="15" r="0.6"/><circle cx="9" cy="18.5" r="0.6"/><circle cx="12" cy="18.5" r="0.6"/><circle cx="15" cy="18.5" r="0.6"/></svg>
+            </button>
           </header>
 
           <div class="ov-stats" id="ov-mystats"></div>
@@ -1299,22 +1312,27 @@
 
           <div class="ov-stats sub" id="ov-cards"></div>
 
-          <section class="ov-sec">
-            <div class="ov-cap"><span class="label">Risk calculator</span><span class="label" id="rc-ppt"></span></div>
-            <div class="ov-flat rc">
-              <div class="rc-row">
-                <label>Risk per trade ($)<input class="inp" id="rc-risk" type="number" inputmode="decimal" min="1" step="25" value="300"></label>
-                <label>Stop (points)<input class="inp" id="rc-stop" type="number" inputmode="decimal" min="0.25" step="0.25" value="15"></label>
-                <label>Contract<select class="inp" id="rc-inst">
-                  <option value="2">MNQ · $2/pt</option>
-                  <option value="20">NQ · $20/pt</option>
-                  <option value="5">MES · $5/pt</option>
-                  <option value="50">ES · $50/pt</option>
-                </select></label>
+          <!-- Risk calculator popup: opened by the calculator button up top -->
+          <div class="dmpick-scrim" id="rcmodal" hidden>
+            <div class="dmpick" style="max-width:430px;">
+              <div class="block-head"><h3>Risk calculator</h3><button class="rowbtn" id="rc-x" type="button">Close</button></div>
+              <div style="padding:16px 18px 18px;">
+                <div class="rc-row">
+                  <label>Risk per trade ($)<input class="inp" id="rc-risk" type="number" inputmode="decimal" min="1" step="25" value="300"></label>
+                  <label>Stop (points)<input class="inp" id="rc-stop" type="number" inputmode="decimal" min="0.25" step="0.25" value="15"></label>
+                </div>
+                <div class="rc-row" style="margin-top:12px;">
+                  <label>Contract<select class="inp" id="rc-inst">
+                    <option value="2">MNQ · $2/pt</option>
+                    <option value="20">NQ · $20/pt</option>
+                    <option value="5">MES · $5/pt</option>
+                    <option value="50">ES · $50/pt</option>
+                  </select></label>
+                </div>
+                <p class="rc-out" id="rc-out"></p>
               </div>
-              <p class="rc-out" id="rc-out"></p>
             </div>
-          </section>
+          </div>
         </section>
 
         <!-- COURSE -->
@@ -2794,7 +2812,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         ['entries', 'Finding entries'], ['holding', 'Holding winners'], ['discipline', 'Overtrading and discipline'], ['framework', 'No clear framework'],
       ]},
       { key: 'source', q: 'How did you find Echelon?', choices: [
-        ['discord', 'Discord'], ['twitter', 'Twitter / X'], ['friend', 'A friend'], ['youtube', 'YouTube'], ['other', 'Somewhere else'],
+        ['discord', 'Discord'], ['instagram', 'Instagram'], ['twitter', 'Twitter / X'], ['youtube', 'YouTube'], ['friend', 'A friend'], ['other', 'Somewhere else'],
       ]},
     ]
     let onbDraft = {}
@@ -2834,12 +2852,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         b.addEventListener('click', () => { onbDraft[c.key] = v; renderOnbStep(i + 1) })
         choices.appendChild(b)
       }
-      const foot = document.createElement('div'); foot.className = 'foot'
-      const skip = document.createElement('button'); skip.className = 'skip'; skip.type = 'button'
-      skip.textContent = 'Skip for now'
-      skip.addEventListener('click', () => { saveOnboarding(true); el('onb').hidden = true })
-      foot.appendChild(skip)
-      card.append(eyebrow, dots, q, choices, foot)
+      // No skip: five taps, answered once, and the admin Users tab actually
+      // knows who is in the room. (D1, 8/24)
+      card.append(eyebrow, dots, q, choices)
       host.appendChild(card)
     }
 
@@ -4548,6 +4563,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // so they always render, whatever view is on screen.
     document.body.appendChild(el('revmodal'))
     document.body.appendChild(el('gexintro'))
+    document.body.appendChild(el('onb')) // first-entry onboarding fires on Overview, not chat
     el('rev-x').addEventListener('click', () => { el('revmodal').hidden = true })
     el('revmodal').addEventListener('click', (e) => { if (e.target === el('revmodal')) el('revmodal').hidden = true })
 
@@ -5021,6 +5037,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       for (const i of [risk, stop, inst]) i.addEventListener('input', calc)
       calc()
+      // The calculator lives in a popup off the Overview hero button.
+      document.body.appendChild(el('rcmodal'))
+      el('rc-open').addEventListener('click', () => { el('rcmodal').hidden = false; risk.focus() })
+      el('rc-x').addEventListener('click', () => { el('rcmodal').hidden = true })
+      el('rcmodal').addEventListener('click', (e) => { if (e.target === el('rcmodal')) el('rcmodal').hidden = true })
     })()
 
     // ── boot ────────────────────────────────────────────────
