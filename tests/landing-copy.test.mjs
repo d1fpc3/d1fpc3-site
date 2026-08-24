@@ -4,27 +4,19 @@ import test from 'node:test';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 
-test('uses the approved Echelon by D1 market-intention positioning', () => {
-  assert.match(html, /<title>Echelon by D1 · Understand NQ's intention<\/title>/);
-  assert.match(html, /<span class="name">Echelon by D1<\/span>/);
-  assert.match(html, /href="#concepts">The concepts<\/a>/);
-  assert.match(html, /<section id="concepts">/);
-  assert.match(html, /Understand what NQ[\s\S]*is trying to do\./);
-  assert.match(html, /Echelon teaches the concepts behind price movement—how to read context, recognize intention, and understand why NQ is moving where it is\. Once you see the market this way, you cannot unsee it\./);
+test('uses the software-first Echelon positioning', () => {
+  assert.match(html, /<title>Echelon by d1 · The NQ trading software<\/title>/);
+  assert.match(html, /Trade with <em>clarity\.<\/em>/);
+  assert.ok(html.includes('one piece of software'), 'meta description sells the software');
+  assert.match(html, /<span class="label">The software<\/span>/);
+  assert.match(html, /Web and Windows desktop, one account\./);
 });
 
-test('presents the four approved concepts', () => {
-  const entries = [
-    ['Context', 'Understand the conditions that give a move meaning instead of judging candles in isolation.'],
-    ['Intention', 'Recognize what price is seeking, what it is reacting to, and when its behavior changes.'],
-    ['Confirmation', 'Separate meaningful price behavior from noise before committing to an idea.'],
-    ['Application', "Study the concepts through D1's session breakdowns and the private member room."],
-  ];
-
-  for (const [title, description] of entries) {
-    assert.ok(html.includes(`<span class="t">${title}</span>`));
-    assert.ok(html.includes(`<span class="d">${description}</span>`));
+test('the app replica shows the real members-app tabs', () => {
+  for (const tab of ['Overview', 'Study', 'Chat', 'Trade recaps', 'GEX', 'Members']) {
+    assert.ok(html.includes(`</svg>${tab}`), `replica missing tab ${tab}`);
   }
+  assert.doesNotMatch(html, /class="ct">\d/, 'replica must not show made-up counts');
 });
 
 test('states the discretionary teaching philosophy in the lead FAQ', () => {
@@ -32,19 +24,18 @@ test('states the discretionary teaching philosophy in the lead FAQ', () => {
   assert.ok(html.includes("I don't teach a mechanical model. I teach discretionary concepts that help you see NQ clearly. I don't believe price can be reduced to rigid rules; context and judgment matter, and discretionary interpretation is the better way to read the market."));
 });
 
-test('removes obsolete plan-centered positioning', () => {
-  assert.doesNotMatch(html, /written standard|written plan|the plan|named setups|fixed windows|follow rules|plan's windows|plan's levels|plan I trade|you get a plan/i);
+test('does not promise GEX inside the course purchase', () => {
+  assert.match(html, /The D1 GEX board sits in there too, for its subscribers\./);
 });
 
-test('keeps the existing price, access, integrations, and risk terms', () => {
-  assert.match(html, /<b>\$200 once<\/b>/);
-  assert.match(html, /Lifetime access\. Updates included\./);
+test('keeps the numbers off the landing and the terms intact', () => {
+  assert.doesNotMatch(html, /\$\d+ ?(once|\/mo)/, 'prices belong on /pricing/');
+  assert.match(html, /href="\/pricing\/"/);
   assert.match(html, /href="\/echelon\/app\/"/);
-  assert.match(html, /checkoutUrl: ''/);
+  assert.match(html, /checkoutUrl: 'https:\/\/buy\.stripe\.com\//);
   assert.match(html, /discordUrl: 'https:\/\/discord\.gg\/FAQD5Cr5p7'/);
   assert.match(html, /No refunds\. The product is information\./);
   assert.match(html, /Trading futures involves substantial risk of loss/);
-  assert.match(html, /\$25\/mo when it ships\. Separate, never required\./);
 });
 
 test('has unique IDs and resolvable local anchors', () => {
@@ -53,6 +44,7 @@ test('has unique IDs and resolvable local anchors', () => {
 
   const anchors = [...html.matchAll(/href="#([^"]+)"/g)].map((match) => match[1]);
   for (const anchor of anchors) {
+    if (anchor === '') continue; // placeholder hrefs filled by CONFIG at runtime
     assert.ok(ids.includes(anchor), `missing target for #${anchor}`);
   }
 });
