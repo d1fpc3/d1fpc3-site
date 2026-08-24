@@ -164,18 +164,8 @@
     .hero .act { margin-top: 28px; display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; }
     .hero .fine { margin-top: 16px; font-size: 12.5px; color: var(--faint); }
 
-    /* the software: one flat hairline band, said not shown */
-    .soft-band-wrap { padding: clamp(48px, 8vh, 84px) 0 0; }
-    .soft-band {
-      border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
-      padding: 20px 2px; display: flex; align-items: baseline; gap: 14px 28px; flex-wrap: wrap;
-    }
-    .soft-band p { color: var(--muted); font-size: 13.5px; flex: 1; min-width: 260px; max-width: 62ch; }
-    .soft-band p b { color: var(--ink); font-weight: 600; }
-    .soft-band .quiet { white-space: nowrap; }
 
-    /* what's inside: three panels, dashboard grammar */
-    .inside { padding: clamp(48px, 8vh, 84px) 0 0; }
+    /* panel grammar: used by the member-reviews grid */
     .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
     @media (max-width: 760px) { .grid3 { grid-template-columns: 1fr; } }
     .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
@@ -284,21 +274,6 @@
     .rev .stars { color: var(--gold); font-size: 12px; letter-spacing: 2px; }
     .rev p { color: var(--muted); font-size: 13.5px; }
 
-    /* how it works: three quiet steps, no ceremony */
-    .how-wrap { padding: clamp(52px, 9vh, 92px) 0 0; }
-    .how { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
-    @media (max-width: 640px) { .how { grid-template-columns: 1fr; } }
-    .how .n {
-      font-size: 11px; font-weight: 600; color: var(--gold);
-      border: 1px solid rgba(201,162,74,0.35); border-radius: 8px;
-      width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
-    }
-    .how h4 { margin-top: 10px; font-size: 14.5px; font-weight: 650; }
-    .how p { margin-top: 6px; color: var(--muted); font-size: 13px; }
-
-    /* the recap tease inside the panel, filled from landing_stats */
-    .panel .rc { margin-top: 10px; font-size: 12.5px; color: var(--faint); border-top: 1px solid var(--line); padding-top: 10px; }
-    .panel .rc b { color: var(--muted); font-weight: 500; }
 
     /* notify: the buy button's stand-in until Stripe is connected */
     .notify { margin-top: 18px; display: none; }
@@ -375,21 +350,6 @@
       </div>
     </div></div>
 
-    <div class="inside"><div class="col">
-      <div class="grid3">
-        <div class="panel"><div class="k">The course</div><div class="v">Video lessons</div><p>Context, intention, confirmation. The concepts behind why NQ moves, taught the way d1 actually reads it.</p></div>
-        <div class="panel"><div class="k">Trade recaps</div><div class="v">After the close</div><p>Our session write-ups land in the app. What the tape did, what it meant, what was worth taking.</p><p class="rc" data-recap hidden></p></div>
-        <div class="panel"><div class="k">The room</div><div class="v">Invite only</div><p>The private member room where the same session gets studied by everyone who owns the course.</p></div>
-      </div>
-    </div></div>
-
-    <div class="soft-band-wrap" id="software"><div class="col">
-      <div class="soft-band">
-        <span class="label">The software</span>
-        <p>Everything lives in one app — the lessons, the recaps, the room, the GEX board. <b>Web and Windows desktop, one account.</b></p>
-        <a class="quiet" href="/echelon/app/">Open the app</a>
-      </div>
-    </div></div>
 
 
 
@@ -399,13 +359,6 @@
     </div></div>
 
 
-    <div class="how-wrap"><div class="col">
-      <div class="how">
-        <div class="step"><span class="n">1</span><h4>Pay once</h4><p>One payment through Stripe. No subscription, nothing recurring.</p></div>
-        <div class="step"><span class="n">2</span><h4>You're inside</h4><p>The members area opens the moment payment clears. No inbox to wait on.</p></div>
-        <div class="step"><span class="n">3</span><h4>Come back anytime</h4><p>Sign in with your email or Discord. Lifetime access, updates included.</p></div>
-      </div>
-    </div></div>
 
     <div class="buy" id="access"><div class="col" style="display:flex;justify-content:center;">
       <div class="glass">
@@ -696,22 +649,6 @@
           var st = rows && rows[0];
           if (!st) return;
           if (st.echelon_members) setEchelon(st.echelon_members);
-          if (st.latest_recap_title) {
-            var rc = document.querySelector('[data-recap]');
-            if (rc) {
-              rc.textContent = 'Latest: ';
-              var b = document.createElement('b');
-              b.textContent = '“' + st.latest_recap_title + '”';
-              rc.appendChild(b);
-              if (st.latest_recap_date) {
-                // recap_date is a plain date; parse it as LOCAL so the day
-                // never shifts west of UTC.
-                var d = new Date(st.latest_recap_date + 'T00:00:00');
-                rc.appendChild(document.createTextNode(' · ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })));
-              }
-              rc.hidden = false;
-            }
-          }
         })
         .catch(function () {});
     }

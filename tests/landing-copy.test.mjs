@@ -8,14 +8,13 @@ test('uses the software-first Echelon positioning', () => {
   assert.match(html, /<title>Echelon by d1 · The NQ trading software<\/title>/);
   assert.match(html, /Trade with <em>clarity\.<\/em>/);
   assert.ok(html.includes('one piece of software'), 'meta description sells the software');
-  assert.match(html, /<span class="label">The software<\/span>/);
-  assert.match(html, /Web and Windows desktop, one account\./);
 });
 
-test('no candle charts and no dashboard mockups on the landing (D1 rule, 8/24)', () => {
+test('the landing stays stripped (D1 rules, 8/24)', () => {
   assert.doesNotMatch(html, /hero-chart/, 'candle chart must stay off the landing');
   assert.doesNotMatch(html, /class="demo"/, 'dashboard replica must stay off the landing');
-  assert.match(html, /class="soft-band"/, 'the software is a flat hairline band');
+  assert.doesNotMatch(html, /soft-band|class="inside"|how-wrap|data-recap/,
+    'panels, software band, steps and recap tease stay deleted');
 });
 
 test('concepts and curriculum stay OFF the landing (D1 rule, 8/24)', () => {
