@@ -525,6 +525,19 @@
     }
     @keyframes skel-sweep { to { transform: translateX(100%); } }
 
+    /* standing page help: quiet, collapsed, always there */
+    .pg-help { margin: 0 0 16px; }
+    .pg-help summary {
+      cursor: pointer; list-style: none; display: inline-block;
+      font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--faint); border-bottom: 1px dotted var(--line-bright); padding-bottom: 1px;
+      transition: color 0.15s ease;
+    }
+    .pg-help summary::-webkit-details-marker { display: none; }
+    .pg-help summary:hover { color: var(--gold); }
+    .pg-help[open] summary { color: var(--gold); border-color: var(--gold); }
+    .pg-help p { margin-top: 9px; max-width: 74ch; font-size: 13px; line-height: 1.65; color: var(--muted); }
+
     /* ── guided walkthrough: questionnaire cards + gliding spotlight ── */
     .tour-ring {
       position: fixed; z-index: 90; pointer-events: none;
@@ -1401,6 +1414,34 @@
       if (view === 'memes') memesShown()
       else if (PLAYBOOKS[view]) playbookShown(view)
     }))
+
+    /* ── standing page help: one quiet note atop every view ── */
+    const PAGE_HELP = {
+      overview: 'The pulse. Revenue, members and course progress refresh on every load. Latest buyers land the moment Stripe fires, and approving a review down there is what publishes it to the landing page.',
+      users: 'Everyone with access. Grant comps the course by email and creates their account so the sign-in link works; revoke and restore sit on each row. Who they are lists every member’s onboarding answers: experience, market, stage, what blocks them, where they found us.',
+      access: 'The TradingView fulfillment queue. Indicator buyers land here with their TV username, and the worker adds them on TradingView automatically every 15 minutes. The buttons are your manual fallback; notes flag anything odd, like an old username that needs pulling.',
+      billing: 'Money in. The cards summarize revenue, Orders is the ledger, and the Stripe events below are the raw webhook feed, kept as your audit trail when something looks off.',
+      content: 'The course builder. Categories hold lessons, the arrows reorder them, and opening a lesson gives the block editor for text, headings, video and files. Viewers shows who actually watched. Nothing reaches members until it is published.',
+      recaps: 'Official session write-ups. Title, date, body: blank line between paragraphs, ## for a heading, paste or drop a video to attach it. Save keeps a draft; members only ever see what you publish.',
+      codes: 'Passes and discounts. A free code comps the course when redeemed at sign-in; a discount code takes its percentage at checkout. Cap the uses, set an expiry, and note who it was for so future-you knows.',
+      community: 'The room itself. Channels are created and ordered here (announcements are staff-post-only). Access requests come from the free application page: approve comps the course and creates the account. Mods moderate chat and get the indicators free while they hold the role.',
+      perms: 'What each role may do in chat, enforced by the database rather than hidden buttons. Flip a switch and the app updates AND the server refuses the write. Per channel, posting can be everyone, mods only, or just you.',
+      money: 'Personal finances through Plaid: accounts, spending, budgets. Sync pulls fresh data. Waiting on the production Plaid secret until then.',
+      gex: 'Your gamma board, the same one GEX subscribers see in their app plus the admin extras. Copy pineData is the manual feed for the TradingView script; the daily job normally republishes it on its own.',
+      cars: 'A reference playbook, for you. Nothing on this page is member-facing.',
+      civic: 'The Civic service sheet, for you. Nothing on this page is member-facing.',
+      memes: 'The memecoin desk: the market strip and the wire up top, the playbook behind the sub-tab. For you; nothing here is member-facing.',
+      msnr: 'The MSNR × QM playbook with its chart figures. A reference read, for you; nothing here is member-facing.',
+      settings: 'Which integrations are wired, as booleans only. This page can see that a secret exists, never what it is.',
+    }
+    for (const [view, text] of Object.entries(PAGE_HELP)) {
+      const host = document.getElementById(`v-${view}`)
+      if (!host) continue
+      const d = document.createElement('details'); d.className = 'pg-help'
+      const s = document.createElement('summary'); s.textContent = 'How this page works'
+      const p = document.createElement('p'); p.textContent = text
+      d.append(s, p); host.prepend(d)
+    }
 
     /* ── guided walkthrough: every screen, one card at a time ── */
     const ADMIN_TOUR = [
