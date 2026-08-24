@@ -12,11 +12,10 @@ test('uses the software-first Echelon positioning', () => {
   assert.match(html, /Web and Windows desktop, one account\./);
 });
 
-test('the app replica shows the real members-app tabs', () => {
-  for (const tab of ['Overview', 'Study', 'Chat', 'Trade recaps', 'GEX', 'Members']) {
-    assert.ok(html.includes(`</svg>${tab}`), `replica missing tab ${tab}`);
-  }
-  assert.doesNotMatch(html, /class="ct">\d/, 'replica must not show made-up counts');
+test('no candle charts and no dashboard mockups on the landing (D1 rule, 8/24)', () => {
+  assert.doesNotMatch(html, /hero-chart/, 'candle chart must stay off the landing');
+  assert.doesNotMatch(html, /class="demo"/, 'dashboard replica must stay off the landing');
+  assert.match(html, /class="soft-band"/, 'the software is a flat hairline band');
 });
 
 test('states the discretionary teaching philosophy in the lead FAQ', () => {
