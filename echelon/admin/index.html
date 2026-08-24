@@ -836,6 +836,12 @@
             <div class="tbl-scroll"><table id="users-table"></table></div>
             <div class="empty" id="users-empty" hidden>No buyers yet.</div>
           </div>
+          <div class="block">
+            <div class="block-head"><h3>Who they are</h3><span class="label" id="onb-total"></span></div>
+            <p class="settings-note" style="margin:0 0 2px;">Five onboarding answers from each member's first entry into the app.</p>
+            <div class="tbl-scroll"><table id="onb-table"></table></div>
+            <div class="empty" id="onb-empty" hidden>No onboarding answers yet. They arrive as members sign in.</div>
+          </div>
         </section>
 
         <!-- TRADINGVIEW ACCESS -->
@@ -1899,6 +1905,33 @@
       el('chan-create').disabled = false
     })
     el('mod-q').addEventListener('input', (e) => renderModPicker(e.target.value))
+
+    /* ── onboarding answers: who each member is ── */
+    const ONB_LABELS = {
+      exp: { new: 'Just starting', under1: 'Under a year', y1to3: '1–3 years', y3plus: '3+ years' },
+      market: { nq: 'NQ / MNQ', futures: 'Other futures', stocks: 'Stocks / options', crypto: 'Crypto', none: 'Not trading yet' },
+      stage: { sim: 'Sim', eval: 'Funded eval', funded: 'Funded + paid', live: 'Live personal' },
+      blocker: { entries: 'Entries', holding: 'Holding winners', discipline: 'Discipline', framework: 'No framework' },
+      source: { discord: 'Discord', twitter: 'Twitter/X', friend: 'A friend', youtube: 'YouTube', other: 'Other' },
+    }
+    async function loadOnboarding() {
+      const [{ data: rows }, { data: dir }] = await Promise.all([
+        supabase.from('member_onboarding').select('user_id, answers, completed_at').order('completed_at', { ascending: false }),
+        supabase.from('member_directory').select('user_id, username'),
+      ])
+      const who = new Map((dir ?? []).map((d) => [d.user_id, d.username]))
+      const list = rows ?? []
+      el('onb-total').textContent = list.length ? String(list.length) : ''
+      el('onb-empty').hidden = list.length > 0
+      table(el('onb-table'), ['Member', 'Experience', 'Trades', 'Stage', 'In their way', 'Found us via'], list, (r) => {
+        const tr = document.createElement('tr')
+        tr.appendChild(cell('@' + (who.get(r.user_id) ?? '?'), 'ink'))
+        for (const k of ['exp', 'market', 'stage', 'blocker', 'source']) {
+          tr.appendChild(cell(ONB_LABELS[k][r.answers?.[k]] ?? '—'))
+        }
+        return tr
+      })
+    }
 
     /* ── chat permissions ── */
     const PERM_CAPS = [
@@ -3684,7 +3717,7 @@
       recapEditor(null)
       paintSkeletons()
       await Promise.all([
-        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(), loadTvAccess(), loadCommunity(), loadPerms(),
+        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(), loadTvAccess(), loadCommunity(), loadPerms(), loadOnboarding(),
         // Money must never block the rest of the dashboard.
         loadMoney().catch(() => renderMoneySetup()),
         // GEX is an outside feed (gex-worker); warm the readout + table, never block on it.

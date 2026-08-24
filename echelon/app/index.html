@@ -651,6 +651,15 @@
     }
     .viewas select { background: var(--bg); border: 1px solid var(--line-bright); border-radius: 7px; color: var(--ink); font-family: inherit; font-size: 12.5px; padding: 5px 7px; }
 
+    /* first-entry onboarding overlay: the intake look, over the app */
+    .onb-scrim {
+      position: fixed; inset: 0; z-index: 75;
+      background: rgba(6, 5, 4, 0.78);
+      backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; overflow-y: auto;
+    }
+
     /* ── GEX onboarding: purchase intro + pointer tour ───────── */
     .tour-ring {
       position: fixed; z-index: 90; pointer-events: none;
@@ -1318,6 +1327,8 @@
               <p class="chat-locked" id="chat-locked" hidden>Only the team posts here.</p>
             </div>
           </div>
+          <!-- First-entry onboarding: who are you, so the room fits you -->
+          <div class="onb-scrim" id="onb" hidden><div class="intake" id="onb-host" style="width:100%;"></div></div>
           <!-- Post-purchase GEX intro -->
           <div class="dmpick-scrim" id="gexintro" hidden>
             <div class="dmpick" style="max-width:480px;">
@@ -2644,6 +2655,72 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         tbody.appendChild(tr)
       }
       tbl.append(thead, tbody)
+    }
+
+    // ── first-entry onboarding: five quick questions, once ──
+    // Same questionnaire language as the course intake, but about the person:
+    // answers land in member_onboarding and read out on the admin Users tab.
+    const ONB_QS = [
+      { key: 'exp', q: 'How long have you been trading?', choices: [
+        ['new', 'Just starting'], ['under1', 'Under a year'], ['y1to3', '1 to 3 years'], ['y3plus', '3+ years'],
+      ]},
+      { key: 'market', q: 'What are you trading right now?', choices: [
+        ['nq', 'NQ or MNQ'], ['futures', 'Other futures'], ['stocks', 'Stocks or options'], ['crypto', 'Crypto'], ['none', 'Not trading yet'],
+      ]},
+      { key: 'stage', q: 'Where are you at?', choices: [
+        ['sim', 'Sim or paper'], ['eval', 'Funded eval'], ['funded', 'Funded and paid'], ['live', 'Live personal account'],
+      ]},
+      { key: 'blocker', q: 'What gets in your way the most?', choices: [
+        ['entries', 'Finding entries'], ['holding', 'Holding winners'], ['discipline', 'Overtrading and discipline'], ['framework', 'No clear framework'],
+      ]},
+      { key: 'source', q: 'How did you find Echelon?', choices: [
+        ['discord', 'Discord'], ['twitter', 'Twitter / X'], ['friend', 'A friend'], ['youtube', 'YouTube'], ['other', 'Somewhere else'],
+      ]},
+    ]
+    let onbDraft = {}
+    async function saveOnboarding(completed) {
+      const payload = { user_id: state.user.id, answers: onbDraft, completed_at: completed ? new Date().toISOString() : null, updated_at: new Date().toISOString() }
+      const { error } = await supabase.from('member_onboarding').upsert(payload, { onConflict: 'user_id' })
+      if (!error) state.onboarding = payload
+      return !error
+    }
+    function startOnboarding() {
+      onbDraft = { ...(state.onboarding?.answers ?? {}) }
+      el('onb').hidden = false
+      renderOnbStep(ONB_QS.findIndex((c) => !(c.key in onbDraft)) === -1 ? 0 : ONB_QS.findIndex((c) => !(c.key in onbDraft)))
+    }
+    function renderOnbStep(i) {
+      const host = el('onb-host'); host.textContent = ''
+      if (i >= ONB_QS.length) {
+        saveOnboarding(true)
+        el('onb').hidden = true
+        toast('Good to know you. Welcome in.')
+        return
+      }
+      const c = ONB_QS[i]
+      const card = document.createElement('div'); card.className = 'intake-card'
+      const eyebrow = document.createElement('div'); eyebrow.className = 'eyebrow'
+      eyebrow.textContent = i === 0 ? 'Welcome to Echelon' : 'About you'
+      const dots = document.createElement('div'); dots.className = 'dots'
+      ONB_QS.forEach((_, d) => {
+        const dot = document.createElement('i')
+        if (d < i) dot.className = 'past'; else if (d === i) dot.className = 'on'
+        dots.appendChild(dot)
+      })
+      const q = document.createElement('div'); q.className = 'q'; q.textContent = c.q
+      const choices = document.createElement('div'); choices.className = 'choices'
+      for (const [v, label] of c.choices) {
+        const b = document.createElement('button'); b.className = 'choice'; b.type = 'button'; b.textContent = label
+        b.addEventListener('click', () => { onbDraft[c.key] = v; renderOnbStep(i + 1) })
+        choices.appendChild(b)
+      }
+      const foot = document.createElement('div'); foot.className = 'foot'
+      const skip = document.createElement('button'); skip.className = 'skip'; skip.type = 'button'
+      skip.textContent = 'Skip for now'
+      skip.addEventListener('click', () => { saveOnboarding(true); el('onb').hidden = true })
+      foot.appendChild(skip)
+      card.append(eyebrow, dots, q, choices, foot)
+      host.appendChild(card)
     }
 
     // ── member recaps: anyone signed in can post their own ──
@@ -4943,11 +5020,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // purchase row; members without the course still get the community.
       // Entitlements are now per-product (course + indicators), so read them
       // all rather than a single row.
-      const [{ data: ents }, { data: isAdmin }, { data: modRow }] = await Promise.all([
+      const [{ data: ents }, { data: isAdmin }, { data: modRow }, { data: onbRow }] = await Promise.all([
         supabase.from('entitlements').select('product, status, interval').eq('status', 'active'),
         supabase.rpc('is_admin'),
         supabase.from('mods').select('user_id').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('member_onboarding').select('answers, completed_at').eq('user_id', session.user.id).maybeSingle(),
       ])
+      state.onboarding = onbRow ?? null
 
       state.isAdmin = !!isAdmin
       state.isMod = !!modRow
@@ -4966,6 +5045,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.hasCourse = state.owned.has('course') || state.isAdmin
       await loadCourse()
       refreshBadges(); watchBadges(); initDesktopPanel()
+
+      // First entry: five quick questions before anything else. The owner is
+      // spared unless previewing via view-as.
+      if (!state.isAdmin && !state.onboarding?.completed_at) setTimeout(startOnboarding, 700)
 
       // Deep-link from the welcome onboarding: ?start=study|recaps|chat
       const start = new URLSearchParams(location.search).get('start')

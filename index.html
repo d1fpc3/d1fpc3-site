@@ -152,6 +152,12 @@
 
     /* the replica */
     .stage { position: relative; padding: clamp(40px, 6vh, 64px) 0 0; overflow: hidden; }
+    .hero-chart {
+      position: relative; border: 1px solid var(--line); border-radius: 16px;
+      background: var(--panel); overflow: hidden;
+      box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.7);
+    }
+    .hero-chart canvas { display: block; width: 100%; height: clamp(300px, 44vw, 460px); }
     .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.35; pointer-events: none; }
     .o1 { width: 420px; height: 420px; background: var(--gold-deep); top: 0; left: 50%; margin-left: -430px; }
     .o2 { width: 340px; height: 340px; background: #7a4f16; bottom: -60px; left: 50%; margin-left: 90px; }
@@ -263,17 +269,6 @@
       border: 1px solid var(--line); border-radius: 14px;
       flex-shrink: 0; user-select: none;
     }
-    .tr-nav {
-      position: absolute; top: 50%; transform: translateY(-50%);
-      width: 38px; height: 38px; border-radius: 50%;
-      border: 1px solid var(--line-bright); background: rgba(11,10,9,0.72);
-      color: var(--ink); cursor: pointer; font-size: 20px; line-height: 1;
-      display: flex; align-items: center; justify-content: center;
-      transition: border-color 0.15s ease, color 0.15s ease;
-    }
-    .tr-nav:hover { border-color: var(--gold); color: var(--gold); }
-    .tr-prev { left: 10px; }
-    .tr-next { right: 10px; }
 
     /* GEX teaser: a past session's surface, baked — the shape, not the levels */
     .gexbar-wrap { margin-top: clamp(40px, 7vh, 64px); }
@@ -409,43 +404,12 @@
     <div class="stage"><div class="col" style="position:relative;">
       <span class="orb o1" aria-hidden="true"></span>
       <span class="orb o2" aria-hidden="true"></span>
-
-      <div class="demo" aria-hidden="true">
-        <div class="d-side">
-          <div class="d-brand">Echelon <small>Members</small></div>
-          <div class="d-tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Overview</div>
-          <div class="d-tab on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Course</div>
-          <div class="d-tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>Trade recaps</div>
-          <div class="d-tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Members <span class="ct" data-echelon-count data-raw></span></div>
-          <div class="d-user"><span class="d-ava">d1</span><div>@d1fpc3<div class="r">Owner · Admin</div></div></div>
-        </div>
-        <div class="d-main">
-          <div class="d-topbar"><h4>Course</h4><span>Lessons and progress</span></div>
-          <div class="d-pane">
-            <div class="d-toc">
-              <div class="dn">Context first</div>
-              <div class="dn">What price is seeking</div>
-              <div class="on">Reading the reaction</div>
-              <div>Confirmation, not hope</div>
-              <div>The session replay habit</div>
-            </div>
-            <div class="d-lesson">
-              <div class="d-kind">Video</div>
-              <h3>Reading the reaction</h3>
-              <div class="d-player"><span class="d-play"></span></div>
-              <div class="d-foot"><span class="d-done">Mark complete</span><span class="d-next">Next: Confirmation, not hope</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <p class="cap">Drawn to the pixel from <b>the actual members area</b>. This is what you're buying.</p>
+      <div class="hero-chart" aria-hidden="true"><canvas id="hero-chart"></canvas></div>
+      <p class="cap">Build-up. The sweep. The delivery. <b>This is the read Echelon teaches.</b></p>
     </div></div>
-
     <div class="trades-wrap" id="trades" hidden><div class="col">
       <div class="tr-car">
         <div class="tr-track" id="tr-track" aria-label="Member trade screenshots"></div>
-        <button class="tr-nav tr-prev" id="tr-prev" type="button" aria-label="Previous">&#8249;</button>
-        <button class="tr-nav tr-next" id="tr-next" type="button" aria-label="Next">&#8250;</button>
       </div>
     </div></div>
 
@@ -484,6 +448,7 @@
     <div class="faq-wrap"><div class="col">
       <div class="faq-block faq">
         <div class="faq-head"><h3>Questions</h3><span class="label">The honest answers</span></div>
+        <details><summary>Why are you selling a course if you already make money trading?<span class="mk">+</span></summary><p class="a">I spent two years learning these concepts. If I put them out for free, nobody would find them valuable; nothing free gets studied. The price is what makes people take the work seriously.</p></details>
         <details><summary>What model will you teach me?<span class="mk">+</span></summary><p class="a">I don't teach a mechanical model. I teach discretionary concepts that help you see NQ clearly. I don't believe price can be reduced to rigid rules; context and judgment matter, and discretionary interpretation is the better way to read the market.</p></details>
         <details><summary>What exactly do I get?<span class="mk">+</span></summary><p class="a">A course on reading NQ's context and intention, our session breakdowns, access to the members area, and the private member room in Discord. The detailed concepts stay inside Echelon.</p></details>
         <details><summary>Is this for beginners?<span class="mk">+</span></summary><p class="a">No. You should already understand futures mechanics and have screen time on NQ, or be actively getting it.</p></details>
@@ -832,6 +797,117 @@
   })();
   </script>
   <script>
+  // Hero: the LIT read, drawn live. A scripted sequence — build-up range,
+  // the sweep under it, entry, delivery — candles reveal one by one and the
+  // story loops. Reduced motion gets the finished frame, still.
+  (function () {
+    var cv = document.getElementById('hero-chart');
+    if (!cv || !cv.getContext) return;
+    var ctx = cv.getContext('2d');
+    var still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // [open, close, low, high] — hand-scripted so the story is always clean
+    var C = [
+      [100,103,99,104],[103,101,100,105],[101,104,100,105],[104,102,101,106],[102,105,101,106],
+      [105,103,101,106],[103,100,98,104],[100,102,98,103],[102,99,97,103],[99,101,97,102],
+      [101,104,100,105],[104,102,100,105],[102,105,101,106],[105,102,100,106],[102,100,97,103],[100,98,96,101],
+      [98,94,92,99],[94,91,88,95],[91,89,86,92],[89,93,87,94],
+      [93,97,92,98],[97,101,96,102],[101,99,97,103],[99,103,98,104],
+      [103,107,102,108],[107,111,106,112],[111,109,107,113],[109,114,108,115],[114,118,113,119],
+      [118,116,114,120],[116,121,115,122],[121,125,120,126],[125,123,121,127],[123,128,122,129],
+      [128,132,127,133],[132,130,128,134],[130,135,129,136],[135,139,134,140],
+      [139,136,133,140],[136,133,130,137],[133,135,131,136],[135,138,134,139],
+      [138,142,137,143],[142,145,141,146]
+    ];
+    var SWEEP_I = 18, RECLAIM_I = 22, LAST = C.length;
+    var LO = 84, HI = 148, RLO = 96, RHI = 106, SWEEP_LOW = 86, ENTRY = 97, TARGET = 145;
+
+    var W = 0, H = 0, dpr = 1;
+    function size() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = cv.clientWidth; H = cv.clientHeight;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    var PAD_L = 26, PAD_R = 96, PAD_T = 30, PAD_B = 34;
+    function x(i) { return PAD_L + (i + 0.5) * ((W - PAD_L - PAD_R) / LAST); }
+    function y(p) { return PAD_T + (HI - p) / (HI - LO) * (H - PAD_T - PAD_B); }
+
+    function draw(n) {
+      ctx.clearRect(0, 0, W, H);
+      var bw = Math.max(3, (W - PAD_L - PAD_R) / LAST * 0.55);
+
+      // faint grid
+      ctx.strokeStyle = 'rgba(157,151,140,0.07)'; ctx.lineWidth = 1;
+      for (var g = 0; g < 5; g++) {
+        var gy = PAD_T + g * (H - PAD_T - PAD_B) / 4;
+        ctx.beginPath(); ctx.moveTo(PAD_L, gy); ctx.lineTo(W - PAD_R, gy); ctx.stroke();
+      }
+
+      // build-up range box, there from the start
+      ctx.fillStyle = 'rgba(201,162,74,0.05)';
+      ctx.fillRect(x(0) - bw, y(RHI), x(15) - x(0) + bw * 2, y(RLO) - y(RHI));
+      ctx.strokeStyle = 'rgba(201,162,74,0.22)';
+      ctx.strokeRect(x(0) - bw, y(RHI), x(15) - x(0) + bw * 2, y(RLO) - y(RHI));
+      ctx.font = '10.5px Inter, sans-serif'; ctx.fillStyle = 'rgba(157,151,140,0.8)';
+      ctx.fillText('BUILD-UP', x(0) - bw + 8, y(RHI) + 15);
+
+      for (var i = 0; i < Math.min(n, LAST); i++) {
+        var c = C[i], up = c[1] >= c[0];
+        var cx = x(i);
+        ctx.strokeStyle = up ? 'rgba(244,242,238,0.85)' : 'rgba(217,139,122,0.9)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(cx, y(c[3])); ctx.lineTo(cx, y(c[2])); ctx.stroke();
+        ctx.fillStyle = up ? '#f4f2ee' : '#d98b7a';
+        var top = y(Math.max(c[0], c[1])), bh = Math.max(1.5, Math.abs(y(c[0]) - y(c[1])));
+        ctx.fillRect(cx - bw / 2, top, bw, bh);
+      }
+
+      // the sweep: marked the moment it prints
+      if (n > SWEEP_I) {
+        var sx = x(SWEEP_I), sy = y(SWEEP_LOW);
+        ctx.strokeStyle = '#d98b7a'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(sx - 14, sy + 7); ctx.lineTo(sx + 14, sy + 7); ctx.stroke();
+        ctx.fillStyle = '#d98b7a'; ctx.font = '600 11px Inter, sans-serif';
+        ctx.fillText('THE SWEEP', sx - 30, sy + 24);
+      }
+      // entry, once the range is reclaimed
+      if (n > RECLAIM_I) {
+        var ey = y(ENTRY);
+        ctx.strokeStyle = 'rgba(201,162,74,0.9)'; ctx.lineWidth = 1.2; ctx.setLineDash([5, 5]);
+        ctx.beginPath(); ctx.moveTo(x(RECLAIM_I - 1), ey); ctx.lineTo(W - PAD_R + 58, ey); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#c9a24a'; ctx.font = '600 11px Inter, sans-serif';
+        ctx.fillText('ENTRY', W - PAD_R + 12, ey - 6);
+      }
+      // delivery, at the close of the story
+      if (n >= LAST) {
+        var ty = y(TARGET);
+        ctx.strokeStyle = 'rgba(201,162,74,0.9)'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(x(LAST - 1) - 16, ty); ctx.lineTo(W - PAD_R + 58, ty); ctx.stroke();
+        ctx.fillStyle = '#c9a24a'; ctx.font = '600 11px Inter, sans-serif';
+        ctx.fillText('THE DELIVERY', W - PAD_R + 12, ty - 6);
+      }
+    }
+
+    size();
+    if (still) { draw(LAST); addEventListener('resize', function () { size(); draw(LAST) }); return; }
+    var n = 0, last = 0, HOLD = 2800, holdUntil = 0;
+    function frame(t) {
+      if (holdUntil) {
+        if (t >= holdUntil) { n = 0; holdUntil = 0; }
+      } else if (t - last >= 95) {
+        last = t; n++;
+        if (n >= LAST + 1) { n = LAST; holdUntil = t + HOLD; }
+        draw(n);
+      }
+      requestAnimationFrame(frame);
+    }
+    addEventListener('resize', function () { size(); draw(n) });
+    requestAnimationFrame(frame);
+  })();
+  </script>
+  <script>
   // Member trade carousel. Photos are published to /echelon/trades/ by
   // scripts/sync-trades.mjs (drop folder: Desktop\Echelon Trades). The whole
   // section stays hidden until the manifest lists at least one photo.
@@ -861,14 +937,6 @@
         var offset = 0, hold = false, last = null;
         var half = function () { return inner.scrollWidth / 2 };
         var apply = function () { inner.style.transform = 'translate3d(' + (-offset) + 'px,0,0)' };
-        var nudge = function (dir) {
-          var h = half();
-          offset += dir * Math.max(240, track.clientWidth * 0.7);
-          if (h > 0) offset = ((offset % h) + h) % h;
-          apply();
-        };
-        document.getElementById('tr-prev').addEventListener('click', function () { nudge(-1) });
-        document.getElementById('tr-next').addEventListener('click', function () { nudge(1) });
         wrap.addEventListener('pointerenter', function () { hold = true });
         wrap.addEventListener('pointerleave', function () { hold = false });
         wrap.addEventListener('touchstart', function () { hold = true }, { passive: true });
