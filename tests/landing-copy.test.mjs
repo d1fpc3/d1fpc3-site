@@ -18,23 +18,11 @@ test('no candle charts and no dashboard mockups on the landing (D1 rule, 8/24)',
   assert.match(html, /class="soft-band"/, 'the software is a flat hairline band');
 });
 
-test('presents the four approved concepts, d1 lowercase', () => {
-  const entries = [
-    ['Context', 'Understand the conditions that give a move meaning instead of judging candles in isolation.'],
-    ['Intention', 'Recognize what price is seeking, what it is reacting to, and when its behavior changes.'],
-    ['Confirmation', 'Separate meaningful price behavior from noise before committing to an idea.'],
-    ['Application', "Study the concepts through d1's session breakdowns and the private member room."],
-  ];
-  for (const [title, description] of entries) {
-    assert.ok(html.includes(`<span class="t">${title}</span>`), `missing concept ${title}`);
-    assert.ok(html.includes(`<span class="d">${description}</span>`), `missing description for ${title}`);
-  }
-});
-
-test('renders the real curriculum, without stating a lesson count', () => {
-  assert.match(html, /id="curriculum" hidden/, 'curriculum section hides until rows arrive');
-  assert.match(html, /rest\/v1\/curriculum\?select/, 'outline reads the live curriculum view');
-  assert.doesNotMatch(html, /\d+ lessons/i, 'lesson count stays off the landing (D1 rule)');
+test('concepts and curriculum stay OFF the landing (D1 rule, 8/24)', () => {
+  assert.doesNotMatch(html, /rest\/v1\/curriculum/, 'never fetch the course outline publicly');
+  assert.doesNotMatch(html, /id="curriculum"|id="concepts"/, 'no concepts or curriculum sections');
+  assert.doesNotMatch(html, /What Echelon teaches/, 'the teaching stays inside Echelon');
+  assert.doesNotMatch(html, /\d+ lessons/i, 'lesson count stays off the landing');
 });
 
 test('states the discretionary teaching philosophy in the lead FAQ', () => {

@@ -164,31 +164,6 @@
     .hero .act { margin-top: 28px; display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; }
     .hero .fine { margin-top: 16px; font-size: 12.5px; color: var(--faint); }
 
-    /* what Echelon teaches: the four concepts, flat rows */
-    .teach-wrap { padding: clamp(48px, 8vh, 84px) 0 0; }
-    .teach { margin-top: 14px; border-top: 1px solid var(--line); }
-    .teach .t-row { display: grid; grid-template-columns: 150px 1fr; gap: 8px 28px; padding: 14px 2px; border-bottom: 1px solid var(--line); }
-    @media (max-width: 560px) { .teach .t-row { grid-template-columns: 1fr; gap: 3px; } }
-    .teach .t { font-weight: 650; font-size: 14.5px; }
-    .teach .d { color: var(--muted); font-size: 13.5px; max-width: 64ch; }
-
-    /* the curriculum: the real outline, read live from the course itself
-       (public view: published titles and summaries only). Hidden until
-       rows arrive; numbering is the actual course order. */
-    .curr-wrap { padding: clamp(48px, 8vh, 84px) 0 0; }
-    .curr-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-    .curr-note { color: var(--faint); font-size: 12px; }
-    .curr { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 44px; }
-    @media (max-width: 760px) { .curr { grid-template-columns: 1fr; } }
-    .cm { border-top: 1px solid var(--line); padding: 16px 2px 20px; }
-    .cm-head { display: flex; align-items: baseline; gap: 10px; }
-    .cm-n { color: var(--gold); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
-    .cm-head h4 { font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; }
-    .cm-sum { margin-top: 5px; color: var(--muted); font-size: 13px; max-width: 56ch; }
-    .cm-lessons { margin: 10px 0 0; padding: 0; list-style: none; counter-reset: les; }
-    .cm-lessons li { counter-increment: les; font-size: 13px; color: var(--muted); padding: 4px 0; display: flex; gap: 10px; }
-    .cm-lessons li::before { content: counter(les, decimal-leading-zero); color: var(--faint); font-size: 11px; font-variant-numeric: tabular-nums; padding-top: 1.5px; }
-
     /* the software: one flat hairline band, said not shown */
     .soft-band-wrap { padding: clamp(48px, 8vh, 84px) 0 0; }
     .soft-band {
@@ -416,23 +391,6 @@
       </div>
     </div></div>
 
-    <div class="teach-wrap" id="concepts"><div class="col">
-      <span class="label">What Echelon teaches</span>
-      <div class="teach">
-        <div class="t-row"><span class="t">Context</span><span class="d">Understand the conditions that give a move meaning instead of judging candles in isolation.</span></div>
-        <div class="t-row"><span class="t">Intention</span><span class="d">Recognize what price is seeking, what it is reacting to, and when its behavior changes.</span></div>
-        <div class="t-row"><span class="t">Confirmation</span><span class="d">Separate meaningful price behavior from noise before committing to an idea.</span></div>
-        <div class="t-row"><span class="t">Application</span><span class="d">Study the concepts through d1's session breakdowns and the private member room.</span></div>
-      </div>
-    </div></div>
-
-    <div class="curr-wrap" id="curriculum" hidden><div class="col">
-      <div class="curr-head">
-        <span class="label">The curriculum</span>
-        <span class="curr-note">Straight from the course, as it stands today</span>
-      </div>
-      <div class="curr" id="curr"></div>
-    </div></div>
 
 
     <div class="rev-wrap" id="reviews" hidden><div class="col">
@@ -793,40 +751,6 @@
         .catch(function () {});
     }
 
-    /* The real course outline (curriculum view: published titles/summaries
-       only — the sales page reads the course itself, so editing the course
-       edits this section). Section stays hidden if the fetch fails. */
-    function fetchCurriculum() {
-      fetch(SB + '/rest/v1/curriculum?select=*&order=module_position,lesson_position', { headers: { apikey: SB_KEY } })
-        .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-        .then(function (rows) {
-          if (!rows || !rows.length) return;
-          var mods = [], seen = {};
-          rows.forEach(function (r) {
-            var m = seen[r.module_position];
-            if (!m) { m = seen[r.module_position] = { pos: r.module_position, title: r.module_title, sum: r.module_summary, lessons: [] }; mods.push(m); }
-            m.lessons.push(r.lesson_title);
-          });
-          mods.sort(function (a, b) { return a.pos - b.pos; });
-          var wrap = document.getElementById('curr');
-          wrap.textContent = '';
-          mods.forEach(function (m, i) {
-            var s = document.createElement('section'); s.className = 'cm';
-            var h = document.createElement('div'); h.className = 'cm-head';
-            var n = document.createElement('span'); n.className = 'cm-n';
-            n.textContent = (i + 1 < 10 ? '0' : '') + (i + 1);
-            var t = document.createElement('h4'); t.textContent = m.title;
-            h.appendChild(n); h.appendChild(t); s.appendChild(h);
-            if (m.sum) { var p = document.createElement('p'); p.className = 'cm-sum'; p.textContent = m.sum; s.appendChild(p); }
-            var ol = document.createElement('ol'); ol.className = 'cm-lessons';
-            m.lessons.forEach(function (lt) { var li = document.createElement('li'); li.textContent = lt; ol.appendChild(li); });
-            s.appendChild(ol); wrap.appendChild(s);
-          });
-          document.getElementById('curriculum').hidden = false;
-        })
-        .catch(function () {});
-    }
-
     var m = (CONFIG.discordUrl || '').match(/(?:discord\.gg|discord(?:app)?\.com\/invite)\/([\w-]+)/);
     function fetchDiscord() {
       if (!m) return;
@@ -839,7 +763,7 @@
         .catch(function () {});
     }
 
-    fetchEchelon(); fetchDiscord(); fetchReviews(); fetchCurriculum();
+    fetchEchelon(); fetchDiscord(); fetchReviews();
     setInterval(function () { fetchEchelon(); fetchDiscord(); }, 60000);
   })();
   </script>
