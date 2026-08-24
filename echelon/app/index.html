@@ -802,6 +802,25 @@
       position: relative; overflow: hidden;
       background: var(--panel-2); border-radius: 6px; min-height: 8px;
     }
+
+    /* risk calculator: three inputs, one honest sentence */
+    .rc-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .rc-row label { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 130px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+    .rc-row .inp { width: 100%; }
+    .rc-out { margin-top: 14px; font-size: 15px; font-weight: 600; color: var(--ink); }
+    .rc-out span { color: var(--muted); font-weight: 400; font-size: 13px; }
+    .rc-out.warn { color: var(--muted); font-weight: 400; font-size: 13.5px; }
+
+    /* boot skeleton: the shell's shape, wordless, while the session restores */
+    .boot-skel { position: fixed; inset: 0; z-index: 6; background: var(--bg); display: flex; }
+    .boot-skel .bs-rail { width: 68px; border-right: 1px solid var(--line); padding: 16px 0; display: flex; flex-direction: column; gap: 16px; align-items: center; }
+    .boot-skel .bs-ic { width: 30px; height: 30px; border-radius: 8px; }
+    .boot-skel .bs-main { flex: 1; padding: 26px clamp(16px, 4vw, 40px); max-width: 1060px; }
+    .boot-skel .bs-t { display: block; width: min(220px, 42%); height: 22px; }
+    .boot-skel .bs-grid { margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+    .boot-skel .bs-c { height: 88px; border-radius: 14px; }
+    .boot-skel .bs-b { display: block; margin-top: 24px; height: min(300px, 38vh); border-radius: 14px; }
+    @media (max-width: 840px) { .boot-skel .bs-rail { display: none; } }
     .skel::after {
       content: ""; position: absolute; inset: 0;
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
@@ -1116,11 +1135,30 @@
 
   <!-- ════ GATE ════ -->
   <div class="centre" id="gate">
+    <!-- While the session restores: a silent skeleton of the shell.
+         No words. It covers the orbs and the glass until boot decides
+         between the app and the sign-in card. -->
+    <div class="boot-skel" id="boot-skel" aria-hidden="true">
+      <div class="bs-rail">
+        <span class="skel bs-ic" style="border-radius:9px;"></span>
+        <span class="skel bs-ic"></span><span class="skel bs-ic"></span>
+        <span class="skel bs-ic"></span><span class="skel bs-ic"></span>
+        <span class="skel bs-ic"></span>
+      </div>
+      <div class="bs-main">
+        <span class="skel bs-t"></span>
+        <div class="bs-grid">
+          <span class="skel bs-c"></span><span class="skel bs-c"></span>
+          <span class="skel bs-c"></span><span class="skel bs-c"></span>
+        </div>
+        <span class="skel bs-b"></span>
+      </div>
+    </div>
     <span class="orb o1" aria-hidden="true"></span>
     <span class="orb o2" aria-hidden="true"></span>
     <div class="glass">
       <p class="label" id="gate-label">Echelon</p>
-      <h1 id="gate-title">One moment…</h1>
+      <h1 id="gate-title"></h1>
       <p class="body" id="gate-body"></p>
       <div id="gate-actions"></div>
     </div>
@@ -1260,6 +1298,23 @@
           </section>
 
           <div class="ov-stats sub" id="ov-cards"></div>
+
+          <section class="ov-sec">
+            <div class="ov-cap"><span class="label">Risk calculator</span><span class="label" id="rc-ppt"></span></div>
+            <div class="ov-flat rc">
+              <div class="rc-row">
+                <label>Risk per trade ($)<input class="inp" id="rc-risk" type="number" inputmode="decimal" min="1" step="25" value="300"></label>
+                <label>Stop (points)<input class="inp" id="rc-stop" type="number" inputmode="decimal" min="0.25" step="0.25" value="15"></label>
+                <label>Contract<select class="inp" id="rc-inst">
+                  <option value="2">MNQ · $2/pt</option>
+                  <option value="20">NQ · $20/pt</option>
+                  <option value="5">MES · $5/pt</option>
+                  <option value="50">ES · $50/pt</option>
+                </select></label>
+              </div>
+              <p class="rc-out" id="rc-out"></p>
+            </div>
+          </section>
         </section>
 
         <!-- COURSE -->
@@ -1723,6 +1778,7 @@
 
     function gate({ title, body, render }) {
       el('app').classList.remove('on')
+      el('boot-skel').style.display = 'none' // boot decided: show the card
       el('gate').style.display = 'flex'
       el('gate').classList.add('lit')
       el('gate-title').textContent = title
@@ -4934,6 +4990,38 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     el('dmpick-x').addEventListener('click', () => { el('dmpick').hidden = true })
     el('dmpick').addEventListener('click', (e) => { if (e.target === el('dmpick')) el('dmpick').hidden = true })
     el('dmpick-q').addEventListener('input', (e) => renderDmPick(e.target.value))
+
+    // ── risk calculator (Overview) ──────────────────────────
+    // Contracts = floor(risk / (stop x point value)). Inputs persist.
+    ;(() => {
+      const RC_KEY = 'echelon-risk-calc'
+      const risk = el('rc-risk'), stop = el('rc-stop'), inst = el('rc-inst'), out = el('rc-out')
+      try {
+        const saved = JSON.parse(localStorage.getItem(RC_KEY) || 'null')
+        if (saved) { risk.value = saved.risk; stop.value = saved.stop; inst.value = saved.inst }
+      } catch {}
+      const NAME = { 2: 'MNQ', 20: 'NQ', 5: 'MES', 50: 'ES' }
+      const usd0 = (n) => '$' + Math.round(n).toLocaleString('en-US')
+      function calc() {
+        const r = parseFloat(risk.value), s = parseFloat(stop.value), v = parseFloat(inst.value)
+        if (!(r > 0) || !(s > 0)) { out.textContent = ''; return }
+        const perContract = s * v
+        const n = Math.floor(r / perContract)
+        if (n < 1) {
+          out.className = 'rc-out warn'
+          out.textContent = `A ${s} point stop on ${NAME[v]} costs ${usd0(perContract)} per contract, more than your risk. Tighten the stop or drop to a micro.`
+        } else {
+          out.className = 'rc-out'
+          out.textContent = `${n} contract${n > 1 ? 's' : ''} `
+          const detail = document.createElement('span')
+          detail.textContent = `· ${usd0(n * v)} per point · ${usd0(n * perContract)} at the stop`
+          out.appendChild(detail)
+        }
+        try { localStorage.setItem(RC_KEY, JSON.stringify({ risk: risk.value, stop: stop.value, inst: inst.value })) } catch {}
+      }
+      for (const i of [risk, stop, inst]) i.addEventListener('input', calc)
+      calc()
+    })()
 
     // ── boot ────────────────────────────────────────────────
 
