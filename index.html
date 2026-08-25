@@ -262,6 +262,24 @@
     .rev-wrap { padding: clamp(48px, 8vh, 84px) 0 0; }
     .rev-wrap .label { display: block; text-align: center; }
     .rev-wrap .grid3 { margin-top: 16px; }
+    /* rating summary: big average + animated distribution bars */
+    .ratesum { display: flex; gap: 20px; align-items: center; max-width: 320px; margin: 18px auto 0; padding: 16px 18px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+    .ratesum .left { text-align: center; flex: none; }
+    .ratesum .big { font-size: 34px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+    .ratesum .rs-stars { color: var(--gold); font-size: 12px; letter-spacing: 2px; margin: 5px 0 3px; }
+    .ratesum .n { font-size: 11px; color: var(--faint); }
+    .ratesum .bars { flex: 1; display: grid; gap: 6px; }
+    .ratesum .r { display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: var(--faint); }
+    .ratesum .r b { width: 8px; font-weight: 500; color: var(--muted); }
+    .ratesum .track { flex: 1; height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+    .ratesum .track i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--gold), var(--gold-deep)); width: 0; animation: rate-grow 1s cubic-bezier(0.77, 0, 0.175, 1) forwards; }
+    .ratesum .r:nth-child(1) i { animation-delay: 0.1s; }
+    .ratesum .r:nth-child(2) i { animation-delay: 0.2s; }
+    .ratesum .r:nth-child(3) i { animation-delay: 0.3s; }
+    .ratesum .r:nth-child(4) i { animation-delay: 0.4s; }
+    .ratesum .r:nth-child(5) i { animation-delay: 0.5s; }
+    @keyframes rate-grow { to { width: var(--w); } }
+    @media (prefers-reduced-motion: reduce) { .ratesum .track i { animation: none; width: var(--w); } }
     .rev { display: flex; flex-direction: column; gap: 10px; }
     .rev .who { display: flex; align-items: center; gap: 10px; }
     .rev .ava {
@@ -355,6 +373,7 @@
 
     <div class="rev-wrap" id="reviews" hidden><div class="col">
       <span class="label">From the members</span>
+      <div class="ratesum" id="rev-sum" hidden></div>
       <div class="grid3" id="rev-grid"></div>
     </div></div>
 
@@ -660,8 +679,35 @@
       fetch(SB + '/rest/v1/landing_reviews?select=*', { headers: { apikey: SB_KEY } })
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
         .then(function (rows) {
+          var rated = (rows || []).filter(function (r) { return r.rating; });
           rows = (rows || []).filter(function (r) { return r.username && r.comment && r.comment.trim(); }).slice(0, 6);
           if (!rows.length) return;
+          // rating summary card above the quotes
+          if (rated.length) {
+            var counts = [0, 0, 0, 0, 0], sum = 0;
+            rated.forEach(function (r) {
+              var v = Math.max(1, Math.min(5, r.rating | 0));
+              counts[v - 1]++; sum += v;
+            });
+            var box = document.getElementById('rev-sum');
+            box.textContent = '';
+            var left = document.createElement('div'); left.className = 'left';
+            var big = document.createElement('div'); big.className = 'big'; big.textContent = (sum / rated.length).toFixed(1);
+            var st = document.createElement('div'); st.className = 'rs-stars'; st.textContent = '★★★★★';
+            var nn = document.createElement('div'); nn.className = 'n'; nn.textContent = rated.length + (rated.length > 1 ? ' reviews' : ' review');
+            left.appendChild(big); left.appendChild(st); left.appendChild(nn); box.appendChild(left);
+            var bars = document.createElement('div'); bars.className = 'bars';
+            for (var s = 5; s >= 1; s--) {
+              var row = document.createElement('div'); row.className = 'r';
+              var bb = document.createElement('b'); bb.textContent = s;
+              var track = document.createElement('span'); track.className = 'track';
+              var fill = document.createElement('i');
+              fill.style.setProperty('--w', Math.round((counts[s - 1] / rated.length) * 100) + '%');
+              track.appendChild(fill); row.appendChild(bb); row.appendChild(track); bars.appendChild(row);
+            }
+            box.appendChild(bars);
+            box.hidden = false;
+          }
           var grid = document.getElementById('rev-grid');
           grid.textContent = '';
           rows.forEach(function (r) {
