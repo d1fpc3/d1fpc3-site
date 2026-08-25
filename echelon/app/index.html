@@ -1357,7 +1357,8 @@
                   <label>Stop (points)<input class="inp" id="rc-stop" type="number" inputmode="decimal" min="0.25" step="0.25" value="15"></label>
                 </div>
                 <div class="rc-row" style="margin-top:12px;">
-                  <label>Contract<select class="inp" id="rc-inst">
+                  <label>Contracts<input class="inp" id="rc-n" type="number" inputmode="numeric" min="1" step="1" placeholder="or type them"></label>
+                  <label>Instrument<select class="inp" id="rc-inst">
                     <option value="2">MNQ · $2/pt</option>
                     <option value="20">NQ · $20/pt</option>
                     <option value="5">MES · $5/pt</option>
@@ -5126,31 +5127,51 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // Contracts = floor(risk / (stop x point value)). Inputs persist.
     ;(() => {
       const RC_KEY = 'echelon-risk-calc'
-      const risk = el('rc-risk'), stop = el('rc-stop'), inst = el('rc-inst'), out = el('rc-out')
+      const risk = el('rc-risk'), stop = el('rc-stop'), num = el('rc-n'), inst = el('rc-inst'), out = el('rc-out')
+      // Whichever of risk/contracts was touched last drives; the other is derived.
+      let lead = 'risk'
       try {
         const saved = JSON.parse(localStorage.getItem(RC_KEY) || 'null')
-        if (saved) { risk.value = saved.risk; stop.value = saved.stop; inst.value = saved.inst }
+        if (saved) { risk.value = saved.risk; stop.value = saved.stop; inst.value = saved.inst; if (saved.n) num.value = saved.n; if (saved.lead) lead = saved.lead }
       } catch {}
       const NAME = { 2: 'MNQ', 20: 'NQ', 5: 'MES', 50: 'ES' }
       const usd0 = (n) => '$' + Math.round(n).toLocaleString('en-US')
       function calc() {
-        const r = parseFloat(risk.value), s = parseFloat(stop.value), v = parseFloat(inst.value)
-        if (!(r > 0) || !(s > 0)) { out.textContent = ''; return }
+        const s = parseFloat(stop.value), v = parseFloat(inst.value)
+        if (!(s > 0)) { out.textContent = ''; return }
         const perContract = s * v
-        const n = Math.floor(r / perContract)
-        if (n < 1) {
-          out.className = 'rc-out warn'
-          out.textContent = `A ${s} point stop on ${NAME[v]} costs ${usd0(perContract)} per contract, more than your risk. Tighten the stop or drop to a micro.`
-        } else {
+        if (lead === 'contracts') {
+          const n = Math.floor(parseFloat(num.value))
+          if (!(n > 0)) { out.textContent = ''; return }
+          risk.value = String(Math.round(n * perContract))
           out.className = 'rc-out'
-          out.textContent = `${n} contract${n > 1 ? 's' : ''} `
+          out.textContent = `${usd0(n * perContract)} at the stop `
           const detail = document.createElement('span')
-          detail.textContent = `· ${usd0(n * v)} per point · ${usd0(n * perContract)} at the stop`
+          detail.textContent = `· ${n} ${NAME[v]} · ${usd0(n * v)} per point`
           out.appendChild(detail)
+        } else {
+          const r = parseFloat(risk.value)
+          if (!(r > 0)) { out.textContent = ''; return }
+          const n = Math.floor(r / perContract)
+          if (n < 1) {
+            num.value = ''
+            out.className = 'rc-out warn'
+            out.textContent = `A ${s} point stop on ${NAME[v]} costs ${usd0(perContract)} per contract, more than your risk. Tighten the stop or drop to a micro.`
+          } else {
+            num.value = String(n)
+            out.className = 'rc-out'
+            out.textContent = `${n} contract${n > 1 ? 's' : ''} `
+            const detail = document.createElement('span')
+            detail.textContent = `· ${usd0(n * v)} per point · ${usd0(n * perContract)} at the stop`
+            out.appendChild(detail)
+          }
         }
-        try { localStorage.setItem(RC_KEY, JSON.stringify({ risk: risk.value, stop: stop.value, inst: inst.value })) } catch {}
+        try { localStorage.setItem(RC_KEY, JSON.stringify({ risk: risk.value, stop: stop.value, inst: inst.value, n: num.value, lead })) } catch {}
       }
-      for (const i of [risk, stop, inst]) i.addEventListener('input', calc)
+      risk.addEventListener('input', () => { lead = 'risk'; calc() })
+      num.addEventListener('input', () => { lead = 'contracts'; calc() })
+      stop.addEventListener('input', calc)
+      inst.addEventListener('input', calc)
       calc()
       // The calculator lives in a popup off the Overview hero button.
       document.body.appendChild(el('rcmodal'))
