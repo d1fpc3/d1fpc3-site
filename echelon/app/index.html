@@ -1466,14 +1466,20 @@
 
           <div class="ov-stats sub" id="ov-cards"></div>
 
-          <section class="ov-sec" id="ov-quote-sec" hidden>
-            <div class="ov-cap"><span class="label">Daily quote</span><button class="cap-act" id="quote-hide" type="button">Hide these</button></div>
-            <div class="qrot" id="qrot">
-              <button class="next" id="quote-next" aria-label="Next quote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg></button>
-              <blockquote id="quote-text"></blockquote>
-              <div class="who4" id="quote-who"></div>
+          <!-- Daily quote popup: once a day, dismiss holds it until tomorrow -->
+          <div class="dmpick-scrim" id="quotemodal" hidden>
+            <div class="dmpick" style="max-width:460px;">
+              <div class="block-head"><h3>Daily quote</h3><button class="rowbtn" id="quote-hide" type="button">Dismiss</button></div>
+              <div class="gi-body">
+                <div class="qrot" id="qrot" style="max-width:none;">
+                  <button class="next" id="quote-next" aria-label="Next quote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg></button>
+                  <blockquote id="quote-text"></blockquote>
+                  <div class="who4" id="quote-who"></div>
+                </div>
+                <p class="hint" style="margin:10px 0 0;">Turn these off for good in Settings.</p>
+              </div>
             </div>
-          </section>
+          </div>
 
           <!-- Risk calculator popup: opened by the calculator button up top -->
           <div class="dmpick-scrim" id="rcmodal" hidden>
@@ -1822,7 +1828,7 @@
               <div class="filters" style="justify-content:space-between;">
                 <div>
                   <p class="label" style="margin-bottom:4px;">Daily quote</p>
-                  <p class="hint" style="margin:0;">One line on your Overview each day.</p>
+                  <p class="hint" style="margin:0;">One line, once a day, when you open the app.</p>
                 </div>
                 <label class="tgl">
                   <input type="checkbox" id="set-quotes">
@@ -3164,25 +3170,33 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ['Discipline equals freedom.', 'Jocko Willink'],
     ]
     const QUOTES_OFF = 'echelon-quotes-off'
+    const QUOTE_DAY = 'echelon-quote-day'   // last local day the popup was dismissed/shown out
     let quoteIdx = Math.floor(Date.now() / 864e5) % QUOTES.length
     function quotePaint() {
       el('quote-text').textContent = '“' + QUOTES[quoteIdx][0] + '”'
       el('quote-who').textContent = QUOTES[quoteIdx][1]
     }
+    function quoteDismiss() {
+      localStorage.setItem(QUOTE_DAY, new Date().toDateString())
+      el('quotemodal').hidden = true
+    }
     function renderDailyQuote() {
-      const sec = el('ov-quote-sec'); if (!sec) return
+      const m = el('quotemodal'); if (!m) return
       const off = localStorage.getItem(QUOTES_OFF) === '1'
-      sec.hidden = off
       const tgl = el('set-quotes'); if (tgl) tgl.checked = !off
-      if (!off) quotePaint()
+      const seenToday = localStorage.getItem(QUOTE_DAY) === new Date().toDateString()
+      const onbOpen = el('onb') && !el('onb').hidden // first-entry onboarding wins the screen
+      const show = !off && !seenToday && !!state.user && !onbOpen
+      m.hidden = !show
+      if (show) quotePaint()
     }
     el('quote-next').addEventListener('click', () => {
       const card = el('qrot'); card.classList.add('swap')
       setTimeout(() => { quoteIdx = (quoteIdx + 1) % QUOTES.length; quotePaint(); card.classList.remove('swap') }, 260)
     })
-    el('quote-hide').addEventListener('click', () => { localStorage.setItem(QUOTES_OFF, '1'); renderDailyQuote(); toast('Quotes off. Turn them back on in Settings.') })
+    el('quote-hide').addEventListener('click', quoteDismiss)
+    el('quotemodal').addEventListener('click', (e) => { if (e.target === el('quotemodal')) quoteDismiss() })
     el('set-quotes').addEventListener('change', () => { localStorage.setItem(QUOTES_OFF, el('set-quotes').checked ? '0' : '1'); renderDailyQuote() })
-    renderDailyQuote()
 
     // ── USD news: Forex Factory red + orange folders ────────
     // Same feed the Discord bot publishes; edge-cached 5 minutes.
@@ -4919,6 +4933,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     document.body.appendChild(el('revmodal'))
     document.body.appendChild(el('gexintro'))
     document.body.appendChild(el('onb')) // first-entry onboarding fires on Overview, not chat
+    document.body.appendChild(el('quotemodal')) // daily quote pops over whatever view is open
     el('rev-x').addEventListener('click', () => { el('revmodal').hidden = true })
     el('revmodal').addEventListener('click', (e) => { if (e.target === el('revmodal')) el('revmodal').hidden = true })
 
@@ -5677,6 +5692,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderMemberRecaps()
       renderMyStats()
       renderTradeOfDay()
+      renderDailyQuote()
       renderAnnouncements()
       // Only re-open a recap you were already reading (pull-to-refresh).
       // Never auto-open one on a fresh load: the library is a gallery.
