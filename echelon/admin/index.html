@@ -759,6 +759,10 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           Recaps <span class="count" id="c-recaps">—</span>
         </button>
+        <button class="tab" data-view="library" data-title="Video library" data-crumb="Recaps, breakdowns and concept videos">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/></svg>
+          Video library
+        </button>
         <button class="tab" data-view="codes" data-title="Access codes" data-crumb="Free passes and discounts">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5v2"/><path d="M15 11v2"/><path d="M15 17v2"/><path d="M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
           Codes <span class="count" id="c-codes">—</span>
@@ -987,6 +991,36 @@
             </div>
             <div class="tbl-scroll"><table id="recaps-table"></table></div>
             <div class="empty" id="recaps-empty" hidden>Nothing yet. Members see recaps the moment you publish one.</div>
+          </div>
+        </section>
+
+        <!-- VIDEO LIBRARY -->
+        <section class="view" id="v-library">
+          <div class="block">
+            <div class="block-head"><h3>Add a video</h3></div>
+            <div class="field-row">
+              <input class="inp" id="lib-title-in" placeholder="Title — e.g. Friday recap: the 10am short" style="flex:2;min-width:220px;">
+              <select class="inp" id="lib-cat-in" style="flex:0 1 180px;min-width:160px;">
+                <option value="recap">Trade recap</option>
+                <option value="breakdown">PA breakdown</option>
+                <option value="concept">Concept</option>
+              </select>
+            </div>
+            <div class="field-row" style="padding-top:0;">
+              <input class="inp" id="lib-sum-in" placeholder="One line on what it covers (optional)" style="flex:1;">
+            </div>
+            <div class="field-row" style="padding-top:0;">
+              <button class="btn" id="lib-save">Upload and publish</button>
+              <button class="rowbtn" id="lib-pick">Choose video</button>
+              <span class="label" id="lib-file-name"></span>
+              <input type="file" id="lib-file" accept="video/*" hidden>
+            </div>
+            <p class="msg" id="lib-msg"></p>
+          </div>
+          <div class="block">
+            <div class="block-head"><h3>All videos</h3><span class="label" id="libadmin-total"></span></div>
+            <div class="tbl-scroll"><table id="lib-table"></table></div>
+            <div class="empty" id="lib-admin-empty" hidden>Nothing uploaded yet. Members see videos the moment they land.</div>
           </div>
         </section>
 
@@ -1422,6 +1456,7 @@
       el('pane-title').textContent = tab.dataset.title
       el('pane-crumb').textContent = tab.dataset.crumb
       if (view === 'gex') gexShown()
+      if (view === 'library') loadLibraryAdmin()
       if (view === 'memes') memesShown()
       else if (PLAYBOOKS[view]) playbookShown(view)
     }))
@@ -1434,6 +1469,7 @@
       billing: 'Money in. The cards summarize revenue, Orders is the ledger, and the Stripe events below are the raw webhook feed, kept as your audit trail when something looks off.',
       content: 'The course builder. Categories hold lessons, the arrows reorder them, and opening a lesson gives the block editor for text, headings, video and files. Viewers shows who actually watched. Nothing reaches members until it is published.',
       recaps: 'Official session write-ups. Title, date, body: blank line between paragraphs, ## for a heading, paste or drop a video to attach it. Save keeps a draft; members only ever see what you publish.',
+      library: 'The video library members browse. Pick a category, choose the file, and Upload and publish puts it live immediately; unpublish or delete from the list below. Files stream through the same protected pipeline as lessons.',
       codes: 'Passes and discounts. A free code comps the course when redeemed at sign-in; a discount code takes its percentage at checkout. Cap the uses, set an expiry, and note who it was for so future-you knows.',
       community: 'The room itself. Channels are created and ordered here (announcements are staff-post-only). Access requests come from the free application page: approve comps the course and creates the account. Mods moderate chat and get the indicators free while they hold the role.',
       perms: 'What each role may do in chat, enforced by the database rather than hidden buttons. Flip a switch and the app updates AND the server refuses the write. Per channel, posting can be everyone, mods only, or just you.',
@@ -2494,6 +2530,83 @@
       RECAPS = data ?? []
       renderRecaps()
     }
+
+    /* ── video library: upload straight to storage, rows under RLS ── */
+    let LIBV = []
+    const LIB_CAT_NAME = { recap: 'Trade recap', breakdown: 'PA breakdown', concept: 'Concept' }
+    async function loadLibraryAdmin() {
+      const { data } = await supabase.from('library_videos').select('*').order('created_at', { ascending: false })
+      LIBV = data ?? []
+      renderLibraryAdmin()
+    }
+    function renderLibraryAdmin() {
+      el('libadmin-total').textContent = LIBV.length ? String(LIBV.length) : ''
+      el('lib-admin-empty').hidden = LIBV.length > 0
+      table(el('lib-table'), ['Title', 'Category', 'Added', 'State', ''], LIBV, (r) => {
+        const tr = document.createElement('tr')
+        tr.append(
+          cell(r.title, 'ink'),
+          cell(LIB_CAT_NAME[r.category] ?? r.category),
+          cell(when(r.created_at), 'num'),
+          cell(r.is_published ? 'Live' : 'Hidden'),
+        )
+        const td = document.createElement('td'); td.className = 'num'
+        const btn = (label, fn) => {
+          const b = document.createElement('button'); b.className = 'rowbtn'; b.textContent = label
+          b.addEventListener('click', () => fn(b)); td.appendChild(b)
+        }
+        btn(r.is_published ? 'Unpublish' : 'Publish', async (b) => {
+          b.disabled = true
+          await supabase.from('library_videos')
+            .update({ is_published: !r.is_published, updated_at: new Date().toISOString() }).eq('id', r.id)
+          loadLibraryAdmin()
+        })
+        btn('Delete', async (b) => {
+          if (!confirm(`Delete "${r.title}"? Members lose it too.`)) return
+          b.disabled = true
+          await supabase.from('library_videos').delete().eq('id', r.id)
+          supabase.storage.from('lesson-files').remove([r.storage_path]).then(() => {}, () => {})
+          loadLibraryAdmin()
+        })
+        tr.appendChild(td)
+        return tr
+      })
+    }
+    let libFile = null
+    el('lib-pick').addEventListener('click', () => el('lib-file').click())
+    el('lib-file').addEventListener('change', () => {
+      libFile = el('lib-file').files[0] ?? null
+      el('lib-file-name').textContent = libFile ? libFile.name : ''
+    })
+    el('lib-save').addEventListener('click', async () => {
+      const msg = el('lib-msg')
+      const title = el('lib-title-in').value.trim()
+      if (!title) { msg.className = 'msg err'; msg.textContent = 'A title, at least.'; return }
+      if (!libFile) { msg.className = 'msg err'; msg.textContent = 'Choose the video file.'; return }
+      el('lib-save').disabled = true
+      msg.className = 'msg'; msg.textContent = 'Uploading… keep this tab open.'
+      try {
+        const clean = libFile.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')
+        const path = `library/${crypto.randomUUID()}/${clean}`
+        const { error: upErr } = await supabase.storage.from('lesson-files')
+          .upload(path, libFile, { contentType: libFile.type || undefined })
+        if (upErr) throw upErr
+        const { error } = await supabase.from('library_videos').insert({
+          title,
+          summary: el('lib-sum-in').value.trim() || null,
+          category: el('lib-cat-in').value,
+          storage_path: path,
+        })
+        if (error) throw error
+        msg.className = 'msg ok'; msg.textContent = 'Published. Members can watch it now.'
+        el('lib-title-in').value = ''; el('lib-sum-in').value = ''
+        el('lib-file').value = ''; libFile = null; el('lib-file-name').textContent = ''
+        loadLibraryAdmin()
+      } catch (err) {
+        msg.className = 'msg err'; msg.textContent = err.message
+      }
+      el('lib-save').disabled = false
+    })
 
     /* Videos paste (or drop, or pick) straight into the composer: the file
        uploads into the private lesson-files bucket under recaps/ and the body

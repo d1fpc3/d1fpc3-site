@@ -814,6 +814,30 @@
     .rc-btn:hover { color: var(--gold); border-color: var(--gold); }
     .rc-btn svg { width: 18px; height: 18px; }
     .rc-btn svg circle { fill: currentColor; }
+    /* video library: chips, flat rows, popup player */
+    .lib-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .lib-chip {
+      background: none; border: 1px solid var(--line-bright); border-radius: 9px;
+      color: var(--muted); font: 500 12.5px/1 inherit; font-family: inherit;
+      padding: 8px 13px; cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .lib-chip:hover { color: var(--ink); }
+    .lib-chip.on { color: var(--gold); border-color: var(--gold); }
+    .lib-row {
+      display: flex; align-items: baseline; gap: 12px 18px; width: 100%; text-align: left;
+      background: none; border: 0; border-top: 1px solid var(--line); cursor: pointer;
+      padding: 14px 16px; font-family: inherit; color: var(--ink);
+    }
+    .lib-row:first-child { border-top: 0; }
+    .lib-row:hover { background: var(--panel-2); }
+    .lib-row .t { font-size: 14px; font-weight: 600; }
+    .lib-row .c { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); flex-shrink: 0; }
+    .lib-row .d { margin-left: auto; font-size: 12px; color: var(--faint); flex-shrink: 0; }
+    .lib-player-box { max-width: 860px; }
+    .lib-player { position: relative; aspect-ratio: 16 / 9; background: #000; }
+    .lib-player video { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .lib-sum { padding: 12px 18px 16px; color: var(--muted); font-size: 13.5px; }
+
     .x-close {
       background: none; border: 1px solid var(--line-bright); border-radius: 8px;
       width: 30px; height: 30px; color: var(--muted); font-size: 17px; line-height: 1;
@@ -1208,6 +1232,10 @@
           Trade recaps <span class="count" id="c-recaps">—</span>
           <span class="notif" id="n-recaps" hidden></span>
         </button>
+        <button class="tab" data-view="library" data-title="Video library" data-crumb="Recaps, breakdowns, concepts">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/></svg>
+          Video library
+        </button>
         <button class="tab" data-view="indicators" data-title="Indicators" data-crumb="Charts and access">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           Indicators
@@ -1383,6 +1411,24 @@
             </div>
             <div class="tbl-scroll"><table id="recaps-table"></table></div>
             <div class="empty" id="recaps-empty" hidden>No recaps posted yet. They land here after each session.</div>
+          </div>
+        </section>
+
+        <!-- VIDEO LIBRARY -->
+        <section class="view" id="v-library">
+          <div class="lib-chips" id="lib-chips"></div>
+          <div class="block">
+            <div class="block-head"><h3 id="lib-cap">All videos</h3><span class="label" id="lib-total"></span></div>
+            <div id="lib-list"></div>
+            <div class="empty" id="lib-empty" hidden>Nothing here yet. Videos land as d1 posts them.</div>
+          </div>
+          <!-- player popup (portaled to body at boot) -->
+          <div class="dmpick-scrim" id="libmodal" hidden>
+            <div class="dmpick lib-player-box">
+              <div class="block-head"><h3 id="lib-title">Video</h3><button class="x-close" id="lib-x" type="button" aria-label="Close">&times;</button></div>
+              <div class="lib-player" id="lib-player"></div>
+              <p class="lib-sum" id="lib-sum" hidden></p>
+            </div>
           </div>
         </section>
 
@@ -2045,6 +2091,7 @@
       el('pane-crumb').textContent = tab.dataset.crumb
       window.scrollTo({ top: 0 })
       if (view === 'chat' && !chat.loaded) loadChat()
+      if (view === 'library' && !LIB.loaded) loadLibrary()
       if (view === 'recaps') markRead('recaps')
       if (view === 'gex') gexShown()
       if (view !== 'gex') endGexTour(false)
@@ -5013,6 +5060,67 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     el('dmpick-x').addEventListener('click', () => { el('dmpick').hidden = true })
     el('dmpick').addEventListener('click', (e) => { if (e.target === el('dmpick')) el('dmpick').hidden = true })
     el('dmpick-q').addEventListener('input', (e) => renderDmPick(e.target.value))
+
+    // ── video library ───────────────────────────────────────
+    // Rows from library_videos (RLS: entitled members see published),
+    // playback through media-url { library_id } like everything else.
+    const LIB = { loaded: false, rows: [], cat: 'all' }
+    const LIB_CATS = [['all', 'All'], ['recap', 'Trade recaps'], ['breakdown', 'PA breakdowns'], ['concept', 'Concepts']]
+    const LIB_NAME = { recap: 'Trade recap', breakdown: 'PA breakdown', concept: 'Concept' }
+
+    async function loadLibrary() {
+      LIB.loaded = true
+      const { data } = await supabase.from('library_videos')
+        .select('id, title, summary, category, created_at, is_published')
+        .order('created_at', { ascending: false })
+      LIB.rows = data ?? []
+      renderLibrary()
+    }
+    function renderLibrary() {
+      const chips = el('lib-chips'); chips.textContent = ''
+      for (const [v, label] of LIB_CATS) {
+        const b = document.createElement('button')
+        b.className = 'lib-chip' + (LIB.cat === v ? ' on' : ''); b.type = 'button'; b.textContent = label
+        b.addEventListener('click', () => { LIB.cat = v; renderLibrary() })
+        chips.appendChild(b)
+      }
+      const rows = LIB.rows.filter((r) => LIB.cat === 'all' || r.category === LIB.cat)
+      el('lib-cap').textContent = LIB_CATS.find(([v]) => v === LIB.cat)[1] === 'All' ? 'All videos' : LIB_CATS.find(([v]) => v === LIB.cat)[1]
+      el('lib-total').textContent = rows.length ? String(rows.length) : ''
+      const list = el('lib-list'); list.textContent = ''
+      el('lib-empty').hidden = rows.length > 0
+      for (const r of rows) {
+        const b = document.createElement('button'); b.className = 'lib-row'; b.type = 'button'
+        const c = document.createElement('span'); c.className = 'c'; c.textContent = LIB_NAME[r.category] ?? r.category
+        const t = document.createElement('span'); t.className = 't'; t.textContent = r.title
+        const d = document.createElement('span'); d.className = 'd'
+        d.textContent = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        b.append(c, t, d)
+        b.addEventListener('click', () => openLibraryVideo(r))
+        list.appendChild(b)
+      }
+    }
+    async function openLibraryVideo(r) {
+      el('lib-title').textContent = r.title
+      const sum = el('lib-sum')
+      sum.textContent = r.summary ?? ''; sum.hidden = !r.summary
+      const player = el('lib-player'); player.textContent = ''; player.classList.add('skel')
+      el('libmodal').hidden = false
+      try {
+        const media = await mediaSign({ library_id: r.id })
+        storageVideo(player, media)
+      } catch (err) {
+        player.classList.remove('skel')
+        const notice = document.createElement('p'); notice.className = 'notice'
+        notice.style.margin = '40px 18px'
+        notice.textContent = `This video is not playable yet (${err.message}).`
+        player.appendChild(notice)
+      }
+    }
+    document.body.appendChild(el('libmodal'))
+    const libClose = () => { el('libmodal').hidden = true; el('lib-player').textContent = '' }
+    el('lib-x').addEventListener('click', libClose)
+    el('libmodal').addEventListener('click', (e) => { if (e.target === el('libmodal')) libClose() })
 
     // ── risk calculator (Overview) ──────────────────────────
     // Contracts = floor(risk / (stop x point value)). Inputs persist.
