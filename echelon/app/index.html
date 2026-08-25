@@ -687,18 +687,24 @@
     .ov-cap .cap-act { margin-left: auto; background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 11.5px; }
     .ov-cap .cap-act:hover { color: var(--muted); }
 
-    /* usd news (red + orange folder events) */
-    .news-day { font-size: 10.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint); padding: 12px 2px 4px; }
-    .news-row { display: flex; align-items: center; gap: 11px; padding: 8px 2px; border-bottom: 1px solid var(--line); font-size: 13px; }
+    /* usd news page: capped width, block-grammar insets, tabular columns */
+    #v-news .block { max-width: 900px; }
+    #news-list { padding: 2px 18px 8px; }
+    #news-empty { margin: 0; padding: 14px 18px 16px; }
+    .news-day { font-size: 10.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint); padding: 16px 0 5px; }
+    .news-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
     .news-row:last-child { border-bottom: 0; }
     .news-row.past { opacity: 0.45; }
     .news-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
     .news-dot.high { background: #d06a5a; }
     .news-dot.med { background: #d9953c; }
-    .news-when { color: var(--faint); font-size: 12px; width: 84px; flex: none; }
+    .news-when { color: var(--faint); font-size: 12px; width: 68px; flex: none; font-variant-numeric: tabular-nums; }
     .news-title { color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .news-next { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); border: 1px solid var(--gold); border-radius: 5px; padding: 1px 6px; flex: none; }
-    .news-fp { margin-left: auto; color: var(--faint); font-size: 11.5px; flex: none; }
+    .news-fp { margin-left: auto; display: flex; gap: 16px; flex: none; }
+    .news-fp .v { color: var(--muted); font-size: 12px; min-width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
+    .news-fp .v em { font-style: normal; color: var(--faint); font-size: 10px; letter-spacing: 0.08em; margin-right: 5px; }
+    @media (max-width: 620px) { .news-fp { gap: 10px; } .news-fp .v { min-width: 0; } .news-when { width: 58px; } }
 
     .mr-title { font-size: 15.5px; font-weight: 650; letter-spacing: -0.01em; margin-top: 7px; }
     .mr-body { color: var(--muted); font-size: 13.5px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 5px; max-width: 72ch; }
@@ -3212,10 +3218,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const t = document.createElement('span'); t.className = 'news-title'; t.textContent = e.title
         row.append(dot, when, t)
         if (e === next) { const tg = document.createElement('span'); tg.className = 'news-next'; tg.textContent = 'Next'; row.appendChild(tg) }
-        const bits = []
-        if (e.forecast) bits.push('f ' + e.forecast)
-        if (e.previous) bits.push('p ' + e.previous)
-        if (bits.length) { const fp = document.createElement('span'); fp.className = 'news-fp'; fp.textContent = bits.join(' · '); row.appendChild(fp) }
+        // two fixed right-aligned slots so forecast/previous line up down the page
+        const fp = document.createElement('span'); fp.className = 'news-fp'
+        for (const [lbl, val] of [['F', e.forecast], ['P', e.previous]]) {
+          const v = document.createElement('span'); v.className = 'v'
+          if (val) { const em = document.createElement('em'); em.textContent = lbl; v.append(em, val) }
+          fp.appendChild(v)
+        }
+        row.appendChild(fp)
         host.appendChild(row)
       }
     }
