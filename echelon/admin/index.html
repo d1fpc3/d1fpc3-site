@@ -2644,6 +2644,7 @@
        uploads into the private lesson-files bucket under recaps/ and the body
        carries a [video:path] line the app swaps for a signed player. */
     let recapUploading = 0
+    let recapThumb = null // library-thumbs path captured from the last attached video
     async function recapAttachVideo(f) {
       const body = el('recap-body'), msg = el('recap-msg')
       if (!f) return
@@ -2665,6 +2666,14 @@
         const { error } = await supabase.storage.from('lesson-files')
           .upload(path, f, { contentType: f.type || undefined })
         if (error) throw error
+        // Poster frame for the video-library card, best effort.
+        libMakeThumb(f).then(async (blob) => {
+          if (!blob) return
+          const tp = `recap-${crypto.randomUUID()}.jpg`
+          const { error: thErr } = await supabase.storage.from('library-thumbs')
+            .upload(tp, blob, { contentType: 'image/jpeg' })
+          if (!thErr) recapThumb = tp
+        })
         body.value = body.value.replace(marker, `[video:${path}]`)
         msg.className = 'msg ok'; msg.textContent = 'Video attached — members get an inline player. Save when ready.'
       } catch (err) {
@@ -2702,7 +2711,9 @@
           title,
           recap_date: el('recap-date').value || undefined,
           body_md: el('recap-body').value || undefined,
+          ...(recapThumb ? { thumb_path: recapThumb } : {}),
         })
+        recapThumb = null
         msg.className = 'msg ok'; msg.textContent = recapEditing ? 'Saved.' : 'Saved as a draft — publish it below when it is ready.'
         if (!recapEditing) recapEditor(null)
         await loadRecaps()
