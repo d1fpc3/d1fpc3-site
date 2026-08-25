@@ -646,6 +646,14 @@
     .mr-head .mr-del { margin-left: auto; background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 12px; opacity: 0; transition: opacity 0.15s ease; }
     .mr-item:hover .mr-del, .mr-item:focus-within .mr-del { opacity: 1; }
     .mr-head .mr-del:hover { color: var(--bad); }
+    /* trade of the day */
+    .totd { display: flex; align-items: center; gap: 16px; padding: 14px 2px; }
+    .totd img { width: 116px; height: 76px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); flex: none; }
+    .totd .totd-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .totd .totd-name { font-weight: 650; font-size: 14px; }
+    .totd .totd-line { color: var(--faint); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
+    .totd .totd-r { margin-left: auto; font-weight: 700; color: var(--gold); font-size: 18px; letter-spacing: -0.01em; flex: none; }
+
     .mr-title { font-size: 15.5px; font-weight: 650; letter-spacing: -0.01em; margin-top: 7px; }
     .mr-body { color: var(--muted); font-size: 13.5px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 5px; max-width: 72ch; }
     .mr-media { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; max-width: 640px; }
@@ -1321,13 +1329,18 @@
 
           <div class="ov-stats" id="ov-mystats"></div>
 
+          <section class="ov-sec" id="ov-totd-sec" hidden>
+            <div class="ov-cap"><span class="label">Trade of the day</span><span class="label" id="ov-totd-when"></span></div>
+            <div class="totd" id="ov-totd"></div>
+          </section>
+
           <section class="ov-sec">
             <div class="ov-cap"><span class="label">Your recaps</span><span class="label" id="mr-total"></span></div>
             <div class="mr-composer collapsed" id="mr-composer">
               <input type="text" id="mr-title" maxlength="120" placeholder="Log today's session…" autocomplete="off">
               <textarea id="mr-body" maxlength="5000" placeholder="What you saw, what you took, how it went."></textarea>
               <div class="mr-pending" id="mr-pending"></div>
-              <div class="mr-actions">
+              <div class="mr-actions" id="mr-extra" hidden>
                 <select id="mr-outcome" aria-label="Outcome">
                   <option value="">Outcome</option>
                   <option value="win">Win</option>
@@ -1335,6 +1348,10 @@
                   <option value="flat">Flat</option>
                 </select>
                 <input type="number" id="mr-r" step="0.1" min="-100" max="100" placeholder="R" aria-label="R multiple">
+                <span class="hint" style="margin:0;">Optional. Best R with a chart takes trade of the day.</span>
+              </div>
+              <div class="mr-actions">
+                <button class="rowbtn" id="mr-extra-toggle" type="button">Outcome / R</button>
                 <input type="file" id="mr-file" accept="image/*,video/*" multiple hidden>
                 <button class="rowbtn" id="mr-attach" type="button">Attach media</button>
                 <button class="btn" id="mr-post" type="button">Post</button>
@@ -1864,7 +1881,7 @@
       user: null, isAdmin: false, isMod: false, hasCourse: false, profile: null,
       modules: [], lessons: [], done: new Set(), currentId: null,
       recaps: [], currentRecap: null, memberRecaps: [], members: [], intake: null, owned: new Set(),
-      products: [], tvAccess: [], reviews: [],
+      products: [], tvAccess: [], reviews: [], rrPool: [],
     }
 
     // Live Stripe payment links + prices for the indicator store. Product keys
@@ -2968,26 +2985,29 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     async function mrPost() {
       const title = el('mr-title').value.trim()
-      if (!title) { toast('Give your recap a title.'); el('mr-title').focus(); return }
       const btn = el('mr-post'); btn.disabled = true
       if (mrUploads.size) { btn.textContent = 'Uploading…'; await Promise.allSettled([...mrUploads]) }
       btn.textContent = 'Post recap'
       const body = el('mr-body').value.trim()
       const media = mrPending.filter((m) => m.url).map(({ url, kind }) => ({ url, kind }))
+      // a chart on its own is a valid log; title, notes, outcome and R are all optional
+      if (!title && !body && !media.length) { btn.disabled = false; toast('Attach a chart or write a line first.'); return }
       const outcome = el('mr-outcome').value || null
       const rRaw = el('mr-r').value.trim()
       const r = rRaw === '' ? null : Number(rRaw)
-      if (r !== null && (!Number.isFinite(r) || r < -100 || r > 100)) { toast('R should be a number like 2.5 or -1.'); return }
+      if (r !== null && (!Number.isFinite(r) || r < -100 || r > 100)) { btn.disabled = false; toast('R should be a number like 2.5 or -1.'); return }
       const { data, error } = await supabase.from('member_recaps')
-        .insert({ user_id: state.user.id, title, body: body || null, media, outcome, r }).select().single()
+        .insert({ user_id: state.user.id, title: title || null, body: body || null, media, outcome, r }).select().single()
       btn.disabled = false
       if (error) { toast('Could not post the recap.'); return }
       el('mr-title').value = ''; el('mr-body').value = ''; el('mr-file').value = ''
       el('mr-outcome').value = ''; el('mr-r').value = ''
+      el('mr-extra').hidden = true
       mrPending = []; mrRenderPending()
       el('mr-composer').classList.add('collapsed')
       state.memberRecaps.unshift(data)
       renderMemberRecaps()
+      if (data.r !== null && data.r !== undefined) { state.rrPool.unshift(data); renderTradeOfDay() }
     }
 
     async function mrDelete(r) {
@@ -3001,6 +3021,43 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (paths.length) supabase.storage.from('recap-media').remove(paths).catch(() => {})
       state.memberRecaps = state.memberRecaps.filter((x) => x.id !== r.id)
       renderMemberRecaps()
+    }
+
+    // ── trade of the day ────────────────────────────────────
+    // Winner = highest R posted today (ET) with a chart attached; ties go to
+    // whoever posted first. Off-days show the latest day that had entries.
+    const ET_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
+    function renderTradeOfDay() {
+      const sec = el('ov-totd-sec'); if (!sec) return
+      const pool = state.rrPool.filter((p) => Number.isFinite(Number(p.r)) && (Array.isArray(p.media) ? p.media : []).some((m) => m?.url && m.kind !== 'video'))
+      if (!pool.length) { sec.hidden = true; return }
+      const today = ET_DAY.format(new Date())
+      let dayPosts = pool.filter((p) => ET_DAY.format(new Date(p.created_at)) === today)
+      let label = 'Leading today'
+      if (!dayPosts.length) {
+        const latest = pool.map((p) => ET_DAY.format(new Date(p.created_at))).sort().at(-1)
+        dayPosts = pool.filter((p) => ET_DAY.format(new Date(p.created_at)) === latest)
+        label = new Date(latest + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+      }
+      const win = dayPosts.slice().sort((a, b) => Number(b.r) - Number(a.r) || new Date(a.created_at) - new Date(b.created_at))[0]
+      sec.hidden = false
+      el('ov-totd-when').textContent = label
+      const host = el('ov-totd'); host.textContent = ''
+      const shot = (win.media ?? []).find((m) => m?.url && m.kind !== 'video')
+      const img = document.createElement('img'); img.src = shot.url; img.alt = win.title || 'Winning trade'; img.loading = 'lazy'
+      host.appendChild(img)
+      const who = document.createElement('div'); who.className = 'totd-who'
+      const info = chatUser(win.user_id)
+      who.appendChild(avatarNode(info, 'av'))
+      const meta = document.createElement('div')
+      const nm = document.createElement('div'); nm.className = 'totd-name'; nm.textContent = info.username
+      meta.appendChild(nm)
+      const line = document.createElement('div'); line.className = 'totd-line'; line.textContent = win.title || win.body || ''
+      if (line.textContent) meta.appendChild(line)
+      who.appendChild(meta); host.appendChild(who)
+      const rv = Number(win.r)
+      const rr = document.createElement('div'); rr.className = 'totd-r'; rr.textContent = `${rv > 0 ? '+' : ''}${rv}R`
+      host.appendChild(rr)
     }
 
     function renderMemberRecaps() {
@@ -3025,8 +3082,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           head.appendChild(del)
         }
         item.appendChild(head)
-        const h = document.createElement('div'); h.className = 'mr-title'; h.textContent = r.title
-        item.appendChild(h)
+        if (r.title) { const h = document.createElement('div'); h.className = 'mr-title'; h.textContent = r.title; item.appendChild(h) }
         if (r.body) { const b = document.createElement('div'); b.className = 'mr-body'; b.textContent = r.body; item.appendChild(b) }
         const media = Array.isArray(r.media) ? r.media : []
         if (media.length) {
@@ -3038,7 +3094,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
               grid.appendChild(v)
             } else {
               const a = document.createElement('a'); a.href = m.url; a.target = '_blank'; a.rel = 'noopener'
-              const i = document.createElement('img'); i.src = m.url; i.alt = r.title; i.loading = 'lazy'
+              const i = document.createElement('img'); i.src = m.url; i.alt = r.title || 'Trade chart'; i.loading = 'lazy'
               a.appendChild(i); grid.appendChild(a)
             }
           }
@@ -3049,6 +3105,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderMyStats()
     }
 
+    el('mr-extra-toggle').addEventListener('click', () => { el('mr-extra').hidden = !el('mr-extra').hidden })
     el('mr-attach').addEventListener('click', () => el('mr-file').click())
     el('mr-file').addEventListener('change', (e) => { for (const f of e.target.files ?? []) mrAttach(f); e.target.value = '' })
     el('mr-post').addEventListener('click', mrPost)
@@ -5343,7 +5400,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // These come back filtered by RLS: without an active entitlement the
       // modules query is simply empty, and trade recaps arrive published-only
       // for members. The directory shows usernames and bios, never emails.
-      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: memberRecaps }, { data: annMsgs }, { data: intake }, { data: products }, { data: tvAccess }, { data: reviews }] = await Promise.all([
+      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: memberRecaps }, { data: annMsgs }, { data: intake }, { data: products }, { data: tvAccess }, { data: reviews }, { data: rrPool }] = await Promise.all([
         supabase.from('modules').select('id, title, position').order('position'),
         supabase.from('lessons').select('id, module_id, slug, title, summary, kind, body_md, blocks, position').order('position'),
         supabase.from('progress').select('lesson_id, completed_at'),
@@ -5354,6 +5411,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         supabase.from('products').select('key, name, kind, blurb, tv_script_name, tv_script_url, bundle_of, position').eq('is_active', true).order('position'),
         supabase.from('tv_access').select('product, state, tv_username'),
         supabase.from('product_reviews').select('product, user_id, rating, comment, created_at').order('created_at', { ascending: false }),
+        // trade-of-the-day pool: everyone's R-tagged posts from the last week
+        supabase.from('member_recaps').select('id, user_id, title, body, media, outcome, r, created_at').not('r', 'is', null).gte('created_at', new Date(Date.now() - 7 * 864e5).toISOString()).order('r', { ascending: false }).limit(200),
         ensureProfile().then(() => loadMembers()),
       ])
 
@@ -5367,6 +5426,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.products = products ?? []
       state.tvAccess = tvAccess ?? []
       state.reviews = reviews ?? []
+      state.rrPool = rrPool ?? []
 
       renderSidebarUser()
       fillSettings()
@@ -5377,6 +5437,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (LIB.loaded) renderLibrary()
       renderMemberRecaps()
       renderMyStats()
+      renderTradeOfDay()
       renderAnnouncements()
       // Only re-open a recap you were already reading (pull-to-refresh).
       // Never auto-open one on a fresh load: the library is a gallery.
