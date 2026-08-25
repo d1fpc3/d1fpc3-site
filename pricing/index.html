@@ -226,8 +226,8 @@
         <a class="more" href="/echelon/gex/">More about GEX →</a>
       </div>
       <div class="ind-side">
-        <a class="btn" href="https://buy.stripe.com/14A9ASfmublzd620oMg7e07">Subscribe · $35/mo</a>
-        <a class="once" href="https://buy.stripe.com/aFacN44HQ1KZea61sQg7e00">Buy once · $147</a>
+        <button class="btn" id="buy-gex-month" type="button">Subscribe · $35/mo</button>
+        <button class="once" id="buy-gex-once" type="button">Buy once · $147</button>
       </div>
     </section>
 
@@ -250,7 +250,7 @@
   <!-- On-page Stripe checkout -->
   <div class="co-scrim" id="co-scrim" role="dialog" aria-modal="true" aria-label="Checkout">
     <div class="co-panel">
-      <div class="co-top"><b>Get Echelon</b><button class="co-x" id="co-x" type="button" aria-label="Close">&times;</button></div>
+      <div class="co-top"><b id="co-title">Get Echelon</b><button class="co-x" id="co-x" type="button" aria-label="Close">&times;</button></div>
       <div class="co-mount" id="co-mount">
         <div class="co-loading" id="co-loading"><div class="co-spin"></div>Loading secure checkout…</div>
         <div id="echelon-checkout"></div>
@@ -282,9 +282,10 @@
       if (_coInstance) { try { _coInstance.destroy(); } catch (e) {} _coInstance = null; }
       document.getElementById('echelon-checkout').innerHTML = '';
     }
-    async function openCheckout(product, interval) {
+    async function openCheckout(product, interval, title) {
       var loading = document.getElementById('co-loading');
       var mount = document.getElementById('echelon-checkout');
+      document.getElementById('co-title').textContent = title || 'Get Echelon';
       document.getElementById('co-scrim').classList.add('on');
       document.body.style.overflow = 'hidden';
       loading.style.display = ''; loading.className = 'co-loading';
@@ -313,6 +314,8 @@
       }
     }
     document.getElementById('buy-course').addEventListener('click', function () { openCheckout('course'); });
+    document.getElementById('buy-gex-month').addEventListener('click', function () { openCheckout('d1-gex', 'month', 'D1 GEX'); });
+    document.getElementById('buy-gex-once').addEventListener('click', function () { openCheckout('d1-gex', 'one_time', 'D1 GEX'); });
     document.getElementById('co-x').addEventListener('click', closeCheckout);
     document.getElementById('co-scrim').addEventListener('click', function (e) {
       if (e.target === document.getElementById('co-scrim')) closeCheckout();

@@ -161,8 +161,8 @@
     </div>
 
     <div class="buy">
-      <a class="btn" href="https://buy.stripe.com/14A9ASfmublzd620oMg7e07">Subscribe · $35/mo</a>
-      <a class="once" href="https://buy.stripe.com/aFacN44HQ1KZea61sQg7e00">Buy once · $147</a>
+      <button class="btn" id="buy-gex-month" type="button">Subscribe · $35/mo</button>
+      <button class="once" id="buy-gex-once" type="button">Buy once · $147</button>
     </div>
     <p class="fine">No membership required. Cancelling a subscription removes script access. <a href="https://www.tradingview.com/script/1IGwzZWk-D1-GEX/" target="_blank" rel="noopener">View the script on TradingView</a>.</p>
     <p class="fine">Already an Echelon member? GEX lives in your app under Indicators, with a live gamma dashboard included.</p>
@@ -180,6 +180,28 @@
     </div>
   </div></footer>
 
+  <!-- On-page Stripe checkout: same popup as /pricing, buying never leaves the page -->
+  <div class="co-scrim" id="co-scrim" role="dialog" aria-modal="true" aria-label="Checkout">
+    <div class="co-panel">
+      <div class="co-top"><b>D1 GEX</b><button class="co-x" id="co-x" type="button" aria-label="Close">&times;</button></div>
+      <div class="co-mount" id="co-mount">
+        <div class="co-loading" id="co-loading"><div class="co-spin"></div>Loading secure checkout…</div>
+        <div id="echelon-checkout"></div>
+      </div>
+    </div>
+  </div>
+  <style>
+    .co-scrim { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,4,0.72); display: none; align-items: center; justify-content: center; padding: 18px; }
+    .co-scrim.on { display: flex; }
+    .co-panel { width: 100%; max-width: 480px; max-height: 92vh; background: #fff; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+    .co-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; color: #1a1207; font-size: 14px; border-bottom: 1px solid #eee; }
+    .co-x { background: none; border: 0; font-size: 20px; line-height: 1; cursor: pointer; color: #666; padding: 2px 6px; }
+    .co-mount { overflow-y: auto; min-height: 320px; }
+    .co-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 60px 20px; color: #666; font-size: 13px; }
+    .co-err { padding: 40px 20px; color: #b3554a; font-size: 13px; text-align: center; }
+    .co-spin { width: 22px; height: 22px; border: 2px solid #ddd; border-top-color: #c9a24a; border-radius: 50%; animation: co-spin 0.8s linear infinite; }
+    @keyframes co-spin { to { transform: rotate(360deg); } }
+  </style>
   <script>
   /* Back goes where they came from when that was one of our pages, else home. */
   document.getElementById('back-link').addEventListener('click', function (e) {
@@ -187,6 +209,68 @@
       e.preventDefault(); history.back();
     }
   });
+  /* Embedded checkout, same flow as /pricing. */
+  (function () {
+    var STRIPE_PK = 'pk_live_51U6czvA2gVheocXUyUDf9yMnpgR3yXrUFcOV9QJ0Ebrnr7igg18xMtwcqTfgqqnxJ2qzMQ3ZpohXSmMouTCXI5bI00RbUxCAJe';
+    var CHECKOUT_FN = 'https://cqdignbleethroyxxvzr.supabase.co/functions/v1/create-checkout';
+    var SB_ANON = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x';
+    var _stripeJs = null, _coInstance = null;
+    function loadStripeJs() {
+      if (_stripeJs) return _stripeJs;
+      _stripeJs = new Promise(function (resolve, reject) {
+        if (window.Stripe) return resolve();
+        var s = document.createElement('script');
+        s.src = 'https://js.stripe.com/v3/'; s.async = true;
+        s.onload = resolve; s.onerror = function () { reject(new Error('Could not load Stripe.')); };
+        document.head.appendChild(s);
+      });
+      return _stripeJs;
+    }
+    function closeCheckout() {
+      document.getElementById('co-scrim').classList.remove('on');
+      document.body.style.overflow = '';
+      if (_coInstance) { try { _coInstance.destroy(); } catch (e) {} _coInstance = null; }
+      document.getElementById('echelon-checkout').innerHTML = '';
+    }
+    async function openCheckout(interval) {
+      var loading = document.getElementById('co-loading');
+      var mount = document.getElementById('echelon-checkout');
+      document.getElementById('co-scrim').classList.add('on');
+      document.body.style.overflow = 'hidden';
+      loading.style.display = ''; loading.className = 'co-loading';
+      loading.innerHTML = '<div class="co-spin"></div>Loading secure checkout…';
+      mount.innerHTML = '';
+      try {
+        await loadStripeJs();
+        var stripe = window.Stripe(STRIPE_PK);
+        var fetchClientSecret = function () {
+          return fetch(CHECKOUT_FN, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: SB_ANON },
+            body: JSON.stringify({ product: 'd1-gex', interval: interval }),
+          }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d.error) throw new Error(d.error);
+            return d.client_secret;
+          });
+        };
+        _coInstance = await stripe.initEmbeddedCheckout({ fetchClientSecret: fetchClientSecret });
+        loading.style.display = 'none';
+        _coInstance.mount('#echelon-checkout');
+      } catch (e) {
+        loading.className = 'co-err';
+        loading.textContent = e.message || 'Checkout could not load. Please try again.';
+      }
+    }
+    document.getElementById('buy-gex-month').addEventListener('click', function () { openCheckout('month'); });
+    document.getElementById('buy-gex-once').addEventListener('click', function () { openCheckout('one_time'); });
+    document.getElementById('co-x').addEventListener('click', closeCheckout);
+    document.getElementById('co-scrim').addEventListener('click', function (e) {
+      if (e.target === document.getElementById('co-scrim')) closeCheckout();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCheckout(); });
+  })();
+  </script>
+  <script>
   /* Live GEX preview: the same public feed the product runs on, drawn small. */
   (function () {
     fetch('https://gex-worker.frankiepc3.workers.dev/gex.json')
