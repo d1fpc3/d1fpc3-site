@@ -823,18 +823,18 @@
     }
     .lib-chip:hover { color: var(--ink); }
     .lib-chip.on { color: var(--gold); border-color: var(--gold); }
-    .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 22px 18px; }
+    .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 26px 20px; }
     .lib-card { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; font-family: inherit; color: var(--ink); }
     .lib-thumb {
       position: relative; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden;
-      background: var(--panel-2); border: 1px solid var(--line);
+      background: linear-gradient(140deg, #23201d, #121110 70%); border: 1px solid var(--line);
     }
     .lib-card:hover .lib-thumb { border-color: var(--line-bright); }
     .lib-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .lib-thumb .ph {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     }
-    .lib-thumb .ph svg { width: 34px; height: 34px; color: var(--faint); }
+    .lib-thumb .ph img { position: static; width: 44px; height: 44px; border-radius: 10px; opacity: 0.9; }
     .lib-thumb .tag {
       position: absolute; left: 10px; bottom: 8px; font-size: 9.5px; font-weight: 600;
       letter-spacing: 0.09em; text-transform: uppercase; color: var(--gold);
@@ -1420,11 +1420,8 @@
               <div class="recap-pane recap-pop" id="recap-reader"></div>
             </div>
           </div>
-          <div class="block">
-            <div class="block-head"><h3 id="lib-cap">All videos</h3><span class="label" id="lib-total"></span></div>
-            <div id="lib-list"></div>
-            <div class="empty" id="lib-empty" hidden>Nothing here yet. Videos land as d1 posts them.</div>
-          </div>
+          <div id="lib-list"></div>
+          <div class="ov-empty" id="lib-empty" hidden>Nothing here yet. Videos land as d1 posts them.</div>
           <!-- player popup (portaled to body at boot) -->
           <div class="dmpick-scrim" id="libmodal" hidden>
             <div class="dmpick lib-player-box">
@@ -1820,6 +1817,17 @@
       localStorage.setItem(THEME_KEY, el('theme-toggle').checked ? 'dark' : 'light')
       applyTheme()
     })
+
+    // Native app shells (iOS/Android) must never show a purchase path —
+    // App Store rule 3.1.1: no prices, no buy buttons, no "purchase on the
+    // web" pointers. The shell loads the app with ?native=1 once; the flag
+    // is remembered so in-app navigation keeps it.
+    const NATIVE = (() => {
+      try {
+        if (new URLSearchParams(location.search).get('native') === '1') localStorage.setItem('echelon-native', '1')
+        return !!globalThis.Capacitor?.isNativePlatform?.() || localStorage.getItem('echelon-native') === '1'
+      } catch { return false }
+    })()
 
     const state = {
       user: null, isAdmin: false, isMod: false, hasCourse: false, profile: null,
@@ -3654,6 +3662,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('echelon-checkout').innerHTML = ''
     }
     async function openCheckout(product, interval, title) {
+      if (NATIVE) return // no purchases inside the native shells, ever
       el('co-title').textContent = title || 'Checkout'
       el('co-scrim').classList.add('on'); document.body.style.overflow = 'hidden'
       const loading = el('co-loading')
@@ -4412,8 +4421,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const ownsBundle = state.owned.has('d1-gex') && state.owned.has('d1-lit')
       const cards = state.products.filter((p) => p.kind === 'indicator' || p.kind === 'bundle')
 
+      // Native shells: the store is view-only. Unowned products (and their
+      // buy buttons) don't render; if nothing is owned the tab hides itself.
+      const ownsAnyProduct = cards.some((p) => (p.kind === 'bundle' ? ownsBundle : state.owned.has(p.key)))
+      const storeTab = document.querySelector('.tab[data-view="indicators"]')
+      if (storeTab && NATIVE) storeTab.hidden = !ownsAnyProduct
+
       for (const p of cards) {
         const owned = p.kind === 'bundle' ? ownsBundle : state.owned.has(p.key)
+        if (NATIVE && !owned) continue
         const row = document.createElement('section'); row.className = 'st-row' + (owned ? ' owned' : '')
         const main = document.createElement('div'); main.className = 'st-main'
         const side = document.createElement('aside'); side.className = 'st-side'
@@ -5049,23 +5065,22 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         ...(state.recaps ?? []).map((r) => ({ kind: 'doc', cat: 'recap', date: r.recap_date, r })),
       ].sort((a, b) => (a.date < b.date ? 1 : -1))
       const rows = merged.filter((m) => LIB.cat === 'all' || m.cat === LIB.cat)
-      el('lib-cap').textContent = LIB.cat === 'all' ? 'Everything' : LIB_CATS.find(([v]) => v === LIB.cat)[1]
-      el('lib-total').textContent = rows.length ? String(rows.length) : ''
       const list = el('lib-list'); list.className = 'lib-grid'; list.textContent = ''
       el('lib-empty').hidden = rows.length > 0
       for (const m of rows) {
         const b = document.createElement('button'); b.className = 'lib-card'; b.type = 'button'
         const th = document.createElement('div'); th.className = 'lib-thumb'
-        if (m.kind === 'video' && m.r.thumb_path) {
+        if (m.r.thumb_path) {
           const img = document.createElement('img')
           img.src = `${SUPABASE_URL}/storage/v1/object/public/library-thumbs/${m.r.thumb_path}`
           img.alt = ''; img.loading = 'lazy'
           th.appendChild(img)
         } else {
+          // No frame yet: the brand mark on the dark card, not a sad glyph.
           const ph = document.createElement('div'); ph.className = 'ph'
-          ph.innerHTML = m.kind === 'doc'
-            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
-            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>'
+          const logo = document.createElement('img')
+          logo.src = '/echelon/assets/logo-mark.png'; logo.alt = ''
+          ph.appendChild(logo)
           th.appendChild(ph)
         }
         const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = LIB_NAME[m.cat] ?? m.cat
@@ -5218,7 +5233,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         supabase.from('modules').select('id, title, position').order('position'),
         supabase.from('lessons').select('id, module_id, slug, title, summary, kind, body_md, blocks, position').order('position'),
         supabase.from('progress').select('lesson_id, completed_at'),
-        supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published').order('recap_date', { ascending: false }),
+        supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published, thumb_path').order('recap_date', { ascending: false }),
         supabase.from('member_recaps').select('id, user_id, title, body, media, outcome, r, created_at').eq('user_id', state.user.id).order('created_at', { ascending: false }).limit(100),
         supabase.from('messages').select('id, channel_id, body, image_url, created_at, channels!inner(kind, name)').eq('channels.kind', 'announcement').is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
         supabase.from('course_intake').select('answers, completed_at').maybeSingle(),
