@@ -1227,14 +1227,10 @@
           Chat <span class="count" id="c-chat" hidden></span>
           <span class="notif" id="n-chat" hidden></span>
         </button>
-        <button class="tab" data-view="recaps" data-title="Trade recaps" data-crumb="Session write-ups">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-          Trade recaps <span class="count" id="c-recaps">—</span>
-          <span class="notif" id="n-recaps" hidden></span>
-        </button>
-        <button class="tab" data-view="library" data-title="Video library" data-crumb="Recaps, breakdowns, concepts">
+        <button class="tab" data-view="library" data-title="Video library" data-crumb="Trade recaps, breakdowns, concepts">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/></svg>
           Video library
+          <span class="notif" id="n-recaps" hidden></span>
         </button>
         <button class="tab" data-view="indicators" data-title="Indicators" data-crumb="Charts and access">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -1400,24 +1396,13 @@
         </section>
 
         <!-- RECAPS -->
-        <section class="view" id="v-recaps">
-          <div class="block" id="recap-reader-block" hidden>
-            <div class="block-head"><h3 id="recap-reader-date">Recap</h3></div>
-            <div class="recap-pane" id="recap-reader"></div>
-          </div>
-          <div class="block">
-            <div class="block-head">
-              <h3>All recaps</h3>
-              <span class="label" id="recaps-total"></span>
-            </div>
-            <div class="tbl-scroll"><table id="recaps-table"></table></div>
-            <div class="empty" id="recaps-empty" hidden>No recaps posted yet. They land here after each session.</div>
-          </div>
-        </section>
-
-        <!-- VIDEO LIBRARY -->
+        <!-- VIDEO LIBRARY (holds the trade recap write-ups too) -->
         <section class="view" id="v-library">
           <div class="lib-chips" id="lib-chips"></div>
+          <div class="block" id="recap-reader-block" hidden>
+            <div class="block-head"><h3 id="recap-reader-date">Recap</h3><button class="x-close" id="recap-x" type="button" aria-label="Close">&times;</button></div>
+            <div class="recap-pane" id="recap-reader"></div>
+          </div>
           <div class="block">
             <div class="block-head"><h3 id="lib-cap">All videos</h3><span class="label" id="lib-total"></span></div>
             <div id="lib-list"></div>
@@ -2092,8 +2077,7 @@
       el('pane-crumb').textContent = tab.dataset.crumb
       window.scrollTo({ top: 0 })
       if (view === 'chat' && !chat.loaded) loadChat()
-      if (view === 'library' && !LIB.loaded) loadLibrary()
-      if (view === 'recaps') markRead('recaps')
+      if (view === 'library') { if (!LIB.loaded) loadLibrary(); markRead('recaps') }
       if (view === 'gex') gexShown()
       if (view !== 'gex') endGexTour(false)
     }
@@ -2816,38 +2800,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         prose.appendChild(p)
         host.appendChild(prose)
       }
-      renderRecapList()
-    }
-
-    function renderRecapList() {
-      el('c-recaps').textContent = String(state.recaps.length)
-      el('recaps-total').textContent = `${state.recaps.length} total`
-      el('recaps-empty').hidden = state.recaps.length > 0
-      const tbl = el('recaps-table')
-      tbl.textContent = ''
-      if (!state.recaps.length) return
-      const thead = document.createElement('thead'), htr = document.createElement('tr')
-      for (const c of ['Date', 'Title', '']) { const th = document.createElement('th'); th.textContent = c; htr.appendChild(th) }
-      thead.appendChild(htr)
-      const tbody = document.createElement('tbody')
-      for (const r of state.recaps) {
-        const tr = document.createElement('tr')
-        tr.className = 'rowlink'
-        const d = document.createElement('td'); d.className = 'num'; d.textContent = whenDay(r.recap_date)
-        const t = document.createElement('td'); t.className = 'ink'; t.textContent = r.title
-        const b = document.createElement('td')
-        if (r.is_published === false) {
-          const badge = document.createElement('span'); badge.className = 'badge b-draft'; badge.textContent = 'draft'
-          b.appendChild(badge)
-        } else if (r.id === state.currentRecap) {
-          const badge = document.createElement('span'); badge.className = 'badge b-live'; badge.textContent = 'reading'
-          b.appendChild(badge)
-        }
-        tr.append(d, t, b)
-        tr.addEventListener('click', () => { openRecap(r.id); window.scrollTo({ top: 0, behavior: 'smooth' }) })
-        tbody.appendChild(tr)
-      }
-      tbl.append(thead, tbody)
     }
 
     // ── first-entry onboarding: five quick questions, once ──
@@ -3553,17 +3505,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         toc.appendChild(group)
       }
 
-      const tbl = el('recaps-table'); tbl.textContent = ''
-      const tbody = document.createElement('tbody')
-      for (let r = 0; r < 4; r++) {
-        const tr = document.createElement('tr')
-        for (const w of ['48%', '72%', '30%']) {
-          const td = document.createElement('td'); td.appendChild(skel(w)); tr.appendChild(td)
-        }
-        tbody.appendChild(tr)
-      }
-      tbl.appendChild(tbody)
-
       const sg = el('store-grid'); sg.textContent = ''
       for (let i = 0; i < 3; i++) {
         const c = document.createElement('div'); c.className = 'prod'
@@ -3580,7 +3521,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         c.append(av, right); mg.appendChild(c)
       }
 
-      for (const id of ['c-lessons', 'c-recaps', 'c-members']) {
+      for (const id of ['c-lessons', 'c-members']) {
         el(id).textContent = ''; el(id).appendChild(skel('14px', 8))
       }
     }
@@ -3651,7 +3592,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         rec.append(kind, h)
         const foot = document.createElement('div'); foot.className = 'lesson-foot'
         const go = document.createElement('button'); go.className = 'btn'; go.textContent = 'Read it'
-        go.addEventListener('click', () => { showView('recaps'); openRecap(latest.id) })
+        go.addEventListener('click', () => { showView('library'); openRecap(latest.id) })
         foot.appendChild(go)
         rec.appendChild(foot)
       }
@@ -5085,19 +5026,28 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         b.addEventListener('click', () => { LIB.cat = v; renderLibrary() })
         chips.appendChild(b)
       }
-      const rows = LIB.rows.filter((r) => LIB.cat === 'all' || r.category === LIB.cat)
-      el('lib-cap').textContent = LIB_CATS.find(([v]) => v === LIB.cat)[1] === 'All' ? 'All videos' : LIB_CATS.find(([v]) => v === LIB.cat)[1]
+      // One list, two sources: uploaded library videos plus the official
+      // trade recap write-ups, newest first.
+      const merged = [
+        ...LIB.rows.map((r) => ({ kind: 'video', cat: r.category, date: r.created_at, r })),
+        ...(state.recaps ?? []).map((r) => ({ kind: 'doc', cat: 'recap', date: r.recap_date, r })),
+      ].sort((a, b) => (a.date < b.date ? 1 : -1))
+      const rows = merged.filter((m) => LIB.cat === 'all' || m.cat === LIB.cat)
+      el('lib-cap').textContent = LIB.cat === 'all' ? 'Everything' : LIB_CATS.find(([v]) => v === LIB.cat)[1]
       el('lib-total').textContent = rows.length ? String(rows.length) : ''
       const list = el('lib-list'); list.textContent = ''
       el('lib-empty').hidden = rows.length > 0
-      for (const r of rows) {
+      for (const m of rows) {
         const b = document.createElement('button'); b.className = 'lib-row'; b.type = 'button'
-        const c = document.createElement('span'); c.className = 'c'; c.textContent = LIB_NAME[r.category] ?? r.category
-        const t = document.createElement('span'); t.className = 't'; t.textContent = r.title
+        const c = document.createElement('span'); c.className = 'c'; c.textContent = LIB_NAME[m.cat] ?? m.cat
+        const t = document.createElement('span'); t.className = 't'; t.textContent = m.r.title
         const d = document.createElement('span'); d.className = 'd'
-        d.textContent = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        d.textContent = m.kind === 'doc'
+          ? whenDay(m.r.recap_date)
+          : new Date(m.r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         b.append(c, t, d)
-        b.addEventListener('click', () => openLibraryVideo(r))
+        if (m.kind === 'doc') b.addEventListener('click', () => { openRecap(m.r.id); window.scrollTo({ top: 0, behavior: 'smooth' }) })
+        else b.addEventListener('click', () => openLibraryVideo(m.r))
         list.appendChild(b)
       }
     }
@@ -5122,6 +5072,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const libClose = () => { el('libmodal').hidden = true; el('lib-player').textContent = '' }
     el('lib-x').addEventListener('click', libClose)
     el('libmodal').addEventListener('click', (e) => { if (e.target === el('libmodal')) libClose() })
+    el('recap-x').addEventListener('click', () => {
+      state.currentRecap = null
+      el('recap-reader-block').hidden = true
+      el('recap-reader').querySelectorAll('video').forEach((v) => v.pause())
+    })
 
     // ── risk calculator (Overview) ──────────────────────────
     // Contracts = floor(risk / (stop x point value)). Inputs persist.
@@ -5206,7 +5161,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // Everyone gets the Overview — it's their personal dashboard (recaps,
       // stats, announcements). Only the course tabs stay behind the purchase
       // (RLS would hand them empty lists anyway).
-      for (const v of ['course', 'recaps']) {
+      for (const v of ['course', 'library']) {
         document.querySelector(`.tab[data-view="${v}"]`).hidden = !state.hasCourse
       }
 
@@ -5257,7 +5212,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('c-lessons').textContent = String(state.lessons.length)
 
       renderIndex()
-      renderRecapList()
+      if (LIB.loaded) renderLibrary()
       renderMemberRecaps()
       renderMyStats()
       renderAnnouncements()
@@ -5393,7 +5348,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // Deep-link from the welcome onboarding: ?start=study|recaps|chat
       const start = new URLSearchParams(location.search).get('start')
       if (start) {
-        const map = { study: 'course', course: 'course', recaps: 'recaps', chat: 'chat', indicators: 'indicators', members: 'members' }
+        const map = { study: 'course', course: 'course', recaps: 'library', chat: 'chat', indicators: 'indicators', members: 'members' }
         const v = map[start]
         const tab = v && document.querySelector(`.tab[data-view="${v}"]`)
         if (tab && !tab.hidden) showView(v)
