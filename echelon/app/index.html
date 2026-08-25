@@ -815,6 +815,9 @@
     .rc-btn svg { width: 18px; height: 18px; }
     .rc-btn svg circle { fill: currentColor; }
     /* video library: chips + a feed of thumbnail cards, popup player */
+    .lib-bar { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+    .lib-bar .lib-chips { margin-bottom: 0; flex: 1; }
+    .lib-post { margin-left: auto; color: var(--gold); border-color: rgba(201,162,74,0.4); flex-shrink: 0; }
     .lib-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
     .lib-chip {
       background: none; border: 1px solid var(--line-bright); border-radius: 9px;
@@ -845,9 +848,12 @@
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .lib-card .m { margin-top: 4px; font-size: 12px; color: var(--faint); }
-    .lib-player-box { max-width: 860px; }
+    /* the player popup is a theater, not a card: near full width, video first */
+    .dmpick.lib-player-box { max-width: min(1160px, 96vw); max-height: 94vh; }
     .recap-pop { overflow-y: auto; padding: 4px 18px 18px; }
     .recap-pop .lesson-h { font-size: 20px; margin: 10px 0 4px; }
+    .recap-pop .prose { max-width: none; }
+    .recap-pop .player { max-width: none; }
     .lib-player { position: relative; aspect-ratio: 16 / 9; background: #000; }
     .lib-player video { position: absolute; inset: 0; width: 100%; height: 100%; }
     .lib-sum { padding: 12px 18px 16px; color: var(--muted); font-size: 13.5px; }
@@ -1412,7 +1418,32 @@
         <!-- RECAPS -->
         <!-- VIDEO LIBRARY (holds the trade recap write-ups too) -->
         <section class="view" id="v-library">
-          <div class="lib-chips" id="lib-chips"></div>
+          <div class="lib-bar">
+            <div class="lib-chips" id="lib-chips"></div>
+            <button class="lib-chip lib-post" id="lib-post" type="button" hidden>Post a video</button>
+          </div>
+          <!-- staff upload popup (portaled to body at boot) -->
+          <div class="dmpick-scrim" id="libupmodal" hidden>
+            <div class="dmpick" style="max-width:460px;">
+              <div class="block-head"><h3>Post a video</h3><button class="x-close" id="mlib-x" type="button" aria-label="Close">&times;</button></div>
+              <div style="padding:14px 16px 16px; display:flex; flex-direction:column; gap:10px;">
+                <input class="inp" id="mlib-title" maxlength="140" placeholder="Title">
+                <select class="inp" id="mlib-cat">
+                  <option value="recap">Trade recap</option>
+                  <option value="breakdown">PA breakdown</option>
+                  <option value="concept">Concept</option>
+                </select>
+                <input class="inp" id="mlib-sum" maxlength="200" placeholder="One line on what it covers (optional)">
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                  <button class="rowbtn" id="mlib-pick" type="button">Choose video</button>
+                  <span class="label" id="mlib-file-name"></span>
+                  <input type="file" id="mlib-file" accept="video/*" hidden>
+                </div>
+                <button class="btn" id="mlib-save" type="button">Upload and publish</button>
+                <p class="msg" id="mlib-msg"></p>
+              </div>
+            </div>
+          </div>
           <!-- recap reader popup (portaled to body at boot) -->
           <div class="dmpick-scrim" id="recapmodal" hidden>
             <div class="dmpick lib-player-box">
@@ -5045,9 +5076,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function loadLibrary() {
       LIB.loaded = true
       const { data } = await supabase.from('library_videos')
-        .select('id, title, summary, category, created_at, is_published, thumb_path')
+        .select('id, title, summary, category, created_at, is_published, thumb_path, created_by')
         .order('created_at', { ascending: false })
       LIB.rows = data ?? []
+      // Uploader names for the "from @x" line on each card.
+      LIB.names = {}
+      const ids = [...new Set(LIB.rows.map((r) => r.created_by).filter(Boolean))]
+      if (ids.length) {
+        const { data: profs } = await supabase.from('profiles').select('user_id, username').in('user_id', ids)
+        for (const p of profs ?? []) LIB.names[p.user_id] = p.username
+      }
+      el('lib-post').hidden = !(state.isMod || state.isAdmin)
       renderLibrary()
     }
     function renderLibrary() {
@@ -5087,9 +5126,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         th.appendChild(tag)
         const t = document.createElement('div'); t.className = 't'; t.textContent = m.r.title
         const meta = document.createElement('div'); meta.className = 'm'
-        meta.textContent = m.kind === 'doc'
+        const who = m.kind === 'doc' ? 'd1fpc3' : (LIB.names?.[m.r.created_by] ?? 'd1fpc3')
+        const when = m.kind === 'doc'
           ? whenDay(m.r.recap_date)
           : new Date(m.r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        meta.textContent = `from ${who} · ${when}`
         b.append(th, t, meta)
         if (m.kind === 'doc') b.addEventListener('click', () => openRecap(m.r.id))
         else b.addEventListener('click', () => openLibraryVideo(m.r))
@@ -5117,6 +5158,77 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const libClose = () => { el('libmodal').hidden = true; el('lib-player').textContent = '' }
     el('lib-x').addEventListener('click', libClose)
     el('libmodal').addEventListener('click', (e) => { if (e.target === el('libmodal')) libClose() })
+
+    // Staff posting from inside the app (admins and mods; RLS enforces it).
+    function libMakeThumb(file) {
+      return new Promise((resolve) => {
+        const url = URL.createObjectURL(file)
+        const v = document.createElement('video')
+        const done = (blob) => { URL.revokeObjectURL(url); resolve(blob ?? null) }
+        v.muted = true; v.preload = 'auto'; v.src = url
+        v.onerror = () => done(null)
+        v.onloadeddata = () => { v.currentTime = Math.min(1, (v.duration || 2) / 2) }
+        v.onseeked = () => {
+          try {
+            const w = 640, h = Math.round(w * v.videoHeight / v.videoWidth) || 360
+            const c = document.createElement('canvas'); c.width = w; c.height = h
+            c.getContext('2d').drawImage(v, 0, 0, w, h)
+            c.toBlob((b) => done(b), 'image/jpeg', 0.82)
+          } catch { done(null) }
+        }
+        setTimeout(() => done(null), 15000)
+      })
+    }
+    document.body.appendChild(el('libupmodal'))
+    let mlibFile = null
+    el('lib-post').addEventListener('click', () => { el('libupmodal').hidden = false })
+    el('mlib-x').addEventListener('click', () => { el('libupmodal').hidden = true })
+    el('libupmodal').addEventListener('click', (e) => { if (e.target === el('libupmodal')) el('libupmodal').hidden = true })
+    el('mlib-pick').addEventListener('click', () => el('mlib-file').click())
+    el('mlib-file').addEventListener('change', () => {
+      mlibFile = el('mlib-file').files[0] ?? null
+      el('mlib-file-name').textContent = mlibFile ? mlibFile.name : ''
+    })
+    el('mlib-save').addEventListener('click', async () => {
+      const msg = el('mlib-msg')
+      const title = el('mlib-title').value.trim()
+      if (!title) { msg.className = 'msg err'; msg.textContent = 'A title, at least.'; return }
+      if (!mlibFile) { msg.className = 'msg err'; msg.textContent = 'Choose the video file.'; return }
+      el('mlib-save').disabled = true
+      msg.className = 'msg'; msg.textContent = 'Uploading… keep this tab open.'
+      try {
+        const id = crypto.randomUUID()
+        const clean = mlibFile.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')
+        const path = `library/${id}/${clean}`
+        const { error: upErr } = await supabase.storage.from('lesson-files')
+          .upload(path, mlibFile, { contentType: mlibFile.type || undefined })
+        if (upErr) throw upErr
+        let thumbPath = null
+        const thumb = await libMakeThumb(mlibFile)
+        if (thumb) {
+          thumbPath = `${id}.jpg`
+          const { error: thErr } = await supabase.storage.from('library-thumbs')
+            .upload(thumbPath, thumb, { contentType: 'image/jpeg' })
+          if (thErr) thumbPath = null
+        }
+        const { error } = await supabase.from('library_videos').insert({
+          title,
+          summary: el('mlib-sum').value.trim() || null,
+          category: el('mlib-cat').value,
+          storage_path: path,
+          thumb_path: thumbPath,
+        })
+        if (error) throw error
+        msg.className = 'msg ok'; msg.textContent = 'Posted.'
+        el('mlib-title').value = ''; el('mlib-sum').value = ''
+        el('mlib-file').value = ''; mlibFile = null; el('mlib-file-name').textContent = ''
+        setTimeout(() => { el('libupmodal').hidden = true; msg.textContent = '' }, 900)
+        loadLibrary()
+      } catch (err) {
+        msg.className = 'msg err'; msg.textContent = err.message
+      }
+      el('mlib-save').disabled = false
+    })
     document.body.appendChild(el('recapmodal'))
     const recapClose = () => {
       state.currentRecap = null
@@ -5209,9 +5321,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // Everyone gets the Overview — it's their personal dashboard (recaps,
       // stats, announcements). Only the course tabs stay behind the purchase
       // (RLS would hand them empty lists anyway).
-      for (const v of ['course', 'library']) {
-        document.querySelector(`.tab[data-view="${v}"]`).hidden = !state.hasCourse
-      }
+      document.querySelector('.tab[data-view="course"]').hidden = !state.hasCourse
+      // The library follows has_access(): any active entitlement (or staff)
+      // can watch — GEX and LIT subscribers included, not just course owners.
+      document.querySelector('.tab[data-view="library"]').hidden =
+        !(state.owned.size > 0 || state.isMod || state.isAdmin)
 
       await fetchAndRender()
     }
