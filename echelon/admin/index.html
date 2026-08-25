@@ -2566,6 +2566,7 @@
           b.disabled = true
           await supabase.from('library_videos').delete().eq('id', r.id)
           supabase.storage.from('lesson-files').remove([r.storage_path]).then(() => {}, () => {})
+          if (r.thumb_path) supabase.storage.from('library-thumbs').remove([r.thumb_path]).then(() => {}, () => {})
           loadLibraryAdmin()
         })
         tr.appendChild(td)
@@ -2578,6 +2579,27 @@
       libFile = el('lib-file').files[0] ?? null
       el('lib-file-name').textContent = libFile ? libFile.name : ''
     })
+    /* Poster frame for the feed card: seek a second in, draw to canvas. Best
+       effort — a codec the browser can't decode just means no thumbnail. */
+    function libMakeThumb(file) {
+      return new Promise((resolve) => {
+        const url = URL.createObjectURL(file)
+        const v = document.createElement('video')
+        const done = (blob) => { URL.revokeObjectURL(url); resolve(blob ?? null) }
+        v.muted = true; v.preload = 'auto'; v.src = url
+        v.onerror = () => done(null)
+        v.onloadeddata = () => { v.currentTime = Math.min(1, (v.duration || 2) / 2) }
+        v.onseeked = () => {
+          try {
+            const w = 640, h = Math.round(w * v.videoHeight / v.videoWidth) || 360
+            const c = document.createElement('canvas'); c.width = w; c.height = h
+            c.getContext('2d').drawImage(v, 0, 0, w, h)
+            c.toBlob((b) => done(b), 'image/jpeg', 0.82)
+          } catch { done(null) }
+        }
+        setTimeout(() => done(null), 15000)
+      })
+    }
     el('lib-save').addEventListener('click', async () => {
       const msg = el('lib-msg')
       const title = el('lib-title-in').value.trim()
@@ -2586,16 +2608,26 @@
       el('lib-save').disabled = true
       msg.className = 'msg'; msg.textContent = 'Uploading… keep this tab open.'
       try {
+        const id = crypto.randomUUID()
         const clean = libFile.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')
-        const path = `library/${crypto.randomUUID()}/${clean}`
+        const path = `library/${id}/${clean}`
         const { error: upErr } = await supabase.storage.from('lesson-files')
           .upload(path, libFile, { contentType: libFile.type || undefined })
         if (upErr) throw upErr
+        let thumbPath = null
+        const thumb = await libMakeThumb(libFile)
+        if (thumb) {
+          thumbPath = `${id}.jpg`
+          const { error: thErr } = await supabase.storage.from('library-thumbs')
+            .upload(thumbPath, thumb, { contentType: 'image/jpeg' })
+          if (thErr) thumbPath = null
+        }
         const { error } = await supabase.from('library_videos').insert({
           title,
           summary: el('lib-sum-in').value.trim() || null,
           category: el('lib-cat-in').value,
           storage_path: path,
+          thumb_path: thumbPath,
         })
         if (error) throw error
         msg.className = 'msg ok'; msg.textContent = 'Published. Members can watch it now.'
