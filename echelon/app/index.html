@@ -846,6 +846,8 @@
     }
     .lib-card .m { margin-top: 4px; font-size: 12px; color: var(--faint); }
     .lib-player-box { max-width: 860px; }
+    .recap-pop { overflow-y: auto; padding: 4px 18px 18px; }
+    .recap-pop .lesson-h { font-size: 20px; margin: 10px 0 4px; }
     .lib-player { position: relative; aspect-ratio: 16 / 9; background: #000; }
     .lib-player video { position: absolute; inset: 0; width: 100%; height: 100%; }
     .lib-sum { padding: 12px 18px 16px; color: var(--muted); font-size: 13.5px; }
@@ -1411,9 +1413,12 @@
         <!-- VIDEO LIBRARY (holds the trade recap write-ups too) -->
         <section class="view" id="v-library">
           <div class="lib-chips" id="lib-chips"></div>
-          <div class="block" id="recap-reader-block" hidden>
-            <div class="block-head"><h3 id="recap-reader-date">Recap</h3><button class="x-close" id="recap-x" type="button" aria-label="Close">&times;</button></div>
-            <div class="recap-pane" id="recap-reader"></div>
+          <!-- recap reader popup (portaled to body at boot) -->
+          <div class="dmpick-scrim" id="recapmodal" hidden>
+            <div class="dmpick lib-player-box">
+              <div class="block-head"><h3 id="recap-reader-date">Recap</h3><button class="x-close" id="recap-x" type="button" aria-label="Close">&times;</button></div>
+              <div class="recap-pane recap-pop" id="recap-reader"></div>
+            </div>
           </div>
           <div class="block">
             <div class="block-head"><h3 id="lib-cap">All videos</h3><span class="label" id="lib-total"></span></div>
@@ -2769,9 +2774,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function openRecap(id) {
       state.currentRecap = id
       const r = state.recaps.find((x) => x.id === id)
-      const blockEl = el('recap-reader-block')
-      if (!r) { blockEl.hidden = true; return }
-      blockEl.hidden = false
+      if (!r) { el('recapmodal').hidden = true; return }
+      el('recapmodal').hidden = false
       el('recap-reader-date').textContent = whenDay(r.recap_date)
       const host = el('recap-reader')
       host.textContent = ''
@@ -5072,7 +5076,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           ? whenDay(m.r.recap_date)
           : new Date(m.r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         b.append(th, t, meta)
-        if (m.kind === 'doc') b.addEventListener('click', () => { openRecap(m.r.id); window.scrollTo({ top: 0, behavior: 'smooth' }) })
+        if (m.kind === 'doc') b.addEventListener('click', () => openRecap(m.r.id))
         else b.addEventListener('click', () => openLibraryVideo(m.r))
         list.appendChild(b)
       }
@@ -5098,11 +5102,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const libClose = () => { el('libmodal').hidden = true; el('lib-player').textContent = '' }
     el('lib-x').addEventListener('click', libClose)
     el('libmodal').addEventListener('click', (e) => { if (e.target === el('libmodal')) libClose() })
-    el('recap-x').addEventListener('click', () => {
+    document.body.appendChild(el('recapmodal'))
+    const recapClose = () => {
       state.currentRecap = null
-      el('recap-reader-block').hidden = true
+      el('recapmodal').hidden = true
       el('recap-reader').querySelectorAll('video').forEach((v) => v.pause())
-    })
+    }
+    el('recap-x').addEventListener('click', recapClose)
+    el('recapmodal').addEventListener('click', (e) => { if (e.target === el('recapmodal')) recapClose() })
 
     // ── risk calculator (Overview) ──────────────────────────
     // Contracts = floor(risk / (stop x point value)). Inputs persist.
@@ -5242,7 +5249,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderMemberRecaps()
       renderMyStats()
       renderAnnouncements()
-      const recap = state.recaps.find((r) => r.id === keepRecap) ?? state.recaps[0]
+      // Only re-open a recap you were already reading (pull-to-refresh).
+      // Never auto-open one on a fresh load: the library is a gallery.
+      const recap = keepRecap ? state.recaps.find((r) => r.id === keepRecap) : null
       if (recap) openRecap(recap.id)
       renderOverview()
       renderStore()
