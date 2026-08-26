@@ -686,15 +686,34 @@
 
     /* daily quote */
     .qrot { position: relative; max-width: 560px; padding: 20px 64px 18px 20px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); font-family: Georgia, 'Times New Roman', serif; }
-    .qrot blockquote { margin: 0 0 10px; font-size: 15.5px; line-height: 1.55; color: var(--ink); transition: opacity 0.25s ease, transform 0.25s ease; }
-    .qrot.swap blockquote { opacity: 0; transform: translateY(6px); }
-    .qrot .who4 { font-family: 'Inter', -apple-system, system-ui, sans-serif; font-size: 12px; color: var(--faint); transition: opacity 0.25s ease; }
-    .qrot.swap .who4 { opacity: 0; }
-    .qrot .next { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line-bright); background: none; color: var(--faint); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.2s ease, border-color 0.2s ease, transform 0.3s ease; }
-    .qrot .next:hover { color: var(--gold); border-color: var(--gold); transform: rotate(180deg); }
-    .qrot .next svg { width: 13px; height: 13px; }
+    .qrot blockquote { margin: 0 0 10px; font-size: 15.5px; line-height: 1.55; color: var(--ink); }
+    .qrot .who4 { font-family: 'Inter', -apple-system, system-ui, sans-serif; font-size: 12px; color: var(--faint); }
     .ov-cap .cap-act { margin-left: auto; background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 11.5px; }
     .ov-cap .cap-act:hover { color: var(--muted); }
+
+    /* journal: a rail of days and a page that saves itself */
+    #v-journal .block { max-width: 980px; }
+    .j-wrap { display: grid; grid-template-columns: 210px minmax(0, 1fr); min-height: 460px; }
+    .j-rail { border-right: 1px solid var(--line); padding: 10px 0; max-height: 640px; overflow-y: auto; }
+    .j-day { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; cursor: pointer; color: var(--muted); font: inherit; font-size: 13px; padding: 9px 18px; }
+    .j-day:hover { color: var(--ink); background: var(--panel-2); }
+    .j-day.on { color: var(--ink); background: var(--panel-2); box-shadow: inset 2px 0 0 var(--gold); }
+    .j-has { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); margin-left: auto; flex: none; }
+    .j-page { display: flex; flex-direction: column; }
+    .j-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 15px 18px 8px; }
+    .j-head h3 { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+    #j-status { margin: 0; }
+    #j-body { flex: 1; background: none; border: 0; resize: none; color: var(--ink); font-family: inherit; font-size: 14px; line-height: 1.7; padding: 4px 18px 18px; min-height: 380px; }
+    #j-body:focus { outline: none; }
+    #j-body::placeholder { color: var(--faint); }
+    @media (max-width: 760px) {
+      .j-wrap { grid-template-columns: 1fr; }
+      .j-rail { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 0 8px; max-height: none; }
+      .j-day { width: auto; white-space: nowrap; padding: 11px 10px; }
+      .j-has { margin-left: 6px; }
+    }
+
+    #ov-news { max-width: 860px; }
 
     /* usd news page: capped width, block-grammar insets, tabular columns */
     #v-news .block { max-width: 900px; }
@@ -1324,6 +1343,10 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
           Overview
         </button>
+        <button class="tab" data-view="journal" data-title="Journal" data-crumb="Your daily pages">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Journal
+        </button>
         <button class="tab" data-view="course" data-title="Study" data-crumb="Lessons and progress">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           Study <span class="count" id="c-lessons">—</span>
@@ -1411,6 +1434,11 @@
 
           <div class="ov-stats" id="ov-mystats"></div>
 
+          <section class="ov-sec" id="ov-news-sec" hidden>
+            <div class="ov-cap"><span class="label">Today's USD news</span><span class="label">red &amp; orange folders</span></div>
+            <div id="ov-news"></div>
+          </section>
+
           <section class="ov-sec" id="ov-totd-sec" hidden>
             <div class="ov-cap"><span class="label">Trade of the day</span><span class="label" id="ov-totd-when"></span></div>
             <div class="totd" id="ov-totd"></div>
@@ -1471,8 +1499,7 @@
             <div class="dmpick" style="max-width:460px;">
               <div class="block-head"><h3>Daily quote</h3><button class="rowbtn" id="quote-hide" type="button">Dismiss</button></div>
               <div class="gi-body">
-                <div class="qrot" id="qrot" style="max-width:none;">
-                  <button class="next" id="quote-next" aria-label="Next quote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg></button>
+                <div class="qrot" id="qrot" style="max-width:none;padding:20px;">
                   <blockquote id="quote-text"></blockquote>
                   <div class="who4" id="quote-who"></div>
                 </div>
@@ -1667,6 +1694,19 @@
               <div class="setgrid" style="max-width:none;">
                 <input class="inp" id="dmpick-q" type="search" placeholder="Search members" autocomplete="off">
                 <div class="dmpick-list" id="dmpick-list"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- JOURNAL: one page a day, saves itself -->
+        <section class="view" id="v-journal">
+          <div class="block">
+            <div class="j-wrap">
+              <aside class="j-rail" id="j-rail"></aside>
+              <div class="j-page">
+                <div class="j-head"><h3 id="j-title">Today</h3><span class="hint" id="j-status"></span></div>
+                <textarea id="j-body" maxlength="20000" placeholder="What was the plan. What you saw. What you did about it. How it went."></textarea>
               </div>
             </div>
           </div>
@@ -2001,7 +2041,7 @@
       user: null, isAdmin: false, isMod: false, hasCourse: false, profile: null,
       modules: [], lessons: [], done: new Set(), currentId: null,
       recaps: [], currentRecap: null, memberRecaps: [], members: [], intake: null, owned: new Set(),
-      products: [], tvAccess: [], reviews: [], rrPool: [],
+      products: [], tvAccess: [], reviews: [], rrPool: [], journal: [],
     }
 
     // Live Stripe payment links + prices for the indicator store. Product keys
@@ -3190,10 +3230,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       m.hidden = !show
       if (show) quotePaint()
     }
-    el('quote-next').addEventListener('click', () => {
-      const card = el('qrot'); card.classList.add('swap')
-      setTimeout(() => { quoteIdx = (quoteIdx + 1) % QUOTES.length; quotePaint(); card.classList.remove('swap') }, 260)
-    })
     el('quote-hide').addEventListener('click', quoteDismiss)
     el('quotemodal').addEventListener('click', (e) => { if (e.target === el('quotemodal')) quoteDismiss() })
     el('set-quotes').addEventListener('change', () => { localStorage.setItem(QUOTES_OFF, el('set-quotes').checked ? '0' : '1'); renderDailyQuote() })
@@ -3201,31 +3237,49 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // ── USD news: Forex Factory red + orange folders ────────
     // Same feed the Discord bot publishes; edge-cached 5 minutes.
     const NEWS_URL = 'https://forex-factory-discord.frankiepc3.workers.dev/calendar.json'
+    let newsEvents = []
     async function loadNews() {
       const host = el('news-list'); if (!host) return
       try {
         const res = await fetch(NEWS_URL)
         if (!res.ok) throw new Error('news ' + res.status)
         const rows = await res.json()
-        const events = (Array.isArray(rows) ? rows : [])
+        newsEvents = (Array.isArray(rows) ? rows : [])
           .filter((e) => e.country === 'USD' && (e.impact === 'High' || e.impact === 'Medium'))
           .map((e) => ({ ...e, at: new Date(e.date) }))
           .filter((e) => !isNaN(e.at))
           .sort((a, b) => a.at - b.at)
-        renderNews(events)
+        renderNews()
+        renderOvNews()
       } catch {
         // keep whatever is on screen; only admit emptiness if there's nothing
         if (!host.childElementCount) el('news-empty').hidden = false
       }
     }
-    function renderNews(events) {
+    function newsRow(e, now) {
+      const row = document.createElement('div'); row.className = 'news-row' + (e.at.getTime() < now ? ' past' : '')
+      const dot = document.createElement('span'); dot.className = 'news-dot ' + (e.impact === 'High' ? 'high' : 'med'); dot.title = e.impact + ' impact'
+      const when = document.createElement('span'); when.className = 'news-when'; when.textContent = e.at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+      const t = document.createElement('span'); t.className = 'news-title'; t.textContent = e.title
+      row.append(dot, when, t)
+      // two fixed right-aligned slots so forecast/previous line up down the page
+      const fp = document.createElement('span'); fp.className = 'news-fp'
+      for (const [lbl, val] of [['F', e.forecast], ['P', e.previous]]) {
+        const v = document.createElement('span'); v.className = 'v'
+        if (val) { const em = document.createElement('em'); em.textContent = lbl; v.append(em, val) }
+        fp.appendChild(v)
+      }
+      row.appendChild(fp)
+      return row
+    }
+    function renderNews() {
       const host = el('news-list'); if (!host) return
       const now = Date.now()
       const today = ET_DAY.format(new Date())
-      el('news-empty').hidden = events.length > 0
+      el('news-empty').hidden = newsEvents.length > 0
       host.textContent = ''
       let lastDay = ''
-      for (const e of events) {
+      for (const e of newsEvents) {
         const dk = ET_DAY.format(e.at)
         if (dk !== lastDay) {
           lastDay = dk
@@ -3233,24 +3287,68 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           h.textContent = dk === today ? 'Today' : e.at.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })
           host.appendChild(h)
         }
-        const row = document.createElement('div'); row.className = 'news-row' + (e.at.getTime() < now ? ' past' : '')
-        const dot = document.createElement('span'); dot.className = 'news-dot ' + (e.impact === 'High' ? 'high' : 'med'); dot.title = e.impact + ' impact'
-        const when = document.createElement('span'); when.className = 'news-when'; when.textContent = e.at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-        const t = document.createElement('span'); t.className = 'news-title'; t.textContent = e.title
-        row.append(dot, when, t)
-        // two fixed right-aligned slots so forecast/previous line up down the page
-        const fp = document.createElement('span'); fp.className = 'news-fp'
-        for (const [lbl, val] of [['F', e.forecast], ['P', e.previous]]) {
-          const v = document.createElement('span'); v.className = 'v'
-          if (val) { const em = document.createElement('em'); em.textContent = lbl; v.append(em, val) }
-          fp.appendChild(v)
-        }
-        row.appendChild(fp)
-        host.appendChild(row)
+        host.appendChild(newsRow(e, now))
       }
+    }
+    // the Overview carries just today's slate; the News tab has the week
+    function renderOvNews() {
+      const sec = el('ov-news-sec'); if (!sec) return
+      const host = el('ov-news')
+      const now = Date.now()
+      const today = ET_DAY.format(new Date())
+      const rows = newsEvents.filter((e) => ET_DAY.format(e.at) === today)
+      sec.hidden = !rows.length
+      host.textContent = ''
+      for (const e of rows) host.appendChild(newsRow(e, now))
     }
     loadNews()
     setInterval(loadNews, 5 * 60e3)
+
+    // ── journal: one page a day, saves itself ───────────────
+    const jToday = () => new Date().toLocaleDateString('en-CA')
+    let jDate = jToday(), jTimer = null, jLoadedBody = ''
+    function jGet(d) { return state.journal.find((e) => e.entry_date === d) }
+    function renderJournalRail() {
+      const rail = el('j-rail'); if (!rail) return
+      rail.textContent = ''
+      const dates = [...new Set([jToday(), ...state.journal.map((e) => e.entry_date)])]
+      for (const d of dates.slice(0, 90)) {
+        const b = document.createElement('button'); b.type = 'button'
+        b.className = 'j-day' + (d === jDate ? ' on' : '')
+        const label = document.createElement('span')
+        label.textContent = d === jToday() ? 'Today' : new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+        b.appendChild(label)
+        if (jGet(d)?.body?.trim()) { const dot = document.createElement('span'); dot.className = 'j-has'; b.appendChild(dot) }
+        b.addEventListener('click', () => jOpen(d))
+        rail.appendChild(b)
+      }
+    }
+    function jOpen(d) {
+      jDate = d
+      jLoadedBody = jGet(d)?.body ?? ''
+      el('j-body').value = jLoadedBody
+      el('j-title').textContent = d === jToday() ? 'Today' : new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
+      el('j-status').textContent = ''
+      renderJournalRail()
+    }
+    async function jSave() {
+      if (!state.user) return
+      const body = el('j-body').value
+      if (body === jLoadedBody) return
+      const forDate = jDate
+      el('j-status').textContent = 'Saving…'
+      const { data, error } = await supabase.from('journal_entries')
+        .upsert({ user_id: state.user.id, entry_date: forDate, body, updated_at: new Date().toISOString() }, { onConflict: 'user_id,entry_date' })
+        .select().single()
+      if (error) { el('j-status').textContent = 'Not saved — check your connection.'; return }
+      if (forDate === jDate) jLoadedBody = body
+      const i = state.journal.findIndex((e) => e.entry_date === forDate)
+      if (i >= 0) state.journal[i] = data; else state.journal.unshift(data)
+      el('j-status').textContent = 'Saved.'
+      renderJournalRail()
+    }
+    el('j-body').addEventListener('input', () => { clearTimeout(jTimer); jTimer = setTimeout(jSave, 800) })
+    el('j-body').addEventListener('blur', () => { clearTimeout(jTimer); jSave() })
 
     // ── trade of the day ────────────────────────────────────
     // Winner = highest R posted today (ET) with a chart attached; ties go to
@@ -5654,7 +5752,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // These come back filtered by RLS: without an active entitlement the
       // modules query is simply empty, and trade recaps arrive published-only
       // for members. The directory shows usernames and bios, never emails.
-      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: memberRecaps }, { data: annMsgs }, { data: intake }, { data: products }, { data: tvAccess }, { data: reviews }, { data: rrPool }] = await Promise.all([
+      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: memberRecaps }, { data: annMsgs }, { data: intake }, { data: products }, { data: tvAccess }, { data: reviews }, { data: rrPool }, { data: journal }] = await Promise.all([
         supabase.from('modules').select('id, title, position').order('position'),
         supabase.from('lessons').select('id, module_id, slug, title, summary, kind, body_md, blocks, position').order('position'),
         supabase.from('progress').select('lesson_id, completed_at'),
@@ -5667,6 +5765,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         supabase.from('product_reviews').select('product, user_id, rating, comment, created_at').order('created_at', { ascending: false }),
         // trade-of-the-day pool: everyone's R-tagged posts from the last week
         supabase.from('member_recaps').select('id, user_id, title, body, media, outcome, r, created_at').not('r', 'is', null).gte('created_at', new Date(Date.now() - 7 * 864e5).toISOString()).order('r', { ascending: false }).limit(200),
+        supabase.from('journal_entries').select('id, user_id, entry_date, body, updated_at').order('entry_date', { ascending: false }).limit(90),
         ensureProfile().then(() => loadMembers()),
       ])
 
@@ -5681,6 +5780,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.tvAccess = tvAccess ?? []
       state.reviews = reviews ?? []
       state.rrPool = rrPool ?? []
+      state.journal = journal ?? []
 
       renderSidebarUser()
       fillSettings()
@@ -5693,6 +5793,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderMyStats()
       renderTradeOfDay()
       renderDailyQuote()
+      // don't clobber a page mid-keystroke on background refreshes
+      if (document.activeElement !== el('j-body')) jOpen(jDate)
+      renderOvNews()
       renderAnnouncements()
       // Only re-open a recap you were already reading (pull-to-refresh).
       // Never auto-open one on a fresh load: the library is a gallery.
