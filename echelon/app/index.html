@@ -691,34 +691,31 @@
     .ov-cap .cap-act { margin-left: auto; background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 11.5px; }
     .ov-cap .cap-act:hover { color: var(--muted); }
 
-    /* journal: a rail of days and a page that saves itself */
-    #v-journal .block { max-width: 980px; }
-    .j-wrap { display: grid; grid-template-columns: 210px minmax(0, 1fr); min-height: 460px; }
-    .j-rail { border-right: 1px solid var(--line); padding: 10px 0; max-height: 640px; overflow-y: auto; }
-    .j-day { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; cursor: pointer; color: var(--muted); font: inherit; font-size: 13px; padding: 9px 18px; }
+    /* journal: the whole pane is the page — a document, not a panel.
+       The topbar title goes away on this view (desktop hides the bar
+       entirely; mobile keeps it for the menu button). */
+    .journal-full .tb-title { display: none; }
+    @media (min-width: 761px) { .journal-full .topbar { display: none; } .journal-full .pane { padding-top: 30px; } }
+    #v-journal .block { max-width: none; background: none; border: 0; border-radius: 0; overflow: visible; }
+    .j-wrap { display: block; }
+    .j-rail { display: flex; gap: 2px; overflow-x: auto; max-width: 880px; margin: 0 auto 14px; padding: 0 2px; }
+    .j-day { display: flex; align-items: center; gap: 7px; width: auto; white-space: nowrap; text-align: left; background: none; border: 0; cursor: pointer; color: var(--faint); font: inherit; font-size: 12.5px; padding: 7px 11px; border-radius: 8px; }
     .j-day:hover { color: var(--ink); background: var(--panel-2); }
-    .j-day.on { color: var(--ink); background: var(--panel-2); box-shadow: inset 2px 0 0 var(--gold); }
-    .j-has { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); margin-left: auto; flex: none; }
-    .j-page { display: flex; flex-direction: column; }
-    .j-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 15px 18px 8px; }
-    .j-head h3 { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+    .j-day.on { color: var(--ink); background: var(--panel-2); }
+    .j-has { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex: none; }
+    .j-page { display: flex; flex-direction: column; max-width: 880px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; box-shadow: 0 24px 60px -42px rgba(0,0,0,0.55); min-height: calc(100vh - 150px); }
+    .j-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: clamp(26px, 5vw, 50px) clamp(26px, 7vw, 84px) 0; }
+    .j-head h3 { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
     #j-status { margin: 0; }
     .j-tools { display: flex; align-items: baseline; gap: 12px; }
-    .j-photos { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 18px 16px; }
+    .j-photos { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 clamp(26px, 7vw, 84px) 48px; }
     .j-photos:empty { display: none; }
     .j-ph { position: relative; }
     .j-ph img { height: 86px; border-radius: 8px; border: 1px solid var(--line); display: block; }
     .j-ph-x { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-bright); background: var(--panel-2); color: var(--muted); cursor: pointer; font: 600 12px/1 inherit; display: flex; align-items: center; justify-content: center; padding: 0; }
     .j-ph-x:hover { color: var(--ink); border-color: var(--gold); }
-    #j-body { flex: 1; background: none; border: 0; resize: none; color: var(--ink); font-family: inherit; font-size: 14px; line-height: 1.7; padding: 4px 18px 18px; min-height: 380px; }
+    #j-body { flex: 1; background: none; border: 0; resize: none; color: var(--ink); font-family: inherit; font-size: 15px; line-height: 1.85; padding: 14px clamp(26px, 7vw, 84px) 34px; min-height: 55vh; }
     #j-body:focus { outline: none; }
-    #j-body::placeholder { color: var(--faint); }
-    @media (max-width: 760px) {
-      .j-wrap { grid-template-columns: 1fr; }
-      .j-rail { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 0 8px; max-height: none; }
-      .j-day { width: auto; white-space: nowrap; padding: 11px 10px; }
-      .j-has { margin-left: 6px; }
-    }
 
     #ov-news { max-width: 860px; }
 
@@ -2320,6 +2317,7 @@
       const tab = tabs.find((t) => t.dataset.view === view)
       el('pane-title').textContent = tab.dataset.title
       el('pane-crumb').textContent = tab.dataset.crumb
+      document.body.classList.toggle('journal-full', view === 'journal')
       window.scrollTo({ top: 0 })
       if (view === 'chat' && !chat.loaded) loadChat()
       if (view === 'library') { if (!LIB.loaded) loadLibrary(); markRead('recaps') }
