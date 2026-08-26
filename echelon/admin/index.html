@@ -924,6 +924,7 @@
               <div class="pe-wrap">
                 <input class="pe-title" id="pe-title" placeholder="Lesson title" maxlength="120" autocomplete="off">
                 <input class="pe-summary" id="pe-summary" placeholder="One-line summary (optional)" maxlength="200" autocomplete="off">
+                <textarea class="pe-summary" id="pe-hw" placeholder="Homework (optional): what they must mark up and submit. A mod or you approves it before the lesson can be completed." maxlength="5000" rows="2" style="resize:vertical;width:100%;"></textarea>
                 <div id="pe-blocks"></div>
                 <div class="pe-add">
                   <span class="label">Add</span>
@@ -2151,6 +2152,7 @@
         : legacyToBlocks(l)
       el('pe-title').value = l?.title ?? ''
       el('pe-summary').value = l?.summary ?? ''
+      el('pe-hw').value = l?.homework ?? ''
       fillModuleSelect()
       el('pe-module').value = l?.module_id ?? moduleId ?? ''
       el('pe-msg').textContent = ''
@@ -2306,6 +2308,7 @@
           ...(PE.id ? { id: PE.id } : {}),
           title,
           summary: el('pe-summary').value,
+          homework: el('pe-hw').value,
           module_id: moduleId,
           kind,
           blocks,
@@ -2442,7 +2445,7 @@
     async function loadContent() {
       const [{ data: mods }, { data: lessons }, { data: views }, { data: profs }] = await Promise.all([
         supabase.from('modules').select('*').order('position'),
-        supabase.from('lessons').select('id, module_id, title, summary, kind, body_md, blocks, video_provider, video_id, storage_path, is_published, position').order('position'),
+        supabase.from('lessons').select('id, module_id, title, summary, kind, body_md, blocks, homework, video_provider, video_id, storage_path, is_published, position').order('position'),
         supabase.from('lesson_views').select('*'),
         supabase.from('profiles').select('user_id, username'),
       ])

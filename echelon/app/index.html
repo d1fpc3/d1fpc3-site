@@ -697,6 +697,29 @@
     .ov-cap .cap-act { margin-left: auto; background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 11.5px; }
     .ov-cap .cap-act:hover { color: var(--muted); }
 
+    /* homework */
+    .hw { border-top: 1px solid var(--line); margin-top: 26px; padding-top: 18px; }
+    .hw-cap { display: flex; align-items: center; gap: 10px; }
+    .hw-cap h3 { font-size: 14.5px; font-weight: 650; letter-spacing: -0.01em; }
+    .hw-st { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 5px; padding: 2px 7px; }
+    .hw-st.none { color: var(--faint); border: 1px solid var(--line-bright); }
+    .hw-st.pending { color: var(--gold); background: rgba(201,162,74,0.12); }
+    .hw-st.approved { color: var(--good); background: rgba(134,181,127,0.12); }
+    .hw-st.denied { color: var(--bad); background: rgba(217,139,122,0.12); }
+    .hw-prompt { color: var(--muted); font-size: 13.5px; margin-top: 8px; white-space: pre-wrap; max-width: 62ch; }
+    .hw-note { color: var(--bad); font-size: 12.5px; margin-top: 8px; }
+    .hw-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .hw-grid img { height: 92px; border-radius: 8px; border: 1px solid var(--line); display: block; }
+    .hw-box { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; max-width: 560px; }
+    .hw-notein { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font-family: inherit; font-size: 13px; padding: 9px 11px; resize: vertical; min-height: 40px; }
+    .hw-notein:focus { outline: none; border-color: var(--gold); }
+    .hw-row { display: flex; align-items: center; gap: 10px; }
+    .hwq { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+    .hwq:last-child { border-bottom: 0; }
+    .hwq-head { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink); }
+    .hwq-note { color: var(--muted); font-size: 13px; margin-top: 8px; }
+    .hwq-act { display: flex; gap: 10px; margin-top: 12px; }
+
     /* journal: the whole pane is the page — a document, not a panel.
        The topbar title goes away on this view (desktop hides the bar
        entirely; mobile keeps it for the menu button). */
@@ -1375,6 +1398,10 @@
           Video library
           <span class="notif" id="n-recaps" hidden></span>
         </button>
+        <button class="tab" id="hw-tab" data-view="homework" data-title="Homework" data-crumb="Markups waiting for review" hidden>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Homework <span class="count" id="c-hw" hidden></span>
+        </button>
         <button class="tab" data-view="news" data-title="News" data-crumb="Red and orange USD folders, this week">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           News
@@ -1738,6 +1765,15 @@
                 <div id="j-body" contenteditable="true" aria-label="Journal page"></div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <!-- HOMEWORK: staff review queue -->
+        <section class="view" id="v-homework">
+          <div class="block" style="max-width:900px;">
+            <div class="block-head"><h3>Homework</h3><span class="label">Waiting for review</span></div>
+            <div id="hw-queue"></div>
+            <p class="hint" id="hw-empty" style="margin:0;padding:14px 18px 16px;" hidden>Nothing waiting. Good.</p>
           </div>
         </section>
 
@@ -2983,14 +3019,51 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         host.appendChild(prose)
       }
 
+      // ── homework ──
+      const myHw = lesson.homework ? state.hw.find((s) => s.lesson_id === lesson.id && s.user_id === state.user.id) : null
+      if (lesson.homework) {
+        const hw = document.createElement('section'); hw.className = 'hw'
+        const cap = document.createElement('div'); cap.className = 'hw-cap'
+        const h = document.createElement('h3'); h.textContent = 'Homework'
+        const badge = document.createElement('span')
+        badge.className = 'hw-st ' + (myHw?.status ?? 'none')
+        badge.textContent = myHw ? ({ pending: 'Waiting for review', approved: 'Approved', denied: 'Sent back' })[myHw.status] : 'To do'
+        cap.append(h, badge)
+        hw.appendChild(cap)
+        const prompt = document.createElement('p'); prompt.className = 'hw-prompt'; prompt.textContent = lesson.homework
+        hw.appendChild(prompt)
+        if (myHw?.status === 'denied' && myHw.review_note) {
+          const rn = document.createElement('p'); rn.className = 'hw-note'; rn.textContent = myHw.review_note
+          hw.appendChild(rn)
+        }
+        if (myHw?.media?.length && myHw.status !== 'denied') {
+          const grid = document.createElement('div'); grid.className = 'hw-grid'
+          for (const m of myHw.media) {
+            if (!m?.url) continue
+            const a = document.createElement('a'); a.href = m.url; a.target = '_blank'; a.rel = 'noopener'
+            const i = document.createElement('img'); i.src = m.url; i.alt = ''; i.loading = 'lazy'
+            a.appendChild(i); grid.appendChild(a)
+          }
+          hw.appendChild(grid)
+        }
+        if (!myHw || myHw.status === 'denied') hw.appendChild(hwComposer(lesson, myHw))
+        host.appendChild(hw)
+      }
+
       // ── mark complete / next ──
       const foot = document.createElement('div')
       foot.className = 'lesson-foot'
 
       const done = state.done.has(lesson.id)
+      const hwApproved = !lesson.homework || myHw?.status === 'approved'
       const mark = document.createElement('button')
       mark.className = done ? 'rowbtn' : 'btn'
       mark.textContent = done ? 'Mark as not done' : 'Mark complete'
+      if (!done && !hwApproved) {
+        mark.disabled = true
+        mark.className = 'rowbtn'
+        mark.textContent = myHw?.status === 'pending' ? 'Complete once your homework clears' : 'Homework first'
+      }
       mark.addEventListener('click', async () => {
         mark.disabled = true
         const nowDone = !state.done.has(lesson.id)
@@ -3343,6 +3416,109 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     loadNews()
     setInterval(loadNews, 5 * 60e3)
+
+    // ── homework: submit markups, staff approves ────────────
+    function hwComposer(lesson, mine) {
+      const box = document.createElement('div'); box.className = 'hw-box'
+      let picked = []
+      const picks = document.createElement('div'); picks.className = 'hw-grid'
+      const note = document.createElement('textarea'); note.className = 'hw-notein'; note.maxLength = 2000
+      note.placeholder = 'A line about your markup (optional)'
+      if (mine?.note) note.value = mine.note
+      const file = document.createElement('input'); file.type = 'file'; file.accept = 'image/*'; file.multiple = true; file.hidden = true
+      const row = document.createElement('div'); row.className = 'hw-row'
+      const add = document.createElement('button'); add.type = 'button'; add.className = 'rowbtn'; add.textContent = 'Attach markups'
+      add.addEventListener('click', () => file.click())
+      const send = document.createElement('button'); send.type = 'button'; send.className = 'btn'
+      send.textContent = mine ? 'Resubmit' : 'Submit homework'
+      const msg = document.createElement('span'); msg.className = 'hint'
+      file.addEventListener('change', async () => {
+        for (const f of file.files ?? []) {
+          if (!f.type.startsWith('image/')) continue
+          if (f.size > 10 * 1024 * 1024) { toast(`${f.name} is over 10MB.`); continue }
+          if (picked.length >= 6) { toast('Up to 6 images.'); break }
+          msg.textContent = 'Uploading…'
+          const ext = (f.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png'
+          const path = `${state.user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+          const { error } = await supabase.storage.from('homework-media').upload(path, f, { contentType: f.type, upsert: false })
+          if (error) { msg.textContent = `Could not upload ${f.name}.`; continue }
+          const url = supabase.storage.from('homework-media').getPublicUrl(path).data.publicUrl
+          picked.push({ url, kind: 'image' })
+          const i = document.createElement('img'); i.src = url; picks.appendChild(i)
+          msg.textContent = ''
+        }
+        file.value = ''
+      })
+      send.addEventListener('click', async () => {
+        if (!picked.length) { toast('Attach at least one markup.'); return }
+        send.disabled = true; msg.textContent = 'Submitting…'
+        const { data, error } = await supabase.from('homework_submissions').upsert({
+          lesson_id: lesson.id, user_id: state.user.id, media: picked,
+          note: note.value.trim() || null, status: 'pending',
+          review_note: null, reviewed_by: null, reviewed_at: null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'lesson_id,user_id' }).select().single()
+        if (error) { send.disabled = false; msg.textContent = 'Could not submit.'; return }
+        state.hw = [data, ...state.hw.filter((s) => s.id !== data.id)]
+        toast('Homework in. A mod will take a look.')
+        openLesson(lesson.id)
+        renderHwQueue()
+      })
+      row.append(add, send, msg)
+      box.append(picks, note, row, file)
+      return box
+    }
+    function renderHwQueue() {
+      const tab = el('hw-tab'); if (!tab) return
+      const staff = state.isAdmin || state.isMod
+      const pending = staff ? state.hw.filter((s) => s.status === 'pending') : []
+      tab.hidden = !staff
+      const c = el('c-hw'); c.hidden = !staff || !pending.length; c.textContent = String(pending.length)
+      if (!staff) return
+      const host = el('hw-queue'); host.textContent = ''
+      el('hw-empty').hidden = pending.length > 0
+      for (const s of pending) {
+        const lesson = state.lessons.find((l) => l.id === s.lesson_id)
+        const row = document.createElement('section'); row.className = 'hwq'
+        const head = document.createElement('div'); head.className = 'hwq-head'
+        const info = chatUser(s.user_id)
+        head.appendChild(avatarNode(info, 'av'))
+        const who = document.createElement('b'); who.textContent = info.username
+        const les = document.createElement('span'); les.className = 'hint'; les.textContent = lesson?.title ?? 'Lesson'
+        head.append(who, les)
+        row.appendChild(head)
+        if (s.note) { const n = document.createElement('p'); n.className = 'hwq-note'; n.textContent = s.note; row.appendChild(n) }
+        const grid = document.createElement('div'); grid.className = 'hw-grid'
+        for (const m of s.media ?? []) {
+          if (!m?.url) continue
+          const a = document.createElement('a'); a.href = m.url; a.target = '_blank'; a.rel = 'noopener'
+          const i = document.createElement('img'); i.src = m.url; i.alt = ''; i.loading = 'lazy'
+          a.appendChild(i); grid.appendChild(a)
+        }
+        row.appendChild(grid)
+        const act = document.createElement('div'); act.className = 'hwq-act'
+        const ok = document.createElement('button'); ok.className = 'btn'; ok.type = 'button'; ok.textContent = 'Approve'
+        ok.addEventListener('click', () => hwReview(s, 'approved', null))
+        const no = document.createElement('button'); no.className = 'rowbtn'; no.type = 'button'; no.textContent = 'Send back'
+        no.addEventListener('click', () => {
+          const why = prompt('A line for them (optional):')
+          if (why === null) return
+          hwReview(s, 'denied', why.trim() || null)
+        })
+        act.append(ok, no)
+        row.appendChild(act)
+        host.appendChild(row)
+      }
+    }
+    async function hwReview(s, status, note) {
+      const { data, error } = await supabase.from('homework_submissions')
+        .update({ status, review_note: note, reviewed_by: state.user.id, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', s.id).select().single()
+      if (error) { toast('Could not save the review.'); return }
+      state.hw = state.hw.map((x) => (x.id === data.id ? data : x))
+      renderHwQueue()
+      toast(status === 'approved' ? 'Approved.' : 'Sent back.')
+    }
 
     // ── journal: one page a day, saves itself ───────────────
     const jToday = () => new Date().toLocaleDateString('en-CA')
@@ -6005,6 +6181,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderMyStats()
       renderTradeOfDay()
       renderDailyQuote()
+      renderHwQueue()
       // don't clobber a page mid-keystroke on background refreshes
       if (document.activeElement !== el('j-body')) jOpen(jDate)
       renderOvNews()
