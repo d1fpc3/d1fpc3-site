@@ -342,6 +342,7 @@
     .gex-levels td.lvl-name small { font-size: 10.5px; }
     .gex-levels .tbl-scroll { overflow-y: auto; }
     .gex-stamp { padding: 9px 14px 11px; border-top: 1px solid var(--line); }
+    .gex-topbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
     .gex-about { margin-top: 26px; }
     .ga-rows { padding: 0 18px 6px; }
     .ga-row { display: grid; grid-template-columns: 190px 1fr; gap: 18px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.6; }
@@ -1764,6 +1765,7 @@
 
         <!-- GEX dashboard (GEX subscribers only) -->
         <section class="view" id="v-gex">
+          <div class="gex-topbar"><button class="rowbtn" id="gex-whatis">What is GEX?</button></div>
           <div class="gex-read" id="gex-read"></div>
           <div class="gex-regime" id="gex-regime" hidden></div>
           <div class="gex-grid" id="gex-grid">
@@ -1816,8 +1818,14 @@
             <div class="ga-rows">
               <div class="ga-row"><b>What you're looking at</b><span>Market makers who sell QQQ options have to hedge them by buying and selling the underlying. GEX (gamma exposure) estimates how much forced hedging sits at each strike, in dollars per 1% move. Where the piles are big, price behaves differently moving through them.</span></div>
               <div class="ga-row"><b>Call wall / put wall</b><span>The strikes carrying the largest positive and negative gamma. Price tends to slow, stall, or pin into a wall because dealer hedging leans against the move there.</span></div>
-              <div class="ga-row"><b>Gamma flip</b><span>The level where net dealer gamma changes sign. Above it, hedging dampens moves; below it, hedging chases price and moves get faster. When no flip prints, the sign never crosses inside the strike range.</span></div>
-              <div class="ga-row"><b>Regime</b><span>Net positive gamma: dealers absorb flow, expect chop and mean reversion. Net negative gamma: dealers amplify flow, expect trend and fast tails. The regime line above reads this for you on every print.</span></div>
+              <div class="ga-row"><b>What dealers do on positive days</b><span>When dealers are net long gamma, their book gains delta as price rises and loses it as price falls — so staying flat forces them to sell every rally and buy every dip. Real, mechanical flow leans against each move, which is why positive days pin, chop, and mean-revert, and why the walls hold: the closer price gets to a big strike, the harder the hedging pushes back.</span></div>
+              <div class="ga-row"><b>What dealers do on negative days</b><span>When dealers are net short gamma it inverts: a drop makes their book longer, so they must sell into the decline; a rally makes it shorter, so they must buy into the rip. Their hedging now pushes the same direction as price — selling forces more selling. That's why negative days trend, tails run fast, and walls act as launch points instead of brakes.</span></div>
+              <div class="ga-row"><b>Gamma flip</b><span>The price where net dealer gamma crosses zero — the switch between those two regimes. Above it, dips get bought and fades work; below it, hedging chases price and rallies are suspect until the flip is reclaimed. A decisive break of the flip on volume is one of the strongest intraday signals on the board. And the flip moves: fresh 0DTE positioning drags it around during the session, so the regime line tracks its drift — worth re-checking in the early afternoon, not just at the open. When no flip prints, the sign never crosses inside the strike range.</span></div>
+              <div class="ga-row"><b>GTBR band</b><span>Gamma-theta breakeven — roughly one expected daily move either side of the open. Dealers bleed on gamma when price moves but collect theta as time passes; inside the band the theta covers the bleed, so nobody is forced to do anything and even a negative-gamma day can chop quietly. Past either edge, gamma losses outrun theta and the forced hedging switches on. Think of it as the trigger: the regime tells you what kind of day it would be, the band tells you whether that day has started.</span></div>
+              <div class="ga-row"><b>Flow check</b><span>The standing book (open interest) versus what actually traded today (volume). When both agree, trust the regime at full conviction. When the standing book is positive but today's flow is selling, the regime may be turning — expect false breaks. When a negative book meets heavy buying flow, squeezes get violent.</span></div>
+              <div class="ga-row"><b>Major wall</b><span>The single biggest gamma concentration on the whole board — the session's gravity point. Above spot leans the tape upward, below leans it down. If it relocates during the day, the regime line says so; that shift usually means large positioning changed, so respect the new location over the morning one.</span></div>
+              <div class="ga-row"><b>Charm into the close</b><span>As the day ages, time decay alone drains delta out of options, forcing dealers to adjust hedges even if price sits still. On 0DTE this flow dominates the last 90 minutes — after about 2pm the walls fade in importance and the charm lean in the regime line carries the close.</span></div>
+              <div class="ga-row"><b>Regime</b><span>Net positive gamma: dealers absorb flow, expect chop and mean reversion. Net negative gamma: dealers amplify flow, expect trend and fast tails. The regime line above reads this for you on every print. One honest caveat: dealer positioning is inferred, not observed — treat every level as a zone that needs live price confirmation, not a line that trades itself.</span></div>
               <div class="ga-row"><b>0DTE vs Swing</b><span>0DTE reads only today's expiry, where hedging pressure is most violent intraday. Swing stacks the later expiries out to roughly 60 days for the bigger structure.</span></div>
               <div class="ga-row"><b>&Gamma;1 to &Gamma;10</b><span>The ten biggest gamma concentrations on the board, ranked by absolute size, either side of spot. These are the magnet and brake candidates beyond the walls.</span></div>
               <div class="ga-row"><b>NQ mapping</b><span>Everything is computed on QQQ, then mapped onto NQ with a live-refit ratio: <span id="ga-conv">&#8212;</span>. The ratio is re-fit from live prices on every print, so NQ levels stay honest as the spread drifts.</span></div>
@@ -4909,6 +4917,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         try { await loadGex(true) } catch (err) { el('gex-stamp').textContent = `Refresh failed: ${err.message}` }
         finally { btn.disabled = false; btn.textContent = 'Refresh' }
       })
+      // "What is GEX?" -> the How-GEX-works breakdown at the bottom of this tab
+      el('gex-whatis').addEventListener('click', () => el('gex-about').scrollIntoView({ behavior: 'smooth', block: 'start' }))
       el('gex-copy').addEventListener('click', async () => {
         if (!GEX.data) return
         const btn = el('gex-copy')
