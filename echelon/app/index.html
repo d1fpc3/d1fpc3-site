@@ -707,15 +707,15 @@
     .j-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: clamp(26px, 5vw, 50px) clamp(26px, 7vw, 84px) 0; }
     .j-head h3 { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
     #j-status { margin: 0; }
-    .j-tools { display: flex; align-items: baseline; gap: 12px; }
-    .j-photos { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 clamp(26px, 7vw, 84px) 48px; }
-    .j-photos:empty { display: none; }
-    .j-ph { position: relative; }
-    .j-ph img { height: 86px; border-radius: 8px; border: 1px solid var(--line); display: block; }
-    .j-ph-x { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-bright); background: var(--panel-2); color: var(--muted); cursor: pointer; font: 600 12px/1 inherit; display: flex; align-items: center; justify-content: center; padding: 0; }
-    .j-ph-x:hover { color: var(--ink); border-color: var(--gold); }
-    #j-body { flex: 1; background: none; border: 0; resize: none; color: var(--ink); font-family: inherit; font-size: 15px; line-height: 1.85; padding: 14px clamp(26px, 7vw, 84px) 34px; min-height: 55vh; }
+    .j-tools { display: flex; align-items: center; gap: 12px; }
+    .j-bar { display: flex; align-items: center; gap: 2px; }
+    .j-tb { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 13px; width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+    .j-tb:hover { color: var(--ink); background: var(--panel-2); }
+    .j-tb.j-plus { font-size: 19px; font-weight: 300; }
+    #j-body { flex: 1; background: none; border: 0; color: var(--ink); font-family: inherit; font-size: 15px; line-height: 1.85; padding: 14px clamp(26px, 7vw, 84px) 34px; min-height: 55vh; white-space: pre-wrap; overflow-wrap: break-word; }
     #j-body:focus { outline: none; }
+    #j-body img { max-width: min(100%, 640px); border-radius: 10px; border: 1px solid var(--line); display: block; margin: 14px 0; }
+    #j-body ul, #j-body ol { padding-left: 26px; margin: 8px 0; white-space: normal; }
 
     #ov-news { max-width: 860px; }
 
@@ -1711,11 +1711,21 @@
               <div class="j-page" id="j-page">
                 <div class="j-head">
                   <h3 id="j-title">Today</h3>
-                  <span class="j-tools"><span class="hint" id="j-status"></span><button class="rowbtn" id="j-photo-btn" type="button">Add photos</button></span>
+                  <span class="j-tools">
+                    <span class="hint" id="j-status"></span>
+                    <span class="j-bar" role="toolbar" aria-label="Formatting">
+                      <button class="j-tb" data-cmd="bold" type="button" title="Bold"><b>B</b></button>
+                      <button class="j-tb" data-cmd="italic" type="button" title="Italic"><i>I</i></button>
+                      <button class="j-tb" data-cmd="underline" type="button" title="Underline"><u>U</u></button>
+                      <button class="j-tb" data-cmd="strikeThrough" type="button" title="Strikethrough"><s>S</s></button>
+                      <button class="j-tb" data-cmd="insertUnorderedList" type="button" title="Bulleted list">•</button>
+                      <button class="j-tb" data-cmd="insertOrderedList" type="button" title="Numbered list">1.</button>
+                      <button class="j-tb j-plus" id="j-photo-btn" type="button" title="Add a photo" aria-label="Add a photo">+</button>
+                    </span>
+                  </span>
                 </div>
                 <input type="file" id="j-photo-file" accept="image/*" multiple hidden>
-                <textarea id="j-body" maxlength="20000" aria-label="Journal page"></textarea>
-                <div class="j-photos" id="j-photos"></div>
+                <div id="j-body" contenteditable="true" aria-label="Journal page"></div>
               </div>
             </div>
           </div>
@@ -3334,38 +3344,61 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         rail.appendChild(b)
       }
     }
-    let jMedia = []
+    // The page is contenteditable — near enough to a word document: bold,
+    // italic, underline, strikethrough, lists, and photos inline where the
+    // cursor sits. Content round-trips through a strict whitelist (formatting
+    // tags with no attributes; img only from our bucket) so nothing else can
+    // ever be stored or rendered.
+    const J_IMG_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/journal-media/`
+    const J_TAGS = { B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u', S: 's', STRIKE: 's', DEL: 's', UL: 'ul', OL: 'ol', LI: 'li', H2: 'h2', H3: 'h3' }
+    const jEscape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    function jSerializeInto(node, out) {
+      for (const c of node.childNodes) {
+        if (c.nodeType === 3) { out.push(jEscape(c.nodeValue)) }
+        else if (c.nodeType !== 1) continue
+        else if (c.nodeName === 'BR') out.push('<br>')
+        else if (c.nodeName === 'IMG') { const s = c.getAttribute('src') || ''; if (s.startsWith(J_IMG_PREFIX)) out.push(`<img src="${s}">`) }
+        else if (J_TAGS[c.nodeName]) { const t = J_TAGS[c.nodeName]; out.push(`<${t}>`); jSerializeInto(c, out); out.push(`</${t}>`) }
+        else { if (out.length) out.push('<br>'); jSerializeInto(c, out) } // div/p/etc = line boundary
+      }
+    }
+    function jSerialize() { const out = []; jSerializeInto(el('j-body'), out); return out.join('') }
+    function jRenderInto(node, host) {
+      for (const c of node.childNodes) {
+        if (c.nodeType === 3) host.appendChild(document.createTextNode(c.nodeValue))
+        else if (c.nodeType !== 1) continue
+        else if (c.nodeName === 'BR') host.appendChild(document.createElement('br'))
+        else if (c.nodeName === 'IMG') {
+          const s = c.getAttribute('src') || ''
+          if (s.startsWith(J_IMG_PREFIX)) { const i = document.createElement('img'); i.src = s; host.appendChild(i) }
+        } else if (J_TAGS[c.nodeName]) { const elx = document.createElement(J_TAGS[c.nodeName]); jRenderInto(c, elx); host.appendChild(elx) }
+        else jRenderInto(c, host)
+      }
+    }
+    function jRender(body) {
+      const host = el('j-body'); host.textContent = ''
+      if (!body) return
+      if (!/<(br|img|b|i|u|s|ul|ol|li|h2|h3)[ >]/.test(body)) { // legacy plain text
+        body.split('\n').forEach((line, i) => { if (i) host.appendChild(document.createElement('br')); host.appendChild(document.createTextNode(line)) })
+        return
+      }
+      jRenderInto(new DOMParser().parseFromString(body, 'text/html').body, host)
+    }
     function jOpen(d) {
       jDate = d
-      const e = jGet(d)
-      jLoadedBody = e?.body ?? ''
-      jMedia = Array.isArray(e?.media) ? [...e.media] : []
-      el('j-body').value = jLoadedBody
+      jRender(jGet(d)?.body ?? '')
+      jLoadedBody = jSerialize() // normalized, so an untouched page never re-saves
       el('j-title').textContent = d === jToday() ? 'Today' : new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
       el('j-status').textContent = ''
-      renderJournalPhotos()
       renderJournalRail()
-    }
-    function renderJournalPhotos() {
-      const host = el('j-photos'); if (!host) return
-      host.textContent = ''
-      jMedia.forEach((m, idx) => {
-        if (!m?.url) return
-        const wrap = document.createElement('span'); wrap.className = 'j-ph'
-        const a = document.createElement('a'); a.href = m.url; a.target = '_blank'; a.rel = 'noopener'
-        const img = document.createElement('img'); img.src = m.url; img.alt = ''; img.loading = 'lazy'
-        a.appendChild(img); wrap.appendChild(a)
-        const x = document.createElement('button'); x.type = 'button'; x.className = 'j-ph-x'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove photo')
-        x.addEventListener('click', () => { jMedia.splice(idx, 1); renderJournalPhotos(); jSave(true) })
-        wrap.appendChild(x)
-        host.appendChild(wrap)
-      })
     }
     async function jSave(force) {
       if (!state.user) return
-      const body = el('j-body').value
+      const body = jSerialize()
       if (!force && body === jLoadedBody) return
-      const forDate = jDate, media = jMedia
+      if (body.length > 60000) { el('j-status').textContent = 'This page is full.'; return }
+      const forDate = jDate
+      const media = [...body.matchAll(/<img src="([^"]+)"/g)].map((m) => ({ url: m[1], kind: 'image' })).slice(0, 12)
       el('j-status').textContent = 'Saving…'
       const { data, error } = await supabase.from('journal_entries')
         .upsert({ user_id: state.user.id, entry_date: forDate, body, media, updated_at: new Date().toISOString() }, { onConflict: 'user_id,entry_date' })
@@ -3377,25 +3410,57 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('j-status').textContent = 'Saved.'
       renderJournalRail()
     }
-    async function jAddPhoto(file) {
-      if (!file || !file.type.startsWith('image/')) { toast('Photos only in the journal.'); return }
+    function jCaretInsert(node, range) {
+      const host = el('j-body')
+      const sel = window.getSelection()
+      let r = range && host.contains(range.startContainer) ? range : null
+      if (!r && sel && sel.rangeCount && host.contains(sel.anchorNode)) r = sel.getRangeAt(0)
+      if (r) { r.collapse(false); r.insertNode(node); r.setStartAfter(node); r.collapse(true); sel.removeAllRanges(); sel.addRange(r) }
+      else host.appendChild(node)
+    }
+    async function jInsertPhoto(file, range) {
+      if (!file || !file.type.startsWith('image/')) return
       if (file.size > 10 * 1024 * 1024) { toast(`${file.name} is over 10MB.`); return }
-      if (jMedia.length >= 12) { toast('Up to 12 photos a day.'); return }
       const forDate = jDate
+      const ph = document.createElement('img')
+      ph.src = URL.createObjectURL(file); ph.style.opacity = '0.45'
+      jCaretInsert(ph, range)
       el('j-status').textContent = 'Uploading…'
       const ext = (file.name.split('.').pop() || file.type.split('/')[1] || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
       const path = `${state.user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
       const { error } = await supabase.storage.from('journal-media').upload(path, file, { contentType: file.type, upsert: false })
-      if (error) { el('j-status').textContent = `Could not upload ${file.name}.`; return }
-      if (forDate !== jDate) return // switched days mid-upload; let it go
-      jMedia.push({ url: supabase.storage.from('journal-media').getPublicUrl(path).data.publicUrl, kind: 'image' })
-      renderJournalPhotos()
+      if (error || forDate !== jDate) { ph.remove(); if (error) el('j-status').textContent = `Could not upload ${file.name}.`; return }
+      const blobUrl = ph.src
+      ph.src = supabase.storage.from('journal-media').getPublicUrl(path).data.publicUrl
+      ph.style.opacity = ''
+      URL.revokeObjectURL(blobUrl)
       jSave(true)
     }
+    try { document.execCommand('styleWithCSS', false, false) } catch {}
+    document.querySelectorAll('.j-tb[data-cmd]').forEach((b) => {
+      b.addEventListener('mousedown', (e) => e.preventDefault()) // don't steal the selection
+      b.addEventListener('click', () => {
+        el('j-body').focus()
+        try { document.execCommand(b.dataset.cmd) } catch {}
+        clearTimeout(jTimer); jTimer = setTimeout(jSave, 800)
+      })
+    })
     el('j-photo-btn').addEventListener('click', () => el('j-photo-file').click())
-    el('j-photo-file').addEventListener('change', (e) => { for (const f of e.target.files ?? []) jAddPhoto(f); e.target.value = '' })
+    el('j-photo-file').addEventListener('change', (e) => { for (const f of e.target.files ?? []) jInsertPhoto(f); e.target.value = '' })
+    el('j-body').addEventListener('paste', (e) => {
+      const items = [...(e.clipboardData?.items ?? [])].filter((i) => i.kind === 'file' && i.type.startsWith('image/'))
+      if (items.length) { e.preventDefault(); items.forEach((i) => jInsertPhoto(i.getAsFile())); return }
+      const text = e.clipboardData?.getData('text/plain')
+      if (text != null) { e.preventDefault(); document.execCommand('insertText', false, text) } // outside HTML never enters the page
+    })
     el('j-page').addEventListener('dragover', (e) => { e.preventDefault() })
-    el('j-page').addEventListener('drop', (e) => { e.preventDefault(); for (const f of e.dataTransfer?.files ?? []) jAddPhoto(f) })
+    el('j-page').addEventListener('drop', (e) => {
+      e.preventDefault()
+      const files = [...(e.dataTransfer?.files ?? [])].filter((f) => f.type.startsWith('image/'))
+      if (!files.length) return
+      const range = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null
+      files.forEach((f) => jInsertPhoto(f, range))
+    })
     el('j-body').addEventListener('input', () => { clearTimeout(jTimer); jTimer = setTimeout(jSave, 800) })
     el('j-body').addEventListener('blur', () => { clearTimeout(jTimer); jSave() })
 
