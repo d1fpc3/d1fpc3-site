@@ -714,7 +714,11 @@
     .j-tb.j-plus { font-size: 19px; font-weight: 300; }
     #j-body { flex: 1; background: none; border: 0; color: var(--ink); font-family: inherit; font-size: 15px; line-height: 1.85; padding: 14px clamp(26px, 7vw, 84px) 34px; min-height: 55vh; white-space: pre-wrap; overflow-wrap: break-word; }
     #j-body:focus { outline: none; }
-    #j-body img { max-width: min(100%, 640px); border-radius: 10px; border: 1px solid var(--line); display: block; margin: 14px 0; }
+    #j-body img { border-radius: 10px; border: 1px solid var(--line); display: block; margin: 14px 0; height: auto; }
+    #j-body img:not([width]) { max-width: min(100%, 640px); }
+    #j-body img[width] { max-width: 100%; }
+    #j-body img.j-sel { outline: 2px solid var(--gold); outline-offset: 2px; }
+    #j-grip { position: fixed; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); border: 2px solid var(--panel); cursor: nwse-resize; z-index: 60; touch-action: none; }
     #j-body ul, #j-body ol { padding-left: 26px; margin: 8px 0; white-space: normal; }
 
     #ov-news { max-width: 860px; }
@@ -3357,7 +3361,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (c.nodeType === 3) { out.push(jEscape(c.nodeValue)) }
         else if (c.nodeType !== 1) continue
         else if (c.nodeName === 'BR') out.push('<br>')
-        else if (c.nodeName === 'IMG') { const s = c.getAttribute('src') || ''; if (s.startsWith(J_IMG_PREFIX)) out.push(`<img src="${s}">`) }
+        else if (c.nodeName === 'IMG') {
+          const s = c.getAttribute('src') || ''
+          if (s.startsWith(J_IMG_PREFIX)) {
+            const w = parseInt(c.getAttribute('width'), 10)
+            out.push(`<img src="${s}"${w > 0 ? ` width="${w}"` : ''}>`)
+          }
+        }
         else if (J_TAGS[c.nodeName]) { const t = J_TAGS[c.nodeName]; out.push(`<${t}>`); jSerializeInto(c, out); out.push(`</${t}>`) }
         else { if (out.length) out.push('<br>'); jSerializeInto(c, out) } // div/p/etc = line boundary
       }
@@ -3370,7 +3380,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (c.nodeName === 'BR') host.appendChild(document.createElement('br'))
         else if (c.nodeName === 'IMG') {
           const s = c.getAttribute('src') || ''
-          if (s.startsWith(J_IMG_PREFIX)) { const i = document.createElement('img'); i.src = s; host.appendChild(i) }
+          if (s.startsWith(J_IMG_PREFIX)) {
+            const i = document.createElement('img'); i.src = s
+            const w = parseInt(c.getAttribute('width'), 10); if (w > 0) i.setAttribute('width', w)
+            host.appendChild(i)
+          }
         } else if (J_TAGS[c.nodeName]) { const elx = document.createElement(J_TAGS[c.nodeName]); jRenderInto(c, elx); host.appendChild(elx) }
         else jRenderInto(c, host)
       }
@@ -3386,9 +3400,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function jOpen(d) {
       jDate = d
+      jSelectImg(null)
       jRender(jGet(d)?.body ?? '')
       jLoadedBody = jSerialize() // normalized, so an untouched page never re-saves
-      el('j-title').textContent = d === jToday() ? 'Today' : new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
+      const dt = new Date(d + 'T12:00:00')
+      const us = dt.toLocaleDateString('en-US')
+      el('j-title').textContent = d === jToday() ? `Today - ${us}` : `${dt.toLocaleDateString(undefined, { weekday: 'long' })} - ${us}`
       el('j-status').textContent = ''
       renderJournalRail()
     }
@@ -3461,7 +3478,52 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const range = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null
       files.forEach((f) => jInsertPhoto(f, range))
     })
-    el('j-body').addEventListener('input', () => { clearTimeout(jTimer); jTimer = setTimeout(jSave, 800) })
+    // photo resize: click a photo, drag the gold corner grip; the width
+    // rides along in the img's width attribute so it persists with the page
+    let jSelImg = null, jRs = null
+    const jGrip = document.createElement('div'); jGrip.id = 'j-grip'; jGrip.hidden = true
+    document.body.appendChild(jGrip)
+    try { document.execCommand('enableObjectResizing', false, false) } catch {}
+    function jGripPlace() {
+      if (!jSelImg || jGrip.hidden) return
+      const r = jSelImg.getBoundingClientRect()
+      jGrip.style.left = `${r.right - 9}px`
+      jGrip.style.top = `${r.bottom - 9}px`
+    }
+    function jSelectImg(img) {
+      if (jSelImg) jSelImg.classList.remove('j-sel')
+      jSelImg = img
+      if (img) { img.classList.add('j-sel'); jGrip.hidden = false; jGripPlace() }
+      else jGrip.hidden = true
+    }
+    el('j-body').addEventListener('click', (e) => {
+      if (e.target.nodeName === 'IMG') { e.preventDefault(); jSelectImg(e.target) }
+      else jSelectImg(null)
+    })
+    document.addEventListener('click', (e) => { if (jSelImg && !el('j-body').contains(e.target) && e.target !== jGrip) jSelectImg(null) })
+    document.addEventListener('scroll', jGripPlace, true)
+    window.addEventListener('resize', jGripPlace)
+    jGrip.addEventListener('pointerdown', (e) => {
+      if (!jSelImg) return
+      e.preventDefault()
+      jRs = { x: e.clientX, w: jSelImg.getBoundingClientRect().width }
+      jGrip.setPointerCapture(e.pointerId)
+    })
+    jGrip.addEventListener('pointermove', (e) => {
+      if (!jRs || !jSelImg) return
+      const host = el('j-body')
+      const cs = getComputedStyle(host)
+      const max = host.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+      const w = Math.round(Math.min(Math.max(jRs.w + (e.clientX - jRs.x), 120), max))
+      jSelImg.setAttribute('width', w)
+      jGripPlace()
+    })
+    jGrip.addEventListener('pointerup', () => { if (jRs) { jRs = null; jSave(true) } })
+    el('j-body').addEventListener('input', () => {
+      if (jSelImg && !jSelImg.isConnected) jSelectImg(null)
+      jGripPlace()
+      clearTimeout(jTimer); jTimer = setTimeout(jSave, 800)
+    })
     el('j-body').addEventListener('blur', () => { clearTimeout(jTimer); jSave() })
 
     // ── trade of the day ────────────────────────────────────
