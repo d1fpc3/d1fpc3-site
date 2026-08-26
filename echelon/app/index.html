@@ -4267,6 +4267,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const below = d.spot < flip.qqq
         msg += ` Spot is ${below ? 'below' : 'above'} the flip at ${Math.round(flip.nq ?? gexNQ(flip.qqq)).toLocaleString()} — ${below ? 'the amplifier side; a rally only gets trustworthy once it reclaims that level' : 'the calmer side; moves tend to slow into it'}.`
       }
+      // second read: flow check, GTBR, major wall, flip drift, charm — fields the worker
+      // added later, so each is guarded (an old cached snapshot just shows less)
+      const extra = []
+      if (d.gexMatrix) extra.push(`${d.gexMatrix.text.replace(/\.$/, '')} (standing book ${fmtM(d.gexMatrix.oiGexM)} vs today's flow ${fmtM(d.gexMatrix.volGexM)}).`)
+      if (d.gtbr) extra.push(d.gtbr.state === 'inside'
+        ? `Price is inside the GTBR band, NQ ${d.gtbr.lowerNQ.toLocaleString()}–${d.gtbr.upperNQ.toLocaleString()} (one expected daily move off the open) — forced hedging stays quiet until an edge breaks.`
+        : `Price is ${d.gtbr.state} the GTBR band, NQ ${d.gtbr.lowerNQ.toLocaleString()}–${d.gtbr.upperNQ.toLocaleString()} — past the daily breakeven, the hedging machine is live.`)
+      if (d.majorWall) extra.push(`The major wall at ${d.majorWall.strike} (NQ ${d.majorWall.nq.toLocaleString()}) sits ${d.majorWall.side} spot — the session's gravity point${d.majorWallMoved ? `, and it has moved today (${d.majorWallMoved.from} → ${d.majorWallMoved.to}), a sentiment shift` : ''}.`)
+      if (d.flipDrift) extra.push(`The flip has drifted ${d.flipDrift > 0 ? '+' : ''}${d.flipDrift} QQQ since the open — fresh 0DTE flow drags it, so re-check it into the afternoon.`)
+      if (d.zdte.netChexM) extra.push(`Charm leans ${d.zdte.netChexM > 0 ? 'sell' : 'buy'}-side into the close; it runs the final 90 minutes on 0DTE.`)
+      if (extra.length) msg += `<br>${extra.join(' ')}`
       rg.innerHTML = msg
       rg.hidden = false
     }
