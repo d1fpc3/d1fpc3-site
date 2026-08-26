@@ -703,6 +703,13 @@
     .j-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 15px 18px 8px; }
     .j-head h3 { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
     #j-status { margin: 0; }
+    .j-tools { display: flex; align-items: baseline; gap: 12px; }
+    .j-photos { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 18px 16px; }
+    .j-photos:empty { display: none; }
+    .j-ph { position: relative; }
+    .j-ph img { height: 86px; border-radius: 8px; border: 1px solid var(--line); display: block; }
+    .j-ph-x { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-bright); background: var(--panel-2); color: var(--muted); cursor: pointer; font: 600 12px/1 inherit; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .j-ph-x:hover { color: var(--ink); border-color: var(--gold); }
     #j-body { flex: 1; background: none; border: 0; resize: none; color: var(--ink); font-family: inherit; font-size: 14px; line-height: 1.7; padding: 4px 18px 18px; min-height: 380px; }
     #j-body:focus { outline: none; }
     #j-body::placeholder { color: var(--faint); }
@@ -1704,9 +1711,14 @@
           <div class="block">
             <div class="j-wrap">
               <aside class="j-rail" id="j-rail"></aside>
-              <div class="j-page">
-                <div class="j-head"><h3 id="j-title">Today</h3><span class="hint" id="j-status"></span></div>
+              <div class="j-page" id="j-page">
+                <div class="j-head">
+                  <h3 id="j-title">Today</h3>
+                  <span class="j-tools"><span class="hint" id="j-status"></span><button class="rowbtn" id="j-photo-btn" type="button">Add photos</button></span>
+                </div>
+                <input type="file" id="j-photo-file" accept="image/*" multiple hidden>
                 <textarea id="j-body" maxlength="20000" aria-label="Journal page"></textarea>
+                <div class="j-photos" id="j-photos"></div>
               </div>
             </div>
           </div>
@@ -3318,27 +3330,47 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const label = document.createElement('span')
         label.textContent = d === jToday() ? 'Today' : new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
         b.appendChild(label)
-        if (jGet(d)?.body?.trim()) { const dot = document.createElement('span'); dot.className = 'j-has'; b.appendChild(dot) }
+        const entry = jGet(d)
+        if (entry?.body?.trim() || entry?.media?.length) { const dot = document.createElement('span'); dot.className = 'j-has'; b.appendChild(dot) }
         b.addEventListener('click', () => jOpen(d))
         rail.appendChild(b)
       }
     }
+    let jMedia = []
     function jOpen(d) {
       jDate = d
-      jLoadedBody = jGet(d)?.body ?? ''
+      const e = jGet(d)
+      jLoadedBody = e?.body ?? ''
+      jMedia = Array.isArray(e?.media) ? [...e.media] : []
       el('j-body').value = jLoadedBody
       el('j-title').textContent = d === jToday() ? 'Today' : new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
       el('j-status').textContent = ''
+      renderJournalPhotos()
       renderJournalRail()
     }
-    async function jSave() {
+    function renderJournalPhotos() {
+      const host = el('j-photos'); if (!host) return
+      host.textContent = ''
+      jMedia.forEach((m, idx) => {
+        if (!m?.url) return
+        const wrap = document.createElement('span'); wrap.className = 'j-ph'
+        const a = document.createElement('a'); a.href = m.url; a.target = '_blank'; a.rel = 'noopener'
+        const img = document.createElement('img'); img.src = m.url; img.alt = ''; img.loading = 'lazy'
+        a.appendChild(img); wrap.appendChild(a)
+        const x = document.createElement('button'); x.type = 'button'; x.className = 'j-ph-x'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove photo')
+        x.addEventListener('click', () => { jMedia.splice(idx, 1); renderJournalPhotos(); jSave(true) })
+        wrap.appendChild(x)
+        host.appendChild(wrap)
+      })
+    }
+    async function jSave(force) {
       if (!state.user) return
       const body = el('j-body').value
-      if (body === jLoadedBody) return
-      const forDate = jDate
+      if (!force && body === jLoadedBody) return
+      const forDate = jDate, media = jMedia
       el('j-status').textContent = 'Saving…'
       const { data, error } = await supabase.from('journal_entries')
-        .upsert({ user_id: state.user.id, entry_date: forDate, body, updated_at: new Date().toISOString() }, { onConflict: 'user_id,entry_date' })
+        .upsert({ user_id: state.user.id, entry_date: forDate, body, media, updated_at: new Date().toISOString() }, { onConflict: 'user_id,entry_date' })
         .select().single()
       if (error) { el('j-status').textContent = 'Not saved — check your connection.'; return }
       if (forDate === jDate) jLoadedBody = body
@@ -3347,6 +3379,25 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('j-status').textContent = 'Saved.'
       renderJournalRail()
     }
+    async function jAddPhoto(file) {
+      if (!file || !file.type.startsWith('image/')) { toast('Photos only in the journal.'); return }
+      if (file.size > 10 * 1024 * 1024) { toast(`${file.name} is over 10MB.`); return }
+      if (jMedia.length >= 12) { toast('Up to 12 photos a day.'); return }
+      const forDate = jDate
+      el('j-status').textContent = 'Uploading…'
+      const ext = (file.name.split('.').pop() || file.type.split('/')[1] || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
+      const path = `${state.user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+      const { error } = await supabase.storage.from('journal-media').upload(path, file, { contentType: file.type, upsert: false })
+      if (error) { el('j-status').textContent = `Could not upload ${file.name}.`; return }
+      if (forDate !== jDate) return // switched days mid-upload; let it go
+      jMedia.push({ url: supabase.storage.from('journal-media').getPublicUrl(path).data.publicUrl, kind: 'image' })
+      renderJournalPhotos()
+      jSave(true)
+    }
+    el('j-photo-btn').addEventListener('click', () => el('j-photo-file').click())
+    el('j-photo-file').addEventListener('change', (e) => { for (const f of e.target.files ?? []) jAddPhoto(f); e.target.value = '' })
+    el('j-page').addEventListener('dragover', (e) => { e.preventDefault() })
+    el('j-page').addEventListener('drop', (e) => { e.preventDefault(); for (const f of e.dataTransfer?.files ?? []) jAddPhoto(f) })
     el('j-body').addEventListener('input', () => { clearTimeout(jTimer); jTimer = setTimeout(jSave, 800) })
     el('j-body').addEventListener('blur', () => { clearTimeout(jTimer); jSave() })
 
@@ -5776,7 +5827,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         supabase.from('product_reviews').select('product, user_id, rating, comment, created_at').order('created_at', { ascending: false }),
         // trade-of-the-day pool: everyone's R-tagged posts from the last week
         supabase.from('member_recaps').select('id, user_id, title, body, media, outcome, r, created_at').not('r', 'is', null).gte('created_at', new Date(Date.now() - 7 * 864e5).toISOString()).order('r', { ascending: false }).limit(200),
-        supabase.from('journal_entries').select('id, user_id, entry_date, body, updated_at').order('entry_date', { ascending: false }).limit(90),
+        supabase.from('journal_entries').select('id, user_id, entry_date, body, media, updated_at').order('entry_date', { ascending: false }).limit(90),
         ensureProfile().then(() => loadMembers()),
       ])
 
