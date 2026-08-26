@@ -17,6 +17,16 @@ test('the landing stays stripped (D1 rules, 8/24)', () => {
     'panels, software band, steps and recap tease stay deleted');
 });
 
+test('the feature index lists the real app surface, flat (D1, 8/26)', () => {
+  assert.match(html, /The whole thing is <em>software\.<\/em>/);
+  for (const row of ['Study', 'Video library', 'Journal', 'Risk calculator', 'News', 'Chat', 'Indicators', 'GEX']) {
+    assert.ok(html.includes(`</span>${row}</span>`), `feature index row: ${row}`);
+  }
+  for (const [row] of html.matchAll(/<div class="in-row">[\s\S]*?<\/div>/g)) {
+    assert.ok(!row.includes('<svg'), 'index rows stay typographic — no icons');
+  }
+});
+
 test('concepts and curriculum stay OFF the landing (D1 rule, 8/24)', () => {
   assert.doesNotMatch(html, /rest\/v1\/curriculum/, 'never fetch the course outline publicly');
   assert.doesNotMatch(html, /id="curriculum"|id="concepts"/, 'no concepts or curriculum sections');
