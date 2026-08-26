@@ -343,6 +343,11 @@
     .gex-levels .tbl-scroll { overflow-y: auto; }
     .gex-stamp { padding: 9px 14px 11px; border-top: 1px solid var(--line); }
     .gex-topbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+    #gex-whatis { background: none; border: 0; outline: none; color: var(--muted); font-family: inherit; font-size: 12.5px; cursor: pointer; padding: 0; }
+    #gex-whatis:hover { color: var(--ink); text-decoration: underline; }
+    .ga-scrim{position:fixed;inset:0;z-index:190;background:rgba(6,5,4,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
+    .ga-scrim.on{display:flex}
+    .ga-scrim .gex-about{position:relative;margin:0;width:100%;max-width:720px;max-height:84vh;overflow:auto;background:var(--panel);border:1px solid var(--line-bright);border-radius:16px}
     .gex-about { margin-top: 26px; }
     .ga-rows { padding: 0 18px 6px; }
     .ga-row { display: grid; grid-template-columns: 190px 1fr; gap: 18px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.6; }
@@ -1765,7 +1770,7 @@
 
         <!-- GEX dashboard (GEX subscribers only) -->
         <section class="view" id="v-gex">
-          <div class="gex-topbar"><button class="rowbtn" id="gex-whatis">What is GEX?</button></div>
+          <div class="gex-topbar"><button id="gex-whatis" type="button">What is GEX?</button></div>
           <div class="gex-read" id="gex-read"></div>
           <div class="gex-regime" id="gex-regime" hidden></div>
           <div class="gex-grid" id="gex-grid">
@@ -1812,26 +1817,6 @@
           </div>
           </div>
 
-          <!-- How GEX works: the breakdown members see with their subscription -->
-          <div class="block gex-about" id="gex-about">
-            <div class="block-head"><h3>How GEX works</h3></div>
-            <div class="ga-rows">
-              <div class="ga-row"><b>What you're looking at</b><span>Market makers who sell QQQ options have to hedge them by buying and selling the underlying. GEX (gamma exposure) estimates how much forced hedging sits at each strike, in dollars per 1% move. Where the piles are big, price behaves differently moving through them.</span></div>
-              <div class="ga-row"><b>Call wall / put wall</b><span>The strikes carrying the largest positive and negative gamma. Price tends to slow, stall, or pin into a wall because dealer hedging leans against the move there.</span></div>
-              <div class="ga-row"><b>What dealers do on positive days</b><span>When dealers are net long gamma, their book gains delta as price rises and loses it as price falls — so staying flat forces them to sell every rally and buy every dip. Real, mechanical flow leans against each move, which is why positive days pin, chop, and mean-revert, and why the walls hold: the closer price gets to a big strike, the harder the hedging pushes back.</span></div>
-              <div class="ga-row"><b>What dealers do on negative days</b><span>When dealers are net short gamma it inverts: a drop makes their book longer, so they must sell into the decline; a rally makes it shorter, so they must buy into the rip. Their hedging now pushes the same direction as price — selling forces more selling. That's why negative days trend, tails run fast, and walls act as launch points instead of brakes.</span></div>
-              <div class="ga-row"><b>Gamma flip</b><span>The price where net dealer gamma crosses zero — the switch between those two regimes. Above it, dips get bought and fades work; below it, hedging chases price and rallies are suspect until the flip is reclaimed. A decisive break of the flip on volume is one of the strongest intraday signals on the board. And the flip moves: fresh 0DTE positioning drags it around during the session, so the regime line tracks its drift — worth re-checking in the early afternoon, not just at the open. When no flip prints, the sign never crosses inside the strike range.</span></div>
-              <div class="ga-row"><b>GTBR band</b><span>Gamma-theta breakeven — roughly one expected daily move either side of the open. Dealers bleed on gamma when price moves but collect theta as time passes; inside the band the theta covers the bleed, so nobody is forced to do anything and even a negative-gamma day can chop quietly. Past either edge, gamma losses outrun theta and the forced hedging switches on. Think of it as the trigger: the regime tells you what kind of day it would be, the band tells you whether that day has started.</span></div>
-              <div class="ga-row"><b>Flow check</b><span>The standing book (open interest) versus what actually traded today (volume). When both agree, trust the regime at full conviction. When the standing book is positive but today's flow is selling, the regime may be turning — expect false breaks. When a negative book meets heavy buying flow, squeezes get violent.</span></div>
-              <div class="ga-row"><b>Major wall</b><span>The single biggest gamma concentration on the whole board — the session's gravity point. Above spot leans the tape upward, below leans it down. If it relocates during the day, the regime line says so; that shift usually means large positioning changed, so respect the new location over the morning one.</span></div>
-              <div class="ga-row"><b>Charm into the close</b><span>As the day ages, time decay alone drains delta out of options, forcing dealers to adjust hedges even if price sits still. On 0DTE this flow dominates the last 90 minutes — after about 2pm the walls fade in importance and the charm lean in the regime line carries the close.</span></div>
-              <div class="ga-row"><b>Regime</b><span>Net positive gamma: dealers absorb flow, expect chop and mean reversion. Net negative gamma: dealers amplify flow, expect trend and fast tails. The regime line above reads this for you on every print. One honest caveat: dealer positioning is inferred, not observed — treat every level as a zone that needs live price confirmation, not a line that trades itself.</span></div>
-              <div class="ga-row"><b>0DTE vs Swing</b><span>0DTE reads only today's expiry, where hedging pressure is most violent intraday. Swing stacks the later expiries out to roughly 60 days for the bigger structure.</span></div>
-              <div class="ga-row"><b>&Gamma;1 to &Gamma;10</b><span>The ten biggest gamma concentrations on the board, ranked by absolute size, either side of spot. These are the magnet and brake candidates beyond the walls.</span></div>
-              <div class="ga-row"><b>NQ mapping</b><span>Everything is computed on QQQ, then mapped onto NQ with a live-refit ratio: <span id="ga-conv">&#8212;</span>. The ratio is re-fit from live prices on every print, so NQ levels stay honest as the spread drifts.</span></div>
-              <div class="ga-row"><b>How often it refreshes</b><span>The worker recomputes the whole board from the live QQQ option chain every 15 minutes through the trading day (CBOE data is ~15 minutes delayed). This page re-pulls every 5 minutes while open, and the GEX tab shows an orange dot whenever a new print lands that you haven't seen. Last print: <span id="ga-stamp">&#8212;</span>.</span></div>
-            </div>
-          </div>
         </section>
 
         <section class="view" id="v-members">
@@ -2016,6 +2001,29 @@
     </div>
   </div>
 
+  <div class="ga-scrim" id="ga-scrim" role="dialog" aria-modal="true" aria-label="What is GEX">
+    <!-- How GEX works: the breakdown members see with their subscription -->
+    <div class="block gex-about" id="gex-about">
+      <div class="block-head"><h3>How GEX works</h3><button class="mm-x" id="ga-x" type="button" aria-label="Close">&times;</button></div>
+      <div class="ga-rows">
+        <div class="ga-row"><b>What you're looking at</b><span>Market makers who sell QQQ options have to hedge them by buying and selling the underlying. GEX (gamma exposure) estimates how much forced hedging sits at each strike, in dollars per 1% move. Where the piles are big, price behaves differently moving through them.</span></div>
+        <div class="ga-row"><b>Call wall / put wall</b><span>The strikes carrying the largest positive and negative gamma. Price tends to slow, stall, or pin into a wall because dealer hedging leans against the move there.</span></div>
+        <div class="ga-row"><b>What dealers do on positive days</b><span>When dealers are net long gamma, their book gains delta as price rises and loses it as price falls — so staying flat forces them to sell every rally and buy every dip. Real, mechanical flow leans against each move, which is why positive days pin, chop, and mean-revert, and why the walls hold: the closer price gets to a big strike, the harder the hedging pushes back.</span></div>
+        <div class="ga-row"><b>What dealers do on negative days</b><span>When dealers are net short gamma it inverts: a drop makes their book longer, so they must sell into the decline; a rally makes it shorter, so they must buy into the rip. Their hedging now pushes the same direction as price — selling forces more selling. That's why negative days trend, tails run fast, and walls act as launch points instead of brakes.</span></div>
+        <div class="ga-row"><b>Gamma flip</b><span>The price where net dealer gamma crosses zero — the switch between those two regimes. Above it, dips get bought and fades work; below it, hedging chases price and rallies are suspect until the flip is reclaimed. A decisive break of the flip on volume is one of the strongest intraday signals on the board. And the flip moves: fresh 0DTE positioning drags it around during the session, so the regime line tracks its drift — worth re-checking in the early afternoon, not just at the open. When no flip prints, the sign never crosses inside the strike range.</span></div>
+        <div class="ga-row"><b>GTBR band</b><span>Gamma-theta breakeven — roughly one expected daily move either side of the open. Dealers bleed on gamma when price moves but collect theta as time passes; inside the band the theta covers the bleed, so nobody is forced to do anything and even a negative-gamma day can chop quietly. Past either edge, gamma losses outrun theta and the forced hedging switches on. Think of it as the trigger: the regime tells you what kind of day it would be, the band tells you whether that day has started.</span></div>
+        <div class="ga-row"><b>Flow check</b><span>The standing book (open interest) versus what actually traded today (volume). When both agree, trust the regime at full conviction. When the standing book is positive but today's flow is selling, the regime may be turning — expect false breaks. When a negative book meets heavy buying flow, squeezes get violent.</span></div>
+        <div class="ga-row"><b>Major wall</b><span>The single biggest gamma concentration on the whole board — the session's gravity point. Above spot leans the tape upward, below leans it down. If it relocates during the day, the regime line says so; that shift usually means large positioning changed, so respect the new location over the morning one.</span></div>
+        <div class="ga-row"><b>Charm into the close</b><span>As the day ages, time decay alone drains delta out of options, forcing dealers to adjust hedges even if price sits still. On 0DTE this flow dominates the last 90 minutes — after about 2pm the walls fade in importance and the charm lean in the regime line carries the close.</span></div>
+        <div class="ga-row"><b>Regime</b><span>Net positive gamma: dealers absorb flow, expect chop and mean reversion. Net negative gamma: dealers amplify flow, expect trend and fast tails. The regime line above reads this for you on every print. One honest caveat: dealer positioning is inferred, not observed — treat every level as a zone that needs live price confirmation, not a line that trades itself.</span></div>
+        <div class="ga-row"><b>0DTE vs Swing</b><span>0DTE reads only today's expiry, where hedging pressure is most violent intraday. Swing stacks the later expiries out to roughly 60 days for the bigger structure.</span></div>
+        <div class="ga-row"><b>&Gamma;1 to &Gamma;10</b><span>The ten biggest gamma concentrations on the board, ranked by absolute size, either side of spot. These are the magnet and brake candidates beyond the walls.</span></div>
+        <div class="ga-row"><b>NQ mapping</b><span>Everything is computed on QQQ, then mapped onto NQ with a live-refit ratio: <span id="ga-conv">&#8212;</span>. The ratio is re-fit from live prices on every print, so NQ levels stay honest as the spread drifts.</span></div>
+        <div class="ga-row"><b>How often it refreshes</b><span>The worker recomputes the whole board from the live QQQ option chain every 15 minutes through the trading day (CBOE data is ~15 minutes delayed). This page re-pulls every 5 minutes while open, and the GEX tab shows an orange dot whenever a new print lands that you haven't seen. Last print: <span id="ga-stamp">&#8212;</span>.</span></div>
+      </div>
+    </div>
+  </div>
+
   <div class="mm-scrim" id="mm-scrim" role="dialog" aria-modal="true" aria-label="Member">
     <div class="mm-card">
       <button class="mm-x" id="mm-x" type="button" aria-label="Close">&times;</button>
@@ -2072,7 +2080,7 @@
       user: null, isAdmin: false, isMod: false, hasCourse: false, profile: null,
       modules: [], lessons: [], done: new Set(), currentId: null,
       recaps: [], currentRecap: null, memberRecaps: [], members: [], intake: null, owned: new Set(),
-      products: [], tvAccess: [], reviews: [], rrPool: [], journal: [],
+      products: [], tvAccess: [], reviews: [], rrPool: [], journal: [], hw: [],
     }
 
     // Live Stripe payment links + prices for the indicator store. Product keys
@@ -4917,8 +4925,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         try { await loadGex(true) } catch (err) { el('gex-stamp').textContent = `Refresh failed: ${err.message}` }
         finally { btn.disabled = false; btn.textContent = 'Refresh' }
       })
-      // "What is GEX?" -> the How-GEX-works breakdown at the bottom of this tab
-      el('gex-whatis').addEventListener('click', () => el('gex-about').scrollIntoView({ behavior: 'smooth', block: 'start' }))
+      // "What is GEX?" pop-up (same scrim pattern as the member modal)
+      const gaClose = () => { el('ga-scrim').classList.remove('on'); document.body.style.overflow = '' }
+      el('gex-whatis').addEventListener('click', () => { el('ga-scrim').classList.add('on'); document.body.style.overflow = 'hidden' })
+      el('ga-x').addEventListener('click', gaClose)
+      el('ga-scrim').addEventListener('click', (e) => { if (e.target === el('ga-scrim')) gaClose() })
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && el('ga-scrim').classList.contains('on')) gaClose() })
       el('gex-copy').addEventListener('click', async () => {
         if (!GEX.data) return
         const btn = el('gex-copy')
@@ -5949,9 +5961,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // These come back filtered by RLS: without an active entitlement the
       // modules query is simply empty, and trade recaps arrive published-only
       // for members. The directory shows usernames and bios, never emails.
-      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: memberRecaps }, { data: annMsgs }, { data: intake }, { data: products }, { data: tvAccess }, { data: reviews }, { data: rrPool }, { data: journal }] = await Promise.all([
+      const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: memberRecaps }, { data: annMsgs }, { data: intake }, { data: products }, { data: tvAccess }, { data: reviews }, { data: rrPool }, { data: journal }, { data: hw }] = await Promise.all([
         supabase.from('modules').select('id, title, position').order('position'),
-        supabase.from('lessons').select('id, module_id, slug, title, summary, kind, body_md, blocks, position').order('position'),
+        supabase.from('lessons').select('id, module_id, slug, title, summary, kind, body_md, blocks, homework, position').order('position'),
         supabase.from('progress').select('lesson_id, completed_at'),
         supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published, thumb_path').order('recap_date', { ascending: false }),
         supabase.from('member_recaps').select('id, user_id, title, body, media, outcome, r, created_at').eq('user_id', state.user.id).order('created_at', { ascending: false }).limit(100),
@@ -5963,6 +5975,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         // trade-of-the-day pool: everyone's R-tagged posts from the last week
         supabase.from('member_recaps').select('id, user_id, title, body, media, outcome, r, created_at').not('r', 'is', null).gte('created_at', new Date(Date.now() - 7 * 864e5).toISOString()).order('r', { ascending: false }).limit(200),
         supabase.from('journal_entries').select('id, user_id, entry_date, body, media, updated_at').order('entry_date', { ascending: false }).limit(90),
+        // own submissions for members; staff see everyone's (RLS decides)
+        supabase.from('homework_submissions').select('id, lesson_id, user_id, media, note, status, review_note, created_at').order('created_at', { ascending: false }).limit(300),
         ensureProfile().then(() => loadMembers()),
       ])
 
@@ -5978,6 +5992,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.reviews = reviews ?? []
       state.rrPool = rrPool ?? []
       state.journal = journal ?? []
+      state.hw = hw ?? []
 
       renderSidebarUser()
       fillSettings()
