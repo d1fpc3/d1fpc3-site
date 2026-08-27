@@ -1049,6 +1049,9 @@
               <button class="rowbtn" id="lib-pick">Choose video</button>
               <span class="label" id="lib-file-name"></span>
               <input type="file" id="lib-file" accept="video/*" hidden>
+              <button class="rowbtn" id="lib-thumb-pick">Thumbnail (optional)</button>
+              <span class="label" id="lib-thumb-name"></span>
+              <input type="file" id="lib-thumb-file" accept="image/*" hidden>
             </div>
             <p class="msg" id="lib-msg"></p>
           </div>
@@ -2680,8 +2683,19 @@
     function renderLibraryAdmin() {
       el('libadmin-total').textContent = LIBV.length ? String(LIBV.length) : ''
       el('lib-admin-empty').hidden = LIBV.length > 0
-      table(el('lib-table'), ['Title', 'Category', 'Added', 'State', ''], LIBV, (r) => {
+      table(el('lib-table'), ['', 'Title', 'Category', 'Added', 'State', ''], LIBV, (r) => {
         const tr = document.createElement('tr')
+        const th = document.createElement('td')
+        if (r.thumb_path) {
+          const img = document.createElement('img')
+          img.src = `${SUPABASE_URL}/storage/v1/object/public/library-thumbs/${r.thumb_path}`
+          img.alt = ''; img.loading = 'lazy'
+          img.style.cssText = 'width:56px;height:32px;object-fit:cover;border-radius:5px;display:block;border:1px solid var(--line);'
+          th.appendChild(img)
+        } else {
+          th.textContent = '—'; th.className = 'num'
+        }
+        tr.appendChild(th)
         tr.append(
           cell(r.title, 'ink'),
           cell(LIB_CAT_NAME[r.category] ?? r.category),
@@ -2693,6 +2707,12 @@
           const b = document.createElement('button'); b.className = 'rowbtn'; b.textContent = label
           b.addEventListener('click', () => fn(b)); td.appendChild(b)
         }
+        btn('Thumbnail', (b) => {
+          const inp = document.createElement('input')
+          inp.type = 'file'; inp.accept = 'image/*'
+          inp.addEventListener('change', () => { if (inp.files[0]) libSetThumb(r, inp.files[0], b) })
+          inp.click()
+        })
         btn(r.is_published ? 'Unpublish' : 'Publish', async (b) => {
           b.disabled = true
           await supabase.from('library_videos')
@@ -2717,6 +2737,50 @@
       libFile = el('lib-file').files[0] ?? null
       el('lib-file-name').textContent = libFile ? libFile.name : ''
     })
+    let libThumbFile = null
+    el('lib-thumb-pick').addEventListener('click', () => el('lib-thumb-file').click())
+    el('lib-thumb-file').addEventListener('change', () => {
+      libThumbFile = el('lib-thumb-file').files[0] ?? null
+      el('lib-thumb-name').textContent = libThumbFile ? libThumbFile.name : ''
+    })
+    /* Any image the browser can read becomes the poster: normalized to a
+       max-1280 jpeg so the bucket stays one predictable format. */
+    function libImageToJpeg(file) {
+      return new Promise((resolve) => {
+        const url = URL.createObjectURL(file)
+        const img = new Image()
+        const done = (blob) => { URL.revokeObjectURL(url); resolve(blob ?? null) }
+        img.onerror = () => done(null)
+        img.onload = () => {
+          try {
+            const w = Math.min(1280, img.naturalWidth || 1280)
+            const h = Math.round(w * (img.naturalHeight || 720) / (img.naturalWidth || 1280))
+            const c = document.createElement('canvas'); c.width = w; c.height = h
+            c.getContext('2d').drawImage(img, 0, 0, w, h)
+            c.toBlob((b) => done(b), 'image/jpeg', 0.85)
+          } catch { done(null) }
+        }
+        img.src = url
+      })
+    }
+    /* Replace (or set) the poster on an existing video. Versioned filename so
+       the public bucket URL changes and no cache shows the old frame. */
+    async function libSetThumb(row, file, btn) {
+      const blob = await libImageToJpeg(file)
+      if (!blob) { alert('Could not read that image.'); return }
+      btn.disabled = true
+      const newPath = `${row.id}-${Date.now().toString(36)}.jpg`
+      const { error: upErr } = await supabase.storage.from('library-thumbs')
+        .upload(newPath, blob, { contentType: 'image/jpeg' })
+      if (upErr) { alert(upErr.message); btn.disabled = false; return }
+      const { error } = await supabase.from('library_videos')
+        .update({ thumb_path: newPath, updated_at: new Date().toISOString() }).eq('id', row.id)
+      if (error) { alert(error.message); btn.disabled = false; return }
+      if (row.thumb_path && row.thumb_path !== newPath) {
+        supabase.storage.from('library-thumbs').remove([row.thumb_path]).then(() => {}, () => {})
+      }
+      loadLibraryAdmin()
+    }
     /* Poster frame for the feed card: seek a second in, draw to canvas. Best
        effort — a codec the browser can't decode just means no thumbnail. */
     function libMakeThumb(file) {
@@ -2752,8 +2816,9 @@
         const { error: upErr } = await supabase.storage.from('lesson-files')
           .upload(path, libFile, { contentType: libFile.type || undefined })
         if (upErr) throw upErr
+        // A hand-picked poster wins; otherwise fall back to the auto frame.
         let thumbPath = null
-        const thumb = await libMakeThumb(libFile)
+        const thumb = (libThumbFile && await libImageToJpeg(libThumbFile)) || await libMakeThumb(libFile)
         if (thumb) {
           thumbPath = `${id}.jpg`
           const { error: thErr } = await supabase.storage.from('library-thumbs')
@@ -2771,6 +2836,7 @@
         msg.className = 'msg ok'; msg.textContent = 'Published. Members can watch it now.'
         el('lib-title-in').value = ''; el('lib-sum-in').value = ''
         el('lib-file').value = ''; libFile = null; el('lib-file-name').textContent = ''
+        el('lib-thumb-file').value = ''; libThumbFile = null; el('lib-thumb-name').textContent = ''
         loadLibraryAdmin()
       } catch (err) {
         msg.className = 'msg err'; msg.textContent = err.message
