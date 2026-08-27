@@ -1968,6 +1968,18 @@
               </div>
             </div>
           </div>
+          <div class="block">
+            <div class="block-head"><h3>Discord</h3><span class="label" id="dc-state"></span></div>
+            <div class="setgrid">
+              <p class="hint" id="dc-hint" style="margin:0;">Link your Discord and the bot places you in the server with the member role already on — no invite link. A purchase later puts the role on by itself.</p>
+              <div class="filters">
+                <button class="btn" id="dc-connect" type="button" hidden>Connect Discord</button>
+                <button class="rowbtn" id="dc-sync" type="button" hidden>Re-sync role</button>
+                <button class="rowbtn" id="dc-disconnect" type="button" hidden>Disconnect</button>
+              </div>
+              <p class="msg" id="dc-msg"></p>
+            </div>
+          </div>
           <div class="block" id="desktop-block" hidden>
             <div class="block-head"><h3>Echelon for Windows</h3></div>
             <div class="setgrid" style="max-width:none;">
@@ -4087,6 +4099,93 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       msg.className = 'msg ok'
       msg.textContent = 'Check both inboxes. The change lands once the links are clicked.'
       el('new-email').value = ''
+    })
+
+    // ── Discord link: identity + guild membership ──────────────
+    // The discord-sync function holds the whole pipeline (discord_links row,
+    // guild join via guilds.join, the paid role). The app's job is to hand it
+    // the OAuth token once, right after Discord bounces back, and to give
+    // Settings a Connect / Re-sync / Disconnect surface.
+    async function discordSync(body = {}) {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/discord-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify(body),
+      })
+      const out = await res.json().catch(() => ({}))
+      return { ok: res.ok, status: res.status, out }
+    }
+    const discordIdentity = () => (state.user?.identities || []).find((i) => i.provider === 'discord')
+    function discordName(ident) {
+      const d = ident?.identity_data || {}
+      return d.custom_claims?.global_name || d.full_name || d.name || null
+    }
+
+    // Fresh from the OAuth bounce: the session carries provider_token exactly
+    // once, so record the link and drop them into the server right away.
+    async function captureDiscordReturn(session) {
+      const ident = discordIdentity()
+      if (!session?.provider_token || !ident) return
+      try {
+        const r = await discordSync({
+          access_token: session.provider_token,
+          discord_user_id: ident.id,
+          discord_username: discordName(ident),
+        })
+        if (r.ok) toast(r.out.role_granted
+          ? "Discord linked. You're in the server with your role on."
+          : 'Discord linked.')
+        renderDiscordBlock()
+      } catch { /* settings still offers Re-sync */ }
+    }
+
+    async function renderDiscordBlock() {
+      const st = el('dc-state'); if (!st) return
+      const { data: link } = await supabase.from('discord_links')
+        .select('discord_username, in_guild, role_granted').maybeSingle()
+      const ident = discordIdentity()
+      el('dc-connect').hidden = !!link
+      el('dc-sync').hidden = !link
+      el('dc-disconnect').hidden = !link
+      if (link) {
+        const who = link.discord_username || discordName(ident) || 'Connected'
+        st.textContent = who + (link.role_granted ? ' · role on' : link.in_guild ? ' · in the server' : '')
+        el('dc-hint').textContent = 'Connected. Disconnect removes the member role and forgets the link — signing in with Discord keeps working either way.'
+      } else {
+        st.textContent = 'Not linked'
+        el('dc-hint').textContent = 'Link your Discord and the bot places you in the server with the member role already on — no invite link. A purchase later puts the role on by itself.'
+      }
+    }
+
+    el('dc-connect')?.addEventListener('click', async () => {
+      const msg = el('dc-msg'); msg.className = 'msg'; msg.textContent = 'Heading to Discord…'
+      const options = { redirectTo: location.origin + location.pathname, scopes: 'identify email guilds.join' }
+      // Already signed in through Discord? Re-run the OAuth dance for a fresh
+      // token; otherwise attach Discord to this account as a second identity.
+      const { error } = discordIdentity()
+        ? await supabase.auth.signInWithOAuth({ provider: 'discord', options })
+        : await supabase.auth.linkIdentity({ provider: 'discord', options })
+      if (error) { msg.className = 'msg err'; msg.textContent = error.message }
+    })
+    el('dc-sync')?.addEventListener('click', async () => {
+      const btn = el('dc-sync'), msg = el('dc-msg')
+      btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Syncing…'
+      const r = await discordSync({})
+      btn.disabled = false
+      if (r.ok) { msg.className = 'msg ok'; msg.textContent = r.out.role_granted ? 'In the server, role on.' : r.out.in_guild ? 'In the server. The role comes with an active purchase.' : 'Synced.' }
+      else { msg.className = 'msg err'; msg.textContent = r.out.error || 'Sync failed. Try reconnecting.' }
+      renderDiscordBlock()
+    })
+    el('dc-disconnect')?.addEventListener('click', async () => {
+      if (!confirm('Disconnect Discord? The member role comes off; you stay in the server and can reconnect any time.')) return
+      const btn = el('dc-disconnect'), msg = el('dc-msg')
+      btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Disconnecting…'
+      const r = await discordSync({ disconnect: true })
+      btn.disabled = false
+      msg.className = r.ok ? 'msg' : 'msg err'
+      msg.textContent = r.ok ? 'Disconnected.' : (r.out.error || 'Could not disconnect.')
+      renderDiscordBlock()
     })
 
     // Members-only desktop app download.
@@ -6464,6 +6563,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.hasCourse = state.owned.has('course') || state.isAdmin
       await loadCourse()
       refreshBadges(); watchBadges(); initDesktopPanel()
+      captureDiscordReturn(session); renderDiscordBlock()
 
       // First entry: five quick questions before anything else. The owner is
       // spared unless previewing via view-as.
