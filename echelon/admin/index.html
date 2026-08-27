@@ -2744,16 +2744,26 @@
     }
     let LIBVIEWS = {}
     let libFile = null
+    let libThumbFile = null
+    /* The picked filename is a chip: click the × (or the name) to unpick. */
+    function libChip(labelId, inputId, clear) {
+      const label = el(labelId)
+      label.style.cursor = 'pointer'
+      label.title = 'Remove'
+      label.addEventListener('click', () => { clear(); el(inputId).value = ''; label.textContent = '' })
+      return (file) => { label.textContent = file ? file.name + '  ✕' : '' }
+    }
+    const setLibFileChip = libChip('lib-file-name', 'lib-file', () => { libFile = null })
+    const setLibThumbChip = libChip('lib-thumb-name', 'lib-thumb-file', () => { libThumbFile = null })
     el('lib-pick').addEventListener('click', () => el('lib-file').click())
     el('lib-file').addEventListener('change', () => {
       libFile = el('lib-file').files[0] ?? null
-      el('lib-file-name').textContent = libFile ? libFile.name : ''
+      setLibFileChip(libFile)
     })
-    let libThumbFile = null
     el('lib-thumb-pick').addEventListener('click', () => el('lib-thumb-file').click())
     el('lib-thumb-file').addEventListener('change', () => {
       libThumbFile = el('lib-thumb-file').files[0] ?? null
-      el('lib-thumb-name').textContent = libThumbFile ? libThumbFile.name : ''
+      setLibThumbChip(libThumbFile)
     })
     /* Any image the browser can read becomes the poster: normalized to a
        max-1280 jpeg so the bucket stays one predictable format. */
