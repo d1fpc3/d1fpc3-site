@@ -383,6 +383,20 @@
     .intg:last-child { border-bottom: 0; }
     .intg .n { font-size: 13.5px; font-weight: 500; color: var(--ink); }
     .intg .h { font-size: 12px; color: var(--faint); margin-top: 2px; }
+
+    /* homework admin: one row per lesson, the prompt edited in place */
+    .hwl-mod { padding: 16px 18px 4px; }
+    .hwl-row { padding: 13px 18px; border-bottom: 1px solid var(--line); }
+    .hwl-row:last-child { border-bottom: 0; }
+    .hwl-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .hwl-top .t { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+    .hwl-top .cnt { font-size: 12px; color: var(--faint); }
+    .hwl-top .act { margin-left: auto; display: flex; gap: 8px; }
+    .hwl-prompt { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); max-width: 92ch; white-space: pre-wrap; }
+    .hwl-prompt.none { color: var(--faint); font-style: italic; }
+    .hwl-edit { margin-top: 10px; }
+    .hwl-edit textarea { width: 100%; resize: vertical; min-height: 76px; line-height: 1.5; }
+    .hwl-edit .bar { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
     .conn { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; }
     .conn.yes { color: var(--good); } .conn.no { color: var(--faint); }
     .conn::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
@@ -759,6 +773,10 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           Content <span class="count" id="c-content">—</span>
         </button>
+        <button class="tab" data-view="homework" data-title="Homework" data-crumb="Assignments and what's waiting">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Homework <span class="count" id="c-hw">—</span>
+        </button>
         <button class="tab" data-view="recaps" data-title="Trade recaps" data-crumb="Write-ups members see">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           Recaps <span class="count" id="c-recaps">—</span>
@@ -965,6 +983,18 @@
             <div class="tbl-scroll"><table id="viewers-table"></table></div>
             <div class="empty" id="viewers-empty" hidden>No one has opened this yet.</div>
           </div>
+          </div>
+        </section>
+
+        <!-- HOMEWORK -->
+        <section class="view" id="v-homework">
+          <div class="block">
+            <div class="block-head">
+              <h3>Assignments</h3>
+              <span class="label" id="hw-total"></span>
+            </div>
+            <div id="hw-list"></div>
+            <div class="empty" id="hw-list-empty" hidden>No lessons yet. Homework lives on a lesson — build the course in Content first, then attach the markups here.</div>
           </div>
         </section>
 
@@ -1464,6 +1494,7 @@
       el('pane-title').textContent = tab.dataset.title
       el('pane-crumb').textContent = tab.dataset.crumb
       if (view === 'gex') gexShown()
+      if (view === 'homework') loadHomework()
       if (view === 'library') loadLibraryAdmin()
       if (view === 'memes') memesShown()
       else if (PLAYBOOKS[view]) playbookShown(view)
@@ -1476,6 +1507,7 @@
       access: 'The TradingView fulfillment queue. Indicator buyers land here with their TV username, and the worker adds them on TradingView automatically every 15 minutes. The buttons are your manual fallback; notes flag anything odd, like an old username that needs pulling.',
       billing: 'Money in. The cards summarize revenue, Orders is the ledger, and the Stripe events below are the raw webhook feed, kept as your audit trail when something looks off.',
       content: 'The course builder. Categories hold lessons, the arrows reorder them, and opening a lesson gives the block editor for text, headings, video and files. Viewers shows who actually watched. Nothing reaches members until it is published.',
+      homework: 'Every lesson with its assignment, in one place. Add or edit a prompt and members see it immediately on that lesson; Remove lets the lesson complete on its own again. The counts show what is sitting in the review queue — the markups themselves get approved in the members app, by you or a mod.',
       recaps: 'Official session write-ups. Title, date, body: blank line between paragraphs, ## for a heading, paste or drop a video to attach it. Save keeps a draft; members only ever see what you publish.',
       library: 'The video library members browse. Pick a category, choose the file, and Upload and publish puts it live immediately; unpublish or delete from the list below. Files stream through the same protected pipeline as lessons.',
       codes: 'Passes and discounts. A free code comps the course when redeemed at sign-in; a discount code takes its percentage at checkout. Cap the uses, set an expiry, and note who it was for so future-you knows.',
@@ -2462,6 +2494,102 @@
       PROFILE_NAMES = new Map((profs ?? []).map((p) => [p.user_id, p.username]))
       fillModuleSelect()
       renderCourse()
+      renderHomework()
+    }
+
+    /* ── homework: every assignment in one place, prompts edited inline.
+       The prompt lives on the lesson row (lesson_save carries it), so the
+       course sync never clobbers it, and members see edits immediately.
+       Reviewing the submitted markups stays in the members app. ── */
+    let HW_SUBS = []
+    async function loadHomework() {
+      const { data } = await supabase.from('homework_submissions').select('lesson_id, status')
+      HW_SUBS = data ?? []
+      renderHomework()
+    }
+    function hwCounts(lessonId) {
+      const c = { pending: 0, approved: 0, rejected: 0 }
+      for (const s of HW_SUBS) if (s.lesson_id === lessonId) c[s.status] = (c[s.status] ?? 0) + 1
+      return c
+    }
+    function renderHomework() {
+      const host = el('hw-list'); if (!host) return
+      host.textContent = ''
+      el('hw-list-empty').hidden = LESSONS.length > 0
+      const withHw = LESSONS.filter((l) => l.homework).length
+      const pendingAll = HW_SUBS.filter((s) => s.status === 'pending').length
+      el('c-hw').textContent = String(withHw)
+      el('hw-total').textContent = LESSONS.length
+        ? `${withHw} of ${LESSONS.length} lessons have homework · ${pendingAll} waiting for review`
+        : ''
+      for (const m of MODS) {
+        const lessons = LESSONS.filter((l) => l.module_id === m.id)
+        if (!lessons.length) continue
+        const cap = document.createElement('div'); cap.className = 'hwl-mod label'; cap.textContent = m.title
+        host.appendChild(cap)
+        for (const l of lessons) host.appendChild(hwRow(l))
+      }
+    }
+    function hwRow(l) {
+      const row = document.createElement('div'); row.className = 'hwl-row'
+      const top = document.createElement('div'); top.className = 'hwl-top'
+      const t = document.createElement('span'); t.className = 't'; t.textContent = l.title
+      top.appendChild(t)
+      const c = hwCounts(l.id)
+      if (c.pending) {
+        const b = document.createElement('span'); b.className = 'badge b-pending'
+        b.textContent = c.pending + ' to review'; top.appendChild(b)
+      }
+      if (l.homework && (c.approved || c.rejected)) {
+        const cnt = document.createElement('span'); cnt.className = 'cnt'
+        cnt.textContent = c.approved + ' approved' + (c.rejected ? ' · ' + c.rejected + ' sent back' : '')
+        top.appendChild(cnt)
+      }
+      const act = document.createElement('div'); act.className = 'act'
+      const edit = document.createElement('button'); edit.className = 'rowbtn'; edit.type = 'button'
+      edit.textContent = l.homework ? 'Edit' : 'Add homework'
+      act.appendChild(edit)
+      if (l.homework) {
+        const rm = document.createElement('button'); rm.className = 'rowbtn'; rm.type = 'button'; rm.textContent = 'Remove'
+        rm.addEventListener('click', async () => {
+          if (!confirm(`Remove the homework on "${l.title}"? The lesson will complete without a markup; past submissions stay on file.`)) return
+          rm.disabled = true
+          try { await adminAction({ action: 'lesson_save', id: l.id, homework: '' }); l.homework = null; renderHomework() }
+          catch { rm.disabled = false }
+        })
+        act.appendChild(rm)
+      }
+      top.appendChild(act)
+      row.appendChild(top)
+      const prompt = document.createElement('p'); prompt.className = 'hwl-prompt' + (l.homework ? '' : ' none')
+      prompt.textContent = l.homework || 'No homework — the lesson completes on its own.'
+      row.appendChild(prompt)
+      edit.addEventListener('click', () => {
+        if (row.querySelector('.hwl-edit')) return
+        prompt.hidden = true; edit.hidden = true
+        const wrap = document.createElement('div'); wrap.className = 'hwl-edit'
+        const ta = document.createElement('textarea'); ta.className = 'inp'; ta.maxLength = 5000
+        ta.placeholder = 'What they must mark up and submit — e.g. "Mark the buildup, the inducement and the mitigation on one NQ session from this week, then submit the chart."'
+        ta.value = l.homework ?? ''
+        const bar = document.createElement('div'); bar.className = 'bar'
+        const save = document.createElement('button'); save.className = 'btn'; save.type = 'button'; save.textContent = 'Save'
+        const cancel = document.createElement('button'); cancel.className = 'rowbtn'; cancel.type = 'button'; cancel.textContent = 'Cancel'
+        const msg = document.createElement('span'); msg.className = 'msg'; msg.style.padding = '0'
+        bar.append(save, cancel, msg)
+        wrap.append(ta, bar)
+        row.appendChild(wrap)
+        ta.focus()
+        cancel.addEventListener('click', () => { wrap.remove(); prompt.hidden = false; edit.hidden = false })
+        save.addEventListener('click', async () => {
+          save.disabled = true; msg.textContent = 'Saving…'
+          try {
+            await adminAction({ action: 'lesson_save', id: l.id, homework: ta.value })
+            l.homework = ta.value.trim() || null
+            renderHomework()
+          } catch (err) { save.disabled = false; msg.textContent = err.message }
+        })
+      })
+      return row
     }
 
     async function loadSettings() {
@@ -3959,7 +4087,7 @@
       recapEditor(null)
       paintSkeletons()
       await Promise.all([
-        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(), loadTvAccess(), loadCommunity(), loadPerms(), loadOnboarding(),
+        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(), loadTvAccess(), loadCommunity(), loadPerms(), loadOnboarding(), loadHomework(),
         // Money must never block the rest of the dashboard.
         loadMoney().catch(() => renderMoneySetup()),
         // GEX is an outside feed (gex-worker); warm the readout + table, never block on it.

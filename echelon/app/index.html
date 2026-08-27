@@ -6411,6 +6411,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       bar.append(lbl, sel); document.body.appendChild(bar)
     }
 
+    // Mods and admins hold the indicators while they hold the role (the mods
+    // triggers comp the entitlement rows server-side; this mirrors that in
+    // the UI so the store reads "you own this" instead of a buy button, for
+    // staff whose rows predate the triggers and for the owner's view-as).
+    function applyStaffComps() {
+      if (state.isMod || state.isAdmin) { state.owned.add('d1-gex'); state.owned.add('d1-lit') }
+    }
+
     // boot() is reachable from page load, the SIGNED_IN auth event, and the
     // sign-in/password forms — and those race (SIGNED_IN can fire before the
     // first boot() has set state.user). One shot only: a double boot
@@ -6452,6 +6460,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (state.realAdmin) initViewAs(viewAs === 'mod' || viewAs === 'member' ? viewAs : 'owner')
 
       state.owned = new Set((ents ?? []).map((e) => e.product))
+      applyStaffComps()
       state.hasCourse = state.owned.has('course') || state.isAdmin
       await loadCourse()
       refreshBadges(); watchBadges(); initDesktopPanel()
@@ -6480,6 +6489,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         setTimeout(async () => {
           const { data: ents } = await supabase.from('entitlements').select('product, status, interval').eq('status', 'active')
           state.owned = new Set((ents ?? []).map((e) => e.product))
+          applyStaffComps()
           renderStore()
           // A GEX purchase unlocks the tab right now, no reload needed —
           // then the intro says what they just bought and offers the tour.
