@@ -6296,9 +6296,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       bar.append(lbl, sel); document.body.appendChild(bar)
     }
 
+    // boot() is reachable from page load, the SIGNED_IN auth event, and the
+    // sign-in/password forms — and those race (SIGNED_IN can fire before the
+    // first boot() has set state.user). One shot only: a double boot
+    // duplicates every realtime subscription, and the second
+    // supabase.channel('badges') throws on an already-subscribed topic.
+    // Every sign-out path reloads the page, so the flag never needs resetting.
+    let booted = false
     async function boot() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return signInScreen()
+      if (booted) return
+      booted = true
 
       state.user = session.user
 

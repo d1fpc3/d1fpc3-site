@@ -102,9 +102,11 @@ await check("3-course");
 // open a mid-course lesson to see a long one
 await page.evaluate(() => { const b = document.querySelectorAll("#index button"); (b[8] || b[0]).click() });
 await page.waitForTimeout(500);
+// lesson media loads async; give the skeletons time to clear before judging
+await page.waitForFunction(() => document.querySelectorAll(".view.on .skel").length === 0, null, { timeout: 10000 }).catch(() => {});
 await check("4-lesson");
-await go("recaps");
-await check("5-recaps");
+await go("library");
+await check("5-library");
 await go("members");
 await check("6-members");
 await go("settings");
