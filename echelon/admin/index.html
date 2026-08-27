@@ -2676,14 +2676,23 @@
     let LIBV = []
     const LIB_CAT_NAME = { recap: 'Trade recap', breakdown: 'PA breakdown', concept: 'Concept' }
     async function loadLibraryAdmin() {
-      const { data } = await supabase.from('library_videos').select('*').order('created_at', { ascending: false })
+      const [{ data }, { data: views }] = await Promise.all([
+        supabase.from('library_videos').select('*').order('created_at', { ascending: false }),
+        supabase.from('library_views').select('video_id, view_count'),
+      ])
       LIBV = data ?? []
+      // Two numbers per video: how many members opened it, and total opens.
+      LIBVIEWS = {}
+      for (const v of views ?? []) {
+        const t = LIBVIEWS[v.video_id] ?? (LIBVIEWS[v.video_id] = { people: 0, opens: 0 })
+        t.people += 1; t.opens += v.view_count
+      }
       renderLibraryAdmin()
     }
     function renderLibraryAdmin() {
       el('libadmin-total').textContent = LIBV.length ? String(LIBV.length) : ''
       el('lib-admin-empty').hidden = LIBV.length > 0
-      table(el('lib-table'), ['', 'Title', 'Category', 'Added', 'State', ''], LIBV, (r) => {
+      table(el('lib-table'), ['', 'Title', 'Category', 'Added', 'Views', 'State', ''], LIBV, (r) => {
         const tr = document.createElement('tr')
         const th = document.createElement('td')
         if (r.thumb_path) {
@@ -2696,10 +2705,12 @@
           th.textContent = '—'; th.className = 'num'
         }
         tr.appendChild(th)
+        const vc = LIBVIEWS[r.id]
         tr.append(
           cell(r.title, 'ink'),
           cell(LIB_CAT_NAME[r.category] ?? r.category),
           cell(when(r.created_at), 'num'),
+          cell(vc ? `${vc.people} member${vc.people === 1 ? '' : 's'} · ${vc.opens} open${vc.opens === 1 ? '' : 's'}` : '—', 'num'),
           cell(r.is_published ? 'Live' : 'Hidden'),
         )
         const td = document.createElement('td'); td.className = 'num'
@@ -2731,6 +2742,7 @@
         return tr
       })
     }
+    let LIBVIEWS = {}
     let libFile = null
     el('lib-pick').addEventListener('click', () => el('lib-file').click())
     el('lib-file').addEventListener('change', () => {
