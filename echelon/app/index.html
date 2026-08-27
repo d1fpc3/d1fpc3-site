@@ -1228,12 +1228,32 @@
     .m-poll .pl-row { position: relative; display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--ink); }
     .m-poll .pl-pct { color: var(--faint); font-variant-numeric: tabular-nums; flex-shrink: 0; }
     .m-poll .pl-total { font-size: 11.5px; color: var(--faint); margin-top: 3px; }
-    .m-del { position: absolute; top: 4px; right: 6px; opacity: 0; background: var(--panel-2); border: 1px solid var(--line-bright); color: var(--faint);
-      border-radius: 6px; padding: 4px; cursor: pointer; transition: opacity 0.12s ease; display: inline-flex; }
-    .m-del svg { width: 14px; height: 14px; display: block; }
-    .msg:hover .m-del { opacity: 1; }
+    .m-acts { position: absolute; top: 4px; right: 6px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.12s ease; }
+    .msg:hover .m-acts { opacity: 1; }
+    @media (hover: none) { .m-acts { opacity: 0.5; } }
+    .m-del, .m-react { background: var(--panel-2); border: 1px solid var(--line-bright); color: var(--faint);
+      border-radius: 6px; padding: 4px; cursor: pointer; display: inline-flex; }
+    .m-del svg, .m-react svg { width: 14px; height: 14px; display: block; }
     .m-del:hover { color: var(--bad); border-color: var(--bad); }
-    @media (hover: none) { .m-del { opacity: 0.5; } }
+    .m-react:hover { color: var(--gold); border-color: var(--gold); }
+    .m-name { cursor: pointer; }
+    .m-name:hover { text-decoration: underline; text-underline-offset: 2px; }
+    /* reactions */
+    .m-rx { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .rx-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 8px;
+      border: 1px solid var(--line-bright); background: var(--panel-2); color: var(--muted); font-size: 12.5px;
+      cursor: pointer; font-family: inherit; line-height: 1.5; }
+    .rx-chip:hover { border-color: var(--gold); }
+    .rx-chip.mine { border-color: var(--gold); color: var(--ink); background: rgba(201,162,74,0.14); }
+    .rx-chip .n { font-variant-numeric: tabular-nums; font-size: 11.5px; color: var(--faint); }
+    .rx-chip.mine .n { color: var(--gold); }
+    .rx-pop { position: fixed; z-index: 210; display: flex; gap: 2px; padding: 5px 6px; background: var(--panel-2);
+      border: 1px solid var(--line-bright); border-radius: 10px; box-shadow: 0 14px 34px rgba(0,0,0,0.5); }
+    .rx-pop button { background: none; border: 0; font-size: 19px; line-height: 1; padding: 5px 6px; border-radius: 7px; cursor: pointer; }
+    .rx-pop button:hover { background: var(--panel); }
+    /* rail unread dot */
+    .cr-item .unread-dot { margin-left: auto; flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--gold); box-shadow: 0 0 8px rgba(201,162,74,0.55); }
     /* composer image button + pending attachment */
     .cc-img { padding: 0; width: 42px; height: 42px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
       background: var(--bg); border: 1px solid var(--line-bright); border-radius: 10px; color: var(--muted); cursor: pointer; }
@@ -5507,12 +5527,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function loadChat() {
       chat.byUser = Object.fromEntries((state.members || []).map((m) => [m.user_id, m]))
       if (state.profile) chat.byUser[state.user.id] = { user_id: state.user.id, username: state.profile.username, avatar_url: state.profile.avatar_url }
-      const [{ data: ch }, { data: mods }, { data: staff }, { data: dms }, { data: perms }] = await Promise.all([
+      const [{ data: ch }, { data: mods }, { data: staff }, { data: dms }, { data: perms }, { data: unread }] = await Promise.all([
         supabase.from('channels').select('*').order('position'),
         supabase.from('mods').select('user_id'),
         supabase.from('chat_staff').select('user_id, role'),
         supabase.from('dm_threads').select('*').order('last_at', { ascending: false }),
         supabase.from('chat_role_perms').select('*'),
+        supabase.rpc('unread_conversations'),
       ])
       chat.channels = ch ?? []
       chat.modSet = new Set((mods ?? []).map((m) => m.user_id))
@@ -5520,6 +5541,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chat.isStaff = state.isAdmin || state.isMod || chat.modSet.has(state.user.id)
       chat.permsByRole = Object.fromEntries((perms ?? []).map((p) => [p.role, p]))
       chat.dms = dms ?? []
+      chat.unread = new Map((unread ?? []).map((u) => [u.scope, u.cnt]))
       applyChatPerms()
       chat.loaded = true
       renderChatRail()
@@ -5536,6 +5558,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (c.kind === 'announcement') b.innerHTML = '<svg class="ann" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>'
         else { const h = document.createElement('span'); h.className = 'hash'; h.textContent = '#'; b.appendChild(h) }
         const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = c.name; b.appendChild(nm)
+        if (chat.unread?.get('channel:' + c.id) && !(chat.cur?.type === 'channel' && chat.cur.id === c.id)) {
+          const d = document.createElement('span'); d.className = 'unread-dot'; b.appendChild(d)
+        }
         b.addEventListener('click', () => openConversation('channel', c.id))
         cHost.appendChild(b)
       }
@@ -5546,6 +5571,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const b = document.createElement('button'); b.className = 'cr-item' + (chat.cur?.type === 'dm' && chat.cur.id === dm.id ? ' on' : '')
         b.appendChild(avatarNode(info, 'av'))
         const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = info.username; b.appendChild(nm)
+        if (chat.unread?.get('dm:' + dm.id) && !(chat.cur?.type === 'dm' && chat.cur.id === dm.id)) {
+          const d = document.createElement('span'); d.className = 'unread-dot'; b.appendChild(d)
+        }
         b.addEventListener('click', () => openConversation('dm', dm.id))
         dHost.appendChild(b)
       }
@@ -5553,6 +5581,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     async function openConversation(type, id) {
       chat.cur = { type, id }
+      chat.unread?.delete(type + ':' + id)
       el('chat').classList.add('open-convo')
       renderChatRail()
 
@@ -5583,6 +5612,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         .eq(col, id).is('deleted_at', null).order('created_at').limit(200)
       chat.msgs = data ?? []
       await loadPollVotes()
+      await loadReactions()
       renderLog(true)
       subscribeRoom(type, id)
       markRead(type + ':' + id)
@@ -5603,6 +5633,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           renderLog()
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_votes' }, () => schedulePollRefresh())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, (p) => {
+          const mid = p.new?.message_id || p.old?.message_id
+          if (mid && chat.msgs.some((m) => m.id === mid)) scheduleRxRefresh()
+        })
         .subscribe()
     }
 
@@ -5627,7 +5661,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const scope = m.channel_id ? 'channel:' + m.channel_id : 'dm:' + m.dm_id
           const cur = chat.cur ? chat.cur.type + ':' + chat.cur.id : null
           if (scope === cur && el('v-chat').classList.contains('on')) markRead(scope)
-          else scheduleBadges()
+          else {
+            if (chat.loaded && m.user_id !== state.user.id) {
+              chat.unread = chat.unread || new Map()
+              chat.unread.set(scope, (chat.unread.get(scope) || 0) + 1)
+              renderChatRail()
+            }
+            scheduleBadges()
+          }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_recaps' }, () => scheduleBadges())
         .subscribe()
@@ -5744,6 +5785,72 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     })
 
+    // ── reactions ──
+    const RX_QUICK = ['👍', '❤️', '😂', '🔥', '💯', '😮', '👀']
+    let _rxT = 0, rxPop = null
+    async function loadReactions() {
+      chat.rx = new Map()
+      const ids = chat.msgs.map((m) => m.id)
+      if (!ids.length) return
+      const { data } = await supabase.from('message_reactions').select('message_id, user_id, emoji').in('message_id', ids)
+      for (const r of data || []) {
+        const per = chat.rx.get(r.message_id) || new Map()
+        const e = per.get(r.emoji) || { count: 0, mine: false }
+        e.count++; if (r.user_id === state.user.id) e.mine = true
+        per.set(r.emoji, e); chat.rx.set(r.message_id, per)
+      }
+    }
+    function scheduleRxRefresh() { clearTimeout(_rxT); _rxT = setTimeout(async () => { await loadReactions(); renderLog() }, 400) }
+    async function toggleReaction(mid, emoji) {
+      const mine = chat.rx?.get(mid)?.get(emoji)?.mine
+      if (mine) await supabase.from('message_reactions').delete().match({ message_id: mid, user_id: state.user.id, emoji })
+      else await supabase.from('message_reactions').insert({ message_id: mid, user_id: state.user.id, emoji })
+      await loadReactions(); renderLog()
+    }
+    function renderReactions(host, m) {
+      const per = chat.rx?.get(m.id)
+      if (!per?.size) return
+      const wrap = document.createElement('div'); wrap.className = 'm-rx'
+      for (const [emoji, e] of per) {
+        const chip = document.createElement('button'); chip.className = 'rx-chip' + (e.mine ? ' mine' : '')
+        chip.title = e.mine ? 'Remove your reaction' : 'React'
+        const em = document.createElement('span'); em.textContent = emoji
+        const n = document.createElement('span'); n.className = 'n'; n.textContent = String(e.count)
+        chip.append(em, n)
+        chip.addEventListener('click', () => toggleReaction(m.id, emoji))
+        wrap.appendChild(chip)
+      }
+      host.appendChild(wrap)
+    }
+    function closeRxPicker() { if (rxPop) { rxPop.remove(); rxPop = null } }
+    function openRxPicker(anchor, mid) {
+      closeRxPicker()
+      const pop = document.createElement('div'); pop.className = 'rx-pop'
+      for (const e of RX_QUICK) {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = e
+        b.addEventListener('click', () => { closeRxPicker(); toggleReaction(mid, e) })
+        pop.appendChild(b)
+      }
+      document.body.appendChild(pop)
+      const r = anchor.getBoundingClientRect()
+      pop.style.top = Math.max(8, r.top - pop.offsetHeight - 6) + 'px'
+      pop.style.left = Math.max(8, Math.min(window.innerWidth - pop.offsetWidth - 8, r.right - pop.offsetWidth)) + 'px'
+      rxPop = pop
+    }
+    document.addEventListener('click', (e) => { if (rxPop && !rxPop.contains(e.target)) closeRxPicker() })
+    el('chat-log').addEventListener('scroll', closeRxPicker)
+
+    // Click a name in the log -> the same profile card the directory uses.
+    function openChatProfile(uid) {
+      const m = (state.members || []).find((x) => x.user_id === uid)
+      if (m) { openMemberProfile(m); return }
+      const info = chatUser(uid)
+      openMemberProfile({
+        user_id: uid, username: info.username || 'member', avatar_url: info.avatar_url || null, bio: '',
+        is_admin: chat.staff?.get(uid) === 'owner', is_mod: chat.staff?.get(uid) === 'mod',
+      })
+    }
+
     function renderLog(forceBottom) {
       const log = el('chat-log')
       const nearBottom = forceBottom || (log.scrollHeight - log.scrollTop - log.clientHeight < 120)
@@ -5765,6 +5872,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const head = document.createElement('div'); head.className = 'm-head'
           const nm = document.createElement('span'); nm.className = 'm-name'; nm.textContent = info.username
           nm.innerHTML += staffBadge(m.user_id)
+          nm.addEventListener('click', () => openChatProfile(m.user_id))
           const tm = document.createElement('span'); tm.className = 'm-time'; tm.textContent = t.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
           head.append(nm, tm); bodyWrap.appendChild(head)
         }
@@ -5780,15 +5888,22 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           img.addEventListener('click', () => window.open(m.image_url, '_blank', 'noopener'))
           bodyWrap.appendChild(img)
         }
+        renderReactions(bodyWrap, m)
         const previewUrl = (m.body || '').match(/https?:\/\/[^\s<]+/)?.[0]
         if (previewUrl) addLinkPreview(bodyWrap, previewUrl)
         row.appendChild(bodyWrap)
+        const acts = document.createElement('div'); acts.className = 'm-acts'
+        const rbtn = document.createElement('button'); rbtn.className = 'm-react'; rbtn.title = 'Add reaction'
+        rbtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'
+        rbtn.addEventListener('click', (e) => { e.stopPropagation(); openRxPicker(rbtn, m.id) })
+        acts.appendChild(rbtn)
         if (m.user_id === state.user.id || (chat.isStaff && chatPerm('delete'))) {
           const del = document.createElement('button'); del.className = 'm-del'; del.title = 'Delete'
           del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
           del.addEventListener('click', () => { if (confirm('Delete this message?')) deleteMessage(m.id) })
-          row.appendChild(del)
+          acts.appendChild(del)
         }
+        row.appendChild(acts)
         log.appendChild(row)
         lastUser = m.user_id; lastT = t
       }
