@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Echelon · Apply for access</title>
+  <title>Echelon · Join free</title>
   <meta name="robots" content="noindex, nofollow">
   <style>
     :root{
@@ -62,8 +62,8 @@
   <span class="orb o1"></span><span class="orb o2"></span>
   <div class="card" id="card">
     <div class="brand"><span class="mark">E</span><b>ECHELON</b></div>
-    <h1>Request access</h1>
-    <p class="sub">Tell us who you are. If we know you, you'll be let in free.</p>
+    <h1>Get in free.</h1>
+    <p class="sub">Sign up and you're in — your sign-in link arrives by email, no password needed.</p>
 
     <form id="form">
       <label for="name">Your name</label>
@@ -72,12 +72,12 @@
       <label for="email">Your email</label>
       <input class="inp" id="email" type="email" autocomplete="email" inputmode="email"
              spellcheck="false" placeholder="you@email.com">
-      <small>This is where your access lands, so use the one you'll sign in with.</small>
+      <small>This is your key — the sign-in link lands here.</small>
 
-      <label for="note">How do we know you? <span style="text-transform:none;color:var(--dim)">(optional)</span></label>
-      <textarea class="inp" id="note" placeholder="A quick line so we recognize you."></textarea>
+      <label for="note">Where did you find us? <span style="text-transform:none;color:var(--dim)">(optional)</span></label>
+      <textarea class="inp" id="note" placeholder="A quick line, if you feel like it."></textarea>
 
-      <button class="go" id="go" type="submit">Send request</button>
+      <button class="go" id="go" type="submit">Get access</button>
     </form>
 
     <div id="msg" class="msg"></div>
@@ -109,12 +109,26 @@
         if (!res.ok) throw new Error(body.error ?? `Something went wrong (${res.status}).`)
 
         $('card').classList.add('done')
+        // Access is granted server-side; now send the sign-in link so their
+        // inbox is the only step left. create_user:false — the account exists.
+        let mailed = false
+        try {
+          const otp = await fetch(`${SUPABASE_URL}/auth/v1/otp?redirect_to=${encodeURIComponent(APP)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
+            body: JSON.stringify({ email, create_user: false }),
+          })
+          mailed = otp.ok
+        } catch { /* the sign-in page can always resend */ }
+
         if (body.already) {
-          show('ok', "You already have access. <a href='" + APP + "'>Sign in to Echelon</a>.")
-        } else if (body.pending) {
-          show('ok', "You've already applied. Hang tight, we'll review it.")
+          show('ok', mailed
+            ? "You already have access — your sign-in link is on its way to your inbox."
+            : "You already have access. <a href='" + APP + "'>Sign in to Echelon</a>.")
         } else {
-          show('ok', "Request sent. If we know you, you'll get an email with your way in. You can close this page.")
+          show('ok', mailed
+            ? "You're in. Check your inbox — open the sign-in link and you land inside Echelon."
+            : "You're in. <a href='" + APP + "'>Sign in with your email</a> to get your link.")
         }
       } catch (err) {
         show('err', err.message)
