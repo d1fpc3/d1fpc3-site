@@ -2062,6 +2062,7 @@
     .co-err{padding:40px 24px;text-align:center;color:#b4483a;font-size:14px}
     .co-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:210;background:#0b0a09;color:#f2ede3;border:1px solid #3a352f;border-radius:12px;padding:12px 18px;font-size:14px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:min(440px,90vw);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
     .co-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+    .co-toast .ck{color:var(--gold,#c9a24a);font-weight:700;margin-right:8px}
     /* member profile card */
     .mm-scrim{position:fixed;inset:0;z-index:190;background:rgba(6,5,4,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
     .mm-scrim.on{display:flex}
@@ -2162,6 +2163,12 @@
         return !!globalThis.Capacitor?.isNativePlatform?.() || localStorage.getItem('echelon-native') === '1'
       } catch { return false }
     })()
+
+    // Magic-link and OAuth returns land with tokens in the hash. Note it now,
+    // before supabase-js consumes the hash, so boot can greet the sign-in.
+    try {
+      if (/access_token=/.test(location.hash)) sessionStorage.setItem('echelon-just-signed-in', '1')
+    } catch {}
 
     const state = {
       user: null, isAdmin: false, isMod: false, hasCourse: false, profile: null,
@@ -2266,6 +2273,7 @@
               button.disabled = false; button.textContent = 'Sign in'
               return
             }
+            try { sessionStorage.setItem('echelon-just-signed-in', '1') } catch {}
             boot()
           })
 
@@ -2363,6 +2371,7 @@
               button.disabled = false; button.textContent = 'Save password'
               return
             }
+            try { sessionStorage.setItem('echelon-just-signed-in', '1') } catch {}
             boot()
           })
           host.appendChild(form)
@@ -4567,7 +4576,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function toast(msg, ms = 4500) {
       let t = el('co-toast')
       if (!t) { t = document.createElement('div'); t.id = 'co-toast'; t.className = 'co-toast'; document.body.appendChild(t) }
-      t.textContent = msg; t.classList.add('on')
+      t.textContent = ''
+      // A leading "✓ " renders as a gold check before the message.
+      if (msg.startsWith('✓ ')) {
+        const ck = document.createElement('span'); ck.className = 'ck'; ck.textContent = '✓'
+        t.appendChild(ck); t.appendChild(document.createTextNode(msg.slice(2)))
+      } else {
+        t.textContent = msg
+      }
+      t.classList.add('on')
       clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), ms)
     }
 
@@ -6566,6 +6583,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       refreshBadges(); watchBadges(); initDesktopPanel()
       captureDiscordReturn(session); renderDiscordBlock()
 
+      // Fresh sign-in (form, magic link, or OAuth): one quiet confirmation.
+      try {
+        if (sessionStorage.getItem('echelon-just-signed-in')) {
+          sessionStorage.removeItem('echelon-just-signed-in')
+          toast('✓ Signed in successfully.')
+        }
+      } catch {}
+
       // First entry: five quick questions before anything else. The owner is
       // spared unless previewing via view-as.
       if (!state.isAdmin && !state.onboarding?.completed_at) setTimeout(startOnboarding, 700)
@@ -6608,7 +6633,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // PASSWORD_RECOVERY instead and get the new-password screen.
     supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') return recoveryScreen()
-      if (event === 'SIGNED_IN' && !state.user) boot()
+      if (event === 'SIGNED_IN' && !state.user) {
+        // A real sign-in landing (magic link / OAuth return), not a reload.
+        try { sessionStorage.setItem('echelon-just-signed-in', '1') } catch {}
+        boot()
+      }
     })
 
     boot()
