@@ -6027,10 +6027,54 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       try { return { ann: true, dm: true, chat: false, gex: true, channels: {}, ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } }
       catch { return { ann: true, dm: true, chat: false, gex: true, channels: {} } }
     }
-    function ntSavePrefs(p) { try { localStorage.setItem(NT_KEY, JSON.stringify(p)) } catch {} }
-    const ntSupported = () => 'Notification' in window
-    function ntUpdateState() {
+    function ntSavePrefs(p) {
+      try { localStorage.setItem(NT_KEY, JSON.stringify(p)) } catch {}
+      if (state.user) {
+        supabase.from('notify_prefs').upsert({
+          user_id: state.user.id, ann: !!p.ann, dm: !!p.dm, chat: !!p.chat, gex: !!p.gex,
+          channels: p.channels || {}, updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' }).then(() => {}, () => {})
+      }
+    }
+    // On a fresh device, the server copy of the prefs wins.
+    async function ntLoadPrefs() {
+      if (!state.user) return
+      const { data } = await supabase.from('notify_prefs').select('ann, dm, chat, gex, channels').maybeSingle()
+      if (data) { try { localStorage.setItem(NT_KEY, JSON.stringify(data)) } catch {} }
+    }
+    // Inside the iOS shell the Capacitor bridge is on the page and delivery
+    // is APNs via send-push; in a browser or the desktop app it is the web
+    // Notification API. Same switches, same per-channel rules, either way.
+    const ntNative = () => globalThis.Capacitor?.isNativePlatform?.() ? globalThis.Capacitor?.Plugins?.PushNotifications : null
+    const ntSupported = () => !!ntNative() || 'Notification' in window
+    let _ntPushWired = false
+    async function ntWireNative() {
+      const P = ntNative(); if (!P || _ntPushWired) return
+      _ntPushWired = true
+      P.addListener('registration', ({ value }) => {
+        supabase.rpc('register_push_token', { p_token: value, p_platform: 'apns' }).then(() => {}, () => {})
+      })
+      P.addListener('registrationError', (e) => console.error('push registration', e))
+      P.addListener('pushNotificationActionPerformed', () => { try { showView('chat') } catch {} })
+      // Already allowed on this phone: re-register silently so the token stays fresh.
+      try { const { receive } = await P.checkPermissions(); if (receive === 'granted') await P.register() } catch {}
+    }
+    async function ntNativeEnable() {
+      const P = ntNative(); if (!P) return false
+      try {
+        const { receive } = await P.requestPermissions()
+        if (receive !== 'granted') return false
+        await P.register()
+        return true
+      } catch { return false }
+    }
+    async function ntNativeState() {
+      const P = ntNative(); if (!P) return null
+      try { return (await P.checkPermissions()).receive } catch { return null }
+    }
+    async function ntUpdateState() {
       const st = el('nt-state'); if (!st) return
+      if (ntNative()) { st.textContent = (await ntNativeState()) === 'denied' ? 'Blocked' : ''; return }
       if (!ntSupported()) st.textContent = 'Unavailable'
       else if (Notification.permission === 'denied') st.textContent = 'Blocked'
       else st.textContent = ''
@@ -6042,10 +6086,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const cb = el(id); if (!cb) continue
         cb.checked = !!p[k]
         cb.addEventListener('change', async () => {
-          if (cb.checked && ntSupported() && Notification.permission === 'default') {
-            if (await Notification.requestPermission() !== 'granted') cb.checked = false
+          if (cb.checked && ntNative()) {
+            if (!(await ntNativeEnable())) cb.checked = false
+          } else {
+            if (cb.checked && ntSupported() && Notification.permission === 'default') {
+              if (await Notification.requestPermission() !== 'granted') cb.checked = false
+            }
+            if (cb.checked && (!ntSupported() || Notification.permission === 'denied')) cb.checked = false
           }
-          if (cb.checked && (!ntSupported() || Notification.permission === 'denied')) cb.checked = false
           const cur = ntPrefs(); cur[k] = cb.checked
           ntSavePrefs(cur)
           ntUpdateState()
@@ -6077,8 +6125,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
         sel.value = prefs.channels?.[c.id] ?? ''
         sel.addEventListener('change', async () => {
-          if (sel.value === 'on' && ntSupported() && Notification.permission === 'default') {
-            if (await Notification.requestPermission() !== 'granted') { sel.value = '' }
+          if (sel.value === 'on') {
+            if (ntNative()) { if (!(await ntNativeEnable())) sel.value = '' }
+            else if (ntSupported() && Notification.permission === 'default') {
+              if (await Notification.requestPermission() !== 'granted') sel.value = ''
+            }
           }
           const cur = ntPrefs()
           cur.channels = cur.channels || {}
@@ -6996,7 +7047,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
 
       await loadCourse()
-      refreshBadges(); watchBadges(); initDesktopPanel(); ntInitSettings()
+      refreshBadges(); watchBadges(); initDesktopPanel()
+      ntLoadPrefs().then(() => { ntInitSettings(); ntWireNative() })
       captureDiscordReturn(session); renderDiscordBlock()
 
       // Fresh sign-in (form, magic link, or OAuth): one quiet confirmation.
