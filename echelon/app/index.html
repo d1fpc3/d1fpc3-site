@@ -739,11 +739,23 @@
     @media (min-width: 761px) { .journal-full .topbar { display: none; } .journal-full .pane { padding-top: 30px; } }
     #v-journal .block { max-width: none; background: none; border: 0; border-radius: 0; overflow: visible; }
     .j-wrap { display: block; }
-    .j-rail { display: flex; gap: 2px; overflow-x: auto; max-width: 880px; margin: 0 auto 14px; padding: 0 2px; }
-    .j-day { display: flex; align-items: center; gap: 7px; width: auto; white-space: nowrap; text-align: left; background: none; border: 0; cursor: pointer; color: var(--faint); font: inherit; font-size: 12.5px; padding: 7px 11px; border-radius: 8px; }
-    .j-day:hover { color: var(--ink); background: var(--panel-2); }
-    .j-day.on { color: var(--ink); background: var(--panel-2); }
-    .j-has { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex: none; }
+    /* the calendar above the page: gold dots are days you wrote */
+    .j-rail { max-width: 330px; margin: 0 auto 18px; user-select: none; }
+    .j-cal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 6px; }
+    .j-cal-head b { font-size: 12.5px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; }
+    .j-cal-nav { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 15px; line-height: 1; padding: 4px 10px; border-radius: 6px; }
+    .j-cal-nav:hover:not(:disabled) { color: var(--gold); }
+    .j-cal-nav:disabled { opacity: 0.25; cursor: default; }
+    .j-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .j-cal-grid .wd { text-align: center; font-size: 9.5px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 0 6px; }
+    .j-c-day { position: relative; aspect-ratio: 1; border: 0; background: none; border-radius: 8px; color: var(--muted); font: inherit; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .j-c-day:hover:not(:disabled) { background: var(--panel-2); color: var(--ink); }
+    .j-c-day:disabled { color: var(--line-bright); cursor: default; }
+    .j-c-day.today { box-shadow: inset 0 0 0 1px var(--line-bright); }
+    .j-c-day.has::after { content: ""; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--gold); }
+    .j-c-day.on { background: var(--gold); color: #1a1207; font-weight: 600; }
+    .j-c-day.on.today { box-shadow: none; }
+    .j-c-day.on::after { background: #1a1207; }
     .j-page { display: flex; flex-direction: column; max-width: 880px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; box-shadow: 0 24px 60px -42px rgba(0,0,0,0.55); min-height: calc(100vh - 150px); }
     .j-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: clamp(26px, 5vw, 50px) clamp(26px, 7vw, 84px) 0; }
     .j-head h3 { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
@@ -1992,6 +2004,33 @@
                 <button class="rowbtn" id="dc-disconnect" type="button" hidden>Disconnect</button>
               </div>
               <p class="msg" id="dc-msg"></p>
+            </div>
+          </div>
+          <div class="block">
+            <div class="block-head"><h3>Notifications</h3><span class="label" id="nt-state"></span></div>
+            <div class="setgrid">
+              <p class="hint" style="margin:0;">Pings on this device while Echelon is open in the background. Pick what is worth interrupting you for.</p>
+              <div class="filters" style="justify-content:space-between;">
+                <div>
+                  <p class="label" style="margin-bottom:4px;">Announcements</p>
+                  <p class="hint" style="margin:0;">When something lands in Announcements.</p>
+                </div>
+                <label class="tgl"><input type="checkbox" id="nt-ann"><span class="track"></span></label>
+              </div>
+              <div class="filters" style="justify-content:space-between;">
+                <div>
+                  <p class="label" style="margin-bottom:4px;">Direct messages</p>
+                  <p class="hint" style="margin:0;">When a member messages you.</p>
+                </div>
+                <label class="tgl"><input type="checkbox" id="nt-dm"><span class="track"></span></label>
+              </div>
+              <div class="filters" style="justify-content:space-between;">
+                <div>
+                  <p class="label" style="margin-bottom:4px;">Chat messages</p>
+                  <p class="hint" style="margin:0;">Every message in every channel. Loud.</p>
+                </div>
+                <label class="tgl"><input type="checkbox" id="nt-chat"><span class="track"></span></label>
+              </div>
             </div>
           </div>
           <div class="block" id="desktop-block" hidden>
@@ -3607,21 +3646,49 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const jToday = () => new Date().toLocaleDateString('en-CA')
     let jDate = jToday(), jTimer = null, jLoadedBody = ''
     function jGet(d) { return state.journal.find((e) => e.entry_date === d) }
+    // The calendar: a month at a time, gold dots on the days you wrote.
+    // Any past day opens (and becomes a page the moment you type on it);
+    // the future stays shut.
+    let jCalYm = null // [year, monthIndex] on display
     function renderJournalRail() {
       const rail = el('j-rail'); if (!rail) return
+      if (!jCalYm) { const d = new Date(jDate + 'T12:00:00'); jCalYm = [d.getFullYear(), d.getMonth()] }
+      const [y, m] = jCalYm
+      const today = jToday()
+      const now = new Date(today + 'T12:00:00')
+      const written = new Set(state.journal.filter((e) => e.body?.trim() || e.media?.length).map((e) => e.entry_date))
       rail.textContent = ''
-      const dates = [...new Set([jToday(), ...state.journal.map((e) => e.entry_date)])]
-      for (const d of dates.slice(0, 90)) {
-        const b = document.createElement('button'); b.type = 'button'
-        b.className = 'j-day' + (d === jDate ? ' on' : '')
-        const label = document.createElement('span')
-        label.textContent = d === jToday() ? 'Today' : new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
-        b.appendChild(label)
-        const entry = jGet(d)
-        if (entry?.body?.trim() || entry?.media?.length) { const dot = document.createElement('span'); dot.className = 'j-has'; b.appendChild(dot) }
-        b.addEventListener('click', () => jOpen(d))
-        rail.appendChild(b)
+
+      const head = document.createElement('div'); head.className = 'j-cal-head'
+      const prev = document.createElement('button'); prev.type = 'button'; prev.className = 'j-cal-nav'; prev.textContent = '‹'
+      prev.setAttribute('aria-label', 'Previous month')
+      prev.addEventListener('click', () => { jCalYm = m === 0 ? [y - 1, 11] : [y, m - 1]; renderJournalRail() })
+      const title = document.createElement('b')
+      title.textContent = new Date(y, m, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+      const next = document.createElement('button'); next.type = 'button'; next.className = 'j-cal-nav'; next.textContent = '›'
+      next.setAttribute('aria-label', 'Next month')
+      next.disabled = y === now.getFullYear() && m === now.getMonth()
+      next.addEventListener('click', () => { jCalYm = m === 11 ? [y + 1, 0] : [y, m + 1]; renderJournalRail() })
+      head.append(prev, title, next)
+      rail.appendChild(head)
+
+      const grid = document.createElement('div'); grid.className = 'j-cal-grid'
+      for (const wd of ['S', 'M', 'T', 'W', 'T', 'F', 'S']) {
+        const w = document.createElement('span'); w.className = 'wd'; w.textContent = wd; grid.appendChild(w)
       }
+      const firstDow = new Date(y, m, 1).getDay()
+      const days = new Date(y, m + 1, 0).getDate()
+      for (let i = 0; i < firstDow; i++) grid.appendChild(document.createElement('span'))
+      for (let day = 1; day <= days; day++) {
+        const iso = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        const b = document.createElement('button'); b.type = 'button'
+        b.className = 'j-c-day' + (written.has(iso) ? ' has' : '') + (iso === jDate ? ' on' : '') + (iso === today ? ' today' : '')
+        b.textContent = String(day)
+        b.disabled = iso > today
+        if (!b.disabled) b.addEventListener('click', () => jOpen(iso))
+        grid.appendChild(b)
+      }
+      rail.appendChild(grid)
     }
     // The page is contenteditable — near enough to a word document: bold,
     // italic, underline, strikethrough, lists, and photos inline where the
@@ -3675,6 +3742,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function jOpen(d) {
       jDate = d
+      const od = new Date(d + 'T12:00:00'); jCalYm = [od.getFullYear(), od.getMonth()]
       jSelectImg(null)
       jRender(jGet(d)?.body ?? '')
       jLoadedBody = jSerialize() // normalized, so an untouched page never re-saves
@@ -5830,6 +5898,75 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         .subscribe()
     }
 
+    // ── device notifications: your rules, set in Settings ──
+    // Rides the same realtime stream the badges use. Per-device prefs in
+    // localStorage; announcements and DMs default on, the full room off.
+    const NT_KEY = 'echelon-notify'
+    function ntPrefs() {
+      try { return { ann: true, dm: true, chat: false, ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } }
+      catch { return { ann: true, dm: true, chat: false } }
+    }
+    const ntSupported = () => 'Notification' in window
+    function ntUpdateState() {
+      const st = el('nt-state'); if (!st) return
+      if (!ntSupported()) st.textContent = 'Not available on this device'
+      else if (Notification.permission === 'denied') st.textContent = 'Blocked in the browser'
+      else if (Notification.permission === 'granted') st.textContent = 'On for this device'
+      else st.textContent = ''
+    }
+    function ntInitSettings() {
+      const map = { ann: 'nt-ann', dm: 'nt-dm', chat: 'nt-chat' }
+      const p = ntPrefs()
+      for (const [k, id] of Object.entries(map)) {
+        const cb = el(id); if (!cb) continue
+        cb.checked = !!p[k]
+        cb.addEventListener('change', async () => {
+          if (cb.checked && ntSupported() && Notification.permission === 'default') {
+            if (await Notification.requestPermission() !== 'granted') cb.checked = false
+          }
+          if (cb.checked && (!ntSupported() || Notification.permission === 'denied')) cb.checked = false
+          const cur = ntPrefs(); cur[k] = cb.checked
+          try { localStorage.setItem(NT_KEY, JSON.stringify(cur)) } catch {}
+          ntUpdateState()
+        })
+      }
+      ntUpdateState()
+    }
+    let NT_CHANNELS = null
+    async function ntChannels() {
+      if (!NT_CHANNELS) {
+        const { data } = await supabase.from('channels').select('id, name, kind')
+        NT_CHANNELS = data ?? []
+      }
+      return NT_CHANNELS
+    }
+    async function maybeNotify(m) {
+      if (!ntSupported() || Notification.permission !== 'granted') return
+      if (!m || m.user_id === state.user?.id) return
+      const prefs = ntPrefs()
+      let kind = 'chat', chName = null
+      if (m.dm_id) kind = 'dm'
+      else {
+        const ch = (await ntChannels()).find((c) => c.id === m.channel_id)
+        chName = ch?.name ?? null
+        if (ch?.kind === 'announcement') kind = 'ann'
+      }
+      if (!prefs[kind]) return
+      // Already looking right at that conversation? Stay quiet.
+      const scope = m.channel_id ? 'channel:' + m.channel_id : 'dm:' + m.dm_id
+      const cur = chat.cur ? chat.cur.type + ':' + chat.cur.id : null
+      if (scope === cur && el('v-chat').classList.contains('on') && document.hasFocus()) return
+      const who = (state.members || []).find((x) => x.user_id === m.user_id)?.username ?? 'A member'
+      const title = kind === 'ann' ? 'Echelon · Announcement'
+        : kind === 'dm' ? who + ' · direct message'
+        : who + ' · #' + (chName ?? 'chat')
+      const body = (m.body || '').replace(/\s+/g, ' ').trim().slice(0, 110) || (m.image_url ? 'Sent a chart.' : 'Sent a message.')
+      try {
+        const n = new Notification(title, { body, icon: '/echelon/assets/logo-mark.png', tag: scope })
+        n.onclick = () => { try { window.focus(); showView('chat') } catch {} n.close() }
+      } catch { /* some webviews throw on construct; the badges still count */ }
+    }
+
     // ── nav unread badges (orange) ──
     let _badgeT = 0
     function setNotif(id, n) {
@@ -5859,6 +5996,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             }
             scheduleBadges()
           }
+          maybeNotify(m)
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_recaps' }, () => scheduleBadges())
         .subscribe()
@@ -6654,7 +6792,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       applyStaffComps()
       state.hasCourse = state.owned.has('course') || state.isAdmin
       await loadCourse()
-      refreshBadges(); watchBadges(); initDesktopPanel()
+      refreshBadges(); watchBadges(); initDesktopPanel(); ntInitSettings()
       captureDiscordReturn(session); renderDiscordBlock()
 
       // Fresh sign-in (form, magic link, or OAuth): one quiet confirmation.
