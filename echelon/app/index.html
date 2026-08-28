@@ -785,7 +785,7 @@
     .mr-title { font-size: 15.5px; font-weight: 650; letter-spacing: -0.01em; margin-top: 7px; }
     .mr-body { color: var(--muted); font-size: 13.5px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 5px; max-width: 72ch; }
     .mr-media { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; max-width: 640px; }
-    .mr-media a img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; }
+    .mr-media a img, .mr-media > img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; cursor: zoom-in; }
     .mr-media video { width: 100%; border-radius: 8px; border: 1px solid var(--line); background: #000; }
     .mr-out { font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
     .mr-out.win { color: var(--good); }
@@ -2077,6 +2077,13 @@
     .co-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:210;background:#0b0a09;color:#f2ede3;border:1px solid #3a352f;border-radius:12px;padding:12px 18px;font-size:14px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:min(440px,90vw);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
     .co-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
     .co-toast .ck{color:var(--gold,#c9a24a);font-weight:700;margin-right:8px}
+    /* image lightbox: charts open in place, never a new tab */
+    .imgbox { position: fixed; inset: 0; z-index: 230; background: rgba(5,4,3,0.9); display: flex; align-items: center; justify-content: center; padding: clamp(12px, 3vw, 32px); cursor: zoom-out; }
+    .imgbox img { max-width: 96vw; max-height: 94vh; border-radius: 10px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+    @media (prefers-reduced-motion: no-preference) {
+      .imgbox { animation: imgbox-in 0.16s ease; }
+      @keyframes imgbox-in { from { opacity: 0; } to { opacity: 1; } }
+    }
     /* member profile card */
     .mm-scrim{position:fixed;inset:0;z-index:190;background:rgba(6,5,4,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
     .mm-scrim.on{display:flex}
@@ -3903,9 +3910,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
               const v = document.createElement('video'); v.src = m.url; v.controls = true; v.preload = 'metadata'
               grid.appendChild(v)
             } else {
-              const a = document.createElement('a'); a.href = m.url; a.target = '_blank'; a.rel = 'noopener'
               const i = document.createElement('img'); i.src = m.url; i.alt = r.title || 'Trade chart'; i.loading = 'lazy'
-              a.appendChild(i); grid.appendChild(a)
+              i.addEventListener('click', () => openImage(m.url, i.alt))
+              grid.appendChild(i)
             }
           }
           item.appendChild(grid)
@@ -4627,6 +4634,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     function tvRowFor(product) { return state.tvAccess.find((t) => t.product === product) }
     function knownTvUsername() { return state.tvAccess.find((t) => t.tv_username)?.tv_username ?? '' }
+
+    // Full-screen image viewer. Click anywhere or Esc to come back.
+    function openImage(url, alt = '') {
+      const box = document.createElement('div'); box.className = 'imgbox'
+      const img = document.createElement('img'); img.src = url; img.alt = alt
+      box.appendChild(img)
+      const onKey = (e) => { if (e.key === 'Escape') close() }
+      const close = () => { box.remove(); document.removeEventListener('keydown', onKey) }
+      box.addEventListener('click', close)
+      document.addEventListener('keydown', onKey)
+      document.body.appendChild(box)
+    }
 
     function toast(msg, ms = 4500) {
       let t = el('co-toast')
@@ -6056,7 +6075,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (m.poll) renderPoll(bodyWrap, m)
         if (m.image_url) {
           const img = document.createElement('img'); img.className = 'm-img'; img.src = m.image_url; img.alt = 'image'; img.loading = 'lazy'
-          img.addEventListener('click', () => window.open(m.image_url, '_blank', 'noopener'))
+          img.addEventListener('click', () => openImage(m.image_url))
           bodyWrap.appendChild(img)
         }
         renderReactions(bodyWrap, m)
