@@ -383,6 +383,12 @@
     .intg:last-child { border-bottom: 0; }
     .intg .n { font-size: 13.5px; font-weight: 500; color: var(--ink); }
     .intg .h { font-size: 12px; color: var(--faint); margin-top: 2px; }
+    /* upload progress: one bar, 0 to 100 */
+    .upbar { display: none; align-items: center; gap: 10px; padding: 0 18px 12px; }
+    .upbar.on { display: flex; }
+    .upbar .track { flex: 1; height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+    .upbar .fill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--gold), var(--gold-deep)); transition: width 0.2s ease; }
+    .upbar .pct { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 38px; text-align: right; }
 
     /* homework admin: one row per lesson, the prompt edited in place */
     .hwl-mod { padding: 16px 18px 4px; }
@@ -727,6 +733,7 @@
       .mm-stat .v { font-size: 19px; }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 </head>
 <body>
 
@@ -1053,6 +1060,7 @@
               <span class="label" id="lib-thumb-name"></span>
               <input type="file" id="lib-thumb-file" accept="image/*" hidden>
             </div>
+            <div class="upbar" id="lib-bar"><div class="track"><div class="fill" id="lib-fill"></div></div><span class="pct" id="lib-pct">0%</span></div>
             <p class="msg" id="lib-msg"></p>
           </div>
           <div class="block">
@@ -2744,6 +2752,31 @@
       })
     }
     let LIBVIEWS = {}
+    // Resumable upload with real progress (tus, 6MB chunks). Falls back to
+    // the plain upload if tus failed to load.
+    async function uploadResumable(bucket, path, file, onPct) {
+      if (!window.tus) {
+        const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type || undefined })
+        if (error) throw error
+        onPct?.(100); return
+      }
+      const { data: { session } } = await supabase.auth.getSession()
+      await new Promise((resolve, reject) => {
+        const up = new tus.Upload(file, {
+          endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
+          retryDelays: [0, 1000, 3000, 5000, 10000],
+          headers: { authorization: `Bearer ${session?.access_token ?? ''}`, apikey: SUPABASE_KEY, 'x-upsert': 'false' },
+          uploadDataDuringCreation: true,
+          removeFingerprintOnSuccess: true,
+          metadata: { bucketName: bucket, objectName: path, contentType: file.type || 'application/octet-stream', cacheControl: '3600' },
+          chunkSize: 6 * 1024 * 1024,
+          onError: (e) => reject(e),
+          onProgress: (sent, total) => onPct?.(Math.round((sent / total) * 100)),
+          onSuccess: () => { onPct?.(100); resolve() },
+        })
+        up.findPreviousUploads().then((prev) => { if (prev.length) up.resumeFromPreviousUpload(prev[0]); up.start() })
+      })
+    }
     let libFile = null
     let libThumbFile = null
     /* The picked filename is a chip: click the × (or the name) to unpick. */
@@ -2831,14 +2864,14 @@
       if (!title) { msg.className = 'msg err'; msg.textContent = 'A title, at least.'; return }
       if (!libFile) { msg.className = 'msg err'; msg.textContent = 'Choose the video file.'; return }
       el('lib-save').disabled = true
-      msg.className = 'msg'; msg.textContent = 'Uploading… keep this tab open.'
+      msg.className = 'msg'; msg.textContent = ''
+      const bar = el('lib-bar'), fill = el('lib-fill'), pct = el('lib-pct')
+      bar.classList.add('on'); fill.style.width = '0%'; pct.textContent = '0%'
       try {
         const id = crypto.randomUUID()
         const clean = libFile.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')
         const path = `library/${id}/${clean}`
-        const { error: upErr } = await supabase.storage.from('lesson-files')
-          .upload(path, libFile, { contentType: libFile.type || undefined })
-        if (upErr) throw upErr
+        await uploadResumable('lesson-files', path, libFile, (n) => { fill.style.width = n + '%'; pct.textContent = n + '%' })
         // A hand-picked poster wins; otherwise fall back to the auto frame.
         let thumbPath = null
         const thumb = (libThumbFile && await libImageToJpeg(libThumbFile)) || await libMakeThumb(libFile)
@@ -2856,12 +2889,14 @@
           thumb_path: thumbPath,
         })
         if (error) throw error
+        bar.classList.remove('on')
         msg.className = 'msg ok'; msg.textContent = 'Published. Members can watch it now.'
         el('lib-title-in').value = ''; el('lib-sum-in').value = ''
         el('lib-file').value = ''; libFile = null; el('lib-file-name').textContent = ''
         el('lib-thumb-file').value = ''; libThumbFile = null; el('lib-thumb-name').textContent = ''
         loadLibraryAdmin()
       } catch (err) {
+        bar.classList.remove('on')
         msg.className = 'msg err'; msg.textContent = err.message
       }
       el('lib-save').disabled = false

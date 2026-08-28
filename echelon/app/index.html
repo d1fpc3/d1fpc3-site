@@ -1447,6 +1447,7 @@
     .crop-vp img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; user-select: none; pointer-events: none; }
     .crop-zoom { width: 260px; max-width: 100%; accent-color: var(--gold); }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 </head>
 <body>
 
@@ -1751,6 +1752,12 @@
                   <span class="label" id="mlib-file-name"></span>
                   <input type="file" id="mlib-file" accept="video/*" hidden>
                 </div>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                  <button class="rowbtn" id="mlib-thumb-pick" type="button">Thumbnail</button>
+                  <span class="label" id="mlib-thumb-name"></span>
+                  <input type="file" id="mlib-thumb-file" accept="image/*" hidden>
+                </div>
+                <div class="upbar" id="mlib-bar"><div class="track"><div class="fill" id="mlib-fill"></div></div><span class="pct" id="mlib-pct">0%</span></div>
                 <button class="btn" id="mlib-save" type="button">Upload and publish</button>
                 <p class="msg" id="mlib-msg"></p>
               </div>
@@ -2237,6 +2244,12 @@
     .co-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:210;background:#0b0a09;color:#f2ede3;border:1px solid #3a352f;border-radius:12px;padding:12px 18px;font-size:14px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:min(440px,90vw);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
     .co-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
     .co-toast .ck{color:var(--gold,#c9a24a);font-weight:700;margin-right:8px}
+    /* upload progress: one bar, 0 to 100 */
+    .upbar { display: none; align-items: center; gap: 10px; }
+    .upbar.on { display: flex; }
+    .upbar .track { flex: 1; height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+    .upbar .fill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--gold), var(--gold-deep)); transition: width 0.2s ease; }
+    .upbar .pct { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 38px; text-align: right; }
     /* image viewer: the chart over the page, a toolbar, zoom and pan */
     .imgbox { position: fixed; inset: 0; z-index: 230; background: rgba(5,4,3,0.86); overflow: hidden; touch-action: none; }
     .imgbox .stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
@@ -6796,7 +6809,56 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       })
     }
     document.body.appendChild(el('libupmodal'))
-    let mlibFile = null
+    // Resumable upload with real progress (tus, 6MB chunks, survives a
+    // flaky connection). Falls back to the plain upload if tus is missing.
+    async function uploadResumable(bucket, path, file, onPct) {
+      if (!window.tus) {
+        const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type || undefined })
+        if (error) throw error
+        onPct?.(100); return
+      }
+      const { data: { session } } = await supabase.auth.getSession()
+      await new Promise((resolve, reject) => {
+        const up = new tus.Upload(file, {
+          endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
+          retryDelays: [0, 1000, 3000, 5000, 10000],
+          headers: { authorization: `Bearer ${session?.access_token ?? ''}`, apikey: SUPABASE_KEY, 'x-upsert': 'false' },
+          uploadDataDuringCreation: true,
+          removeFingerprintOnSuccess: true,
+          metadata: { bucketName: bucket, objectName: path, contentType: file.type || 'application/octet-stream', cacheControl: '3600' },
+          chunkSize: 6 * 1024 * 1024,
+          onError: (e) => reject(e),
+          onProgress: (sent, total) => onPct?.(Math.round((sent / total) * 100)),
+          onSuccess: () => { onPct?.(100); resolve() },
+        })
+        up.findPreviousUploads().then((prev) => { if (prev.length) up.resumeFromPreviousUpload(prev[0]); up.start() })
+      })
+    }
+    // Any image becomes a max-1280 jpeg poster.
+    function libImageToJpeg(file) {
+      return new Promise((resolve) => {
+        const url = URL.createObjectURL(file)
+        const img = new Image()
+        const done = (blob) => { URL.revokeObjectURL(url); resolve(blob ?? null) }
+        img.onerror = () => done(null)
+        img.onload = () => {
+          try {
+            const w = Math.min(1280, img.naturalWidth || 1280)
+            const h = Math.round(w * (img.naturalHeight || 720) / (img.naturalWidth || 1280))
+            const c = document.createElement('canvas'); c.width = w; c.height = h
+            c.getContext('2d').drawImage(img, 0, 0, w, h)
+            c.toBlob((b) => done(b), 'image/jpeg', 0.85)
+          } catch { done(null) }
+        }
+        img.src = url
+      })
+    }
+    let mlibFile = null, mlibThumbFile = null
+    el('mlib-thumb-pick').addEventListener('click', () => el('mlib-thumb-file').click())
+    el('mlib-thumb-file').addEventListener('change', () => {
+      mlibThumbFile = el('mlib-thumb-file').files[0] ?? null
+      el('mlib-thumb-name').textContent = mlibThumbFile ? mlibThumbFile.name : ''
+    })
     el('lib-post').addEventListener('click', () => { el('libupmodal').hidden = false })
     el('mlib-x').addEventListener('click', () => { el('libupmodal').hidden = true })
     el('libupmodal').addEventListener('click', (e) => { if (e.target === el('libupmodal')) el('libupmodal').hidden = true })
@@ -6811,16 +6873,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!title) { msg.className = 'msg err'; msg.textContent = 'A title, at least.'; return }
       if (!mlibFile) { msg.className = 'msg err'; msg.textContent = 'Choose the video file.'; return }
       el('mlib-save').disabled = true
-      msg.className = 'msg'; msg.textContent = 'Uploading… keep this tab open.'
+      msg.className = 'msg'; msg.textContent = ''
+      const bar = el('mlib-bar'), fill = el('mlib-fill'), pct = el('mlib-pct')
+      bar.classList.add('on'); fill.style.width = '0%'; pct.textContent = '0%'
       try {
         const id = crypto.randomUUID()
         const clean = mlibFile.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')
         const path = `library/${id}/${clean}`
-        const { error: upErr } = await supabase.storage.from('lesson-files')
-          .upload(path, mlibFile, { contentType: mlibFile.type || undefined })
-        if (upErr) throw upErr
+        await uploadResumable('lesson-files', path, mlibFile, (n) => { fill.style.width = n + '%'; pct.textContent = n + '%' })
         let thumbPath = null
-        const thumb = await libMakeThumb(mlibFile)
+        const thumb = (mlibThumbFile && await libImageToJpeg(mlibThumbFile)) || await libMakeThumb(mlibFile)
         if (thumb) {
           thumbPath = `${id}.jpg`
           const { error: thErr } = await supabase.storage.from('library-thumbs')
