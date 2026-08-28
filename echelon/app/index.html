@@ -2037,7 +2037,7 @@
               <div class="filters" style="justify-content:space-between;">
                 <div>
                   <p class="label" style="margin-bottom:4px;">Chat messages</p>
-                  <p class="hint" style="margin:0;">Every message in every channel. Loud.</p>
+                  <p class="hint" style="margin:0;">Every message in every channel, unless a channel below says otherwise.</p>
                 </div>
                 <label class="tgl"><input type="checkbox" id="nt-chat"><span class="track"></span></label>
               </div>
@@ -2047,6 +2047,11 @@
                   <p class="hint" style="margin:0;">When dealer gamma flips positive or negative. GEX subscribers.</p>
                 </div>
                 <label class="tgl"><input type="checkbox" id="nt-gex"><span class="track"></span></label>
+              </div>
+              <div style="border-top:1px solid var(--line);padding-top:16px;">
+                <p class="label" style="margin-bottom:4px;">Per channel</p>
+                <p class="hint" style="margin:0 0 10px;">Each channel can beat the switches above: always ping, never ping, or follow them.</p>
+                <div id="nt-channels"></div>
               </div>
             </div>
           </div>
@@ -5939,9 +5944,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // localStorage; announcements and DMs default on, the full room off.
     const NT_KEY = 'echelon-notify'
     function ntPrefs() {
-      try { return { ann: true, dm: true, chat: false, gex: true, ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } }
-      catch { return { ann: true, dm: true, chat: false, gex: true } }
+      try { return { ann: true, dm: true, chat: false, gex: true, channels: {}, ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } }
+      catch { return { ann: true, dm: true, chat: false, gex: true, channels: {} } }
     }
+    function ntSavePrefs(p) { try { localStorage.setItem(NT_KEY, JSON.stringify(p)) } catch {} }
     const ntSupported = () => 'Notification' in window
     function ntUpdateState() {
       const st = el('nt-state'); if (!st) return
@@ -5962,11 +5968,47 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           }
           if (cb.checked && (!ntSupported() || Notification.permission === 'denied')) cb.checked = false
           const cur = ntPrefs(); cur[k] = cb.checked
-          try { localStorage.setItem(NT_KEY, JSON.stringify(cur)) } catch {}
+          ntSavePrefs(cur)
           ntUpdateState()
         })
       }
       ntUpdateState()
+      ntRenderChannels()
+    }
+    // Per-channel, the Discord way: every channel gets its own rule that
+    // overrides the switches above. Stored on this device with the rest.
+    async function ntRenderChannels() {
+      const host = el('nt-channels'); if (!host) return
+      const chans = await ntChannels()
+      const prefs = ntPrefs()
+      host.textContent = ''
+      for (const c of chans) {
+        const row = document.createElement('div')
+        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;'
+        const nm = document.createElement('span')
+        nm.textContent = (c.kind === 'announcement' ? '' : '# ') + c.name
+        nm.style.cssText = 'font-size:13.5px;color:var(--ink);'
+        const sel = document.createElement('select'); sel.className = 'inp'
+        sel.style.cssText = 'width:130px;padding:7px 10px;font-size:12.5px;'
+        sel.setAttribute('aria-label', 'Notifications for ' + c.name)
+        for (const [v, label] of [['', 'Default'], ['on', 'Always'], ['off', 'Never']]) {
+          const o = document.createElement('option'); o.value = v; o.textContent = label; sel.appendChild(o)
+        }
+        sel.value = prefs.channels?.[c.id] ?? ''
+        sel.addEventListener('change', async () => {
+          if (sel.value === 'on' && ntSupported() && Notification.permission === 'default') {
+            if (await Notification.requestPermission() !== 'granted') { sel.value = '' }
+          }
+          const cur = ntPrefs()
+          cur.channels = cur.channels || {}
+          if (sel.value) cur.channels[c.id] = sel.value
+          else delete cur.channels[c.id]
+          ntSavePrefs(cur)
+          ntUpdateState()
+        })
+        row.append(nm, sel)
+        host.appendChild(row)
+      }
     }
     let NT_CHANNELS = null
     async function ntChannels() {
@@ -5987,7 +6029,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         chName = ch?.name ?? null
         if (ch?.kind === 'announcement') kind = 'ann'
       }
-      if (!prefs[kind]) return
+      // A per-channel rule beats the global switch, Discord-style.
+      const override = m.channel_id ? prefs.channels?.[m.channel_id] : null
+      if (override === 'off') return
+      if (override !== 'on' && !prefs[kind]) return
       // Already looking right at that conversation? Stay quiet.
       const scope = m.channel_id ? 'channel:' + m.channel_id : 'dm:' + m.dm_id
       const cur = chat.cur ? chat.cur.type + ':' + chat.cur.id : null
