@@ -2216,9 +2216,30 @@
     .co-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:210;background:#0b0a09;color:#f2ede3;border:1px solid #3a352f;border-radius:12px;padding:12px 18px;font-size:14px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:min(440px,90vw);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
     .co-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
     .co-toast .ck{color:var(--gold,#c9a24a);font-weight:700;margin-right:8px}
-    /* image lightbox: charts open in place, never a new tab */
-    .imgbox { position: fixed; inset: 0; z-index: 230; background: rgba(5,4,3,0.9); display: flex; align-items: center; justify-content: center; padding: clamp(12px, 3vw, 32px); cursor: zoom-out; }
-    .imgbox img { max-width: 96vw; max-height: 94vh; border-radius: 10px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+    /* image viewer: the chart over the page, a toolbar, zoom and pan */
+    .imgbox { position: fixed; inset: 0; z-index: 230; background: rgba(5,4,3,0.86); overflow: hidden; touch-action: none; }
+    .imgbox .stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    .imgbox img {
+      max-width: 92vw; max-height: 88vh; border-radius: 8px; box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+      user-select: none; -webkit-user-drag: none; cursor: zoom-in; will-change: transform;
+      transition: transform 0.12s ease;
+    }
+    .imgbox.zoomed img { cursor: grab; }
+    .imgbox.dragging img { cursor: grabbing; transition: none; }
+    .imgbox .bar {
+      position: absolute; top: 14px; right: 14px; z-index: 2; display: flex; gap: 2px; padding: 4px;
+      background: rgba(20,18,16,0.92); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    }
+    .imgbox .bar button, .imgbox .bar a {
+      width: 40px; height: 40px; border: 0; background: none; color: #d9d3c8; cursor: pointer; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center; transition: background 0.12s ease, color 0.12s ease;
+    }
+    .imgbox .bar button:hover, .imgbox .bar a:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .imgbox .bar svg { width: 20px; height: 20px; }
+    .imgbox .bar .x { margin-left: 6px; }
+    .imgbox .cap { position: absolute; left: 18px; bottom: 16px; color: #9d978c; font-size: 12.5px; max-width: 60vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    @media (max-width: 640px) { .imgbox .bar { top: 10px; right: 10px; } .imgbox .bar button, .imgbox .bar a { width: 38px; height: 38px; } }
     @media (prefers-reduced-motion: no-preference) {
       .imgbox { animation: imgbox-in 0.16s ease; }
       @keyframes imgbox-in { from { opacity: 0; } to { opacity: 1; } }
@@ -4822,15 +4843,89 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function tvRowFor(product) { return state.tvAccess.find((t) => t.product === product) }
     function knownTvUsername() { return state.tvAccess.find((t) => t.tv_username)?.tv_username ?? '' }
 
-    // Full-screen image viewer. Click anywhere or Esc to come back.
+    // Image viewer: the chart over the page with a toolbar (zoom in / out,
+    // download, open original, close). Wheel or pinch to zoom, drag to pan,
+    // double-click toggles 2x. Backdrop click or Esc closes; the image
+    // itself never closes it.
+    const IC = {
+      zin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg>',
+      zout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6"/></svg>',
+      dl: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>',
+      ext: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>',
+      x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    }
     function openImage(url, alt = '') {
       const box = document.createElement('div'); box.className = 'imgbox'
-      const img = document.createElement('img'); img.src = url; img.alt = alt
-      box.appendChild(img)
-      const onKey = (e) => { if (e.key === 'Escape') close() }
+      const stage = document.createElement('div'); stage.className = 'stage'
+      const img = document.createElement('img'); img.src = url; img.alt = alt; img.draggable = false
+      stage.appendChild(img)
+      const bar = document.createElement('div'); bar.className = 'bar'
+      const mk = (svg, title, fn) => {
+        const b = document.createElement('button'); b.type = 'button'; b.title = title; b.innerHTML = svg
+        b.addEventListener('click', (e) => { e.stopPropagation(); fn() }); bar.appendChild(b); return b
+      }
+      const cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = alt || ''
+
+      let scale = 1, tx = 0, ty = 0
+      const apply = () => {
+        img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`
+        box.classList.toggle('zoomed', scale > 1)
+      }
+      const setScale = (next, cx, cy) => {
+        next = Math.min(6, Math.max(1, next))
+        if (cx !== undefined) {
+          // keep the point under the cursor still
+          const r = img.getBoundingClientRect()
+          const px = cx - (r.left + r.width / 2), py = cy - (r.top + r.height / 2)
+          const k = next / scale
+          tx = px - (px - tx) * k; ty = py - (py - ty) * k
+        }
+        scale = next
+        if (scale === 1) { tx = 0; ty = 0 }
+        apply()
+      }
+      mk(IC.zin, 'Zoom in', () => setScale(scale * 1.5))
+      mk(IC.zout, 'Zoom out', () => setScale(scale / 1.5))
+      mk(IC.dl, 'Download', async () => {
+        try {
+          const blob = await (await fetch(url)).blob()
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+          a.download = (url.split('/').pop() || 'chart').split('?')[0]; a.click()
+          setTimeout(() => URL.revokeObjectURL(a.href), 4000)
+        } catch { window.open(url, '_blank', 'noopener') }
+      })
+      const ext = document.createElement('a'); ext.href = url; ext.target = '_blank'; ext.rel = 'noopener'
+      ext.title = 'Open original'; ext.innerHTML = IC.ext; ext.addEventListener('click', (e) => e.stopPropagation()); bar.appendChild(ext)
+      mk(IC.x, 'Close', () => close()).classList.add('x')
+
+      // wheel zoom
+      box.addEventListener('wheel', (e) => { e.preventDefault(); setScale(scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX, e.clientY) }, { passive: false })
+      // drag to pan, pinch to zoom (pointer events cover mouse + touch)
+      const pts = new Map(); let drag = null, pinch = null
+      img.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); img.setPointerCapture(e.pointerId); pts.set(e.pointerId, e)
+        if (pts.size === 1 && scale > 1) { drag = { x: e.clientX - tx, y: e.clientY - ty }; box.classList.add('dragging') }
+        if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), s: scale }; drag = null }
+      })
+      img.addEventListener('pointermove', (e) => {
+        if (!pts.has(e.pointerId)) return
+        pts.set(e.pointerId, e)
+        if (pinch && pts.size === 2) {
+          const [a, b] = [...pts.values()]
+          const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+          setScale(pinch.s * (d / pinch.d), (a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2)
+        } else if (drag) { tx = e.clientX - drag.x; ty = e.clientY - drag.y; apply() }
+      })
+      const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; if (!pts.size) { drag = null; box.classList.remove('dragging') } }
+      img.addEventListener('pointerup', up); img.addEventListener('pointercancel', up)
+      img.addEventListener('dblclick', (e) => setScale(scale > 1 ? 1 : 2, e.clientX, e.clientY))
+      img.addEventListener('click', (e) => e.stopPropagation())
+
+      const onKey = (e) => { if (e.key === 'Escape') close(); if (e.key === '+' || e.key === '=') setScale(scale * 1.5); if (e.key === '-') setScale(scale / 1.5) }
       const close = () => { box.remove(); document.removeEventListener('keydown', onKey) }
       box.addEventListener('click', close)
       document.addEventListener('keydown', onKey)
+      box.append(bar, stage, cap)
       document.body.appendChild(box)
     }
 
