@@ -21,7 +21,44 @@ jobs:
       # marker. The account LOGS IN at public_html, but this action resolves
       # server-dir absolutely from the jail root — so it must be /public_html/,
       # never / (a / deploy lands beside the web root, not in it).
+      # Hostinger's FTP control socket times out a few times a week. Three
+      # attempts, 20s apart, before the run is allowed to go red.
       - name: FTP deploy
+        id: ftp1
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        continue-on-error: true
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /public_html/
+          local-dir: ./
+          exclude: |
+            **/.git*
+            **/.git*/**
+            README.md
+      - if: steps.ftp1.outcome == 'failure'
+        run: sleep 20
+      - name: FTP deploy (retry 2)
+        id: ftp2
+        if: steps.ftp1.outcome == 'failure'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        continue-on-error: true
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /public_html/
+          local-dir: ./
+          exclude: |
+            **/.git*
+            **/.git*/**
+            README.md
+      - if: steps.ftp1.outcome == 'failure' && steps.ftp2.outcome == 'failure'
+        run: sleep 20
+      - name: FTP deploy (retry 3)
+        id: ftp3
+        if: steps.ftp1.outcome == 'failure' && steps.ftp2.outcome == 'failure'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
