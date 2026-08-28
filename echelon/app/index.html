@@ -610,6 +610,14 @@
 
     .ov-sec { margin-top: 30px; }
     .ov-cap { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px 10px; border-bottom: 1px solid var(--line); }
+    /* recap feed scope: two quiet labels, the active one holds the gold */
+    .mr-scopes { display: inline-flex; gap: 16px; }
+    .mr-scope { background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; transition: color 0.15s ease; }
+    .mr-scope:hover { color: var(--muted); }
+    .mr-scope.on { color: var(--gold); }
+    .mr-who { display: flex; align-items: center; gap: 8px; }
+    .mr-who .av { width: 22px; height: 22px; border-radius: 6px; font-size: 10.5px; }
+    .mr-who b { font-size: 12.5px; font-weight: 600; color: var(--ink); }
     .ov-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: clamp(28px, 5vw, 56px); align-items: start; }
     @media (max-width: 860px) { .ov-grid { grid-template-columns: 1fr; } }
     .ov-flat { padding: 14px 2px 0; }
@@ -1523,7 +1531,13 @@
           </section>
 
           <section class="ov-sec">
-            <div class="ov-cap"><span class="label">Your recaps</span><span class="label" id="mr-total"></span></div>
+            <div class="ov-cap">
+              <span class="mr-scopes">
+                <button class="label mr-scope on" id="mr-scope-mine" type="button">Your recaps</button>
+                <button class="label mr-scope" id="mr-scope-room" type="button">The room</button>
+              </span>
+              <span class="label" id="mr-total"></span>
+            </div>
             <div class="mr-composer collapsed" id="mr-composer">
               <input type="text" id="mr-title" maxlength="120" placeholder="Log today's session…" autocomplete="off">
               <textarea id="mr-body" maxlength="5000" placeholder="What you saw, what you took, how it went."></textarea>
@@ -3344,6 +3358,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       mrPending = []; mrRenderPending()
       el('mr-composer').classList.add('collapsed')
       state.memberRecaps.unshift(data)
+      if (state.roomRecaps) state.roomRecaps.unshift(data)
       renderMemberRecaps()
       if (data.r !== null && data.r !== undefined) { state.rrPool.unshift(data); renderTradeOfDay() }
     }
@@ -3358,6 +3373,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         .filter(Boolean)
       if (paths.length) supabase.storage.from('recap-media').remove(paths).catch(() => {})
       state.memberRecaps = state.memberRecaps.filter((x) => x.id !== r.id)
+      if (state.roomRecaps) state.roomRecaps = state.roomRecaps.filter((x) => x.id !== r.id)
       renderMemberRecaps()
     }
 
@@ -3815,14 +3831,53 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       host.appendChild(rr)
     }
 
+    // Two feeds off one renderer: yours, and the whole room's. The database
+    // has always let members read each other's recaps (member_recaps_read is
+    // open); the room view simply shows them, with who took the trade.
+    let mrScope = 'mine'
+    function mrProfile(uid) {
+      if (uid === state.user?.id && state.profile) return state.profile
+      return (state.members || []).find((m) => m.user_id === uid)
+    }
+    async function loadRoomRecaps() {
+      const { data } = await supabase.from('member_recaps')
+        .select('id, user_id, title, body, media, outcome, r, created_at')
+        .order('created_at', { ascending: false }).limit(60)
+      state.roomRecaps = data ?? []
+      renderMemberRecaps()
+    }
+    function mrSetScope(scope) {
+      mrScope = scope
+      el('mr-scope-mine').classList.toggle('on', scope === 'mine')
+      el('mr-scope-room').classList.toggle('on', scope === 'room')
+      el('mr-composer').hidden = scope !== 'mine'
+      if (scope === 'room' && !state.roomRecaps) loadRoomRecaps()
+      renderMemberRecaps()
+    }
+    el('mr-scope-mine').addEventListener('click', () => mrSetScope('mine'))
+    el('mr-scope-room').addEventListener('click', () => mrSetScope('room'))
+
     function renderMemberRecaps() {
       const feed = el('mr-feed'); if (!feed) return
-      el('mr-total').textContent = state.memberRecaps.length ? `${state.memberRecaps.length} total` : ''
-      el('mr-empty').hidden = state.memberRecaps.length > 0
+      const room = mrScope === 'room'
+      const rows = room ? (state.roomRecaps ?? []) : state.memberRecaps
+      el('mr-total').textContent = rows.length ? `${rows.length}${room ? ' from the room' : ' total'}` : ''
+      el('mr-empty').hidden = rows.length > 0
+      el('mr-empty').textContent = room
+        ? 'Nobody has logged a trade yet. Yours could be first.'
+        : 'Nothing logged yet. The stats up top start moving when you do.'
       feed.textContent = ''
-      for (const r of state.memberRecaps) {
+      for (const r of rows) {
         const item = document.createElement('article'); item.className = 'mr-item'
         const head = document.createElement('div'); head.className = 'mr-head'
+        if (room) {
+          const p = mrProfile(r.user_id)
+          const who = document.createElement('span'); who.className = 'mr-who'
+          who.appendChild(avatarNode({ username: p?.username, avatar_url: p?.avatar_url }, 'av'))
+          const nm = document.createElement('b'); nm.textContent = p?.username ?? 'member'
+          who.appendChild(nm)
+          head.appendChild(who)
+        }
         const when = document.createElement('span'); when.className = 'when'
         when.textContent = new Date(r.created_at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
         head.append(when)
