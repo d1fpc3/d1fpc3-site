@@ -55,6 +55,13 @@
     .msg.ok{display:block;background:rgba(134,181,127,.12);color:var(--ok);border:1px solid rgba(134,181,127,.3)}
     .msg.err{display:block;background:rgba(208,138,122,.12);color:var(--err);border:1px solid rgba(208,138,122,.3)}
     .msg a{color:var(--gold);font-weight:600}
+    .chips{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .chip{
+      background:#0f0d0b;border:1px solid var(--line);border-radius:11px;color:var(--faint);
+      padding:12px 10px;font:500 14px/1.2 inherit;cursor:pointer;text-align:center;
+    }
+    .chip:hover{border-color:var(--line-bright);color:var(--ink)}
+    .chip.on{border-color:var(--gold);color:var(--gold)}
     .done form{display:none}
   </style>
 </head>
@@ -74,6 +81,14 @@
              spellcheck="false" placeholder="you@email.com">
       <small>This is your key — the sign-in link lands here.</small>
 
+      <label>How long have you been trading?</label>
+      <div class="chips" id="exp-chips">
+        <button type="button" class="chip" data-v="Just starting">Just starting</button>
+        <button type="button" class="chip" data-v="Under a year">Under a year</button>
+        <button type="button" class="chip" data-v="1 to 3 years">1 to 3 years</button>
+        <button type="button" class="chip" data-v="3+ years">3+ years</button>
+      </div>
+
       <label for="note">Where did you find us? <span style="text-transform:none;color:var(--dim)">(optional)</span></label>
       <textarea class="inp" id="note" placeholder="A quick line, if you feel like it."></textarea>
 
@@ -91,6 +106,12 @@
     const msg = $('msg')
     const show = (cls, html) => { msg.className = 'msg ' + cls; msg.style.display = 'block'; msg.innerHTML = html }
 
+    let experience = null
+    document.querySelectorAll('#exp-chips .chip').forEach((c) => c.addEventListener('click', () => {
+      experience = c.dataset.v
+      document.querySelectorAll('#exp-chips .chip').forEach((x) => x.classList.toggle('on', x === c))
+    }))
+
     $('form').addEventListener('submit', async (e) => {
       e.preventDefault()
       const email = $('email').value.trim().toLowerCase()
@@ -103,7 +124,7 @@
         const res = await fetch(`${SUPABASE_URL}/functions/v1/free-apply`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
-          body: JSON.stringify({ email, name, note }),
+          body: JSON.stringify({ email, name, note, experience }),
         })
         const body = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(body.error ?? `Something went wrong (${res.status}).`)

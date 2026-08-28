@@ -739,8 +739,18 @@
     @media (min-width: 761px) { .journal-full .topbar { display: none; } .journal-full .pane { padding-top: 30px; } }
     #v-journal .block { max-width: none; background: none; border: 0; border-radius: 0; overflow: visible; }
     .j-wrap { display: block; }
-    /* the calendar above the page: gold dots are days you wrote */
-    .j-rail { max-width: 330px; margin: 0 auto 18px; user-select: none; }
+    /* the date heading IS the calendar: click it, pick a day, it leaves.
+       Gold dots are days you wrote. */
+    #j-title { cursor: pointer; border-radius: 6px; padding: 2px 4px; margin: -2px -4px; transition: color 0.15s ease; }
+    #j-title::after { content: "▾"; margin-left: 7px; color: var(--faint); font-size: 10px; }
+    #j-title:hover, #j-title:hover::after { color: var(--gold); }
+    .j-head { position: relative; }
+    .j-cal-pop {
+      position: absolute; z-index: 40; top: calc(100% + 10px); left: clamp(18px, 6vw, 76px);
+      width: 292px; padding: 12px 14px 14px; user-select: none;
+      background: var(--panel); border: 1px solid var(--line-bright); border-radius: 12px;
+      box-shadow: 0 22px 60px -24px rgba(0,0,0,0.6);
+    }
     .j-cal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 6px; }
     .j-cal-head b { font-size: 12.5px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; }
     .j-cal-nav { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 15px; line-height: 1; padding: 4px 10px; border-radius: 6px; }
@@ -1807,10 +1817,10 @@
         <section class="view" id="v-journal">
           <div class="block">
             <div class="j-wrap">
-              <aside class="j-rail" id="j-rail"></aside>
               <div class="j-page" id="j-page">
                 <div class="j-head">
-                  <h3 id="j-title">Today</h3>
+                  <h3 id="j-title" role="button" tabindex="0" title="Pick a day">Today</h3>
+                  <div class="j-cal-pop" id="j-rail" hidden></div>
                   <span class="j-tools">
                     <span class="hint" id="j-status"></span>
                     <span class="j-bar" role="toolbar" aria-label="Formatting">
@@ -2030,6 +2040,13 @@
                   <p class="hint" style="margin:0;">Every message in every channel. Loud.</p>
                 </div>
                 <label class="tgl"><input type="checkbox" id="nt-chat"><span class="track"></span></label>
+              </div>
+              <div class="filters" style="justify-content:space-between;">
+                <div>
+                  <p class="label" style="margin-bottom:4px;">GEX regime</p>
+                  <p class="hint" style="margin:0;">When dealer gamma flips positive or negative. GEX subscribers.</p>
+                </div>
+                <label class="tgl"><input type="checkbox" id="nt-gex"><span class="track"></span></label>
               </div>
             </div>
           </div>
@@ -3685,11 +3702,28 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         b.className = 'j-c-day' + (written.has(iso) ? ' has' : '') + (iso === jDate ? ' on' : '') + (iso === today ? ' today' : '')
         b.textContent = String(day)
         b.disabled = iso > today
-        if (!b.disabled) b.addEventListener('click', () => jOpen(iso))
+        if (!b.disabled) b.addEventListener('click', () => { jOpen(iso); el('j-rail').hidden = true })
         grid.appendChild(b)
       }
       rail.appendChild(grid)
     }
+    // The heading opens the calendar; picking a day, clicking away, or Esc closes it.
+    function jCalToggle(force) {
+      const p = el('j-rail')
+      p.hidden = force !== undefined ? !force : !p.hidden
+      if (!p.hidden) renderJournalRail()
+    }
+    el('j-title').addEventListener('click', () => jCalToggle())
+    el('j-title').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jCalToggle() } })
+    document.addEventListener('click', (e) => {
+      const p = el('j-rail')
+      if (!p || p.hidden) return
+      // composedPath, not contains: the month arrows re-render the popover,
+      // so by the time this runs their button is no longer in the DOM.
+      const path = e.composedPath ? e.composedPath() : []
+      if (!path.includes(p) && !path.includes(el('j-title'))) p.hidden = true
+    })
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { const p = el('j-rail'); if (p && !p.hidden) p.hidden = true } })
     // The page is contenteditable — near enough to a word document: bold,
     // italic, underline, strikethrough, lists, and photos inline where the
     // cursor sits. Content round-trips through a strict whitelist (formatting
@@ -4860,6 +4894,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (!res.ok) return
         const d = await res.json()
         if (!d.generatedAt) return
+        ntGexRegime(d.regime)
         // Deliberately does NOT touch GEX.data: feeding the dashboard's
         // cache from here once made gexShown skip its full render and the
         // page opened blank (8/22). The badge only reads and lights up.
@@ -4881,6 +4916,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function renderGex() {
       const d = GEX.data
       if (!d) return
+      ntGexRegime(d.regime)
       const rd = el('gex-read'); rd.textContent = ''
       const fig = (k, v, cls, desc) => {
         const w = document.createElement('div')
@@ -5903,8 +5939,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // localStorage; announcements and DMs default on, the full room off.
     const NT_KEY = 'echelon-notify'
     function ntPrefs() {
-      try { return { ann: true, dm: true, chat: false, ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } }
-      catch { return { ann: true, dm: true, chat: false } }
+      try { return { ann: true, dm: true, chat: false, gex: true, ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } }
+      catch { return { ann: true, dm: true, chat: false, gex: true } }
     }
     const ntSupported = () => 'Notification' in window
     function ntUpdateState() {
@@ -5915,7 +5951,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       else st.textContent = ''
     }
     function ntInitSettings() {
-      const map = { ann: 'nt-ann', dm: 'nt-dm', chat: 'nt-chat' }
+      const map = { ann: 'nt-ann', dm: 'nt-dm', chat: 'nt-chat', gex: 'nt-gex' }
       const p = ntPrefs()
       for (const [k, id] of Object.entries(map)) {
         const cb = el(id); if (!cb) continue
@@ -5965,6 +6001,27 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const n = new Notification(title, { body, icon: '/echelon/assets/logo-mark.png', tag: scope })
         n.onclick = () => { try { window.focus(); showView('chat') } catch {} n.close() }
       } catch { /* some webviews throw on construct; the badges still count */ }
+    }
+
+    // GEX regime flips: watched from both polls (dashboard open or not).
+    // First sight of the day only sets the baseline; a CHANGE notifies,
+    // unless you are already staring at the board.
+    let NT_LAST_REGIME = null
+    function ntGexRegime(regime) {
+      if (!regime) return
+      if (NT_LAST_REGIME === null) { NT_LAST_REGIME = regime; return }
+      if (regime === NT_LAST_REGIME) return
+      const from = NT_LAST_REGIME
+      NT_LAST_REGIME = regime
+      if (!ntSupported() || Notification.permission !== 'granted' || !ntPrefs().gex) return
+      if (el('v-gex').classList.contains('on') && document.hasFocus()) return
+      try {
+        const n = new Notification('D1 GEX · regime change', {
+          body: `Dealer gamma just went ${regime} (was ${from}).`,
+          icon: '/echelon/assets/logo-mark.png', tag: 'gex-regime',
+        })
+        n.onclick = () => { try { window.focus(); showView('gex') } catch {} n.close() }
+      } catch { /* webviews without Notification just skip it */ }
     }
 
     // ── nav unread badges (orange) ──
