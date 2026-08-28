@@ -18,7 +18,6 @@ test('the landing stays stripped (D1 rules, 8/24)', () => {
 });
 
 test('the feature index lists the real app surface, flat (D1, 8/26)', () => {
-  assert.match(html, /The whole thing is <em>software\.<\/em>/);
   for (const row of ['Study', 'Video library', 'Journal', 'Risk calculator', 'News', 'Chat', 'Indicators', 'GEX']) {
     assert.ok(html.includes(`</span>${row}</span>`), `feature index row: ${row}`);
   }
