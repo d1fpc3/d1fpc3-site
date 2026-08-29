@@ -833,6 +833,16 @@
     .rv-media .item { position: relative; }
     .rv-media .item + .item { margin-top: 3px; }
     .rv-media .item img, .rv-media .item video { width: 100%; max-height: 60vh; object-fit: contain; display: block; background: #000; }
+    /* several charts: a swipe carousel, one per page, dots + counter */
+    .rv-car { position: relative; }
+    .rv-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; background: #000; }
+    .rv-track::-webkit-scrollbar { display: none; }
+    .rv-track .item { flex: 0 0 100%; width: 100%; scroll-snap-align: start; scroll-snap-stop: always; margin: 0 !important; display: flex; align-items: center; }
+    .rv-track .item img, .rv-track .item video { height: 56vh; max-height: 56vh; }
+    .rv-count { position: absolute; top: 10px; right: 10px; z-index: 2; background: rgba(0,0,0,0.62); color: #fff; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 10px; pointer-events: none; }
+    .rv-dots { display: flex; justify-content: center; gap: 5px; padding: 9px 0 0; }
+    .rv-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-bright); transition: background 0.15s ease, transform 0.15s ease; }
+    .rv-dots i.on { background: var(--gold); transform: scale(1.15); }
     .rv-media .item img { cursor: zoom-in; }
     .rv-user { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; }
     .rv-user .av { width: 36px; height: 36px; border-radius: 50%; font-size: 13px; flex-shrink: 0; }
@@ -4921,6 +4931,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           it.appendChild(rm)
         }
         wrap.appendChild(it)
+      }
+      if (media.length > 1) {
+        // Instagram-style: one chart per page, swipe between them
+        const car = document.createElement('div'); car.className = 'rv-car'
+        const track = document.createElement('div'); track.className = 'rv-track'
+        while (wrap.firstChild) track.appendChild(wrap.firstChild)
+        const count = document.createElement('span'); count.className = 'rv-count'
+        const dots = document.createElement('div'); dots.className = 'rv-dots'
+        media.forEach(() => dots.appendChild(document.createElement('i')))
+        const paint = (i) => { count.textContent = `${i + 1}/${media.length}`; [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i)) }
+        let raf = 0
+        track.addEventListener('scroll', () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; paint(Math.max(0, Math.min(media.length - 1, Math.round(track.scrollLeft / Math.max(1, track.clientWidth))))) }) }, { passive: true })
+        paint(0)
+        car.append(count, track)
+        wrap.append(car, dots)
       }
       return wrap
     }
