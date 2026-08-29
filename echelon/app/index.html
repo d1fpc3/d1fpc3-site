@@ -852,6 +852,11 @@
     .rv-track::-webkit-scrollbar { display: none; }
     .rv-track .item { flex: 0 0 100%; width: 100%; scroll-snap-align: start; scroll-snap-stop: always; margin: 0 !important; display: flex; align-items: center; }
     .rv-track .item img, .rv-track .item video { height: 56vh; max-height: 56vh; }
+    .rv-nav { position: absolute; top: 50%; z-index: 3; width: 30px; height: 30px; margin-top: -15px; border-radius: 50%; border: 0; background: rgba(255,255,255,0.9); color: #111; cursor: pointer; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .rv-nav svg { width: 16px; height: 16px; }
+    .rv-nav.l { left: 10px; } .rv-nav.r { right: 10px; }
+    .rv-nav[hidden] { display: none !important; }
+    @media (hover: hover) and (pointer: fine) { .rv-nav { display: flex; opacity: 0; transition: opacity 0.15s ease; } .rv-car:hover .rv-nav { opacity: 1; } .rv-track { cursor: grab; } }
     .rv-count { position: absolute; top: 10px; right: 10px; z-index: 2; background: rgba(0,0,0,0.62); color: #fff; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 10px; pointer-events: none; }
     .rv-dots { display: flex; justify-content: center; gap: 5px; padding: 9px 0 0; }
     .rv-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-bright); transition: background 0.15s ease, transform 0.15s ease; }
@@ -5639,7 +5644,23 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         let raf = 0
         track.addEventListener('scroll', () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; paint(Math.max(0, Math.min(media.length - 1, Math.round(track.scrollLeft / Math.max(1, track.clientWidth))))) }) }, { passive: true })
         paint(0)
-        car.append(count, track)
+        // desktop: arrows either side (Instagram), and the mouse can drag the track
+        const mk = (dir) => {
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'rv-nav ' + (dir < 0 ? 'l' : 'r'); b.setAttribute('aria-label', dir < 0 ? 'Previous' : 'Next')
+          b.innerHTML = dir < 0 ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+          b.addEventListener('click', (e) => { e.stopPropagation(); track.scrollBy({ left: dir * track.clientWidth, behavior: 'smooth' }) })
+          return b
+        }
+        const prev = mk(-1), next = mk(1)
+        const arrows = () => { const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth)); prev.hidden = i <= 0; next.hidden = i >= media.length - 1 }
+        track.addEventListener('scroll', () => requestAnimationFrame(arrows), { passive: true })
+        arrows()
+        let drag = null
+        track.addEventListener('mousedown', (e) => { if (e.button !== 0) return; drag = { x: e.clientX, left: track.scrollLeft, moved: false }; track.style.scrollSnapType = 'none' })
+        window.addEventListener('mousemove', (e) => { if (!drag) return; const dx = e.clientX - drag.x; if (Math.abs(dx) > 4) drag.moved = true; track.scrollLeft = drag.left - dx })
+        window.addEventListener('mouseup', () => { if (!drag) return; const d = drag; drag = null; track.style.scrollSnapType = ''; const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth)); track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' }); if (d.moved) { const kill = (ev) => { ev.stopPropagation(); ev.preventDefault() }; track.addEventListener('click', kill, { capture: true, once: true }); setTimeout(() => track.removeEventListener('click', kill, { capture: true }), 50) } })
+        track.addEventListener('dragstart', (e) => e.preventDefault())
+        car.append(count, track, prev, next)
         wrap.append(car, dots)
       }
       return wrap
