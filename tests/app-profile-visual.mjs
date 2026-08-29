@@ -68,7 +68,7 @@ await shot("02-study");
 
 // profile
 await page.click('#bnav button[data-view="set-profile"]'); await page.waitForTimeout(600);
-for (const id of ["pro-av", "pro-name", "pro-stats", "pro-settings", "pro-edit", "pro-grid"]) if (!(await page.locator("#" + id).count())) fails.push("profile missing #" + id);
+for (const id of ["pro-av", "pro-name", "pro-stats", "pro-edit", "pro-grid"]) if (!(await page.locator("#" + id).count())) fails.push("profile missing #" + id);
 if (await page.locator("#v-set-profile .set-back").count()) fails.push("profile still has the Settings back link");
 if (!(await page.locator("#pro-edit-wrap").isHidden())) fails.push("edit form open by default");
 const name = await page.textContent("#pro-name");
@@ -80,7 +80,12 @@ await page.click("#pro-edit"); await page.waitForTimeout(300);
 if (await page.locator("#pro-edit-wrap").isHidden()) fails.push("Edit profile did not open the form");
 await shot("04-profile-edit");
 await page.click("#pro-edit-done"); await page.waitForTimeout(200);
+// the gear sits in the top bar, next to the "Profile" title, only on this view
+const gear = page.locator("#pro-settings");
+if (!(await gear.isVisible())) fails.push("top-bar gear hidden on Profile");
+if (!(await page.evaluate(() => document.getElementById("pro-settings").closest(".topbar") !== null))) fails.push("gear is not in the top bar");
 await page.click("#pro-settings"); await page.waitForTimeout(400);
+if (await gear.isVisible()) fails.push("gear still visible off the Profile view");
 if (!(await page.locator("#v-settings").evaluate((e) => e.classList.contains("on")))) fails.push("gear did not open Settings");
 // Back returns to the profile
 await page.goBack(); await page.waitForTimeout(400);
@@ -107,7 +112,16 @@ if (poster) {
       if (!(await page.locator("#rvmodal").isVisible())) fails.push("recap viewer did not open");
       const sheet = await page.locator(".rv-sheet").boundingBox();
       if (!sheet || sheet.height < 800 || sheet.width < 380) fails.push("trade view not full screen on phone: " + JSON.stringify(sheet));
-      for (const sel of [".rv-user b", ".rv-user .d", ".rv-topdate", ".rv-media img, .rv-media video"]) if (!(await page.locator(sel).count())) fails.push("trade view missing " + sel);
+      for (const sel of [".rv-user b", ".rv-user .d", ".rv-media img, .rv-media video"]) if (!(await page.locator(sel).count())) fails.push("trade view missing " + sel);
+      // it is a feed: one .rv-post per trade in the list, the tapped one at the top, and the sheet scrolls
+      const posts = await page.locator("#rv-body .rv-post").count();
+      if (posts !== tiles) fails.push(`feed has ${posts} posts for ${tiles} tiles`);
+      const sc = await page.evaluate(() => { const b = document.getElementById("rv-body"); return { sh: b.scrollHeight, ch: b.clientHeight, ov: getComputedStyle(b).overflowY }; });
+      if (sc.ov !== "auto" && sc.ov !== "scroll") fails.push("feed not scrollable: " + JSON.stringify(sc));
+      if (sc.sh > sc.ch) { await page.evaluate(() => { document.getElementById("rv-body").scrollTop = 400; }); await page.waitForTimeout(100); const st = await page.evaluate(() => document.getElementById("rv-body").scrollTop); if (st < 100) fails.push("feed did not scroll: " + st); }
+      if (await page.locator(".rv-del").count()) fails.push("delete button still rendered");
+      // the viewer (not the owner) gets no menu on someone else's post
+      if (await page.locator("#rv-body .rv-menu-btn").count()) fails.push("menu button shown to a non-owner");
       await shot("06-recap-view");
       // Back closes the trade view, then the member card
       await page.goBack(); await page.waitForTimeout(400);
