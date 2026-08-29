@@ -88,9 +88,9 @@ await page.click("#pro-settings"); await page.waitForTimeout(400);
 if (await gear.isVisible()) fails.push("gear still visible off the Profile view");
 if (!(await page.locator("#v-settings").evaluate((e) => e.classList.contains("on")))) fails.push("gear did not open Settings");
 // Back returns to the profile
-await page.goBack(); await page.waitForTimeout(400);
+await page.goBack(); await page.waitForTimeout(800);
 if (!(await page.locator("#v-set-profile").evaluate((e) => e.classList.contains("on")))) fails.push("Back from Settings did not return to Profile");
-await page.goBack(); await page.waitForTimeout(400);
+await page.goBack(); await page.waitForTimeout(800);
 if (!(await page.locator("#v-course").evaluate((e) => e.classList.contains("on")))) fails.push("second Back did not return to Study, got " + (await page.$eval(".view.on", (e) => e.id)));
 
 // someone else's profile with trades
@@ -124,10 +124,10 @@ if (poster) {
       if (await page.locator("#rv-body .rv-menu-btn").count()) fails.push("menu button shown to a non-owner");
       await shot("06-recap-view");
       // Back closes the trade view, then the member card
-      await page.goBack(); await page.waitForTimeout(400);
+      await page.goBack(); await page.waitForTimeout(800);
       if (await page.locator("#rvmodal").isVisible()) fails.push("Back did not close the trade view");
       if (!(await page.evaluate(() => document.getElementById("mm-scrim").classList.contains("on")))) fails.push("Back closed the member card too early");
-      await page.goBack(); await page.waitForTimeout(400);
+      await page.goBack(); await page.waitForTimeout(800);
       if (await page.evaluate(() => document.getElementById("mm-scrim").classList.contains("on"))) fails.push("second Back did not close the member card");
       if (!(await page.locator("#v-members").evaluate((e) => e.classList.contains("on")))) fails.push("not back on Members after closing the card");
     }

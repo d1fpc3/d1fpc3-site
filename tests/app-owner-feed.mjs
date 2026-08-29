@@ -52,7 +52,7 @@ if (!(await page.locator("#pedit-media .pedit-add").count())) fails.push("no Add
 for (const id of ["pedit-title", "pedit-body", "pedit-outcome", "pedit-r", "pedit-done", "pedit-cancel", "pedit-delete"]) if (!(await page.locator("#" + id).count())) fails.push("editor missing #" + id);
 await page.screenshot({ path: `${OUT}/08-owner-edit.png` });
 // Back closes the editor and leaves the feed open
-await page.goBack(); await page.waitForTimeout(400);
+await page.goBack(); await page.waitForTimeout(800);
 if (await page.locator("#pedit").isVisible()) fails.push("Back did not close the editor");
 if (!(await page.locator("#rvmodal").isVisible())) fails.push("Back closed the feed too");
 // reopen, change the title, Done

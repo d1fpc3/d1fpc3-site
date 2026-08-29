@@ -847,6 +847,13 @@
     .rv-title { font-size: 18px; font-weight: 650; letter-spacing: -0.01em; padding: 10px 16px 0; margin: 0; line-height: 1.3; }
     .rv-text { padding: 8px 16px 0; color: var(--muted); font-size: 14px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
     body.rv-open { overflow: hidden; }
+    /* motion: scrims fade, sheets move (inline transforms from animIn/animOut) */
+    .rv, .pedit { transition: opacity 0.26s ease; }
+    .rv.dim, .pedit.dim { opacity: 0; }
+    .rv-sheet, .pedit-sheet, .mm-card { will-change: transform, opacity; }
+    .mm-scrim { transition: opacity 0.26s ease; opacity: 1; }
+    .mm-scrim.dim { opacity: 0; }
+    @media (prefers-reduced-motion: reduce) { .rv, .pedit, .mm-scrim { transition: none; } }
 
     /* ── post editor: a screen of its own, over the feed ── */
     .pedit { position: fixed; inset: 0; z-index: 205; background: var(--bg); display: flex; flex-direction: column; }
@@ -4766,21 +4773,66 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else { const x = document.createElement('span'); x.className = 'txt'; x.textContent = r.title || (r.body || '').slice(0, 90) || new Date(r.created_at).toLocaleDateString(); t.appendChild(x) }
         if (r.outcome) { const oc = document.createElement('span'); oc.className = 'oc ' + r.outcome; oc.textContent = r.outcome + (r.r !== null && r.r !== undefined ? ` ${r.r > 0 ? '+' : ''}${r.r}R` : ''); t.appendChild(oc) }
         if (media.length > 1) t.insertAdjacentHTML('beforeend', '<svg class="multi" viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h13a1 1 0 0 1 1 1v13h-2V5H7V3zM4 7h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg>')
-        t.addEventListener('click', () => onOpen(r))
+        t.addEventListener('click', () => onOpen(r, t))
         host.appendChild(t)
       }
     }
+    // Sheet motion. animIn(el, from): from a rect = grow out of it (the tile
+    // you tapped); 'right' = push in like a pushed page; 'up' = rise from the
+    // bottom like a modal. animOut reverses and calls done when it lands.
+    const MOTION_OFF = matchMedia('(prefers-reduced-motion: reduce)').matches
+    function animIn(sheet, from, scrim) {
+      if (MOTION_OFF || !sheet) return
+      const s = sheet.style
+      s.transition = 'none'
+      if (from && typeof from === 'object') {
+        const r = from
+        const sc = Math.max(0.12, Math.min(0.6, r.width / Math.max(1, sheet.offsetWidth || innerWidth)))
+        const cx = r.left + r.width / 2 - (sheet.getBoundingClientRect().left), cy = r.top + r.height / 2 - (sheet.getBoundingClientRect().top)
+        s.transformOrigin = `${cx}px ${cy}px`
+        s.transform = `scale(${sc})`; s.opacity = '0.2'
+      } else if (from === 'up') { s.transform = 'translate3d(0, 100%, 0)'; s.opacity = '1' }
+      else { s.transform = 'translate3d(100%, 0, 0)'; s.opacity = '1' }
+      if (scrim) { scrim.classList.add('dim'); scrim.getBoundingClientRect(); scrim.classList.remove('dim') }
+      sheet.getBoundingClientRect()   // commit the start frame
+      s.transition = 'transform 0.36s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.28s ease'
+      s.transform = 'none'; s.opacity = '1'
+      const clear = () => { s.transition = ''; s.transform = ''; s.opacity = ''; s.transformOrigin = '' }
+      sheet.addEventListener('transitionend', clear, { once: true }); setTimeout(clear, 420)
+    }
+    function animOut(sheet, to, scrim, done) {
+      if (MOTION_OFF || !sheet) { done?.(); return }
+      const s = sheet.style
+      s.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.6, 1), opacity 0.24s ease'
+      if (to && typeof to === 'object') {
+        const r = to
+        const sc = Math.max(0.12, Math.min(0.6, r.width / Math.max(1, sheet.offsetWidth || innerWidth)))
+        const b = sheet.getBoundingClientRect()
+        s.transformOrigin = `${r.left + r.width / 2 - b.left}px ${r.top + r.height / 2 - b.top}px`
+        s.transform = `scale(${sc})`; s.opacity = '0'
+      } else if (to === 'up') s.transform = 'translate3d(0, 100%, 0)'
+      else s.transform = 'translate3d(100%, 0, 0)'
+      scrim?.classList.add('dim')
+      let fired = false
+      const finish = () => { if (fired) return; fired = true; s.transition = ''; s.transform = ''; s.opacity = ''; s.transformOrigin = ''; scrim?.classList.remove('dim'); done?.() }
+      sheet.addEventListener('transitionend', finish, { once: true }); setTimeout(finish, 340)
+    }
+    const rectOf = (node) => { try { const r = node?.getBoundingClientRect?.(); return r && r.width ? r : null } catch { return null } }
+
     function closeRecapView(fromPop) {
-      const m = el('rvmodal'); if (!m || m.hidden) return
+      const m = el('rvmodal'); if (!m || m.hidden || m.classList.contains('closing')) return
       if (!fromPop && navPopLayer('rv')) return
-      m.hidden = true; document.body.classList.remove('rv-open')
+      const back = RV.fromEl?.isConnected ? rectOf(RV.fromEl) : null
+      m.classList.add('closing')
+      animOut(m.querySelector('.rv-sheet'), back || 'right', m, () => { m.classList.remove('closing'); m.hidden = true })
+      document.body.classList.remove('rv-open')
     }
     // The trade view is a feed: it opens on the tapped trade with the rest of
     // that list below it (newest first), so you scroll down into the earlier
     // ones. Each post carries a ≡ menu for its owner (and staff): edit, add a
     // photo, delete.
-    const RV = { rows: [], list: null }
-    function openRecapView(r, list) {
+    const RV = { rows: [], list: null, fromEl: null }
+    function openRecapView(r, list, fromEl) {
       let m = el('rvmodal')
       if (!m) {
         m = document.createElement('div'); m.className = 'rv'; m.id = 'rvmodal'; m.hidden = true
@@ -4802,12 +4854,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('rv-topname').textContent = '@' + (p?.username ?? 'member')
       el('rv-topdate').textContent = RV.rows.length > 1 ? `${RV.rows.length} trades` : ''
       for (const row of RV.rows) body.appendChild(rvPost(row))
-      if (m.hidden) navPush({ view: curView(), layer: 'rv' })
-      m.hidden = false
+      const wasHidden = m.hidden || m.classList.contains('closing')
+      if (wasHidden) navPush({ view: curView(), layer: 'rv' })
+      RV.fromEl = fromEl || null
+      m.classList.remove('closing'); m.hidden = false
       document.body.classList.add('rv-open')
       const target = body.querySelector(`.rv-post[data-id="${r.id}"]`)
       if (target) target.scrollIntoView({ block: 'start' })
       else body.scrollTop = 0
+      if (wasHidden) animIn(m.querySelector('.rv-sheet'), rectOf(fromEl) || 'right', m)
     }
     function rvPost(r) {
       const p = mrProfile(r.user_id) ?? chatUser(r.user_id)
@@ -4922,9 +4977,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* ── post editor ── */
     const PE = { r: null, post: null, media: [], uploads: new Set(), fresh: [] }
     function closePostEditor(fromPop) {
-      const m = el('pedit'); if (!m || m.hidden) return
+      const m = el('pedit'); if (!m || m.hidden || m.classList.contains('closing')) return
       if (!fromPop && navPopLayer('editor')) return
-      m.hidden = true
+      m.classList.add('closing')
+      animOut(m.querySelector('.pedit-sheet'), 'up', m, () => { m.classList.remove('closing'); m.hidden = true })
       // photos uploaded during a cancelled edit are orphans: sweep them
       if (PE.fresh.length) { supabase.storage.from('recap-media').remove(PE.fresh.splice(0)).catch(() => {}) }
       PE.r = PE.post = null
@@ -4963,8 +5019,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const seg = el('pedit-outcome'); seg.textContent = ''
       for (const [v, l] of [['', 'None'], ['win', 'Win'], ['loss', 'Loss'], ['be', 'Break even']]) { const b = document.createElement('button'); b.type = 'button'; b.dataset.v = v; b.textContent = l; b.classList.toggle('on', (r.outcome || '') === v); seg.appendChild(b) }
       peRenderMedia()
-      if (m.hidden) navPush({ view: curView(), layer: 'editor' })
-      m.hidden = false
+      const wasHidden = m.hidden || m.classList.contains('closing')
+      if (wasHidden) navPush({ view: curView(), layer: 'editor' })
+      m.classList.remove('closing'); m.hidden = false
+      if (wasHidden) animIn(m.querySelector('.pedit-sheet'), 'up', m)
       const ta = el('pedit-body'); ta.style.height = 'auto'; ta.style.height = Math.max(110, ta.scrollHeight) + 'px'
       m.querySelector('.pedit-scroll').scrollTop = 0
     }
@@ -5078,7 +5136,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (state.isAdmin || state.isMod) pn.insertAdjacentHTML('beforeend', CHECK_SVG)
       el('pro-bio').textContent = p?.bio || ''
       statsInto(el('pro-stats'), state.memberRecaps)
-      recapTiles(el('pro-grid'), state.memberRecaps, el('pro-empty'), (r) => openRecapView(r, state.memberRecaps))
+      recapTiles(el('pro-grid'), state.memberRecaps, el('pro-empty'), (r, t) => openRecapView(r, state.memberRecaps, t))
     }
     el('pro-settings').addEventListener('click', () => showView('settings'))
     el('pro-edit').addEventListener('click', () => { el('pro-edit-wrap').hidden = !el('pro-edit-wrap').hidden; if (!el('pro-edit-wrap').hidden) el('set-username').focus() })
@@ -5263,8 +5321,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const isSelf = m.user_id === state.user?.id
       msg.style.display = (isSelf || !chatPerm('dm')) ? 'none' : ''
       msg.onclick = () => { closeMemberProfile(true); messageMember(m.user_id) }
-      if (!el('mm-scrim').classList.contains('on')) navPush({ view: curView(), layer: 'member' })
-      el('mm-scrim').classList.add('on'); document.body.style.overflow = 'hidden'
+      const sc = el('mm-scrim'), fresh = !sc.classList.contains('on') || sc.classList.contains('closing')
+      if (fresh) navPush({ view: curView(), layer: 'member' })
+      sc.classList.remove('closing'); sc.classList.add('on'); document.body.style.overflow = 'hidden'
+      if (fresh) animIn(sc.querySelector('.mm-card'), 'right', sc)
       mmOpenId = m.user_id
       // Their trades: everyone can read member_recaps, so the grid is live.
       el('mm-stats').textContent = ''; el('mm-grid').textContent = ''; el('mm-empty').hidden = true
@@ -5274,13 +5334,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         .then(({ data }) => {
           if (mmOpenId !== m.user_id) return   // a different card opened meanwhile
           statsInto(el('mm-stats'), data ?? [])
-          recapTiles(el('mm-grid'), data ?? [], el('mm-empty'), (r) => openRecapView(r, data ?? []))
+          recapTiles(el('mm-grid'), data ?? [], el('mm-empty'), (r, t) => openRecapView(r, data ?? [], t))
         })
     }
     let mmOpenId = null
     function closeMemberProfile(fromPop) {
-      if (!fromPop && el('mm-scrim').classList.contains('on') && navPopLayer('member')) return
-      el('mm-scrim').classList.remove('on'); document.body.style.overflow = ''
+      const sc = el('mm-scrim')
+      if (!sc.classList.contains('on') || sc.classList.contains('closing')) return
+      if (!fromPop && navPopLayer('member')) return
+      sc.classList.add('closing')
+      animOut(sc.querySelector('.mm-card'), 'right', sc, () => { sc.classList.remove('on', 'closing'); document.body.style.overflow = '' })
     }
     // Your own name in the sidebar opens your profile card, same as tapping
     // yourself in the directory.
