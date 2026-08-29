@@ -887,7 +887,9 @@
     .rv-cap .rv-cap-title { font-weight: 650; }
     .rv-more { display: block; padding: 6px 16px 0; background: none; border: 0; color: var(--faint); font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
     .rv-ago { padding: 6px 16px 0; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint); }
-    .rv-burst { position: absolute; left: 50%; top: 50%; width: 92px; height: 92px; margin: -46px 0 0 -46px; color: #fff; filter: drop-shadow(0 4px 18px rgba(0,0,0,0.45)); pointer-events: none; opacity: 0; transform: scale(0.4); }
+    .rv-burst { position: absolute; left: 50%; top: 50%; z-index: 5; width: 92px; height: 92px; margin: -46px 0 0 -46px; color: #fff; filter: drop-shadow(0 4px 18px rgba(0,0,0,0.45)); pointer-events: none; opacity: 0; transform: scale(0.4); }
+    .rv-burst svg { width: 100%; height: 100%; }
+    .rv-media { touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
     .rv-burst.go { animation: rv-burst 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
     @keyframes rv-burst { 15% { opacity: 1; transform: scale(1.15); } 30% { transform: scale(0.95); } 60% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.2); } }
     .rv-media { position: relative; }
@@ -5231,17 +5233,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (mediaEl) {
         const burst = document.createElement('span'); burst.className = 'rv-burst'; burst.innerHTML = HEART.replace('fill="none"', 'fill="currentColor"')
         mediaEl.appendChild(burst)
-        let last = 0
-        mediaEl.addEventListener('click', (e) => {
+        // pointerup, not click: iOS can swallow the second click of a fast
+        // double tap, and a scroll-snap carousel sits underneath
+        let last = 0, lx = 0, ly = 0
+        mediaEl.addEventListener('pointerup', (e) => {
+          if (e.button && e.button !== 0) return
           const now = Date.now()
-          if (now - last < 320) {
-            e.stopPropagation(); e.preventDefault()
-            mediaEl._dbl = now; clearTimeout(mediaEl._tapT)
+          const near = Math.abs(e.clientX - lx) < 40 && Math.abs(e.clientY - ly) < 40
+          if (now - last < 350 && near) {
+            mediaEl._dbl = now
             burst.classList.remove('go'); void burst.offsetWidth; burst.classList.add('go')
             if (!statOf(r)?.liked) toggleLike(r)
             last = 0
-          } else last = now
-        }, true)
+          } else { last = now; lx = e.clientX; ly = e.clientY }
+        })
+        mediaEl.addEventListener('dblclick', (e) => e.preventDefault())
       }
       return row
     }
