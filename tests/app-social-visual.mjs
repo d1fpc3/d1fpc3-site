@@ -132,9 +132,13 @@ const view = async (page, v) => { await page.evaluate((v) => document.querySelec
   if (!/^[A-Z0-9]{6}$/.test(code)) fails.push("invite code shape: " + code);
   if (!/joined|Nobody/.test(await page.textContent("#inv-n"))) fails.push("invited line missing");
   await shot("06-invite");
-  // home: heatmap section lives here now
-  await page.click('#bnav button[data-view="overview"]'); await page.waitForTimeout(600);
-  if (!(await page.locator("#ov-heat-sec").count())) fails.push("home heatmap section missing");
+  // Settings → Statistics: your grid + everyone's numbers
+  await view(page, "set-stats"); await page.waitForTimeout(1500);
+  if (!(await page.locator("#stx-heat").count())) fails.push("statistics heatmap missing");
+  const stxRows = await page.locator("#stx-list .stx-row").count();
+  if (stxRows < 5) fails.push("statistics list rows: " + stxRows);
+  if (await page.locator("#ov-heat-sec").count()) fails.push("heatmap still on the home screen");
+  await shot("07-statistics");
   // notifications page: device row present
   await view(page, "notifs"); await page.waitForTimeout(500);
   if (!(await page.locator("#nt-social").count())) fails.push("social switch missing");
