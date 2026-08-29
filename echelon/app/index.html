@@ -590,6 +590,9 @@
     .ov-date { color: var(--faint); font-size: 13px; margin-top: 5px; }
 
     .ov-stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .ov-lit { margin-top: 18px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+    .ov-lit button { background: none; border: 0; padding: 0; font: inherit; color: var(--gold); cursor: pointer; }
+    .ov-lit button:hover { text-decoration: underline; }
     .ov-stat { padding: 18px 18px 16px; border-left: 1px solid var(--line); min-width: 0; }
     .ov-stat:first-child { border-left: 0; padding-left: 2px; }
     .ov-stat .v { font-size: clamp(24px, 3vw, 31px); font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
@@ -866,9 +869,24 @@
       position: fixed; inset: 0; z-index: 75;
       background: rgba(6, 5, 4, 0.78);
       backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
-      display: flex; align-items: center; justify-content: center;
-      padding: 20px; overflow-y: auto;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
     }
+    /* auto margins centre a short card and let a tall one scroll from its
+       top; align-items:center used to clip the top of tall steps */
+    .onb-scrim > .intake { margin: auto; }
+    body.onb-open { overflow: hidden; }
+    .onb-inside { margin-top: 20px; display: flex; flex-direction: column; }
+    .onb-row { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--line); }
+    .onb-row:first-child { border-top: 0; }
+    .onb-row .ic { width: 18px; height: 18px; color: var(--gold); flex-shrink: 0; margin-top: 2px; }
+    .onb-row b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+    .onb-row span { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .onb-row .inc { margin-left: 8px; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); font-weight: 600; font-style: normal; }
+    .onb-tv { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+    .onb-tv .inp { flex: 1; min-width: 200px; }
+    .onb-tv + .msg { padding: 8px 2px 0; }
+    .onb-tv + .msg:empty { display: none; }
 
     /* ── GEX onboarding: purchase intro + pointer tour ───────── */
     .tour-ring {
@@ -877,6 +895,7 @@
       box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
       transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease;
     }
+    .tour-ring.now, .tour-card.now { transition: none; } /* while the page scrolls, track it exactly */
     .tour-card {
       position: fixed; z-index: 91; width: min(330px, calc(100vw - 32px));
       background: var(--panel); border: 1px solid var(--line-bright); border-radius: 12px;
@@ -1597,6 +1616,7 @@
           </header>
 
           <div class="ov-stats" id="ov-mystats"></div>
+          <p class="ov-lit" id="ov-lit" hidden>D1 LIT is included with your membership. <button type="button" id="ov-lit-go">Add your TradingView username →</button></p>
 
           <section class="ov-sec" id="ov-news-sec" hidden>
             <div class="ov-cap"><span class="label">Today's USD news</span><span class="label">red &amp; orange folders</span></div>
@@ -3428,9 +3448,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     }
 
-    // ── first-entry onboarding: five quick questions, once ──
-    // Same questionnaire language as the course intake, but about the person:
-    // answers land in member_onboarding and read out on the admin Users tab.
+    // ── first-entry onboarding: welcome, what's inside, five questions ──
+    // Runs once per member (member_onboarding.completed_at) and can be skipped
+    // at any step; skipping still marks it done so it never comes back. The
+    // answers read out on the admin Statistics tab.
     const ONB_QS = [
       { key: 'exp', q: 'How long have you been trading?', choices: [
         ['new', 'Just starting'], ['under1', 'Under a year'], ['y1to3', '1 to 3 years'], ['y3plus', '3+ years'],
@@ -3448,47 +3469,130 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         ['discord', 'Discord'], ['instagram', 'Instagram'], ['twitter', 'Twitter / X'], ['youtube', 'YouTube'], ['friend', 'A friend'], ['other', 'Somewhere else'],
       ]},
     ]
+    // What the membership includes, one row per tab. Icons are cloned from
+    // the sidebar so the intro and the nav always agree.
+    const ONB_INSIDE = [
+      { view: 'course', name: 'Study', text: 'The lessons, in order, with homework where it matters. Overview always knows where you left off.', when: () => state.hasCourse },
+      { view: 'library', name: 'Video library', text: 'Trade recaps, breakdowns and concept videos. New ones light up the tab.' },
+      { view: 'chat', name: 'Chat', text: 'The room. Announcements, general, wins, trades, and direct messages.' },
+      { view: 'journal', name: 'Journal', text: 'A page a day. Write the session, drop the chart, it saves as you type.' },
+      { view: 'indicators', name: 'D1 LIT', tag: 'Included', text: 'Your membership includes the D1 LIT indicator on TradingView. Add your username once and it is added to your account.' },
+      { view: 'gex', name: 'GEX', text: 'The gamma board: where dealer hedging sits, mapped onto NQ, refreshed through the day.', when: () => !el('gex-tab').hidden },
+      { view: 'news', name: 'News', text: "Today's red and orange USD folders, so nothing surprises you at 8:30." },
+      { view: 'members', name: 'Members', text: 'Who else is in here. Tap a name to message them.' },
+    ]
+    const ONB_STEPS = ONB_QS.length + 3   // welcome, what's inside, questions, username
     let onbDraft = {}
     async function saveOnboarding(completed) {
       const payload = { user_id: state.user.id, answers: onbDraft, completed_at: completed ? new Date().toISOString() : null, updated_at: new Date().toISOString() }
       const { error } = await supabase.from('member_onboarding').upsert(payload, { onConflict: 'user_id' })
-      if (!error) state.onboarding = payload
+      if (!error) state.onboarding = { ...(state.onboarding ?? {}), ...payload }
       return !error
+    }
+    // Small per-member switches (tour completions) kept server-side so a hard
+    // refresh, the desktop shell or another device never replays them.
+    async function saveOnbFlags(patch) {
+      if (!state.user) return
+      const flags = { ...(state.onboarding?.flags ?? {}), ...patch }
+      const { error } = await supabase.from('member_onboarding')
+        .upsert({ user_id: state.user.id, flags, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+      if (!error) state.onboarding = { ...(state.onboarding ?? {}), flags }
     }
     function startOnboarding() {
       onbDraft = { ...(state.onboarding?.answers ?? {}) }
       el('onb').hidden = false
-      renderOnbStep(ONB_QS.findIndex((c) => !(c.key in onbDraft)) === -1 ? 0 : ONB_QS.findIndex((c) => !(c.key in onbDraft)))
+      document.body.classList.add('onb-open')
+      renderOnbStep(0)
     }
-    function renderOnbStep(i) {
-      const host = el('onb-host'); host.textContent = ''
-      if (i >= ONB_QS.length) {
-        saveOnboarding(true)
-        el('onb').hidden = true
-        toast('Good to know you. Welcome in.')
-        return
-      }
-      const c = ONB_QS[i]
+    function finishOnboarding(msg) {
+      saveOnboarding(true)
+      el('onb').hidden = true
+      document.body.classList.remove('onb-open')
+      if (msg) toast(msg)
+      renderDailyQuote()
+    }
+    function onbCard(i, eyebrow, title, sub) {
       const card = document.createElement('div'); card.className = 'intake-card'
-      const eyebrow = document.createElement('div'); eyebrow.className = 'eyebrow'
-      eyebrow.textContent = i === 0 ? 'Welcome to Echelon' : 'About you'
+      const eb = document.createElement('div'); eb.className = 'eyebrow'; eb.textContent = eyebrow
       const dots = document.createElement('div'); dots.className = 'dots'
-      ONB_QS.forEach((_, d) => {
+      for (let d = 0; d < ONB_STEPS; d++) {
         const dot = document.createElement('i')
         if (d < i) dot.className = 'past'; else if (d === i) dot.className = 'on'
         dots.appendChild(dot)
-      })
-      const q = document.createElement('div'); q.className = 'q'; q.textContent = c.q
-      const choices = document.createElement('div'); choices.className = 'choices'
-      for (const [v, label] of c.choices) {
-        const b = document.createElement('button'); b.className = 'choice'; b.type = 'button'; b.textContent = label
-        b.addEventListener('click', () => { onbDraft[c.key] = v; renderOnbStep(i + 1) })
-        choices.appendChild(b)
       }
-      // No skip: five taps, answered once, and the admin Users tab actually
-      // knows who is in the room. (D1, 8/24)
-      card.append(eyebrow, dots, q, choices)
+      const q = document.createElement('div'); q.className = 'q'; q.textContent = title
+      card.append(eb, dots, q)
+      if (sub) { const s = document.createElement('div'); s.className = 'q-sub'; s.textContent = sub; card.appendChild(s) }
+      return card
+    }
+    function onbFoot(card, primary, onPrimary, skipLabel) {
+      const foot = document.createElement('div'); foot.className = 'foot'
+      if (primary) {
+        const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = primary
+        b.addEventListener('click', onPrimary); foot.appendChild(b)
+      }
+      const skip = document.createElement('button'); skip.className = 'skip'; skip.type = 'button'; skip.textContent = skipLabel
+      skip.addEventListener('click', () => finishOnboarding('All of this lives in the sidebar whenever you want it.'))
+      foot.appendChild(skip); card.appendChild(foot)
+    }
+    function renderOnbStep(i) {
+      const host = el('onb-host'); host.textContent = ''
+      el('onb').scrollTop = 0
+      if (i === 0) {
+        const card = onbCard(0, 'Welcome to Echelon', "You're in.",
+          'A minute to show you around and learn who you are, so the room fits you. Skip any of it; nothing here is a test.')
+        onbFoot(card, "Show me what's inside", () => renderOnbStep(1), 'Skip the intro')
+        host.appendChild(card); return
+      }
+      if (i === 1) {
+        const card = onbCard(1, 'What you have', 'Everything in your membership.', 'Each of these is a tab on the left.')
+        const list = document.createElement('div'); list.className = 'onb-inside'
+        for (const it of ONB_INSIDE) {
+          if (it.when && !it.when()) continue
+          const row = document.createElement('div'); row.className = 'onb-row'
+          const ic = document.querySelector(`.tab[data-view="${it.view}"] .ic`)?.cloneNode(true)
+          if (ic) row.appendChild(ic)
+          const txt = document.createElement('div')
+          const b = document.createElement('b'); b.textContent = it.name
+          if (it.tag) { const t = document.createElement('em'); t.className = 'inc'; t.textContent = it.tag; b.appendChild(t) }
+          const s = document.createElement('span'); s.textContent = it.text
+          txt.append(b, s); row.appendChild(txt); list.appendChild(row)
+        }
+        card.appendChild(list)
+        onbFoot(card, 'Continue', () => renderOnbStep(2), 'Skip the rest')
+        host.appendChild(card); return
+      }
+      const qi = i - 2
+      if (qi < ONB_QS.length) {
+        const c = ONB_QS[qi]
+        const card = onbCard(i, 'About you', c.q)
+        const choices = document.createElement('div'); choices.className = 'choices'
+        for (const [v, label] of c.choices) {
+          const b = document.createElement('button'); b.className = 'choice'; b.type = 'button'; b.textContent = label
+          b.addEventListener('click', () => { onbDraft[c.key] = v; renderOnbStep(i + 1) })
+          choices.appendChild(b)
+        }
+        card.appendChild(choices)
+        onbFoot(card, null, null, 'Skip the questions')
+        host.appendChild(card); return
+      }
+      // Last: the included indicator only needs a TradingView username.
+      if (tvRowFor('d1-lit')?.tv_username || !state.owned.has('d1-lit')) return finishOnboarding('Good to know you. Welcome in.')
+      const card = onbCard(i, 'One last thing', 'D1 LIT is included.',
+        'Your membership comes with the D1 LIT indicator on TradingView. Drop your TradingView username and it gets added to your account, usually within the hour.')
+      const form = document.createElement('div'); form.className = 'onb-tv'
+      const input = document.createElement('input'); input.className = 'inp'; input.type = 'text'
+      input.autocomplete = 'off'; input.spellcheck = false; input.placeholder = 'your TradingView username'
+      const save = document.createElement('button'); save.className = 'btn'; save.type = 'button'; save.textContent = 'Add me'
+      form.append(input, save)
+      const msg = document.createElement('p'); msg.className = 'msg'
+      card.append(form, msg)
+      const go = async () => { if (await saveTvUsername(input.value, msg, save)) finishOnboarding('Access queued. Welcome in.') }
+      save.addEventListener('click', go)
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go() })
+      onbFoot(card, null, null, 'Add it later from Indicators')
       host.appendChild(card)
+      setTimeout(() => input.focus(), 50)
     }
 
     // ── member recaps: anyone signed in can post their own ──
@@ -5691,8 +5795,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         loadGex().catch(() => {})
       }, 5 * 60 * 1000)
       // First visit: walk them through the board once, pointer by pointer.
-      if (!localStorage.getItem('echelon-gex-tour')) setTimeout(() => startGexTour(), 900)
+      if (!tourDone('gex_tour')) setTimeout(() => startGexTour(), 900)
     }
+    // Completion lives in member_onboarding.flags; localStorage is only the
+    // pre-flags fallback for people who finished it before that existed.
+    const tourDone = (k) => !!state.onboarding?.flags?.[k] || localStorage.getItem('echelon-gex-tour') === '1'
 
     // ── GEX guided tour: spotlight one element, explain, OK to the next ──
     const GEX_TOUR = [
@@ -5714,8 +5821,22 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       tour.card = document.createElement('div'); tour.card.className = 'tour-card'
       document.body.append(tour.ring, tour.card)
       window.addEventListener('resize', tourPlace)
-      window.addEventListener('scroll', tourPlace, true)
+      window.addEventListener('scroll', tourOnScroll, true)
       tourStep(0)
+    }
+    // Scrolling mid-tour used to leave the ring drifting behind its target
+    // (the CSS transition chased every scroll event). Reposition once per
+    // frame with transitions off, then let them back on when the page rests.
+    let tourRaf = 0, tourStill = 0
+    function tourOnScroll() {
+      if (!tour.on || tourRaf) return
+      tourRaf = requestAnimationFrame(() => {
+        tourRaf = 0
+        tour.ring?.classList.add('now'); tour.card?.classList.add('now')
+        tourPlace()
+        clearTimeout(tourStill)
+        tourStill = setTimeout(() => { tour.ring?.classList.remove('now'); tour.card?.classList.remove('now') }, 120)
+      })
     }
     function tourVisible(id) {
       const t = el(id)
@@ -5766,15 +5887,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       tour.ring?.remove(); tour.card?.remove()
       tour.ring = tour.card = null
       window.removeEventListener('resize', tourPlace)
-      window.removeEventListener('scroll', tourPlace, true)
-      if (markDone) localStorage.setItem('echelon-gex-tour', '1')
+      window.removeEventListener('scroll', tourOnScroll, true)
+      if (markDone) { localStorage.setItem('echelon-gex-tour', '1'); saveOnbFlags({ gex_tour: true }) }
     }
     el('gex-tour-btn').addEventListener('click', () => { endGexTour(false); startGexTour() })
     el('gexintro-later').addEventListener('click', () => { el('gexintro').hidden = true })
     el('gexintro-go').addEventListener('click', () => {
       el('gexintro').hidden = true
-      localStorage.removeItem('echelon-gex-tour')
       showView('gex')
+      startGexTour()
     })
 
     function renderStore() {
@@ -5793,6 +5914,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       for (const p of cards) {
         const owned = p.kind === 'bundle' ? ownsBundle : state.owned.has(p.key)
         if (NATIVE && !owned) continue
+        // Half-owned: the bundle would sell them something they already have.
+        if (p.kind === 'bundle' && !owned && (state.owned.has('d1-gex') || state.owned.has('d1-lit'))) continue
         const row = document.createElement('section'); row.className = 'st-row' + (owned ? ' owned' : '')
         const main = document.createElement('div'); main.className = 'st-main'
         const side = document.createElement('aside'); side.className = 'st-side'
@@ -5816,7 +5939,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (owned) {
           const own = document.createElement('div'); own.className = 'p-own'
           own.innerHTML = checkIcon
-          const span = document.createElement('span'); span.textContent = p.kind === 'bundle' ? 'You own both' : 'You own this'
+          const included = p.key === 'd1-lit' && (state.owned.has('course') || state.isMod || state.isAdmin)
+          const span = document.createElement('span'); span.textContent = p.kind === 'bundle' ? 'You own both' : included ? 'Included with your membership' : 'You own this'
           own.appendChild(span); card.appendChild(own)
 
           // access status: for a bundle, summarise the two components
@@ -5864,6 +5988,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const input = el('tv-username')
         if (document.activeElement !== input) input.value = knownTvUsername()
       }
+      // Overview nudge until the included LIT has a username to go to.
+      const ovLit = el('ov-lit')
+      if (ovLit) ovLit.hidden = !(state.owned.has('d1-lit') && tvRowFor('d1-lit')?.state === 'needs_username')
     }
 
     function starsNode(rating, cls = '') {
@@ -5976,15 +6103,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     el('rev-x').addEventListener('click', () => { el('revmodal').hidden = true })
     el('revmodal').addEventListener('click', (e) => { if (e.target === el('revmodal')) el('revmodal').hidden = true })
 
-    el('tv-save').addEventListener('click', async () => {
-      const input = el('tv-username'), msg = el('tv-msg'), btn = el('tv-save')
-      const name = input.value.trim()
+    async function saveTvUsername(raw, msg, btn) {
+      const name = String(raw ?? '').trim()
       if (!/^[A-Za-z0-9_]{2,30}$/.test(name)) {
         msg.className = 'msg err'; msg.textContent = 'Letters, digits and underscores only (2 to 30 characters).'
-        return
+        return false
       }
       btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Saving…'
       const { error } = await supabase.rpc('set_tv_username', { p_username: name })
+      btn.disabled = false
       if (error) {
         msg.className = 'msg err'
         const cool = /cooldown:(.+)/.exec(error.message)
@@ -5993,15 +6120,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           : error.message === 'invalid_username'
             ? 'Letters, digits and underscores only (2 to 30 characters).'
             : error.message
-      } else {
-        msg.className = 'msg ok'; msg.textContent = 'Saved. Your access is queued.'
-        state.tvAccess = state.tvAccess.map((t) => ({
-          ...t, tv_username: name, state: t.state === 'needs_username' ? 'pending_grant' : t.state,
-        }))
-        renderStore()
+        return false
       }
-      btn.disabled = false
-    })
+      msg.className = 'msg ok'; msg.textContent = 'Saved. Your access is queued.'
+      state.tvAccess = state.tvAccess.map((t) => ({
+        ...t, tv_username: name, state: t.state === 'needs_username' ? 'pending_grant' : t.state,
+      }))
+      renderStore()
+      return true
+    }
+    el('tv-save').addEventListener('click', () => saveTvUsername(el('tv-username').value, el('tv-msg'), el('tv-save')))
+    el('ov-lit-go').addEventListener('click', () => { showView('indicators'); setTimeout(() => el('tv-username').focus(), 80) })
 
     // ── chat ────────────────────────────────────────────────
     const chat = { channels: [], dms: [], byUser: {}, modSet: new Set(), isStaff: false, permsByRole: {}, cur: null, sub: null, loaded: false, msgs: [] }
@@ -7168,6 +7297,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // staff whose rows predate the triggers and for the owner's view-as).
     function applyStaffComps() {
       if (state.isMod || state.isAdmin) { state.owned.add('d1-gex'); state.owned.add('d1-lit') }
+      // Every member holds D1 LIT (migration 0044 comps it server-side on the
+      // course entitlement); mirrored here for rows that predate the trigger.
+      if (state.owned.has('course')) state.owned.add('d1-lit')
     }
 
     // boot() is reachable from page load, the SIGNED_IN auth event, and the
@@ -7193,7 +7325,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         supabase.from('entitlements').select('product, status, interval').eq('status', 'active'),
         supabase.rpc('is_admin'),
         supabase.from('mods').select('user_id').eq('user_id', session.user.id).maybeSingle(),
-        supabase.from('member_onboarding').select('answers, completed_at').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('member_onboarding').select('answers, completed_at, flags').eq('user_id', session.user.id).maybeSingle(),
       ])
       state.onboarding = onbRow ?? null
 
@@ -7247,8 +7379,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
       } catch {}
 
-      // First entry: five quick questions before anything else. The owner is
-      // spared unless previewing via view-as.
+      // First entry: the welcome, what's inside, five quick questions. Once
+      // per member; the owner is spared unless previewing via view-as.
       if (!state.isAdmin && !state.onboarding?.completed_at) setTimeout(startOnboarding, 700)
 
       // Deep-link from the welcome onboarding: ?start=study|recaps|chat
@@ -7277,7 +7409,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           // then the intro says what they just bought and offers the tour.
           el('gex-tab').hidden = !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)
           if ((bought === 'd1-gex' || bought === 'indicators-bundle') && state.owned.has('d1-gex')) {
-            localStorage.removeItem('echelon-gex-tour')
             el('gexintro').hidden = false
           }
         }, 4000)
