@@ -1900,7 +1900,7 @@
           </header>
 
           <div class="ov-stats" id="ov-mystats"></div>
-          <p class="ov-lit" id="ov-lit" hidden>D1 LIT is included with your membership. <button type="button" id="ov-lit-go">Add your TradingView username →</button></p>
+          <p class="ov-lit" id="ov-lit" hidden>D1 LIT is on your account. <button type="button" id="ov-lit-go">Add your TradingView username →</button></p>
 
           <section class="ov-sec" id="ov-continue-sec">
             <div class="ov-cap"><span class="label">Continue studying</span><span class="label" id="ov-cont-meta"></span></div>
@@ -2493,7 +2493,7 @@
               </div>
               <div style="border-top:1px solid var(--line);padding-top:18px;">
                 <p class="label" style="margin-bottom:6px;color:var(--bad);">Delete account</p>
-                <p class="hint" style="margin:0 0 10px;">A purchase stays attached to your email.</p>
+                <p class="hint" style="margin:0 0 10px;">Your access stays attached to your email.</p>
                 <button class="rowbtn" id="del-account" style="color:var(--bad);border-color:rgba(217,139,122,0.4);">Delete my account</button>
                 <p class="msg" id="del-msg"></p>
               </div>
@@ -2847,7 +2847,8 @@
           code.style.display = 'block'
           code.addEventListener('click', () => codeScreen(em.i.value.trim()))
 
-          form.append(em.f, pw.f, button, note, alts, or, discordButton(fail), code)
+          form.append(em.f, pw.f, button, note, alts, or, discordButton(fail))
+          if (!NATIVE) form.appendChild(code)  // native shells: sign-in only
           host.appendChild(form)
         },
       })
@@ -2920,7 +2921,7 @@
     function codeScreen(prefillEmail) {
       gate({
         title: 'Redeem an access code',
-        body: 'A code from us opens the course without a purchase.',
+        body: 'A code from us opens the course.',
         render(host) {
           const form = document.createElement('form'); form.style.marginTop = '20px'
           const code = gateField('rd-code', 'text', 'Access code', 'off')
@@ -3957,7 +3958,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       { view: 'library', name: 'Video library', text: 'Trade recaps, breakdowns and concept videos. New ones light up the tab.' },
       { view: 'chat', name: 'Chat', text: 'The room. Announcements, general, wins, trades, and direct messages.' },
       { view: 'journal', name: 'Journal', text: 'A page a day. Write the session, drop the chart, it saves as you type.' },
-      { view: 'indicators', name: 'D1 LIT', tag: 'Included', text: 'Your membership includes the D1 LIT indicator on TradingView. Add your username once and it is added to your account.' },
+      { view: 'indicators', name: 'D1 LIT', tag: 'Included', text: 'Echelon comes with the D1 LIT indicator on TradingView. Add your username once and it is added to your account.' },
       { view: 'gex', name: 'GEX', text: 'The gamma board: where dealer hedging sits, mapped onto NQ, refreshed through the day.', when: () => !el('gex-tab').hidden },
       { view: 'news', name: 'News', text: "Today's red and orange USD folders, so nothing surprises you at 8:30." },
       { view: 'members', name: 'Members', text: 'Who else is in here. Tap a name to message them.' },
@@ -4026,7 +4027,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         host.appendChild(card); return
       }
       if (i === 1) {
-        const card = onbCard(1, 'What you have', 'Everything in your membership.', 'Each of these is a tab on the left.')
+        const card = onbCard(1, 'What you have', 'Everything in Echelon.', 'Each of these is a tab on the left.')
         const list = document.createElement('div'); list.className = 'onb-inside'
         for (const it of ONB_INSIDE) {
           if (it.when && !it.when()) continue
@@ -4060,7 +4061,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // Last: the included indicator only needs a TradingView username.
       if (tvRowFor('d1-lit')?.tv_username || !state.owned.has('d1-lit')) return finishOnboarding('Good to know you. Welcome in.')
       const card = onbCard(i, 'One last thing', 'D1 LIT is included.',
-        'Your membership comes with the D1 LIT indicator on TradingView. Drop your TradingView username and it gets added to your account, usually within the hour.')
+        'Echelon comes with the D1 LIT indicator on TradingView. Drop your TradingView username and it gets added to your account, usually within the hour.')
       const form = document.createElement('div'); form.className = 'onb-tv'
       const input = document.createElement('input'); input.className = 'inp'; input.type = 'text'
       input.autocomplete = 'off'; input.spellcheck = false; input.placeholder = 'your TradingView username'
@@ -5557,7 +5558,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Syncing…'
       const r = await discordSync({})
       btn.disabled = false
-      if (r.ok) { msg.className = 'msg ok'; msg.textContent = r.out.role_granted ? 'In the server, role on.' : r.out.in_guild ? 'In the server. The role comes with an active purchase.' : 'Synced.' }
+      if (r.ok) { msg.className = 'msg ok'; msg.textContent = r.out.role_granted ? 'In the server, role on.' : r.out.in_guild ? 'In the server. The role comes with active access.' : 'Synced.' }
       else { msg.className = 'msg err'; msg.textContent = r.out.error || 'Sync failed. Try reconnecting.' }
       renderDiscordBlock()
     })
@@ -6869,7 +6870,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const own = document.createElement('div'); own.className = 'p-own'
           own.innerHTML = checkIcon
           const included = p.key === 'd1-lit' && (state.owned.has('course') || state.isMod || state.isAdmin)
-          const span = document.createElement('span'); span.textContent = p.kind === 'bundle' ? 'You own both' : included ? 'Included with your membership' : 'You own this'
+          const span = document.createElement('span'); span.textContent = p.kind === 'bundle' ? 'You own both' : included ? 'Included with Echelon' : 'You own this'
           own.appendChild(span); card.appendChild(own)
 
           // access status: for a bundle, summarise the two components
@@ -8330,7 +8331,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             const out = document.createElement('button')
             out.className = 'go dim'; out.style.marginTop = '10px'; out.textContent = 'Sign out'
             out.addEventListener('click', async () => { await supabase.auth.signOut(); location.reload() })
-            host.append(go, out)
+            if (!NATIVE) host.appendChild(go)  // native shells: sign-in only, no signup door
+            host.appendChild(out)
           },
         })
         return
