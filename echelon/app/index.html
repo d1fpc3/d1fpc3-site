@@ -825,6 +825,10 @@
     .rv-post { position: relative; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
     .rv-post:last-child { border-bottom: 0; }
     .rv-user { position: relative; }
+    .rv-share { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 8px; display: inline-flex; margin-left: auto; }
+    .rv-share svg { width: 20px; height: 20px; }
+    .rv-share:hover { color: var(--ink); background: var(--panel-2); }
+    .rv-share + .rv-menu-btn { margin-left: 0; }
     .rv-menu-btn { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 8px; display: inline-flex; }
     .rv-menu-btn svg { width: 20px; height: 20px; }
     .rv-menu-btn:hover { color: var(--ink); background: var(--panel-2); }
@@ -4886,6 +4890,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       when.textContent = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
       who.append(nm, when); user.appendChild(who)
       const mine = r.user_id === state.user?.id
+      const sh = document.createElement('button'); sh.type = 'button'; sh.className = 'rv-share'; sh.title = 'Share'; sh.setAttribute('aria-label', 'Share')
+      sh.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>'
+      sh.addEventListener('click', () => sharePost(r, p))
+      user.appendChild(sh)
       if (mine || state.isMod || state.isAdmin) {
         const mb = document.createElement('button'); mb.type = 'button'; mb.className = 'rv-menu-btn'; mb.setAttribute('aria-label', 'Options')
         mb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>'
@@ -4907,6 +4915,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       post.appendChild(rvMedia(r, false))
       post.appendChild(rvText(r))
       return post
+    }
+    // Share a post: the native sheet where there is one, otherwise the link
+    // goes to the clipboard. ?p=<id> opens that trade on arrival.
+    async function sharePost(r, p) {
+      const url = `${location.origin}${location.pathname}?p=${r.id}`
+      const title = r.title || `@${p?.username ?? 'member'}'s trade on Echelon`
+      try { if (navigator.share) { await navigator.share({ title, url }); return } } catch { return }
+      try { await navigator.clipboard.writeText(url); toast('Link copied.') } catch { prompt('Link to this trade', url) }
+    }
+    async function openSharedPost(id) {
+      const { data: r } = await supabase.from('member_recaps').select('id, user_id, title, body, media, outcome, r, created_at').eq('id', id).maybeSingle()
+      if (!r) { toast('That trade is gone.'); return }
+      const { data: list } = await supabase.from('member_recaps').select('id, user_id, title, body, media, outcome, r, created_at').eq('user_id', r.user_id).order('created_at', { ascending: false }).limit(60)
+      const rows = (list ?? []).some((x) => x.id === r.id) ? list : [r, ...(list ?? [])]
+      openRecapView(rows.find((x) => x.id === r.id), rows)
     }
     function rvMedia(r, editing) {
       const wrap = document.createElement('div'); wrap.className = 'rv-media'
@@ -8331,6 +8354,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!state.isAdmin && !state.onboarding?.completed_at) setTimeout(startOnboarding, 700)
 
       // Deep-link from the welcome onboarding: ?start=study|recaps|chat
+      const pid = new URLSearchParams(location.search).get('p')
+      if (pid && /^[0-9a-f-]{36}$/i.test(pid)) { openSharedPost(pid); history.replaceState(history.state, '', location.pathname) }
       const who = new URLSearchParams(location.search).get('u')
       if (who) {
         supabase.from('member_directory').select('*').ilike('username', who).maybeSingle()
