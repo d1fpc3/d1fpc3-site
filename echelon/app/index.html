@@ -247,7 +247,8 @@
       display: flex; align-items: center; justify-content: center;
     }
     .side-user .u-meta { min-width: 0; flex: 1; }
-    .side-user .u-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .side-user .u-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+    .side-user .u-name:hover { color: var(--gold); }
     .side-user .u-role { font-size: 11px; color: var(--faint); }
     .u-signout {
       background: none; border: 0; color: var(--faint); cursor: pointer; padding: 6px;
@@ -706,7 +707,7 @@
     .totd .totd-r { margin-left: auto; font-weight: 700; color: var(--gold); font-size: 18px; letter-spacing: -0.01em; flex: none; }
 
     /* daily quote */
-    .qrot { position: relative; max-width: 560px; padding: 20px 64px 18px 20px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); font-family: Georgia, 'Times New Roman', serif; }
+    .qrot { position: relative; max-width: 560px; padding: 20px 64px 18px 20px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
     .qrot blockquote { margin: 0 0 10px; font-size: 15.5px; line-height: 1.55; color: var(--ink); }
     .qrot .who4 { font-family: 'Inter', -apple-system, system-ui, sans-serif; font-size: 12px; color: var(--faint); }
     .ov-cap .cap-act { margin-left: auto; background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 11.5px; }
@@ -865,6 +866,10 @@
     #rev-body .p-rev-write { background: none; border: 0; padding: 0; }
 
     /* first-entry onboarding overlay: the intake look, over the app */
+    .rowbtn.set-back { background: none; border: 0; padding: 0; font-size: 13px; color: var(--muted); }
+    .label.dc-ok { color: var(--good); display: inline-flex; align-items: center; gap: 5px; }
+    .label.dc-ok svg { width: 13px; height: 13px; }
+    .rowbtn.set-back:hover:not(:disabled) { color: var(--gold); }
     .onb-scrim {
       position: fixed; inset: 0; z-index: 75;
       background: rgba(6, 5, 4, 0.78);
@@ -952,6 +957,47 @@
     }
     @media (prefers-reduced-motion: reduce) { .side, .scrim { transition: none; } }
 
+    /* ── phone bottom nav: Overview left, Profile right, the rest between ── */
+    :root { --bnav: 0px; }
+    .bnav { display: none; }
+    @media (max-width: 840px) {
+      :root { --bnav: calc(56px + env(safe-area-inset-bottom)); }
+      .bnav {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 55;
+        display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+        height: var(--bnav); padding-bottom: env(safe-area-inset-bottom);
+        background: rgba(19,18,17,0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        border-top: 1px solid var(--line);
+        transition: transform 0.25s ease;
+      }
+      :root[data-theme="light"] .bnav { background: rgba(255,255,255,0.86); }
+      .bnav button {
+        position: relative; background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; color: var(--faint);
+        -webkit-tap-highlight-color: transparent; transition: color 0.15s ease;
+      }
+      .bnav button .ic { width: 23px; height: 23px; }
+      .bnav button.on { color: var(--ink); }
+      .bnav button .av {
+        width: 24px; height: 24px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center;
+        background: var(--panel-2); border: 1.5px solid transparent; font-size: 10px; font-weight: 700; color: var(--muted);
+      }
+      .bnav button .av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .bnav button.on .av { border-color: var(--ink); }
+      .bnav button .bdot { position: absolute; top: 12px; right: calc(50% - 15px); width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+      .bnav button[hidden] { display: none; }
+      .pane { padding-bottom: calc(28px + var(--bnav)) !important; }
+      .chat { height: calc(100dvh - 118px - var(--bnav)); }
+      /* inside a conversation the composer takes the bottom, like a DM thread */
+      body:has(.chat.open-convo) .bnav { transform: translateY(110%); }
+      body:has(.chat.open-convo) .chat { height: calc(100dvh - 118px); }
+      .viewas-float { bottom: calc(18px + var(--bnav)); }
+    }
+    @media (max-width: 640px) {
+      .chat { height: calc(100dvh - 108px - var(--bnav)); }
+      body:has(.chat.open-convo) .chat { height: calc(100dvh - 108px); }
+    }
+
     /* ── phone polish ─────────────────────────────────────────── */
     @media (max-width: 640px) {
       .topbar { padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top)); gap: 12px; }
@@ -980,26 +1026,43 @@
     /* ── pull to refresh (touch) ──────────────────────────────── */
     html, body { overscroll-behavior-y: contain; }
     .ptr {
+      --p: 0;                                  /* 0..1 pull progress, set by JS */
       position: fixed; left: 50%; top: 0; z-index: 50;
-      width: 38px; height: 38px; margin-left: -19px; border-radius: 50%;
+      width: 46px; height: 46px; margin-left: -23px; border-radius: 50%;
       background: var(--panel); border: 1px solid var(--line-bright);
-      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 0 rgba(201,162,74,0);
       display: flex; align-items: center; justify-content: center;
-      transform: translateY(-56px); opacity: 0;
-      transition: transform 0.2s ease, opacity 0.2s ease;
-      pointer-events: none;
+      transform: translate3d(0, -64px, 0) scale(0.8); opacity: 0;
+      transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease, box-shadow 0.2s ease;
+      pointer-events: none; will-change: transform;
     }
-    :root[data-theme="light"] .ptr { box-shadow: 0 6px 24px rgba(0,0,0,0.12); }
-    body.ptr-pulling .ptr { transition: none; }
+    :root[data-theme="light"] .ptr { box-shadow: 0 10px 30px rgba(0,0,0,0.14); }
+    body.ptr-pulling .ptr { transition: box-shadow 0.2s ease; }   /* track the finger 1:1 */
     body.ptr-pulling .ptr, body.ptr-busy .ptr { opacity: 1; }
-    .ptr svg { width: 18px; height: 18px; color: var(--gold); transition: transform 0.15s ease; }
-    body.ptr-armed .ptr svg { transform: rotate(180deg); }
-    .ptr .ring { display: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(201,162,74,0.25); border-top-color: var(--gold); animation: ptr-spin 0.8s linear infinite; }
-    body.ptr-busy .ptr { transform: translateY(var(--ptr-rest, 76px)); }
-    body.ptr-busy .ptr svg { display: none; }
-    body.ptr-busy .ptr .ring { display: block; }
-    @keyframes ptr-spin { to { transform: rotate(360deg); } }
-    @media (prefers-reduced-motion: reduce) { .ptr { transition: none; } }
+    .ptr .dial { position: absolute; inset: -1px; width: 48px; height: 48px; transform: rotate(-90deg); }
+    .ptr .dial circle { fill: none; stroke-width: 2.2; }
+    .ptr .dial .track { stroke: var(--line-bright); }
+    .ptr .dial .arc {
+      stroke: url(#ptr-gold); stroke-linecap: round;
+      stroke-dasharray: 100; stroke-dashoffset: calc(100 - var(--p) * 100);
+      transition: stroke-dashoffset 0.05s linear;
+    }
+    .ptr .core {
+      width: 10px; height: 10px; border-radius: 50%; background: var(--gold);
+      transform: scale(calc(0.35 + var(--p) * 0.65)); opacity: calc(0.35 + var(--p) * 0.65);
+      transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+    body.ptr-armed .ptr { box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 7px rgba(201,162,74,0.14); animation: ptr-pop 0.34s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    body.ptr-armed .ptr .core { transform: scale(1.25); }
+    body.ptr-busy .ptr { transform: translate3d(0, var(--ptr-rest, 76px), 0) scale(1); box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 5px rgba(201,162,74,0.1); }
+    body.ptr-busy .ptr .dial { animation: ptr-spin 0.85s linear infinite; }
+    body.ptr-busy .ptr .dial .arc { stroke-dasharray: 26 100; stroke-dashoffset: 0; transition: none; }
+    body.ptr-busy .ptr .dial .track { stroke: var(--line); }
+    body.ptr-busy .ptr .core { transform: scale(0.55); opacity: 0.9; animation: ptr-breathe 0.85s ease-in-out infinite; }
+    @keyframes ptr-spin { to { transform: rotate(270deg); } }
+    @keyframes ptr-pop { 0% { transform: translate3d(0, var(--ptr-y, 0), 0) scale(1); } 45% { transform: translate3d(0, var(--ptr-y, 0), 0) scale(1.16); } 100% { transform: translate3d(0, var(--ptr-y, 0), 0) scale(1); } }
+    @keyframes ptr-breathe { 50% { transform: scale(0.85); } }
+    @media (prefers-reduced-motion: reduce) { .ptr { transition: none; animation: none !important; } .ptr .core { animation: none !important; } }
 
     /* ── skeleton loaders ────────────────────────────────────── */
 
@@ -1061,6 +1124,52 @@
     .recap-pop .player { max-width: none; }
     .lib-player { position: relative; aspect-ratio: 16 / 9; background: #000; }
     .lib-player video { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+    /* ── video player: flat controls over the picture, gone when idle ── */
+    .vp { position: absolute; inset: 0; background: #000; overflow: hidden; user-select: none; -webkit-user-select: none; outline: none; }
+    .vp video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
+    .vp:fullscreen, .vp:-webkit-full-screen { width: 100vw; height: 100vh; }
+    .vp .vp-tap { position: absolute; inset: 0; }
+    .vp .vp-big {
+      position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
+      background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.18); color: #fff; pointer-events: none;
+      display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(0.9);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .vp.paused .vp-big { opacity: 1; transform: scale(1); }
+    .vp .vp-big svg { width: 26px; height: 26px; margin-left: 3px; }
+    .vp .vp-skip {
+      position: absolute; top: 50%; width: 30%; height: 40%; transform: translateY(-50%); pointer-events: none;
+      display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; font-weight: 700; opacity: 0; transition: opacity 0.25s ease;
+    }
+    .vp .vp-skip.l { left: 0; } .vp .vp-skip.r { right: 0; }
+    .vp .vp-skip.show { opacity: 0.9; transition: none; }
+    .vp .vp-bar {
+      position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 12px 10px; color: #fff;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0)); display: flex; flex-direction: column; gap: 4px;
+      transition: opacity 0.25s ease;
+    }
+    .vp.idle.playing .vp-bar { opacity: 0; pointer-events: none; }
+    .vp.idle.playing { cursor: none; }
+    .vp .vp-seek { position: relative; height: 20px; display: flex; align-items: center; cursor: pointer; touch-action: none; }
+    .vp .vp-seek .track { position: relative; width: 100%; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.22); overflow: hidden; transition: height 0.12s ease; }
+    .vp .vp-seek:hover .track, .vp .vp-seek.drag .track { height: 5px; }
+    .vp .vp-seek .buf, .vp .vp-seek .played { position: absolute; left: 0; top: 0; bottom: 0; width: 0; }
+    .vp .vp-seek .buf { background: rgba(255,255,255,0.28); }
+    .vp .vp-seek .played { background: var(--gold); }
+    .vp .vp-row { display: flex; align-items: center; gap: 2px; }
+    .vp .vp-row button {
+      background: none; border: 0; color: #fff; padding: 6px 8px; border-radius: 7px; cursor: pointer; opacity: 0.92;
+      display: inline-flex; align-items: center; justify-content: center; font: inherit; font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em; min-width: 32px;
+    }
+    .vp .vp-row button:hover { background: rgba(255,255,255,0.12); opacity: 1; }
+    .vp .vp-row button.on { color: var(--gold); }
+    .vp .vp-row button[hidden] { display: none; }
+    .vp .vp-row button svg { width: 20px; height: 20px; }
+    .vp .vp-time { font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.85; margin: 0 4px; white-space: nowrap; }
+    .vp .vp-right { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+    .vp video::cue { background: rgba(0,0,0,0.7); color: #fff; font-family: inherit; font-size: 1em; }
+    @media (max-width: 640px) { .vp .vp-row button { padding: 8px 7px; } .vp .vp-bar { padding: 22px 8px 8px; } .vp .vp-time { font-size: 11px; } }
     .lib-sum { padding: 12px 18px 16px; color: var(--muted); font-size: 13.5px; }
 
     .x-close {
@@ -1329,8 +1438,7 @@
     .rx-pop button { background: none; border: 0; font-size: 19px; line-height: 1; padding: 5px 6px; border-radius: 7px; cursor: pointer; }
     .rx-pop button:hover { background: var(--panel); }
     /* rail unread dot */
-    .cr-item .unread-dot { margin-left: auto; flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%;
-      background: var(--gold); box-shadow: 0 0 8px rgba(201,162,74,0.55); }
+    .cr-item .unread-dot { margin-left: auto; flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
     /* composer image button + pending attachment */
     .cc-img { padding: 0; width: 42px; height: 42px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
       background: var(--bg); border: 1px solid var(--line-bright); border-radius: 10px; color: var(--muted); cursor: pointer; }
@@ -1506,7 +1614,7 @@
     <aside class="side">
       <div class="side-brand">
         <img class="brand-mark" src="/echelon/assets/logo-glyph.png" alt="" aria-hidden="true">
-        <span class="brand-name">Echelon</span> <small>Members</small>
+        <span class="brand-name">Echelon</span>
       </div>
 
       <nav class="side-nav" id="tabs" aria-label="Sections">
@@ -1588,9 +1696,14 @@
     </aside>
 
     <div class="scrim" id="scrim"></div>
+    <nav class="bnav" id="bnav" aria-label="Quick navigation"></nav>
     <div class="ptr" id="ptr" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-      <span class="ring"></span>
+      <svg class="dial" viewBox="0 0 48 48">
+        <defs><linearGradient id="ptr-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8c977"/><stop offset="1" stop-color="#a8842c"/></linearGradient></defs>
+        <circle class="track" cx="24" cy="24" r="20"/>
+        <circle class="arc" cx="24" cy="24" r="20" pathLength="100"/>
+      </svg>
+      <span class="core"></span>
     </div>
 
     <div class="main">
@@ -1632,7 +1745,6 @@
             <div class="ov-cap">
               <span class="mr-scopes">
                 <button class="label mr-scope on" id="mr-scope-mine" type="button">Your recaps</button>
-                <button class="label mr-scope" id="mr-scope-room" type="button">The room</button>
               </span>
               <span class="label" id="mr-total"></span>
             </div>
@@ -1677,7 +1789,6 @@
           </div>
 
           <section class="ov-sec">
-            <div class="ov-cap"><span class="label">Pick up where you left off</span></div>
             <div class="ov-flat" id="ov-continue"></div>
           </section>
 
@@ -2061,7 +2172,6 @@
 
         <section class="view" id="v-settings">
           <div class="set-index">
-            <p class="set-group">Your account</p>
             <button class="set-row" type="button" data-go="set-profile">
               <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
               <span class="txt"><b>Profile</b><small>Photo, username, bio</small></span>
@@ -2072,7 +2182,6 @@
               <span class="txt"><b>Account</b><small>Email, password, delete</small></span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
             </button>
-            <p class="set-group">How you use Echelon</p>
             <button class="set-row" type="button" data-go="notifs">
               <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
               <span class="txt"><b>Notifications</b></span>
@@ -2171,6 +2280,7 @@
           <div class="block">
             <div class="block-head"><h3>Discord</h3><span class="label" id="dc-state"></span></div>
             <div class="setgrid">
+              <p class="hint" id="dc-who" style="margin:0 0 12px;" hidden></p>
               <div class="filters">
                 <button class="btn" id="dc-connect" type="button" hidden>Connect Discord</button>
                 <button class="rowbtn" id="dc-sync" type="button" hidden>Re-sync role</button>
@@ -2219,7 +2329,7 @@
               </div>
               <div style="border-top:1px solid var(--line);padding-top:18px;">
                 <p class="label" style="margin-bottom:6px;color:var(--bad);">Delete account</p>
-                <p class="hint" style="margin:0 0 10px;">For good. A purchase stays attached to your email.</p>
+                <p class="hint" style="margin:0 0 10px;">A purchase stays attached to your email.</p>
                 <button class="rowbtn" id="del-account" style="color:var(--bad);border-color:rgba(217,139,122,0.4);">Delete my account</button>
                 <p class="msg" id="del-msg"></p>
               </div>
@@ -2683,6 +2793,7 @@
       el('pane-crumb').textContent = tab.dataset.crumb
       document.body.classList.toggle('journal-full', view === 'journal')
       document.body.classList.toggle('in-chat', view === 'chat')
+      syncBnav(view)
       window.scrollTo({ top: 0 })
       if (view === 'chat' && !chat.loaded) loadChat()
       if (view === 'library') { if (!LIB.loaded) loadLibrary(); markRead('recaps') }
@@ -2692,6 +2803,51 @@
       if (view !== 'gex') endGexTour(false)
     }
     tabs.forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)))
+
+    /* ── phone bottom nav: built from the sidebar so the two never disagree ── */
+    const BNAV = ['overview', 'course', 'chat', 'library', 'set-profile']
+    const BNAV_PROFILE_VIEWS = new Set(['set-profile', 'settings', 'set-account', 'set-appearance', 'set-discord', 'set-desktop', 'notifs'])
+    function buildBnav() {
+      const nav = el('bnav'); if (!nav) return
+      nav.textContent = ''
+      for (const v of BNAV) {
+        const b = document.createElement('button'); b.type = 'button'; b.dataset.view = v
+        const tab = document.querySelector(`.tab[data-view="${v}"]`)
+        b.title = tab?.dataset.title ?? v; b.setAttribute('aria-label', b.title)
+        if (v === 'set-profile') {
+          const av = document.createElement('span'); av.className = 'av'; av.id = 'bnav-av'; av.textContent = '·'
+          b.appendChild(av)
+        } else {
+          const ic = tab?.querySelector('.ic')?.cloneNode(true)
+          if (ic) b.appendChild(ic)
+          if (v === 'chat' || v === 'library') { const d = document.createElement('i'); d.className = 'bdot'; d.hidden = true; b.appendChild(d) }
+        }
+        b.addEventListener('click', () => showView(v))
+        nav.appendChild(b)
+      }
+      // unread dots mirror the sidebar's
+      const mirror = (from, to) => {
+        const src = el(from); if (!src) return
+        const dot = nav.querySelector(`button[data-view="${to}"] .bdot`)
+        const sync = () => { if (dot) dot.hidden = src.hidden }
+        new MutationObserver(sync).observe(src, { attributes: true, attributeFilter: ['hidden'] })
+        sync()
+      }
+      mirror('n-chat', 'chat'); mirror('n-recaps', 'library')
+      syncBnav()
+    }
+    function syncBnav(view) {
+      const nav = el('bnav'); if (!nav) return
+      const cur = view ?? document.querySelector('.view.on')?.id.replace(/^v-/, '')
+      nav.querySelectorAll('button').forEach((b) => {
+        const tab = document.querySelector(`.tab[data-view="${b.dataset.view}"]`)
+        b.hidden = !!tab?.hidden && b.dataset.view !== 'set-profile'
+        b.classList.toggle('on', b.dataset.view === cur || (b.dataset.view === 'set-profile' && BNAV_PROFILE_VIEWS.has(cur)))
+      })
+      const av = el('bnav-av'), side = el('u-avatar')
+      if (av && side) { av.textContent = ''; const img = side.querySelector('img'); if (img) av.appendChild(img.cloneNode(true)); else av.textContent = side.textContent.trim() || '·' }
+    }
+    buildBnav()
 
     /* ── mobile drawer ── */
     el('menu-btn').addEventListener('click', () => el('app').classList.toggle('nav-open'))
@@ -3144,15 +3300,147 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     function storageVideo(player, media) {
-      const video = document.createElement('video')
-      video.src = media.url
-      video.controls = true
-      video.playsInline = true
-      video.preload = 'metadata'
-      video.controlsList = 'nodownload'
-      video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;background:#000;'
+      const video = mountPlayer(player, media.url, { tracks: media.tracks })
       video.addEventListener('loadeddata', () => player.classList.remove('skel'))
-      player.appendChild(video)
+    }
+
+    /* ── the player ──
+       One control bar for lessons and the library: play, 10s either way, a
+       scrub bar, speed (remembered), captions when the file has a track,
+       picture-in-picture and fullscreen. Space/K, J/L, arrows, F, M, C and
+       0-9 on the keyboard; tap to play, double-tap the sides to skip. */
+    const VP_RATES = [1, 1.25, 1.5, 2, 0.75]
+    const vpTime = (s) => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0') }
+    const VP_ICON = {
+      play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+      pause: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>',
+      vol: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>',
+      mute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>',
+      full: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
+      unfull: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>',
+      pip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="11" width="8" height="6" rx="1" fill="currentColor" stroke="none"/></svg>',
+    }
+    function mountPlayer(host, url, opts = {}) {
+      host.textContent = ''
+      const wrap = document.createElement('div'); wrap.className = 'vp paused'; wrap.tabIndex = 0
+      const video = document.createElement('video')
+      video.src = url; video.playsInline = true; video.preload = 'metadata'
+      for (const t of opts.tracks ?? []) {
+        const tr = document.createElement('track'); tr.kind = 'captions'; tr.src = t.url; tr.label = t.label || 'Captions'; tr.srclang = t.lang || 'en'
+        video.appendChild(tr)
+      }
+      const tap = document.createElement('div'); tap.className = 'vp-tap'
+      const big = document.createElement('div'); big.className = 'vp-big'; big.innerHTML = VP_ICON.play
+      const skipL = document.createElement('div'); skipL.className = 'vp-skip l'; skipL.textContent = '-10s'
+      const skipR = document.createElement('div'); skipR.className = 'vp-skip r'; skipR.textContent = '+10s'
+      const bar = document.createElement('div'); bar.className = 'vp-bar'
+      const seek = document.createElement('div'); seek.className = 'vp-seek'
+      const track = document.createElement('div'); track.className = 'track'
+      const buf = document.createElement('div'); buf.className = 'buf'
+      const played = document.createElement('div'); played.className = 'played'
+      track.append(buf, played); seek.appendChild(track)
+      const row = document.createElement('div'); row.className = 'vp-row'
+      const btn = (label, title, html) => { const b = document.createElement('button'); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); if (html) b.innerHTML = html; else b.textContent = label; return b }
+      const play = btn('', 'Play', VP_ICON.play)
+      const back = btn('-10', 'Back 10 seconds')
+      const fwd = btn('+10', 'Forward 10 seconds')
+      const time = document.createElement('span'); time.className = 'vp-time'; time.textContent = '0:00 / 0:00'
+      const right = document.createElement('div'); right.className = 'vp-right'
+      const rate = btn('1×', 'Playback speed')
+      const cc = btn('CC', 'Captions'); cc.hidden = true
+      const mute = btn('', 'Mute', VP_ICON.vol)
+      const pip = btn('', 'Picture in picture', VP_ICON.pip); pip.hidden = !(document.pictureInPictureEnabled)
+      const full = btn('', 'Fullscreen', VP_ICON.full)
+      right.append(rate, cc, mute, pip, full)
+      row.append(play, back, fwd, time, right)
+      bar.append(seek, row)
+      wrap.append(video, tap, skipL, skipR, big, bar)
+      host.appendChild(wrap)
+
+      // state → chrome
+      const paint = () => {
+        const p = video.paused
+        wrap.classList.toggle('paused', p); wrap.classList.toggle('playing', !p)
+        play.innerHTML = p ? VP_ICON.play : VP_ICON.pause; play.title = p ? 'Play' : 'Pause'
+        big.innerHTML = VP_ICON.play
+      }
+      const tick = () => {
+        const d = video.duration || 0
+        played.style.width = d ? (video.currentTime / d * 100) + '%' : '0'
+        try { const b = video.buffered; if (b.length && d) buf.style.width = (b.end(b.length - 1) / d * 100) + '%' } catch {}
+        time.textContent = vpTime(video.currentTime) + ' / ' + vpTime(d)
+      }
+      const setRate = (r) => { video.playbackRate = r; rate.textContent = (r === 1 ? '1' : String(r)) + '×'; rate.classList.toggle('on', r !== 1); try { localStorage.setItem('echelon-vp-rate', String(r)) } catch {} }
+      const skip = (s) => { video.currentTime = Math.min(video.duration || Infinity, Math.max(0, video.currentTime + s)); flash(s < 0 ? skipL : skipR) }
+      const flash = (n) => { n.classList.add('show'); setTimeout(() => n.classList.remove('show'), 40); setTimeout(() => n.classList.remove('show'), 500) }
+      const toggle = () => { video.paused ? video.play().catch(() => {}) : video.pause() }
+      const ccTrack = () => [...video.textTracks].find((t) => t.kind === 'captions' || t.kind === 'subtitles')
+      const setCC = (on) => { const t = ccTrack(); if (!t) return; t.mode = on ? 'showing' : 'hidden'; cc.classList.toggle('on', on) }
+      const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement)
+      const toggleFull = async () => {
+        try {
+          if (isFull()) await (document.exitFullscreen?.() ?? document.webkitExitFullscreen?.())
+          else if (wrap.requestFullscreen) await wrap.requestFullscreen()
+          else if (wrap.webkitRequestFullscreen) wrap.webkitRequestFullscreen()
+          else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen()   // iPhone: only the video can go full
+        } catch {}
+      }
+      let idleT = 0
+      const wake = () => { wrap.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => wrap.classList.add('idle'), 2400) }
+
+      video.addEventListener('play', paint); video.addEventListener('pause', paint); video.addEventListener('ended', paint)
+      video.addEventListener('timeupdate', tick); video.addEventListener('progress', tick); video.addEventListener('durationchange', tick)
+      video.addEventListener('loadedmetadata', () => {
+        tick()
+        const t = ccTrack(); cc.hidden = !t; if (t) t.mode = 'hidden'
+        const saved = parseFloat(localStorage.getItem('echelon-vp-rate') || '1'); if (VP_RATES.includes(saved)) setRate(saved)
+      })
+      document.addEventListener('fullscreenchange', () => { full.innerHTML = isFull() ? VP_ICON.unfull : VP_ICON.full })
+
+      play.addEventListener('click', toggle)
+      back.addEventListener('click', () => skip(-10)); fwd.addEventListener('click', () => skip(10))
+      rate.addEventListener('click', () => setRate(VP_RATES[(VP_RATES.indexOf(video.playbackRate) + 1) % VP_RATES.length] ?? 1))
+      cc.addEventListener('click', () => setCC(!cc.classList.contains('on')))
+      mute.addEventListener('click', () => { video.muted = !video.muted; mute.innerHTML = video.muted ? VP_ICON.mute : VP_ICON.vol; mute.classList.toggle('on', video.muted) })
+      pip.addEventListener('click', async () => { try { document.pictureInPictureElement ? await document.exitPictureInPicture() : await video.requestPictureInPicture() } catch {} })
+      full.addEventListener('click', toggleFull)
+
+      // tap: play/pause; double-tap the sides: skip; double-click: fullscreen
+      let lastTap = 0, lastX = 0, tapT = 0
+      tap.addEventListener('click', (e) => {
+        const now = Date.now(), r = wrap.getBoundingClientRect(), x = (e.clientX - r.left) / r.width
+        if (now - lastTap < 320) {
+          clearTimeout(tapT)
+          if (matchMedia('(hover: none)').matches) skip(x < 0.35 ? -10 : x > 0.65 ? 10 : 0)
+          else toggleFull()
+          lastTap = 0; return
+        }
+        lastTap = now; lastX = x
+        tapT = setTimeout(toggle, 220)
+      })
+      // scrub
+      const seekTo = (clientX) => { const r = seek.getBoundingClientRect(); const f = Math.min(1, Math.max(0, (clientX - r.left) / r.width)); if (video.duration) video.currentTime = f * video.duration; tick() }
+      seek.addEventListener('pointerdown', (e) => { seek.classList.add('drag'); seek.setPointerCapture(e.pointerId); seekTo(e.clientX) })
+      seek.addEventListener('pointermove', (e) => { if (seek.classList.contains('drag')) seekTo(e.clientX) })
+      const endDrag = (e) => { if (!seek.classList.contains('drag')) return; seek.classList.remove('drag'); try { seek.releasePointerCapture(e.pointerId) } catch {} }
+      seek.addEventListener('pointerup', endDrag); seek.addEventListener('pointercancel', endDrag)
+      // keys
+      wrap.addEventListener('keydown', (e) => {
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return
+        const k = e.key.toLowerCase()
+        if (k === ' ' || k === 'k') { e.preventDefault(); toggle() }
+        else if (k === 'j' || k === 'arrowleft') { e.preventDefault(); skip(k === 'j' ? -10 : -5) }
+        else if (k === 'l' || k === 'arrowright') { e.preventDefault(); skip(k === 'l' ? 10 : 5) }
+        else if (k === 'f') { e.preventDefault(); toggleFull() }
+        else if (k === 'm') { e.preventDefault(); mute.click() }
+        else if (k === 'c') { e.preventDefault(); if (!cc.hidden) cc.click() }
+        else if (/^[0-9]$/.test(k) && video.duration) { e.preventDefault(); video.currentTime = video.duration * Number(k) / 10 }
+        wake()
+      })
+      for (const ev of ['mousemove', 'touchstart', 'pointerdown']) wrap.addEventListener(ev, wake, { passive: true })
+      wrap.addEventListener('mouseleave', () => { if (!video.paused) wrap.classList.add('idle') })
+      wake(); paint()
+      return video
     }
 
     async function openLesson(id) {
@@ -3167,11 +3455,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const host = el('lesson')
       host.textContent = ''
       if (!lesson) return
-
-      const kind = document.createElement('p')
-      kind.className = 'label lesson-kind'
-      kind.textContent = KIND_LABEL[lesson.kind] ?? lesson.kind
-      host.appendChild(kind)
 
       const h = document.createElement('h1')
       h.className = 'lesson-h'
@@ -4205,13 +4488,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function mrSetScope(scope) {
       mrScope = scope
       el('mr-scope-mine').classList.toggle('on', scope === 'mine')
-      el('mr-scope-room').classList.toggle('on', scope === 'room')
+      el('mr-scope-room')?.classList.toggle('on', scope === 'room')
       el('mr-composer').hidden = scope !== 'mine'
       if (scope === 'room' && !state.roomRecaps) loadRoomRecaps()
       renderMemberRecaps()
     }
     el('mr-scope-mine').addEventListener('click', () => mrSetScope('mine'))
-    el('mr-scope-room').addEventListener('click', () => mrSetScope('room'))
+    el('mr-scope-room')?.addEventListener('click', () => mrSetScope('room'))
 
     function renderMemberRecaps() {
       const feed = el('mr-feed'); if (!feed) return
@@ -4443,6 +4726,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('mm-scrim').classList.add('on'); document.body.style.overflow = 'hidden'
     }
     function closeMemberProfile() { el('mm-scrim').classList.remove('on'); document.body.style.overflow = '' }
+    // Your own name in the sidebar opens your profile card, same as tapping
+    // yourself in the directory.
+    el('u-name').addEventListener('click', () => {
+      if (!state.user) return
+      const m = (state.members || []).find((x) => x.user_id === state.user.id)
+      openMemberProfile(m ?? {
+        user_id: state.user.id, username: state.profile?.username || 'you', avatar_url: state.profile?.avatar_url || null,
+        bio: state.profile?.bio || '', is_admin: state.isAdmin, is_mod: state.isMod, is_premium: state.owned.size > 0,
+      })
+    })
     async function messageMember(uid) {
       showView('chat')
       if (!chat.loaded) await loadChat()
@@ -4573,13 +4866,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('dc-connect').hidden = !!link
       el('dc-sync').hidden = !link
       el('dc-disconnect').hidden = !link
+      const who = el('dc-who')
       if (link) {
-        const who = link.discord_username || discordName(ident) || 'Connected'
-        st.textContent = who + (link.role_granted ? ' · role on' : link.in_guild ? ' · in the server' : '')
-        // no hint line; the state label says it all
+        st.className = 'label dc-ok'; st.innerHTML = checkIcon
+        st.appendChild(document.createTextNode('Connected'))
+        const name = link.discord_username || discordName(ident)
+        who.textContent = [name, link.role_granted ? 'role on' : link.in_guild ? 'in the server' : ''].filter(Boolean).join(' · ')
+        who.hidden = !who.textContent
       } else {
-        st.textContent = 'Not linked'
-        // no hint line
+        st.className = 'label'; st.textContent = 'Not linked'
+        who.hidden = true
       }
     }
 
@@ -4941,10 +5237,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         p.textContent = 'No lessons published yet.'
         cont.appendChild(p)
       } else {
-        const kind = document.createElement('p'); kind.className = 'label lesson-kind'
-        kind.textContent = KIND_LABEL[nextUp.kind] ?? nextUp.kind
         const h = document.createElement('h1'); h.className = 'lesson-h'; h.textContent = nextUp.title
-        cont.append(kind, h)
+        cont.append(h)
         if (nextUp.summary) {
           const s = document.createElement('p'); s.className = 'lesson-sum'; s.textContent = nextUp.summary
           cont.appendChild(s)
@@ -5923,12 +6217,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const card = side
 
         const top = document.createElement('div'); top.className = 'st-head'
-        const h = document.createElement('h3'); h.textContent = p.name; top.appendChild(h)
+        const h = document.createElement('h3'); h.textContent = p.kind === 'indicator' ? `${p.name} indicator` : p.name; top.appendChild(h)
         if (p.kind === 'bundle' && !owned) { const tg = document.createElement('span'); tg.className = 'p-tag bundle'; tg.textContent = 'Save'; top.appendChild(tg) }
         main.appendChild(top)
 
-        const blurb = document.createElement('p'); blurb.className = 'st-blurb'; blurb.textContent = p.blurb ?? ''
-        main.appendChild(blurb)
 
         if (p.tv_script_url) {
           const a = document.createElement('a'); a.className = 'p-link'; a.href = p.tv_script_url
@@ -7129,10 +7421,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // stats, announcements). Only the course tabs stay behind the purchase
       // (RLS would hand them empty lists anyway).
       document.querySelector('.tab[data-view="course"]').hidden = !state.hasCourse
-      // The library follows has_access(): any active entitlement (or staff)
-      // can watch — GEX and LIT subscribers included, not just course owners.
-      document.querySelector('.tab[data-view="library"]').hidden =
-        !(state.owned.size > 0 || state.isMod || state.isAdmin)
+      // The library is for everyone signed in: members, mods, free accounts
+      // (migration 0045 + media-url v21 match this server-side).
+      document.querySelector('.tab[data-view="library"]').hidden = false
+      syncBnav()
 
       await fetchAndRender()
     }
@@ -7218,57 +7510,72 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     /* ── pull to refresh (touch only) ──
-       Finger down at the very top of the page, drag down past the threshold,
-       let go: the disc spins, every pane drops back to its skeleton, data
-       refetches, the disc tucks away. Under threshold it just snaps back.
+       Finger down at the very top, a deliberate downward drag claims the
+       gesture (a sideways or upward move releases it), the gold dial fills
+       with the pull, pops when armed, and on release spins while every pane
+       drops to its skeleton and refetches. Under threshold it eases home.
        Ignored while the drawer is open, while typing, or mid-refresh. */
     {
-      const ptr = el('ptr'), THRESH = 72, MAXPULL = 120
-      let startY = 0, pulling = false, armed = false, busy = false
+      const ptr = el('ptr'), THRESH = 68, MAXPULL = 96
+      const s = { active: false, claimed: false, startX: 0, startY: 0, armed: false, busy: false }
+      const buzz = (p) => { try { navigator.vibrate?.(p) } catch {} }
+      const atTop = () => window.scrollY <= 1
       const setPull = (d) => {
-        const eased = Math.min(MAXPULL, d * 0.55)
-        ptr.style.transform = `translateY(${eased - 46}px)`
-        ptr.style.opacity = String(Math.min(1, d / 40))
-        const nowArmed = d >= THRESH
-        if (nowArmed !== armed) { armed = nowArmed; document.body.classList.toggle('ptr-armed', armed) }
+        const y = Math.min(MAXPULL, d * 0.5)
+        const p = Math.min(1, y / THRESH)
+        ptr.style.setProperty('--p', p.toFixed(3))
+        ptr.style.setProperty('--ptr-y', `${y - 40}px`)
+        ptr.style.transform = `translate3d(0, ${y - 40}px, 0) scale(${0.8 + 0.2 * p})`
+        ptr.style.opacity = String(Math.min(1, p * 1.4))
+        const armed = y >= THRESH
+        if (armed !== s.armed) { s.armed = armed; document.body.classList.toggle('ptr-armed', armed); if (armed) buzz(10) }
       }
       const reset = () => {
-        pulling = false; armed = false
+        s.active = false; s.claimed = false; s.armed = false
         document.body.classList.remove('ptr-pulling', 'ptr-armed')
-        ptr.style.transform = ''; ptr.style.opacity = ''
+        ptr.style.transform = ''; ptr.style.opacity = ''; ptr.style.setProperty('--p', '0')
       }
       const canStart = () =>
-        !busy && window.scrollY <= 0 && el('app').classList.contains('on') &&
-        !el('app').classList.contains('nav-open') &&
+        !s.busy && atTop() && el('app').classList.contains('on') &&
+        !el('app').classList.contains('nav-open') && el('onb').hidden &&
         !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')
       document.addEventListener('touchstart', (e) => {
-        if (!canStart() || e.touches.length !== 1) return
-        startY = e.touches[0].clientY; pulling = true
+        if (!canStart() || e.touches.length !== 1) { s.active = false; return }
+        const t = e.touches[0]
+        s.active = true; s.claimed = false; s.startX = t.clientX; s.startY = t.clientY
       }, { passive: true })
       document.addEventListener('touchmove', (e) => {
-        if (!pulling) return
-        const d = e.touches[0].clientY - startY
-        if (d <= 0 || window.scrollY > 0) { if (document.body.classList.contains('ptr-pulling')) reset(); else pulling = false; return }
-        document.body.classList.add('ptr-pulling')
-        setPull(d)
-      }, { passive: true })
+        if (!s.active || s.busy) return
+        const t = e.touches[0]
+        const dy = t.clientY - s.startY, dx = t.clientX - s.startX
+        if (!s.claimed) {
+          // Decide once: a downward, mostly vertical drag at the top is ours.
+          if (dy > 8 && dy > Math.abs(dx) * 1.2 && atTop()) { s.claimed = true; document.body.classList.add('ptr-pulling') }
+          else if (Math.abs(dx) > 8 || dy < -4 || !atTop()) { s.active = false; return }
+          else return
+        }
+        if (dy <= 0) { setPull(0); return }
+        if (e.cancelable) e.preventDefault()   // own the gesture: no native bounce under the dial
+        setPull(dy)
+      }, { passive: false })
       const finish = async () => {
-        if (!pulling) return
-        const fire = armed
+        if (!s.active) return
+        const fire = s.claimed && s.armed
         reset()
         if (!fire) return
-        busy = true
-        document.documentElement.style.setProperty('--ptr-rest', `${Math.round(document.querySelector('.topbar').getBoundingClientRect().height + 12)}px`)
+        s.busy = true
+        buzz([8, 40, 12])
+        document.documentElement.style.setProperty('--ptr-rest', `${Math.round(document.querySelector('.topbar').getBoundingClientRect().height + 14)}px`)
         document.body.classList.add('ptr-busy')
         const started = Date.now()
         try { await fetchAndRender() } catch (err) { console.warn('refresh failed', err) }
         // hold the spinner long enough to read as "it did something"
-        await new Promise((r) => setTimeout(r, Math.max(0, 650 - (Date.now() - started))))
+        await new Promise((r) => setTimeout(r, Math.max(0, 700 - (Date.now() - started))))
         document.body.classList.remove('ptr-busy')
-        busy = false
+        s.busy = false
       }
       document.addEventListener('touchend', finish, { passive: true })
-      document.addEventListener('touchcancel', reset, { passive: true })
+      document.addEventListener('touchcancel', () => { reset() }, { passive: true })
     }
 
     // Floating switcher, only mounted for the real owner. Changing it reloads
