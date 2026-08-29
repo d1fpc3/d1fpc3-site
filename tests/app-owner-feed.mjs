@@ -39,17 +39,39 @@ const items = await page.$$eval(".rv-menu button", (bs) => bs.map((b) => b.textC
 if (items.join() !== "Edit,Add photo,Delete") fails.push("menu items: " + items.join());
 await page.screenshot({ path: `${OUT}/07-owner-menu.png` });
 const id = await page.$eval("#rv-body .rv-post", (p) => p.dataset.id);
-const before = (await sql(`select title from member_recaps where id = '${id}'`))[0]?.title ?? null;
-await page.locator(".rv-menu button", { hasText: "Edit" }).click(); await page.waitForTimeout(300);
-if (!(await page.locator(".rv-edit").count())) fails.push("edit form missing");
-if (!(await page.locator(".rv-media .rm").count())) fails.push("no remove-photo control while editing");
+const beforeRow = (await sql(`select title, outcome from member_recaps where id = '${id}'`))[0] ?? {};
+const before = beforeRow.title ?? null, beforeOutcome = beforeRow.outcome ?? null;
+await page.locator(".rv-menu button", { hasText: "Edit" }).click(); await page.waitForTimeout(400);
+// the editor is its own screen, full size on the phone, with media strip + add tile
+if (!(await page.locator("#pedit").isVisible())) fails.push("editor page did not open");
+const ped = await page.locator(".pedit-sheet").boundingBox();
+if (!ped || ped.height < 800) fails.push("editor not full screen: " + JSON.stringify(ped));
+if (!(await page.locator("#pedit-media .pedit-tile").count())) fails.push("editor shows no media tiles");
+if (!(await page.locator("#pedit-media .pedit-tile .rm").count())) fails.push("no remove control on a media tile");
+if (!(await page.locator("#pedit-media .pedit-add").count())) fails.push("no Add tile");
+for (const id of ["pedit-title", "pedit-body", "pedit-outcome", "pedit-r", "pedit-done", "pedit-cancel", "pedit-delete"]) if (!(await page.locator("#" + id).count())) fails.push("editor missing #" + id);
 await page.screenshot({ path: `${OUT}/08-owner-edit.png` });
+// Back closes the editor and leaves the feed open
+await page.goBack(); await page.waitForTimeout(400);
+if (await page.locator("#pedit").isVisible()) fails.push("Back did not close the editor");
+if (!(await page.locator("#rvmodal").isVisible())) fails.push("Back closed the feed too");
+// reopen, change the title, Done
+await page.locator("#rv-body .rv-menu-btn").first().click(); await page.waitForTimeout(200);
+await page.locator(".rv-menu button", { hasText: "Edit" }).click(); await page.waitForTimeout(400);
 const stamp = "Harness edit " + Date.now();
-await page.fill(".rv-edit input.inp", stamp); await page.locator(".rv-edit .btn").click(); await page.waitForTimeout(1200);
-const after = (await sql(`select title from member_recaps where id = '${id}'`))[0]?.title;
-if (after !== stamp) fails.push("edit did not persist: " + after);
+await page.fill("#pedit-title", stamp); await page.locator("#pedit-outcome button", { hasText: "Win" }).click(); await page.click("#pedit-done"); await page.waitForTimeout(1500);
+if (await page.locator("#pedit").isVisible()) fails.push("editor still open after Done");
+const row = (await sql(`select title, outcome from member_recaps where id = '${id}'`))[0];
+if (row?.title !== stamp) fails.push("edit did not persist: " + row?.title);
+if (row?.outcome !== "win") fails.push("outcome did not persist: " + row?.outcome);
 if (!(await page.textContent("#rv-body")).includes(stamp)) fails.push("post did not repaint with the new title");
-await sql(`update member_recaps set title = ${before === null ? "null" : "'" + before.replace(/'/g, "''") + "'"} where id = '${id}'`);
+await sql(`update member_recaps set title = ${before === null ? "null" : "'" + before.replace(/'/g, "''") + "'"}, outcome = ${beforeOutcome === null ? "null" : "'" + beforeOutcome + "'"} where id = '${id}'`);
+// toast: pointer-swipe down dismisses it
+await page.evaluate(() => { const t = document.getElementById("co-toast"); t.textContent = "swipe me"; t.classList.add("on"); });
+await page.waitForTimeout(300);
+const tb = await page.locator("#co-toast").boundingBox();
+if (tb) { await page.mouse.move(tb.x + tb.width / 2, tb.y + 10); await page.mouse.down(); await page.mouse.move(tb.x + tb.width / 2, tb.y + 80, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(400); }
+if (await page.evaluate(() => document.getElementById("co-toast").classList.contains("on"))) fails.push("toast did not dismiss on swipe");
 await browser.close();
 if (fails.length) { console.error("FAIL\n - " + fails.join("\n - ")); process.exit(1); }
 console.log("owner ok");

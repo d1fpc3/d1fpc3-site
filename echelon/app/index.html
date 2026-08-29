@@ -409,23 +409,24 @@
     @media (max-width: 860px) {
       .toc { position: static; display: none; }
       .course-grid.toc-open .toc {
-        display: block; background: var(--panel); border: 1px solid var(--line);
-        border-radius: 14px; padding: 14px 12px 10px; margin-top: -8px;
+        display: block; background: none; border: 0; border-bottom: 1px solid var(--line);
+        border-radius: 0; padding: 4px 0 10px; margin-top: 0;
         animation: fade 0.2s ease;
       }
       .toc-toggle {
         display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-        background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-        padding: 13px 14px 13px 16px; color: var(--ink); font-family: inherit; cursor: pointer;
+        background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0;
+        padding: 2px 2px 12px; color: var(--ink); font-family: inherit; cursor: pointer;
         -webkit-tap-highlight-color: transparent;
       }
-      .toc-toggle:active { background: var(--panel-2); }
+      .toc-toggle:active { opacity: 0.7; }
+      .toc-toggle #tt-mod { display: none; }
       .toc-toggle .tt-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
       .toc-toggle .tt-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
       .toc-toggle .tt-pos { font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
       .toc-toggle .tt-chev { width: 18px; height: 18px; color: var(--faint); flex-shrink: 0; transition: transform 0.2s ease; }
       .course-grid.toc-open .toc-toggle .tt-chev { transform: rotate(180deg); }
-      .course-grid.toc-open .toc-toggle { border-color: var(--line-bright); }
+      .course-grid.toc-open .toc-toggle { border-bottom-color: transparent; }
       .toc button { padding: 10px 22px 10px 14px; font-size: 14px; }
     }
     .toc-group + .toc-group { margin-top: 20px; }
@@ -777,6 +778,11 @@
     .tb-gear { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 8px; border-radius: 9px; display: inline-flex; }
     .tb-gear svg { width: 21px; height: 21px; }
     .tb-gear:hover { color: var(--ink); background: var(--panel-2); }
+    .pro-name-row .vcheck { width: 17px; height: 17px; flex-shrink: 0; }
+    .pro-ic { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 5px; border-radius: 8px; display: inline-flex; flex-shrink: 0; }
+    .pro-ic:first-of-type { margin-left: auto; }
+    .pro-ic svg { width: 18px; height: 18px; }
+    .pro-ic:hover { color: var(--ink); }
     .pro-gear { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 8px; display: inline-flex; }
     .pro-gear svg { width: 20px; height: 20px; }
     .pro-gear:hover { color: var(--ink); }
@@ -841,6 +847,41 @@
     .rv-title { font-size: 18px; font-weight: 650; letter-spacing: -0.01em; padding: 10px 16px 0; margin: 0; line-height: 1.3; }
     .rv-text { padding: 8px 16px 0; color: var(--muted); font-size: 14px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
     body.rv-open { overflow: hidden; }
+
+    /* ── post editor: a screen of its own, over the feed ── */
+    .pedit { position: fixed; inset: 0; z-index: 205; background: var(--bg); display: flex; flex-direction: column; }
+    .pedit[hidden] { display: none; }
+    .pedit-sheet { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .pedit-top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .pedit-top .rv-topname { flex: 1; text-align: center; }
+    .pedit-done { background: none; border: 0; color: var(--gold); font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; padding: 6px 4px; }
+    .pedit-done:disabled { opacity: 0.5; cursor: default; }
+    .pedit-scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 16px calc(24px + env(safe-area-inset-bottom)); }
+    .pedit-in { max-width: 640px; margin: 0 auto; }
+    .pedit-media { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+    .pedit-media::-webkit-scrollbar { display: none; }
+    .pedit-tile { position: relative; width: 96px; height: 96px; flex: none; border-radius: 10px; overflow: hidden; background: var(--panel-2); }
+    .pedit-tile img, .pedit-tile video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pedit-tile.up::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+    .pedit-tile .rm { position: absolute; top: 4px; right: 4px; z-index: 2; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(0,0,0,0.7); color: #fff; font-size: 15px; line-height: 1; cursor: pointer; }
+    .pedit-add { width: 96px; height: 96px; flex: none; border-radius: 10px; border: 1px dashed var(--line-bright); background: none; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+    .pedit-add svg { width: 20px; height: 20px; }
+    .pedit-add:hover { color: var(--ink); border-color: var(--gold); }
+    .pedit-title { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 14px 0 10px; font: inherit; font-size: 17px; font-weight: 650; color: var(--ink); outline: none; margin-top: 8px; }
+    .pedit-body { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 12px 0; font: inherit; font-size: 14.5px; line-height: 1.6; color: var(--ink); outline: none; resize: none; min-height: 110px; display: block; }
+    .pedit-title::placeholder, .pedit-body::placeholder { color: var(--faint); }
+    .pedit-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .pedit-row .label { min-width: 64px; }
+    .pedit-seg { display: flex; gap: 2px; flex-wrap: wrap; }
+    .pedit-seg button { background: none; border: 0; padding: 6px 8px 5px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 500; color: var(--faint); border-bottom: 1.5px solid transparent; }
+    .pedit-seg button.on { color: var(--ink); border-bottom-color: var(--gold); }
+    .pedit-row .inp { width: 120px; }
+    .pedit-msg { padding: 10px 0 0; font-size: 12.5px; }
+    .pedit-delete { display: block; margin: 26px auto 0; background: none; border: 0; color: var(--bad); font: inherit; font-size: 13.5px; cursor: pointer; }
+    @media (min-width: 841px) {
+      .pedit { background: rgba(6,5,4,0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 24px; }
+      .pedit-sheet { flex: none; width: 100%; max-width: 640px; max-height: 92vh; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 16px; overflow: hidden; }
+    }
     @media (max-width: 840px) {
       .rv { padding: 0; background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
       .rv-sheet { max-width: none; max-height: none; height: 100dvh; border: 0; border-radius: 0; }
@@ -1175,7 +1216,10 @@
     /* video library: chips + a feed of thumbnail cards, popup player */
     .lib-bar { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
     .lib-bar .lib-chips { margin-bottom: 0; flex: 1; }
-    .lib-post { margin-left: auto; color: var(--gold); border-color: rgba(201,162,74,0.4); flex-shrink: 0; }
+    .lib-add { margin-left: auto; flex-shrink: 0; background: none; border: 0; color: var(--gold); padding: 6px; cursor: pointer; display: inline-flex; border-radius: 8px; }
+    .lib-add svg { width: 22px; height: 22px; }
+    .lib-add:hover { background: var(--panel-2); }
+    .lib-add[hidden] { display: none; }
     .lib-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
     .lib-chip {
       background: none; border: 1px solid var(--line-bright); border-radius: 9px;
@@ -1931,7 +1975,7 @@
             <!-- phones: the 41-item index folds behind this bar so the lesson is what you land on -->
             <button type="button" class="toc-toggle" id="toc-toggle" aria-expanded="false" aria-controls="index">
               <span class="tt-meta">
-                <span class="label" id="tt-mod">Lessons</span>
+                <span class="label" id="tt-mod" hidden>Lessons</span>
                 <span class="tt-title" id="tt-title">Pick a lesson</span>
               </span>
               <span class="tt-pos" id="tt-pos"></span>
@@ -1947,7 +1991,7 @@
         <section class="view" id="v-library">
           <div class="lib-bar">
             <div class="lib-chips" id="lib-chips"></div>
-            <button class="lib-chip lib-post" id="lib-post" type="button" hidden>Post a video</button>
+            <button class="lib-add" id="lib-post" type="button" title="Post a video" aria-label="Post a video" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
           </div>
           <!-- staff upload popup (portaled to body at boot) -->
           <div class="dmpick-scrim" id="libupmodal" hidden>
@@ -2298,13 +2342,14 @@
             <div class="pro-meta">
               <div class="pro-name-row">
                 <h2 class="pro-name" id="pro-name">—</h2>
+                <button class="pro-ic" id="pro-edit" type="button" title="Edit profile" aria-label="Edit profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+                <button class="pro-ic" id="pro-share" type="button" title="Share profile" aria-label="Share profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
                 <button class="pro-gear" id="pro-settings-old" type="button" hidden aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 </button>
               </div>
               <div class="pro-stats" id="pro-stats"></div>
               <p class="pro-bio" id="pro-bio"></p>
-              <div class="pro-actions"><button class="rowbtn" id="pro-edit" type="button">Edit profile</button></div>
             </div>
           </div>
           <div class="block pro-edit" id="pro-edit-wrap" hidden>
@@ -2469,8 +2514,10 @@
     .co-spin{width:26px;height:26px;margin:0 auto 14px;border:3px solid #e5e0d6;border-top-color:#c9a24a;border-radius:50%;animation:cospin .8s linear infinite}
     @keyframes cospin{to{transform:rotate(360deg)}}
     .co-err{padding:40px 24px;text-align:center;color:#b4483a;font-size:14px}
-    .co-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);z-index:210;background:#0b0a09;color:#f2ede3;border:1px solid #3a352f;border-radius:12px;padding:12px 18px;font-size:14px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:min(440px,90vw);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
-    .co-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+    .co-toast{position:fixed;left:50%;bottom:calc(26px + var(--bnav, 0px));--ty:0px;transform:translateX(-50%) translateY(calc(8px + var(--ty)));z-index:210;background:#0b0a09;color:#f2ede3;border:1px solid #3a352f;border-radius:12px;padding:12px 18px;font-size:14px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:min(440px,90vw);text-align:center;opacity:0;pointer-events:none;touch-action:none;user-select:none;-webkit-user-select:none;transition:opacity .25s ease,transform .25s cubic-bezier(.2,.8,.2,1)}
+    .co-toast.on{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(var(--ty))}
+    .co-toast.drag{transition:none}
+    .co-toast.gone{opacity:0;transform:translateX(-50%) translateY(60px);pointer-events:none}
     .co-toast .ck{color:var(--gold,#c9a24a);font-weight:700;margin-right:8px}
     /* upload progress: one bar, 0 to 100 */
     .upbar { display: none; align-items: center; gap: 10px; }
@@ -2910,8 +2957,9 @@
       const s = e.state || { view: 'overview' }
       navSilent = true
       try {
-        if (s.layer !== 'rv') closeRecapView(true)
-        if (s.layer !== 'member' && s.layer !== 'rv') closeMemberProfile(true)
+        if (s.layer !== 'editor') closePostEditor(true)
+        if (s.layer !== 'rv' && s.layer !== 'editor') closeRecapView(true)
+        if (s.layer !== 'member' && s.layer !== 'rv' && s.layer !== 'editor') closeMemberProfile(true)
         if (s.layer !== 'convo' && el('chat').classList.contains('open-convo')) { el('chat').classList.remove('open-convo'); chat.cur = null; renderChatRail() }
         if (s.view && s.view !== curView() && document.querySelector(`.tab[data-view="${s.view}"]`)) showView(s.view)
       } finally { navSilent = false }
@@ -4784,7 +4832,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (open) return
           const menu = document.createElement('div'); menu.className = 'rv-menu'
           const item = (label, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (cls) b.className = cls; b.addEventListener('click', () => { menu.remove(); fn() }); menu.appendChild(b) }
-          if (mine) item('Edit', () => rvEdit(post, r))
+          if (mine) item('Edit', () => openPostEditor(r, post))
           if (mine) item('Add photo', () => rvAddPhoto(post, r))
           item('Delete', () => rvDelete(post, r), 'danger')
           user.appendChild(menu)
@@ -4871,6 +4919,121 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       })
       title.focus()
     }
+    /* ── post editor ── */
+    const PE = { r: null, post: null, media: [], uploads: new Set(), fresh: [] }
+    function closePostEditor(fromPop) {
+      const m = el('pedit'); if (!m || m.hidden) return
+      if (!fromPop && navPopLayer('editor')) return
+      m.hidden = true
+      // photos uploaded during a cancelled edit are orphans: sweep them
+      if (PE.fresh.length) { supabase.storage.from('recap-media').remove(PE.fresh.splice(0)).catch(() => {}) }
+      PE.r = PE.post = null
+    }
+    function openPostEditor(r, post) {
+      let m = el('pedit')
+      if (!m) {
+        m = document.createElement('div'); m.className = 'pedit'; m.id = 'pedit'; m.hidden = true
+        m.innerHTML = '<div class="pedit-sheet"><div class="pedit-top">'
+          + '<button class="rv-back" id="pedit-cancel" type="button" aria-label="Cancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+          + '<span class="rv-topname">Edit post</span><button class="pedit-done" id="pedit-done" type="button">Done</button></div>'
+          + '<div class="pedit-scroll"><div class="pedit-in">'
+          + '<div class="pedit-media" id="pedit-media"></div>'
+          + '<input class="pedit-title" id="pedit-title" maxlength="120" placeholder="Title" autocomplete="off">'
+          + '<textarea class="pedit-body" id="pedit-body" maxlength="5000" placeholder="Write a caption…"></textarea>'
+          + '<div class="pedit-row"><span class="label">Outcome</span><div class="pedit-seg" id="pedit-outcome"></div></div>'
+          + '<div class="pedit-row"><span class="label">R</span><input class="inp" id="pedit-r" inputmode="decimal" placeholder="e.g. 2.5" autocomplete="off"></div>'
+          + '<p class="pedit-msg msg" id="pedit-msg"></p>'
+          + '<button class="pedit-delete" id="pedit-delete" type="button">Delete post</button>'
+          + '</div></div></div>'
+        document.body.appendChild(m)
+        el('pedit-cancel').addEventListener('click', () => closePostEditor())
+        el('pedit-done').addEventListener('click', savePostEditor)
+        el('pedit-delete').addEventListener('click', async () => { const r = PE.r, post = PE.post; if (!r) return; if (!(await mrDelete(r))) return; PE.fresh = []; closePostEditor(); if (post) rvDelete(post, r, true) })
+        const ta = el('pedit-body')
+        ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = Math.max(110, ta.scrollHeight) + 'px' })
+        el('pedit-outcome').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; el('pedit-outcome').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)) })
+      }
+      PE.r = r; PE.post = post; PE.fresh = []
+      PE.media = (Array.isArray(r.media) ? r.media : []).filter((x) => x?.url).map((x) => ({ ...x }))
+      el('pedit-title').value = r.title || ''
+      el('pedit-body').value = r.body || ''
+      el('pedit-r').value = r.r ?? ''
+      el('pedit-msg').textContent = ''; el('pedit-msg').className = 'pedit-msg msg'
+      el('pedit-done').disabled = false; el('pedit-done').textContent = 'Done'
+      const seg = el('pedit-outcome'); seg.textContent = ''
+      for (const [v, l] of [['', 'None'], ['win', 'Win'], ['loss', 'Loss'], ['be', 'Break even']]) { const b = document.createElement('button'); b.type = 'button'; b.dataset.v = v; b.textContent = l; b.classList.toggle('on', (r.outcome || '') === v); seg.appendChild(b) }
+      peRenderMedia()
+      if (m.hidden) navPush({ view: curView(), layer: 'editor' })
+      m.hidden = false
+      const ta = el('pedit-body'); ta.style.height = 'auto'; ta.style.height = Math.max(110, ta.scrollHeight) + 'px'
+      m.querySelector('.pedit-scroll').scrollTop = 0
+    }
+    function peRenderMedia() {
+      const host = el('pedit-media'); host.textContent = ''
+      for (const x of PE.media) {
+        const t = document.createElement('div'); t.className = 'pedit-tile' + (x.url ? '' : ' up')
+        if (x.url) {
+          if (x.kind === 'video') { const v = document.createElement('video'); v.src = x.url; v.muted = true; v.preload = 'metadata'; v.playsInline = true; t.appendChild(v) }
+          else { const i = document.createElement('img'); i.src = x.url; i.alt = ''; t.appendChild(i) }
+        }
+        const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'rm'; rm.textContent = '×'; rm.setAttribute('aria-label', 'Remove')
+        rm.addEventListener('click', () => { PE.media = PE.media.filter((y) => y !== x); if (x.path && PE.fresh.includes(x.path)) supabase.storage.from('recap-media').remove([x.path]).catch(() => {}); peRenderMedia() })
+        t.appendChild(rm); host.appendChild(t)
+      }
+      if (PE.media.length < MR_MAX_MEDIA) {
+        const add = document.createElement('button'); add.type = 'button'; add.className = 'pedit-add'
+        add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Add</span>'
+        add.addEventListener('click', () => {
+          const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*,video/*'; input.multiple = true; input.hidden = true
+          document.body.appendChild(input)
+          input.addEventListener('change', () => {
+            const files = [...(input.files ?? [])]; input.remove()
+            for (const f of files) {
+              if (PE.media.length >= MR_MAX_MEDIA) { toast(`Up to ${MR_MAX_MEDIA} attachments per trade.`); break }
+              const kind = mrKindOf(f); if (!kind) continue
+              const entry = { url: null, kind, path: null }
+              PE.media.push(entry); peRenderMedia()
+              const job = mrUploadFile(f)
+                .then(({ url, path }) => { entry.url = url; entry.path = path; PE.fresh.push(path); peRenderMedia() })
+                .catch(() => { PE.media = PE.media.filter((y) => y !== entry); peRenderMedia(); toast(`Could not upload ${f.name}.`) })
+                .finally(() => PE.uploads.delete(job))
+              PE.uploads.add(job)
+            }
+          })
+          input.click()
+        })
+        host.appendChild(add)
+      }
+    }
+    async function savePostEditor() {
+      const r = PE.r, post = PE.post; if (!r) return
+      const btn = el('pedit-done'), msg = el('pedit-msg')
+      const rRaw = el('pedit-r').value.trim(); const rv = rRaw === '' ? null : Number(rRaw)
+      if (rv !== null && (!Number.isFinite(rv) || rv < -100 || rv > 100)) { msg.className = 'pedit-msg msg err'; msg.textContent = 'R should be a number like 2.5 or -1.'; return }
+      btn.disabled = true
+      if (PE.uploads.size) { btn.textContent = 'Uploading…'; await Promise.allSettled([...PE.uploads]) }
+      btn.textContent = 'Saving…'
+      const media = PE.media.filter((x) => x.url).map(({ url, kind }) => ({ url, kind }))
+      const patch = {
+        title: el('pedit-title').value.trim() || null, body: el('pedit-body').value.trim() || null,
+        outcome: el('pedit-outcome').querySelector('button.on')?.dataset.v || null, r: rv, media,
+      }
+      const { error } = await supabase.from('member_recaps').update(patch).eq('id', r.id)
+      btn.disabled = false; btn.textContent = 'Done'
+      if (error) { msg.className = 'pedit-msg msg err'; msg.textContent = 'Could not save. Try again.'; return }
+      // photos dropped from an existing post: best-effort storage cleanup
+      const kept = new Set(media.map((x) => x.url))
+      const dropped = (Array.isArray(r.media) ? r.media : []).filter((x) => x?.url && !kept.has(x.url))
+        .map((x) => decodeURIComponent((x.url || '').split('/recap-media/')[1] || '')).filter(Boolean)
+      if (dropped.length) supabase.storage.from('recap-media').remove(dropped).catch(() => {})
+      Object.assign(r, patch)
+      PE.fresh = []
+      closePostEditor()
+      if (post?.isConnected) rvRepaint(post, r)
+      renderMemberRecaps()
+      if (el('v-set-profile').classList.contains('on')) renderProfilePage()
+      toast('Post updated.')
+    }
     function rvAddPhoto(post, r) {
       const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*,video/*'; input.multiple = true; input.hidden = true
       document.body.appendChild(input)
@@ -4897,8 +5060,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       })
       input.click()
     }
-    async function rvDelete(post, r) {
-      if (!(await mrDelete(r))) return   // cancelled or failed
+    async function rvDelete(post, r, already) {
+      if (!already && !(await mrDelete(r))) return   // cancelled or failed
       RV.rows = RV.rows.filter((x) => x.id !== r.id)
       post.remove()
       el('rv-topdate').textContent = RV.rows.length > 1 ? `${RV.rows.length} trades` : ''
@@ -4911,13 +5074,22 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function renderProfilePage() {
       const p = state.profile
       avatarInto(el('pro-av'), p, state.user?.email)
-      el('pro-name').textContent = '@' + (p?.username || 'you')
+      const pn = el('pro-name'); pn.textContent = '@' + (p?.username || 'you')
+      if (state.isAdmin || state.isMod) pn.insertAdjacentHTML('beforeend', CHECK_SVG)
       el('pro-bio').textContent = p?.bio || ''
       statsInto(el('pro-stats'), state.memberRecaps)
       recapTiles(el('pro-grid'), state.memberRecaps, el('pro-empty'), (r) => openRecapView(r, state.memberRecaps))
     }
     el('pro-settings').addEventListener('click', () => showView('settings'))
     el('pro-edit').addEventListener('click', () => { el('pro-edit-wrap').hidden = !el('pro-edit-wrap').hidden; if (!el('pro-edit-wrap').hidden) el('set-username').focus() })
+    el('pro-share').addEventListener('click', async () => {
+      const u = state.profile?.username; if (!u) return
+      const url = `${location.origin}${location.pathname}?u=${encodeURIComponent(u)}`
+      try {
+        if (navigator.share) { await navigator.share({ title: `@${u} on Echelon`, url }); return }
+      } catch { return }
+      try { await navigator.clipboard.writeText(url); toast('Profile link copied.') } catch { prompt('Your profile link', url) }
+    })
     el('pro-edit-done').addEventListener('click', () => { el('pro-edit-wrap').hidden = true; renderProfilePage() })
     el('pro-av').addEventListener('click', () => { el('pro-edit-wrap').hidden = false; el('pfp-pick').click() })
     el('pro-av').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el('pro-av').click() } })
@@ -5057,7 +5229,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const name = document.createElement('div'); name.className = 'mname'
         const nm = document.createElement('span'); nm.textContent = m.username
         name.appendChild(nm)
-        if (m.is_premium || m.is_admin || m.is_mod) name.insertAdjacentHTML('beforeend', CHECK_SVG)
+        if (m.is_admin || m.is_mod) name.insertAdjacentHTML('beforeend', CHECK_SVG)
         if (m.is_admin || m.is_mod) {
           const tag = document.createElement('span')
           tag.className = 'mtag'
@@ -5082,7 +5254,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function openMemberProfile(m) {
       avatarInto(el('mm-av'), m, m.username)
       const name = el('mm-name'); name.textContent = '@' + m.username
-      if (m.is_premium || m.is_admin || m.is_mod) name.insertAdjacentHTML('beforeend', CHECK_SVG)
+      if (m.is_admin || m.is_mod) name.insertAdjacentHTML('beforeend', CHECK_SVG)
       if (m.is_admin || m.is_mod) {
         const t = document.createElement('span'); t.className = 'mtag'; t.textContent = m.is_admin ? 'Admin' : 'Mod'; name.appendChild(t)
       }
@@ -5765,8 +5937,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       } else {
         t.textContent = msg
       }
+      t.classList.remove('gone'); t.style.setProperty('--ty', '0px')
       t.classList.add('on')
       clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), ms)
+      if (!t._swipe) {
+        // a downward swipe (or a tap) puts it away; anything less springs back
+        t._swipe = true
+        let y0 = 0, dy = 0, on = false
+        const off = () => { clearTimeout(t._t); t.classList.remove('on', 'drag'); t.classList.add('gone'); setTimeout(() => { t.classList.remove('gone'); t.style.setProperty('--ty', '0px') }, 300) }
+        t.addEventListener('pointerdown', (e) => { on = true; dy = 0; y0 = e.clientY; t.classList.add('drag'); try { t.setPointerCapture(e.pointerId) } catch {} })
+        t.addEventListener('pointermove', (e) => { if (!on) return; dy = Math.max(0, e.clientY - y0); t.style.setProperty('--ty', dy + 'px'); t.style.opacity = String(Math.max(0.2, 1 - dy / 140)) })
+        const end = () => { if (!on) return; on = false; t.classList.remove('drag'); t.style.opacity = ''; if (dy > 36) off(); else if (dy < 4) off(); else t.style.setProperty('--ty', '0px') }
+        t.addEventListener('pointerup', end); t.addEventListener('pointercancel', end)
+      }
     }
 
     // ── On-page Stripe checkout (embedded, no redirect) ──
@@ -6929,16 +7112,26 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('chat-composer').style.display = canPost ? '' : 'none'
       el('chat-locked').hidden = canPost
 
-      el('chat-log').innerHTML = '<p class="cr-empty">Loading…</p>'
+      // Rooms you have opened before paint from memory at once; the fresh
+      // fetch replaces them a beat later. Polls and reactions load together,
+      // and the log paints as soon as the messages land rather than after.
+      const key = type + ':' + id
+      chat.cache = chat.cache || new Map()
+      const cached = chat.cache.get(key)
+      if (cached) { chat.msgs = cached.msgs; chat.pollVotes = cached.pollVotes; chat.rx = cached.rx; renderLog(true) }
+      else el('chat-log').innerHTML = '<p class="cr-empty">Loading…</p>'
+      subscribeRoom(type, id)
       const col = type === 'channel' ? 'channel_id' : 'dm_id'
       const { data } = await supabase.from('messages').select('id, user_id, body, created_at, edited_at, deleted_at, image_url, poll')
         .eq(col, id).is('deleted_at', null).order('created_at').limit(200)
+      if (chat.cur?.type !== type || chat.cur?.id !== id) return   // moved on already
       chat.msgs = data ?? []
-      await loadPollVotes()
-      await loadReactions()
+      if (!cached) renderLog(true)
+      await Promise.all([loadPollVotes(), loadReactions()])
+      if (chat.cur?.type !== type || chat.cur?.id !== id) return
       renderLog(true)
-      subscribeRoom(type, id)
-      markRead(type + ':' + id)
+      chat.cache.set(key, { msgs: chat.msgs, pollVotes: chat.pollVotes, rx: chat.rx })
+      markRead(key)
     }
 
     function subscribeRoom(type, id) {
@@ -8080,6 +8273,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!state.isAdmin && !state.onboarding?.completed_at) setTimeout(startOnboarding, 700)
 
       // Deep-link from the welcome onboarding: ?start=study|recaps|chat
+      const who = new URLSearchParams(location.search).get('u')
+      if (who) {
+        supabase.from('member_directory').select('*').ilike('username', who).maybeSingle()
+          .then(({ data }) => { if (data) openMemberProfile(data); else toast('No member by that name.') })
+        history.replaceState(history.state, '', location.pathname)
+      }
       const start = new URLSearchParams(location.search).get('start')
       if (start) {
         const map = { study: 'course', course: 'course', recaps: 'library', chat: 'chat', indicators: 'indicators', members: 'members' }
