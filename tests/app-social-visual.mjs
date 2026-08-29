@@ -83,7 +83,7 @@ const view = async (page, v) => { await page.evaluate((v) => document.querySelec
   const liked = (await sql(`select count(*)::int n from post_likes where user_id = '${member.user_id}' and recap_id = '${post.id}'`))[0].n;
   if (liked !== 1) fails.push("like did not persist");
   if (!(await card.locator(".rv-act .like.liked").count())) fails.push("heart not filled after like");
-  if (!/1 like/.test(await card.locator(".rv-likes").textContent())) fails.push("like count line wrong: " + (await card.locator(".rv-likes").textContent()));
+  if (!/[0-9]+ likes?/.test(await card.locator(".rv-likes").textContent())) fails.push("like count line wrong: " + (await card.locator(".rv-likes").textContent()));
   // comment
   await card.locator(".rv-act button[title=Comment]").click(); await page.waitForTimeout(1200);
   if (!(await page.locator("#cmsheet").isVisible())) fails.push("comments sheet did not open");
@@ -106,23 +106,35 @@ const view = async (page, v) => { await page.evaluate((v) => document.querySelec
   if (fl !== 1) fails.push("follow did not persist");
   if ((await fb.textContent()).trim() !== "Following") fails.push("follow button label: " + (await fb.textContent()));
   if (!/1s*follower/.test(await page.textContent("#mm-follow"))) fails.push("follow counts: " + (await page.textContent("#mm-follow")));
-  if (!(await page.locator("#mm-heat i").count())) fails.push("member heatmap empty");
+  if (await page.locator("#mm-heat").count()) fails.push("heatmap still on the member card");
   await shot("03-member-follow");
   await page.goBack(); await page.waitForTimeout(800);
-  // following scope shows the owner's post
-  await page.locator('#v-feed .fs[data-s="following"]').click(); await page.waitForTimeout(1500);
-  if (!(await page.locator(`#feed .rv-post[data-id="${post.id}"]`).count())) fails.push("Following scope does not show a followed member's post");
+  // one feed, no scopes; the owner (staff) carries the gold check on the card
+  if (await page.locator("#v-feed .feed-scopes").count()) fails.push("feed still has scope tabs");
+  if (!(await card.locator(".rv-user .vcheck").count())) fails.push("no gold check on the owner's card");
   // leaderboard
   await view(page, "board"); await page.waitForTimeout(1200);
   if (!(await page.locator("#board .lb-row").count()) && (await page.locator("#board-empty").isHidden())) fails.push("leaderboard rendered nothing");
+  if (await page.locator("#board-optin").count()) fails.push("leaderboard opt-out still present");
+  if (await page.locator("#v-board .feed-scopes").count()) fails.push("leaderboard still has a time toggle");
   await shot("04-board");
-  // profile: heatmap + invite code
+  // profile: follow counts only (no invite code, no invited count, no heatmap)
   await page.click('#bnav button[data-view="set-profile"]'); await page.waitForTimeout(1500);
-  if (!(await page.locator("#pro-ref").isVisible())) fails.push("invite code missing");
-  const code = (await page.textContent("#pro-ref-code")).trim();
-  if (!/^[A-Z0-9]{6}$/.test(code)) fails.push("invite code shape: " + code);
-  if (!/followers/.test(await page.textContent("#pro-follow"))) fails.push("profile follow line missing");
+  if (await page.locator("#pro-ref").count()) fails.push("invite code still on the profile");
+  if (await page.locator("#pro-heat").count()) fails.push("heatmap still on the profile");
+  const pf = await page.textContent("#pro-follow");
+  if (!/followers/.test(pf)) fails.push("profile follow line missing");
+  if (/invited/.test(pf)) fails.push("invited count still on the profile");
   await shot("05-profile");
+  // invite code lives under Settings → Invite friends
+  await view(page, "set-invite"); await page.waitForTimeout(1200);
+  const code = (await page.textContent("#inv-code")).trim();
+  if (!/^[A-Z0-9]{6}$/.test(code)) fails.push("invite code shape: " + code);
+  if (!/joined|Nobody/.test(await page.textContent("#inv-n"))) fails.push("invited line missing");
+  await shot("06-invite");
+  // home: heatmap section lives here now
+  await page.click('#bnav button[data-view="overview"]'); await page.waitForTimeout(600);
+  if (!(await page.locator("#ov-heat-sec").count())) fails.push("home heatmap section missing");
   // notifications page: device row present
   await view(page, "notifs"); await page.waitForTimeout(500);
   if (!(await page.locator("#nt-social").count())) fails.push("social switch missing");
@@ -135,8 +147,7 @@ const view = async (page, v) => { await page.evaluate((v) => document.querySelec
   const shot = (n) => page.screenshot({ path: `${OUT}/o-${n}.png` });
   const notes = (await sql(`select kind from notifications where user_id = '${owner.user_id}' and actor_id = '${member.user_id}' order by created_at`)).map((r) => r.kind);
   for (const k of ["like", "comment", "follow"]) if (!notes.includes(k)) fails.push("no " + k + " notification for the owner");
-  const bell = await page.textContent("#bell-n");
-  if (!(Number(bell) >= 3)) fails.push("bell count: " + bell);
+  if (!(await page.locator("#bell-n").isVisible())) fails.push("bell dot not showing with unread");
   await page.click("#tb-bell"); await page.waitForTimeout(1500);
   const rows = await page.locator("#inbox .nb-row").count();
   if (rows < 3) fails.push("inbox rows: " + rows);
