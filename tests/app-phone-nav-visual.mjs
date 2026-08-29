@@ -64,7 +64,7 @@ const noOverflow = async (page, label) => {
   const slots = await page.$$eval("#bnav button:not([hidden])", (bs) => bs.map((b) => b.dataset.view));
   if (slots[0] !== "overview") fails.push("first slot is not overview: " + slots);
   if (slots[slots.length - 1] !== "set-profile") fails.push("last slot is not profile: " + slots);
-  if (!slots.includes("library")) fails.push("library slot missing: " + slots);
+  if (!slots.includes("feed")) fails.push("feed slot missing: " + slots);
   const navBox = await nav.boundingBox();
   if (!navBox || navBox.y + navBox.height < 800) fails.push("bottom nav not at the bottom: " + JSON.stringify(navBox));
   if (await page.locator("#ptr .dial .arc").count() !== 1) fails.push("ptr dial markup missing");

@@ -76,6 +76,7 @@
   </div>
 
   <script>
+    try { const r = new URLSearchParams(location.search).get('ref'); if (r) localStorage.setItem('echelon-ref', r.toUpperCase()) } catch {}
     const SUPABASE_URL = 'https://cqdignbleethroyxxvzr.supabase.co'
     const SUPABASE_KEY = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x'
     const SESSION_KEY = 'sb-cqdignbleethroyxxvzr-auth-token'
@@ -97,7 +98,7 @@
         const res = await fetch(`${SUPABASE_URL}/functions/v1/free-apply`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, ref: (new URLSearchParams(location.search).get('ref') || localStorage.getItem('echelon-ref') || '').toUpperCase() }),
         })
         const body = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(body.error ?? `Something went wrong (${res.status}).`)
