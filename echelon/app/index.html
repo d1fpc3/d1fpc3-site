@@ -1495,6 +1495,10 @@
 
     .chat-main { display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
     .chat-head { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    .ch-av { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; background: linear-gradient(140deg, var(--gold), var(--gold-deep)); color: #1a1207; font-size: 12px; font-weight: 700; }
+    .ch-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ch-av[hidden] { display: none; }
+    .ch-title.link { cursor: pointer; }
     .chat-back { display: none; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 2px; }
     .chat-back svg { width: 20px; height: 20px; display: block; }
     .ch-title { min-width: 0; }
@@ -2068,7 +2072,8 @@
                 <button class="chat-back" id="chat-back" aria-label="Back">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
-                <div class="ch-title"><h3 id="chat-name">Chat</h3><span id="chat-topic"></span></div>
+                <span class="ch-av" id="chat-av" hidden></span>
+                <div class="ch-title" id="chat-title"><h3 id="chat-name">Chat</h3><span id="chat-topic"></span></div>
               </div>
               <div class="chat-log" id="chat-log"></div>
               <div class="cc-pending" id="cc-pending">
@@ -7160,6 +7165,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const dm = chat.dms.find((x) => x.id === id); name = dm ? chatUser(otherOf(dm)).username : 'Direct message'; topic = ''
       }
       el('chat-name').textContent = name; el('chat-topic').textContent = topic
+      // DMs: their photo in the header, and the header opens their profile
+      {
+        const av = el('chat-av'), title = el('chat-title')
+        const dm = type === 'dm' ? chat.dms.find((x) => x.id === id) : null
+        if (dm) {
+          const uid = otherOf(dm)
+          avatarInto(av, chatUser(uid), name); av.hidden = false
+          title.classList.add('link')
+          av.onclick = title.onclick = () => openChatProfile(uid)
+        } else { av.hidden = true; av.onclick = null; title.onclick = null; title.classList.remove('link') }
+      }
 
       let canPost = chatPerm('post')
       if (type === 'dm') canPost = canPost && chatPerm('dm')
