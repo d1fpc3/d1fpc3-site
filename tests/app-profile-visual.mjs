@@ -82,6 +82,11 @@ await shot("04-profile-edit");
 await page.click("#pro-edit-done"); await page.waitForTimeout(200);
 await page.click("#pro-settings"); await page.waitForTimeout(400);
 if (!(await page.locator("#v-settings").evaluate((e) => e.classList.contains("on")))) fails.push("gear did not open Settings");
+// Back returns to the profile
+await page.goBack(); await page.waitForTimeout(400);
+if (!(await page.locator("#v-set-profile").evaluate((e) => e.classList.contains("on")))) fails.push("Back from Settings did not return to Profile");
+await page.goBack(); await page.waitForTimeout(400);
+if (!(await page.locator("#v-course").evaluate((e) => e.classList.contains("on")))) fails.push("second Back did not return to Study, got " + (await page.$eval(".view.on", (e) => e.id)));
 
 // someone else's profile with trades
 if (poster) {
@@ -94,12 +99,23 @@ if (poster) {
     const tiles = await page.locator("#mm-grid .pro-tile").count();
     if (tiles < 1) fails.push(`no tiles for ${poster.username} (has ${poster.n})`);
     if (!/trades?/.test(await page.textContent("#mm-stats"))) fails.push("member stats missing");
+    const cardBox = await page.locator(".mm-card").boundingBox();
+    if (!cardBox || cardBox.height < 800 || cardBox.width < 380) fails.push("member card not full screen on phone: " + JSON.stringify(cardBox));
     await shot("05-member-profile");
     if (tiles) {
-      await page.locator("#mm-grid .pro-tile").first().click(); await page.waitForTimeout(600);
+      await page.locator("#mm-grid .pro-tile").first().click(); await page.waitForTimeout(800);
       if (!(await page.locator("#rvmodal").isVisible())) fails.push("recap viewer did not open");
-      if (!(await page.locator("#rv-body .mr-item").count())) fails.push("recap viewer empty");
+      const sheet = await page.locator(".rv-sheet").boundingBox();
+      if (!sheet || sheet.height < 800 || sheet.width < 380) fails.push("trade view not full screen on phone: " + JSON.stringify(sheet));
+      for (const sel of [".rv-user b", ".rv-user .d", ".rv-topdate", ".rv-media img, .rv-media video"]) if (!(await page.locator(sel).count())) fails.push("trade view missing " + sel);
       await shot("06-recap-view");
+      // Back closes the trade view, then the member card
+      await page.goBack(); await page.waitForTimeout(400);
+      if (await page.locator("#rvmodal").isVisible()) fails.push("Back did not close the trade view");
+      if (!(await page.evaluate(() => document.getElementById("mm-scrim").classList.contains("on")))) fails.push("Back closed the member card too early");
+      await page.goBack(); await page.waitForTimeout(400);
+      if (await page.evaluate(() => document.getElementById("mm-scrim").classList.contains("on"))) fails.push("second Back did not close the member card");
+      if (!(await page.locator("#v-members").evaluate((e) => e.classList.contains("on")))) fails.push("not back on Members after closing the card");
     }
   }
 } else console.log("(no member has posted trades yet)");

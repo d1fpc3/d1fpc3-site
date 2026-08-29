@@ -793,11 +793,40 @@
     .pro-tile .multi { position: absolute; top: 6px; right: 6px; width: 14px; height: 14px; color: #fff; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
     .pro-empty { max-width: 640px; margin-top: 18px; }
     @media (max-width: 640px) { .pro-head { gap: 16px; } .pro-av { width: 76px; height: 76px; font-size: 26px; } .pro-stats { gap: 14px; font-size: 12.5px; } }
-    /* a single recap, opened from a tile */
-    #rvmodal { z-index: 200; }
-    .rv-box { max-width: 640px; max-height: 88vh; }
-    .rv-body { overflow-y: auto; padding: 0 16px 16px; }
-    .rv-body .mr-item { border-bottom: 0; }
+    /* ── a single trade, opened from a tile: the post view ── */
+    .rv { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,4,0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .rv[hidden] { display: none; }
+    .rv-sheet { width: 100%; max-width: 640px; max-height: 92vh; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; }
+    .rv-top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .rv-back { background: none; border: 0; color: var(--ink); cursor: pointer; padding: 6px; border-radius: 8px; display: inline-flex; }
+    .rv-back svg { width: 22px; height: 22px; }
+    .rv-back:hover { background: var(--panel-2); }
+    .rv-topname { font-weight: 600; font-size: 14.5px; }
+    .rv-topdate { margin-left: auto; color: var(--faint); font-size: 12px; white-space: nowrap; }
+    .rv-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 24px; }
+    .rv-user { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; }
+    .rv-user .av { width: 36px; height: 36px; border-radius: 50%; font-size: 13px; flex-shrink: 0; }
+    .rv-user b { font-size: 14px; color: var(--ink); display: block; }
+    .rv-user .d { color: var(--faint); font-size: 12px; display: block; margin-top: 1px; }
+    .rv-media img, .rv-media video { width: 100%; display: block; background: #000; cursor: zoom-in; }
+    .rv-media video { cursor: default; }
+    .rv-media > * + * { margin-top: 3px; }
+    .rv-line { display: flex; align-items: center; gap: 10px; padding: 12px 16px 0; }
+    .rv-out { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: var(--panel-2); color: var(--muted); }
+    .rv-out.win { color: var(--good); } .rv-out.loss { color: var(--bad); }
+    .rv-r { font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .rv-r.up { color: var(--good); } .rv-r.down { color: var(--bad); }
+    .rv-title { font-size: 18px; font-weight: 650; letter-spacing: -0.01em; padding: 10px 16px 0; margin: 0; line-height: 1.3; }
+    .rv-text { padding: 8px 16px 0; color: var(--muted); font-size: 14px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .rv-del { display: block; margin: 20px 16px 0; background: none; border: 0; color: var(--faint); font: inherit; font-size: 12.5px; cursor: pointer; padding: 0; }
+    .rv-del:hover { color: var(--bad); }
+    body.rv-open { overflow: hidden; }
+    @media (max-width: 840px) {
+      .rv { padding: 0; background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
+      .rv-sheet { max-width: none; max-height: none; height: 100dvh; border: 0; border-radius: 0; }
+      .rv-top { padding-top: max(10px, env(safe-area-inset-top)); }
+      .rv-scroll { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+    }
     .setpage .block-head { padding-left: 0; padding-right: 0; }
     .setpage .setgrid { padding-left: 0; padding-right: 0; }
 
@@ -2463,8 +2492,15 @@
     .mm-card .pro-stats{justify-content:center;margin-top:10px}
     .mm-card .pro-grid{margin-top:18px;max-width:none}
     .mm-card .pro-empty{margin-top:16px;font-size:12.5px}
-    .mm-x{position:absolute;top:8px;right:10px;background:none;border:0;color:var(--faint);font-size:24px;line-height:1;cursor:pointer;padding:4px 8px}
-    .mm-x:hover{color:var(--ink)}
+    .mm-x{position:absolute;top:10px;left:10px;background:none;border:0;color:var(--ink);line-height:1;cursor:pointer;padding:6px;border-radius:8px;display:inline-flex}
+    .mm-x svg{width:22px;height:22px}
+    .mm-x:hover{background:var(--panel-2)}
+    @media (max-width:840px){
+      .mm-scrim{padding:0;background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;align-items:stretch}
+      .mm-card{max-width:none;max-height:none;height:100dvh;border:0;border-radius:0;padding:calc(58px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
+      .mm-x{top:calc(10px + env(safe-area-inset-top))}
+      .mm-card .pro-grid{margin-left:-16px;margin-right:-16px}
+    }
     .mm-av{width:88px;height:88px;border-radius:20px;margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(140deg,var(--gold),var(--gold-deep));color:#1a1207;font-size:32px;font-weight:700}
     .mm-av img{width:100%;height:100%;object-fit:cover}
     .mm-name{font-size:18px;font-weight:650;color:var(--ink);display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
@@ -2513,7 +2549,7 @@
 
   <div class="mm-scrim" id="mm-scrim" role="dialog" aria-modal="true" aria-label="Member">
     <div class="mm-card">
-      <button class="mm-x" id="mm-x" type="button" aria-label="Close">&times;</button>
+      <button class="mm-x" id="mm-x" type="button" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
       <div class="mm-av" id="mm-av"></div>
       <div class="mm-name" id="mm-name"></div>
       <div class="pro-stats" id="mm-stats"></div>
@@ -2837,7 +2873,30 @@
 
     /* ── tab switching ── */
     const tabs = [...document.querySelectorAll('.tab[data-view]')]
+    // Back button plumbing. showView pushes {view}; a member card, a trade
+    // view and an open chat conversation push {view, layer}. popstate
+    // re-applies whatever the entry says without pushing again.
+    let navSilent = false
+    const curView = () => document.querySelector('.view.on')?.id.replace(/^v-/, '') ?? 'overview'
+    function navPush(stateObj) { if (!navSilent) history.pushState(stateObj, '', location.pathname + location.search) }
+    function navPopLayer(layer) {
+      // Closing a layer by its own button: if it is the top history entry,
+      // go back so history stays honest; popstate does the actual close.
+      if (history.state?.layer === layer && !navSilent) { history.back(); return true }
+      return false
+    }
+    window.addEventListener('popstate', (e) => {
+      const s = e.state || { view: 'overview' }
+      navSilent = true
+      try {
+        if (s.layer !== 'rv') closeRecapView(true)
+        if (s.layer !== 'member' && s.layer !== 'rv') closeMemberProfile(true)
+        if (s.layer !== 'convo' && el('chat').classList.contains('open-convo')) { el('chat').classList.remove('open-convo'); chat.cur = null; renderChatRail() }
+        if (s.view && s.view !== curView() && document.querySelector(`.tab[data-view="${s.view}"]`)) showView(s.view)
+      } finally { navSilent = false }
+    })
     function showView(view) {
+      if (!navSilent && view !== curView()) navPush({ view })
       tabs.forEach((t) => t.classList.toggle('on', t.dataset.view === view))
       document.querySelectorAll('.view').forEach((v) => v.classList.toggle('on', v.id === `v-${view}`))
       // a view left behind must not keep narrating in the background
@@ -4622,7 +4681,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       host.textContent = ''
       if (emptyEl) emptyEl.hidden = rows.length > 0
       for (const r of rows) {
-        const t = document.createElement('button'); t.type = 'button'; t.className = 'pro-tile'
+        const t = document.createElement('button'); t.type = 'button'; t.className = 'pro-tile'; t.dataset.id = r.id
         const media = (Array.isArray(r.media) ? r.media : []).filter((m) => m?.url)
         const first = media[0]
         if (first?.kind === 'video') { const v = document.createElement('video'); v.src = first.url; v.muted = true; v.preload = 'metadata'; v.playsInline = true; t.appendChild(v) }
@@ -4634,18 +4693,72 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         host.appendChild(t)
       }
     }
-    function openRecapView(r, showWho) {
+    function closeRecapView(fromPop) {
+      const m = el('rvmodal'); if (!m || m.hidden) return
+      if (!fromPop && navPopLayer('rv')) return
+      m.hidden = true; document.body.classList.remove('rv-open')
+    }
+    function openRecapView(r) {
       let m = el('rvmodal')
       if (!m) {
-        m = document.createElement('div'); m.className = 'dmpick-scrim'; m.id = 'rvmodal'; m.hidden = true
-        m.innerHTML = '<div class="dmpick rv-box"><div class="block-head"><h3 id="rv-title"></h3><button class="rowbtn" id="rv-x" type="button">Close</button></div><div class="rv-body" id="rv-body"></div></div>'
+        m = document.createElement('div'); m.className = 'rv'; m.id = 'rvmodal'; m.hidden = true
+        m.innerHTML = '<div class="rv-sheet"><div class="rv-top">'
+          + '<button class="rv-back" id="rv-x" type="button" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>'
+          + '<span class="rv-topname" id="rv-topname">Trade</span><span class="rv-topdate" id="rv-topdate"></span></div>'
+          + '<div class="rv-scroll" id="rv-body"></div></div>'
         document.body.appendChild(m)
-        m.addEventListener('click', (e) => { if (e.target === m) m.hidden = true })
-        m.querySelector('#rv-x').addEventListener('click', () => { m.hidden = true })
+        m.addEventListener('click', (e) => { if (e.target === m) closeRecapView() })
+        m.querySelector('#rv-x').addEventListener('click', closeRecapView)
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !m.hidden) closeRecapView() })
       }
-      el('rv-title').textContent = r.title || new Date(r.created_at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
-      const body = el('rv-body'); body.textContent = ''; body.appendChild(mrItem(r, showWho))
-      m.hidden = false
+      const p = mrProfile(r.user_id) ?? chatUser(r.user_id)
+      const d = new Date(r.created_at)
+      el('rv-topname').textContent = 'Trade'
+      el('rv-topdate').textContent = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+
+      const body = el('rv-body'); body.textContent = ''
+      // who + when
+      const user = document.createElement('div'); user.className = 'rv-user'
+      user.appendChild(avatarNode({ username: p?.username, avatar_url: p?.avatar_url }, 'av'))
+      const who = document.createElement('div')
+      const nm = document.createElement('b'); nm.textContent = '@' + (p?.username ?? 'member')
+      const when = document.createElement('span'); when.className = 'd'
+      when.textContent = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }) + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+      who.append(nm, when); user.appendChild(who)
+      body.appendChild(user)
+      // the charts, full width
+      const media = (Array.isArray(r.media) ? r.media : []).filter((x) => x?.url)
+      if (media.length) {
+        const wrap = document.createElement('div'); wrap.className = 'rv-media'
+        for (const x of media) {
+          if (x.kind === 'video') { const v = document.createElement('video'); v.src = x.url; v.controls = true; v.playsInline = true; v.preload = 'metadata'; wrap.appendChild(v) }
+          else { const i = document.createElement('img'); i.src = x.url; i.alt = r.title || 'Trade chart'; i.addEventListener('click', () => openImage(x.url, i.alt)); wrap.appendChild(i) }
+        }
+        body.appendChild(wrap)
+      }
+      // outcome + R
+      if (r.outcome || (r.r !== null && r.r !== undefined)) {
+        const line = document.createElement('div'); line.className = 'rv-line'
+        if (r.outcome) { const oc = document.createElement('span'); oc.className = 'rv-out ' + r.outcome; oc.textContent = r.outcome; line.appendChild(oc) }
+        if (r.r !== null && r.r !== undefined) { const rr = document.createElement('span'); rr.className = 'rv-r ' + (r.r > 0 ? 'up' : r.r < 0 ? 'down' : ''); rr.textContent = `${r.r > 0 ? '+' : ''}${r.r}R`; line.appendChild(rr) }
+        body.appendChild(line)
+      }
+      if (r.title) { const h = document.createElement('h2'); h.className = 'rv-title'; h.textContent = r.title; body.appendChild(h) }
+      if (r.body) { const t = document.createElement('div'); t.className = 'rv-text'; t.textContent = r.body; body.appendChild(t) }
+      if (r.user_id === state.user?.id || state.isMod || state.isAdmin) {
+        const del = document.createElement('button'); del.className = 'rv-del'; del.type = 'button'; del.textContent = 'Delete this trade'
+        del.addEventListener('click', async () => {
+          await mrDelete(r)
+          if (history.state?.layer === 'rv') { navSilent = true; history.back(); setTimeout(() => { navSilent = false }, 0) }
+          closeRecapView(true)
+          if (el('v-set-profile').classList.contains('on')) renderProfilePage()
+          if (el('mm-scrim').classList.contains('on')) { const g = el('mm-grid'); g.querySelectorAll('.pro-tile').forEach((t) => { if (t.dataset.id === r.id) t.remove() }) }
+        })
+        body.appendChild(del)
+      }
+      if (m.hidden) navPush({ view: curView(), layer: 'rv' })
+      m.hidden = false; body.scrollTop = 0
+      document.body.classList.add('rv-open')
     }
 
     /* ── profile page ── */
@@ -4831,7 +4944,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const msg = el('mm-msg')
       const isSelf = m.user_id === state.user?.id
       msg.style.display = (isSelf || !chatPerm('dm')) ? 'none' : ''
-      msg.onclick = () => { closeMemberProfile(); messageMember(m.user_id) }
+      msg.onclick = () => { closeMemberProfile(true); messageMember(m.user_id) }
+      if (!el('mm-scrim').classList.contains('on')) navPush({ view: curView(), layer: 'member' })
       el('mm-scrim').classList.add('on'); document.body.style.overflow = 'hidden'
       mmOpenId = m.user_id
       // Their trades: everyone can read member_recaps, so the grid is live.
@@ -4846,7 +4960,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         })
     }
     let mmOpenId = null
-    function closeMemberProfile() { el('mm-scrim').classList.remove('on'); document.body.style.overflow = '' }
+    function closeMemberProfile(fromPop) {
+      if (!fromPop && el('mm-scrim').classList.contains('on') && navPopLayer('member')) return
+      el('mm-scrim').classList.remove('on'); document.body.style.overflow = ''
+    }
     // Your own name in the sidebar opens your profile card, same as tapping
     // yourself in the directory.
     el('u-name').addEventListener('click', () => {
@@ -6639,6 +6756,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     async function openConversation(type, id) {
+      if (matchMedia('(max-width: 860px)').matches && !el('chat').classList.contains('open-convo')) navPush({ view: 'chat', layer: 'convo' })
       chat.cur = { type, id }
       chat.unread?.delete(type + ':' + id)
       el('chat').classList.add('open-convo')
@@ -7205,7 +7323,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     el('chat-send').addEventListener('click', sendMessage)
     el('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } })
     el('chat-input').addEventListener('input', (e) => { e.target.style.height = 'auto'; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px' })
-    el('chat-back').addEventListener('click', () => { el('chat').classList.remove('open-convo'); chat.cur = null; renderChatRail() })
+    el('chat-back').addEventListener('click', () => {
+      if (navPopLayer('convo')) return
+      el('chat').classList.remove('open-convo'); chat.cur = null; renderChatRail()
+    })
 
     // DM picker
     function renderDmPick(q = '') {
@@ -7737,6 +7858,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // supabase.channel('badges') throws on an already-subscribed topic.
     // Every sign-out path reloads the page, so the flag never needs resetting.
     let booted = false
+    history.replaceState({ view: 'overview' }, '', location.pathname + location.search)
     async function boot() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return signInScreen()
