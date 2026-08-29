@@ -4996,7 +4996,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           + '<div class="pedit-media" id="pedit-media"></div>'
           + '<input class="pedit-title" id="pedit-title" maxlength="120" placeholder="Title" autocomplete="off">'
           + '<textarea class="pedit-body" id="pedit-body" maxlength="5000" placeholder="Write a caption…"></textarea>'
-          + '<div class="pedit-row"><span class="label">Outcome</span><div class="pedit-seg" id="pedit-outcome"></div></div>'
           + '<div class="pedit-row"><span class="label">R</span><input class="inp" id="pedit-r" inputmode="decimal" placeholder="e.g. 2.5" autocomplete="off"></div>'
           + '<p class="pedit-msg msg" id="pedit-msg"></p>'
           + '<button class="pedit-delete" id="pedit-delete" type="button">Delete post</button>'
@@ -5007,7 +5006,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         el('pedit-delete').addEventListener('click', async () => { const r = PE.r, post = PE.post; if (!r) return; if (!(await mrDelete(r))) return; PE.fresh = []; closePostEditor(); if (post) rvDelete(post, r, true) })
         const ta = el('pedit-body')
         ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = Math.max(110, ta.scrollHeight) + 'px' })
-        el('pedit-outcome').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; el('pedit-outcome').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)) })
       }
       PE.r = r; PE.post = post; PE.fresh = []
       PE.media = (Array.isArray(r.media) ? r.media : []).filter((x) => x?.url).map((x) => ({ ...x }))
@@ -5016,8 +5014,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('pedit-r').value = r.r ?? ''
       el('pedit-msg').textContent = ''; el('pedit-msg').className = 'pedit-msg msg'
       el('pedit-done').disabled = false; el('pedit-done').textContent = 'Done'
-      const seg = el('pedit-outcome'); seg.textContent = ''
-      for (const [v, l] of [['', 'None'], ['win', 'Win'], ['loss', 'Loss'], ['be', 'Break even']]) { const b = document.createElement('button'); b.type = 'button'; b.dataset.v = v; b.textContent = l; b.classList.toggle('on', (r.outcome || '') === v); seg.appendChild(b) }
       peRenderMedia()
       const wasHidden = m.hidden || m.classList.contains('closing')
       if (wasHidden) navPush({ view: curView(), layer: 'editor' })
@@ -5074,7 +5070,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const media = PE.media.filter((x) => x.url).map(({ url, kind }) => ({ url, kind }))
       const patch = {
         title: el('pedit-title').value.trim() || null, body: el('pedit-body').value.trim() || null,
-        outcome: el('pedit-outcome').querySelector('button.on')?.dataset.v || null, r: rv, media,
+        r: rv, media,
       }
       const { error } = await supabase.from('member_recaps').update(patch).eq('id', r.id)
       btn.disabled = false; btn.textContent = 'Done'

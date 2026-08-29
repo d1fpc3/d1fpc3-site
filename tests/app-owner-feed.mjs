@@ -49,7 +49,7 @@ if (!ped || ped.height < 800) fails.push("editor not full screen: " + JSON.strin
 if (!(await page.locator("#pedit-media .pedit-tile").count())) fails.push("editor shows no media tiles");
 if (!(await page.locator("#pedit-media .pedit-tile .rm").count())) fails.push("no remove control on a media tile");
 if (!(await page.locator("#pedit-media .pedit-add").count())) fails.push("no Add tile");
-for (const id of ["pedit-title", "pedit-body", "pedit-outcome", "pedit-r", "pedit-done", "pedit-cancel", "pedit-delete"]) if (!(await page.locator("#" + id).count())) fails.push("editor missing #" + id);
+for (const id of ["pedit-title", "pedit-body", "pedit-r", "pedit-done", "pedit-cancel", "pedit-delete"]) if (!(await page.locator("#" + id).count())) fails.push("editor missing #" + id);
 await page.screenshot({ path: `${OUT}/08-owner-edit.png` });
 // Back closes the editor and leaves the feed open
 await page.goBack(); await page.waitForTimeout(800);
@@ -59,11 +59,11 @@ if (!(await page.locator("#rvmodal").isVisible())) fails.push("Back closed the f
 await page.locator("#rv-body .rv-menu-btn").first().click(); await page.waitForTimeout(200);
 await page.locator(".rv-menu button", { hasText: "Edit" }).click(); await page.waitForTimeout(400);
 const stamp = "Harness edit " + Date.now();
-await page.fill("#pedit-title", stamp); await page.locator("#pedit-outcome button", { hasText: "Win" }).click(); await page.click("#pedit-done"); await page.waitForTimeout(1500);
+await page.fill("#pedit-title", stamp); await page.click("#pedit-done"); await page.waitForTimeout(1500);
 if (await page.locator("#pedit").isVisible()) fails.push("editor still open after Done");
 const row = (await sql(`select title, outcome from member_recaps where id = '${id}'`))[0];
 if (row?.title !== stamp) fails.push("edit did not persist: " + row?.title);
-if (row?.outcome !== "win") fails.push("outcome did not persist: " + row?.outcome);
+if (row?.outcome !== beforeOutcome) fails.push("outcome changed unexpectedly: " + row?.outcome);
 if (!(await page.textContent("#rv-body")).includes(stamp)) fails.push("post did not repaint with the new title");
 await sql(`update member_recaps set title = ${before === null ? "null" : "'" + before.replace(/'/g, "''") + "'"}, outcome = ${beforeOutcome === null ? "null" : "'" + beforeOutcome + "'"} where id = '${id}'`);
 // toast: pointer-swipe down dismisses it
