@@ -1741,7 +1741,7 @@
     .m-poll .pl-total { font-size: 11.5px; color: var(--faint); margin-top: 3px; }
     .m-acts { position: absolute; top: 4px; right: 6px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.12s ease; }
     .msg:hover .m-acts { opacity: 1; }
-    @media (hover: none) { .m-acts { opacity: 0.5; } }
+    @media (hover: none) { .m-acts { opacity: 0; pointer-events: none; } .msg.acts-open .m-acts { opacity: 1; pointer-events: auto; } }
     .m-del, .m-react { background: var(--panel-2); border: 1px solid var(--line-bright); color: var(--faint);
       border-radius: 6px; padding: 4px; cursor: pointer; display: inline-flex; }
     .m-del svg, .m-react svg { width: 14px; height: 14px; display: block; }
@@ -2744,6 +2744,9 @@
                   <button class="rowbtn" id="pass-save">Set password</button>
                 </div>
                 <div id="pw-meter-host"></div>
+                <div class="filters" id="pw-nonce-wrap" hidden style="margin-top:8px;">
+                  <input class="inp" id="pw-nonce" type="text" inputmode="numeric" maxlength="12" placeholder="Code from your email" autocomplete="one-time-code" style="flex:1;min-width:160px;">
+                </div>
                 <p class="msg" id="pass-msg"></p>
               </div>
               <div style="border-top:1px solid var(--line);padding-top:18px;">
@@ -5496,12 +5499,54 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const { data } = await supabase.rpc('follow_counts', { p_user: uid })
       return data?.[0] ?? { followers: 0, following: 0, is_following: false }
     }
-    function followLine(host, c, invited) {
+    function followLine(host, c, invited, uid) {
       host.textContent = ''
-      const put = (n, k) => { const s = document.createElement('span'); const b = document.createElement('b'); b.textContent = String(n); s.append(b, k); host.appendChild(s) }
-      put(c.followers, c.followers === 1 ? 'follower' : 'followers')
-      put(c.following, 'following')
+      const put = (n, k, kind) => {
+        const s = document.createElement('span'); const b = document.createElement('b'); b.textContent = String(n); s.append(b, k)
+        if (kind && uid) { s.style.cursor = 'pointer'; s.addEventListener('click', () => openFollowList(uid, kind)) }
+        host.appendChild(s)
+      }
+      put(c.followers, c.followers === 1 ? 'follower' : 'followers', 'followers')
+      put(c.following, 'following', 'following')
       if (invited !== undefined && invited !== null) put(invited, 'invited')
+    }
+    async function openFollowList(uid, kind) {
+      const col = kind === 'followers' ? 'followee_id' : 'follower_id'
+      const pick = kind === 'followers' ? 'follower_id' : 'followee_id'
+      const { data } = await supabase.from('follows').select('follower_id, followee_id, created_at')
+        .eq(col, uid).order('created_at', { ascending: false }).limit(200)
+      const ids = (data ?? []).map((f) => f[pick])
+      const profs = new Map()
+      if (ids.length) {
+        const { data: ps } = await supabase.from('member_directory').select('user_id, username, avatar_url').in('user_id', ids)
+        for (const p of ps ?? []) profs.set(p.user_id, p)
+      }
+      const scrim = document.createElement('div'); scrim.className = 'dmpick-scrim'; scrim.id = 'follow-sheet'
+      const box = document.createElement('div'); box.className = 'dmpick'; box.style.maxWidth = '380px'
+      const head = document.createElement('div'); head.className = 'block-head'
+      const h = document.createElement('h3'); h.textContent = kind === 'followers' ? 'Followers' : 'Following'
+      const x = document.createElement('button'); x.className = 'rowbtn'; x.type = 'button'; x.textContent = 'Close'
+      x.addEventListener('click', () => scrim.remove())
+      head.append(h, x); box.appendChild(head)
+      const list = document.createElement('div'); list.style.cssText = 'max-height:55vh;overflow-y:auto;padding:6px 14px 12px;'
+      if (!ids.length) {
+        const e = document.createElement('p'); e.className = 'hint'; e.style.margin = '8px 0'
+        e.textContent = kind === 'followers' ? 'Nobody yet.' : 'Not following anyone yet.'
+        list.appendChild(e)
+      }
+      for (const id of ids) {
+        const p = profs.get(id)
+        const row = document.createElement('button'); row.type = 'button'
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:8px 2px;cursor:pointer;color:var(--ink);font:inherit;text-align:left;'
+        row.appendChild(avatarNode({ username: p?.username, avatar_url: p?.avatar_url }, 'av'))
+        const b = document.createElement('b'); b.textContent = p?.username ?? 'member'
+        row.appendChild(b)
+        row.addEventListener('click', () => { scrim.remove(); openChatProfile(id) })
+        list.appendChild(row)
+      }
+      box.appendChild(list); scrim.appendChild(box)
+      scrim.addEventListener('click', (e) => { if (e.target === scrim) scrim.remove() })
+      document.body.appendChild(scrim)
     }
     async function toggleFollow(uid, btn) {
       const on = btn.classList.contains('on')
@@ -5512,7 +5557,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       btn.disabled = false
       if (error && !/duplicate/i.test(error.message)) { toast('Could not do that.'); return }
       btn.classList.toggle('on', !on); btn.textContent = on ? 'Follow' : 'Following'
-      followCounts(uid).then((c) => followLine(el('mm-follow'), c))
+      followCounts(uid).then((c) => followLine(el('mm-follow'), c, null, uid))
     }
 
     /* ── statistics: your contributions, then everyone's numbers ── */
@@ -6017,7 +6062,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const pn = el('pro-name'); pn.textContent = '@' + (p?.username || 'you')
       if (state.isAdmin || state.isMod) pn.insertAdjacentHTML('beforeend', CHECK_SVG)
       el('pro-bio').textContent = p?.bio || ''
-      followCounts(state.user.id).then((c) => followLine(el('pro-follow'), c))
+      followCounts(state.user.id).then((c) => followLine(el('pro-follow'), c, null, state.user.id))
       statsInto(el('pro-stats'), state.memberRecaps)
       recapTiles(el('pro-grid'), state.memberRecaps, el('pro-empty'), (r, t) => openRecapView(r, state.memberRecaps, t))
     }
@@ -6229,7 +6274,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         fb.hidden = isSelf; fb.disabled = true; fb.textContent = 'Follow'; fb.classList.remove('on')
         followCounts(m.user_id).then((c) => {
           if (mmOpenId !== m.user_id) return
-          followLine(fl, c)
+          followLine(fl, c, null, m.user_id)
           fb.classList.toggle('on', c.is_following); fb.textContent = c.is_following ? 'Following' : 'Follow'; fb.disabled = false
         })
         fb.onclick = () => toggleFollow(m.user_id, fb)
@@ -6460,15 +6505,33 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       btn.disabled = false
     })
 
+    // Changing the password asks for a code we email first (secure
+    // password change is on server-side, so the nonce is required).
+    let pwNonceSent = false
     el('pass-save').addEventListener('click', async () => {
       const msg = el('pass-msg'), password = el('new-pass').value
       if (password.length < 8) { msg.className = 'msg err'; msg.textContent = '8 characters at least.'; return }
-      el('pass-save').disabled = true; msg.className = 'msg'; msg.textContent = 'Saving…'
-      const { error } = await supabase.auth.updateUser({ password })
+      el('pass-save').disabled = true; msg.className = 'msg'
+      if (!pwNonceSent) {
+        msg.textContent = 'Sending a code to your email…'
+        const { error } = await supabase.auth.reauthenticate()
+        el('pass-save').disabled = false
+        if (error) { msg.className = 'msg err'; msg.textContent = error.message; return }
+        pwNonceSent = true
+        el('pw-nonce-wrap').hidden = false
+        el('pass-save').textContent = 'Confirm'
+        msg.textContent = 'We emailed you a code. Enter it to confirm the change.'
+        return
+      }
+      const nonce = el('pw-nonce').value.trim()
+      if (!nonce) { msg.className = 'msg err'; msg.textContent = 'The code from your email, first.'; el('pass-save').disabled = false; return }
+      msg.textContent = 'Saving…'
+      const { error } = await supabase.auth.updateUser({ password, nonce })
       el('pass-save').disabled = false
       if (error) { msg.className = 'msg err'; msg.textContent = error.message; return }
       msg.className = 'msg ok'; msg.textContent = 'Password set. It works on the sign-in screen now.'
-      el('new-pass').value = ''
+      el('new-pass').value = ''; el('pw-nonce').value = ''; el('pw-nonce-wrap').hidden = true
+      el('pass-save').textContent = 'Set password'; pwNonceSent = false
     })
 
     // ── password strength meter (Settings + reset screen) ──
@@ -8582,6 +8645,23 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     document.addEventListener('click', (e) => { if (rxPop && !rxPop.contains(e.target)) closeRxPicker() })
     el('chat-log').addEventListener('scroll', closeRxPicker)
+    // phones: react/delete come up on a long-press, not all the time
+    {
+      const log = el('chat-log'); let lpTimer = 0, lpX = 0, lpY = 0
+      const closeActs = () => document.querySelectorAll('.msg.acts-open').forEach((m) => m.classList.remove('acts-open'))
+      log.addEventListener('touchstart', (e) => {
+        const row = e.target.closest('.msg'); if (!row) return
+        lpX = e.touches[0].clientX; lpY = e.touches[0].clientY
+        clearTimeout(lpTimer)
+        lpTimer = setTimeout(() => { closeActs(); row.classList.add('acts-open') }, 420)
+      }, { passive: true })
+      log.addEventListener('touchmove', (e) => {
+        if (!lpTimer) return
+        if (Math.abs(e.touches[0].clientX - lpX) > 10 || Math.abs(e.touches[0].clientY - lpY) > 10) { clearTimeout(lpTimer); lpTimer = 0 }
+      }, { passive: true })
+      log.addEventListener('touchend', () => { clearTimeout(lpTimer); lpTimer = 0 }, { passive: true })
+      document.addEventListener('touchstart', (e) => { if (!e.target.closest('.msg.acts-open')) closeActs() }, { passive: true })
+    }
 
     // Click a name in the log -> the same profile card the directory uses.
     function openChatProfile(uid) {
