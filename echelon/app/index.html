@@ -967,6 +967,9 @@
     .heat i.d { background: rgba(217,139,122,0.7); }
     .heat i.today { outline: 1px solid var(--ink); outline-offset: -1px; }
     .mm-card .heat { margin: 16px auto 0; justify-content: center; }
+    /* the stats page heat fills the width, GitHub-style */
+    .stx .heat { max-width: none; width: 100%; grid-template-rows: repeat(7, auto); grid-auto-columns: minmax(0, 1fr); gap: 3px; overflow: visible; }
+    .stx .heat i { width: 100%; height: auto; aspect-ratio: 1 / 1; border-radius: 3px; }
     /* leaderboard */
     .board { max-width: 640px; }
     .lb-row { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border-bottom: 1px solid var(--line); cursor: pointer; }
@@ -2673,8 +2676,10 @@
             <div class="ov-cap"><span class="label">Your last 12 weeks</span><span class="label" id="stx-n"></span></div>
             <div class="heat" id="stx-heat"></div>
             <div class="pro-stats" id="stx-mine" style="margin-top:14px;"></div>
-            <div class="ov-cap" style="margin-top:28px;"><span class="label">Everyone</span><span class="label" id="stx-count"></span></div>
-            <div class="stx-list" id="stx-list"></div>
+            <div id="stx-everyone" hidden>
+              <div class="ov-cap" style="margin-top:28px;"><span class="label">Everyone</span><span class="label" id="stx-count"></span></div>
+              <div class="stx-list" id="stx-list"></div>
+            </div>
           </div>
         </section>
 
@@ -5492,6 +5497,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       heatmapInto(el('stx-heat'), rs)
       el('stx-n').textContent = rs.length ? `${new Set(rs.map((r) => dayKey(r.created_at))).size} days logged` : 'nothing logged yet'
       statsInto(el('stx-mine'), rs)
+      // members see their own numbers; the room-wide table is staff-only
+      el('stx-everyone').hidden = !(state.isMod || state.isAdmin)
+      if (el('stx-everyone').hidden) return
       const host = el('stx-list'); host.textContent = ''
       const { data } = await supabase.rpc('leaderboard', { p_days: 0 })
       const byId = new Map((data ?? []).map((r) => [r.user_id, r]))
@@ -6527,23 +6535,33 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         p('Not this time.', '')
         p('Keep building — the door isn’t closed.', 'hint').style.marginTop = '6px'
       } else {
-        p('Earn with Echelon. Tell us where you’d share it.')
+        p('Earn with Echelon. Tell us who you reach and how.')
+        const inp = (id, ph) => { const i = document.createElement('input'); i.className = 'inp'; i.id = id; i.type = 'text'; i.maxLength = 200; i.placeholder = ph; i.style.cssText = 'width:100%;margin-top:8px;'; return i }
+        const yt = inp('aff-yt', 'YouTube — link or @handle')
+        const ig = inp('aff-ig', 'Instagram — link or @handle')
+        const tt = inp('aff-tt', 'TikTok — link or @handle')
+        const fo = inp('aff-followers', 'Followers, roughly (all platforms)'); fo.maxLength = 40
         const pitch = document.createElement('textarea'); pitch.className = 'inp'; pitch.id = 'aff-pitch'
-        pitch.rows = 3; pitch.maxLength = 1000; pitch.placeholder = 'Your audience, your platforms, your plan'
-        pitch.style.cssText = 'width:100%;margin-top:10px;resize:none;'
-        const links = document.createElement('input'); links.className = 'inp'; links.id = 'aff-links'
-        links.type = 'text'; links.maxLength = 500; links.placeholder = 'Links (socials, channel) — optional'
-        links.style.cssText = 'width:100%;margin-top:8px;'
+        pitch.rows = 3; pitch.maxLength = 1000; pitch.placeholder = 'Your audience, and your plan for sharing Echelon'
+        pitch.style.cssText = 'width:100%;margin-top:8px;resize:none;'
+        const want = inp('aff-code-want', 'The code you’d like — letters and numbers, 4–12')
+        want.maxLength = 12; want.style.textTransform = 'uppercase'
         const wrap = document.createElement('div'); wrap.className = 'filters'; wrap.style.marginTop = '10px'
         const go = document.createElement('button'); go.className = 'btn'; go.id = 'aff-apply'; go.type = 'button'; go.textContent = 'Apply'
         const msg = document.createElement('span'); msg.className = 'msg'; msg.id = 'aff-msg'
-        wrap.append(go, msg); host.append(pitch, links, wrap)
+        wrap.append(go, msg); host.append(yt, ig, tt, fo, pitch, want, wrap)
         go.addEventListener('click', async () => {
           const text = pitch.value.trim()
-          if (!text) { msg.className = 'msg err'; msg.textContent = 'A line about where, first.'; return }
+          if (!text) { msg.className = 'msg err'; msg.textContent = 'Your audience and plan, first.'; return }
+          const code = want.value.trim().toUpperCase()
+          if (code && !/^[A-Z0-9]{4,12}$/.test(code)) { msg.className = 'msg err'; msg.textContent = 'Codes are 4–12 letters and numbers.'; return }
+          const socials = {}
+          if (yt.value.trim()) socials.youtube = yt.value.trim()
+          if (ig.value.trim()) socials.instagram = ig.value.trim()
+          if (tt.value.trim()) socials.tiktok = tt.value.trim()
           go.disabled = true; msg.className = 'msg'; msg.textContent = 'Sending…'
           const { error: e2 } = await supabase.from('affiliate_applications')
-            .insert({ user_id: state.user.id, pitch: text, links: links.value.trim() || null })
+            .insert({ user_id: state.user.id, pitch: text, socials, followers: fo.value.trim() || null, requested_code: code || null })
           if (e2) { msg.className = 'msg err'; msg.textContent = e2.message; go.disabled = false; return }
           renderAffiliatePage()
         })

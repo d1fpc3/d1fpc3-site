@@ -48,22 +48,43 @@ if (!(await row.isVisible())) fails.push("Affiliate row not visible in settings"
 await row.click();
 await page.waitForSelector("#aff-pitch", { timeout: 8000 }).catch(() => fails.push("apply form did not render"));
 await page.screenshot({ path: `${OUT}/1-form.png` });
+await page.fill("#aff-yt", "@harnessyt");
+await page.fill("#aff-ig", "@harnessig");
+await page.fill("#aff-followers", "12k");
 await page.fill("#aff-pitch", "Harness check — ignore. NQ Discord, 2k members.");
-await page.fill("#aff-links", "https://example.com/harness");
+await page.fill("#aff-code-want", "harness1");
 await page.click("#aff-apply");
 await page.waitForFunction(() => document.getElementById("aff-body")?.textContent.includes("Application in."), null, { timeout: 10000 }).catch(() => fails.push("pending state did not render after apply"));
 await page.screenshot({ path: `${OUT}/2-pending.png` });
 
-const saved = await sql(`select status, pitch from affiliate_applications where user_id = '${uid}'`);
+const saved = await sql(`select status, pitch, socials, followers, requested_code from affiliate_applications where user_id = '${uid}'`);
 if (!(saved[0]?.status === "pending" && /Harness check/.test(saved[0]?.pitch ?? ""))) fails.push(`db row wrong: ${JSON.stringify(saved)}`);
+if (saved[0]?.socials?.youtube !== "@harnessyt" || saved[0]?.socials?.instagram !== "@harnessig") fails.push(`socials wrong: ${JSON.stringify(saved[0]?.socials)}`);
+if (saved[0]?.followers !== "12k") fails.push(`followers wrong: ${saved[0]?.followers}`);
+if (saved[0]?.requested_code !== "HARNESS1") fails.push(`requested_code wrong: ${saved[0]?.requested_code}`);
 
-// approve (as the admin flow will) and confirm the member sees their code
-await sql(`update affiliate_applications set status = 'approved', code = 'TEST42', decided_at = now() where user_id = '${uid}'`);
+// approve honoring the requested code (mirrors approve_affiliate) and confirm the member sees it
+await sql(`update affiliate_applications set status = 'approved', code = requested_code, decided_at = now() where user_id = '${uid}'`);
 await page.evaluate(() => document.querySelector(".set-back").click());
 await page.waitForTimeout(200);
 await row.click();
-await page.waitForFunction(() => document.getElementById("aff-code")?.textContent === "TEST42", null, { timeout: 8000 }).catch(() => fails.push("approved code not shown"));
+await page.waitForFunction(() => document.getElementById("aff-code")?.textContent === "HARNESS1", null, { timeout: 8000 }).catch(() => fails.push("approved code not shown"));
 await page.screenshot({ path: `${OUT}/3-approved.png` });
+
+// statistics page: a member sees no "Everyone" table; the heat fills the width
+await page.evaluate(() => document.querySelector(".set-back").click());
+await page.evaluate(() => document.querySelector('.set-row[data-go="set-stats"]').click());
+await page.waitForTimeout(400);
+const stx = await page.evaluate(() => {
+  const everyone = document.getElementById("stx-everyone");
+  const heat = document.getElementById("stx-heat");
+  const wrap = heat.parentElement.getBoundingClientRect();
+  const hr = heat.getBoundingClientRect();
+  return { everyoneHidden: !everyone || everyone.hidden, heatW: hr.width, wrapW: wrap.width, cells: heat.children.length };
+});
+if (!stx.everyoneHidden) fails.push("member can still see Everyone stats");
+if (stx.cells > 0 && stx.heatW < stx.wrapW * 0.95) fails.push(`heat not full width: ${stx.heatW}/${stx.wrapW}`);
+await page.screenshot({ path: `${OUT}/4-stats.png` });
 await browser.close();
 
 await sql(`delete from affiliate_applications where user_id = '${uid}'`);
