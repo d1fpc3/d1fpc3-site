@@ -47,13 +47,20 @@ await sql(`delete from reviews where user_id = '${uid}'`);
 await page.evaluate(() => document.querySelector('.tab[data-view="settings"]').click());
 await page.waitForTimeout(300);
 const row = page.locator("#set-rate-row");
-if (!(await row.isVisible())) fails.push("Rate Echelon row not visible in settings");
+if (!(await row.isVisible())) fails.push("Rate Echelon stars not visible in settings");
+const starCount = await page.evaluate(() => document.querySelectorAll("#rate-stars button").length);
+if (starCount !== 5) fails.push(`expected 5 stars, got ${starCount}`);
+const rows = await page.evaluate(() => [...document.querySelectorAll(".set-index .set-row, .set-index .set-rate")].filter((r) => !r.hidden).map((r) => r.querySelector("b").textContent));
+if (rows[rows.length - 1] !== "Rate Echelon") fails.push(`bottom row is ${rows[rows.length - 1]} (want Rate Echelon)`);
 await page.screenshot({ path: `${OUT}/1-settings.png` });
 
-await row.click();
+await page.evaluate(() => document.querySelectorAll("#rate-stars button")[3].click());
 await page.waitForTimeout(600);
-if (await page.locator("#review-pop").isHidden()) fails.push("review popup did not open from the row");
-await page.click('label[for="r4"]');
+if (await page.locator("#review-pop").isHidden()) fails.push("review popup did not open from the stars");
+const preChecked = await page.evaluate(() => document.getElementById("r4").checked);
+if (!preChecked) fails.push("tapping the 4th star did not preselect 4 stars");
+const lit = await page.evaluate(() => document.querySelectorAll("#rate-stars button.lit").length);
+if (lit !== 4) fails.push(`${lit} stars lit after tapping the 4th`);
 await page.fill("#review-text", "Harness check — ignore.");
 await page.screenshot({ path: `${OUT}/2-popup.png` });
 await page.click("#review-send");
@@ -66,7 +73,7 @@ if (!(saved[0]?.rating === 4 && /Harness check/.test(saved[0]?.comment ?? ""))) 
 
 // reopen: prefilled with what they sent
 await page.waitForTimeout(1400); // popup auto-hides
-await row.click();
+await page.evaluate(() => document.querySelectorAll("#rate-stars button")[3].click());
 await page.waitForTimeout(600);
 const pre = await page.evaluate(() => ({ r4: document.getElementById("r4").checked, text: document.getElementById("review-text").value }));
 if (!pre.r4 || !/Harness check/.test(pre.text)) fails.push(`reopen not prefilled: ${JSON.stringify(pre)}`);

@@ -273,6 +273,10 @@
     /* no visible scroll bars anywhere; everything still scrolls */
     * { scrollbar-width: none; }
     *::-webkit-scrollbar { width: 0; height: 0; display: none; }
+    #splash { position: fixed; inset: 0; z-index: 400; background: #000; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+    #splash img { width: 92px; height: 92px; }
+    #splash.off { opacity: 0; pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { #splash { transition: none; } }
     .view { display: none; }
     .view.on { display: block; animation: viewin 0.34s cubic-bezier(0.22, 0.7, 0.2, 1); }
     .view.setpage.on { animation: pagein 0.3s cubic-bezier(0.22, 0.7, 0.2, 1); }
@@ -854,9 +858,9 @@
     .rv-media .item img, .rv-media .item video { width: 100%; max-height: 60vh; object-fit: contain; display: block; background: #000; }
     /* several charts: a swipe carousel, one per page, dots + counter */
     .rv-car { position: relative; }
-    .rv-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; background: #000; }
+    .rv-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; background: #000; will-change: scroll-position; }
     .rv-track::-webkit-scrollbar { display: none; }
-    .rv-track .item { flex: 0 0 100%; width: 100%; scroll-snap-align: start; scroll-snap-stop: always; margin: 0 !important; display: flex; align-items: center; }
+    .rv-track .item { flex: 0 0 100%; width: 100%; scroll-snap-align: start; scroll-snap-stop: always; margin: 0 !important; display: flex; align-items: center; contain: layout paint; }
     .rv-track .item img, .rv-track .item video { height: 56vh; max-height: 56vh; }
     .rv-nav { position: absolute; top: 50%; z-index: 3; width: 30px; height: 30px; margin-top: -15px; border-radius: 50%; border: 0; background: rgba(255,255,255,0.9); color: #111; cursor: pointer; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
     .rv-nav svg { width: 16px; height: 16px; }
@@ -1866,6 +1870,13 @@
       color: var(--faint); font-size: 16px; line-height: 1; padding: 2px;
     }
     .review-pop .x:hover { color: var(--ink); }
+    .set-rate { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 14px 6px; }
+    .set-rate b { font-size: 15px; font-weight: 500; }
+    .set-rate .stars { display: flex; gap: 0; }
+    .set-rate .stars button { background: none; border: 0; padding: 4px 3px; cursor: pointer; color: var(--faint); display: inline-flex; -webkit-tap-highlight-color: transparent; }
+    .set-rate .stars button svg { width: 22px; height: 22px; }
+    .set-rate .stars button.lit { color: var(--gold); }
+    .set-rate .stars button.lit svg { fill: currentColor; }
 
     .rate { display: inline-flex; flex-direction: row-reverse; gap: 4px; }
     .rate input { position: absolute; opacity: 0; pointer-events: none; }
@@ -1898,7 +1909,9 @@
   <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 </head>
 <body>
-
+  <!-- first open of the day: black, the E, gone when the app is ready -->
+  <div id="splash"><img src="/echelon/assets/logo-mark.png" alt=""></div>
+  <script>try { if (localStorage.getItem('echelon-splash-day') === new Date().toDateString()) { var _sp = document.getElementById('splash'); _sp.parentNode.removeChild(_sp) } } catch (e) {}</script>
   <!-- ════ GATE ════ -->
   <div class="centre" id="gate">
     <!-- While the session restores: a silent skeleton of the shell.
@@ -2546,11 +2559,6 @@
               <span class="txt"><b>Invite friends</b><small>Your code and link</small></span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
             </button>
-            <button class="set-row" type="button" id="set-rate-row">
-              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-              <span class="txt"><b>Rate Echelon</b><small>Stars, and a word if you like</small></span>
-              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-            </button>
             <button class="set-row" type="button" data-go="set-desktop" id="set-desktop-row" hidden>
               <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
               <span class="txt"><b>Echelon for Windows</b></span>
@@ -2561,6 +2569,10 @@
               <span class="txt"><b>Affiliate</b><small>Apply for your code</small></span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
             </button>
+            <div class="set-rate" id="set-rate-row">
+              <b>Rate Echelon</b>
+              <span class="stars" id="rate-stars"></span>
+            </div>
             <div id="set-owner" hidden>
               <p class="set-group">Owner</p>
               <div id="set-viewas"></div>
@@ -2928,6 +2940,13 @@
     // App Store rule 3.1.1: no prices, no buy buttons, no "purchase on the
     // web" pointers. The shell loads the app with ?native=1 once; the flag
     // is remembered so in-app navigation keeps it.
+    function hideSplash() {
+      const s = document.getElementById('splash')
+      if (!s || s.classList.contains('off')) return
+      try { localStorage.setItem('echelon-splash-day', new Date().toDateString()) } catch {}
+      s.classList.add('off')
+      setTimeout(() => s.remove(), 550)
+    }
     const NATIVE = (() => {
       try {
         if (new URLSearchParams(location.search).get('native') === '1') localStorage.setItem('echelon-native', '1')
@@ -2971,6 +2990,7 @@
     // ── gate rendering ──────────────────────────────────────
 
     function gate({ title, body, render }) {
+      hideSplash()
       el('app').classList.remove('on')
       el('boot-skel').style.display = 'none' // boot decided: show the card
       el('gate').style.display = 'flex'
@@ -5731,7 +5751,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const it = document.createElement('div'); it.className = 'item'
         if (x.kind === 'video') { const v = document.createElement('video'); v.src = x.url; v.controls = true; v.playsInline = true; v.preload = 'metadata'; it.appendChild(v) }
         else {
-          const i = document.createElement('img'); i.src = x.url; i.alt = r.title || 'Trade chart'
+          const i = document.createElement('img'); i.src = x.url; i.alt = r.title || 'Trade chart'; i.loading = 'lazy'; i.decoding = 'async'
           // a single tap does nothing (Instagram); a double tap is the heart
           it.appendChild(i)
         }
@@ -6514,21 +6534,49 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         return
       }
       msg.className = 'msg ok'; msg.textContent = 'Thank you.'
+      litStars(Number(checked.value))
+      if (NATIVE && APP_STORE_ID && Number(checked.value) >= 4 && !el('review-pop').querySelector('a.go')) {
+        const a = document.createElement('a')
+        a.href = `https://apps.apple.com/app/id${APP_STORE_ID}?action=write-review`
+        a.target = '_blank'; a.rel = 'noopener'; a.className = 'go'
+        a.style.cssText = 'display:block;margin-top:10px;text-align:center;text-decoration:none;'
+        a.textContent = 'Rate it on the App Store →'
+        el('review-pop').appendChild(a)
+        return
+      }
       setTimeout(() => { el('review-pop').hidden = true }, 1100)
     })
 
-    // Settings row: the same popup, any time, prefilled with theirs.
-    el('set-rate-row')?.addEventListener('click', async () => {
-      el('review-msg').className = 'msg'; el('review-msg').textContent = ''
-      el('review-send').disabled = false
+    // Settings, bottom: five stars. Tapping one opens the popup on that
+    // rating; a happy rating inside the app offers the App Store too.
+    const APP_STORE_ID = '' // numeric Apple id — set once the app is live
+    function litStars(n) {
+      document.querySelectorAll('#rate-stars button').forEach((b, i) => b.classList.toggle('lit', i < n))
+    }
+    {
+      const host = el('rate-stars')
+      const starSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+      if (host) for (let i = 1; i <= 5; i++) {
+        const b = document.createElement('button'); b.type = 'button'; b.innerHTML = starSvg
+        b.setAttribute('aria-label', i === 1 ? '1 star' : `${i} stars`)
+        b.addEventListener('click', () => {
+          litStars(i)
+          const r = el(`r${i}`); if (r) r.checked = true
+          el('review-msg').className = 'msg'; el('review-msg').textContent = ''
+          el('review-send').disabled = false
+          el('review-pop').hidden = false
+        })
+        host.appendChild(b)
+      }
+    }
+    async function syncRateRow() {
       const { data } = await supabase.from('reviews').select('rating, comment')
         .eq('user_id', state.user.id).maybeSingle()
-      if (data) {
-        const r = el(`r${data.rating}`); if (r) r.checked = true
-        el('review-text').value = data.comment ?? ''
-      }
-      el('review-pop').hidden = false
-    })
+      if (!data) return
+      litStars(data.rating)
+      const r = el(`r${data.rating}`); if (r) r.checked = true
+      el('review-text').value = data.comment ?? ''
+    }
 
     // ── settings: affiliate ─────────────────────────────────
 
@@ -6556,16 +6604,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         p('Not this time.', '')
         p('Keep building — the door isn’t closed.', 'hint').style.marginTop = '6px'
       } else {
-        p('Earn with Echelon. Tell us who you reach and how.')
         const inp = (id, ph) => { const i = document.createElement('input'); i.className = 'inp'; i.id = id; i.type = 'text'; i.maxLength = 200; i.placeholder = ph; i.style.cssText = 'width:100%;margin-top:8px;'; return i }
-        const yt = inp('aff-yt', 'YouTube — link or @handle')
-        const ig = inp('aff-ig', 'Instagram — link or @handle')
-        const tt = inp('aff-tt', 'TikTok — link or @handle')
+        const yt = inp('aff-yt', 'YouTube handle')
+        const ig = inp('aff-ig', 'Instagram handle')
+        const tt = inp('aff-tt', 'TikTok handle')
         const fo = inp('aff-followers', 'Followers, roughly (all platforms)'); fo.maxLength = 40
         const pitch = document.createElement('textarea'); pitch.className = 'inp'; pitch.id = 'aff-pitch'
         pitch.rows = 3; pitch.maxLength = 1000; pitch.placeholder = 'Your audience, and your plan for sharing Echelon'
         pitch.style.cssText = 'width:100%;margin-top:8px;resize:none;'
-        const want = inp('aff-code-want', 'The code you’d like — letters and numbers, 4–12')
+        const want = inp('aff-code-want', 'The code you want')
         want.maxLength = 12; want.style.textTransform = 'uppercase'
         const wrap = document.createElement('div'); wrap.className = 'filters'; wrap.style.marginTop = '10px'
         const go = document.createElement('button'); go.className = 'btn'; go.id = 'aff-apply'; go.type = 'button'; go.textContent = 'Apply'
@@ -9256,7 +9303,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
 
       await loadCourse()
-      refreshBadges(); watchBadges(); initDesktopPanel()
+      refreshBadges(); watchBadges(); initDesktopPanel(); syncRateRow(); hideSplash()
       ntLoadPrefs().then(() => { ntInitSettings(); ntWireNative(); webPushInit() })
       refreshBell(); watchInbox()
       captureDiscordReturn(session); renderDiscordBlock()
