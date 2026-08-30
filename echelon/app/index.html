@@ -2523,6 +2523,11 @@
               <span class="txt"><b>Invite friends</b><small>Your code and link</small></span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
             </button>
+            <button class="set-row" type="button" id="set-rate-row">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+              <span class="txt"><b>Rate Echelon</b><small>Stars, and a word if you like</small></span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
             <button class="set-row" type="button" data-go="set-desktop" id="set-desktop-row" hidden>
               <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
               <span class="txt"><b>Echelon for Windows</b></span>
@@ -6391,6 +6396,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       setTimeout(() => { el('review-pop').hidden = true }, 1100)
     })
 
+    // Settings row: the same popup, any time, prefilled with theirs.
+    el('set-rate-row')?.addEventListener('click', async () => {
+      el('review-msg').className = 'msg'; el('review-msg').textContent = ''
+      el('review-send').disabled = false
+      const { data } = await supabase.from('reviews').select('rating, comment')
+        .eq('user_id', state.user.id).maybeSingle()
+      if (data) {
+        const r = el(`r${data.rating}`); if (r) r.checked = true
+        el('review-text').value = data.comment ?? ''
+      }
+      el('review-pop').hidden = false
+    })
+
     // ── settings: delete account ────────────────────────────
 
     el('del-account').addEventListener('click', async () => {
@@ -8037,7 +8055,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       ntUpdateState()
       ntRenderChannels()
-      document.querySelectorAll('.set-row').forEach((b) => b.addEventListener('click', () => showView(b.dataset.go)))
+      document.querySelectorAll('.set-row[data-go]').forEach((b) => b.addEventListener('click', () => showView(b.dataset.go)))
       document.querySelectorAll('.set-back, #notifs-back').forEach((b) => b.addEventListener('click', () => showView('settings')))
     }
     // Per-channel, the Discord way: every channel gets its own rule that
