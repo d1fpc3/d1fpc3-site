@@ -889,12 +889,12 @@
     .rv-act button.liked { color: var(--gold); }
     .rv-act button.liked svg { fill: currentColor; }
     .rv-act .sp { flex: 1; }
-    .rv-likes { padding: 4px 16px 0; font-size: 13.5px; font-weight: 600; }
+    .rv-likes { padding: 2px 16px 0; font-size: 12px; font-weight: 600; cursor: pointer; }
     .rv-cap { padding: 6px 16px 0; font-size: 14px; line-height: 1.55; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
     .rv-cap b { font-weight: 650; margin-right: 6px; }
     .rv-cap .rv-cap-title { font-weight: 650; }
     .rv-more { display: block; padding: 6px 16px 0; background: none; border: 0; color: var(--faint); font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
-    .rv-ago { padding: 6px 16px 0; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint); }
+    .rv-ago { padding: 2px 16px 0; font-size: 9.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint); }
     .rv-media .rv-burst, .rv-burst { position: absolute; left: 50%; top: 50%; z-index: 5; width: 96px; height: 96px; margin: -48px 0 0 -48px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: #fff; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.5)); pointer-events: none; opacity: 0; transform: scale(0.4); display: block; }
     .rv-burst svg { width: 100%; height: 100%; display: block; }
     .rv-media { touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -1156,7 +1156,8 @@
     #rev-body .p-rev-write { background: none; border: 0; padding: 0; }
 
     /* first-entry onboarding overlay: the intake look, over the app */
-    .rowbtn.set-back { background: none; border: 0; padding: 0; font-size: 13px; color: var(--muted); }
+    .rowbtn.set-back { background: none; border: 0; border-radius: 0; padding: 0; font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; -webkit-tap-highlight-color: transparent; }
+    .rowbtn.set-back:hover, .rowbtn.set-back:active { background: none; box-shadow: none; }
     .label.dc-ok { color: var(--good); display: inline-flex; align-items: center; gap: 5px; }
     .label.dc-ok svg { width: 13px; height: 13px; }
     .rowbtn.set-back:hover:not(:disabled) { color: var(--gold); }
@@ -1251,9 +1252,9 @@
     :root { --bnav: 0px; }
     /* feed on the small shell: no bar, just the bell in a circle */
     @media (max-width: 840px) {
-      body.in-feed .topbar { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; pointer-events: none; }
+      body.in-feed .topbar { background: none !important; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; box-shadow: none; pointer-events: none; }
       body.in-feed .topbar h2, body.in-feed .topbar .crumb, body.in-feed .menu-btn { display: none; }
-      body.in-feed .tb-bell { pointer-events: auto; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 50%; width: 42px; height: 42px; padding: 0; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.22); color: var(--ink); }
+      body.in-feed .tb-bell { pointer-events: auto; background: rgba(127,127,127,0.16); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid rgba(127,127,127,0.22); border-radius: 50%; width: 42px; height: 42px; padding: 0; align-items: center; justify-content: center; color: var(--ink); }
       body.in-feed .tb-bell .bcount { top: 4px; right: 4px; }
       /* the drawer skips what the bottom nav already carries */
       .tab[data-view="overview"], .tab[data-view="feed"], .tab[data-view="course"], .tab[data-view="chat"] { display: none; }
@@ -5250,7 +5251,39 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const n = s?.like_count ?? 0
       d.textContent = n ? `${n} ${n === 1 ? 'like' : 'likes'}` : ''
       if (!n) d.style.display = 'none'
+      d.addEventListener('click', () => openLikers(r))
       return d
+    }
+    async function openLikers(r) {
+      const { data } = await supabase.from('post_likes').select('user_id, created_at').eq('recap_id', r.id).order('created_at', { ascending: false }).limit(100)
+      const likers = data ?? []
+      const profs = new Map()
+      if (likers.length) {
+        const { data: ps } = await supabase.from('member_directory').select('user_id, username, avatar_url').in('user_id', likers.map((l) => l.user_id))
+        for (const p of ps ?? []) profs.set(p.user_id, p)
+      }
+      const scrim = document.createElement('div'); scrim.className = 'dmpick-scrim'; scrim.id = 'likers-sheet'
+      const box = document.createElement('div'); box.className = 'dmpick'; box.style.maxWidth = '380px'
+      const head = document.createElement('div'); head.className = 'block-head'
+      const h = document.createElement('h3'); h.textContent = 'Likes'
+      const x = document.createElement('button'); x.className = 'rowbtn'; x.type = 'button'; x.textContent = 'Close'
+      x.addEventListener('click', () => scrim.remove())
+      head.append(h, x); box.appendChild(head)
+      const list = document.createElement('div'); list.style.cssText = 'max-height:55vh;overflow-y:auto;padding:6px 14px 12px;'
+      if (!likers.length) { const e = document.createElement('p'); e.className = 'hint'; e.style.margin = '8px 0'; e.textContent = 'No likes yet.'; list.appendChild(e) }
+      for (const l of likers) {
+        const p = profs.get(l.user_id)
+        const row = document.createElement('button'); row.type = 'button'
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:8px 2px;cursor:pointer;color:var(--ink);font:inherit;text-align:left;'
+        row.appendChild(avatarNode({ username: p?.username, avatar_url: p?.avatar_url }, 'av'))
+        const b = document.createElement('b'); b.textContent = p?.username ?? 'member'
+        row.appendChild(b)
+        row.addEventListener('click', () => { scrim.remove(); openChatProfile(l.user_id) })
+        list.appendChild(row)
+      }
+      box.appendChild(list); scrim.appendChild(box)
+      scrim.addEventListener('click', (e) => { if (e.target === scrim) scrim.remove() })
+      document.body.appendChild(scrim)
     }
     function rvMoreLine(r) {
       const s = statOf(r)
@@ -5562,7 +5595,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         })
         .subscribe()
     }
-    el('tb-bell').addEventListener('click', () => showView('inbox'))
+    let inboxFrom = 'overview'
+    el('tb-bell').addEventListener('click', () => { if (curView() !== 'inbox') inboxFrom = curView(); showView('inbox') })
+    // a horizontal swipe on the notifications page goes back where you were
+    {
+      const v = el('v-inbox'); let sx = null, sy = null
+      v.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY }, { passive: true })
+      v.addEventListener('touchend', (e) => {
+        if (sx === null) return
+        const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy
+        sx = sy = null
+        if (Math.abs(dx) > 70 && Math.abs(dy) < 40) showView(inboxFrom)
+      }, { passive: true })
+    }
     async function loadInbox() {
       const host = el('inbox')
       const { data } = await supabase.from('notifications').select('id, kind, actor_id, recap_id, body, created_at, read_at').order('created_at', { ascending: false }).limit(60)
@@ -6346,7 +6391,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function memberCanDownload() { return state.owned.size > 0 || state.isMod || state.isAdmin }
     function initDesktopPanel() {
       const block = el('desktop-block'); if (!block) return
-      block.hidden = !!window.echelonDesktop || !memberCanDownload()
+      block.hidden = NATIVE || !!window.echelonDesktop || !memberCanDownload()
       const row = el('set-desktop-row'); if (row) row.hidden = block.hidden
     }
     el('desktop-dl')?.addEventListener('click', async () => {
