@@ -1978,6 +1978,7 @@
         <button class="tab" data-view="set-discord" data-title="Discord" data-crumb="" hidden></button>
         <button class="tab" data-view="set-desktop" data-title="Echelon for Windows" data-crumb="" hidden></button>
         <button class="tab" data-view="set-invite" data-title="Invite friends" data-crumb="" hidden></button>
+        <button class="tab" data-view="set-affiliate" data-title="Affiliate" data-crumb="" hidden></button>
         <button class="tab" data-view="set-stats" data-title="Statistics" data-crumb="" hidden></button>
         <button class="tab" data-view="settings" data-title="Settings" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -2533,10 +2534,23 @@
               <span class="txt"><b>Echelon for Windows</b></span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
             </button>
+            <button class="set-row" type="button" data-go="set-affiliate">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8.5 15.5l7-7"/><circle cx="9" cy="9" r="1.1"/><circle cx="15" cy="15" r="1.1"/></svg></span>
+              <span class="txt"><b>Affiliate</b><small>Apply for your code</small></span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
             <div id="set-owner" hidden>
               <p class="set-group">Owner</p>
               <div id="set-viewas"></div>
             </div>
+          </div>
+        </section>
+
+        <section class="view setpage" id="v-set-affiliate">
+          <div style="max-width:640px;margin-bottom:14px;"><button class="rowbtn set-back" type="button">&larr; Settings</button></div>
+          <div class="block" style="max-width:640px;">
+            <div class="block-head"><h3>Affiliate</h3></div>
+            <div class="setgrid"><div id="aff-body"></div></div>
           </div>
         </section>
 
@@ -3219,6 +3233,7 @@
       if (view === 'set-profile') renderProfilePage()
       if (view === 'set-invite') renderInvitePage()
       if (view === 'set-stats') renderStatsPage()
+      if (view === 'set-affiliate') renderAffiliatePage()
       el('pro-settings').hidden = view !== 'set-profile'
       if (view !== 'gex') endGexTour(false)
     }
@@ -3226,7 +3241,7 @@
 
     /* ── phone bottom nav: built from the sidebar so the two never disagree ── */
     const BNAV = ['overview', 'feed', 'course', 'chat', 'set-profile']
-    const BNAV_PROFILE_VIEWS = new Set(['set-profile', 'settings', 'set-account', 'set-appearance', 'set-discord', 'set-desktop', 'set-invite', 'set-stats', 'notifs', 'inbox'])
+    const BNAV_PROFILE_VIEWS = new Set(['set-profile', 'settings', 'set-account', 'set-appearance', 'set-discord', 'set-desktop', 'set-invite', 'set-stats', 'set-affiliate', 'notifs', 'inbox'])
     function buildBnav() {
       const nav = el('bnav'); if (!nav) return
       nav.textContent = ''
@@ -6408,6 +6423,55 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       el('review-pop').hidden = false
     })
+
+    // ── settings: affiliate ─────────────────────────────────
+
+    async function renderAffiliatePage() {
+      const host = el('aff-body'); if (!host) return
+      host.textContent = 'Loading…'
+      const { data, error } = await supabase.from('affiliate_applications')
+        .select('status, code').eq('user_id', state.user.id).maybeSingle()
+      if (error) { host.textContent = error.message; return }
+      host.textContent = ''
+      const p = (t, cls) => { const e = document.createElement('p'); e.className = cls ?? 'label'; e.style.margin = '0'; e.textContent = t; host.appendChild(e); return e }
+      if (data?.status === 'approved') {
+        p('You’re in. Your code:')
+        const c = document.createElement('p'); c.id = 'aff-code'
+        c.style.cssText = 'font-family:ui-monospace,Menlo,monospace;font-size:26px;font-weight:700;letter-spacing:0.14em;margin:10px 0 4px;'
+        c.textContent = data.code; host.appendChild(c)
+        const cp = document.createElement('button'); cp.className = 'rowbtn'; cp.type = 'button'; cp.textContent = 'Copy code'
+        cp.addEventListener('click', async () => { try { await navigator.clipboard.writeText(data.code); toast('Copied.') } catch { prompt('Your code', data.code) } })
+        host.appendChild(cp)
+        p('Share it with your people. Tracking and payouts land here.', 'hint').style.marginTop = '12px'
+      } else if (data?.status === 'pending') {
+        p('Application in.', '')
+        p('We read every one. You’ll hear from us here.', 'hint').style.marginTop = '6px'
+      } else if (data?.status === 'denied') {
+        p('Not this time.', '')
+        p('Keep building — the door isn’t closed.', 'hint').style.marginTop = '6px'
+      } else {
+        p('Earn with Echelon. Tell us where you’d share it.')
+        const pitch = document.createElement('textarea'); pitch.className = 'inp'; pitch.id = 'aff-pitch'
+        pitch.rows = 3; pitch.maxLength = 1000; pitch.placeholder = 'Your audience, your platforms, your plan'
+        pitch.style.cssText = 'width:100%;margin-top:10px;resize:none;'
+        const links = document.createElement('input'); links.className = 'inp'; links.id = 'aff-links'
+        links.type = 'text'; links.maxLength = 500; links.placeholder = 'Links (socials, channel) — optional'
+        links.style.cssText = 'width:100%;margin-top:8px;'
+        const wrap = document.createElement('div'); wrap.className = 'filters'; wrap.style.marginTop = '10px'
+        const go = document.createElement('button'); go.className = 'btn'; go.id = 'aff-apply'; go.type = 'button'; go.textContent = 'Apply'
+        const msg = document.createElement('span'); msg.className = 'msg'; msg.id = 'aff-msg'
+        wrap.append(go, msg); host.append(pitch, links, wrap)
+        go.addEventListener('click', async () => {
+          const text = pitch.value.trim()
+          if (!text) { msg.className = 'msg err'; msg.textContent = 'A line about where, first.'; return }
+          go.disabled = true; msg.className = 'msg'; msg.textContent = 'Sending…'
+          const { error: e2 } = await supabase.from('affiliate_applications')
+            .insert({ user_id: state.user.id, pitch: text, links: links.value.trim() || null })
+          if (e2) { msg.className = 'msg err'; msg.textContent = e2.message; go.disabled = false; return }
+          renderAffiliatePage()
+        })
+      }
+    }
 
     // ── settings: delete account ────────────────────────────
 
