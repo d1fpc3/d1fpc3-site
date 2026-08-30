@@ -1202,6 +1202,12 @@
             <div class="empty" id="app-empty" hidden>No requests yet.</div>
           </div>
           <div class="block">
+            <div class="block-head"><h3>Affiliates</h3><span class="label" id="aff-total"></span></div>
+            <p class="settings-note" style="margin:0 0 2px;">Members applying from Settings &rarr; Affiliate in the app. Approve mints their code &mdash; the one they asked for, when it's free.</p>
+            <div class="tbl-scroll"><table id="aff-table"></table></div>
+            <div class="empty" id="aff-empty" hidden>No applications yet.</div>
+          </div>
+          <div class="block">
             <div class="block-head"><h3>Moderators</h3><span class="label" id="mod-total"></span></div>
             <p class="settings-note" style="margin:0 0 2px;">Mods can delete any message and post in announcement channels. You are the owner and always can.</p>
             <div class="tbl-scroll"><table id="mod-table"></table></div>
@@ -2042,6 +2048,7 @@
       cmChannels = ch ?? []; cmMods = new Set((mods ?? []).map((m) => m.user_id)); cmDir = dir ?? []
       renderChannels(); renderMods(); renderModPicker(el('mod-q').value || '')
       loadApplications()
+      loadAffiliates()
     }
     async function loadApplications() {
       try { const r = await adminAction({ action: 'app_list' }); cmApps = r.applications ?? [] }
@@ -2073,6 +2080,57 @@
             if (!confirm(`Deny ${a.email}?`)) return
             no.disabled = true
             try { await adminAction({ action: 'app_deny', id: a.id }); await loadApplications() } catch (e) { no.disabled = false }
+          })
+          act.append(ok, no)
+        } else {
+          const b = document.createElement('span'); b.className = 'badge ' + (a.status === 'approved' ? 'b-active' : 'b-neutral'); b.textContent = a.status
+          act.appendChild(b)
+        }
+        tr.appendChild(act); return tr
+      })
+    }
+    let affApps = []
+    async function loadAffiliates() {
+      const { data } = await supabase.from('affiliate_applications')
+        .select('user_id, pitch, socials, followers, requested_code, status, code, created_at')
+        .order('created_at', { ascending: false })
+      affApps = data ?? []
+      renderAffiliates()
+    }
+    function renderAffiliates() {
+      const pending = affApps.filter((a) => a.status === 'pending')
+      el('aff-total').textContent = pending.length ? String(pending.length) : ''
+      el('aff-empty').hidden = affApps.length > 0
+      const names = new Map(cmDir.map((d) => [d.user_id, d.username]))
+      table(el('aff-table'), ['Member', 'Reach', 'Plan', 'Code', ''], affApps, (a) => {
+        const tr = document.createElement('tr')
+        const who = document.createElement('td'); who.className = 'ink'; who.style.fontWeight = '600'
+        who.textContent = '@' + (names.get(a.user_id) ?? a.user_id.slice(0, 8))
+        tr.appendChild(who)
+        const reach = document.createElement('td')
+        const r1 = document.createElement('div')
+        r1.textContent = Object.entries(a.socials ?? {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'
+        const r2 = document.createElement('div'); r2.style.color = 'var(--faint)'; r2.style.fontSize = '12px'
+        if (a.followers) r2.textContent = `~${a.followers} followers`
+        reach.append(r1, r2); tr.appendChild(reach)
+        const plan = cell(a.pitch); plan.style.maxWidth = '320px'; plan.style.whiteSpace = 'normal'; tr.appendChild(plan)
+        tr.appendChild(cell(a.code ?? (a.requested_code ? `wants ${a.requested_code}` : '—'), a.code ? 'ink' : ''))
+        const act = document.createElement('td')
+        if (a.status === 'pending') {
+          const ok = document.createElement('button'); ok.className = 'rowbtn'; ok.textContent = 'Approve'
+          ok.addEventListener('click', async () => {
+            ok.disabled = true
+            const { error } = await supabase.rpc('approve_affiliate', { p_user: a.user_id })
+            if (error) { alert(error.message); ok.disabled = false; return }
+            await loadAffiliates()
+          })
+          const no = document.createElement('button'); no.className = 'rowbtn'; no.textContent = 'Deny'; no.style.marginLeft = '6px'
+          no.addEventListener('click', async () => {
+            if (!confirm('Deny this application?')) return
+            no.disabled = true
+            const { error } = await supabase.rpc('deny_affiliate', { p_user: a.user_id })
+            if (error) { alert(error.message); no.disabled = false; return }
+            await loadAffiliates()
           })
           act.append(ok, no)
         } else {
