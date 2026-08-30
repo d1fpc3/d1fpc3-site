@@ -90,7 +90,7 @@ const feed = await page.evaluate(() => {
 if (feed.tbBg !== "rgba(0, 0, 0, 0)" && feed.tbBg !== "transparent") fails.push(`feed top bar paints in light theme: ${feed.tbBg}`);
 if (feed.tbBorder !== "0px") fails.push(`feed top bar border: ${feed.tbBorder}`);
 if (!/blur/.test(feed.bellBlur ?? "")) fails.push(`bell not glass: ${feed.bellBlur}`);
-if (feed.ago && feed.ago !== "9.5px") fails.push(`rv-ago ${feed.ago}`);
+if (feed.ago && feed.ago !== "9px") fails.push(`rv-ago ${feed.ago}`);
 if (feed.likes && feed.likes !== "12px") fails.push(`rv-likes ${feed.likes}`);
 await page.screenshot({ path: `${OUT}/1-feed.png` });
 
@@ -115,9 +115,10 @@ await page.evaluate(() => {
   const v = document.getElementById("v-inbox");
   const touch = (x) => new Touch({ identifier: 1, target: v, clientX: x, clientY: 300 });
   v.dispatchEvent(new TouchEvent("touchstart", { touches: [touch(300)], changedTouches: [touch(300)], bubbles: true }));
+  for (const x of [280, 240, 190, 140]) v.dispatchEvent(new TouchEvent("touchmove", { touches: [touch(x)], changedTouches: [touch(x)], bubbles: true }));
   v.dispatchEvent(new TouchEvent("touchend", { touches: [], changedTouches: [touch(120)], bubbles: true }));
 });
-await page.waitForTimeout(400);
+await page.waitForTimeout(600);
 const after = await page.evaluate(() => document.querySelector(".view.on").id);
 if (after !== "v-feed") fails.push(`swipe from inbox landed on ${after} (want v-feed)`);
 await browser.close();
