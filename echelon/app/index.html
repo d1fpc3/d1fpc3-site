@@ -1170,6 +1170,11 @@
     /* first-entry onboarding overlay: the intake look, over the app */
     .rowbtn.set-back { background: none; border: 0; border-radius: 0; padding: 0; font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; -webkit-tap-highlight-color: transparent; }
     .rowbtn.set-back:hover, .rowbtn.set-back:active { background: none; box-shadow: none; }
+    .rowbtn.fol-back { background: none; border: 0; border-radius: 0; padding: 0; font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; -webkit-tap-highlight-color: transparent; }
+    .rowbtn.fol-back:hover, .rowbtn.fol-back:active { background: none; box-shadow: none; color: var(--gold); }
+    .fol-row { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 11px 2px; cursor: pointer; color: var(--ink); font: inherit; text-align: left; -webkit-tap-highlight-color: transparent; }
+    .fol-row .av { width: 38px; height: 38px; border-radius: 50%; font-size: 13px; flex-shrink: 0; }
+    .fol-row b { font-size: 14px; font-weight: 600; }
     .label.dc-ok { color: var(--good); display: inline-flex; align-items: center; gap: 5px; }
     .label.dc-ok svg { width: 13px; height: 13px; }
     .rowbtn.set-back:hover:not(:disabled) { color: var(--gold); }
@@ -2014,6 +2019,7 @@
         <button class="tab" data-view="set-desktop" data-title="Echelon for Windows" data-crumb="" hidden></button>
         <button class="tab" data-view="set-invite" data-title="Invite friends" data-crumb="" hidden></button>
         <button class="tab" data-view="set-affiliate" data-title="Affiliate" data-crumb="" hidden></button>
+        <button class="tab" data-view="follows" data-title="Followers" data-crumb="" hidden></button>
         <button class="tab" data-view="set-stats" data-title="Statistics" data-crumb="" hidden></button>
         <button class="tab" data-view="settings" data-title="Settings" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -2586,6 +2592,16 @@
             <div class="block-head"><h3>Affiliate</h3></div>
             <div class="setgrid"><div id="aff-body"></div></div>
           </div>
+        </section>
+
+        <section class="view setpage" id="v-follows">
+          <div style="max-width:640px;margin-bottom:14px;"><button class="rowbtn fol-back" id="follows-back" type="button">&larr; Back</button></div>
+          <div class="feed-scopes" style="max-width:640px;">
+            <button class="label fs on" id="fol-tab-followers" type="button">Followers</button>
+            <button class="label fs" id="fol-tab-following" type="button">Following</button>
+          </div>
+          <div id="follows-list" style="max-width:640px;"></div>
+          <p class="hint" id="follows-empty" style="max-width:640px;margin-top:14px;" hidden></p>
         </section>
 
         <section class="view setpage" id="v-set-profile">
@@ -3287,7 +3303,7 @@
 
     /* ── phone bottom nav: built from the sidebar so the two never disagree ── */
     const BNAV = ['overview', 'feed', 'course', 'chat', 'set-profile']
-    const BNAV_PROFILE_VIEWS = new Set(['set-profile', 'settings', 'set-account', 'set-appearance', 'set-discord', 'set-desktop', 'set-invite', 'set-stats', 'set-affiliate', 'notifs', 'inbox'])
+    const BNAV_PROFILE_VIEWS = new Set(['set-profile', 'settings', 'set-account', 'set-appearance', 'set-discord', 'set-desktop', 'set-invite', 'set-stats', 'set-affiliate', 'follows', 'notifs', 'inbox'])
     function buildBnav() {
       const nav = el('bnav'); if (!nav) return
       nav.textContent = ''
@@ -5510,44 +5526,53 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       put(c.following, 'following', 'following')
       if (invited !== undefined && invited !== null) put(invited, 'invited')
     }
-    async function openFollowList(uid, kind) {
+    // Followers / Following: a full page (Instagram-shaped), two tabs,
+    // reached by tapping either count on a profile or member card.
+    const FOL = { uid: null, kind: 'followers', from: 'overview' }
+    function openFollowList(uid, kind) {
+      if (curView() !== 'follows') FOL.from = curView()
+      FOL.uid = uid; FOL.kind = kind
+      if (el('mm-scrim').classList.contains('on')) closeMemberProfile()
+      const tab = document.querySelector('.tab[data-view="follows"]')
+      if (tab) tab.dataset.title = kind === 'followers' ? 'Followers' : 'Following'
+      showView('follows')
+      renderFollowsPage()
+    }
+    async function renderFollowsPage() {
+      el('fol-tab-followers').classList.toggle('on', FOL.kind === 'followers')
+      el('fol-tab-following').classList.toggle('on', FOL.kind === 'following')
+      el('pane-title').textContent = FOL.kind === 'followers' ? 'Followers' : 'Following'
+      const host = el('follows-list'); host.textContent = ''
+      el('follows-empty').hidden = true
+      const uid = FOL.uid, kind = FOL.kind
       const col = kind === 'followers' ? 'followee_id' : 'follower_id'
       const pick = kind === 'followers' ? 'follower_id' : 'followee_id'
       const { data } = await supabase.from('follows').select('follower_id, followee_id, created_at')
-        .eq(col, uid).order('created_at', { ascending: false }).limit(200)
+        .eq(col, uid).order('created_at', { ascending: false }).limit(500)
+      if (uid !== FOL.uid || kind !== FOL.kind) return
       const ids = (data ?? []).map((f) => f[pick])
-      const profs = new Map()
-      if (ids.length) {
-        const { data: ps } = await supabase.from('member_directory').select('user_id, username, avatar_url').in('user_id', ids)
-        for (const p of ps ?? []) profs.set(p.user_id, p)
-      }
-      const scrim = document.createElement('div'); scrim.className = 'dmpick-scrim'; scrim.id = 'follow-sheet'
-      const box = document.createElement('div'); box.className = 'dmpick'; box.style.maxWidth = '380px'
-      const head = document.createElement('div'); head.className = 'block-head'
-      const h = document.createElement('h3'); h.textContent = kind === 'followers' ? 'Followers' : 'Following'
-      const x = document.createElement('button'); x.className = 'rowbtn'; x.type = 'button'; x.textContent = 'Close'
-      x.addEventListener('click', () => scrim.remove())
-      head.append(h, x); box.appendChild(head)
-      const list = document.createElement('div'); list.style.cssText = 'max-height:55vh;overflow-y:auto;padding:6px 14px 12px;'
       if (!ids.length) {
-        const e = document.createElement('p'); e.className = 'hint'; e.style.margin = '8px 0'
-        e.textContent = kind === 'followers' ? 'Nobody yet.' : 'Not following anyone yet.'
-        list.appendChild(e)
+        el('follows-empty').textContent = kind === 'followers' ? 'Nobody yet.' : 'Not following anyone yet.'
+        el('follows-empty').hidden = false
+        return
       }
+      const profs = new Map()
+      const { data: ps } = await supabase.from('member_directory').select('user_id, username, avatar_url').in('user_id', ids)
+      for (const p of ps ?? []) profs.set(p.user_id, p)
+      if (uid !== FOL.uid || kind !== FOL.kind) return
       for (const id of ids) {
         const p = profs.get(id)
-        const row = document.createElement('button'); row.type = 'button'
-        row.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:8px 2px;cursor:pointer;color:var(--ink);font:inherit;text-align:left;'
+        const row = document.createElement('button'); row.type = 'button'; row.className = 'fol-row'
         row.appendChild(avatarNode({ username: p?.username, avatar_url: p?.avatar_url }, 'av'))
         const b = document.createElement('b'); b.textContent = p?.username ?? 'member'
         row.appendChild(b)
-        row.addEventListener('click', () => { scrim.remove(); openChatProfile(id) })
-        list.appendChild(row)
+        row.addEventListener('click', () => openChatProfile(id))
+        host.appendChild(row)
       }
-      box.appendChild(list); scrim.appendChild(box)
-      scrim.addEventListener('click', (e) => { if (e.target === scrim) scrim.remove() })
-      document.body.appendChild(scrim)
     }
+    el('follows-back')?.addEventListener('click', () => showView(FOL.from || 'overview'))
+    el('fol-tab-followers')?.addEventListener('click', () => { FOL.kind = 'followers'; renderFollowsPage() })
+    el('fol-tab-following')?.addEventListener('click', () => { FOL.kind = 'following'; renderFollowsPage() })
     async function toggleFollow(uid, btn) {
       const on = btn.classList.contains('on')
       btn.disabled = true

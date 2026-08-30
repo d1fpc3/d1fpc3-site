@@ -75,11 +75,22 @@ const tapped = await page.evaluate(() => {
   span.click(); return span.textContent;
 });
 if (!tapped) fails.push("no followers span on profile");
-await page.waitForSelector("#follow-sheet b", { timeout: 8000 }).catch(() => fails.push("follow sheet did not open"));
-const sheetNames = await page.evaluate(() => [...document.querySelectorAll("#follow-sheet b")].map((b) => b.textContent));
-if (!sheetNames.length) fails.push("follow sheet empty");
+await page.waitForSelector("#v-follows.on .fol-row b", { timeout: 8000 }).catch(() => fails.push("follows page did not open with rows"));
+const pageNames = await page.evaluate(() => [...document.querySelectorAll("#follows-list .fol-row b")].map((b) => b.textContent));
+if (!pageNames.length) fails.push("followers page empty");
+const title = await page.evaluate(() => document.getElementById("pane-title").textContent);
+if (title !== "Followers") fails.push(`page title: ${title}`);
 await page.screenshot({ path: `${OUT}/1-followers.png` });
-await page.evaluate(() => document.getElementById("follow-sheet")?.remove());
+// tab flips to Following (appreview follows nobody → empty copy)
+await page.evaluate(() => document.getElementById("fol-tab-following").click());
+await page.waitForTimeout(800);
+const flipped = await page.evaluate(() => ({ title: document.getElementById("pane-title").textContent, empty: !document.getElementById("follows-empty").hidden || document.querySelectorAll("#follows-list .fol-row").length > 0 }));
+if (flipped.title !== "Following" || !flipped.empty) fails.push(`following tab wrong: ${JSON.stringify(flipped)}`);
+// back returns to the profile
+await page.evaluate(() => document.getElementById("follows-back").click());
+await page.waitForTimeout(400);
+const backView = await page.evaluate(() => document.querySelector(".view.on").id);
+if (backView !== "v-set-profile") fails.push(`back landed on ${backView}`);
 
 // chat: actions hidden until long-press (touch context)
 await page.evaluate(() => document.querySelector('#bnav button[data-view="chat"]')?.click());
