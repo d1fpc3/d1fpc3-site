@@ -271,9 +271,12 @@
 
     .pane { padding: clamp(20px, 3vw, 34px); }
     .view { display: none; }
-    .view.on { display: block; animation: fade 0.25s ease; }
+    .view.on { display: block; animation: viewin 0.34s cubic-bezier(0.22, 0.7, 0.2, 1); }
+    .view.setpage.on { animation: pagein 0.3s cubic-bezier(0.22, 0.7, 0.2, 1); }
     @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
-    @media (prefers-reduced-motion: reduce) { .view.on { animation: none; } }
+    @keyframes viewin { from { opacity: 0; transform: translateY(10px); } }
+    @keyframes pagein { from { opacity: 0; transform: translateX(20px); } }
+    @media (prefers-reduced-motion: reduce) { .view.on, .view.setpage.on { animation: none; } }
 
     .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
     @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } }
@@ -1246,6 +1249,15 @@
 
     /* ── phone bottom nav: Overview left, Profile right, the rest between ── */
     :root { --bnav: 0px; }
+    /* feed on the small shell: no bar, just the bell in a circle */
+    @media (max-width: 840px) {
+      body.in-feed .topbar { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; pointer-events: none; }
+      body.in-feed .topbar h2, body.in-feed .topbar .crumb, body.in-feed .menu-btn { display: none; }
+      body.in-feed .tb-bell { pointer-events: auto; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 50%; width: 42px; height: 42px; padding: 0; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.22); color: var(--ink); }
+      body.in-feed .tb-bell .bcount { top: 4px; right: 4px; }
+      /* the drawer skips what the bottom nav already carries */
+      .tab[data-view="feed"], .tab[data-view="course"], .tab[data-view="chat"] { display: none; }
+    }
     .bnav { display: none; }
     @media (max-width: 840px) {
       :root { --bnav: calc(48px + env(safe-area-inset-bottom)); }
@@ -3220,6 +3232,7 @@
       el('pane-crumb').textContent = tab.dataset.crumb
       document.body.classList.toggle('journal-full', view === 'journal')
       document.body.classList.toggle('in-chat', view === 'chat')
+      document.body.classList.toggle('in-feed', view === 'feed')
       syncBnav(view)
       window.scrollTo({ top: 0 })
       if (view === 'chat' && !chat.loaded) loadChat()
@@ -4935,12 +4948,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function renderMemberRecaps() {
       const feed = el('mr-feed'); if (!feed) return
       const room = mrScope === 'room'
-      const rows = room ? (state.roomRecaps ?? []) : state.memberRecaps
-      el('mr-total').textContent = rows.length ? `${rows.length}${room ? ' from the room' : ' total'}` : ''
+      const all = room ? (state.roomRecaps ?? []) : state.memberRecaps
+      // the home page carries today only; the full history lives on the profile
+      const today = new Date().toDateString()
+      const rows = room ? all : all.filter((r) => new Date(r.created_at).toDateString() === today)
+      el('mr-total').textContent = all.length ? `${all.length}${room ? ' from the room' : ' total'}` : ''
       el('mr-empty').hidden = rows.length > 0
       el('mr-empty').textContent = room
         ? 'Nothing yet.'
-        : 'Nothing logged yet.'
+        : all.length ? 'Nothing logged today.' : 'Nothing logged yet.'
       feed.classList.add('pro-grid')
       recapTiles(feed, rows, null, (r, t) => openRecapView(r, rows, t))
       renderMyStats()
@@ -5551,7 +5567,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const host = el('inbox')
       const { data } = await supabase.from('notifications').select('id, kind, actor_id, recap_id, body, created_at, read_at').order('created_at', { ascending: false }).limit(60)
       const rows = data ?? []
-      el('inbox-empty').hidden = rows.length > 0
+      // announcements ride along with the notifications, newest first
+      const anns = (state.annMsgs ?? []).map((m) => ({ id: `ann-${m.id}`, kind: 'ann', actor_id: null, recap_id: null, body: m.body || 'Posted an image.', created_at: m.created_at, read_at: m.created_at, channel_id: m.channel_id }))
+      const items = [...rows, ...anns].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      el('inbox-empty').hidden = items.length > 0
       const ids = [...new Set(rows.map((n) => n.actor_id).filter(Boolean))].filter((id) => !mrProfile(id) && !chat.byUser?.[id])
       if (ids.length) {
         const { data: profs } = await supabase.from('member_directory').select('user_id, username, avatar_url').in('user_id', ids)
@@ -5564,19 +5583,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         for (const r of recs ?? []) { const m = (Array.isArray(r.media) ? r.media : []).find((x) => x?.url && x.kind !== 'video'); if (m) thumbs.set(r.id, m.url) }
       }
       host.textContent = ''
-      for (const n of rows) {
+      for (const n of items) {
         const p = n.actor_id ? (mrProfile(n.actor_id) ?? chatUser(n.actor_id)) : null
         const row = document.createElement('div'); row.className = 'nb-row' + (n.read_at ? '' : ' unread')
-        const av = n.kind === 'gex' ? Object.assign(document.createElement('span'), { className: 'av gex', textContent: 'GEX' }) : avatarNode({ username: p?.username, avatar_url: p?.avatar_url }, 'av')
+        const av = n.kind === 'gex' ? Object.assign(document.createElement('span'), { className: 'av gex', textContent: 'GEX' }) : n.kind === 'ann' ? Object.assign(document.createElement('span'), { className: 'av gex', textContent: 'E' }) : avatarNode({ username: p?.username, avatar_url: p?.avatar_url }, 'av')
         const tx = document.createElement('div'); tx.className = 'tx'
-        const who = document.createElement('b'); who.textContent = n.kind === 'gex' ? 'D1 GEX' : '@' + (p?.username ?? 'someone')
+        const who = document.createElement('b'); who.textContent = n.kind === 'gex' ? 'D1 GEX' : n.kind === 'ann' ? 'Announcements' : '@' + (p?.username ?? 'someone')
         tx.appendChild(who)
-        tx.appendChild(document.createTextNode(n.kind === 'like' ? ' liked your trade' : n.kind === 'comment' ? ' commented on your trade' : n.kind === 'follow' ? ' started following you' : n.kind === 'gex' ? " · today's sheet" : ' ' + (n.body || '')))
-        if ((n.kind === 'comment' || n.kind === 'gex') && n.body) { const sm = document.createElement('small'); sm.textContent = n.body; tx.appendChild(sm) }
+        tx.appendChild(document.createTextNode(n.kind === 'like' ? ' liked your trade' : n.kind === 'comment' ? ' commented on your trade' : n.kind === 'follow' ? ' started following you' : n.kind === 'gex' ? " · today's sheet" : n.kind === 'ann' ? '' : ' ' + (n.body || '')))
+        if ((n.kind === 'comment' || n.kind === 'gex' || n.kind === 'ann') && n.body) { const sm = document.createElement('small'); sm.textContent = n.body; tx.appendChild(sm) }
         const when = document.createElement('span'); when.className = 'when'; when.textContent = ago(n.created_at)
         row.append(av, tx, when)
         if (n.recap_id && thumbs.get(n.recap_id)) { const th = document.createElement('img'); th.className = 'th'; th.src = thumbs.get(n.recap_id); th.alt = ''; row.appendChild(th) }
         row.addEventListener('click', () => {
+          if (n.kind === 'ann') { showView('chat'); if (n.channel_id) openConversation('channel', n.channel_id); return }
           if (n.kind === 'gex') { showView('gex'); return }
           if (n.recap_id) { openSharedPost(n.recap_id); return }
           if (n.actor_id) openChatProfile(n.actor_id)
@@ -5988,25 +6008,36 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ov-date').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
     }
 
+    // Only the newest undismissed announcement rides the home page; the
+    // rest live in Chat and the bell. Dismissals are per-device.
+    const ANN_DISMISS_KEY = 'echelon-ann-dismissed'
+    const annDismissed = () => { try { return new Set(JSON.parse(localStorage.getItem(ANN_DISMISS_KEY) || '[]')) } catch { return new Set() } }
     function renderAnnouncements() {
       const host = el('ov-ann'); if (!host) return
       host.textContent = ''
       const msgs = state.annMsgs ?? []
+      const m = msgs.find((x) => !annDismissed().has(x.id))
       el('ov-ann-empty').hidden = msgs.length > 0
-      for (const m of msgs) {
-        const item = document.createElement('div'); item.className = 'ann-item'
-        const top = document.createElement('div'); top.className = 'ann-top'
-        const ch = document.createElement('b'); ch.textContent = m.channels?.name ?? 'Announcements'
-        const when = document.createElement('span')
-        when.textContent = new Date(m.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
-        top.append(ch, when); item.appendChild(top)
-        const body = document.createElement('div'); body.className = 'ann-body'
-        body.textContent = m.body || (m.image_url ? 'Posted an image.' : '')
-        item.appendChild(body)
-        item.style.cursor = 'pointer'
-        item.addEventListener('click', () => { showView('chat'); if (m.channel_id) openConversation('channel', m.channel_id) })
-        host.appendChild(item)
-      }
+      el('ov-ann-sec').hidden = msgs.length > 0 && !m
+      if (!m) return
+      const item = document.createElement('div'); item.className = 'ann-item'
+      const top = document.createElement('div'); top.className = 'ann-top'
+      const ch = document.createElement('b'); ch.textContent = m.channels?.name ?? 'Announcements'
+      const when = document.createElement('span')
+      when.textContent = new Date(m.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'rowbtn'; x.textContent = 'Dismiss'
+      x.addEventListener('click', (e) => {
+        e.stopPropagation()
+        try { localStorage.setItem(ANN_DISMISS_KEY, JSON.stringify([...annDismissed(), m.id].slice(-50))) } catch {}
+        renderAnnouncements()
+      })
+      top.append(ch, when, x); item.appendChild(top)
+      const body = document.createElement('div'); body.className = 'ann-body'
+      body.textContent = m.body || (m.image_url ? 'Posted an image.' : '')
+      item.appendChild(body)
+      item.style.cursor = 'pointer'
+      item.addEventListener('click', () => { showView('chat'); if (m.channel_id) openConversation('channel', m.channel_id) })
+      host.appendChild(item)
     }
 
     // ── profile + members directory ─────────────────────────
