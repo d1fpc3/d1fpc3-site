@@ -1694,7 +1694,7 @@
     .ch-title h3 { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ch-title span { display: none; }
 
-    .chat-log { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 2px; }
+    .chat-log { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 16px; display: flex; flex-direction: column; gap: 2px; }
     .chat-day { align-self: center; font-size: 11px; color: var(--faint); letter-spacing: 0.04em; text-transform: uppercase; margin: 12px 0 6px; }
     .msg { display: flex; gap: 10px; padding: 4px 6px; border-radius: 8px; position: relative; }
     .msg:hover { background: var(--panel); }
@@ -1752,6 +1752,10 @@
     /* desktop: hover. touch: ONLY a long-press (tap-hover on iOS must not reveal) */
     @media (hover: hover) and (pointer: fine) { .msg:hover .m-acts { opacity: 1; pointer-events: auto; } }
     .msg.acts-open .m-acts { opacity: 1; pointer-events: auto; }
+    /* touch: the hold must not trigger text selection or the iOS callout */
+    @media (hover: none) { .chat-log .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } }
+    /* the held message lights up so the hold has feedback (Discord) */
+    .msg.acts-open { background: var(--panel-2); border-radius: 10px; }
     .m-del, .m-react { background: var(--panel-2); border: 1px solid var(--line-bright); color: var(--faint);
       border-radius: 6px; padding: 4px; cursor: pointer; display: inline-flex; }
     .m-del svg, .m-react svg { width: 14px; height: 14px; display: block; }
@@ -8677,22 +8681,27 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     document.addEventListener('click', (e) => { if (rxPop && !rxPop.contains(e.target)) closeRxPicker() })
     el('chat-log').addEventListener('scroll', closeRxPicker)
-    // phones: react/delete come up on a long-press, not all the time
+    // phones: react/delete come up on a stationary half-second hold, like
+    // Discord. Any movement, scroll, or lift cancels instantly, so the
+    // gesture can never grab a scroll.
     {
       const log = el('chat-log'); let lpTimer = 0, lpX = 0, lpY = 0
       const closeActs = () => document.querySelectorAll('.msg.acts-open').forEach((m) => m.classList.remove('acts-open'))
+      const cancel = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = 0 } }
       log.addEventListener('touchstart', (e) => {
-        const row = e.target.closest('.msg'); if (!row) return
+        const row = e.target.closest('.msg'); if (!row || e.touches.length !== 1) return
         lpX = e.touches[0].clientX; lpY = e.touches[0].clientY
-        clearTimeout(lpTimer)
-        lpTimer = setTimeout(() => { closeActs(); row.classList.add('acts-open') }, 420)
+        cancel()
+        lpTimer = setTimeout(() => { lpTimer = 0; closeActs(); row.classList.add('acts-open') }, 500)
       }, { passive: true })
       log.addEventListener('touchmove', (e) => {
         if (!lpTimer) return
-        if (Math.abs(e.touches[0].clientX - lpX) > 10 || Math.abs(e.touches[0].clientY - lpY) > 10) { clearTimeout(lpTimer); lpTimer = 0 }
+        if (Math.abs(e.touches[0].clientX - lpX) > 6 || Math.abs(e.touches[0].clientY - lpY) > 6) cancel()
       }, { passive: true })
-      log.addEventListener('touchend', () => { clearTimeout(lpTimer); lpTimer = 0 }, { passive: true })
-      document.addEventListener('touchstart', (e) => { if (!e.target.closest('.msg.acts-open')) closeActs() }, { passive: true })
+      log.addEventListener('scroll', cancel, { passive: true })
+      log.addEventListener('touchend', cancel, { passive: true })
+      log.addEventListener('touchcancel', cancel, { passive: true })
+      document.addEventListener('touchstart', (e) => { if (!e.target.closest('.msg.acts-open') && !e.target.closest('.m-acts')) closeActs() }, { passive: true })
     }
 
     // Click a name in the log -> the same profile card the directory uses.
