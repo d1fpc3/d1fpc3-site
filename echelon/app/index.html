@@ -2525,6 +2525,10 @@
                 <label class="tgl"><input type="checkbox" id="nt-gex"><span class="track"></span></label>
               </div>
               <div class="filters" style="justify-content:space-between;">
+                <p class="label" style="margin:0;">Red-folder news, 30 minutes out</p>
+                <label class="tgl"><input type="checkbox" id="nt-news"><span class="track"></span></label>
+              </div>
+              <div class="filters" style="justify-content:space-between;">
                 <p class="label" style="margin:0;">Likes, comments, follows</p>
                 <label class="tgl"><input type="checkbox" id="nt-social"><span class="track"></span></label>
               </div>
@@ -5779,12 +5783,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       for (const n of items) {
         const p = n.actor_id ? (mrProfile(n.actor_id) ?? chatUser(n.actor_id)) : null
         const row = document.createElement('div'); row.className = 'nb-row' + (n.read_at ? '' : ' unread')
-        const av = n.kind === 'gex' ? Object.assign(document.createElement('span'), { className: 'av gex', textContent: 'GEX' }) : n.kind === 'ann' ? Object.assign(document.createElement('span'), { className: 'av gex', textContent: 'E' }) : avatarNode({ username: p?.username, avatar_url: p?.avatar_url }, 'av')
+        const av = n.kind === 'gex' ? Object.assign(document.createElement('span'), { className: 'av gex', textContent: 'GEX' }) : n.kind === 'ann' ? Object.assign(document.createElement('span'), { className: 'av gex', textContent: 'E' }) : n.kind === 'news' ? Object.assign(document.createElement('span'), { className: 'av gex', textContent: 'N' }) : avatarNode({ username: p?.username, avatar_url: p?.avatar_url }, 'av')
         const tx = document.createElement('div'); tx.className = 'tx'
-        const who = document.createElement('b'); who.textContent = n.kind === 'gex' ? 'D1 GEX' : n.kind === 'ann' ? 'Announcements' : '@' + (p?.username ?? 'someone')
+        const who = document.createElement('b'); who.textContent = n.kind === 'gex' ? 'D1 GEX' : n.kind === 'ann' ? 'Announcements' : n.kind === 'news' ? 'News' : '@' + (p?.username ?? 'someone')
         tx.appendChild(who)
-        tx.appendChild(document.createTextNode(n.kind === 'like' ? ' liked your trade' : n.kind === 'comment' ? ' commented on your trade' : n.kind === 'follow' ? ' started following you' : n.kind === 'gex' ? " · today's sheet" : n.kind === 'ann' ? '' : ' ' + (n.body || '')))
-        if ((n.kind === 'comment' || n.kind === 'gex' || n.kind === 'ann') && n.body) { const sm = document.createElement('small'); sm.textContent = n.body; tx.appendChild(sm) }
+        tx.appendChild(document.createTextNode(n.kind === 'like' ? ' liked your trade' : n.kind === 'comment' ? ' commented on your trade' : n.kind === 'follow' ? ' started following you' : n.kind === 'gex' ? " · today's sheet" : n.kind === 'ann' || n.kind === 'news' ? '' : ' ' + (n.body || '')))
+        if ((n.kind === 'comment' || n.kind === 'gex' || n.kind === 'ann' || n.kind === 'news') && n.body) { const sm = document.createElement('small'); sm.textContent = n.body; tx.appendChild(sm) }
         const when = document.createElement('span'); when.className = 'when'; when.textContent = ago(n.created_at)
         row.append(av, tx, when)
         if (n.recap_id && thumbs.get(n.recap_id)) { const th = document.createElement('img'); th.className = 'th'; th.src = thumbs.get(n.recap_id); th.alt = ''; row.appendChild(th) }
@@ -5792,6 +5796,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (n.actor_id) av.addEventListener('click', (e) => { e.stopPropagation(); openChatProfile(n.actor_id) })
         row.addEventListener('click', () => {
           if (n.kind === 'ann') { showView('chat'); if (n.channel_id) openConversation('channel', n.channel_id); return }
+          if (n.kind === 'news') { showView('news'); return }
           if (n.kind === 'gex') { showView('gex'); return }
           if (n.recap_id) { openSharedPost(n.recap_id); return }
           if (n.actor_id) openChatProfile(n.actor_id)
@@ -8309,14 +8314,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // localStorage; announcements and DMs default on, the full room off.
     const NT_KEY = 'echelon-notify'
     function ntPrefs() {
-      try { return { ann: true, dm: true, chat: false, gex: true, social: true, channels: {}, ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } }
-      catch { return { ann: true, dm: true, chat: false, gex: true, social: true, channels: {} } }
+      try { return { ann: true, dm: true, chat: false, gex: true, social: true, news: true, channels: {}, ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } }
+      catch { return { ann: true, dm: true, chat: false, gex: true, social: true, news: true, channels: {} } }
     }
     function ntSavePrefs(p) {
       try { localStorage.setItem(NT_KEY, JSON.stringify(p)) } catch {}
       if (state.user) {
         supabase.from('notify_prefs').upsert({
-          user_id: state.user.id, ann: !!p.ann, dm: !!p.dm, chat: !!p.chat, gex: !!p.gex, social: p.social !== false,
+          user_id: state.user.id, ann: !!p.ann, dm: !!p.dm, chat: !!p.chat, gex: !!p.gex, social: p.social !== false, news: p.news !== false,
           channels: p.channels || {}, updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' }).then(() => {}, () => {})
       }
@@ -8324,7 +8329,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // On a fresh device, the server copy of the prefs wins.
     async function ntLoadPrefs() {
       if (!state.user) return
-      const { data } = await supabase.from('notify_prefs').select('ann, dm, chat, gex, social, channels').maybeSingle()
+      const { data } = await supabase.from('notify_prefs').select('ann, dm, chat, gex, social, news, channels').maybeSingle()
       if (data) { try { localStorage.setItem(NT_KEY, JSON.stringify(data)) } catch {} }
     }
     // Inside the iOS shell the Capacitor bridge is on the page and delivery
@@ -8365,7 +8370,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       else st.textContent = ''
     }
     function ntInitSettings() {
-      const map = { ann: 'nt-ann', dm: 'nt-dm', chat: 'nt-chat', gex: 'nt-gex', social: 'nt-social' }
+      const map = { ann: 'nt-ann', dm: 'nt-dm', chat: 'nt-chat', gex: 'nt-gex', social: 'nt-social', news: 'nt-news' }
       const p = ntPrefs()
       for (const [k, id] of Object.entries(map)) {
         const cb = el(id); if (!cb) continue
@@ -9465,7 +9470,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       const start = new URLSearchParams(location.search).get('start')
       if (start) {
-        const map = { study: 'course', course: 'course', recaps: 'library', chat: 'chat', indicators: 'indicators', members: 'members', gex: 'gex', feed: 'feed', inbox: 'inbox', board: 'board' }
+        const map = { study: 'course', course: 'course', recaps: 'library', chat: 'chat', indicators: 'indicators', members: 'members', gex: 'gex', feed: 'feed', inbox: 'inbox', board: 'board', news: 'news' }
         const v = map[start]
         const tab = v && document.querySelector(`.tab[data-view="${v}"]`)
         if (tab && !tab.hidden) showView(v)
