@@ -5646,12 +5646,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const host = el('nextup'); if (!host || !state.user) return
       if (state.onboarding?.flags?.nextup_hidden) { host.hidden = true; return }
       const p = state.profile ?? {}
-      const msgs = await supabase.from('messages').select('id', { count: 'exact', head: true }).eq('user_id', state.user.id).is('deleted_at', null).then((r) => r.count ?? 0)
       NU.steps = [
         { t: 'Pick your username', done: !!(p.username && p.username.trim()), go: () => showView('set-profile') },
         { t: 'Add a profile photo', done: !!p.avatar_url, go: () => showView('set-profile') },
         { t: 'Post your first trade', done: (state.memberRecaps ?? []).length > 0, go: () => showView('overview') },
-        { t: 'Say hello in the chat', done: msgs > 0, go: () => showView('chat') },
       ]
       const left = NU.steps.filter((s) => !s.done).length
       if (!left) { if (!host.hidden) saveOnbFlags({ nextup_hidden: true }); host.hidden = true; return }
