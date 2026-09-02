@@ -1540,14 +1540,24 @@
     .calc-out span { display: block; margin-top: 3px; color: var(--muted); font-weight: 400; font-size: 13.5px; }
     .calc-out.warn { color: var(--muted); font-weight: 500; font-size: 13.5px; }
 
-    /* partner strip: BackTrader code, flat row */
-    .bt-strip { display: flex; align-items: center; gap: 13px; padding: 13px 0 14px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
-    .bt-strip img { border-radius: 8px; flex: none; }
-    .bt-copy { font-size: 13.5px; color: var(--muted); }
-    .bt-copy b { color: var(--ink); font-weight: 600; }
-    .bt-go { margin-left: auto; color: var(--faint); font-size: 12.5px; white-space: nowrap; transition: color 0.15s ease; }
-    .bt-strip:hover .bt-go { color: var(--gold); }
-    @media (max-width: 560px) { .bt-go { display: none; } }
+    /* partner popup: notification-style card, slides in once, tap to open */
+    .bt-pop {
+      position: fixed; z-index: 90; right: 16px; bottom: calc(16px + var(--bnav, 0px));
+      max-width: 380px; display: flex; align-items: center; gap: 12px;
+      background: var(--panel); border: 1px solid var(--line-bright); border-radius: 14px;
+      padding: 13px 34px 13px 14px; box-shadow: 0 18px 48px rgba(0,0,0,0.45); cursor: pointer;
+      transform: translateY(14px); opacity: 0; transition: transform 0.35s ease, opacity 0.35s ease;
+    }
+    .bt-pop.in { transform: none; opacity: 1; }
+    .bt-pop img { border-radius: 8px; flex: none; }
+    .bt-pop .bt-copy { font-size: 13px; color: var(--muted); line-height: 1.45; }
+    .bt-pop .bt-copy b { color: var(--ink); font-weight: 600; }
+    .bt-pop-x {
+      position: absolute; top: 6px; right: 6px; background: none; border: 0; padding: 2px;
+      width: 22px; height: 22px; color: var(--faint); font-size: 16px; line-height: 1; cursor: pointer;
+    }
+    .bt-pop-x:hover { color: var(--ink); }
+    @media (max-width: 560px) { .bt-pop { left: 16px; right: 16px; max-width: none; } }
 
     /* leave-a-review: quiet underlined text, not a button */
     .p-rev-write { background: none; border: 0; padding: 0; align-self: flex-start; font-family: inherit; font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; transition: color 0.15s ease; }
@@ -2202,14 +2212,11 @@
           </div>
 
           <!-- Risk calculator popup: opened by the calculator button up top -->
-          <section class="ov-sec" id="ov-partner-sec">
-            <div class="ov-cap"><span class="label">Partner</span></div>
-            <a class="bt-strip" href="https://www.backtrader.io/" target="_blank" rel="noopener">
-              <img src="/assets/partners/backtrader.png" alt="BackTrader" width="34" height="34" loading="lazy">
-              <span class="bt-copy"><b>BackTrader</b> — trade copier and analytics for futures. Code <b>D1FPC3</b> gets a discount.</span>
-              <span class="bt-go">backtrader.io &rarr;</span>
-            </a>
-          </section>
+          <div class="bt-pop" id="bt-pop" hidden role="status">
+            <img src="/assets/partners/backtrader.png" alt="BackTrader" width="34" height="34" loading="lazy">
+            <span class="bt-copy"><b>BackTrader</b> — trade copier and analytics for futures. Code <b>D1FPC3</b> gets a discount.</span>
+            <button class="bt-pop-x" id="bt-pop-x" type="button" aria-label="Dismiss">&times;</button>
+          </div>
 
           <div class="dmpick-scrim" id="rcmodal" hidden>
             <div class="calc">
@@ -7029,6 +7036,32 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderModCodes(); renderModAff()
     }
 
+    // ── BackTrader popup ────────────────────────────────────
+    // One notification-style card after sign-in: tap opens backtrader.io,
+    // the × puts it away for good. Ignored, it slides off after 14s and may
+    // try again another session.
+    const BT_POP_KEY = 'echelon-bt-pop'
+    function btPopup() {
+      try { if (localStorage.getItem(BT_POP_KEY)) return } catch {}
+      const pop = el('bt-pop')
+      if (!pop) return
+      document.body.appendChild(pop) // out of the Overview pane: fixed, tab-proof
+      pop.hidden = false
+      requestAnimationFrame(() => pop.classList.add('in'))
+      const done = (mark) => {
+        pop.classList.remove('in')
+        setTimeout(() => { pop.hidden = true }, 380)
+        if (mark) { try { localStorage.setItem(BT_POP_KEY, '1') } catch {} }
+      }
+      const auto = setTimeout(() => done(false), 14000)
+      el('bt-pop-x').addEventListener('click', (e) => { e.stopPropagation(); clearTimeout(auto); done(true) })
+      pop.addEventListener('click', () => {
+        clearTimeout(auto)
+        try { window.open('https://www.backtrader.io/', '_blank', 'noopener') } catch {}
+        done(true)
+      })
+    }
+
     // ── settings: affiliate partner portal (approved view) ──
     // Range stats + a daily earnings chart (this period in gold, the one
     // before in grey) + payout details D1 uses when he sends the money.
@@ -9897,8 +9930,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       applyStaffComps()
       state.hasCourse = state.owned.has('course') || state.isAdmin
       el('set-modtools-row').hidden = !(state.isMod || state.isAdmin)
-      // BackTrader strip shows everywhere, native shells included — D1's call
-      // (9/2), accepting the App Review look of an external offer in-app.
+      // BackTrader popup — everywhere, native shells included (D1's call 9/2,
+      // accepting the App Review look of an external offer in-app).
+      setTimeout(btPopup, 2500)
 
       // Signed in is not the same as member. A Discord or email sign-in with
       // nothing on the account stops here: the door is the free signup (which
