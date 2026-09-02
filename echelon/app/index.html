@@ -1540,6 +1540,10 @@
     .calc-out span { display: block; margin-top: 3px; color: var(--muted); font-weight: 400; font-size: 13.5px; }
     .calc-out.warn { color: var(--muted); font-weight: 500; font-size: 13.5px; }
 
+    /* leave-a-review: quiet underlined text, not a button */
+    .p-rev-write { background: none; border: 0; padding: 0; align-self: flex-start; font-family: inherit; font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; transition: color 0.15s ease; }
+    .p-rev-write:hover { color: var(--ink); }
+
     /* boot skeleton: the shell's shape, wordless, while the session restores */
     .boot-skel { position: fixed; inset: 0; z-index: 6; background: var(--bg); display: flex; }
     .boot-skel .bs-rail { width: 68px; border-right: 1px solid var(--line); padding: 16px 0; display: flex; flex-direction: column; gap: 16px; align-items: center; }
@@ -2060,6 +2064,7 @@
         <button class="tab" data-view="set-desktop" data-title="Echelon for Windows" data-crumb="" hidden></button>
         <button class="tab" data-view="set-invite" data-title="Invite friends" data-crumb="" hidden></button>
         <button class="tab" data-view="set-affiliate" data-title="Affiliate" data-crumb="" hidden></button>
+        <button class="tab" data-view="set-modtools" data-title="Mod tools" data-crumb="" hidden></button>
         <button class="tab" data-view="follows" data-title="Followers" data-crumb="" hidden></button>
         <button class="tab" data-view="rate" data-title="Rate Echelon" data-crumb="" hidden></button>
         <button class="tab" data-view="set-stats" data-title="Statistics" data-crumb="" hidden></button>
@@ -2638,6 +2643,11 @@
               <span class="txt"><b>Echelon for Windows</b></span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
             </button>
+            <button class="set-row" type="button" data-go="set-modtools" id="set-modtools-row" hidden>
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+              <span class="txt"><b>Mod tools</b><small>Invites, discounts, affiliate applications</small></span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
             <button class="set-row" type="button" data-go="set-affiliate">
               <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8.5 15.5l7-7"/><circle cx="9" cy="9" r="1.1"/><circle cx="15" cy="15" r="1.1"/></svg></span>
               <span class="txt"><b>Affiliate</b><small>Apply for your code</small></span>
@@ -2647,10 +2657,36 @@
               <b>Rate Echelon</b>
               <span class="stars" id="rate-stars"></span>
             </div>
+            <button class="set-row" type="button" id="set-logout-row" style="margin-top:6px;">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+              <span class="txt"><b>Log out</b></span>
+            </button>
             <div id="set-owner" hidden>
               <p class="set-group">Owner</p>
               <div id="set-viewas"></div>
             </div>
+          </div>
+        </section>
+
+        <section class="view setpage" id="v-set-modtools">
+          <div style="max-width:640px;margin-bottom:14px;"><button class="rowbtn set-back" type="button">&larr; Settings</button></div>
+          <div class="block" style="max-width:640px;">
+            <div class="block-head"><h3>Codes</h3></div>
+            <div style="padding:16px 18px 18px;">
+              <div class="filters">
+                <button class="btn" id="mt-invite" type="button">New free invite</button>
+                <input class="inp" id="mt-pct" type="number" inputmode="numeric" min="5" max="50" step="5" placeholder="%" style="width:72px;">
+                <input class="inp" id="mt-want" type="text" maxlength="12" placeholder="Code, optional" style="width:150px;text-transform:uppercase;">
+                <button class="rowbtn" id="mt-discount" type="button">New discount</button>
+              </div>
+              <p class="hint" style="margin:10px 0 0;">Codes go in the code field at checkout, on the training only. A free invite works once; a discount keeps working until you turn it off.</p>
+              <p class="msg" id="mt-msg"></p>
+              <div id="mt-codes" style="margin-top:6px;"></div>
+            </div>
+          </div>
+          <div class="block" style="max-width:640px;">
+            <div class="block-head"><h3>Affiliate applications</h3><span class="label" id="mt-aff-n"></span></div>
+            <div id="mt-aff" style="padding:12px 18px 16px;"></div>
           </div>
         </section>
 
@@ -3383,6 +3419,7 @@
       if (view === 'set-invite') renderInvitePage()
       if (view === 'set-stats') renderStatsPage()
       if (view === 'set-affiliate') renderAffiliatePage()
+      if (view === 'set-modtools') renderModTools()
       el('pro-settings').hidden = view !== 'set-profile'
       if (view !== 'gex') endGexTour(false)
     }
@@ -3390,7 +3427,7 @@
 
     /* ── phone bottom nav: built from the sidebar so the two never disagree ── */
     const BNAV = ['overview', 'feed', 'course', 'chat', 'set-profile']
-    const BNAV_PROFILE_VIEWS = new Set(['set-profile', 'settings', 'set-account', 'set-appearance', 'set-discord', 'set-desktop', 'set-invite', 'set-stats', 'set-affiliate', 'follows', 'rate', 'notifs', 'inbox'])
+    const BNAV_PROFILE_VIEWS = new Set(['set-profile', 'settings', 'set-account', 'set-appearance', 'set-discord', 'set-desktop', 'set-invite', 'set-stats', 'set-affiliate', 'set-modtools', 'follows', 'rate', 'notifs', 'inbox'])
     function buildBnav() {
       const nav = el('bnav'); if (!nav) return
       nav.textContent = ''
@@ -6884,6 +6921,127 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     }
 
+    // ── settings: mod tools ─────────────────────────────────
+    // Mods mint checkout codes (free invite = single-use 100% off, discount =
+    // 5-50% off, both course-only Stripe promos via mod-codes) and read the
+    // affiliate applications. Decisions on affiliates stay with the owner.
+
+    async function modCodesCall(payload) {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/mod-codes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify(payload),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? `${res.status}`)
+      return body
+    }
+
+    async function renderModCodes() {
+      const host = el('mt-codes'); host.textContent = 'Loading…'
+      try {
+        const { codes } = await modCodesCall({ action: 'list' })
+        host.textContent = ''
+        if (!codes.length) {
+          const p = document.createElement('p'); p.className = 'hint'; p.style.margin = '8px 0 0'
+          p.textContent = 'No codes yet.'
+          host.appendChild(p); return
+        }
+        for (const c of codes) {
+          const row = document.createElement('div'); row.className = 'filters'
+          row.style.cssText = 'justify-content:space-between;padding:10px 0 9px;border-bottom:1px solid var(--line);'
+          const left = document.createElement('div')
+          const cd = document.createElement('b')
+          cd.style.cssText = 'font-family:ui-monospace,Menlo,monospace;letter-spacing:0.08em;cursor:pointer;' + (c.is_active ? '' : 'color:var(--faint);text-decoration:line-through;')
+          cd.textContent = c.code; cd.title = 'Copy'
+          cd.addEventListener('click', async () => { try { await navigator.clipboard.writeText(c.code); toast('Copied.') } catch {} })
+          const sub = document.createElement('div'); sub.className = 'hint'; sub.style.margin = '2px 0 0'
+          sub.textContent = (c.kind === 'free' ? 'Free invite' : `${c.percent_off}% off`)
+            + ` · used ${c.redeemed}${c.kind === 'free' ? ' of 1' : ''}` + (c.is_active ? '' : ' · off')
+          left.append(cd, sub); row.appendChild(left)
+          if (c.is_active) {
+            const off = document.createElement('button'); off.className = 'rowbtn'; off.type = 'button'; off.textContent = 'Turn off'
+            off.addEventListener('click', async () => {
+              off.disabled = true
+              try { await modCodesCall({ action: 'deactivate', code: c.code }); renderModCodes() }
+              catch (e) { alert(e.message); off.disabled = false }
+            })
+            row.appendChild(off)
+          }
+          host.appendChild(row)
+        }
+      } catch (e) { host.textContent = e.message }
+    }
+
+    async function renderModAff() {
+      const host = el('mt-aff'); host.textContent = 'Loading…'
+      const { data, error } = await supabase.from('affiliate_applications')
+        .select('user_id, pitch, socials, followers, status, requested_code, code, created_at')
+        .order('created_at', { ascending: false }).limit(50)
+      if (error) { host.textContent = error.message; return }
+      const rows = (data ?? []).filter((a) => a.user_id !== state.user.id || state.isMod || state.isAdmin)
+      el('mt-aff-n').textContent = rows.filter((a) => a.status === 'pending').length || ''
+      host.textContent = ''
+      if (!rows.length) {
+        const p = document.createElement('p'); p.className = 'hint'; p.style.margin = '4px 0'
+        p.textContent = 'Nobody has applied yet.'
+        host.appendChild(p); return
+      }
+      const ids = [...new Set(rows.map((a) => a.user_id))]
+      const { data: profs } = await supabase.from('profiles').select('user_id, username').in('user_id', ids)
+      const names = new Map((profs ?? []).map((p) => [p.user_id, p.username]))
+      for (const a of rows) {
+        const it = document.createElement('div')
+        it.style.cssText = 'padding:11px 0 10px;border-bottom:1px solid var(--line);'
+        const top = document.createElement('div'); top.className = 'filters'; top.style.justifyContent = 'space-between'
+        const who = document.createElement('b'); who.textContent = '@' + (names.get(a.user_id) ?? a.user_id.slice(0, 8))
+        const st = document.createElement('span'); st.className = 'label'; st.textContent = a.status
+        top.append(who, st); it.appendChild(top)
+        const reach = document.createElement('p'); reach.className = 'hint'; reach.style.margin = '3px 0 0'
+        const socials = Object.entries(a.socials ?? {}).map(([k, v]) => `${k} ${v}`).join(' · ')
+        reach.textContent = [socials, a.followers && `~${a.followers} followers`, a.requested_code && `wants ${a.requested_code}`, a.code && `code ${a.code}`].filter(Boolean).join(' · ') || '—'
+        it.appendChild(reach)
+        const pitch = document.createElement('p'); pitch.style.cssText = 'margin:5px 0 0;font-size:13px;color:var(--muted);'
+        pitch.textContent = a.pitch
+        it.appendChild(pitch)
+        host.appendChild(it)
+      }
+    }
+
+    let _mtWired = false
+    function renderModTools() {
+      if (!_mtWired) {
+        _mtWired = true
+        el('mt-invite').addEventListener('click', async () => {
+          if (!confirm('A free invite comps the whole training, once. Create one?')) return
+          const msg = el('mt-msg'); el('mt-invite').disabled = true; msg.className = 'msg'; msg.textContent = 'Creating…'
+          try {
+            const { code } = await modCodesCall({ action: 'create', kind: 'free' })
+            try { await navigator.clipboard.writeText(code) } catch {}
+            msg.className = 'msg ok'; msg.textContent = `${code} — copied. It works once at checkout.`
+            renderModCodes()
+          } catch (e) { msg.className = 'msg err'; msg.textContent = e.message }
+          el('mt-invite').disabled = false
+        })
+        el('mt-discount').addEventListener('click', async () => {
+          const msg = el('mt-msg')
+          const pct = Math.round(parseFloat(el('mt-pct').value))
+          if (!(pct >= 5 && pct <= 50)) { msg.className = 'msg err'; msg.textContent = 'Discounts run 5 to 50 percent.'; return }
+          el('mt-discount').disabled = true; msg.className = 'msg'; msg.textContent = 'Creating…'
+          try {
+            const { code } = await modCodesCall({ action: 'create', kind: 'discount', percent: pct, code: el('mt-want').value.trim() || undefined })
+            try { await navigator.clipboard.writeText(code) } catch {}
+            msg.className = 'msg ok'; msg.textContent = `${code} — copied. ${pct}% off at checkout.`
+            el('mt-want').value = ''
+            renderModCodes()
+          } catch (e) { msg.className = 'msg err'; msg.textContent = e.message }
+          el('mt-discount').disabled = false
+        })
+      }
+      renderModCodes(); renderModAff()
+    }
+
     // ── settings: delete account ────────────────────────────
 
     el('del-account').addEventListener('click', async () => {
@@ -8219,8 +8377,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       if (owned) {
         const mine = rows.find((r) => r.user_id === state.user.id)
-        const b = document.createElement('button'); b.className = 'rowbtn'; b.type = 'button'
-        b.style.alignSelf = 'flex-start'
+        const b = document.createElement('button'); b.className = 'p-rev-write'; b.type = 'button'
         b.textContent = mine ? 'Edit your review' : 'Leave a review'
         b.addEventListener('click', () => openReviewModal(p, mine))
         wrap.appendChild(b)
@@ -9337,6 +9494,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     // ── boot ────────────────────────────────────────────────
 
+    el('set-logout-row').addEventListener('click', () => el('signout').click())
     el('signout').addEventListener('click', async () => {
       await supabase.auth.signOut()
       location.reload()
@@ -9620,6 +9778,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.owned = new Set((ents ?? []).map((e) => e.product))
       applyStaffComps()
       state.hasCourse = state.owned.has('course') || state.isAdmin
+      el('set-modtools-row').hidden = !(state.isMod || state.isAdmin)
 
       // Signed in is not the same as member. A Discord or email sign-in with
       // nothing on the account stops here: the door is the free signup (which
