@@ -873,7 +873,7 @@
     .rv-user .av { width: 36px; height: 36px; border-radius: 50%; font-size: 13px; flex-shrink: 0; }
     .rv-user b { font-size: 14px; color: var(--ink); display: flex; align-items: center; gap: 4px; }
     .rv-user b .vcheck, .cm-body b .vcheck { width: 14px; height: 14px; vertical-align: -2px; margin-left: 3px; }
-    .cm-row img.av, .nb-row img.av, .lb-row img.av, .rv-user img.av { object-fit: cover; }
+    .cm-row img.av, .nb-row img.av, .rv-user img.av { object-fit: cover; }
     .rv-user .d { color: var(--faint); font-size: 12px; display: block; margin-top: 1px; }
     .rv-media img { cursor: default; }
     .rv-line { display: flex; align-items: center; gap: 8px; padding: 3px 16px 0; }
@@ -976,18 +976,6 @@
     .stx .heat i { border-radius: 3px; }
     .stx-fact { display: flex; justify-content: space-between; align-items: baseline; padding: 11px 2px; border-bottom: 1px solid var(--line); max-width: 640px; font-size: 13.5px; color: var(--muted); }
     .stx-fact b { color: var(--ink); font-size: 14.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
-    /* leaderboard */
-    .board { max-width: 640px; }
-    .lb-row { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border-bottom: 1px solid var(--line); cursor: pointer; }
-    .lb-row .rk { width: 22px; font-size: 12.5px; color: var(--faint); font-variant-numeric: tabular-nums; text-align: right; }
-    .lb-row .av { width: 34px; height: 34px; border-radius: 50%; font-size: 12px; flex-shrink: 0; }
-    .lb-row .nm { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .lb-row .nm small { display: block; font-weight: 400; color: var(--faint); font-size: 12px; margin-top: 1px; }
-    .lb-row .r { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .lb-row .r.up { color: var(--good); } .lb-row .r.down { color: var(--bad); }
-    .lb-row.me { background: rgba(201,162,74,0.06); margin: 0 -10px; padding-left: 12px; padding-right: 12px; border-radius: 10px; }
-    .lb-row:nth-child(1) .rk, .lb-row:nth-child(2) .rk, .lb-row:nth-child(3) .rk { color: var(--gold); font-weight: 700; }
-    .board-opt { display: flex; align-items: center; gap: 10px; margin-top: 22px; font-size: 13px; color: var(--muted); cursor: pointer; max-width: 640px; }
     /* inbox */
     .inbox { max-width: 640px; }
     .nb-row { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border-bottom: 1px solid var(--line); cursor: pointer; }
@@ -1534,6 +1522,8 @@
     .calc-row label { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 120px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .calc-row .inp { width: 100%; background: var(--panel-2); border: 0; border-radius: 11px; padding: 12px 14px; font-size: 15px; }
     .calc-row .inp:focus { box-shadow: inset 0 0 0 1.5px var(--gold); }
+    .cc-days { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-height: 200px; overflow-y: auto; }
+    .cc-days .inp { width: 100%; padding: 10px 11px; font-size: 14px; }
     .calc .inp::-webkit-outer-spin-button, .calc .inp::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     .calc .inp[type="number"] { -moz-appearance: textfield; appearance: textfield; }
     .calc-out { margin: 16px 2px 0; font-size: 16px; font-weight: 650; color: var(--gold); line-height: 1.5; }
@@ -2064,10 +2054,6 @@
           GEX
           <span class="notif" id="n-gex" hidden></span>
         </button>
-        <button class="tab" data-view="board" data-title="Leaderboard" data-crumb="">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5 17 22l-5-3-5 3 1.5-8.5"/></svg>
-          Leaderboard
-        </button>
         <button class="tab" data-view="inbox" data-title="Notifications" data-crumb="" hidden></button>
         <button class="tab" data-view="members" data-title="Members" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -2246,11 +2232,13 @@
                 </div>
                 <div id="cc-pane" hidden>
                   <div class="calc-row">
-                    <label>Total profit ($)<input class="inp" id="cc-total" type="number" inputmode="decimal" min="0" step="50" placeholder="on the account"></label>
-                    <label>Best day ($)<input class="inp" id="cc-best" type="number" inputmode="decimal" min="0" step="50" placeholder="your biggest"></label>
+                    <label>Account size ($)<input class="inp" id="cc-size" type="number" inputmode="numeric" min="0" step="1000" value="50000"></label>
+                    <label>Consistency rule (%)<input class="inp" id="cc-rule" type="number" inputmode="numeric" min="5" max="100" step="5" value="30"></label>
                   </div>
                   <div class="calc-row">
-                    <label>Consistency rule (%)<input class="inp" id="cc-rule" type="number" inputmode="numeric" min="5" max="100" step="5" value="30"></label>
+                    <label style="flex:1 1 100%;">Each day&rsquo;s P&amp;L, + or &minus; ($)
+                      <div class="cc-days" id="cc-days"></div>
+                    </label>
                   </div>
                   <p class="calc-out" id="cc-out"></p>
                 </div>
@@ -2265,12 +2253,6 @@
           <div class="feed" id="feed"></div>
           <p class="ov-empty" id="feed-empty" hidden>Nothing here yet.</p>
           <div class="feed-foot"><button class="rowbtn" id="feed-more" type="button" hidden>Load more</button></div>
-        </section>
-
-        <!-- LEADERBOARD -->
-        <section class="view" id="v-board">
-          <div class="board" id="board"></div>
-          <p class="ov-empty" id="board-empty" hidden>No trades with an outcome or R yet.</p>
         </section>
 
         <!-- INBOX: likes, comments, follows, the GEX sheet -->
@@ -3436,7 +3418,6 @@
       if (view === 'library') { if (!LIB.loaded) loadLibrary(); markRead('recaps') }
       if (view === 'gex') gexShown()
       if (view === 'feed') feedShown()
-      if (view === 'board') loadBoard()
       if (view === 'inbox') loadInbox()
       if (view === 'news') loadNews()
       if (view === 'notifs') ntRenderChannels()
@@ -5881,27 +5862,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       let n = 0
       while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1) }
       return n
-    }
-
-    /* ── leaderboard ── */
-    async function loadBoard() {
-      const host = el('board'); host.textContent = ''
-      const { data } = await supabase.rpc('leaderboard', { p_days: 0 })
-      const rows = data ?? []
-      el('board-empty').hidden = rows.length > 0
-      rows.forEach((r, i) => {
-        const row = document.createElement('div'); row.className = 'lb-row' + (r.user_id === state.user?.id ? ' me' : '')
-        const rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = String(i + 1)
-        const av = avatarNode({ username: r.username, avatar_url: r.avatar_url }, 'av')
-        const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = '@' + r.username
-        const sm = document.createElement('small'); sm.textContent = `${r.trades} ${r.trades === 1 ? 'trade' : 'trades'}${r.win_rate !== null ? ` · ${r.win_rate}% win rate` : ''}`
-        nm.appendChild(sm)
-        const rr = document.createElement('span'); rr.className = 'r ' + (r.net_r > 0 ? 'up' : r.net_r < 0 ? 'down' : '')
-        rr.textContent = `${r.net_r > 0 ? '+' : ''}${r.net_r}R`
-        row.append(rk, av, nm, rr)
-        row.addEventListener('click', () => openChatProfile(r.user_id))
-        host.appendChild(row)
-      })
     }
 
     /* ── inbox + bell ── */
@@ -9591,34 +9551,71 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       inst.addEventListener('input', calc)
       calc()
 
-      // ── consistency: is the best day a small enough share of the profit? ──
-      // Under the rule: today's cap p solves p / (total + p) = r  →  r·total/(1−r).
-      // Over it: the total that fixes it solves best / T = r  →  best / r.
+      // ── consistency: day-by-day P&L against the rule ──
+      // Total = the days summed, best = the biggest green day. Under the rule:
+      // today's cap p solves p / (total + p) = r → r·total/(1−r). Over it: the
+      // total that fixes it solves best / T = r → best / r.
       const CC_KEY = 'echelon-consistency'
-      const ccTotal = el('cc-total'), ccBest = el('cc-best'), ccRule = el('cc-rule'), ccOut = el('cc-out')
-      try {
-        const saved = JSON.parse(localStorage.getItem(CC_KEY) || 'null')
-        if (saved) { ccTotal.value = saved.total; ccBest.value = saved.best; if (saved.rule) ccRule.value = saved.rule }
-      } catch {}
+      const ccSize = el('cc-size'), ccRule = el('cc-rule'), ccDaysHost = el('cc-days'), ccOut = el('cc-out')
+      let ccSaved = null
+      try { ccSaved = JSON.parse(localStorage.getItem(CC_KEY) || 'null') } catch {}
+      if (ccSaved) { if (ccSaved.size) ccSize.value = ccSaved.size; if (ccSaved.rule) ccRule.value = ccSaved.rule }
+      const ccUsd = (n) => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US')
+      const ccVals = () => [...ccDaysHost.querySelectorAll('input')].map((x) => parseFloat(x.value)).filter((n) => !Number.isNaN(n))
+      function ccAddInput(v) {
+        const inp = document.createElement('input')
+        inp.className = 'inp'; inp.type = 'number'; inp.inputMode = 'decimal'; inp.step = '25'
+        inp.placeholder = 'Day ' + (ccDaysHost.children.length + 1)
+        if (v !== null && v !== undefined) inp.value = String(v)
+        inp.addEventListener('input', () => {
+          // typing in the trailing empty slot grows the grid by one
+          if (ccDaysHost.lastElementChild.value !== '') ccAddInput()
+          ccCalc()
+        })
+        inp.addEventListener('blur', () => {
+          // an emptied day disappears; the trailing empty slot stays
+          if (inp.value === '' && inp !== ccDaysHost.lastElementChild) {
+            inp.remove()
+            ;[...ccDaysHost.querySelectorAll('input')].forEach((x, i) => { x.placeholder = 'Day ' + (i + 1) })
+            ccCalc()
+          }
+        })
+        ccDaysHost.appendChild(inp)
+      }
+      for (const v of (Array.isArray(ccSaved?.days) ? ccSaved.days : [])) if (typeof v === 'number') ccAddInput(v)
+      ccAddInput()
       function ccCalc() {
-        const t = parseFloat(ccTotal.value), b = parseFloat(ccBest.value), r = parseFloat(ccRule.value) / 100
-        if (!(t > 0) || !(b > 0) || !(r > 0) || r > 1) { ccOut.textContent = ''; return }
-        const share = Math.round((b / t) * 100)
+        const size = parseFloat(ccSize.value), r = parseFloat(ccRule.value) / 100
+        const days = ccVals()
         const detail = document.createElement('span')
-        if (b / t <= r) {
-          const cap = r < 1 ? Math.max(b, (r * t) / (1 - r)) : Infinity
-          ccOut.className = 'calc-out'
-          ccOut.textContent = `Consistent — your best day is ${share}% of profits. `
-          detail.textContent = cap === Infinity ? '' : `Up to ${usd0(cap)} today keeps it under ${Math.round(r * 100)}%.`
-        } else {
+        ccOut.textContent = ''
+        try { localStorage.setItem(CC_KEY, JSON.stringify({ size: ccSize.value, rule: ccRule.value, days })) } catch {}
+        if (!days.length || !(r > 0) || r > 1) return
+        const total = days.reduce((a, b) => a + b, 0)
+        const best = Math.max(...days, 0)
+        const balLine = size > 0 ? `Balance ${ccUsd(size + total)} · ` : ''
+        const n = `${days.length} day${days.length === 1 ? '' : 's'}`
+        if (total <= 0) {
           ccOut.className = 'calc-out warn'
-          ccOut.textContent = `Not there yet — your best day is ${share}% of profits. `
-          detail.textContent = `${usd0(b / r - t)} more, without a bigger day, brings it under ${Math.round(r * 100)}%.`
+          ccOut.textContent = `${ccUsd(total)} over ${n}. `
+          detail.textContent = `${balLine}consistency starts counting once the account is green.`
+        } else {
+          const share = Math.round((best / total) * 100)
+          if (best / total <= r) {
+            const cap = r < 1 ? Math.max(best, (r * total) / (1 - r)) : Infinity
+            ccOut.className = 'calc-out'
+            ccOut.textContent = `Consistent — your best day is ${share}% of profits. `
+            detail.textContent = `${balLine}+${ccUsd(total)} over ${n}, best day +${ccUsd(best)}.`
+              + (cap === Infinity ? '' : ` Up to ${ccUsd(cap)} today keeps it under ${Math.round(r * 100)}%.`)
+          } else {
+            ccOut.className = 'calc-out warn'
+            ccOut.textContent = `Not there yet — your best day is ${share}% of profits. `
+            detail.textContent = `${balLine}${ccUsd(best / r - total)} more, without a bigger day, brings it under ${Math.round(r * 100)}%.`
+          }
         }
         ccOut.appendChild(detail)
-        try { localStorage.setItem(CC_KEY, JSON.stringify({ total: ccTotal.value, best: ccBest.value, rule: ccRule.value })) } catch {}
       }
-      ;[ccTotal, ccBest, ccRule].forEach((i) => i.addEventListener('input', ccCalc))
+      ;[ccSize, ccRule].forEach((i) => i.addEventListener('input', ccCalc))
       ccCalc()
 
       // Two flat tabs, one popup off the Overview hero button.
@@ -9627,7 +9624,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const cc = which === 'cc'
         tabRisk.classList.toggle('on', !cc); tabCc.classList.toggle('on', cc)
         el('rc-pane').hidden = cc; el('cc-pane').hidden = !cc
-        ;(cc ? ccTotal : risk).focus()
+        ;(cc ? (ccDaysHost.lastElementChild ?? ccSize) : risk).focus()
         try { localStorage.setItem('echelon-calc-tab', which) } catch {}
       }
       tabRisk.addEventListener('click', () => showCalc('risk'))
@@ -9841,7 +9838,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const v = curView()
           if (v === 'feed') await loadFeed(true)
           else if (v === 'inbox') await loadInbox()
-          else if (v === 'board') await loadBoard()
           else await fetchAndRender()
         } catch (err) { console.warn('refresh failed', err) }
         // hold the spinner long enough to read as "it did something"
