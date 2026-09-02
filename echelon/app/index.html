@@ -77,18 +77,9 @@
 
     .label { font-size: 10.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint); }
 
-    /* themed scrollbars: slim and dark everywhere; the sidebar's only
-       shows itself on hover */
-    html { scrollbar-color: var(--line-bright) transparent; }
-    ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--line-bright); border-radius: 5px; border: 3px solid var(--bg); }
-    ::-webkit-scrollbar-thumb:hover { background: var(--faint); }
-    .side-nav { scrollbar-width: thin; scrollbar-color: transparent transparent; }
-    .side-nav:hover { scrollbar-color: var(--line-bright) transparent; }
-    .side-nav::-webkit-scrollbar { width: 4px; }
-    .side-nav::-webkit-scrollbar-thumb { background: transparent; border: 0; }
-    .side-nav:hover::-webkit-scrollbar-thumb { background: var(--line-bright); }
+    /* native-app feel: everything scrolls, no bars anywhere (D1, 9/2) */
+    * { scrollbar-width: none; }
+    ::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
     /* ════ GATE (glass card) ═════════════════════════════════ */
 
@@ -1526,12 +1517,28 @@
       transition: color 0.15s ease, border-color 0.15s ease;
     }
     .x-close:hover { color: var(--gold); border-color: var(--gold); }
-    .rc-row { display: flex; gap: 12px; flex-wrap: wrap; }
-    .rc-row label { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 130px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .rc-row .inp { width: 100%; }
-    .rc-out { margin-top: 14px; font-size: 15px; font-weight: 600; color: var(--ink); }
-    .rc-out span { color: var(--muted); font-weight: 400; font-size: 13px; }
-    .rc-out.warn { color: var(--muted); font-weight: 400; font-size: 13.5px; }
+    /* calculators popup: one quiet card — filled fields, no borders, no
+       dividers; the only gold is the focused field and the answer */
+    .calc { width: 100%; max-width: 400px; background: var(--panel); border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,0.45); }
+    :root[data-theme="light"] .calc { box-shadow: 0 18px 48px rgba(26,24,21,0.16); }
+    .calc-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 2px; }
+    .calc-tabs { display: inline-flex; gap: 18px; }
+    .calc-tabs button { background: none; border: 0; padding: 2px 0; cursor: pointer; font-family: inherit; font-size: 14.5px; font-weight: 650; letter-spacing: -0.01em; color: var(--faint); transition: color 0.15s ease; }
+    .calc-tabs button:hover { color: var(--muted); }
+    .calc-tabs button.on { color: var(--ink); }
+    .calc-x { background: none; border: 0; width: 32px; height: 32px; margin-right: -9px; color: var(--faint); font-size: 21px; line-height: 1; cursor: pointer; padding: 0; transition: color 0.15s ease; }
+    .calc-x:hover { color: var(--ink); }
+    .calc-body { padding: 14px 20px 20px; }
+    .calc-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .calc-row + .calc-row { margin-top: 10px; }
+    .calc-row label { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 120px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+    .calc-row .inp { width: 100%; background: var(--panel-2); border: 0; border-radius: 11px; padding: 12px 14px; font-size: 15px; }
+    .calc-row .inp:focus { box-shadow: inset 0 0 0 1.5px var(--gold); }
+    .calc .inp::-webkit-outer-spin-button, .calc .inp::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .calc .inp[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+    .calc-out { margin: 16px 2px 0; font-size: 16px; font-weight: 650; color: var(--gold); line-height: 1.5; }
+    .calc-out span { display: block; margin-top: 3px; color: var(--muted); font-weight: 400; font-size: 13.5px; }
+    .calc-out.warn { color: var(--muted); font-weight: 500; font-size: 13.5px; }
 
     /* boot skeleton: the shell's shape, wordless, while the session restores */
     .boot-skel { position: fixed; inset: 0; z-index: 6; background: var(--bg); display: flex; }
@@ -2182,21 +2189,21 @@
 
           <!-- Risk calculator popup: opened by the calculator button up top -->
           <div class="dmpick-scrim" id="rcmodal" hidden>
-            <div class="dmpick" style="max-width:430px;">
-              <div class="block-head">
-                <span class="seg" id="calc-tabs" role="tablist" aria-label="Calculator">
+            <div class="calc">
+              <div class="calc-head">
+                <span class="calc-tabs" role="tablist" aria-label="Calculator">
                   <button class="on" id="calc-tab-risk" type="button">Risk</button>
                   <button id="calc-tab-cc" type="button">Consistency</button>
                 </span>
-                <button class="x-close" id="rc-x" type="button" aria-label="Close">&times;</button>
+                <button class="calc-x" id="rc-x" type="button" aria-label="Close">&times;</button>
               </div>
-              <div style="padding:16px 18px 18px;">
+              <div class="calc-body">
                 <div id="rc-pane">
-                  <div class="rc-row">
+                  <div class="calc-row">
                     <label>Risk per trade ($)<input class="inp" id="rc-risk" type="number" inputmode="decimal" min="1" step="25" value="300"></label>
                     <label>Stop (points)<input class="inp" id="rc-stop" type="number" inputmode="decimal" min="0.25" step="0.25" value="15"></label>
                   </div>
-                  <div class="rc-row" style="margin-top:12px;">
+                  <div class="calc-row">
                     <label>Contracts<input class="inp" id="rc-n" type="number" inputmode="numeric" min="1" step="1" placeholder="or type them"></label>
                     <label>Instrument<select class="inp" id="rc-inst">
                       <option value="2">MNQ · $2/pt</option>
@@ -2205,17 +2212,17 @@
                       <option value="50">ES · $50/pt</option>
                     </select></label>
                   </div>
-                  <p class="rc-out" id="rc-out"></p>
+                  <p class="calc-out" id="rc-out"></p>
                 </div>
                 <div id="cc-pane" hidden>
-                  <div class="rc-row">
+                  <div class="calc-row">
                     <label>Total profit ($)<input class="inp" id="cc-total" type="number" inputmode="decimal" min="0" step="50" placeholder="on the account"></label>
                     <label>Best day ($)<input class="inp" id="cc-best" type="number" inputmode="decimal" min="0" step="50" placeholder="your biggest"></label>
                   </div>
-                  <div class="rc-row" style="margin-top:12px;">
+                  <div class="calc-row">
                     <label>Consistency rule (%)<input class="inp" id="cc-rule" type="number" inputmode="numeric" min="5" max="100" step="5" value="30"></label>
                   </div>
-                  <p class="rc-out" id="cc-out"></p>
+                  <p class="calc-out" id="cc-out"></p>
                 </div>
               </div>
             </div>
@@ -9246,7 +9253,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const n = Math.floor(parseFloat(num.value))
           if (!(n > 0)) { out.textContent = ''; return }
           risk.value = String(Math.round(n * perContract))
-          out.className = 'rc-out'
+          out.className = 'calc-out'
           out.textContent = `${usd0(n * perContract)} at the stop `
           const detail = document.createElement('span')
           detail.textContent = `· ${n} ${NAME[v]} · ${usd0(n * v)} per point`
@@ -9257,11 +9264,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const n = Math.floor(r / perContract)
           if (n < 1) {
             num.value = ''
-            out.className = 'rc-out warn'
+            out.className = 'calc-out warn'
             out.textContent = `A ${s} point stop on ${NAME[v]} costs ${usd0(perContract)} per contract, more than your risk. Tighten the stop or drop to a micro.`
           } else {
             num.value = String(n)
-            out.className = 'rc-out'
+            out.className = 'calc-out'
             out.textContent = `${n} contract${n > 1 ? 's' : ''} `
             const detail = document.createElement('span')
             detail.textContent = `· ${usd0(n * v)} per point · ${usd0(n * perContract)} at the stop`
@@ -9292,11 +9299,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const detail = document.createElement('span')
         if (b / t <= r) {
           const cap = r < 1 ? Math.max(b, (r * t) / (1 - r)) : Infinity
-          ccOut.className = 'rc-out'
+          ccOut.className = 'calc-out'
           ccOut.textContent = `Consistent — your best day is ${share}% of profits. `
           detail.textContent = cap === Infinity ? '' : `Up to ${usd0(cap)} today keeps it under ${Math.round(r * 100)}%.`
         } else {
-          ccOut.className = 'rc-out warn'
+          ccOut.className = 'calc-out warn'
           ccOut.textContent = `Not there yet — your best day is ${share}% of profits. `
           detail.textContent = `${usd0(b / r - t)} more, without a bigger day, brings it under ${Math.round(r * 100)}%.`
         }
