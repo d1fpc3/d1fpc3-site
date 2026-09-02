@@ -1530,6 +1530,19 @@
     .calc-out span { display: block; margin-top: 3px; color: var(--muted); font-weight: 400; font-size: 13.5px; }
     .calc-out.warn { color: var(--muted); font-weight: 500; font-size: 13.5px; }
 
+    /* download button: icon + title + caption, one quiet panel row */
+    .dlbtn {
+      display: inline-flex; align-items: center; gap: 14px; text-align: left;
+      background: var(--panel-2); border: 1px solid var(--panel-2); border-radius: 10px;
+      color: var(--ink); font-family: inherit; padding: 12px 24px; cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .dlbtn:hover { background: var(--line); border-color: var(--line); }
+    .dlbtn:disabled { opacity: 0.6; cursor: default; }
+    .dlbtn svg { width: 22px; height: 22px; flex: none; }
+    .dlbtn b { display: block; font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+    .dlbtn small { display: block; font-size: 11.5px; color: var(--muted); }
+
     /* partner popup: notification-style card, slides in once, tap to open */
     .bt-pop {
       position: fixed; z-index: 90; right: 16px; bottom: calc(16px + var(--bnav, 0px));
@@ -2906,9 +2919,10 @@
           <div class="block" id="desktop-block" hidden>
             <div class="block-head"><h3>Echelon for Windows</h3></div>
             <div class="setgrid" style="max-width:none;">
-              <div class="filters">
-                <button class="btn" id="desktop-dl" type="button">Download for Windows</button>
-              </div>
+              <button class="dlbtn" id="desktop-dl" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                <span><b>Download for Windows</b><small id="desktop-sub">64-bit installer</small></span>
+              </button>
               <p class="msg" id="desktop-msg"></p>
             </div>
           </div>
@@ -3468,6 +3482,7 @@
       if (view === 'set-stats') renderStatsPage()
       if (view === 'set-affiliate') renderAffiliatePage()
       if (view === 'set-modtools') renderModTools()
+      if (view === 'set-desktop') desktopInfo()
       el('pro-settings').hidden = view !== 'set-profile'
       if (view !== 'gex') endGexTour(false)
     }
@@ -6721,6 +6736,23 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     // Members-only desktop app download.
     function memberCanDownload() { return state.owned.size > 0 || state.isMod || state.isAdmin }
+    // Version + size for the button caption, fetched when the page opens.
+    let _ddInfo = false
+    async function desktopInfo() {
+      if (_ddInfo) return
+      _ddInfo = true
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/desktop-download`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}` },
+        })
+        const b = await res.json().catch(() => ({}))
+        if (res.ok && b.version) {
+          el('desktop-sub').textContent = `Version ${b.version} · 64-bit installer` + (b.size_bytes ? ` · ${Math.round(b.size_bytes / 1048576)} MB` : '')
+        }
+      } catch { _ddInfo = false }
+    }
     function initDesktopPanel() {
       const block = el('desktop-block'); if (!block) return
       block.hidden = NATIVE || !!window.echelonDesktop || !memberCanDownload()
@@ -9688,7 +9720,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const cc = which === 'cc'
         tabRisk.classList.toggle('on', !cc); tabCc.classList.toggle('on', cc)
         el('rc-pane').hidden = cc; el('cc-pane').hidden = !cc
-        ;(cc ? (ccDaysHost.lastElementChild ?? ccSize) : risk).focus()
+        // desktop only: focusing on a phone slams the keyboard up on open
+        if (matchMedia('(pointer: fine)').matches) (cc ? (ccDaysHost.lastElementChild ?? ccSize) : risk).focus()
         try { localStorage.setItem('echelon-calc-tab', which) } catch {}
       }
       tabRisk.addEventListener('click', () => showCalc('risk'))
