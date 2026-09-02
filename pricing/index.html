@@ -264,6 +264,18 @@
     var CHECKOUT_FN = 'https://cqdignbleethroyxxvzr.supabase.co/functions/v1/create-checkout';
     var SB_ANON = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x';
     var _stripeJs = null, _coInstance = null;
+    /* An affiliate link (?aff=CODE) is remembered for 30 days and rides along
+       on checkout, where the webhook credits the affiliate. */
+    try {
+      var _aff = new URLSearchParams(location.search).get('aff');
+      if (_aff && /^[A-Za-z0-9]{4,12}$/.test(_aff)) localStorage.setItem('echelon-aff', JSON.stringify({ code: _aff.toUpperCase(), t: Date.now() }));
+    } catch (e) {}
+    function affCode() {
+      try {
+        var a = JSON.parse(localStorage.getItem('echelon-aff') || '{}');
+        return a.code && Date.now() - a.t < 30 * 86400e3 ? a.code : undefined;
+      } catch (e) { return undefined; }
+    }
     function loadStripeJs() {
       if (_stripeJs) return _stripeJs;
       _stripeJs = new Promise(function (resolve, reject) {
@@ -298,7 +310,7 @@
           return fetch(CHECKOUT_FN, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', apikey: SB_ANON },
-            body: JSON.stringify({ product: product, interval: interval, promo: (code || '').trim() || undefined }),
+            body: JSON.stringify({ product: product, interval: interval, promo: (code || '').trim() || undefined, aff: affCode() }),
           }).then(function (r) { return r.json(); }).then(function (d) {
             if (d.error) throw new Error(d.error);
             return d.client_secret;

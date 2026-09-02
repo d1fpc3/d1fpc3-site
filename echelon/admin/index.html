@@ -478,17 +478,9 @@
     .kv dt { color: var(--faint); }
     .kv dd { color: var(--ink); word-break: break-all; }
 
-    /* ── money ───────────────────────────────────────────────── */
-
     .bar { position: relative; height: 4px; border-radius: 2px; background: var(--panel-2); overflow: hidden; min-width: 90px; }
     .bar i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 2px; background: var(--gold); }
     .bar.over i { background: var(--bad); }
-    .amt-in { color: var(--good); }
-    .txn-cat-sel {
-      background: var(--panel-2); border: 1px solid var(--line-bright); border-radius: 7px;
-      color: var(--muted); font-family: inherit; font-size: 12px; padding: 5px 8px; cursor: pointer; max-width: 190px;
-    }
-    .txn-cat-sel:focus { outline: none; border-color: var(--gold); }
     .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .filters .inp { padding: 7px 10px; font-size: 12.5px; }
 
@@ -869,10 +861,6 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           Permissions
         </button>
-        <button class="tab" data-view="money" data-title="Money" data-crumb="Accounts, spending and budgets">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          Money
-        </button>
         <button class="tab" data-view="gex" data-title="GEX" data-crumb="QQQ gamma exposure, mapped to NQ">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13V3"/><path d="M12 13l8 4.5"/><path d="M12 13l-8 4.5"/><path d="M12 13v8"/></svg>
           GEX
@@ -1235,54 +1223,6 @@
           <p class="msg" id="perm-msg" style="padding:12px 0 0;"></p>
         </section>
 
-        <section class="view" id="v-money">
-          <p class="settings-note" id="money-setup" hidden style="margin:0 0 20px;"></p>
-          <div class="cards" id="money-cards"></div>
-
-          <div class="block">
-            <div class="block-head">
-              <h3>Banks</h3>
-              <div class="filters">
-                <button class="rowbtn" id="money-sync">Sync now</button>
-                <button class="btn" id="link-bank">Connect bank</button>
-              </div>
-            </div>
-            <div id="banks"></div>
-            <div class="tbl-scroll"><table id="accounts-table"></table></div>
-            <div class="empty" id="banks-empty" hidden>No bank connected yet. Connect one and every account, balance and transaction lands here.</div>
-            <p class="msg" id="banks-msg"></p>
-          </div>
-
-          <div class="block">
-            <div class="block-head">
-              <h3>Budgets</h3>
-              <span class="label" id="budgets-month"></span>
-            </div>
-            <div class="field-row">
-              <input class="inp" id="budget-cat" list="pfc-list" placeholder="Category — e.g. Food and drink">
-              <input class="inp" id="budget-amt" type="number" min="1" step="1" placeholder="$ / month" style="flex:0 1 140px;min-width:120px;">
-              <button class="btn" id="budget-set">Set</button>
-            </div>
-            <p class="msg" id="budget-msg"></p>
-            <div class="tbl-scroll"><table id="budget-table"></table></div>
-            <div class="empty" id="budget-empty" hidden>No budgets yet. Give a category a monthly ceiling above and it gets a meter here.</div>
-          </div>
-
-          <div class="block">
-            <div class="block-head">
-              <h3>Transactions</h3>
-              <div class="filters">
-                <select class="inp" id="txn-month"></select>
-                <select class="inp" id="txn-cat"><option value="">All categories</option></select>
-                <input class="inp" id="txn-q" type="search" placeholder="Search" style="width:150px;">
-              </div>
-            </div>
-            <div class="tbl-scroll"><table id="txn-table"></table></div>
-            <div class="empty" id="txn-empty" hidden>Nothing here for this month yet.</div>
-          </div>
-
-          <datalist id="pfc-list"></datalist>
-        </section>
 
         <!-- GEX -->
         <section class="view" id="v-gex">
@@ -1570,18 +1510,6 @@
       return body
     }
 
-    async function plaidAction(payload) {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/plaid-api`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` },
-        body: JSON.stringify(payload),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.error ?? `${res.status}`)
-      return body
-    }
-
     /* ── tab switching ── */
     const tabs = [...document.querySelectorAll('.tab')]
     tabs.forEach((tab) => tab.addEventListener('click', () => {
@@ -1613,7 +1541,6 @@
       codes: 'Passes and discounts. A free code comps the course when redeemed at sign-in; a discount code takes its percentage at checkout. Cap the uses, set an expiry, and note who it was for so future-you knows.',
       community: 'The room itself. Channels are created and ordered here (announcements are staff-post-only). The free signup page lets people straight in now — the list below is the record of who joined and what they wrote, with Deny as your kick switch. Mods moderate chat and get the indicators free while they hold the role.',
       perms: 'What each role may do in chat, enforced by the database rather than hidden buttons. Tap On or Off and it saves on the spot; the app updates AND the server refuses the write. Per channel, posting can be everyone, mods only, or just you.',
-      money: 'Personal finances through Plaid: accounts, spending, budgets. Sync pulls fresh data. Waiting on the production Plaid secret until then.',
       gex: 'Your gamma board, the same one GEX subscribers see in their app plus the admin extras. Copy pineData is the manual feed for the TradingView script; the daily job normally republishes it on its own.',
       cars: 'A reference playbook, for you. Nothing on this page is member-facing.',
       civic: 'The Civic service sheet, for you. Nothing on this page is member-facing.',
@@ -1646,7 +1573,6 @@
       { view: 'community', sel: '#mod-table', t: 'Moderators', b: 'Promote anyone from the search below. Mods moderate chat, post announcements, and get the GEX dashboard free. Remove takes it all back instantly.' },
       { view: 'perms', sel: '#perm-matrix', t: 'What each role can do', b: 'Live switches, enforced by the database — not just hidden buttons. Turn images off for members and the upload button disappears AND the write is refused server-side.' },
       { view: 'perms', sel: '#perm-chan', t: 'Posting, per channel', b: 'Everyone, mods only, or just you — decided per channel. Reading is untouched; this only controls who can speak where.' },
-      { view: 'money', sel: '#v-money .block', t: 'Money', b: 'Plaid-fed accounts, spending and budgets. Still waiting on the production Plaid secret — the moment it lands, Sync pulls everything live.' },
       { view: 'gex', sel: '#gex-stage', t: 'Your gamma board', b: 'The same dashboard members pay $35 a month for, plus the admin extras. It recomputes from the live QQQ chain every 15 minutes and re-maps every level onto NQ.' },
       { view: 'gex', sel: '#gex-copy', t: 'Copy pineData', b: 'Admin-only: the levels in the exact format the D1 GEX TradingView indicator eats. The daily job republishes the script on its own — this is the manual path.' },
       { view: 'msnr', sel: '#v-msnr .block', t: 'The playbooks', b: 'MSNR, exotic cars, the Civic sheet, memecoins — research write-ups that live in the dashboard. This one carries twelve chart figures; the others read the same way.' },
@@ -1803,7 +1729,7 @@
     }
 
     function paintSkeletons() {
-      skelCards(el('cards')); skelCards(el('billing-cards')); skelCards(el('money-cards'))
+      skelCards(el('cards')); skelCards(el('billing-cards'))
       skelRows(el('recent-buyers'), 4, 4)
       skelRows(el('reviews-table'), 4, 3)
       skelRows(el('orders-table'), 5, 4)
@@ -2090,11 +2016,22 @@
       })
     }
     let affApps = []
+    let affEarnings = new Map()
     async function loadAffiliates() {
-      const { data } = await supabase.from('affiliate_applications')
-        .select('user_id, pitch, socials, followers, requested_code, status, code, created_at')
-        .order('created_at', { ascending: false })
+      const [{ data }, { data: refs }] = await Promise.all([
+        supabase.from('affiliate_applications')
+          .select('user_id, pitch, socials, followers, requested_code, status, code, created_at')
+          .order('created_at', { ascending: false }),
+        supabase.from('affiliate_referrals').select('affiliate_user_id, commission_cents, status'),
+      ])
       affApps = data ?? []
+      affEarnings = new Map()
+      for (const r of refs ?? []) {
+        if (r.status === 'reversed') continue
+        const e = affEarnings.get(r.affiliate_user_id) ?? { earned: 0, paid: 0, n: 0 }
+        e[r.status === 'paid' ? 'paid' : 'earned'] += r.commission_cents; e.n++
+        affEarnings.set(r.affiliate_user_id, e)
+      }
       renderAffiliates()
     }
     function renderAffiliates() {
@@ -2102,7 +2039,7 @@
       el('aff-total').textContent = pending.length ? String(pending.length) : ''
       el('aff-empty').hidden = affApps.length > 0
       const names = new Map(cmDir.map((d) => [d.user_id, d.username]))
-      table(el('aff-table'), ['Member', 'Reach', 'Plan', 'Code', ''], affApps, (a) => {
+      table(el('aff-table'), ['Member', 'Reach', 'Plan', 'Code', 'Earnings', ''], affApps, (a) => {
         const tr = document.createElement('tr')
         const who = document.createElement('td'); who.className = 'ink'; who.style.fontWeight = '600'
         who.textContent = '@' + (names.get(a.user_id) ?? a.user_id.slice(0, 8))
@@ -2115,6 +2052,27 @@
         reach.append(r1, r2); tr.appendChild(reach)
         const plan = cell(a.pitch); plan.style.maxWidth = '320px'; plan.style.whiteSpace = 'normal'; tr.appendChild(plan)
         tr.appendChild(cell(a.code ?? (a.requested_code ? `wants ${a.requested_code}` : '—'), a.code ? 'ink' : ''))
+        const e = affEarnings.get(a.user_id)
+        const earn = document.createElement('td'); earn.className = 'num'
+        if (e) {
+          earn.textContent = `${money(e.earned)} owed`
+          const paidLine = document.createElement('div'); paidLine.style.color = 'var(--faint)'; paidLine.style.fontSize = '12px'
+          paidLine.textContent = `${money(e.paid)} paid · ${e.n} sale${e.n === 1 ? '' : 's'}`
+          earn.appendChild(paidLine)
+          if (e.earned > 0) {
+            const pay = document.createElement('button'); pay.className = 'rowbtn'; pay.textContent = 'Mark paid'
+            pay.style.marginTop = '4px'
+            pay.addEventListener('click', async () => {
+              if (!confirm(`Mark ${money(e.earned)} as paid out? Do the actual transfer first — this only records it.`)) return
+              pay.disabled = true
+              const { error } = await supabase.rpc('pay_affiliate', { p_user: a.user_id })
+              if (error) { alert(error.message); pay.disabled = false; return }
+              await loadAffiliates()
+            })
+            earn.appendChild(pay)
+          }
+        } else earn.textContent = a.status === 'approved' ? 'no sales yet' : '—'
+        tr.appendChild(earn)
         const act = document.createElement('td')
         if (a.status === 'pending') {
           const ok = document.createElement('button'); ok.className = 'rowbtn'; ok.textContent = 'Approve'
@@ -3315,304 +3273,6 @@
       finally { el('code-create').disabled = false }
     })
 
-    /* ── money (Plaid + budgets) ──
-       Reads come through RLS (admin-only policies); every write goes through
-       plaid-api, which re-checks the admins table server-side. This page never
-       sees a Plaid secret or access token — only link tokens, which are
-       single-use and short-lived by design. */
-
-    const PFC = ['INCOME','TRANSFER_IN','TRANSFER_OUT','LOAN_PAYMENTS','BANK_FEES','ENTERTAINMENT','FOOD_AND_DRINK','GENERAL_MERCHANDISE','GENERAL_SERVICES','GOVERNMENT_AND_NON_PROFIT','HOME_IMPROVEMENT','MEDICAL','PERSONAL_CARE','RENT_AND_UTILITIES','TRANSPORTATION','TRAVEL','OTHER']
-    const nice = (c) => c ? c.toLowerCase().replaceAll('_', ' ').replace(/^./, (ch) => ch.toUpperCase()) : 'Uncategorised'
-    const effCat = (t) => t.category_override ?? t.category ?? 'OTHER'
-    // posted_date is date-only; parse it as local so it never shifts a day.
-    const whenDay = (d) => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) }
-    const fmtAmt = (c) => (c < 0 ? '+' : '') + '$' + (Math.abs(c) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-    const MONEY = { status: null, items: [], accounts: [], budgets: [], txns: [], month: new Date().toISOString().slice(0, 7) }
-    const monthName = () => new Date(`${MONEY.month}-15`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-
-    for (const c of PFC) { const o = document.createElement('option'); o.value = nice(c); el('pfc-list').appendChild(o) }
-
-    function monthOptions() {
-      const sel = el('txn-month'); sel.textContent = ''
-      const now = new Date()
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-        const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-        const o = document.createElement('option'); o.value = val
-        o.textContent = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-        sel.appendChild(o)
-      }
-      sel.value = MONEY.month
-    }
-
-    /* Plaid Link, loaded only when someone actually connects a bank */
-    let plaidLinkReady = null
-    function loadPlaidLink() {
-      plaidLinkReady ??= new Promise((resolve, reject) => {
-        const s = document.createElement('script')
-        s.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js'
-        s.onload = resolve
-        s.onerror = () => { plaidLinkReady = null; reject(new Error('Plaid Link failed to load')) }
-        document.head.appendChild(s)
-      })
-      return plaidLinkReady
-    }
-
-    function openPlaidLink({ token, item, receivedRedirectUri }) {
-      const msg = el('banks-msg')
-      const handler = Plaid.create({
-        token,
-        ...(receivedRedirectUri ? { receivedRedirectUri } : {}),
-        onSuccess: async (public_token, metadata) => {
-          sessionStorage.removeItem('echelon_plaid_link')
-          msg.className = 'msg'; msg.textContent = 'Linking and syncing…'
-          try {
-            if (item) await plaidAction({ action: 'sync', item })
-            else await plaidAction({ action: 'exchange', public_token, institution: metadata.institution })
-            msg.className = 'msg ok'; msg.textContent = 'Bank connected.'
-            await loadMoney()
-          } catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
-        },
-        onExit: () => {
-          sessionStorage.removeItem('echelon_plaid_link')
-          if (msg.textContent === 'Opening Plaid…') msg.textContent = ''
-        },
-      })
-      handler.open()
-    }
-
-    async function connectBank(itemForUpdate) {
-      const msg = el('banks-msg'); msg.className = 'msg'; msg.textContent = 'Opening Plaid…'
-      try {
-        await loadPlaidLink()
-        const { link_token } = await plaidAction(
-          itemForUpdate ? { action: 'update_link_token', item: itemForUpdate } : { action: 'create_link_token' },
-        )
-        // OAuth banks bounce through the bank's own site and back here; the
-        // same link token has to survive that round-trip.
-        sessionStorage.setItem('echelon_plaid_link', JSON.stringify({ token: link_token, item: itemForUpdate ?? null }))
-        openPlaidLink({ token: link_token, item: itemForUpdate })
-      } catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
-    }
-
-    // Returning leg of a bank OAuth round-trip: reopen Link with the same
-    // token plus the URI the bank sent us back to.
-    async function resumePlaidOAuth() {
-      if (!new URLSearchParams(location.search).has('oauth_state_id')) return
-      const saved = sessionStorage.getItem('echelon_plaid_link')
-      const receivedRedirectUri = location.href
-      history.replaceState(null, '', location.pathname)
-      if (!saved) return
-      document.querySelector('.tab[data-view="money"]')?.click()
-      try {
-        await loadPlaidLink()
-        const { token, item } = JSON.parse(saved)
-        openPlaidLink({ token, item, receivedRedirectUri })
-      } catch { /* harmless — Connect bank again starts fresh */ }
-    }
-
-    function moneyStats() {
-      const spendable = MONEY.txns.filter((t) => !['TRANSFER_IN', 'TRANSFER_OUT'].includes(effCat(t)))
-      const spent = spendable.filter((t) => t.amount_cents > 0).reduce((s, t) => s + t.amount_cents, 0)
-      const income = -spendable.filter((t) => t.amount_cents < 0).reduce((s, t) => s + t.amount_cents, 0)
-      const spentBy = {}
-      for (const t of spendable) if (t.amount_cents > 0) spentBy[effCat(t)] = (spentBy[effCat(t)] ?? 0) + t.amount_cents
-      const totalBudget = MONEY.budgets.reduce((s, b) => s + b.monthly_cents, 0)
-      const budgetSpent = MONEY.budgets.reduce((s, b) => s + (spentBy[b.category] ?? 0), 0)
-      const balance = MONEY.accounts.reduce((s, a) => {
-        const v = a.current_cents ?? a.available_cents ?? 0
-        return s + (['credit', 'loan'].includes(a.type) ? -v : v)
-      }, 0)
-      return { spent, income, spentBy, totalBudget, budgetSpent, balance }
-    }
-
-    function renderMoneyCards() {
-      const s = moneyStats()
-      const host = el('money-cards'); host.textContent = ''
-      scard(host, `Spent · ${monthName()}`, money(s.spent))
-      scard(host, `Income · ${monthName()}`, money(s.income))
-      scard(host, 'Budget left', money(Math.max(0, s.totalBudget - s.budgetSpent)),
-        s.totalBudget ? `of ${money(s.totalBudget)} budgeted` : 'no budgets set')
-      scard(host, 'Across accounts', money(s.balance), `${MONEY.accounts.length} accounts`)
-    }
-
-    function renderBanks() {
-      const host = el('banks'); host.textContent = ''
-      el('banks-empty').hidden = MONEY.items.length > 0
-      for (const it of MONEY.items) {
-        const row = document.createElement('div'); row.className = 'intg'
-        const left = document.createElement('div')
-        const n = document.createElement('div'); n.className = 'n'; n.textContent = it.institution_name ?? 'Bank'
-        const h = document.createElement('div'); h.className = 'h'
-        h.textContent = it.status === 'error'
-          ? `Needs attention: ${it.error ?? 'sync failed'}`
-          : `Synced ${it.last_synced_at ? when(it.last_synced_at) : 'never'}`
-        left.append(n, h)
-        const actions = document.createElement('div'); actions.className = 'filters'
-        if (it.status === 'error') {
-          const fix = document.createElement('button'); fix.className = 'rowbtn'; fix.textContent = 'Fix connection'
-          fix.addEventListener('click', () => connectBank(it.id))
-          actions.appendChild(fix)
-        }
-        const unlink = document.createElement('button'); unlink.className = 'rowbtn'; unlink.textContent = 'Unlink'
-        unlink.addEventListener('click', async () => {
-          if (!confirm(`Unlink ${it.institution_name ?? 'this bank'}? Its accounts and transactions are removed here too.`)) return
-          unlink.disabled = true; unlink.textContent = '…'
-          try { await plaidAction({ action: 'unlink', item: it.id }); await loadMoney() }
-          catch (err) { unlink.disabled = false; unlink.textContent = err.message.slice(0, 18) }
-        })
-        actions.appendChild(unlink)
-        row.append(left, actions); host.appendChild(row)
-      }
-
-      const tbl = el('accounts-table'); tbl.textContent = ''
-      if (!MONEY.accounts.length) return
-      const bankOf = new Map(MONEY.items.map((i) => [i.id, i.institution_name ?? 'Bank']))
-      table(tbl, ['Bank', 'Account', 'Type', 'Balance'], MONEY.accounts, (a) => {
-        const tr = document.createElement('tr')
-        tr.append(
-          cell(bankOf.get(a.item) ?? '—'),
-          cell(a.mask ? `${a.name} ··${a.mask}` : a.name, 'ink'),
-          cell(a.subtype ?? a.type ?? '—'),
-          cell(money(a.current_cents ?? a.available_cents), 'num'),
-        )
-        return tr
-      })
-    }
-
-    function renderBudgets() {
-      el('budgets-month').textContent = monthName()
-      el('budget-empty').hidden = MONEY.budgets.length > 0
-      const { spentBy } = moneyStats()
-      table(el('budget-table'), ['Category', 'Spent', 'Limit', 'Meter', ''], MONEY.budgets, (b) => {
-        const tr = document.createElement('tr')
-        const spent = spentBy[b.category] ?? 0
-        const pct = Math.min(100, Math.round((spent / b.monthly_cents) * 100))
-        tr.append(cell(nice(b.category), 'ink'), cell(money(spent), 'num'), cell(money(b.monthly_cents), 'num'))
-        const meter = document.createElement('td')
-        const bar = document.createElement('div'); bar.className = `bar${spent > b.monthly_cents ? ' over' : ''}`
-        const fill = document.createElement('i'); fill.style.width = `${pct}%`
-        bar.appendChild(fill); bar.title = `${pct}%`; meter.appendChild(bar); tr.appendChild(meter)
-        const act = document.createElement('td')
-        const rm = document.createElement('button'); rm.className = 'rowbtn'; rm.textContent = 'Remove'
-        rm.addEventListener('click', async () => {
-          rm.disabled = true
-          try { await plaidAction({ action: 'set_budget', category: b.category, monthly_cents: 0 }); await loadMoney() }
-          catch { rm.disabled = false }
-        })
-        act.appendChild(rm); tr.appendChild(act)
-        return tr
-      })
-    }
-
-    function renderTxns() {
-      const catSel = el('txn-cat')
-      const cats = [...new Set(MONEY.txns.map(effCat))].sort()
-      const keep = catSel.value
-      catSel.textContent = ''
-      const all = document.createElement('option'); all.value = ''; all.textContent = 'All categories'
-      catSel.appendChild(all)
-      for (const c of cats) { const o = document.createElement('option'); o.value = c; o.textContent = nice(c); catSel.appendChild(o) }
-      catSel.value = cats.includes(keep) ? keep : ''
-
-      const q = el('txn-q').value.trim().toLowerCase()
-      const rows = MONEY.txns.filter((t) =>
-        (!catSel.value || effCat(t) === catSel.value) &&
-        (!q || `${t.name} ${t.merchant_name ?? ''}`.toLowerCase().includes(q)))
-      el('txn-empty').hidden = rows.length > 0
-      const acctOf = new Map(MONEY.accounts.map((a) => [a.account_id, a.mask ? `··${a.mask}` : a.name]))
-      table(el('txn-table'), ['Date', 'Name', 'Account', 'Category', 'Amount'], rows, (t) => {
-        const tr = document.createElement('tr')
-        tr.append(
-          cell(whenDay(t.posted_date), 'num'),
-          cell(t.pending ? `${t.name} · pending` : t.name, 'ink'),
-          cell(acctOf.get(t.account_id) ?? '—'),
-        )
-        const catTd = document.createElement('td')
-        const sel = document.createElement('select'); sel.className = 'txn-cat-sel'
-        const opts = [...new Set([...PFC, effCat(t)])]
-        for (const c of opts) { const o = document.createElement('option'); o.value = c; o.textContent = nice(c); sel.appendChild(o) }
-        sel.value = effCat(t)
-        sel.addEventListener('change', async () => {
-          sel.disabled = true
-          try {
-            await plaidAction({ action: 'set_category', transaction_id: t.transaction_id, category: sel.value })
-            t.category_override = sel.value
-            renderMoneyCards(); renderBudgets()
-          } catch { sel.value = effCat(t) }
-          sel.disabled = false
-        })
-        catTd.appendChild(sel); tr.appendChild(catTd)
-        const amt = cell(fmtAmt(t.amount_cents), 'num')
-        if (t.amount_cents < 0) amt.classList.add('amt-in')
-        tr.appendChild(amt)
-        return tr
-      })
-    }
-
-    function renderMoneySetup() {
-      const note = el('money-setup')
-      const s = MONEY.status
-      if (s && s.configured) {
-        note.hidden = true
-        el('link-bank').disabled = false
-        if (s.env === 'sandbox') {
-          note.hidden = false
-          note.textContent = 'Plaid is in sandbox mode: banks are fake and any credentials work (user_good / pass_good). Set PLAID_ENV to production in Supabase secrets to link real accounts.'
-        }
-        return
-      }
-      note.hidden = false
-      el('link-bank').disabled = true
-      note.innerHTML = s
-        ? 'One step before banks can connect: create a free Plaid account at <code>dashboard.plaid.com</code>, then in Supabase → Edge Functions → Secrets set <code>PLAID_CLIENT_ID</code>, <code>PLAID_SECRET</code> and <code>PLAID_ENV</code> (<code>sandbox</code> to try it out, <code>production</code> for your real banks). This page never sees the keys — only whether they exist.'
-        : 'The finance backend did not answer. Check that the plaid-api edge function is deployed and healthy in Supabase.'
-    }
-
-    async function loadMoney() {
-      MONEY.status = await plaidAction({ action: 'status' }).catch(() => null)
-      const [y, m] = MONEY.month.split('-').map(Number)
-      const from = `${MONEY.month}-01`
-      const to = `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, '0')}-01`
-      const [items, accounts, budgets, txns] = await Promise.all([
-        supabase.from('plaid_items').select('*').order('created_at'),
-        supabase.from('plaid_accounts').select('*').order('name'),
-        supabase.from('budgets').select('*').order('category'),
-        supabase.from('plaid_transactions').select('*').gte('posted_date', from).lt('posted_date', to)
-          .order('posted_date', { ascending: false }).limit(1000),
-      ])
-      MONEY.items = items.data ?? []
-      MONEY.accounts = accounts.data ?? []
-      MONEY.budgets = budgets.data ?? []
-      MONEY.txns = txns.data ?? []
-      renderMoneySetup(); renderMoneyCards(); renderBanks(); renderBudgets(); renderTxns()
-    }
-
-    el('link-bank').addEventListener('click', () => connectBank())
-    el('money-sync').addEventListener('click', async () => {
-      const btn = el('money-sync'); btn.disabled = true; btn.textContent = 'Syncing…'
-      try { await plaidAction({ action: 'sync' }); await loadMoney() }
-      catch (err) { el('banks-msg').className = 'msg err'; el('banks-msg').textContent = err.message }
-      finally { btn.disabled = false; btn.textContent = 'Sync now' }
-    })
-    el('txn-month').addEventListener('change', () => { MONEY.month = el('txn-month').value; loadMoney() })
-    el('txn-cat').addEventListener('change', renderTxns)
-    el('txn-q').addEventListener('input', renderTxns)
-    el('budget-set').addEventListener('click', async () => {
-      const cat = el('budget-cat').value.trim(), dollars = Number(el('budget-amt').value)
-      const msg = el('budget-msg')
-      if (!cat || !(dollars > 0)) { msg.className = 'msg err'; msg.textContent = 'Category and a monthly amount, both.'; return }
-      el('budget-set').disabled = true; msg.className = 'msg'; msg.textContent = 'Saving…'
-      try {
-        await plaidAction({ action: 'set_budget', category: cat, monthly_cents: Math.round(dollars * 100) })
-        msg.className = 'msg ok'; msg.textContent = `${nice(cat.toUpperCase().replaceAll(' ', '_'))} capped at $${dollars}/month.`
-        el('budget-cat').value = ''; el('budget-amt').value = ''
-        await loadMoney()
-      } catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
-      finally { el('budget-set').disabled = false }
-    })
-
     /* ── GEX: QQQ gamma exposure by strike and expiry, mapped to NQ ─────────
        Data is the gex-worker snapshot (CBOE delayed chain, refreshed every 15 min
        during RTH). `surface` is strike x expiry x $M-per-1%; row 0 is the 0DTE
@@ -4458,14 +4118,11 @@
       paintSkeletons()
       await Promise.all([
         loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(), loadTvAccess(), loadCommunity(), loadPerms(), loadOnboarding(), loadHomework(),
-        // Money must never block the rest of the dashboard.
-        loadMoney().catch(() => renderMoneySetup()),
         // GEX is an outside feed (gex-worker); warm the readout + table, never block on it.
         loadGex().catch(() => {}),
       ])
       // First visit after this ships: walk every screen once, then stay quiet.
       if (!localStorage.getItem('echelon-admin-tour')) setTimeout(startAdminTour, 1200)
-      resumePlaidOAuth()
     }
 
     // Magic-link returns land with tokens in the URL fragment; supabase-js

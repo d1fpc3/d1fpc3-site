@@ -2550,6 +2550,10 @@
                 <label class="tgl"><input type="checkbox" id="nt-gex"><span class="track"></span></label>
               </div>
               <div class="filters" style="justify-content:space-between;">
+                <p class="label" style="margin:0;">GEX refreshes — open, mid, close</p>
+                <label class="tgl"><input type="checkbox" id="nt-gexref"><span class="track"></span></label>
+              </div>
+              <div class="filters" style="justify-content:space-between;">
                 <p class="label" style="margin:0;">Red-folder news, 30 minutes out</p>
                 <label class="tgl"><input type="checkbox" id="nt-news"><span class="track"></span></label>
               </div>
@@ -3017,6 +3021,19 @@
         return !!globalThis.Capacitor?.isNativePlatform?.() || localStorage.getItem('echelon-native') === '1'
       } catch { return false }
     })()
+
+    // An affiliate link (?aff=CODE) is remembered for 30 days and rides along
+    // on checkout, where the webhook turns it into the affiliate's commission.
+    try {
+      const aff = new URLSearchParams(location.search).get('aff')
+      if (aff && /^[A-Za-z0-9]{4,12}$/.test(aff)) localStorage.setItem('echelon-aff', JSON.stringify({ code: aff.toUpperCase(), t: Date.now() }))
+    } catch {}
+    function affCode() {
+      try {
+        const { code, t } = JSON.parse(localStorage.getItem('echelon-aff') || '{}')
+        return code && Date.now() - t < 30 * 86400e3 ? code : undefined
+      } catch { return undefined }
+    }
 
     // Magic-link and OAuth returns land with tokens in the hash. Note it now,
     // before supabase-js consumes the hash, so boot can greet the sign-in.
@@ -6781,10 +6798,28 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const c = document.createElement('p'); c.id = 'aff-code'
         c.style.cssText = 'font-family:ui-monospace,Menlo,monospace;font-size:26px;font-weight:700;letter-spacing:0.14em;margin:10px 0 4px;'
         c.textContent = data.code; host.appendChild(c)
-        const cp = document.createElement('button'); cp.className = 'rowbtn'; cp.type = 'button'; cp.textContent = 'Copy code'
-        cp.addEventListener('click', async () => { try { await navigator.clipboard.writeText(data.code); toast('Copied.') } catch { prompt('Your code', data.code) } })
-        host.appendChild(cp)
-        p('Share it with your people. Tracking and payouts land here.', 'hint').style.marginTop = '12px'
+        const link = `https://d1fpc3.com/?aff=${data.code}`
+        const row = document.createElement('div'); row.className = 'filters'; row.style.marginTop = '4px'
+        const cp = document.createElement('button'); cp.className = 'rowbtn'; cp.type = 'button'; cp.textContent = 'Copy your link'
+        cp.addEventListener('click', async () => { try { await navigator.clipboard.writeText(link); toast('Copied.') } catch { prompt('Your link', link) } })
+        row.appendChild(cp); host.appendChild(row)
+        p('Anyone who buys after opening your link earns you a cut. It remembers them for 30 days.', 'hint').style.marginTop = '10px'
+        const stats = document.createElement('div'); stats.style.marginTop = '16px'; host.appendChild(stats)
+        const money = (cents) => `$${(cents / 100).toFixed(2)}`
+        try {
+          const { data: s } = await supabase.rpc('my_affiliate_summary')
+          if (s) {
+            const line = (label, val) => {
+              const d = document.createElement('div'); d.className = 'filters'; d.style.justifyContent = 'space-between'
+              const l = document.createElement('p'); l.className = 'label'; l.style.margin = '0'; l.textContent = label
+              const v = document.createElement('p'); v.style.margin = '0'; v.textContent = val
+              d.append(l, v); stats.appendChild(d)
+            }
+            line('Purchases through your link', String(s.referrals ?? 0))
+            line('Earned, waiting on payout', money(s.earned_cents ?? 0))
+            line('Paid out', money(s.paid_cents ?? 0))
+          }
+        } catch { /* stats are a nicety; the link is the point */ }
       } else if (data?.status === 'pending') {
         p('Application in.', '')
         p('We read every one. You’ll hear from us here.', 'hint').style.marginTop = '6px'
@@ -7205,7 +7240,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const fetchClientSecret = () => fetch(`${SUPABASE_URL}/functions/v1/create-checkout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
-          body: JSON.stringify({ product, interval, email: state.user?.email }),
+          body: JSON.stringify({ product, interval, email: state.user?.email, aff: affCode() }),
         }).then((r) => r.json()).then((d) => { if (d.error) throw new Error(d.error); return d.client_secret })
         _coInstance = await stripe.initEmbeddedCheckout({ fetchClientSecret })
         loading.style.display = 'none'
@@ -8393,14 +8428,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // localStorage; announcements and DMs default on, the full room off.
     const NT_KEY = 'echelon-notify'
     function ntPrefs() {
-      try { return { ann: true, dm: true, chat: false, gex: true, social: true, news: true, channels: {}, ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } }
-      catch { return { ann: true, dm: true, chat: false, gex: true, social: true, news: true, channels: {} } }
+      try { return { ann: true, dm: true, chat: false, gex: true, gex_refresh: true, social: true, news: true, channels: {}, ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } }
+      catch { return { ann: true, dm: true, chat: false, gex: true, gex_refresh: true, social: true, news: true, channels: {} } }
     }
     function ntSavePrefs(p) {
       try { localStorage.setItem(NT_KEY, JSON.stringify(p)) } catch {}
       if (state.user) {
         supabase.from('notify_prefs').upsert({
-          user_id: state.user.id, ann: !!p.ann, dm: !!p.dm, chat: !!p.chat, gex: !!p.gex, social: p.social !== false, news: p.news !== false,
+          user_id: state.user.id, ann: !!p.ann, dm: !!p.dm, chat: !!p.chat, gex: !!p.gex, gex_refresh: p.gex_refresh !== false, social: p.social !== false, news: p.news !== false,
           channels: p.channels || {}, updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' }).then(() => {}, () => {})
       }
@@ -8408,7 +8443,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // On a fresh device, the server copy of the prefs wins.
     async function ntLoadPrefs() {
       if (!state.user) return
-      const { data } = await supabase.from('notify_prefs').select('ann, dm, chat, gex, social, news, channels').maybeSingle()
+      const { data } = await supabase.from('notify_prefs').select('ann, dm, chat, gex, gex_refresh, social, news, channels').maybeSingle()
       if (data) { try { localStorage.setItem(NT_KEY, JSON.stringify(data)) } catch {} }
     }
     // Inside the iOS shell the Capacitor bridge is on the page and delivery
@@ -8449,7 +8484,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       else st.textContent = ''
     }
     function ntInitSettings() {
-      const map = { ann: 'nt-ann', dm: 'nt-dm', chat: 'nt-chat', gex: 'nt-gex', social: 'nt-social', news: 'nt-news' }
+      const map = { ann: 'nt-ann', dm: 'nt-dm', chat: 'nt-chat', gex: 'nt-gex', gex_refresh: 'nt-gexref', social: 'nt-social', news: 'nt-news' }
       const p = ntPrefs()
       for (const [k, id] of Object.entries(map)) {
         const cb = el(id); if (!cb) continue
