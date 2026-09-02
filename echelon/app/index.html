@@ -2112,7 +2112,7 @@
           <header class="ov-hero">
             <p class="ov-hi" id="ov-hi">Welcome back.</p>
             <p class="ov-date" id="ov-date"></p>
-            <button class="rc-btn" id="rc-open" type="button" title="Risk calculator" aria-label="Risk calculator">
+            <button class="rc-btn" id="rc-open" type="button" title="Calculators" aria-label="Calculators">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="6.5" x2="15" y2="6.5"/><circle cx="9" cy="11.5" r="0.6"/><circle cx="12" cy="11.5" r="0.6"/><circle cx="15" cy="11.5" r="0.6"/><circle cx="9" cy="15" r="0.6"/><circle cx="12" cy="15" r="0.6"/><circle cx="15" cy="15" r="0.6"/><circle cx="9" cy="18.5" r="0.6"/><circle cx="12" cy="18.5" r="0.6"/><circle cx="15" cy="18.5" r="0.6"/></svg>
             </button>
           </header>
@@ -2183,22 +2183,40 @@
           <!-- Risk calculator popup: opened by the calculator button up top -->
           <div class="dmpick-scrim" id="rcmodal" hidden>
             <div class="dmpick" style="max-width:430px;">
-              <div class="block-head"><h3>Risk calculator</h3><button class="x-close" id="rc-x" type="button" aria-label="Close">&times;</button></div>
+              <div class="block-head">
+                <span class="seg" id="calc-tabs" role="tablist" aria-label="Calculator">
+                  <button class="on" id="calc-tab-risk" type="button">Risk</button>
+                  <button id="calc-tab-cc" type="button">Consistency</button>
+                </span>
+                <button class="x-close" id="rc-x" type="button" aria-label="Close">&times;</button>
+              </div>
               <div style="padding:16px 18px 18px;">
-                <div class="rc-row">
-                  <label>Risk per trade ($)<input class="inp" id="rc-risk" type="number" inputmode="decimal" min="1" step="25" value="300"></label>
-                  <label>Stop (points)<input class="inp" id="rc-stop" type="number" inputmode="decimal" min="0.25" step="0.25" value="15"></label>
+                <div id="rc-pane">
+                  <div class="rc-row">
+                    <label>Risk per trade ($)<input class="inp" id="rc-risk" type="number" inputmode="decimal" min="1" step="25" value="300"></label>
+                    <label>Stop (points)<input class="inp" id="rc-stop" type="number" inputmode="decimal" min="0.25" step="0.25" value="15"></label>
+                  </div>
+                  <div class="rc-row" style="margin-top:12px;">
+                    <label>Contracts<input class="inp" id="rc-n" type="number" inputmode="numeric" min="1" step="1" placeholder="or type them"></label>
+                    <label>Instrument<select class="inp" id="rc-inst">
+                      <option value="2">MNQ · $2/pt</option>
+                      <option value="20">NQ · $20/pt</option>
+                      <option value="5">MES · $5/pt</option>
+                      <option value="50">ES · $50/pt</option>
+                    </select></label>
+                  </div>
+                  <p class="rc-out" id="rc-out"></p>
                 </div>
-                <div class="rc-row" style="margin-top:12px;">
-                  <label>Contracts<input class="inp" id="rc-n" type="number" inputmode="numeric" min="1" step="1" placeholder="or type them"></label>
-                  <label>Instrument<select class="inp" id="rc-inst">
-                    <option value="2">MNQ · $2/pt</option>
-                    <option value="20">NQ · $20/pt</option>
-                    <option value="5">MES · $5/pt</option>
-                    <option value="50">ES · $50/pt</option>
-                  </select></label>
+                <div id="cc-pane" hidden>
+                  <div class="rc-row">
+                    <label>Total profit ($)<input class="inp" id="cc-total" type="number" inputmode="decimal" min="0" step="50" placeholder="on the account"></label>
+                    <label>Best day ($)<input class="inp" id="cc-best" type="number" inputmode="decimal" min="0" step="50" placeholder="your biggest"></label>
+                  </div>
+                  <div class="rc-row" style="margin-top:12px;">
+                    <label>Consistency rule (%)<input class="inp" id="cc-rule" type="number" inputmode="numeric" min="5" max="100" step="5" value="30"></label>
+                  </div>
+                  <p class="rc-out" id="cc-out"></p>
                 </div>
-                <p class="rc-out" id="rc-out"></p>
               </div>
             </div>
           </div>
@@ -9257,9 +9275,55 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       stop.addEventListener('input', calc)
       inst.addEventListener('input', calc)
       calc()
-      // The calculator lives in a popup off the Overview hero button.
+
+      // ── consistency: is the best day a small enough share of the profit? ──
+      // Under the rule: today's cap p solves p / (total + p) = r  →  r·total/(1−r).
+      // Over it: the total that fixes it solves best / T = r  →  best / r.
+      const CC_KEY = 'echelon-consistency'
+      const ccTotal = el('cc-total'), ccBest = el('cc-best'), ccRule = el('cc-rule'), ccOut = el('cc-out')
+      try {
+        const saved = JSON.parse(localStorage.getItem(CC_KEY) || 'null')
+        if (saved) { ccTotal.value = saved.total; ccBest.value = saved.best; if (saved.rule) ccRule.value = saved.rule }
+      } catch {}
+      function ccCalc() {
+        const t = parseFloat(ccTotal.value), b = parseFloat(ccBest.value), r = parseFloat(ccRule.value) / 100
+        if (!(t > 0) || !(b > 0) || !(r > 0) || r > 1) { ccOut.textContent = ''; return }
+        const share = Math.round((b / t) * 100)
+        const detail = document.createElement('span')
+        if (b / t <= r) {
+          const cap = r < 1 ? Math.max(b, (r * t) / (1 - r)) : Infinity
+          ccOut.className = 'rc-out'
+          ccOut.textContent = `Consistent — your best day is ${share}% of profits. `
+          detail.textContent = cap === Infinity ? '' : `Up to ${usd0(cap)} today keeps it under ${Math.round(r * 100)}%.`
+        } else {
+          ccOut.className = 'rc-out warn'
+          ccOut.textContent = `Not there yet — your best day is ${share}% of profits. `
+          detail.textContent = `${usd0(b / r - t)} more, without a bigger day, brings it under ${Math.round(r * 100)}%.`
+        }
+        ccOut.appendChild(detail)
+        try { localStorage.setItem(CC_KEY, JSON.stringify({ total: ccTotal.value, best: ccBest.value, rule: ccRule.value })) } catch {}
+      }
+      ;[ccTotal, ccBest, ccRule].forEach((i) => i.addEventListener('input', ccCalc))
+      ccCalc()
+
+      // Two flat tabs, one popup off the Overview hero button.
+      const tabRisk = el('calc-tab-risk'), tabCc = el('calc-tab-cc')
+      const showCalc = (which) => {
+        const cc = which === 'cc'
+        tabRisk.classList.toggle('on', !cc); tabCc.classList.toggle('on', cc)
+        el('rc-pane').hidden = cc; el('cc-pane').hidden = !cc
+        ;(cc ? ccTotal : risk).focus()
+        try { localStorage.setItem('echelon-calc-tab', which) } catch {}
+      }
+      tabRisk.addEventListener('click', () => showCalc('risk'))
+      tabCc.addEventListener('click', () => showCalc('cc'))
       document.body.appendChild(el('rcmodal'))
-      el('rc-open').addEventListener('click', () => { el('rcmodal').hidden = false; risk.focus() })
+      el('rc-open').addEventListener('click', () => {
+        el('rcmodal').hidden = false
+        let last = 'risk'
+        try { last = localStorage.getItem('echelon-calc-tab') || 'risk' } catch {}
+        showCalc(last === 'cc' ? 'cc' : 'risk')
+      })
       el('rc-x').addEventListener('click', () => { el('rcmodal').hidden = true })
       el('rcmodal').addEventListener('click', (e) => { if (e.target === el('rcmodal')) el('rcmodal').hidden = true })
     })()
