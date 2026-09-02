@@ -1540,6 +1540,15 @@
     .calc-out span { display: block; margin-top: 3px; color: var(--muted); font-weight: 400; font-size: 13.5px; }
     .calc-out.warn { color: var(--muted); font-weight: 500; font-size: 13.5px; }
 
+    /* partner strip: BackTrader code, flat row */
+    .bt-strip { display: flex; align-items: center; gap: 13px; padding: 13px 0 14px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
+    .bt-strip img { border-radius: 8px; flex: none; }
+    .bt-copy { font-size: 13.5px; color: var(--muted); }
+    .bt-copy b { color: var(--ink); font-weight: 600; }
+    .bt-go { margin-left: auto; color: var(--faint); font-size: 12.5px; white-space: nowrap; transition: color 0.15s ease; }
+    .bt-strip:hover .bt-go { color: var(--gold); }
+    @media (max-width: 560px) { .bt-go { display: none; } }
+
     /* leave-a-review: quiet underlined text, not a button */
     .p-rev-write { background: none; border: 0; padding: 0; align-self: flex-start; font-family: inherit; font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; transition: color 0.15s ease; }
     .p-rev-write:hover { color: var(--ink); }
@@ -2193,6 +2202,15 @@
           </div>
 
           <!-- Risk calculator popup: opened by the calculator button up top -->
+          <section class="ov-sec" id="ov-partner-sec">
+            <div class="ov-cap"><span class="label">Partner</span></div>
+            <a class="bt-strip" href="https://www.backtrader.io/" target="_blank" rel="noopener">
+              <img src="/assets/partners/backtrader.png" alt="BackTrader" width="34" height="34" loading="lazy">
+              <span class="bt-copy"><b>BackTrader</b> — trade copier and analytics for futures. Code <b>D1FPC3</b> gets a discount.</span>
+              <span class="bt-go">backtrader.io &rarr;</span>
+            </a>
+          </section>
+
           <div class="dmpick-scrim" id="rcmodal" hidden>
             <div class="calc">
               <div class="calc-head">
@@ -6850,32 +6868,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       host.textContent = ''
       const p = (t, cls) => { const e = document.createElement('p'); e.className = cls ?? 'label'; e.style.margin = '0'; e.textContent = t; host.appendChild(e); return e }
       if (data?.status === 'approved') {
-        p('You’re in. Your code:')
-        const c = document.createElement('p'); c.id = 'aff-code'
-        c.style.cssText = 'font-family:ui-monospace,Menlo,monospace;font-size:26px;font-weight:700;letter-spacing:0.14em;margin:10px 0 4px;'
-        c.textContent = data.code; host.appendChild(c)
-        const link = `https://d1fpc3.com/?aff=${data.code}`
-        const row = document.createElement('div'); row.className = 'filters'; row.style.marginTop = '4px'
-        const cp = document.createElement('button'); cp.className = 'rowbtn'; cp.type = 'button'; cp.textContent = 'Copy your link'
-        cp.addEventListener('click', async () => { try { await navigator.clipboard.writeText(link); toast('Copied.') } catch { prompt('Your link', link) } })
-        row.appendChild(cp); host.appendChild(row)
-        p('Anyone who buys after opening your link earns you a cut. It remembers them for 30 days.', 'hint').style.marginTop = '10px'
-        const stats = document.createElement('div'); stats.style.marginTop = '16px'; host.appendChild(stats)
-        const money = (cents) => `$${(cents / 100).toFixed(2)}`
-        try {
-          const { data: s } = await supabase.rpc('my_affiliate_summary')
-          if (s) {
-            const line = (label, val) => {
-              const d = document.createElement('div'); d.className = 'filters'; d.style.justifyContent = 'space-between'
-              const l = document.createElement('p'); l.className = 'label'; l.style.margin = '0'; l.textContent = label
-              const v = document.createElement('p'); v.style.margin = '0'; v.textContent = val
-              d.append(l, v); stats.appendChild(d)
-            }
-            line('Purchases through your link', String(s.referrals ?? 0))
-            line('Earned, waiting on payout', money(s.earned_cents ?? 0))
-            line('Paid out', money(s.paid_cents ?? 0))
-          }
-        } catch { /* stats are a nicety; the link is the point */ }
+        renderAffiliatePortal(host)
       } else if (data?.status === 'pending') {
         p('Application in.', '')
         p('We read every one. You’ll hear from us here.', 'hint').style.marginTop = '6px'
@@ -7034,6 +7027,137 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         })
       }
       renderModCodes(); renderModAff()
+    }
+
+    // ── settings: affiliate partner portal (approved view) ──
+    // Range stats + a daily earnings chart (this period in gold, the one
+    // before in grey) + payout details D1 uses when he sends the money.
+
+    const AFF_RANGE_KEY = 'echelon-aff-range'
+    async function renderAffiliatePortal(host) {
+      host.textContent = 'Loading…'
+      const { data: pd, error } = await supabase.rpc('my_affiliate_portal')
+      if (error || !pd) { host.textContent = error?.message ?? 'Could not load.'; return }
+      host.textContent = ''
+      const money = (c) => '$' + (c / 100).toFixed(2)
+      const rows = (pd.rows ?? []).filter((r) => r.status !== 'reversed')
+
+      // payouts: where the money goes
+      const pay = document.createElement('div'); pay.style.cssText = 'padding:0 0 14px;border-bottom:1px solid var(--line);margin-bottom:14px;'
+      const payLine = document.createElement('p'); payLine.className = 'hint'; payLine.style.margin = '0'
+      const payForm = document.createElement('div'); payForm.className = 'filters'; payForm.style.marginTop = '10px'; payForm.hidden = true
+      const sel = document.createElement('select'); sel.className = 'inp'
+      for (const m of ['paypal', 'venmo', 'cashapp', 'zelle', 'wise', 'other']) {
+        const o = document.createElement('option'); o.value = m
+        o.textContent = { paypal: 'PayPal', venmo: 'Venmo', cashapp: 'Cash App', zelle: 'Zelle', wise: 'Wise', other: 'Other' }[m]
+        sel.appendChild(o)
+      }
+      const handle = document.createElement('input'); handle.className = 'inp'; handle.type = 'text'
+      handle.maxLength = 200; handle.placeholder = 'Your handle or email'; handle.style.minWidth = '180px'
+      const save = document.createElement('button'); save.className = 'rowbtn'; save.type = 'button'; save.textContent = 'Save'
+      const payMsg = document.createElement('span'); payMsg.className = 'msg'
+      payForm.append(sel, handle, save, payMsg)
+      const paintPay = () => {
+        if (pd.payout_handle) {
+          payLine.textContent = ''
+          const b = document.createElement('b'); b.style.color = 'var(--ink)'
+          b.textContent = `Payouts go to ${sel.querySelector(`option[value="${pd.payout_method}"]`)?.textContent ?? pd.payout_method} · ${pd.payout_handle}. `
+          const ch = document.createElement('button'); ch.type = 'button'; ch.textContent = 'Change'
+          ch.style.cssText = 'background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:2px;cursor:pointer;'
+          ch.addEventListener('click', () => { payForm.hidden = false; ch.remove() })
+          payLine.append(b, ch)
+        } else {
+          payLine.textContent = 'Where should your money go? Add payout details so there’s nothing to chase when you’ve earned.'
+          payForm.hidden = false
+        }
+      }
+      if (pd.payout_method) sel.value = pd.payout_method
+      if (pd.payout_handle) handle.value = pd.payout_handle
+      save.addEventListener('click', async () => {
+        if (!handle.value.trim()) { payMsg.className = 'msg err'; payMsg.textContent = 'A handle, first.'; return }
+        save.disabled = true; payMsg.className = 'msg'; payMsg.textContent = 'Saving…'
+        const { error: e2 } = await supabase.rpc('set_affiliate_payout', { p_method: sel.value, p_handle: handle.value.trim() })
+        save.disabled = false
+        if (e2) { payMsg.className = 'msg err'; payMsg.textContent = e2.message; return }
+        pd.payout_method = sel.value; pd.payout_handle = handle.value.trim()
+        payMsg.className = 'msg ok'; payMsg.textContent = 'Saved.'
+        payForm.hidden = true; paintPay()
+      })
+      paintPay(); pay.append(payLine, payForm); host.appendChild(pay)
+
+      // the link
+      const c = document.createElement('p')
+      c.style.cssText = 'font-family:ui-monospace,Menlo,monospace;font-size:26px;font-weight:700;letter-spacing:0.14em;margin:0 0 4px;'
+      c.textContent = pd.code; host.appendChild(c)
+      const link = `https://d1fpc3.com/?aff=${pd.code}`
+      const lrow = document.createElement('div'); lrow.className = 'filters'
+      const cp = document.createElement('button'); cp.className = 'rowbtn'; cp.type = 'button'; cp.textContent = 'Copy your link'
+      cp.addEventListener('click', async () => { try { await navigator.clipboard.writeText(link); toast('Copied.') } catch { prompt('Your link', link) } })
+      lrow.appendChild(cp); host.appendChild(lrow)
+      const hint = document.createElement('p'); hint.className = 'hint'; hint.style.margin = '8px 0 0'
+      hint.textContent = `Anyone who buys after opening your link earns you ${pd.commission_pct}%. It remembers them for 30 days.`
+      host.appendChild(hint)
+
+      // range picker + stats + chart
+      const seg = document.createElement('span'); seg.className = 'seg'; seg.style.cssText = 'margin-top:18px;display:inline-flex;'
+      const statHost = document.createElement('div'); statHost.className = 'ov-stats'; statHost.style.marginTop = '10px'
+      const chartHost = document.createElement('div'); chartHost.style.marginTop = '4px'
+      const listHost = document.createElement('div')
+      host.append(seg, statHost, chartHost, listHost)
+
+      const paint = (days) => {
+        try { localStorage.setItem(AFF_RANGE_KEY, String(days)) } catch {}
+        seg.querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.d === days))
+        const day = 86400e3, now = Date.now()
+        const cur = new Array(days).fill(0), prev = new Array(days).fill(0)
+        let sales = 0
+        for (const r of rows) {
+          const age = Math.floor((now - new Date(r.t).getTime()) / day)
+          if (age < 0) continue
+          if (age < days) { cur[days - 1 - age] += r.commission_cents; sales++ }
+          else if (age < days * 2) prev[days - 1 - (age - days)] += r.commission_cents
+        }
+        const curSum = cur.reduce((a, b) => a + b, 0), prevSum = prev.reduce((a, b) => a + b, 0)
+        statHost.textContent = ''
+        const delta = prevSum > 0 ? Math.round(((curSum - prevSum) / prevSum) * 100) : null
+        ovStat(statHost, money(curSum), 'Earnings', delta === null ? `last ${days} days` : `${delta > 0 ? '+' : ''}${delta}% vs the ${days} before`, delta === null ? '' : delta > 0 ? 'up' : delta < 0 ? 'down' : '')
+        ovStat(statHost, String(sales), 'Sales', `last ${days} days`)
+        ovStat(statHost, money(pd.earned_cents ?? 0), 'Owed to you', `${money(pd.paid_cents ?? 0)} paid out`)
+        ovStat(statHost, sales ? money(Math.round(curSum / sales)) : '—', 'Avg commission')
+        // the chart: this period gold, the one before faint
+        const W = 620, H = 150, P = 8
+        const max = Math.max(...cur, ...prev, 1)
+        const pts = (a) => a.map((v, i) => `${(P + (i * (W - 2 * P)) / Math.max(a.length - 1, 1)).toFixed(1)},${(H - P - (v / max) * (H - 2 * P)).toFixed(1)}`).join(' ')
+        const d0 = new Date(now - (days - 1) * day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        chartHost.innerHTML = `
+          <svg viewBox="0 0 ${W} ${H + 22}" style="width:100%;height:auto;display:block;" role="img" aria-label="Daily affiliate earnings">
+            <line x1="${P}" y1="${H - P}" x2="${W - P}" y2="${H - P}" stroke="var(--line)" stroke-width="1"/>
+            <polyline points="${pts(prev)}" fill="none" stroke="var(--line-bright)" stroke-width="1.5"/>
+            <polyline points="${pts(cur)}" fill="none" stroke="var(--gold)" stroke-width="2"/>
+            <text x="${P}" y="${H + 14}" fill="var(--faint)" font-size="10.5">${d0}</text>
+            <text x="${W - P}" y="${H + 14}" fill="var(--faint)" font-size="10.5" text-anchor="end">today</text>
+            ${max > 1 ? `<text x="${W - P}" y="${P + 4}" fill="var(--faint)" font-size="10.5" text-anchor="end">peak ${money(max)}/day</text>` : ''}
+          </svg>`
+        // recent sales
+        listHost.textContent = ''
+        for (const r of rows.slice(0, 10)) {
+          const it = document.createElement('div'); it.className = 'filters'
+          it.style.cssText = 'justify-content:space-between;padding:9px 0 8px;border-top:1px solid var(--line);'
+          const l = document.createElement('span'); l.className = 'hint'
+          l.textContent = `${new Date(r.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${r.product === 'course' ? 'the training' : r.product}`
+          const v = document.createElement('b'); v.textContent = money(r.commission_cents)
+          if (r.status === 'paid') { const s = document.createElement('span'); s.className = 'hint'; s.textContent = ' paid'; v.appendChild(s) }
+          it.append(l, v); listHost.appendChild(it)
+        }
+      }
+      for (const d of [7, 30, 90]) {
+        const b = document.createElement('button'); b.type = 'button'; b.dataset.d = String(d); b.textContent = `${d} days`
+        b.addEventListener('click', () => paint(d))
+        seg.appendChild(b)
+      }
+      let start = 30
+      try { start = [7, 30, 90].includes(+localStorage.getItem(AFF_RANGE_KEY)) ? +localStorage.getItem(AFF_RANGE_KEY) : 30 } catch {}
+      paint(start)
     }
 
     // ── settings: delete account ────────────────────────────
@@ -9773,6 +9897,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       applyStaffComps()
       state.hasCourse = state.owned.has('course') || state.isAdmin
       el('set-modtools-row').hidden = !(state.isMod || state.isAdmin)
+      // App Store posture: no third-party offers inside the native shells.
+      if (NATIVE) { const ps = el('ov-partner-sec'); if (ps) ps.hidden = true }
 
       // Signed in is not the same as member. A Discord or email sign-in with
       // nothing on the account stops here: the door is the free signup (which

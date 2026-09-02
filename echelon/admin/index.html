@@ -2020,7 +2020,7 @@
     async function loadAffiliates() {
       const [{ data }, { data: refs }] = await Promise.all([
         supabase.from('affiliate_applications')
-          .select('user_id, pitch, socials, followers, requested_code, status, code, created_at')
+          .select('user_id, pitch, socials, followers, requested_code, status, code, created_at, payout_method, payout_handle')
           .order('created_at', { ascending: false }),
         supabase.from('affiliate_referrals').select('affiliate_user_id, commission_cents, status'),
       ])
@@ -2059,6 +2059,11 @@
           const paidLine = document.createElement('div'); paidLine.style.color = 'var(--faint)'; paidLine.style.fontSize = '12px'
           paidLine.textContent = `${money(e.paid)} paid · ${e.n} sale${e.n === 1 ? '' : 's'}`
           earn.appendChild(paidLine)
+          if (a.payout_handle) {
+            const payTo = document.createElement('div'); payTo.style.cssText = 'color:var(--faint);font-size:12px;'
+            payTo.textContent = `pay: ${a.payout_method} ${a.payout_handle}`
+            earn.appendChild(payTo)
+          }
           if (e.earned > 0) {
             const pay = document.createElement('button'); pay.className = 'rowbtn'; pay.textContent = 'Mark paid'
             pay.style.marginTop = '4px'
