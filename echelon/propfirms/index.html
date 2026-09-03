@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prop firms · Echelon</title>
+<meta name="description" content="Every futures prop firm priced side by side: evaluations, instant funding, drawdown rules, payouts and the current discount codes.">
+<link rel="icon" type="image/svg+xml" href="/echelon-favicon.svg">
+<style>
+  /* ── the sheet: Excel's grammar (gridlines, column letters, row numbers,
+       a name box + formula bar, sheet tabs) in Echelon's restraint ── */
+  :root {
+    --bg: #ffffff; --cell: #ffffff; --grid: #d9d9d9; --head: #f2f2f2; --head2: #e9e9e9;
+    --ink: #1a1a1a; --muted: #6b6b6b; --sel: #107c41; --selfill: rgba(16,124,65,0.10);
+    --link: #0563c1; --best: #e2efda; --hover: #f5f8f5; --chrome: #f8f8f8; --line: #dcdcdc;
+    --code: #edf2ee;
+    --font: Calibri, "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    --mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1b1b; --cell: #1f1f1f; --grid: #3a3a3a; --head: #2a2a2a; --head2: #242424;
+    --ink: #e8e8e8; --muted: #9a9a9a; --sel: #4cb86c; --selfill: rgba(76,184,108,0.14);
+    --link: #7db8f0; --best: #23382a; --hover: #262a27; --chrome: #222222; --line: #333333;
+    --code: #2b332d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--ink); font: 13px/1.4 var(--font); display: flex; flex-direction: column; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  a { color: var(--link); }
+
+  .top { padding: 18px 20px 12px; border-bottom: 1px solid var(--line); background: var(--chrome); }
+  .top h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .top p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  body.embed .top { display: none; }
+
+  /* name box + formula bar */
+  .fbar { display: flex; align-items: stretch; border-bottom: 1px solid var(--line); background: var(--chrome); height: 30px; }
+  .fbar .name { width: 74px; flex: 0 0 74px; border-right: 1px solid var(--line); padding: 0 8px; font-family: var(--mono); font-size: 12px; display: flex; align-items: center; color: var(--ink); }
+  .fbar .fx { width: 34px; flex: 0 0 34px; border-right: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: var(--muted); font-style: italic; font-family: Georgia, serif; font-size: 13px; }
+  .fbar .formula { flex: 1; min-width: 0; padding: 0 10px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+  .fbar .formula:empty::before { content: ""; }
+
+  /* filters */
+  .tools { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--chrome); flex-wrap: wrap; }
+  .tools input, .tools select { font: 13px var(--font); color: var(--ink); background: var(--cell); border: 1px solid var(--grid); border-radius: 3px; height: 26px; padding: 0 8px; }
+  .tools input { flex: 1 1 160px; min-width: 120px; max-width: 320px; }
+  .tools select { flex: 0 0 auto; max-width: 44vw; }
+  .tools input:focus, .tools select:focus { outline: 2px solid var(--sel); outline-offset: -1px; }
+  .tools .reset { background: none; border: 0; color: var(--link); cursor: pointer; font: 13px var(--font); padding: 0 4px; }
+  .tools .count { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+  /* the grid */
+  .sheet { flex: 1; min-height: 0; overflow: auto; background: var(--cell); position: relative; overscroll-behavior: contain; }
+  table { border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 13px; }
+  th, td { border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); padding: 0 7px; height: 24px; line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: clip; text-align: left; font-weight: 400; background: var(--cell); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  thead th { position: sticky; z-index: 5; background: var(--head); font-weight: 600; user-select: none; }
+  thead tr.letters th { top: 0; background: var(--head2); text-align: center; color: var(--muted); font-weight: 400; font-size: 11px; height: 20px; line-height: 20px; }
+  thead tr.heads th { top: 20px; cursor: pointer; }
+  thead tr.heads th:hover { background: var(--head2); }
+  thead tr.heads th .car { color: var(--muted); font-size: 10px; margin-left: 4px; }
+  th.rn { position: sticky; left: 0; width: 44px; min-width: 44px; text-align: center; color: var(--muted); font-weight: 400; background: var(--head); z-index: 3; font-size: 11px; }
+  thead th.rn { z-index: 7; }
+  thead tr.letters th.rn { background: var(--head2); }
+  td.c-firm, th.c-firm { position: sticky; left: 44px; z-index: 2; box-shadow: 1px 0 0 var(--grid); }
+  thead th.c-firm { z-index: 6; }
+  td.c-firm a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+  tbody tr:hover td { background: var(--hover); }
+  th.hl, td.hl { background: var(--selfill) !important; color: var(--sel); font-weight: 600; }
+  td.sel { outline: 2px solid var(--sel); outline-offset: -2px; position: relative; }
+  td.sel::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 6px; height: 6px; background: var(--sel); border: 1px solid var(--cell); }
+  td.c-firm.sel { z-index: 3; }
+  td.best { background: var(--best) !important; }
+  td.best.num { font-weight: 600; }
+  .code { display: inline-block; font-family: var(--mono); font-size: 12px; background: var(--code); border: 1px solid var(--grid); border-radius: 3px; padding: 0 6px; line-height: 18px; cursor: copy; }
+  .code:hover { border-color: var(--sel); }
+  tbody td.empty { color: var(--muted); font-style: italic; }
+  .sale { color: var(--muted); font-style: italic; }
+  .loading { padding: 40px 20px; color: var(--muted); }
+
+  /* sheet tabs + status bar */
+  .tabs { display: flex; align-items: stretch; gap: 0; border-top: 1px solid var(--line); background: var(--chrome); height: 30px; padding-left: 44px; overflow-x: auto; }
+  .stab { border: 0; border-right: 1px solid var(--line); background: var(--head); color: var(--muted); font: 12.5px var(--font); padding: 0 14px; cursor: pointer; white-space: nowrap; }
+  .stab.on { background: var(--cell); color: var(--sel); font-weight: 600; box-shadow: inset 0 -2px 0 var(--sel); }
+  .status { display: flex; gap: 18px; align-items: center; padding: 0 12px; height: 24px; border-top: 1px solid var(--line); background: var(--chrome); color: var(--muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; }
+  .status .flash { color: var(--sel); font-weight: 600; }
+  .status .right { margin-left: auto; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 640px) { .status .right { display: none; } .tools .count { width: 100%; margin-left: 0; } }
+</style>
+</head>
+<body>
+  <header class="top">
+    <h1>Prop firms</h1>
+    <p>Every futures prop firm, priced side by side. Click a column to sort, a code to copy it, a cell to read it in full.</p>
+  </header>
+  <div class="fbar">
+    <div class="name" id="namebox">A1</div>
+    <div class="fx">fx</div>
+    <div class="formula" id="formula"></div>
+  </div>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Filter rows…" autocomplete="off" spellcheck="false">
+    <select id="size"><option value="">All sizes</option></select>
+    <select id="firm"><option value="">All firms</option></select>
+    <button class="reset" id="reset" type="button">Clear</button>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="sheet" id="sheet"><div class="loading">Loading the sheet…</div></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="status"><span id="st-left">Ready</span><span class="flash" id="st-flash"></span><span class="right" id="st-right"></span></div>
+
+<script>
+(() => {
+  const params = new URLSearchParams(location.search)
+  const EMBED = params.get('embed') === '1'
+  const DEALS_URL = 'https://prop-deals-discord.frankiepc3.workers.dev/deals.json'
+  if (EMBED) document.body.classList.add('embed')
+
+  /* theme: standalone is Excel-light; embedded follows the app (query + live messages) */
+  const setTheme = (t) => document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light')
+  setTheme(params.get('theme') || 'light')
+  window.addEventListener('message', (e) => { if (e.origin === location.origin && e.data && e.data.echelonTheme) setTheme(e.data.echelonTheme) })
+
+  const $ = (id) => document.getElementById(id)
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+  const usd = (n) => n == null || n === '' || Number.isNaN(+n) ? '' : '$' + Math.round(+n).toLocaleString('en-US')
+  const letter = (i) => { let s = ''; i += 1; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26) } return s }
+  const TYPE = { evaluation: 'Evaluation', instant: 'Instant funded', direct: 'Direct funded' }
+  const codeCell = (r) => r.code ? `<span class="code" data-code="${esc(r.code)}" title="Click to copy">${esc(r.code)}</span>` : (r.pct != null ? '<span class="sale">on-site sale</span>' : '')
+  const DD = { 'trailing-intraday': 'Trailing (intraday)', 'trailing-eod': 'Trailing (end of day)', static: 'Static' }
+
+  /* ── columns ── */
+  const COLS = [
+    { k: 'firm', l: 'Firm', w: 168, cls: 'c-firm', html: (r) => r.pricing_url ? `<a href="${esc(r.pricing_url)}" target="_blank" rel="noopener">${esc(r.firm)}</a>` : esc(r.firm) },
+    { k: 'plan', l: 'Plan', w: 150 },
+    { k: 'size', l: 'Account', w: 92, num: true, txt: (r) => usd(r.size) },
+    { k: 'type', l: 'Type', w: 110, txt: (r) => TYPE[r.type] || r.type || '' },
+    { k: 'price', l: 'Price', w: 76, num: true, txt: (r) => usd(r.price) },
+    { k: 'period', l: 'Billing', w: 80, txt: (r) => r.period === 'one-time' ? 'One-time' : r.period === 'monthly' ? 'Monthly' : (r.period || '') },
+    { k: 'code', l: 'Code', w: 112, html: codeCell },
+    { k: 'pct', l: 'Off', w: 56, num: true, txt: (r) => r.net && r.pct != null ? 'incl.' : (r.pct != null ? r.pct + '%' : '') },
+    { k: 'withCode', l: 'With code', w: 92, num: true, txt: (r) => usd(r.withCode) },
+    { k: 'reset', l: 'Reset', w: 68, num: true, txt: (r) => usd(r.reset) },
+    { k: 'activation', l: 'Activation', w: 190 },
+    { k: 'target', l: 'Target', w: 80, num: true, txt: (r) => usd(r.target) },
+    { k: 'drawdown', l: 'Drawdown', w: 92, num: true, txt: (r) => usd(r.drawdown) },
+    { k: 'dd_type', l: 'DD type', w: 150, txt: (r) => DD[r.dd_type] || r.dd_type || '' },
+    { k: 'daily_loss', l: 'Daily loss', w: 86, num: true, txt: (r) => r.daily_loss == null ? 'none' : usd(r.daily_loss) },
+    { k: 'consistency', l: 'Consistency', w: 150 },
+    { k: 'min_days', l: 'Min days', w: 74, num: true },
+    { k: 'contracts', l: 'Contracts', w: 150 },
+    { k: 'split', l: 'Split', w: 190 },
+    { k: 'payout', l: 'Payouts', w: 220 },
+    { k: 'platform', l: 'Platform', w: 160 },
+    { k: 'note', l: 'Notes', w: 300 },
+  ]
+  const PIVOT = [
+    { k: 'size', l: 'Account', w: 92, num: true, txt: (r) => usd(r.size) },
+    { k: 'rank', l: '#', w: 44, num: true },
+    { k: 'firm', l: 'Firm', w: 168, cls: 'c-firm', html: (r) => r.pricing_url ? `<a href="${esc(r.pricing_url)}" target="_blank" rel="noopener">${esc(r.firm)}</a>` : esc(r.firm) },
+    { k: 'plan', l: 'Plan', w: 150 },
+    { k: 'withCode', l: 'With code', w: 92, num: true, txt: (r) => usd(r.withCode ?? r.price) },
+    { k: 'price', l: 'List', w: 70, num: true, txt: (r) => usd(r.price) },
+    { k: 'period', l: 'Billing', w: 80, txt: (r) => r.period === 'one-time' ? 'One-time' : 'Monthly' },
+    { k: 'code', l: 'Code', w: 112, html: codeCell },
+    { k: 'drawdown', l: 'Drawdown', w: 92, num: true, txt: (r) => usd(r.drawdown) },
+    { k: 'dd_type', l: 'DD type', w: 150, txt: (r) => DD[r.dd_type] || r.dd_type || '' },
+    { k: 'target', l: 'Target', w: 80, num: true, txt: (r) => usd(r.target) },
+    { k: 'activation', l: 'Activation', w: 190 },
+  ]
+  const FIRMS = [
+    { k: 'firm', l: 'Firm', w: 168, cls: 'c-firm', html: (r) => r.pricing_url ? `<a href="${esc(r.pricing_url)}" target="_blank" rel="noopener">${esc(r.firm)}</a>` : esc(r.firm) },
+    { k: 'code', l: 'Code', w: 112, html: codeCell },
+    { k: 'pct', l: 'Off', w: 56, num: true, txt: (r) => r.pct != null ? r.pct + '%' : '' },
+    { k: 'applies_to', l: 'Code applies to', w: 260 },
+    { k: 'expires', l: 'Code ends', w: 130 },
+    { k: 'plans_n', l: 'Plans', w: 60, num: true },
+    { k: 'sizes', l: 'Sizes', w: 180 },
+    { k: 'funded_type', l: 'Funded account', w: 240 },
+    { k: 'platforms', l: 'Platforms', w: 240 },
+    { k: 'payout_split', l: 'Split', w: 240 },
+    { k: 'payout_schedule', l: 'Payouts', w: 280 },
+    { k: 'consistency', l: 'Consistency', w: 220 },
+    { k: 'news_trading', l: 'News trading', w: 200 },
+    { k: 'notes', l: 'Notes', w: 420 },
+  ]
+  const SHEETS = [
+    { id: 'all', name: 'All plans', cols: COLS, rows: () => ROWS },
+    { id: 'eval', name: 'Evaluations', cols: COLS, rows: () => ROWS.filter((r) => r.type === 'evaluation') },
+    { id: 'instant', name: 'Instant & direct', cols: COLS, rows: () => ROWS.filter((r) => r.type !== 'evaluation') },
+    { id: 'cheapest', name: 'Cheapest by size', cols: PIVOT, rows: cheapest },
+    { id: 'firms', name: 'Firms', cols: FIRMS, rows: () => FIRMROWS },
+  ]
+
+  let DATA = null, ROWS = [], FIRMROWS = [], LIVE = null
+  const S = { sheet: 'all', q: '', size: '', firm: '', sort: null, sel: null }
+
+  /* the firm's discount applies to evaluation fees by default, and to funded
+     plans only when the deal says so */
+  function applies(d, plan) {
+    if (!d || d.pct == null) return false                // a code-less on-site sale still counts (code shows as "sale")
+    if (plan.discount) return true                       // the plan carries its own tier
+    const a = (d.applies_to || '').toLowerCase()
+    if (plan.type === 'evaluation') return !/instant only|funded only|activation only|reset only/.test(a)
+    // funded / instant plans only when the deal says so in so many words
+    if (/\b(instant|direct)\b[^.;]*\b(not|excluded|no code)\b/.test(a)) return false
+    return /\b(all|every)\b[^.;]*\b(plans?|products?|accounts?|purchases?)\b/.test(a) || /\b(instant|direct)\b[^.;]*\b(too|also|includ|as well|eligible|apply|applies|yes|and)\b/.test(a)
+  }
+  function flatten(data, live) {
+    const rows = []
+    FIRMROWS = []
+    for (const f of data.firms || []) {
+      if (f.active === false) continue
+      // the researched (usually official) code stays unless the prop-deals bot currently has a strictly better one
+      const lv = live && live[f.slug] && live[f.slug].code && live[f.slug].pct != null ? live[f.slug] : null
+      const better = lv && (!f.discount || !f.discount.code || f.discount.pct == null || lv.pct > f.discount.pct)
+      const d = better ? { code: lv.code, pct: lv.pct, applies_to: f.discount?.applies_to || null, expires: null, source: lv.url || lv.source, live: true } : (f.discount || null)
+      const s = f.summary || {}
+      const sizes = [...new Set((f.plans || []).map((p) => p.size).filter((n) => n != null))].sort((a, b) => a - b)
+      FIRMROWS.push({
+        firm: f.firm, slug: f.slug, pricing_url: f.pricing_url || f.site,
+        code: d ? d.code : null, pct: d ? d.pct : null, applies_to: d ? d.applies_to : null, expires: d ? d.expires : null,
+        plans_n: (f.plans || []).length, sizes: sizes.map((n) => '$' + (n / 1000) + 'K').join(' · '),
+        funded_type: s.funded_type, platforms: s.platforms, payout_split: s.payout_split, payout_schedule: s.payout_schedule,
+        consistency: s.consistency, news_trading: s.news_trading, notes: s.notes,
+      })
+      for (const p of f.plans || []) {
+        // a plan can carry its own tier (Bulenox families, FundedNext Rapid) or opt out (false)
+        const pd = p.discount === false ? null : (p.discount ? { ...(d || {}), ...p.discount } : d)
+        const ok = applies(pd, p)
+        rows.push({
+          firm: f.firm, slug: f.slug, pricing_url: f.pricing_url || f.site,
+          plan: p.plan, type: p.type || 'evaluation', size: p.size, price: p.price, period: p.period, net: !!p.net,
+          code: ok ? pd.code : null, pct: ok ? pd.pct : null,
+          // promo_price = the exact price the firm shows with the code; net = the listed price is already
+          // the promo price and the list is unknown: show it as-is, never discount twice
+          withCode: ok && p.price != null ? (p.promo_price ?? (p.net ? p.price : Math.round(p.price * (1 - pd.pct / 100)))) : null,
+          reset: p.reset, activation: p.activation, target: p.target, drawdown: p.drawdown, dd_type: p.dd_type,
+          daily_loss: p.daily_loss, consistency: p.consistency ?? s.consistency, min_days: p.min_days,
+          contracts: p.contracts, split: p.split ?? s.payout_split, payout: p.payout ?? s.payout_schedule,
+          platform: !p.platform || p.platform === 'any' ? s.platforms : p.platform, note: p.note || '',
+        })
+      }
+    }
+    // cheapest evaluation per account size (with code where one applies)
+    const best = new Map()
+    for (const r of rows) {
+      if (r.type !== 'evaluation' || r.price == null) continue
+      const eff = r.withCode ?? r.price
+      if (!best.has(r.size) || eff < best.get(r.size)) best.set(r.size, eff)
+    }
+    for (const r of rows) r.best = r.type === 'evaluation' && r.price != null && (r.withCode ?? r.price) === best.get(r.size)
+    return rows
+  }
+  function cheapest() {
+    const by = new Map()
+    for (const r of ROWS) {
+      if (r.type !== 'evaluation' || r.price == null) continue
+      if (!by.has(r.size)) by.set(r.size, [])
+      by.get(r.size).push(r)
+    }
+    const out = []
+    for (const size of [...by.keys()].sort((a, b) => a - b)) {
+      const list = by.get(size).sort((a, b) => (a.withCode ?? a.price) - (b.withCode ?? b.price)).slice(0, 5)
+      list.forEach((r, i) => out.push({ ...r, rank: i + 1, best: i === 0 }))
+    }
+    return out
+  }
+
+  /* ── render ── */
+  function visibleRows() {
+    const sheet = SHEETS.find((s) => s.id === S.sheet)
+    let rows = sheet.rows()
+    const q = S.q.trim().toLowerCase()
+    if (q) rows = rows.filter((r) => [r.firm, r.plan, r.code, r.type, TYPE[r.type], r.dd_type, DD[r.dd_type], r.note, r.platform, r.activation, r.consistency].join(' ').toLowerCase().includes(q))
+    if (S.size) rows = rows.filter((r) => String(r.size) === S.size)
+    if (S.firm) rows = rows.filter((r) => r.slug === S.firm)
+    if (S.sort) {
+      const { k, dir } = S.sort
+      const col = sheet.cols.find((c) => c.k === k)
+      rows = [...rows].sort((a, b) => {
+        const av = a[k], bv = b[k]
+        if (av == null && bv == null) return 0
+        if (av == null) return 1
+        if (bv == null) return -1
+        const c = col && col.num ? av - bv : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' })
+        return dir === 'asc' ? c : -c
+      })
+    } else if (sheet.id !== 'cheapest') {
+      rows = [...rows].sort((a, b) => (a.size ?? 1e12) - (b.size ?? 1e12) || ((a.withCode ?? a.price ?? 1e9) - (b.withCode ?? b.price ?? 1e9)))
+    }
+    return rows
+  }
+  function render() {
+    const sheet = SHEETS.find((s) => s.id === S.sheet)
+    const cols = sheet.cols
+    const rows = visibleRows()
+    let h = '<table id="grid"><colgroup><col style="width:44px">' + cols.map((c) => `<col style="width:${c.w}px">`).join('') + '</colgroup><thead>'
+    h += '<tr class="letters"><th class="rn"></th>' + cols.map((c, i) => `<th class="${c.cls || ''}" data-ci="${i}">${letter(i)}</th>`).join('') + '</tr>'
+    h += '<tr class="heads"><th class="rn"></th>' + cols.map((c, i) => {
+      const car = S.sort && S.sort.k === c.k ? `<span class="car">${S.sort.dir === 'asc' ? '&#9650;' : '&#9660;'}</span>` : ''
+      return `<th class="${c.cls || ''}" data-ci="${i}" data-k="${c.k}" title="Sort by ${esc(c.l)}">${esc(c.l)}${car}</th>`
+    }).join('') + '</tr></thead><tbody>'
+    rows.forEach((r, ri) => {
+      h += `<tr data-ri="${ri}"><th class="rn">${ri + 1}</th>`
+      cols.forEach((c, ci) => {
+        const txt = c.txt ? c.txt(r) : (r[c.k] == null ? '' : String(r[c.k]))
+        const inner = c.html ? c.html(r) : esc(txt)
+        // the cheapest row's effective price gets the fill: the With-code cell when a code applies (always, on the pivot), else the list price
+        const bestCell = r.best && (c.k === 'withCode' ? (r.withCode != null || sheet.id === 'cheapest') : (c.k === 'price' && r.withCode == null && sheet.id !== 'cheapest'))
+        const cls = [c.cls || '', c.num ? 'num' : '', bestCell ? 'best' : ''].filter(Boolean).join(' ')
+        h += `<td class="${cls}" data-ci="${ci}" data-ri="${ri}" data-txt="${esc(c.html ? (c.txt ? c.txt(r) : (r[c.k] ?? '')) : txt)}">${inner}</td>`
+      })
+      h += '</tr>'
+    })
+    if (!rows.length) h += `<tr><th class="rn">1</th><td class="empty" colspan="${cols.length}">Nothing matches.</td></tr>`
+    h += '</tbody></table>'
+    $('sheet').innerHTML = h
+    $('count').textContent = `${rows.length} row${rows.length === 1 ? '' : 's'}`
+    S.sel = null; $('namebox').textContent = 'A1'; $('formula').textContent = ''
+  }
+  function renderTabs() {
+    $('tabs').innerHTML = SHEETS.map((s) => `<button class="stab${s.id === S.sheet ? ' on' : ''}" data-sheet="${s.id}" type="button">${esc(s.name)}</button>`).join('')
+  }
+
+  /* ── selection: click a cell, read it in the formula bar, arrow around, ctrl+c ── */
+  function select(td) {
+    document.querySelectorAll('td.sel, th.hl, td.hl').forEach((e) => e.classList.remove('sel', 'hl'))
+    if (!td) { S.sel = null; return }
+    td.classList.add('sel')
+    const ci = +td.dataset.ci, ri = +td.dataset.ri
+    S.sel = { ci, ri }
+    const grid = $('grid')
+    grid.querySelectorAll(`thead th[data-ci="${ci}"]`).forEach((e) => e.classList.add('hl'))
+    td.parentElement.querySelector('th.rn').classList.add('hl')
+    $('namebox').textContent = letter(ci) + (ri + 1)
+    $('formula').textContent = td.dataset.txt || ''
+    td.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }
+  document.addEventListener('click', (e) => {
+    const code = e.target.closest('.code')
+    if (code) { navigator.clipboard?.writeText(code.dataset.code).then(() => flash(`Copied ${code.dataset.code}`)).catch(() => {}) }
+    const th = e.target.closest('thead tr.heads th[data-k]')
+    if (th) {
+      const k = th.dataset.k
+      S.sort = S.sort && S.sort.k === k ? (S.sort.dir === 'asc' ? { k, dir: 'desc' } : null) : { k, dir: 'asc' }
+      render(); return
+    }
+    const tab = e.target.closest('.stab')
+    if (tab) { S.sheet = tab.dataset.sheet; S.sort = null; renderTabs(); render(); return }
+    const td = e.target.closest('td[data-ci]')
+    if (td && !e.target.closest('a')) select(td)
+  })
+  document.addEventListener('keydown', (e) => {
+    if (!S.sel || e.target.matches('input, select')) return
+    const grid = $('grid'); if (!grid) return
+    const moves = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }
+    if (moves[e.key]) {
+      e.preventDefault()
+      const [dx, dy] = moves[e.key]
+      const next = grid.querySelector(`td[data-ci="${S.sel.ci + dx}"][data-ri="${S.sel.ri + dy}"]`)
+      if (next) select(next)
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+      const td = grid.querySelector('td.sel')
+      if (td) { navigator.clipboard?.writeText(td.dataset.txt || '').then(() => flash('Copied')).catch(() => {}) }
+    }
+  })
+  let flashT
+  function flash(msg) { $('st-flash').textContent = msg; clearTimeout(flashT); flashT = setTimeout(() => { $('st-flash').textContent = '' }, 1600) }
+
+  /* ── filters ── */
+  $('q').addEventListener('input', () => { S.q = $('q').value; render() })
+  $('size').addEventListener('change', () => { S.size = $('size').value; render() })
+  $('firm').addEventListener('change', () => { S.firm = $('firm').value; render() })
+  $('reset').addEventListener('click', () => { S.q = ''; S.size = ''; S.firm = ''; S.sort = null; $('q').value = ''; $('size').value = ''; $('firm').value = ''; render() })
+
+  /* ── boot ── */
+  async function boot() {
+    try {
+      DATA = await (await fetch('./propfirms.json', { cache: 'no-cache' })).json()
+    } catch (err) {
+      $('sheet').innerHTML = '<div class="loading">The sheet could not load. Refresh to try again.</div>'; return
+    }
+    try {
+      const r = await fetch(DEALS_URL, { cache: 'no-store' })
+      if (r.ok) LIVE = await r.json()
+    } catch {}
+    ROWS = flatten(DATA, LIVE && LIVE.deals)
+    const sizes = [...new Set(ROWS.map((r) => r.size).filter((n) => n != null))].sort((a, b) => a - b)
+    $('size').innerHTML = '<option value="">All sizes</option>' + sizes.map((n) => `<option value="${n}">${usd(n)}</option>`).join('')
+    const firms = [...new Map(ROWS.map((r) => [r.slug, r.firm])).entries()].sort((a, b) => a[1].localeCompare(b[1]))
+    $('firm').innerHTML = '<option value="">All firms</option>' + firms.map(([s, n]) => `<option value="${esc(s)}">${esc(n)}</option>`).join('')
+    renderTabs(); render()
+    const when = DATA.checked ? new Date(DATA.checked + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : ''
+    const liveN = LIVE && LIVE.deals ? Object.keys(LIVE.deals).length : 0
+    $('st-left').textContent = 'Ready'
+    $('st-right').textContent = `Prices checked ${when}${liveN ? ` · codes cross-checked hourly against the prop-deals bot (${liveN} firms)` : ''} · confirm on the firm's site before you buy`
+  }
+  boot()
+})()
+</script>
+</body>
+</html>
