@@ -1158,6 +1158,8 @@
     /* what's next: a floating bubble under the top bar until the basics are done */
     .nextup { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 62px); left: 50%; transform: translateX(-50%); z-index: 70; display: flex; flex-direction: column; align-items: center; gap: 8px; }
     body.in-chat .nextup, body.in-feed .nextup { display: none; }
+    .nextup { transition: opacity 0.2s ease; }
+    body.ptr-pulling .nextup, body.ptr-busy .nextup { opacity: 0; pointer-events: none; }   /* the pull disc rests where it sits */
     .nu-pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line-bright); background: var(--panel); color: var(--ink); font: inherit; font-size: 12.5px; cursor: pointer; box-shadow: 0 8px 26px -10px rgba(0,0,0,0.4); -webkit-tap-highlight-color: transparent; }
     .nu-pill b { font-weight: 650; }
     .nu-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
@@ -1271,8 +1273,8 @@
     @media (max-width: 840px) {
       body.in-feed .topbar { background: none !important; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; box-shadow: none; pointer-events: none; }
       body.in-feed .topbar h2, body.in-feed .topbar .crumb, body.in-feed .menu-btn { display: none; }
-      body.in-feed .tb-bell { pointer-events: auto; background: color-mix(in srgb, var(--panel) 45%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6); border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); border-radius: 50%; width: 44px; height: 44px; padding: 0; align-items: center; justify-content: center; color: var(--ink); box-shadow: 0 2px 12px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.35); }
-      body.in-feed .tb-bell svg { width: 20px; height: 20px; }
+      body.in-feed .tb-bell, body.in-feed .tb-refresh { pointer-events: auto; background: color-mix(in srgb, var(--panel) 45%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6); border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); border-radius: 50%; width: 44px; height: 44px; padding: 0; align-items: center; justify-content: center; color: var(--ink); box-shadow: 0 2px 12px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.35); }
+      body.in-feed .tb-bell svg, body.in-feed .tb-refresh svg { width: 20px; height: 20px; }
       body.in-feed .tb-bell .bcount { top: 4px; right: 4px; }
       /* the drawer skips what the bottom nav already carries */
       .tab[data-view="overview"], .tab[data-view="feed"], .tab[data-view="course"], .tab[data-view="chat"] { display: none; }
@@ -1346,46 +1348,56 @@
       .block-head .filters { flex-basis: 100%; }
     }
 
+    /* ── refresh: one glyph for the topbar button and the pull disc ── */
+    /* The arrows turn while a refresh runs (WAAPI, so the turn always
+       completes instead of snapping), then give way to a gold tick. */
+    .rf-arrows, .rf-tick { width: 21px; height: 21px; display: block; }
+    .rf-arrows { transition: opacity 0.16s ease, transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1); }
+    .rf-tick {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      color: var(--gold); opacity: 0; pointer-events: none; transition: opacity 0.12s ease;
+    }
+    .rf-tick polyline { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 0.34s cubic-bezier(0.2, 0.7, 0.2, 1) 0.05s; }
+    .done .rf-arrows { opacity: 0; transform: scale(0.55); }
+    .done .rf-tick { opacity: 1; }
+    .done .rf-tick polyline { stroke-dashoffset: 0; }
+
+    .tb-refresh {
+      position: relative; margin-left: auto; background: none; border: 0; color: var(--muted);
+      cursor: pointer; padding: 8px; border-radius: 9px; display: inline-flex;
+      -webkit-tap-highlight-color: transparent; transition: color 0.15s ease, background 0.15s ease;
+    }
+    @media (hover: hover) {
+      .tb-refresh:hover { color: var(--ink); background: var(--panel-2); }
+      .tb-refresh:hover:not(.busy):not(.done) .rf-arrows { transform: rotate(40deg); }
+    }
+    .tb-refresh.busy { color: var(--ink); cursor: default; }
+    .tb-refresh + .tb-bell { margin-left: 0; }
+
     /* ── pull to refresh (touch) ──────────────────────────────── */
     html, body { overscroll-behavior-y: contain; }
     .ptr {
       --p: 0;                                  /* 0..1 pull progress, set by JS */
       position: fixed; left: 50%; top: 0; z-index: 50;
-      width: 46px; height: 46px; margin-left: -23px; border-radius: 50%;
+      width: 40px; height: 40px; margin-left: -20px; border-radius: 50%;
       background: var(--panel); border: 1px solid var(--line-bright);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 0 rgba(201,162,74,0);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.28);
+      color: var(--muted);
       display: flex; align-items: center; justify-content: center;
       transform: translate3d(0, -64px, 0) scale(0.8); opacity: 0;
-      transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease, box-shadow 0.2s ease;
+      transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease, color 0.15s ease;
       pointer-events: none; will-change: transform;
     }
-    :root[data-theme="light"] .ptr { box-shadow: 0 10px 30px rgba(0,0,0,0.14); }
-    body.ptr-pulling .ptr { transition: box-shadow 0.2s ease; }   /* track the finger 1:1 */
+    :root[data-theme="light"] .ptr { box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+    .ptr .rf-arrows, .ptr .rf-tick { width: 18px; height: 18px; }
+    /* the arrows turn with the finger; one full turn is the arming point */
+    .ptr .rf-arrows { transform: rotate(calc(var(--p) * 360deg)); transition: none; }
+    .ptr.done .rf-arrows { opacity: 0; transform: scale(0.55); transition: opacity 0.16s ease, transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1); }
+    body.ptr-pulling .ptr { transition: color 0.15s ease; }   /* track the finger 1:1 */
     body.ptr-pulling .ptr, body.ptr-busy .ptr { opacity: 1; }
-    .ptr .dial { position: absolute; inset: -1px; width: 48px; height: 48px; transform: rotate(-90deg); }
-    .ptr .dial circle { fill: none; stroke-width: 2.2; }
-    .ptr .dial .track { stroke: var(--line-bright); }
-    .ptr .dial .arc {
-      stroke: url(#ptr-gold); stroke-linecap: round;
-      stroke-dasharray: 100; stroke-dashoffset: calc(100 - var(--p) * 100);
-      transition: stroke-dashoffset 0.05s linear;
-    }
-    .ptr .core {
-      width: 10px; height: 10px; border-radius: 50%; background: var(--gold);
-      transform: scale(calc(0.35 + var(--p) * 0.65)); opacity: calc(0.35 + var(--p) * 0.65);
-      transition: transform 0.12s ease, opacity 0.12s ease;
-    }
-    body.ptr-armed .ptr { box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 7px rgba(201,162,74,0.14); animation: ptr-pop 0.34s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    body.ptr-armed .ptr .core { transform: scale(1.25); }
-    body.ptr-busy .ptr { transform: translate3d(0, var(--ptr-rest, 76px), 0) scale(1); box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 5px rgba(201,162,74,0.1); }
-    body.ptr-busy .ptr .dial { animation: ptr-spin 0.85s linear infinite; }
-    body.ptr-busy .ptr .dial .arc { stroke-dasharray: 26 100; stroke-dashoffset: 0; transition: none; }
-    body.ptr-busy .ptr .dial .track { stroke: var(--line); }
-    body.ptr-busy .ptr .core { transform: scale(0.55); opacity: 0.9; animation: ptr-breathe 0.85s ease-in-out infinite; }
-    @keyframes ptr-spin { to { transform: rotate(270deg); } }
-    @keyframes ptr-pop { 0% { transform: translate3d(0, var(--ptr-y, 0), 0) scale(1); } 45% { transform: translate3d(0, var(--ptr-y, 0), 0) scale(1.16); } 100% { transform: translate3d(0, var(--ptr-y, 0), 0) scale(1); } }
-    @keyframes ptr-breathe { 50% { transform: scale(0.85); } }
-    @media (prefers-reduced-motion: reduce) { .ptr { transition: none; animation: none !important; } .ptr .core { animation: none !important; } }
+    body.ptr-armed .ptr { color: var(--gold); }
+    body.ptr-busy .ptr { transform: translate3d(0, var(--ptr-rest, 76px), 0) scale(1); color: var(--ink); }
+    @media (prefers-reduced-motion: reduce) { .ptr, .rf-arrows, .rf-tick, .rf-tick polyline { transition: none; } }
 
     /* ── skeleton loaders ────────────────────────────────────── */
 
@@ -2115,12 +2127,8 @@
     <div class="scrim" id="scrim"></div>
     <nav class="bnav" id="bnav" aria-label="Quick navigation"></nav>
     <div class="ptr" id="ptr" aria-hidden="true">
-      <svg class="dial" viewBox="0 0 48 48">
-        <defs><linearGradient id="ptr-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8c977"/><stop offset="1" stop-color="#a8842c"/></linearGradient></defs>
-        <circle class="track" cx="24" cy="24" r="20"/>
-        <circle class="arc" cx="24" cy="24" r="20" pathLength="100"/>
-      </svg>
-      <span class="core"></span>
+      <svg class="rf-arrows" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+      <svg class="rf-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="5 12.5 10 17.5 19 7.5" pathLength="1"/></svg>
     </div>
 
     <div class="main">
@@ -2132,6 +2140,7 @@
           <h2 id="pane-title">Overview</h2>
           <div class="crumb" id="pane-crumb"></div>
         </div>
+        <button class="tb-refresh" id="tb-refresh" type="button" title="Refresh" aria-label="Refresh"><svg class="rf-arrows" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg><svg class="rf-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="5 12.5 10 17.5 19 7.5" pathLength="1"/></svg></button>
         <button class="tb-bell" id="tb-bell" type="button" title="Notifications" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><i class="bcount" id="bell-n" hidden></i></button>
         <button class="tb-gear" id="pro-settings" type="button" title="Settings" aria-label="Settings" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
       </div>
@@ -9859,18 +9868,78 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       applyIntakeGate()
     }
 
+    /* ── refresh ──
+       One routine behind the topbar button and the pull gesture, so the two
+       never drift. View-aware: the feed, inbox, GEX board, news and an open
+       chat room reload just themselves; everything else repeats the first
+       load (every pane back to its skeleton until its data lands). Badges
+       and the bell always recount. */
+    const REFRESH = { busy: false, SPIN_MS: 800 }
+    const REFRESH_FAIL = 'Couldn’t refresh. Check your connection.'
+    async function refreshNow() {
+      const v = curView()
+      if (v === 'feed') await loadFeed(true)
+      else if (v === 'inbox') await loadInbox()
+      else if (v === 'gex') await loadGex()
+      else if (v === 'news') await loadNews()
+      else if (v === 'chat' && chat.cur) await openConversation(chat.cur.type, chat.cur.id)
+      else await fetchAndRender()
+      refreshBadges(); refreshBell()
+    }
+    // The arrows turn for as long as the work takes, then complete the turn
+    // and ease into place (WAAPI), so the glyph never snaps mid-rotation.
+    function spinStart(svg) {
+      const still = !svg?.animate || matchMedia('(prefers-reduced-motion: reduce)').matches
+      const turn = still ? null : svg.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: REFRESH.SPIN_MS, iterations: Infinity, easing: 'linear' })
+      return {
+        async stop() {
+          if (!turn) return
+          const at = ((turn.currentTime ?? 0) % REFRESH.SPIN_MS) / REFRESH.SPIN_MS
+          turn.cancel()
+          const rest = svg.animate([{ transform: `rotate(${(at * 360).toFixed(1)}deg)` }, { transform: 'rotate(360deg)' }], { duration: Math.max(180, (1 - at) * REFRESH.SPIN_MS * 1.25), easing: 'cubic-bezier(0.3, 0, 0.2, 1)' })
+          try { await rest.finished } catch {}
+        },
+      }
+    }
+    const holdFor = (started, ms) => new Promise((r) => setTimeout(r, Math.max(0, ms - (Date.now() - started))))
+
+    // Topbar button: spin, refresh, gold tick. Ignored while a refresh is
+    // already running from either entry point; the tooltip keeps the time
+    // of the last pass.
+    async function refreshFromButton() {
+      const btn = el('tb-refresh')
+      if (REFRESH.busy || !btn) return
+      REFRESH.busy = true
+      btn.classList.add('busy'); btn.setAttribute('aria-busy', 'true')
+      const spin = spinStart(btn.querySelector('.rf-arrows'))
+      const started = Date.now()
+      let ok = true
+      try { await refreshNow() } catch (err) { ok = false; console.warn('refresh failed', err) }
+      await holdFor(started, 700)   // long enough to read as "it did something"
+      await spin.stop()
+      btn.classList.remove('busy'); btn.removeAttribute('aria-busy')
+      if (ok) {
+        btn.classList.add('done')
+        btn.title = `Refreshed ${new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
+        setTimeout(() => btn.classList.remove('done'), 1400)
+      } else toast(REFRESH_FAIL)
+      REFRESH.busy = false
+    }
+    el('tb-refresh').addEventListener('click', refreshFromButton)
+
     /* ── pull to refresh (touch only) ──
        Finger down at the very top, a deliberate downward drag claims the
-       gesture (a sideways or upward move releases it), the gold dial fills
-       with the pull, pops when armed, and on release spins while every pane
-       drops to its skeleton and refetches. Under threshold it eases home.
-       Ignored while the drawer is open, while typing, or mid-refresh. */
+       gesture (a sideways or upward move releases it), the arrows turn with
+       the pull and go gold once a full turn arms it, and on release they
+       spin while the view refetches, then give way to the tick. Under
+       threshold it eases home. Ignored while the drawer is open, while
+       typing, or mid-refresh. */
     {
       const ptr = el('ptr'), THRESH = 68, MAXPULL = 96
-      const s = { active: false, claimed: false, startX: 0, startY: 0, armed: false, busy: false }
+      const s = { active: false, claimed: false, startX: 0, startY: 0, armed: false }
       const buzz = (p) => { try { navigator.vibrate?.(p) } catch {} }
       const atTop = () => window.scrollY <= 1
-      // Instagram-style: the whole page rides the pull, the dial sits in the gap
+      // Instagram-style: the whole page rides the pull, the disc sits in the gap
       const pageEl = () => document.querySelector('.main')
       const pageTo = (y, animate) => {
         const m = pageEl(); if (!m) return
@@ -9882,7 +9951,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const y = Math.min(MAXPULL, d * 0.5)
         const p = Math.min(1, y / THRESH)
         ptr.style.setProperty('--p', p.toFixed(3))
-        ptr.style.setProperty('--ptr-y', `${y - 40}px`)
         ptr.style.transform = `translate3d(0, ${y - 40}px, 0) scale(${0.8 + 0.2 * p})`
         ptr.style.opacity = String(Math.min(1, p * 1.4))
         pageTo(y, false)
@@ -9904,7 +9972,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         return false
       }
       const canStart = () =>
-        !s.busy && atTop() && el('app').classList.contains('on') &&
+        !REFRESH.busy && atTop() && el('app').classList.contains('on') &&
         !el('app').classList.contains('nav-open') && el('onb').hidden &&
         !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')
       document.addEventListener('touchstart', (e) => {
@@ -9913,7 +9981,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         s.active = true; s.claimed = false; s.startX = t.clientX; s.startY = t.clientY
       }, { passive: true })
       document.addEventListener('touchmove', (e) => {
-        if (!s.active || s.busy) return
+        if (!s.active || REFRESH.busy) return
         const t = e.touches[0]
         const dy = t.clientY - s.startY, dx = t.clientX - s.startX
         if (!s.claimed) {
@@ -9923,31 +9991,32 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           else return
         }
         if (dy <= 0) { setPull(0); return }
-        if (e.cancelable) e.preventDefault()   // own the gesture: no native bounce under the dial
+        if (e.cancelable) e.preventDefault()   // own the gesture: no native bounce under the disc
         setPull(dy)
       }, { passive: false })
       const finish = async () => {
         if (!s.active) return
         const fire = s.claimed && s.armed
         reset()
-        if (!fire) return
-        s.busy = true
+        if (!fire || REFRESH.busy) return
+        REFRESH.busy = true
         buzz([8, 40, 12])
         document.documentElement.style.setProperty('--ptr-rest', `${Math.round(document.querySelector('.topbar').getBoundingClientRect().height + 14)}px`)
         document.body.classList.add('ptr-busy')
         pageTo(54, true)
+        const spin = spinStart(ptr.querySelector('.rf-arrows'))
         const started = Date.now()
-        try {
-          const v = curView()
-          if (v === 'feed') await loadFeed(true)
-          else if (v === 'inbox') await loadInbox()
-          else await fetchAndRender()
-        } catch (err) { console.warn('refresh failed', err) }
+        let ok = true
+        try { await refreshNow() } catch (err) { ok = false; console.warn('refresh failed', err) }
         // hold the spinner long enough to read as "it did something"
-        await new Promise((r) => setTimeout(r, Math.max(0, 700 - (Date.now() - started))))
+        await holdFor(started, 700)
+        await spin.stop()
+        if (ok) { ptr.classList.add('done'); await new Promise((r) => setTimeout(r, 520)) }
         document.body.classList.remove('ptr-busy')
         pageTo(0, true)
-        s.busy = false
+        setTimeout(() => ptr.classList.remove('done'), 360)
+        REFRESH.busy = false
+        if (!ok) toast(REFRESH_FAIL)
       }
       document.addEventListener('touchend', finish, { passive: true })
       document.addEventListener('touchcancel', () => { reset() }, { passive: true })

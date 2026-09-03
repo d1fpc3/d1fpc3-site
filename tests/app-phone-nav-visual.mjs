@@ -67,7 +67,7 @@ const noOverflow = async (page, label) => {
   if (!slots.includes("feed")) fails.push("feed slot missing: " + slots);
   const navBox = await nav.boundingBox();
   if (!navBox || navBox.y + navBox.height < 800) fails.push("bottom nav not at the bottom: " + JSON.stringify(navBox));
-  if (await page.locator("#ptr .dial .arc").count() !== 1) fails.push("ptr dial markup missing");
+  if (await page.locator("#ptr .rf-arrows").count() !== 1) fails.push("ptr refresh glyph missing");
   // overview copy
   const ov = await page.textContent("#v-overview");
   if (/The room/.test(ov)) fails.push('"The room" still on Overview');
