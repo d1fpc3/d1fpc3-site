@@ -1,12 +1,12 @@
-// Prop firms sheet checks (manual, not a node:test).
+// Prop firms dashboard checks (manual, not a node:test).
 //   1. from the repo root:  python -m http.server 8080
 //   2. node tests/propfirms-visual.mjs        (BASE / OUT env)
-// Standalone light sheet on desktop: rows render from propfirms.json, header
-// click sorts, a cell click fills the name box + formula bar, arrow keys move
-// the selection, sheet tabs switch, filters narrow, sticky header/firm column;
-// then the embedded dark sheet on the phone. Also opens the members app's
-// Prop firms tab (signed in as the App Review account) and checks the iframe
-// mounts with the app's theme. Screenshots in OUT.
+// Standalone dark on desktop: the eight main firms in D1's order, one column
+// each with the cheapest evaluation at the chosen size, the lowest price in
+// gold, size switch re-renders, Topstep shows no 25K plan, the plans and
+// fine-print toggles open, code copy flashes; embedded light on the phone
+// (no header, no horizontal overflow, stacked); then the members-app tab on
+// desktop + phone (iframe mounts, theme follows the app). Screenshots in OUT.
 import { createRequire } from "module";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import { tmpdir, homedir } from "os";
@@ -18,85 +18,79 @@ const { chromium, devices } = require(existsSync(LOCAL_PW) ? LOCAL_PW : "playwri
 const OUT = process.env.OUT || `${tmpdir()}/propfirms-shots`;
 mkdirSync(OUT, { recursive: true });
 const BASE = process.env.BASE || "http://localhost:8080";
+const ORDER = ["apex", "alpha", "mffu", "tradeify", "tpt", "topstep", "lucid", "fundednext"];
 const fails = [];
 const note = (s) => console.log("  " + s);
 const browser = await chromium.launch();
 
-// ── standalone, desktop, light ──
+// ── standalone, desktop, dark ──
 {
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, colorScheme: "dark" });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => fails.push("pageerror: " + e.message));
   await page.goto(`${BASE}/echelon/propfirms/`, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#grid tbody tr", { timeout: 15000 });
+  await page.waitForSelector(".firm .price", { timeout: 15000 });
   await page.waitForTimeout(400);
-  const n0 = await page.locator("#grid tbody tr[data-ri]").count();
-  note(`rows: ${n0}`);
-  if (n0 < 3) fails.push("too few rows rendered");
-  const sticky = await page.evaluate(() => ({
-    letters: getComputedStyle(document.querySelector("thead tr.letters th")).position,
-    heads: getComputedStyle(document.querySelector("thead tr.heads th")).position,
-    firm: getComputedStyle(document.querySelector("tbody td.c-firm")).position,
-    theme: document.documentElement.getAttribute("data-theme"),
-  }));
-  note("sticky: " + JSON.stringify(sticky));
-  if (sticky.letters !== "sticky" || sticky.heads !== "sticky" || sticky.firm !== "sticky") fails.push("frozen panes are not sticky");
-  if (sticky.theme !== "light") fails.push("standalone should be Excel-light");
-  await page.screenshot({ path: `${OUT}/desk-1-sheet.png` });
+  const st = await page.evaluate(() => {
+    const gold = getComputedStyle(document.documentElement).getPropertyValue("--gold").trim();
+    const probe = document.createElement("i"); probe.style.color = gold; document.body.appendChild(probe); const g = getComputedStyle(probe).color; probe.remove();
+    const firms = [...document.querySelectorAll(".firm")].map((f) => ({ slug: f.dataset.slug, price: f.querySelector(".price .v")?.textContent || null, color: f.querySelector(".price .v") ? getComputedStyle(f.querySelector(".price .v")).color : null, best: f.classList.contains("best"), specs: f.querySelectorAll(".specs li").length, code: f.querySelector(".code b")?.textContent || null }));
+    return { theme: document.documentElement.getAttribute("data-theme"), size: document.querySelector(".sizes .on")?.textContent, firms, gold: g };
+  });
+  note(`standalone: theme=${st.theme} size=${st.size}`);
+  st.firms.forEach((f) => note(`  ${f.slug}: ${f.price} ${f.best ? "(gold)" : ""} code=${f.code} specs=${f.specs}`));
+  if (st.theme !== "dark") fails.push("standalone should follow the dark scheme");
+  if (st.firms.map((f) => f.slug).join(",") !== ORDER.join(",")) fails.push("firm order wrong: " + st.firms.map((f) => f.slug).join(","));
+  const bests = st.firms.filter((f) => f.best);
+  if (bests.length < 1 || bests.some((f) => f.color !== st.gold)) fails.push("the cheapest price is not gold " + JSON.stringify(bests));
+  if (st.firms.some((f) => f.price && f.specs < 5)) fails.push("a priced firm has too few specs");
+  await page.screenshot({ path: `${OUT}/desk-1-50k.png`, fullPage: true });
 
-  // select a cell: name box + formula bar
-  await page.click('#grid tbody tr[data-ri="1"] td[data-ci="4"]');
-  const sel = await page.evaluate(() => ({ name: document.getElementById("namebox").textContent, f: document.getElementById("formula").textContent, hl: document.querySelectorAll("#grid .hl").length }));
-  note("selected: " + JSON.stringify(sel));
-  if (sel.name !== "E2" || !sel.f || sel.hl < 2) fails.push("cell selection did not fill the name box / formula bar");
-  await page.keyboard.press("ArrowDown");
-  const after = await page.evaluate(() => document.getElementById("namebox").textContent);
-  if (after !== "E3") fails.push(`arrow key did not move selection (${after})`);
-  await page.screenshot({ path: `${OUT}/desk-2-selected.png` });
+  // switch to 25K: Topstep has no 25K evaluation
+  await page.click('.sizes button[data-size="25000"]');
+  await page.waitForTimeout(150);
+  const s25 = await page.evaluate(() => ({ size: document.querySelector(".sizes .on")?.textContent, topstep: document.querySelector('.firm[data-slug="topstep"] .none')?.textContent || null, apex: document.querySelector('.firm[data-slug="apex"] .price .v')?.textContent }));
+  note("25K: " + JSON.stringify(s25));
+  if (s25.size !== "$25K" || !s25.topstep || !s25.apex) fails.push("25K switch wrong " + JSON.stringify(s25));
+  await page.click('.sizes button[data-size="150000"]');
+  await page.waitForTimeout(150);
+  const s150 = await page.evaluate(() => document.querySelector('.firm[data-slug="apex"] .price .v')?.textContent);
+  note("150K apex: " + s150);
+  if (!s150 || s150 === s25.apex) fails.push("150K did not change the Apex price");
+  await page.screenshot({ path: `${OUT}/desk-2-150k.png`, fullPage: true });
 
-  // sort by price desc (two clicks)
-  await page.click('#grid thead tr.heads th[data-k="price"]');
-  await page.click('#grid thead tr.heads th[data-k="price"]');
-  const prices = await page.evaluate(() => [...document.querySelectorAll('#grid tbody td[data-ci="4"]')].map((t) => +t.dataset.txt.replace(/[$,]/g, "")));
-  note("prices sorted desc: " + prices.join(","));
-  if (prices.some((p, i) => i && p > prices[i - 1])) fails.push("price sort desc is wrong");
-
-  // filter + tab
-  const term = await page.evaluate(() => document.querySelector('#grid tbody tr[data-ri="1"] td[data-ci="0"]').dataset.txt);
-  await page.fill("#q", term);
-  await page.waitForTimeout(150);
-  const nq = await page.locator("#grid tbody tr[data-ri]").count();
-  note(`filter '${term}' rows: ${nq}`);
-  if (!(nq >= 1 && nq < n0)) fails.push("text filter did not narrow");
-  await page.click("#reset");
-  await page.click('.stab[data-sheet="cheapest"]');
-  await page.waitForTimeout(150);
-  const piv = await page.evaluate(() => ({ rows: document.querySelectorAll("#grid tbody tr[data-ri]").length, first: document.querySelector("#grid thead tr.heads th[data-k]").textContent, best: document.querySelectorAll("#grid td.best").length }));
-  note("cheapest sheet: " + JSON.stringify(piv));
-  if (!piv.rows || piv.first !== "Account" || !piv.best) fails.push("cheapest-by-size sheet wrong " + JSON.stringify(piv));
-  await page.screenshot({ path: `${OUT}/desk-3-cheapest.png` });
-  // the Firms sheet: one row per firm, with the firm-level notes
-  await page.click('.stab[data-sheet="firms"]');
-  await page.waitForTimeout(150);
-  const firms = await page.evaluate(() => ({ rows: document.querySelectorAll("#grid tbody tr[data-ri]").length, first: document.querySelector("#grid thead tr.heads th[data-k]").textContent, options: document.querySelectorAll("#firm option").length - 1 }));
-  note("firms sheet: " + JSON.stringify(firms));
-  if (!firms.rows || firms.first !== "Firm" || firms.rows !== firms.options) fails.push("firms sheet wrong " + JSON.stringify(firms));
-  await page.screenshot({ path: `${OUT}/desk-3b-firms.png` });
+  // toggles + copy
+  await page.click('.firm[data-slug="apex"] [data-toggle="plans"]');
+  await page.waitForTimeout(120);
+  const pl = await page.evaluate(() => ({ rows: document.querySelectorAll('.firm[data-slug="apex"] .plans:not([hidden]) .row').length, label: document.querySelector('.firm[data-slug="apex"] [data-toggle="plans"]').textContent }));
+  note("apex plans open: " + JSON.stringify(pl));
+  if (pl.rows < 2 || pl.label !== "Hide plans") fails.push("plans toggle did not open " + JSON.stringify(pl));
+  await page.click('.firm[data-slug="topstep"] [data-toggle="fine"]');
+  await page.waitForTimeout(120);
+  const fn = await page.evaluate(() => document.querySelectorAll('.firm[data-slug="topstep"] .fine:not([hidden]) dt').length);
+  note("topstep fine print items: " + fn);
+  if (fn < 3) fails.push("fine print did not open");
+  await page.screenshot({ path: `${OUT}/desk-3-toggles.png`, fullPage: true });
+  await ctx.grantPermissions(["clipboard-read", "clipboard-write"]).catch(() => {});
+  await page.click('.firm[data-slug="apex"] .copy');
+  await page.waitForTimeout(200);
+  const fl = await page.evaluate(() => document.getElementById("flash").textContent);
+  note("copy flash: " + fl);
+  if (!/^Copied /.test(fl)) fails.push("copy did not flash");
   await ctx.close();
 }
 
-// ── embedded, phone, dark ──
+// ── embedded, phone, light ──
 {
   const ctx = await browser.newContext({ ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => fails.push("pageerror (embed): " + e.message));
-  await page.goto(`${BASE}/echelon/propfirms/?embed=1&theme=dark`, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#grid tbody tr", { timeout: 15000 });
-  const emb = await page.evaluate(() => ({ theme: document.documentElement.getAttribute("data-theme"), top: getComputedStyle(document.querySelector(".top")).display, bg: getComputedStyle(document.body).backgroundColor, sw: document.documentElement.scrollWidth, iw: innerWidth }));
+  await page.goto(`${BASE}/echelon/propfirms/?embed=1&theme=light`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector(".firm .price", { timeout: 15000 });
+  const emb = await page.evaluate(() => ({ theme: document.documentElement.getAttribute("data-theme"), h1: getComputedStyle(document.querySelector(".top h1")).display, sw: document.documentElement.scrollWidth, iw: innerWidth, cols: getComputedStyle(document.getElementById("firms")).gridTemplateColumns.split(" ").length }));
   note("embed: " + JSON.stringify(emb));
-  if (emb.theme !== "dark" || emb.top !== "none") fails.push("embed mode did not hide the header / apply dark");
-  if (emb.sw > emb.iw) fails.push("embed page itself scrolls horizontally (the sheet should scroll inside)");
-  await page.screenshot({ path: `${OUT}/phone-4-embed-dark.png` });
+  if (emb.theme !== "light" || emb.h1 !== "none" || emb.sw > emb.iw || emb.cols !== 1) fails.push("embed/phone layout wrong " + JSON.stringify(emb));
+  await page.screenshot({ path: `${OUT}/phone-4-embed-light.png`, fullPage: true });
   await ctx.close();
 }
 
@@ -123,14 +117,11 @@ const browser = await chromium.launch();
     await page.waitForTimeout(800);
     await page.evaluate(() => document.querySelector('.tab[data-view="propfirms"]').click());
     await page.waitForTimeout(600);
-    const frame = page.frameLocator("#pf-frame");
-    await frame.locator("#grid tbody tr").first().waitFor({ timeout: 15000 }).catch(() => fails.push(`${phone ? "phone" : "desk"}: sheet did not load inside the app`));
-    const st = await page.evaluate(() => { const f = document.getElementById("pf-frame"), r = f.getBoundingClientRect(); return { src: f.getAttribute("src"), h: Math.round(r.height), bottomGap: Math.round(innerHeight - r.bottom), title: document.getElementById("pane-title").textContent, appTheme: document.documentElement.getAttribute("data-theme") }; });
-    const inner = await page.evaluate(() => document.getElementById("pf-frame").contentDocument?.documentElement.getAttribute("data-theme"));
-    note(`${phone ? "phone" : "desk"} app: ${JSON.stringify(st)} innerTheme=${inner}`);
-    if (st.title !== "Prop firms") fails.push("app: pane title not Prop firms");
-    if (inner !== st.appTheme) fails.push("app: sheet theme does not follow the app theme");
-    if (st.h < 400) fails.push("app: iframe too short");
+    await page.frameLocator("#pf-frame").locator(".firm .price").first().waitFor({ timeout: 15000 }).catch(() => fails.push(`${phone ? "phone" : "desk"}: dashboard did not load inside the app`));
+    const st = await page.evaluate(() => { const f = document.getElementById("pf-frame"), r = f.getBoundingClientRect(), cs = getComputedStyle(f); return { h: Math.round(r.height), title: document.getElementById("pane-title").textContent, appTheme: document.documentElement.getAttribute("data-theme"), border: cs.borderTopWidth, inner: f.contentDocument?.documentElement.getAttribute("data-theme"), innerBg: f.contentDocument ? getComputedStyle(f.contentDocument.body).backgroundColor : null, appBg: getComputedStyle(document.body).backgroundColor }; });
+    note(`${phone ? "phone" : "desk"} app: ${JSON.stringify(st)}`);
+    if (st.title !== "Prop firms" || st.inner !== st.appTheme || st.h < 400) fails.push("app embed wrong " + JSON.stringify(st));
+    if (st.border !== "0px" || st.innerBg !== st.appBg) fails.push("app embed is not seamless (border/background) " + JSON.stringify(st));
     await page.screenshot({ path: `${OUT}/${phone ? "phone" : "desk"}-5-in-app.png` });
     await ctx.close();
   }
