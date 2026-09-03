@@ -2244,10 +2244,20 @@
                   <div class="calc-row">
                     <label>Contracts<input class="inp" id="rc-n" type="number" inputmode="numeric" min="1" step="1" placeholder="or type them"></label>
                     <label>Instrument<select class="inp" id="rc-inst">
-                      <option value="2">MNQ · $2/pt</option>
-                      <option value="20">NQ · $20/pt</option>
-                      <option value="5">MES · $5/pt</option>
-                      <option value="50">ES · $50/pt</option>
+                      <optgroup label="Index">
+                        <option value="2">MNQ · $2/pt</option>
+                        <option value="20">NQ · $20/pt</option>
+                        <option value="5">MES · $5/pt</option>
+                        <option value="50">ES · $50/pt</option>
+                      </optgroup>
+                      <optgroup label="Gold">
+                        <option value="10">MGC · $10/pt</option>
+                        <option value="100">GC · $100/pt</option>
+                      </optgroup>
+                      <optgroup label="Silver">
+                        <option value="1000">SIL · $1,000/pt</option>
+                        <option value="5000">SI · $5,000/pt</option>
+                      </optgroup>
                     </select></label>
                   </div>
                   <p class="calc-out" id="rc-out"></p>
@@ -9622,7 +9632,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const saved = JSON.parse(localStorage.getItem(RC_KEY) || 'null')
         if (saved) { risk.value = saved.risk; stop.value = saved.stop; inst.value = saved.inst; if (saved.n) num.value = saved.n; if (saved.lead) lead = saved.lead }
       } catch {}
-      const NAME = { 2: 'MNQ', 20: 'NQ', 5: 'MES', 50: 'ES' }
+      // value = $ per 1.00 of price. Metals (CME): MGC 10 oz / GC 100 oz at a
+      // $0.10 tick, SIL 1,000 oz / SI 5,000 oz at a $0.005 tick.
+      const NAME = { 2: 'MNQ', 20: 'NQ', 5: 'MES', 50: 'ES', 10: 'MGC', 100: 'GC', 1000: 'SIL', 5000: 'SI' }
+      const TICK = { 2: 0.25, 20: 0.25, 5: 0.25, 50: 0.25, 10: 0.1, 100: 0.1, 1000: 0.005, 5000: 0.005 }
+      // the stop field steps in the instrument's tick (a silver stop is cents, not quarters)
+      const syncTick = () => { const t = TICK[inst.value] ?? 0.25; stop.step = String(t); stop.min = String(t) }
       const usd0 = (n) => '$' + Math.round(n).toLocaleString('en-US')
       function calc() {
         const s = parseFloat(stop.value), v = parseFloat(inst.value)
@@ -9656,10 +9671,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
         try { localStorage.setItem(RC_KEY, JSON.stringify({ risk: risk.value, stop: stop.value, inst: inst.value, n: num.value, lead })) } catch {}
       }
+      syncTick()
       risk.addEventListener('input', () => { lead = 'risk'; calc() })
       num.addEventListener('input', () => { lead = 'contracts'; calc() })
       stop.addEventListener('input', calc)
-      inst.addEventListener('input', calc)
+      inst.addEventListener('input', () => { syncTick(); calc() })
       calc()
 
       // ── consistency: day-by-day P&L against the rule ──
