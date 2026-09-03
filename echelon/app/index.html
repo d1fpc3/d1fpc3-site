@@ -1273,8 +1273,8 @@
     @media (max-width: 840px) {
       body.in-feed .topbar { background: none !important; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 0; box-shadow: none; pointer-events: none; }
       body.in-feed .topbar h2, body.in-feed .topbar .crumb, body.in-feed .menu-btn { display: none; }
-      body.in-feed .tb-bell, body.in-feed .tb-refresh { pointer-events: auto; background: color-mix(in srgb, var(--panel) 45%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6); border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); border-radius: 50%; width: 44px; height: 44px; padding: 0; align-items: center; justify-content: center; color: var(--ink); box-shadow: 0 2px 12px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.35); }
-      body.in-feed .tb-bell svg, body.in-feed .tb-refresh svg { width: 20px; height: 20px; }
+      body.in-feed .tb-bell { pointer-events: auto; background: color-mix(in srgb, var(--panel) 45%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6); border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); border-radius: 50%; width: 44px; height: 44px; padding: 0; align-items: center; justify-content: center; color: var(--ink); box-shadow: 0 2px 12px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.35); }
+      body.in-feed .tb-bell svg { width: 20px; height: 20px; }
       body.in-feed .tb-bell .bcount { top: 4px; right: 4px; }
       /* the drawer skips what the bottom nav already carries */
       .tab[data-view="overview"], .tab[data-view="feed"], .tab[data-view="course"], .tab[data-view="chat"] { display: none; }
@@ -1348,9 +1348,10 @@
       .block-head .filters { flex-basis: 100%; }
     }
 
-    /* ── refresh: one glyph for the topbar button and the pull disc ── */
-    /* The arrows turn while a refresh runs (WAAPI, so the turn always
-       completes instead of snapping), then give way to a gold tick. */
+    /* ── refresh glyph for the pull disc ──
+       The arrows turn while a refresh runs (WAAPI, so the turn always
+       completes instead of snapping), then give way to a gold tick.
+       No refresh BUTTON anywhere: D1 (9/3/26) "I don't want refresh buttons". */
     .rf-arrows, .rf-tick { width: 21px; height: 21px; display: block; }
     .rf-arrows { transition: opacity 0.16s ease, transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1); }
     .rf-tick {
@@ -1362,34 +1363,23 @@
     .done .rf-tick { opacity: 1; }
     .done .rf-tick polyline { stroke-dashoffset: 0; }
 
-    .tb-refresh {
-      position: relative; margin-left: auto; background: none; border: 0; color: var(--muted);
-      cursor: pointer; padding: 8px; border-radius: 9px; display: inline-flex;
-      -webkit-tap-highlight-color: transparent; transition: color 0.15s ease, background 0.15s ease;
-    }
-    @media (hover: hover) {
-      .tb-refresh:hover { color: var(--ink); background: var(--panel-2); }
-      .tb-refresh:hover:not(.busy):not(.done) .rf-arrows { transform: rotate(40deg); }
-    }
-    .tb-refresh.busy { color: var(--ink); cursor: default; }
-    .tb-refresh + .tb-bell { margin-left: 0; }
-
     /* ── pull to refresh (touch) ──────────────────────────────── */
     html, body { overscroll-behavior-y: contain; }
     .ptr {
       --p: 0;                                  /* 0..1 pull progress, set by JS */
-      position: fixed; left: 50%; top: 0; z-index: 50;
-      width: 40px; height: 40px; margin-left: -20px; border-radius: 50%;
-      background: var(--panel); border: 1px solid var(--line-bright);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.28);
+      /* z-index sits UNDER the topbar (z5): the glyph slides out from behind
+         the header's glass into the gap the dropped content opens, and hides
+         back behind it (--ptr-hide / --ptr-rest are set per pull from the
+         header's height). No disc, no shadow: a bare glyph, like the icons. */
+      position: fixed; left: 50%; top: 0; z-index: 4;
+      width: 40px; height: 40px; margin-left: -20px;
       color: var(--muted);
       display: flex; align-items: center; justify-content: center;
-      transform: translate3d(0, -64px, 0) scale(0.8); opacity: 0;
+      transform: translate3d(0, var(--ptr-hide, -64px), 0) scale(0.8); opacity: 0;
       transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease, color 0.15s ease;
       pointer-events: none; will-change: transform;
     }
-    :root[data-theme="light"] .ptr { box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
-    .ptr .rf-arrows, .ptr .rf-tick { width: 18px; height: 18px; }
+    .ptr .rf-arrows, .ptr .rf-tick { width: 22px; height: 22px; }
     /* the arrows turn with the finger; one full turn is the arming point */
     .ptr .rf-arrows { transform: rotate(calc(var(--p) * 360deg)); transition: none; }
     .ptr.done .rf-arrows { opacity: 0; transform: scale(0.55); transition: opacity 0.16s ease, transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1); }
@@ -2140,7 +2130,6 @@
           <h2 id="pane-title">Overview</h2>
           <div class="crumb" id="pane-crumb"></div>
         </div>
-        <button class="tb-refresh" id="tb-refresh" type="button" title="Refresh" aria-label="Refresh"><svg class="rf-arrows" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg><svg class="rf-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="5 12.5 10 17.5 19 7.5" pathLength="1"/></svg></button>
         <button class="tb-bell" id="tb-bell" type="button" title="Notifications" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><i class="bcount" id="bell-n" hidden></i></button>
         <button class="tb-gear" id="pro-settings" type="button" title="Settings" aria-label="Settings" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
       </div>
@@ -9885,11 +9874,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     /* ── refresh ──
-       One routine behind the topbar button and the pull gesture, so the two
-       never drift. View-aware: the feed, inbox, GEX board, news and an open
-       chat room reload just themselves; everything else repeats the first
-       load (every pane back to its skeleton until its data lands). Badges
-       and the bell always recount. */
+       One routine behind the pull gesture (there is deliberately NO refresh
+       button: D1, 9/3/26). View-aware: the feed, inbox, GEX board, news and
+       an open chat room reload just themselves; everything else repeats the
+       first load (every pane back to its skeleton until its data lands).
+       Badges and the bell always recount. */
     const REFRESH = { busy: false, SPIN_MS: 800 }
     const REFRESH_FAIL = 'Couldn’t refresh. Check your connection.'
     async function refreshNow() {
@@ -9919,30 +9908,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     const holdFor = (started, ms) => new Promise((r) => setTimeout(r, Math.max(0, ms - (Date.now() - started))))
 
-    // Topbar button: spin, refresh, gold tick. Ignored while a refresh is
-    // already running from either entry point; the tooltip keeps the time
-    // of the last pass.
-    async function refreshFromButton() {
-      const btn = el('tb-refresh')
-      if (REFRESH.busy || !btn) return
-      REFRESH.busy = true
-      btn.classList.add('busy'); btn.setAttribute('aria-busy', 'true')
-      const spin = spinStart(btn.querySelector('.rf-arrows'))
-      const started = Date.now()
-      let ok = true
-      try { await refreshNow() } catch (err) { ok = false; console.warn('refresh failed', err) }
-      await holdFor(started, 700)   // long enough to read as "it did something"
-      await spin.stop()
-      btn.classList.remove('busy'); btn.removeAttribute('aria-busy')
-      if (ok) {
-        btn.classList.add('done')
-        btn.title = `Refreshed ${new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
-        setTimeout(() => btn.classList.remove('done'), 1400)
-      } else toast(REFRESH_FAIL)
-      REFRESH.busy = false
-    }
-    el('tb-refresh').addEventListener('click', refreshFromButton)
-
     /* ── pull to refresh (touch only) ──
        Finger down at the very top, a deliberate downward drag claims the
        gesture (a sideways or upward move releases it), the arrows turn with
@@ -9952,11 +9917,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        typing, or mid-refresh. */
     {
       const ptr = el('ptr'), THRESH = 68, MAXPULL = 96
-      const s = { active: false, claimed: false, startX: 0, startY: 0, armed: false }
+      const s = { active: false, claimed: false, startX: 0, startY: 0, armed: false, top: 0 }
       const buzz = (p) => { try { navigator.vibrate?.(p) } catch {} }
       const atTop = () => window.scrollY <= 1
-      // Instagram-style: the whole page rides the pull, the disc sits in the gap
-      const pageEl = () => document.querySelector('.main')
+      // The header stays put; the content drops and the glyph rides the gap
+      // between them (iOS refresh-control geometry).
+      const pageEl = () => document.querySelector('.pane')
       const pageTo = (y, animate) => {
         const m = pageEl(); if (!m) return
         m.style.transition = animate ? 'transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none'
@@ -9967,7 +9933,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const y = Math.min(MAXPULL, d * 0.5)
         const p = Math.min(1, y / THRESH)
         ptr.style.setProperty('--p', p.toFixed(3))
-        ptr.style.transform = `translate3d(0, ${y - 40}px, 0) scale(${0.8 + 0.2 * p})`
+        ptr.style.transform = `translate3d(0, ${s.top + y - 44}px, 0) scale(${0.8 + 0.2 * p})`   // fully clear of the header at 44px of pull
         ptr.style.opacity = String(Math.min(1, p * 1.4))
         pageTo(y, false)
         const armed = y >= THRESH
@@ -10002,7 +9968,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const dy = t.clientY - s.startY, dx = t.clientX - s.startX
         if (!s.claimed) {
           // Decide once: a downward, mostly vertical drag at the top is ours.
-          if (dy > 8 && dy > Math.abs(dx) * 1.2 && atTop()) { s.claimed = true; document.body.classList.add('ptr-pulling') }
+          if (dy > 8 && dy > Math.abs(dx) * 1.2 && atTop()) {
+            s.claimed = true
+            // where the header ends: the glyph hides behind it and rests just below it
+            s.top = Math.round(document.querySelector('.topbar')?.getBoundingClientRect().height ?? 0)
+            document.documentElement.style.setProperty('--ptr-hide', `${s.top - 48}px`)
+            document.documentElement.style.setProperty('--ptr-rest', `${s.top + 7}px`)   /* centred in the 54px gap */
+            document.body.classList.add('ptr-pulling')
+          }
           else if (Math.abs(dx) > 8 || dy < -4 || !atTop()) { s.active = false; return }
           else return
         }
@@ -10017,7 +9990,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (!fire || REFRESH.busy) return
         REFRESH.busy = true
         buzz([8, 40, 12])
-        document.documentElement.style.setProperty('--ptr-rest', `${Math.round(document.querySelector('.topbar').getBoundingClientRect().height + 14)}px`)
         document.body.classList.add('ptr-busy')
         pageTo(54, true)
         const spin = spinStart(ptr.querySelector('.rf-arrows'))
