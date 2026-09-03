@@ -99,12 +99,16 @@ if __name__ == "__main__":
     if "--svg" in sys.argv:
         out = sys.argv[sys.argv.index("--svg") + 1]
         open(out, "w", encoding="utf-8").write(standalone); print("wrote", out)
-    app = open(APP, encoding="utf-8").read()
+    # the members app carries the splash; the admin carries the same lockup in a
+    # <template> for its "Play the intro" button — both get the fresh block
     pat = re.compile(r'  <div id="splash" aria-hidden="true"><svg class="lockup".*?</svg></div>', re.S)
-    if len(pat.findall(app)) != 1:
-        print("index.html: splash block not found exactly once; nothing changed"); sys.exit(1)
-    new = pat.sub(lambda m: snippet, app)
-    changed = new != app
-    if changed:
-        open(APP, "w", encoding="utf-8", newline="\r\n").write(new)
+    changed = {}
+    for path in (APP, os.path.join(ROOT, "echelon", "admin", "index.html")):
+        page = open(path, encoding="utf-8").read()
+        if len(pat.findall(page)) != 1:
+            print(os.path.relpath(path, ROOT) + ": splash block not found exactly once; skipped"); continue
+        new = pat.sub(lambda m: snippet, page)
+        changed[os.path.relpath(path, ROOT)] = new != page
+        if new != page:
+            open(path, "w", encoding="utf-8", newline="\r\n").write(new)
     print(json.dumps({**info, "changed": changed}))
