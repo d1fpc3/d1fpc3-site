@@ -6769,8 +6769,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         })
         const body = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(body.error || 'Could not prepare the download.')
-        msg.className = 'msg ok'; msg.textContent = 'Starting download…'
-        window.location.href = body.url
+        // navigate via a click so the page stays put and the download bar takes it
+        const a = document.createElement('a'); a.href = body.url; document.body.appendChild(a); a.click(); a.remove()
+        msg.className = 'msg ok'; msg.textContent = 'Downloading — it lands in your browser’s downloads.'
+        setTimeout(() => {
+          msg.className = 'msg'
+          msg.textContent = 'Windows may warn that the installer is unrecognized while the app is new — choose "Keep", then "Run anyway".'
+        }, 2500)
+        setTimeout(() => { if (msg.textContent.startsWith('Windows may warn')) msg.textContent = '' }, 20000)
       } catch (e) { msg.className = 'msg err'; msg.textContent = e.message }
       btn.disabled = false
     })
