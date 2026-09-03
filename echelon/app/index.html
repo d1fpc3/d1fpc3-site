@@ -268,10 +268,27 @@
       * { scrollbar-width: none; }
       *::-webkit-scrollbar { width: 0; height: 0; display: none; }
     }
-    #splash { position: fixed; inset: 0; z-index: 400; background: #000; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-    #splash img { width: 92px; height: 92px; }
+    /* ── daily splash: black, the E arrives, a blade cuts the slash into it,
+       the name rises; on exit the lockup zooms through the fade. Vector
+       lockup built from the logo fonts (scratch: build-splash-svg.py).
+       Same-day reopens remove the node inline before first paint. ── */
+    #splash { position: fixed; inset: 0; z-index: 400; background: #0b0a08; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+    #splash .lockup { width: min(58vw, 236px); height: auto; display: block; overflow: visible; transition: transform 0.6s cubic-bezier(0.4, 0, 0.6, 1); }
     #splash.off { opacity: 0; pointer-events: none; }
-    @media (prefers-reduced-motion: reduce) { #splash { transition: none; } }
+    #splash.off .lockup { transform: scale(1.06); }
+    #splash .sp-e { transform-box: fill-box; transform-origin: center; animation: sp-in 0.62s cubic-bezier(0.2, 0.7, 0.2, 1) 0.08s both; }
+    #splash .sp-slash { transform-box: fill-box; transform-origin: left center; animation: sp-cut 0.42s cubic-bezier(0.4, 0, 0.2, 1) 0.58s both; }
+    #splash .sp-blade { animation: sp-blade 0.42s cubic-bezier(0.4, 0, 0.2, 1) 0.58s both; }
+    #splash .sp-l { animation: sp-rise 0.56s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(0.78s + var(--i) * 0.04s); }
+    @keyframes sp-in { from { opacity: 0; transform: scale(0.94); } }
+    @keyframes sp-cut { from { transform: scaleX(0); } }
+    @keyframes sp-blade { 0% { transform: translateX(0); opacity: 0; } 14% { opacity: 1; } 86% { opacity: 1; } 100% { transform: translateX(calc(var(--L) * 1px)); opacity: 0; } }
+    @keyframes sp-rise { from { opacity: 0; transform: translateY(8px); } }
+    @media (prefers-reduced-motion: reduce) {
+      #splash, #splash .lockup { transition: none; }
+      #splash .sp-e, #splash .sp-slash, #splash .sp-blade, #splash .sp-l { animation: none; }
+      #splash .sp-blade { opacity: 0; }
+    }
     .view { display: none; }
     .view.on { display: block; animation: viewin 0.34s cubic-bezier(0.22, 0.7, 0.2, 1); }
     .view.setpage.on { animation: pagein 0.3s cubic-bezier(0.22, 0.7, 0.2, 1); }
@@ -1976,8 +1993,23 @@
 </head>
 <body>
   <!-- first open of the day: black, the E, gone when the app is ready -->
-  <div id="splash"><img src="/echelon/assets/logo-mark.png" alt=""></div>
-  <script>try { if (localStorage.getItem('echelon-splash-day') === new Date().toDateString()) { var _sp = document.getElementById('splash'); _sp.parentNode.removeChild(_sp) } } catch (e) {}</script>
+  <div id="splash" aria-hidden="true"><svg class="lockup" viewBox="0 0 260 184" style="--L:103.38">
+    <path class="sp-e" fill="#d9a53c" d="M90.44 118V105.98L101.09 103.92V32.15L90.44 30.09V18H168.05V44.99H152.66L151.77 33.45H121.14V58.59H155V74.04H121.14V102.62H153.42L154.31 90.66H169.56V118Z"/>
+    <g transform="rotate(-12 130 98)">
+      <rect class="sp-slash" x="78.31" y="95.2" width="103.38" height="5.6" fill="#0b0a08"/>
+      <rect class="sp-blade" x="78.31" y="96.8" width="26" height="2.4" rx="1.2" fill="#f2d27c"/>
+    </g>
+    <g class="sp-word" fill="#f3efe7">
+      <path class="sp-l" style="--i:0" d="M79.46 158.54V161.79H85.81V165.99H79.46V169.57H86.66V174H73.94V154.11H86.66V158.54Z"/>
+      <path class="sp-l" style="--i:1" d="M96.5 157.98Q99.52 157.98 101.58 159.63Q103.64 161.28 104.23 164.24H98.36Q97.86 162.69 96.39 162.69Q95.35 162.69 94.74 163.55Q94.13 164.41 94.13 166.07Q94.13 167.74 94.74 168.61Q95.35 169.49 96.39 169.49Q97.88 169.49 98.36 167.94H104.23Q103.64 170.87 101.58 172.53Q99.52 174.2 96.5 174.2Q94.16 174.2 92.34 173.21Q90.52 172.22 89.51 170.39Q88.49 168.56 88.49 166.07Q88.49 163.62 89.51 161.79Q90.52 159.95 92.34 158.96Q94.16 157.98 96.5 157.98Z"/>
+      <path class="sp-l" style="--i:2" d="M122.82 164.78V174H117.29V165.51Q117.29 164.16 116.59 163.38Q115.88 162.6 114.7 162.6Q113.46 162.6 112.75 163.38Q112.05 164.16 112.05 165.51V174H106.52V153.13H112.05V160.43Q112.78 159.36 114.03 158.7Q115.29 158.03 116.93 158.03Q119.63 158.03 121.23 159.85Q122.82 161.67 122.82 164.78Z"/>
+      <path class="sp-l" style="--i:3" d="M140.9 167.2H130.44Q130.52 168.5 131.16 169.13Q131.79 169.77 132.78 169.77Q134.16 169.77 134.75 168.53H140.65Q140.28 170.16 139.22 171.45Q138.17 172.73 136.56 173.46Q134.95 174.2 133 174.2Q130.66 174.2 128.84 173.21Q127.02 172.22 125.99 170.39Q124.96 168.56 124.96 166.07Q124.96 163.59 125.98 161.77Q127 159.95 128.82 158.96Q130.63 157.98 133 157.98Q135.35 157.98 137.15 158.94Q138.96 159.9 139.97 161.69Q140.99 163.48 140.99 165.9Q140.99 166.55 140.9 167.2ZM135.35 164.52Q135.35 163.51 134.67 162.93Q133.99 162.35 132.98 162.35Q131.96 162.35 131.31 162.9Q130.66 163.45 130.47 164.52Z"/>
+      <path class="sp-l" style="--i:4" d="M148.77 153.13V174H143.24V153.13Z"/>
+      <path class="sp-l" style="--i:5" d="M151.03 166.07Q151.03 163.62 152.12 161.79Q153.2 159.95 155.08 158.96Q156.95 157.98 159.32 157.98Q161.69 157.98 163.57 158.96Q165.44 159.95 166.53 161.79Q167.62 163.62 167.62 166.07Q167.62 168.53 166.53 170.38Q165.44 172.22 163.55 173.21Q161.66 174.2 159.29 174.2Q156.93 174.2 155.05 173.21Q153.17 172.22 152.1 170.39Q151.03 168.56 151.03 166.07ZM162 166.07Q162 164.47 161.23 163.62Q160.45 162.77 159.32 162.77Q158.19 162.77 157.43 163.62Q156.67 164.47 156.67 166.07Q156.67 167.71 157.4 168.56Q158.14 169.4 159.29 169.4Q160.45 169.4 161.23 168.54Q162 167.68 162 166.07Z"/>
+      <path class="sp-l" style="--i:6" d="M186.18 164.78V174H180.65V165.51Q180.65 164.16 179.94 163.38Q179.24 162.6 178.05 162.6Q176.81 162.6 176.11 163.38Q175.4 164.16 175.4 165.51V174H169.87V158.17H175.4V160.43Q176.14 159.36 177.38 158.7Q178.62 158.03 180.23 158.03Q182.96 158.03 184.57 159.85Q186.18 161.67 186.18 164.78Z"/>
+    </g>
+  </svg></div>
+  <script>try { window.__splashT0 = performance.now(); if (localStorage.getItem('echelon-splash-day') === new Date().toDateString()) { var _sp = document.getElementById('splash'); _sp.parentNode.removeChild(_sp) } } catch (e) {}</script>
   <!-- fresh account: what's next, a bubble under the top bar -->
   <div class="nextup" id="nextup" hidden>
     <button class="nu-pill" id="nu-pill" type="button"><span class="nu-dot"></span><b>What's next</b><span class="nu-count" id="nu-count"></span></button>
@@ -3140,12 +3172,17 @@
     // App Store rule 3.1.1: no prices, no buy buttons, no "purchase on the
     // web" pointers. The shell loads the app with ?native=1 once; the flag
     // is remembered so in-app navigation keeps it.
+    // The intro takes ~1.6s (the E, the cut, the name). Boot often finishes
+    // sooner, so the fade waits for the intro to land; a slow boot just holds
+    // the finished lockup. __splashT0 is stamped inline next to the markup.
+    const SPLASH_INTRO_MS = 1700
     function hideSplash() {
       const s = document.getElementById('splash')
-      if (!s || s.classList.contains('off')) return
+      if (!s || s.dataset.hiding) return
+      s.dataset.hiding = '1'
       try { localStorage.setItem('echelon-splash-day', new Date().toDateString()) } catch {}
-      s.classList.add('off')
-      setTimeout(() => s.remove(), 550)
+      const wait = Math.max(0, SPLASH_INTRO_MS - (performance.now() - (window.__splashT0 ?? 0)))
+      setTimeout(() => { s.classList.add('off'); setTimeout(() => s.remove(), 650) }, wait)
     }
     const NATIVE = (() => {
       try {
