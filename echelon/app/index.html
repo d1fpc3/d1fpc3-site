@@ -1143,6 +1143,8 @@
     .news-dot.med { background: #d9953c; }
     .news-when { color: var(--faint); font-size: 12px; width: 68px; flex: none; font-variant-numeric: tabular-nums; }
     .news-title { color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .news-row.major { box-shadow: inset 3px 0 0 var(--gold); padding-left: 12px; }
+    .news-row.major .news-title { color: var(--gold); font-weight: 600; }
     .news-fp { margin-left: auto; display: flex; gap: 16px; flex: none; }
     .news-fp .v { color: var(--muted); font-size: 12px; min-width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
     .news-fp .v em { font-style: normal; color: var(--faint); font-size: 10px; letter-spacing: 0.08em; margin-right: 5px; }
@@ -4799,7 +4801,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     }
     function newsRow(e, now) {
-      const row = document.createElement('div'); row.className = 'news-row' + (e.at.getTime() < now ? ' past' : '')
+      // NFP, CPI and the FOMC decision are the big ones: gold title, gold rule (D1, 9/3)
+      const major = /non-?farm|\bNFP\b|\bCPI\b|consumer price|FOMC (statement|press conference|economic projections|meeting minutes)|federal funds rate/i.test(e.title || '')
+      const row = document.createElement('div'); row.className = 'news-row' + (e.at.getTime() < now ? ' past' : '') + (major ? ' major' : '')
       const dot = document.createElement('span'); dot.className = 'news-dot ' + (e.impact === 'High' ? 'high' : 'med'); dot.title = e.impact + ' impact'
       const when = document.createElement('span'); when.className = 'news-when'; when.textContent = e.at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
       const t = document.createElement('span'); t.className = 'news-title'; t.textContent = e.title
