@@ -1008,6 +1008,22 @@
     .pf-row .bar .zero { position: absolute; top: -3px; width: 1px; height: 16px; background: var(--line-bright); }
     .pf-row b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; text-align: right; }
     .pf-row b.up { color: var(--good); } .pf-row b.down { color: var(--bad); }
+    /* mod room: what needs attention, in the same flat register */
+    .mt-room { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .mt-room div { padding: 14px 16px 13px 0; border-right: 1px solid var(--line); margin-right: 16px; min-width: 0; }
+    .mt-room div:last-child { border-right: 0; margin-right: 0; }
+    .mt-room .v { display: block; font-size: 23px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .mt-room .v.warn { color: var(--gold); }
+    .mt-room .k { font-size: 11px; color: var(--faint); margin-top: 5px; display: block; }
+    .mt-line { font-size: 13.5px; line-height: 1.65; color: var(--muted); margin: 14px 0 0; }
+    .mt-line b { color: var(--ink); font-weight: 600; }
+    .mt-line button { background: none; border: 0; padding: 0; font: inherit; color: var(--gold); cursor: pointer; }
+    .mt-line button:hover { text-decoration: underline; }
+    .mt-greet { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+    .mt-greet:last-child { border-bottom: 0; }
+    .mt-greet .av { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; object-fit: cover; font-size: 11px; }
+    .mt-greet .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mt-greet .ago { font-size: 12px; color: var(--faint); white-space: nowrap; }
     /* inbox */
     .inbox { max-width: 640px; }
     .nb-row { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border-bottom: 1px solid var(--line); cursor: pointer; }
@@ -2804,6 +2820,17 @@
 
         <section class="view setpage" id="v-set-modtools">
           <div style="max-width:640px;margin-bottom:14px;"><button class="rowbtn set-back" type="button">&larr; Settings</button></div>
+          <div class="block" style="max-width:640px;">
+            <div class="block-head"><h3>The room this week</h3><span class="label" id="mt-room-n"></span></div>
+            <div style="padding:14px 18px 18px;">
+              <div class="mt-room" id="mt-room"></div>
+              <p class="mt-line" id="mt-room-line"></p>
+            </div>
+          </div>
+          <div class="block" style="max-width:640px;">
+            <div class="block-head"><h3>New members to welcome</h3><span class="label" id="mt-new-n"></span></div>
+            <div id="mt-new" style="padding:6px 18px 14px;"></div>
+          </div>
           <div class="block" style="max-width:640px;">
             <div class="block-head"><h3>Codes</h3></div>
             <div style="padding:16px 18px 18px;">
@@ -7307,6 +7334,67 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     let _mtWired = false
+    /* ── the room this week: what a mod should look at ──
+       Everything here is already readable by staff: the homework queue, chat
+       messages a moderator removed, new profiles, and recaps nobody answered.
+       Counts only, no member is singled out except the new arrivals to greet. */
+    async function renderModRoom() {
+      const host = el('mt-room'); if (!host) return
+      const since = new Date(Date.now() - 7 * 864e5).toISOString()
+      const [hw, del, fresh, recaps, comments] = await Promise.all([
+        supabase.from('homework_submissions').select('id, created_at, status').eq('status', 'pending').order('created_at', { ascending: true }).limit(200),
+        supabase.from('messages').select('id').not('deleted_at', 'is', null).gte('deleted_at', since).limit(500),
+        supabase.from('member_directory').select('user_id, username, avatar_url, created_at').order('created_at', { ascending: false }).limit(50),
+        supabase.from('member_recaps').select('id, created_at').gte('created_at', since).limit(300),
+        supabase.from('post_comments').select('recap_id').is('deleted_at', null).limit(1000),
+      ])
+      const pending = hw.data ?? []
+      const oldest = pending.length ? new Date(pending[0].created_at) : null
+      const newbies = (fresh.data ?? []).filter((m) => m.created_at && new Date(m.created_at).getTime() >= Date.now() - 7 * 864e5)
+      const answered = new Set((comments.data ?? []).map((c) => c.recap_id))
+      const quiet = (recaps.data ?? []).filter((r) => !answered.has(r.id)).length
+      host.textContent = ''
+      const put = (v, k, warn) => { const d = document.createElement('div'); const a = document.createElement('span'); a.className = 'v' + (warn ? ' warn' : ''); a.textContent = String(v); const c = document.createElement('span'); c.className = 'k'; c.textContent = k; d.append(a, c); host.appendChild(d) }
+      put(pending.length, 'markups waiting', pending.length > 0)
+      put(quiet, 'trades with no reply', quiet > 0)
+      put((del.data ?? []).length, 'messages removed')
+      el('mt-room-n').textContent = 'last 7 days'
+      // one plain sentence, and a way straight to the queue
+      const line = el('mt-room-line'); line.textContent = ''
+      if (pending.length) {
+        const days = oldest ? Math.floor((Date.now() - oldest.getTime()) / 864e5) : 0
+        line.append(`${pending.length === 1 ? 'One markup is' : `${pending.length} markups are`} waiting`)
+        if (days >= 1) { const b = document.createElement('b'); b.textContent = ` the oldest for ${days} ${days === 1 ? 'day' : 'days'}`; line.append(b) }
+        line.append('. ')
+        const go = document.createElement('button'); go.type = 'button'; go.textContent = 'Open the queue'
+        go.addEventListener('click', () => showView('homework'))
+        line.append(go)
+      } else if (quiet) {
+        line.textContent = `Nothing waiting to review. ${quiet} ${quiet === 1 ? 'trade has' : 'trades have'} no reply yet, if you want somewhere to start.`
+      } else {
+        line.textContent = 'Nothing waiting. The room is caught up.'
+      }
+      renderModNew(newbies)
+    }
+    // the people who arrived this week, newest first
+    function renderModNew(list) {
+      const host = el('mt-new'); if (!host) return
+      host.textContent = ''
+      el('mt-new-n').textContent = list.length ? `${list.length} this week` : ''
+      if (!list.length) { const p = document.createElement('p'); p.className = 'hint'; p.style.margin = '8px 0 4px'; p.textContent = 'Nobody new in the last seven days.'; host.appendChild(p); return }
+      for (const m of list.slice(0, 8)) {
+        const row = document.createElement('div'); row.className = 'mt-greet'
+        row.appendChild(avatarNode({ username: m.username, avatar_url: m.avatar_url }))
+        const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = m.username || 'member'
+        const days = Math.floor((Date.now() - new Date(m.created_at).getTime()) / 864e5)
+        const ago = document.createElement('span'); ago.className = 'ago'; ago.textContent = days <= 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`
+        row.append(nm, ago)
+        row.style.cursor = 'pointer'
+        row.addEventListener('click', () => openChatProfile(m.user_id))
+        host.appendChild(row)
+      }
+    }
+
     function renderModTools() {
       if (!_mtWired) {
         _mtWired = true
@@ -7336,7 +7424,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           el('mt-discount').disabled = false
         })
       }
-      renderModCodes(); renderModAff()
+      renderModCodes(); renderModAff(); renderModRoom()
     }
 
     // ── BackTrader popup ────────────────────────────────────
