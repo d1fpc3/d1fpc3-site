@@ -22396,6 +22396,487 @@
 '</div>'
   });
 
+
+  /* ── DASHBOARDS III (2026-09-03) ── */
+
+  T.push({ id: 'dash-gantt', name: 'Project Timeline Dashboard', cat: 'Dashboards', dark: false, fill: true, wide: true, h: 500, code:
+'<style>\n' +
+'.dgt { background: #f9f9f7; color: #0b0b0b; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 44px 26px 18px; min-height: 100%; box-sizing: border-box; }\n' +
+'.dgt-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }\n' +
+'.dgt-head h2 { margin: 0 0 3px; font-size: 16px; font-weight: 600; }\n' +
+'.dgt-head p { margin: 0; font-size: 12px; color: #898781; }\n' +
+'.dgt-card { position: relative; background: #fcfcfb; border: 1px solid rgba(11,11,11,0.10); border-radius: 10px; padding: 14px; }\n' +
+'.dgt-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }\n' +
+'.dgt-card svg { width: 100%; height: auto; display: block; }\n' +
+'.dgt-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #52514e; }\n' +
+'.dgt-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }\n' +
+'.dgt-tip { position: absolute; pointer-events: none; background: #0b0b0b; color: #f9f9f7; font: 12px/1.5 system-ui, sans-serif; padding: 7px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -105%); opacity: 0; transition: opacity 0.1s ease; z-index: 2; }\n' +
+'.dgt-tip b { font-weight: 600; }\n' +
+'.dgt-stat { text-align: right; font-size: 12px; color: #52514e; }\n' +
+'.dgt-stat b { display: block; font-size: 22px; font-weight: 600; color: #0b0b0b; letter-spacing: -0.01em; }\n' +
+'.dgt-card { padding: 10px 14px 14px; }\n' +
+'.dgt-weeks { display: grid; grid-template-columns: 170px 1fr; margin-bottom: 4px; }\n' +
+'.dgt-weeks div { display: grid; grid-template-columns: repeat(6, 1fr); }\n' +
+'.dgt-weeks span { font-size: 11px; color: #52514e; font-weight: 600; padding: 6px 0 6px 6px; border-left: 1px solid #e1e0d9; }\n' +
+'.dgt-weeks small { display: block; font-weight: 400; color: #898781; }\n' +
+'.dgt-rows { position: relative; }\n' +
+'.dgt-row { display: grid; grid-template-columns: 170px 1fr; align-items: center; height: 36px; border-top: 1px solid #e1e0d9; }\n' +
+'.dgt-name { font-size: 12.5px; color: #0b0b0b; display: flex; align-items: center; justify-content: space-between; padding-right: 12px; }\n' +
+'.dgt-name small { font-size: 10px; font-weight: 600; color: #898781; background: #e1e0d9; border-radius: 4px; padding: 3px 5px; }\n' +
+'.dgt-lane { position: relative; display: block; height: 100%; background-image: linear-gradient(to right, #e1e0d9 1px, transparent 1px); background-size: calc(100% / 6) 100%; }\n' +
+'.dgt-bar { position: absolute; top: 9px; height: 18px; background: #cde2fb; border-radius: 4px; overflow: hidden; }\n' +
+'.dgt-bar b { position: absolute; left: 0; top: 0; bottom: 0; background: #2a78d6; }\n' +
+'.dgt-bar em { position: absolute; right: 6px; top: 3px; font: 600 10.5px/1 system-ui, sans-serif; font-style: normal; color: #0b0b0b; }\n' +
+'.dgt-today { position: absolute; top: 0; bottom: 0; width: 1.5px; background: #e34948; left: calc(170px + (100% - 170px) * 0.47619047619047616); }\n' +
+'.dgt-today::before { content: "Today"; position: absolute; top: -18px; left: -16px; font: 600 10px/1 system-ui, sans-serif; color: #e34948; }\n' +
+'.dgt-foot { display: flex; gap: 16px; margin-top: 10px; font-size: 11.5px; color: #52514e; }\n' +
+'.dgt-foot i { display: inline-block; width: 18px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }\n' +
+'@media (max-width: 640px) { .dgt-weeks, .dgt-row { grid-template-columns: 110px 1fr; } .dgt-today { left: calc(110px + (100% - 110px) * 0.47619047619047616); } }\n' +
+'</style>\n' +
+'<div class="dgt">\n' +
+'  <div class="dgt-head">\n' +
+'    <div><h2>Q4 launch plan</h2><p>7 tasks &middot; 6 weeks &middot; progress shown inside each bar</p></div>\n' +
+'    <div class="dgt-stat"><b>48%</b>overall complete</div>\n' +
+'  </div>\n' +
+'  <div class="dgt-card">\n' +
+'    <div class="dgt-weeks"><span></span><div><span>W1<small>Sep 1</small></span><span>W2<small>Sep 8</small></span><span>W3<small>Sep 15</small></span><span>W4<small>Sep 22</small></span><span>W5<small>Sep 29</small></span><span>W6<small>Sep Oct 6</small></span></div></div>\n' +
+'    <div class="dgt-rows">\n' +
+'    <div class="dgt-row">\n' +
+'      <span class="dgt-name">Discovery interviews<small>EV</small></span>\n' +
+'      <span class="dgt-lane"><i class="dgt-bar" style="left:0%;width:16.7%"><b style="width:100%"></b></i></span>\n' +
+'    </div>\n' +
+'    <div class="dgt-row">\n' +
+'      <span class="dgt-name">Requirements sign-off<small>AH</small></span>\n' +
+'      <span class="dgt-lane"><i class="dgt-bar" style="left:11.9%;width:11.9%"><b style="width:100%"></b></i></span>\n' +
+'    </div>\n' +
+'    <div class="dgt-row">\n' +
+'      <span class="dgt-name">Design system<small>MK</small></span>\n' +
+'      <span class="dgt-lane"><i class="dgt-bar" style="left:19%;width:28.6%"><b style="width:70%"></b><em>70%</em></i></span>\n' +
+'    </div>\n' +
+'    <div class="dgt-row">\n' +
+'      <span class="dgt-name">API build<small>JT</small></span>\n' +
+'      <span class="dgt-lane"><i class="dgt-bar" style="left:28.6%;width:38.1%"><b style="width:45%"></b><em>45%</em></i></span>\n' +
+'    </div>\n' +
+'    <div class="dgt-row">\n' +
+'      <span class="dgt-name">Frontend build<small>MK</small></span>\n' +
+'      <span class="dgt-lane"><i class="dgt-bar" style="left:38.1%;width:38.1%"><b style="width:20%"></b><em>20%</em></i></span>\n' +
+'    </div>\n' +
+'    <div class="dgt-row">\n' +
+'      <span class="dgt-name">QA and hardening<small>RS</small></span>\n' +
+'      <span class="dgt-lane"><i class="dgt-bar" style="left:66.7%;width:19%"><b style="width:0%"></b></i></span>\n' +
+'    </div>\n' +
+'    <div class="dgt-row">\n' +
+'      <span class="dgt-name">Launch<small>EV</small></span>\n' +
+'      <span class="dgt-lane"><i class="dgt-bar" style="left:85.7%;width:9.5%"><b style="width:0%"></b></i></span>\n' +
+'    </div><div class="dgt-today"></div></div>\n' +
+'    <div class="dgt-foot"><span><i style="background:#2a78d6"></i>Done</span><span><i style="background:#cde2fb"></i>Remaining</span><span><i style="background:#e34948;width:2px;height:10px"></i>Today</span></div>\n' +
+'  </div>\n' +
+'</div>'
+  });
+
+  T.push({ id: 'dash-bullet', name: 'Bullet Chart Dashboard', cat: 'Dashboards', dark: false, fill: true, wide: true, h: 430, code:
+'<style>\n' +
+'.dbl { background: #f9f9f7; color: #0b0b0b; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 44px 26px 18px; min-height: 100%; box-sizing: border-box; }\n' +
+'.dbl-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }\n' +
+'.dbl-head h2 { margin: 0 0 3px; font-size: 16px; font-weight: 600; }\n' +
+'.dbl-head p { margin: 0; font-size: 12px; color: #898781; }\n' +
+'.dbl-card { position: relative; background: #fcfcfb; border: 1px solid rgba(11,11,11,0.10); border-radius: 10px; padding: 14px; }\n' +
+'.dbl-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }\n' +
+'.dbl-card svg { width: 100%; height: auto; display: block; }\n' +
+'.dbl-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #52514e; }\n' +
+'.dbl-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }\n' +
+'.dbl-tip { position: absolute; pointer-events: none; background: #0b0b0b; color: #f9f9f7; font: 12px/1.5 system-ui, sans-serif; padding: 7px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -105%); opacity: 0; transition: opacity 0.1s ease; z-index: 2; }\n' +
+'.dbl-tip b { font-weight: 600; }\n' +
+'.dbl-stat { text-align: right; font-size: 12px; color: #52514e; }\n' +
+'.dbl-stat b { display: block; font-size: 22px; font-weight: 600; color: #0b0b0b; letter-spacing: -0.01em; }\n' +
+'.dbl-row { display: grid; grid-template-columns: 150px 1fr 70px 96px; align-items: center; gap: 14px; padding: 11px 0; border-top: 1px solid #e1e0d9; }\n' +
+'.dbl-row:first-child { border-top: none; }\n' +
+'.dbl-name { font-size: 12.5px; color: #52514e; }\n' +
+'.dbl-plot { position: relative; display: block; height: 18px; }\n' +
+'.dbl-band { position: absolute; left: 0; top: 0; height: 100%; background: #ecebe6; border-radius: 3px; }\n' +
+'.dbl-b2 { background: #e2e0d9; }\n' +
+'.dbl-b3 { background: #d6d4cb; }\n' +
+'.dbl-measure { position: absolute; left: 0; top: 5px; height: 8px; background: #2a78d6; border-radius: 0 2px 2px 0; }\n' +
+'.dbl-target { position: absolute; top: 1px; width: 2px; height: 16px; background: #0b0b0b; margin-left: -1px; }\n' +
+'.dbl-val { font-size: 13px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }\n' +
+'.dbl-delta { font-size: 11.5px; font-weight: 600; text-align: right; }\n' +
+'.dbl-up { color: #006300; }\n' +
+'.dbl-down { color: #d03b3b; }\n' +
+'.dbl-foot { display: flex; gap: 18px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e1e0d9; font-size: 11.5px; color: #52514e; }\n' +
+'.dbl-foot i { display: inline-block; vertical-align: middle; margin-right: 6px; }\n' +
+'@media (max-width: 640px) { .dbl-row { grid-template-columns: 110px 1fr 60px; } .dbl-delta { display: none; } }\n' +
+'</style>\n' +
+'<div class="dbl">\n' +
+'  <div class="dbl-head">\n' +
+'    <div><h2>Q3 scorecard</h2><p>Bullet graphs &middot; bar = actual, tick = target, bands = poor / fair / good</p></div>\n' +
+'  </div>\n' +
+'  <div class="dbl-card">\n' +
+'    <div class="dbl-row">\n' +
+'      <span class="dbl-name">Revenue</span>\n' +
+'      <span class="dbl-plot">\n' +
+'        <i class="dbl-band" style="width:100%"></i><i class="dbl-band dbl-b2" style="width:75%"></i><i class="dbl-band dbl-b3" style="width:50%"></i>\n' +
+'        <i class="dbl-measure" style="width:78%"></i>\n' +
+'        <i class="dbl-target" style="left:90%"></i>\n' +
+'      </span>\n' +
+'      <span class="dbl-val">$187K</span>\n' +
+'      <span class="dbl-delta dbl-up">+12% YoY</span>\n' +
+'    </div>\n' +
+'    <div class="dbl-row">\n' +
+'      <span class="dbl-name">New customers</span>\n' +
+'      <span class="dbl-plot">\n' +
+'        <i class="dbl-band" style="width:100%"></i><i class="dbl-band dbl-b2" style="width:75%"></i><i class="dbl-band dbl-b3" style="width:50%"></i>\n' +
+'        <i class="dbl-measure" style="width:88%"></i>\n' +
+'        <i class="dbl-target" style="left:80%"></i>\n' +
+'      </span>\n' +
+'      <span class="dbl-val">412</span>\n' +
+'      <span class="dbl-delta dbl-up">+6% vs target</span>\n' +
+'    </div>\n' +
+'    <div class="dbl-row">\n' +
+'      <span class="dbl-name">Trial to paid</span>\n' +
+'      <span class="dbl-plot">\n' +
+'        <i class="dbl-band" style="width:100%"></i><i class="dbl-band dbl-b2" style="width:75%"></i><i class="dbl-band dbl-b3" style="width:50%"></i>\n' +
+'        <i class="dbl-measure" style="width:61%"></i>\n' +
+'        <i class="dbl-target" style="left:75%"></i>\n' +
+'      </span>\n' +
+'      <span class="dbl-val">18.4%</span>\n' +
+'      <span class="dbl-delta dbl-down">-3.2 pt</span>\n' +
+'    </div>\n' +
+'    <div class="dbl-row">\n' +
+'      <span class="dbl-name">Support CSAT</span>\n' +
+'      <span class="dbl-plot">\n' +
+'        <i class="dbl-band" style="width:100%"></i><i class="dbl-band dbl-b2" style="width:75%"></i><i class="dbl-band dbl-b3" style="width:50%"></i>\n' +
+'        <i class="dbl-measure" style="width:92%"></i>\n' +
+'        <i class="dbl-target" style="left:90%"></i>\n' +
+'      </span>\n' +
+'      <span class="dbl-val">4.6 / 5</span>\n' +
+'      <span class="dbl-delta dbl-up">+0.2</span>\n' +
+'    </div>\n' +
+'    <div class="dbl-row">\n' +
+'      <span class="dbl-name">Churn (lower is better)</span>\n' +
+'      <span class="dbl-plot">\n' +
+'        <i class="dbl-band" style="width:100%"></i><i class="dbl-band dbl-b2" style="width:75%"></i><i class="dbl-band dbl-b3" style="width:50%"></i>\n' +
+'        <i class="dbl-measure" style="width:42%"></i>\n' +
+'        <i class="dbl-target" style="left:50%"></i>\n' +
+'      </span>\n' +
+'      <span class="dbl-val">2.1%</span>\n' +
+'      <span class="dbl-delta dbl-up">-0.4 pt</span>\n' +
+'    </div>\n' +
+'    <div class="dbl-foot"><span><i style="width:18px;height:8px;background:#2a78d6;border-radius:2px"></i>Actual</span><span><i style="width:2px;height:14px;background:#0b0b0b"></i>Target</span><span><i style="width:18px;height:10px;background:linear-gradient(to right,#ecebe6,#d6d4cb);border-radius:2px"></i>Qualitative bands</span></div>\n' +
+'  </div>\n' +
+'</div>'
+  });
+
+  T.push({ id: 'dash-scatter', name: 'Scatter Regression Dashboard', cat: 'Dashboards', dark: false, fill: true, wide: true, h: 500, code:
+'<style>\n' +
+'.dsc { background: #f9f9f7; color: #0b0b0b; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 44px 26px 18px; min-height: 100%; box-sizing: border-box; }\n' +
+'.dsc-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }\n' +
+'.dsc-head h2 { margin: 0 0 3px; font-size: 16px; font-weight: 600; }\n' +
+'.dsc-head p { margin: 0; font-size: 12px; color: #898781; }\n' +
+'.dsc-card { position: relative; background: #fcfcfb; border: 1px solid rgba(11,11,11,0.10); border-radius: 10px; padding: 14px; }\n' +
+'.dsc-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }\n' +
+'.dsc-card svg { width: 100%; height: auto; display: block; }\n' +
+'.dsc-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #52514e; }\n' +
+'.dsc-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }\n' +
+'.dsc-tip { position: absolute; pointer-events: none; background: #0b0b0b; color: #f9f9f7; font: 12px/1.5 system-ui, sans-serif; padding: 7px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -105%); opacity: 0; transition: opacity 0.1s ease; z-index: 2; }\n' +
+'.dsc-tip b { font-weight: 600; }\n' +
+'.dsc-stat { text-align: right; font-size: 12px; color: #52514e; }\n' +
+'.dsc-stat b { display: block; font-size: 22px; font-weight: 600; color: #0b0b0b; letter-spacing: -0.01em; }\n' +
+'.dsc-stats { display: flex; gap: 22px; }\n' +
+'.dsc-stats div { font-size: 11.5px; color: #52514e; }\n' +
+'.dsc-stats b { display: block; font-size: 18px; font-weight: 600; color: #0b0b0b; }\n' +
+'.dsc-pt { transition: r 0.1s ease; cursor: default; }\n' +
+'.dsc-pt:hover { r: 6.5; }\n' +
+'.dsc-note { margin-top: 8px; font-size: 11.5px; color: #898781; }\n' +
+'</style>\n' +
+'<div class="dsc">\n' +
+'  <div class="dsc-head">\n' +
+'    <div><h2>Ad spend vs conversions</h2><p>One point per campaign week &middot; hover a point &middot; least-squares fit</p></div>\n' +
+'    <div class="dsc-stats"><div>Slope<b>9.2 / $1K</b></div><div>r&sup2;<b>0.88</b></div><div>Weeks<b>42</b></div></div>\n' +
+'  </div>\n' +
+'  <div class="dsc-card">\n' +
+'    <svg viewBox="0 0 640 260" role="img" aria-label="Scatter plot of ad spend versus conversions with regression line">\n' +
+'      <line x1="44" x2="626" y1="220" y2="220" stroke="#e1e0d9"/><text x="36" y="224" text-anchor="end" font-size="11" fill="#898781">0</text><line x1="44" x2="626" y1="168.5" y2="168.5" stroke="#e1e0d9"/><text x="36" y="172.5" text-anchor="end" font-size="11" fill="#898781">65</text><line x1="44" x2="626" y1="117" y2="117" stroke="#e1e0d9"/><text x="36" y="121" text-anchor="end" font-size="11" fill="#898781">130</text><line x1="44" x2="626" y1="65.5" y2="65.5" stroke="#e1e0d9"/><text x="36" y="69.5" text-anchor="end" font-size="11" fill="#898781">195</text><line x1="44" x2="626" y1="14" y2="14" stroke="#e1e0d9"/><text x="36" y="18" text-anchor="end" font-size="11" fill="#898781">260</text>\n' +
+'      <line x1="44" x2="626" y1="220" y2="220" stroke="#c3c2b7"/>\n' +
+'      <text x="44" y="238" text-anchor="middle" font-size="11" fill="#898781">$0K</text><text x="189.5" y="238" text-anchor="middle" font-size="11" fill="#898781">$5K</text><text x="335" y="238" text-anchor="middle" font-size="11" fill="#898781">$10K</text><text x="480.5" y="238" text-anchor="middle" font-size="11" fill="#898781">$15K</text><text x="626" y="238" text-anchor="middle" font-size="11" fill="#898781">$20K</text>\n' +
+'      <line x1="73.1" y1="186.6" x2="611.4" y2="52.2" stroke="#0b0b0b" stroke-width="1.5"/>\n' +
+'      <circle class="dsc-pt" data-i="0" cx="442.7" cy="73.9" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="1" cx="259.3" cy="159.4" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="2" cx="221.5" cy="138" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="3" cx="204.1" cy="163" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="4" cx="521.2" cy="80.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="5" cx="425.2" cy="81.3" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="6" cx="599.8" cy="51.6" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="7" cx="259.3" cy="142.8" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="8" cx="335" cy="117" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="9" cx="236.1" cy="131.7" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="10" cx="163.3" cy="152" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="11" cx="122.6" cy="184.7" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="12" cx="332.1" cy="119.8" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="13" cx="413.6" cy="93.3" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="14" cx="486.3" cy="87.9" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="15" cx="541.6" cy="89.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="16" cx="134.2" cy="177.3" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="17" cx="556.2" cy="83.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="18" cx="512.5" cy="68.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="19" cx="550.3" cy="71.3" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="20" cx="503.8" cy="63.6" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="21" cx="419.4" cy="91" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="22" cx="262.3" cy="121.4" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="23" cx="503.8" cy="62.3" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="24" cx="436.9" cy="95.8" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="25" cx="492.1" cy="90.9" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="26" cx="209.9" cy="153.2" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="27" cx="218.6" cy="156.9" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="28" cx="367" cy="94.4" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="29" cx="317.5" cy="140.8" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="30" cx="460.1" cy="78.3" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="31" cx="588.2" cy="77.6" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="32" cx="477.6" cy="99.4" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="33" cx="288.4" cy="117.5" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="34" cx="279.7" cy="155.9" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="35" cx="343.7" cy="102.7" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="36" cx="404.8" cy="124.9" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="37" cx="142.9" cy="179.7" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="38" cx="611.4" cy="50.2" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="39" cx="457.2" cy="80.7" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="40" cx="349.6" cy="136.2" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle class="dsc-pt" data-i="41" cx="407.8" cy="104.2" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>\n' +
+'      <text x="615.4" y="44.2" text-anchor="end" font-size="11" font-weight="600" fill="#0b0b0b">y = 32.9 + 9.2x</text>\n' +
+'    </svg>\n' +
+'    <div class="dsc-tip"></div>\n' +
+'    <div class="dsc-note">Weekly ad spend (x, $K) against conversions (y). Points outside the fitted band are worth a look.</div>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var P = [[13.7,184.4],[7.4,76.5],[6.1,103.5],[5.5,71.9],[16.4,176.1],[13.1,175],[19.1,212.6],[7.4,97.5],[10,130],[6.6,111.4],[4.1,85.8],[2.7,44.6],[9.9,126.5],[12.7,159.9],[15.2,166.7],[17.1,164.7],[3.1,53.9],[17.6,172.3],[16.1,191.2],[17.4,187.7],[15.8,197.4],[12.9,162.8],[7.5,124.4],[15.8,199.1],[13.5,156.7],[15.4,163],[5.7,84.3],[6,79.7],[11.1,158.5],[9.4,100],[14.3,178.9],[18.7,179.7],[14.9,152.2],[8.4,129.4],[8.1,80.9],[10.3,148],[12.4,120],[3.4,50.9],[19.5,214.3],[14.2,175.8],[10.5,105.8],[12.5,146.1]];\n' +
+'  var card = document.querySelector(".dsc-card");\n' +
+'  var svg = card.querySelector("svg");\n' +
+'  var tip = card.querySelector(".dsc-tip");\n' +
+'  var W = 640, H = 260;\n' +
+'  svg.addEventListener("mousemove", function (e) {\n' +
+'    var pt = e.target.closest(".dsc-pt");\n' +
+'    if (!pt) { tip.style.opacity = "0"; return; }\n' +
+'    var i = +pt.getAttribute("data-i");\n' +
+'    var r = svg.getBoundingClientRect();\n' +
+'    tip.innerHTML = "<b>Week " + (i + 1) + "</b><br>Spend $" + P[i][0] + "K \u00b7 " + Math.round(P[i][1]) + " conversions";\n' +
+'    tip.style.left = (+pt.getAttribute("cx") / W * r.width) + "px";\n' +
+'    tip.style.top = (svg.offsetTop + (+pt.getAttribute("cy")) / H * r.height - 8) + "px";\n' +
+'    tip.style.opacity = "1";\n' +
+'  });\n' +
+'  svg.addEventListener("mouseleave", function () { tip.style.opacity = "0"; });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'dash-slope', name: 'Slope Chart Dashboard', cat: 'Dashboards', dark: false, fill: true, wide: true, h: 490, code:
+'<style>\n' +
+'.dsl { background: #f9f9f7; color: #0b0b0b; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 44px 26px 18px; min-height: 100%; box-sizing: border-box; }\n' +
+'.dsl-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }\n' +
+'.dsl-head h2 { margin: 0 0 3px; font-size: 16px; font-weight: 600; }\n' +
+'.dsl-head p { margin: 0; font-size: 12px; color: #898781; }\n' +
+'.dsl-card { position: relative; background: #fcfcfb; border: 1px solid rgba(11,11,11,0.10); border-radius: 10px; padding: 14px; }\n' +
+'.dsl-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }\n' +
+'.dsl-card svg { width: 100%; height: auto; display: block; }\n' +
+'.dsl-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #52514e; }\n' +
+'.dsl-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }\n' +
+'.dsl-tip { position: absolute; pointer-events: none; background: #0b0b0b; color: #f9f9f7; font: 12px/1.5 system-ui, sans-serif; padding: 7px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -105%); opacity: 0; transition: opacity 0.1s ease; z-index: 2; }\n' +
+'.dsl-tip b { font-weight: 600; }\n' +
+'.dsl-stat { text-align: right; font-size: 12px; color: #52514e; }\n' +
+'.dsl-stat b { display: block; font-size: 22px; font-weight: 600; color: #0b0b0b; letter-spacing: -0.01em; }\n' +
+'.dsl-movers { display: flex; gap: 18px; font-size: 12px; color: #52514e; }\n' +
+'.dsl-movers b { font-weight: 600; }\n' +
+'.dsl-movers i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }\n' +
+'</style>\n' +
+'<div class="dsl">\n' +
+'  <div class="dsl-head">\n' +
+'    <div><h2>Market share, 2025 to 2026</h2><p>Eight vendors &middot; biggest gainer and biggest loser emphasized</p></div>\n' +
+'    <div class="dsl-movers"><span><i style="background:#2a78d6"></i>Acme <b>+3.7 pt</b></span><span><i style="background:#eb6834"></i>Globex <b>&minus;2.7 pt</b></span></div>\n' +
+'  </div>\n' +
+'  <div class="dsl-card">\n' +
+'    <svg viewBox="0 0 640 290" role="img" aria-label="Slope chart of market share by vendor, 2025 to 2026">\n' +
+'      <line x1="200" x2="200" y1="20" y2="268" stroke="#e1e0d9"/>\n' +
+'      <line x1="440" x2="440" y1="20" y2="268" stroke="#e1e0d9"/>\n' +
+'      <text x="200" y="14" text-anchor="middle" font-size="11" font-weight="600" fill="#52514e">2025</text>\n' +
+'      <text x="440" y="14" text-anchor="middle" font-size="11" font-weight="600" fill="#52514e">2026</text>\n' +
+'      <line x1="200" y1="79.6" x2="440" y2="46" stroke="#2a78d6" stroke-width="2.5" stroke-linecap="round"/><circle cx="200" cy="79.6" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><circle cx="440" cy="46" r="4.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/><text x="188" y="83.6" text-anchor="end" font-size="11.5" font-weight="600" fill="#0b0b0b">Acme <tspan fill="#898781" font-weight="400">24.1%</tspan></text><text x="452" y="50" font-size="11.5" font-weight="600" fill="#0b0b0b"><tspan fill="#898781" font-weight="400">27.8%</tspan> Acme</text><line x1="200" y1="122.2" x2="440" y2="133.1" stroke="#c3c2b7" stroke-width="1.5" stroke-linecap="round"/><circle cx="200" cy="122.2" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><circle cx="440" cy="133.1" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><text x="188" y="126.2" text-anchor="end" font-size="11.5" font-weight="400" fill="#52514e">Northwind <tspan fill="#898781" font-weight="400">19.4%</tspan></text><text x="452" y="137.1" font-size="11.5" font-weight="400" fill="#52514e"><tspan fill="#898781" font-weight="400">18.2%</tspan> Northwind</text><line x1="200" y1="164" x2="440" y2="188.5" stroke="#eb6834" stroke-width="2.5" stroke-linecap="round"/><circle cx="200" cy="164" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/><circle cx="440" cy="188.5" r="4.5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/><line x1="446" y1="188.5" x2="450" y2="195.2" stroke="#c3c2b7"/><text x="188" y="168" text-anchor="end" font-size="11.5" font-weight="600" fill="#0b0b0b">Globex <tspan fill="#898781" font-weight="400">14.8%</tspan></text><text x="452" y="199.2" font-size="11.5" font-weight="600" fill="#0b0b0b"><tspan fill="#898781" font-weight="400">12.1%</tspan> Globex</text><line x1="200" y1="196.6" x2="440" y2="181.2" stroke="#c3c2b7" stroke-width="1.5" stroke-linecap="round"/><circle cx="200" cy="196.6" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><circle cx="440" cy="181.2" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><text x="188" y="200.6" text-anchor="end" font-size="11.5" font-weight="400" fill="#52514e">Initech <tspan fill="#898781" font-weight="400">11.2%</tspan></text><text x="452" y="185.2" font-size="11.5" font-weight="400" fill="#52514e"><tspan fill="#898781" font-weight="400">12.9%</tspan> Initech</text><line x1="200" y1="210.3" x2="440" y2="215.7" stroke="#c3c2b7" stroke-width="1.5" stroke-linecap="round"/><circle cx="200" cy="210.3" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><circle cx="440" cy="215.7" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><text x="188" y="214.6" text-anchor="end" font-size="11.5" font-weight="400" fill="#52514e">Umbrella <tspan fill="#898781" font-weight="400">9.7%</tspan></text><text x="452" y="219.7" font-size="11.5" font-weight="400" fill="#52514e"><tspan fill="#898781" font-weight="400">9.1%</tspan> Umbrella</text><line x1="200" y1="232" x2="440" y2="222.1" stroke="#c3c2b7" stroke-width="1.5" stroke-linecap="round"/><circle cx="200" cy="232" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><circle cx="440" cy="222.1" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><line x1="446" y1="222.1" x2="450" y2="229.7" stroke="#c3c2b7"/><text x="188" y="236" text-anchor="end" font-size="11.5" font-weight="400" fill="#52514e">Vandelay <tspan fill="#898781" font-weight="400">7.3%</tspan></text><text x="452" y="233.7" font-size="11.5" font-weight="400" fill="#52514e"><tspan fill="#898781" font-weight="400">8.4%</tspan> Vandelay</text><line x1="200" y1="235.7" x2="440" y2="247.5" stroke="#c3c2b7" stroke-width="1.5" stroke-linecap="round"/><circle cx="200" cy="235.7" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><circle cx="440" cy="247.5" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><line x1="194" y1="235.7" x2="190" y2="246" stroke="#c3c2b7"/><line x1="446" y1="247.5" x2="450" y2="258.8" stroke="#c3c2b7"/><text x="188" y="250" text-anchor="end" font-size="11.5" font-weight="400" fill="#52514e">Hooli <tspan fill="#898781" font-weight="400">6.9%</tspan></text><text x="452" y="262.8" font-size="11.5" font-weight="400" fill="#52514e"><tspan fill="#898781" font-weight="400">5.6%</tspan> Hooli</text><line x1="200" y1="238.4" x2="440" y2="244.8" stroke="#c3c2b7" stroke-width="1.5" stroke-linecap="round"/><circle cx="200" cy="238.4" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><circle cx="440" cy="244.8" r="3.5" fill="#c3c2b7" stroke="#fcfcfb" stroke-width="2"/><line x1="194" y1="238.4" x2="190" y2="260" stroke="#c3c2b7"/><text x="188" y="264" text-anchor="end" font-size="11.5" font-weight="400" fill="#52514e">Other <tspan fill="#898781" font-weight="400">6.6%</tspan></text><text x="452" y="248.8" font-size="11.5" font-weight="400" fill="#52514e"><tspan fill="#898781" font-weight="400">5.9%</tspan> Other</text>\n' +
+'    </svg>\n' +
+'  </div>\n' +
+'</div>'
+  });
+
+  T.push({ id: 'dash-waterfall', name: 'Waterfall Bridge Dashboard', cat: 'Dashboards', dark: false, fill: true, wide: true, h: 490, code:
+'<style>\n' +
+'.dwf { background: #f9f9f7; color: #0b0b0b; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 44px 26px 18px; min-height: 100%; box-sizing: border-box; }\n' +
+'.dwf-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }\n' +
+'.dwf-head h2 { margin: 0 0 3px; font-size: 16px; font-weight: 600; }\n' +
+'.dwf-head p { margin: 0; font-size: 12px; color: #898781; }\n' +
+'.dwf-card { position: relative; background: #fcfcfb; border: 1px solid rgba(11,11,11,0.10); border-radius: 10px; padding: 14px; }\n' +
+'.dwf-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }\n' +
+'.dwf-card svg { width: 100%; height: auto; display: block; }\n' +
+'.dwf-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #52514e; }\n' +
+'.dwf-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }\n' +
+'.dwf-tip { position: absolute; pointer-events: none; background: #0b0b0b; color: #f9f9f7; font: 12px/1.5 system-ui, sans-serif; padding: 7px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -105%); opacity: 0; transition: opacity 0.1s ease; z-index: 2; }\n' +
+'.dwf-tip b { font-weight: 600; }\n' +
+'.dwf-stat { text-align: right; font-size: 12px; color: #52514e; }\n' +
+'.dwf-stat b { display: block; font-size: 22px; font-weight: 600; color: #0b0b0b; letter-spacing: -0.01em; }\n' +
+'.dwf-net { font-size: 12px; color: #52514e; text-align: right; }\n' +
+'.dwf-net b { display: block; font-size: 24px; font-weight: 600; color: #006300; letter-spacing: -0.01em; }\n' +
+'.dwf-foot { display: flex; gap: 18px; margin-top: 8px; padding-top: 10px; border-top: 1px solid #e1e0d9; }\n' +
+'</style>\n' +
+'<div class="dwf">\n' +
+'  <div class="dwf-head">\n' +
+'    <div><h2>ARR bridge</h2><p>Fiscal year 2026 &middot; annual recurring revenue, USD millions</p></div>\n' +
+'    <div class="dwf-net"><b>+$1.0M</b>net new ARR, +23.8%</div>\n' +
+'  </div>\n' +
+'  <div class="dwf-card">\n' +
+'    <svg viewBox="0 0 640 240" role="img" aria-label="Waterfall chart of ARR changes">\n' +
+'      <line x1="40" x2="626" y1="200" y2="200" stroke="#e1e0d9"/><text x="32" y="204" text-anchor="end" font-size="11" fill="#898781">$0M</text><line x1="40" x2="626" y1="138.7" y2="138.7" stroke="#e1e0d9"/><text x="32" y="142.7" text-anchor="end" font-size="11" fill="#898781">$2M</text><line x1="40" x2="626" y1="77.3" y2="77.3" stroke="#e1e0d9"/><text x="32" y="81.3" text-anchor="end" font-size="11" fill="#898781">$4M</text><line x1="40" x2="626" y1="16" y2="16" stroke="#e1e0d9"/><text x="32" y="20" text-anchor="end" font-size="11" fill="#898781">$6M</text>\n' +
+'      <line x1="40" x2="626" y1="200" y2="200" stroke="#c3c2b7"/>\n' +
+'      <rect x="66.8" y="71.2" width="44" height="128.8" rx="3" fill="#52514e"/><line x1="110.8" x2="164.5" y1="71.2" y2="71.2" stroke="#c3c2b7"/><text x="88.8" y="64.2" text-anchor="middle" font-size="11" font-weight="600" fill="#0b0b0b">$4.2M</text><text x="88.8" y="218" text-anchor="middle" font-size="11" fill="#898781">Start ARR</text><rect x="164.5" y="37.5" width="44" height="33.7" rx="3" fill="#2a78d6"/><line x1="208.5" x2="262.2" y1="37.5" y2="37.5" stroke="#c3c2b7"/><text x="186.5" y="30.5" text-anchor="middle" font-size="11" font-weight="600" fill="#0b0b0b">+$1.1M</text><text x="186.5" y="218" text-anchor="middle" font-size="11" fill="#898781">New</text><rect x="262.2" y="19.1" width="44" height="18.4" rx="3" fill="#2a78d6"/><line x1="306.2" x2="359.8" y1="19.1" y2="19.1" stroke="#c3c2b7"/><text x="284.2" y="12.100000000000001" text-anchor="middle" font-size="11" font-weight="600" fill="#0b0b0b">+$0.6M</text><text x="284.2" y="218" text-anchor="middle" font-size="11" fill="#898781">Expansion</text><rect x="359.8" y="19.1" width="44" height="15.3" rx="3" fill="#e34948"/><line x1="403.8" x2="457.5" y1="34.4" y2="34.4" stroke="#c3c2b7"/><text x="381.8" y="12.100000000000001" text-anchor="middle" font-size="11" font-weight="600" fill="#0b0b0b">&minus;$0.5M</text><text x="381.8" y="218" text-anchor="middle" font-size="11" fill="#898781">Churn</text><rect x="457.5" y="34.4" width="44" height="6.1" rx="3" fill="#e34948"/><line x1="501.5" x2="555.2" y1="40.5" y2="40.5" stroke="#c3c2b7"/><text x="479.5" y="27.4" text-anchor="middle" font-size="11" font-weight="600" fill="#0b0b0b">&minus;$0.2M</text><text x="479.5" y="218" text-anchor="middle" font-size="11" fill="#898781">Contraction</text><rect x="555.2" y="40.5" width="44" height="159.5" rx="3" fill="#52514e"/><text x="577.2" y="33.5" text-anchor="middle" font-size="11" font-weight="600" fill="#0b0b0b">$5.2M</text><text x="577.2" y="218" text-anchor="middle" font-size="11" fill="#898781">End ARR</text>\n' +
+'    </svg>\n' +
+'    <div class="dwf-foot dwf-legend"><span><i style="background:#52514e"></i>Totals</span><span><i style="background:#2a78d6"></i>Increase</span><span><i style="background:#e34948"></i>Decrease</span></div>\n' +
+'  </div>\n' +
+'</div>'
+  });
+
+  T.push({ id: 'dash-boxplot', name: 'Box Plot Dashboard', cat: 'Dashboards', dark: false, fill: true, wide: true, h: 510, code:
+'<style>\n' +
+'.dbx { background: #f9f9f7; color: #0b0b0b; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 44px 26px 18px; min-height: 100%; box-sizing: border-box; }\n' +
+'.dbx-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }\n' +
+'.dbx-head h2 { margin: 0 0 3px; font-size: 16px; font-weight: 600; }\n' +
+'.dbx-head p { margin: 0; font-size: 12px; color: #898781; }\n' +
+'.dbx-card { position: relative; background: #fcfcfb; border: 1px solid rgba(11,11,11,0.10); border-radius: 10px; padding: 14px; }\n' +
+'.dbx-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }\n' +
+'.dbx-card svg { width: 100%; height: auto; display: block; }\n' +
+'.dbx-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #52514e; }\n' +
+'.dbx-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }\n' +
+'.dbx-tip { position: absolute; pointer-events: none; background: #0b0b0b; color: #f9f9f7; font: 12px/1.5 system-ui, sans-serif; padding: 7px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -105%); opacity: 0; transition: opacity 0.1s ease; z-index: 2; }\n' +
+'.dbx-tip b { font-weight: 600; }\n' +
+'.dbx-stat { text-align: right; font-size: 12px; color: #52514e; }\n' +
+'.dbx-stat b { display: block; font-size: 22px; font-weight: 600; color: #0b0b0b; letter-spacing: -0.01em; }\n' +
+'.dbx-box rect:first-of-type { transition: fill-opacity 0.1s ease; }\n' +
+'.dbx-box:hover rect:first-of-type { fill-opacity: 0.3; }\n' +
+'.dbx-foot { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 10px; border-top: 1px solid #e1e0d9; font-size: 11.5px; color: #898781; }\n' +
+'</style>\n' +
+'<div class="dbx">\n' +
+'  <div class="dbx-head">\n' +
+'    <div><h2>API response time by service</h2><p>Milliseconds &middot; last 7 days &middot; box = interquartile range, line = median, dots = outliers</p></div>\n' +
+'    <div class="dbx-stat"><b>190 ms</b>overall median</div>\n' +
+'  </div>\n' +
+'  <div class="dbx-card">\n' +
+'    <svg viewBox="0 0 640 260" role="img" aria-label="Box plots of response time by service">\n' +
+'      <line x1="44" x2="626" y1="220" y2="220" stroke="#e1e0d9"/><text x="36" y="224" text-anchor="end" font-size="11" fill="#898781">0</text><line x1="44" x2="626" y1="168.5" y2="168.5" stroke="#e1e0d9"/><text x="36" y="172.5" text-anchor="end" font-size="11" fill="#898781">150</text><line x1="44" x2="626" y1="117" y2="117" stroke="#e1e0d9"/><text x="36" y="121" text-anchor="end" font-size="11" fill="#898781">300</text><line x1="44" x2="626" y1="65.5" y2="65.5" stroke="#e1e0d9"/><text x="36" y="69.5" text-anchor="end" font-size="11" fill="#898781">450</text><line x1="44" x2="626" y1="14" y2="14" stroke="#e1e0d9"/><text x="36" y="18" text-anchor="end" font-size="11" fill="#898781">600</text>\n' +
+'      <line x1="44" x2="626" y1="220" y2="220" stroke="#c3c2b7"/>\n' +
+'      <g class="dbx-box" data-i="0"><line x1="102.2" x2="102.2" y1="75.8" y2="113.6" stroke="#52514e"/><line x1="102.2" x2="102.2" y1="158.2" y2="178.8" stroke="#52514e"/><line x1="92.2" x2="112.2" y1="75.8" y2="75.8" stroke="#52514e"/><line x1="92.2" x2="112.2" y1="178.8" y2="178.8" stroke="#52514e"/><rect x="79.2" y="113.6" width="46" height="44.6" rx="3" fill="#2a78d6" fill-opacity="0.16" stroke="#2a78d6" stroke-width="1.5"/><line x1="79.2" x2="125.2" y1="137.6" y2="137.6" stroke="#0b0b0b" stroke-width="2"/><circle cx="102.2" cy="27.7" r="3.5" fill="#fcfcfb" stroke="#52514e" stroke-width="1.5"/><text x="102.2" y="238" text-anchor="middle" font-size="11" fill="#52514e">Payments</text><rect x="44" y="14" width="116.4" height="206" fill="transparent"/></g><g class="dbx-box" data-i="1"><line x1="218.6" x2="218.6" y1="106.7" y2="134.2" stroke="#52514e"/><line x1="218.6" x2="218.6" y1="171.9" y2="189.1" stroke="#52514e"/><line x1="208.6" x2="228.6" y1="106.7" y2="106.7" stroke="#52514e"/><line x1="208.6" x2="228.6" y1="189.1" y2="189.1" stroke="#52514e"/><rect x="195.6" y="134.2" width="46" height="37.7" rx="3" fill="#2a78d6" fill-opacity="0.16" stroke="#2a78d6" stroke-width="1.5"/><line x1="195.6" x2="241.6" y1="154.8" y2="154.8" stroke="#0b0b0b" stroke-width="2"/><text x="218.6" y="238" text-anchor="middle" font-size="11" fill="#52514e">Search</text><rect x="160.4" y="14" width="116.4" height="206" fill="transparent"/></g><g class="dbx-box" data-i="2"><line x1="335" x2="335" y1="154.8" y2="171.9" stroke="#52514e"/><line x1="335" x2="335" y1="190.8" y2="199.4" stroke="#52514e"/><line x1="325" x2="345" y1="154.8" y2="154.8" stroke="#52514e"/><line x1="325" x2="345" y1="199.4" y2="199.4" stroke="#52514e"/><rect x="312" y="171.9" width="46" height="18.9" rx="3" fill="#2a78d6" fill-opacity="0.16" stroke="#2a78d6" stroke-width="1.5"/><line x1="312" x2="358" y1="182.2" y2="182.2" stroke="#0b0b0b" stroke-width="2"/><circle cx="335" cy="123.9" r="3.5" fill="#fcfcfb" stroke="#52514e" stroke-width="1.5"/><circle cx="335" cy="113.6" r="3.5" fill="#fcfcfb" stroke="#52514e" stroke-width="1.5"/><text x="335" y="238" text-anchor="middle" font-size="11" fill="#52514e">Auth</text><rect x="276.8" y="14" width="116.4" height="206" fill="transparent"/></g><g class="dbx-box" data-i="3"><line x1="451.4" x2="451.4" y1="41.5" y2="86.1" stroke="#52514e"/><line x1="451.4" x2="451.4" y1="144.5" y2="168.5" stroke="#52514e"/><line x1="441.4" x2="461.4" y1="41.5" y2="41.5" stroke="#52514e"/><line x1="441.4" x2="461.4" y1="168.5" y2="168.5" stroke="#52514e"/><rect x="428.4" y="86.1" width="46" height="58.4" rx="3" fill="#2a78d6" fill-opacity="0.16" stroke="#2a78d6" stroke-width="1.5"/><line x1="428.4" x2="474.4" y1="117" y2="117" stroke="#0b0b0b" stroke-width="2"/><text x="451.4" y="238" text-anchor="middle" font-size="11" fill="#52514e">Catalog</text><rect x="393.2" y="14" width="116.4" height="206" fill="transparent"/></g><g class="dbx-box" data-i="4"><line x1="567.8" x2="567.8" y1="158.2" y2="175.4" stroke="#52514e"/><line x1="567.8" x2="567.8" y1="196" y2="206.3" stroke="#52514e"/><line x1="557.8" x2="577.8" y1="158.2" y2="158.2" stroke="#52514e"/><line x1="557.8" x2="577.8" y1="206.3" y2="206.3" stroke="#52514e"/><rect x="544.8" y="175.4" width="46" height="20.6" rx="3" fill="#2a78d6" fill-opacity="0.16" stroke="#2a78d6" stroke-width="1.5"/><line x1="544.8" x2="590.8" y1="187.4" y2="187.4" stroke="#0b0b0b" stroke-width="2"/><circle cx="567.8" cy="130.7" r="3.5" fill="#fcfcfb" stroke="#52514e" stroke-width="1.5"/><text x="567.8" y="238" text-anchor="middle" font-size="11" fill="#52514e">Email</text><rect x="509.6" y="14" width="116.4" height="206" fill="transparent"/></g>\n' +
+'    </svg>\n' +
+'    <div class="dbx-tip"></div>\n' +
+'    <div class="dbx-foot"><span>Hover a service for the five-number summary</span><span>SLO: p95 under 400 ms</span></div>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var T = [{"n":"Payments","mn":120,"q1":180,"md":240,"q3":310,"mx":420,"out":[560]},{"n":"Search","mn":90,"q1":140,"md":190,"q3":250,"mx":330,"out":[]},{"n":"Auth","mn":60,"q1":85,"md":110,"q3":140,"mx":190,"out":[280,310]},{"n":"Catalog","mn":150,"q1":220,"md":300,"q3":390,"mx":520,"out":[]},{"n":"Email","mn":40,"q1":70,"md":95,"q3":130,"mx":180,"out":[260]}];\n' +
+'  var card = document.querySelector(".dbx-card");\n' +
+'  var svg = card.querySelector("svg");\n' +
+'  var tip = card.querySelector(".dbx-tip");\n' +
+'  var W = 640, H = 260;\n' +
+'  svg.addEventListener("mousemove", function (e) {\n' +
+'    var g = e.target.closest(".dbx-box");\n' +
+'    if (!g) { tip.style.opacity = "0"; return; }\n' +
+'    var t = T[+g.getAttribute("data-i")];\n' +
+'    var r = svg.getBoundingClientRect();\n' +
+'    var box = g.querySelector("rect");\n' +
+'    tip.innerHTML = "<b>" + t.n + "</b><br>Min " + t.mn + " \u00b7 Q1 " + t.q1 + " \u00b7 Median " + t.md + "<br>Q3 " + t.q3 + " \u00b7 Max " + t.mx + (t.out.length ? " \u00b7 " + t.out.length + " outlier" + (t.out.length > 1 ? "s" : "") : "");\n' +
+'    tip.style.left = ((+box.getAttribute("x") + +box.getAttribute("width") / 2) / W * r.width) + "px";\n' +
+'    tip.style.top = (svg.offsetTop + (+box.getAttribute("y")) / H * r.height) + "px";\n' +
+'    tip.style.opacity = "1";\n' +
+'  });\n' +
+'  svg.addEventListener("mouseleave", function () { tip.style.opacity = "0"; });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'dash-liveops', name: 'Live Ops Dashboard', cat: 'Dashboards', dark: true, fill: true, wide: true, h: 520, code:
+'<style>\n' +
+'.dlo { background: #0d0d0d; color: #ffffff; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 44px 26px 18px; min-height: 100%; box-sizing: border-box; }\n' +
+'.dlo-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }\n' +
+'.dlo-head h2 { margin: 0 0 3px; font-size: 16px; font-weight: 600; }\n' +
+'.dlo-head p { margin: 0; font-size: 12px; color: #898781; }\n' +
+'.dlo-card { position: relative; background: #1a1a19; border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; padding: 14px; }\n' +
+'.dlo-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }\n' +
+'.dlo-card svg { width: 100%; height: auto; display: block; }\n' +
+'.dlo-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #c3c2b7; }\n' +
+'.dlo-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }\n' +
+'.dlo-tip { position: absolute; pointer-events: none; background: #ffffff; color: #0d0d0d; font: 12px/1.5 system-ui, sans-serif; padding: 7px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -105%); opacity: 0; transition: opacity 0.1s ease; z-index: 2; }\n' +
+'.dlo-tip b { font-weight: 600; }\n' +
+'.dlo-stat { text-align: right; font-size: 12px; color: #c3c2b7; }\n' +
+'.dlo-stat b { display: block; font-size: 22px; font-weight: 600; color: #ffffff; letter-spacing: -0.01em; }\n' +
+'.dlo-live { display: inline-flex; align-items: center; gap: 7px; font: 600 11px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: #c3c2b7; }\n' +
+'.dlo-live i { width: 8px; height: 8px; border-radius: 50%; background: #0ca30c; box-shadow: 0 0 0 0 rgba(12, 163, 12, 0.6); animation: dlo-pulse 1.6s ease-out infinite; }\n' +
+'@keyframes dlo-pulse { 70% { box-shadow: 0 0 0 8px rgba(12, 163, 12, 0); } 100% { box-shadow: 0 0 0 0 rgba(12, 163, 12, 0); } }\n' +
+'.dlo-meters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }\n' +
+'.dlo-m { background: #1a1a19; border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; padding: 12px 14px; }\n' +
+'.dlo-m span { display: block; font-size: 11.5px; color: #c3c2b7; margin-bottom: 6px; }\n' +
+'.dlo-m b { display: block; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; font-variant-numeric: tabular-nums; }\n' +
+'.dlo-track { height: 6px; background: #184f95; border-radius: 3px; overflow: hidden; }\n' +
+'.dlo-track i { display: block; height: 100%; background: #3987e5; border-radius: 3px; transition: width 0.6s ease; }\n' +
+'.dlo-track.dlo-warn { background: #4a3a10; } .dlo-track.dlo-warn i { background: #fab219; }\n' +
+'.dlo-card h3 { display: flex; justify-content: space-between; }\n' +
+'.dlo-card h3 span { font-weight: 400; color: #898781; font-size: 11.5px; font-variant-numeric: tabular-nums; }\n' +
+'@media (max-width: 640px) { .dlo-meters { grid-template-columns: repeat(2, 1fr); } }\n' +
+'</style>\n' +
+'<div class="dlo">\n' +
+'  <div class="dlo-head">\n' +
+'    <div><h2>Production cluster</h2><p>us-east-1 &middot; 12 nodes &middot; updates every second</p></div>\n' +
+'    <span class="dlo-live"><i></i>Live</span>\n' +
+'  </div>\n' +
+'  <div class="dlo-meters">\n' +
+'    <div class="dlo-m"><span>CPU</span><b class="dlo-v" data-k="ok">62%</b><div class="dlo-track"><i style="width:62%"></i></div></div><div class="dlo-m"><span>Memory</span><b class="dlo-v" data-k="ok">74%</b><div class="dlo-track"><i style="width:74%"></i></div></div><div class="dlo-m"><span>Disk I/O</span><b class="dlo-v" data-k="ok">41%</b><div class="dlo-track"><i style="width:41%"></i></div></div><div class="dlo-m"><span>Error rate</span><b class="dlo-v" data-k="pct">0.31%</b><div class="dlo-track"><i style="width:6.2%"></i></div></div>\n' +
+'  </div>\n' +
+'  <div class="dlo-card">\n' +
+'    <h3>Requests per second <span class="dlo-now">710 rps</span></h3>\n' +
+'    <svg viewBox="0 0 640 170" role="img" aria-label="Requests per second, rolling 30 seconds">\n' +
+'      <line x1="40" x2="626" y1="140" y2="140" stroke="#2c2c2a"/><text x="32" y="144" text-anchor="end" font-size="11" fill="#898781">0</text><line x1="40" x2="626" y1="108" y2="108" stroke="#2c2c2a"/><text x="32" y="112" text-anchor="end" font-size="11" fill="#898781">250</text><line x1="40" x2="626" y1="76" y2="76" stroke="#2c2c2a"/><text x="32" y="80" text-anchor="end" font-size="11" fill="#898781">500</text><line x1="40" x2="626" y1="44" y2="44" stroke="#2c2c2a"/><text x="32" y="48" text-anchor="end" font-size="11" fill="#898781">750</text><line x1="40" x2="626" y1="12" y2="12" stroke="#2c2c2a"/><text x="32" y="16" text-anchor="end" font-size="11" fill="#898781">1000</text>\n' +
+'      <line x1="40" x2="626" y1="140" y2="140" stroke="#383835"/>\n' +
+'      <path class="dlo-area" d="M40,86.2 L60.2,83 L80.4,85 L100.6,79.8 L120.8,81.1 L141,77.3 L161.2,74.7 L181.4,76 L201.7,72.2 L221.9,73.4 L242.1,69 L262.3,70.9 L282.5,68.3 L302.7,65.8 L322.9,67 L343.1,63.2 L363.3,64.5 L383.5,61.9 L403.7,59.4 L423.9,60.6 L444.1,58.1 L464.3,56.8 L484.6,57.4 L504.8,55.5 L525,54.2 L545.2,54.9 L565.4,53 L585.6,51.7 L605.8,50.4 L626,49.1 L626,140 L40,140 Z" fill="#3987e5" fill-opacity="0.12"/>\n' +
+'      <path class="dlo-line" d="M40,86.2 L60.2,83 L80.4,85 L100.6,79.8 L120.8,81.1 L141,77.3 L161.2,74.7 L181.4,76 L201.7,72.2 L221.9,73.4 L242.1,69 L262.3,70.9 L282.5,68.3 L302.7,65.8 L322.9,67 L343.1,63.2 L363.3,64.5 L383.5,61.9 L403.7,59.4 L423.9,60.6 L444.1,58.1 L464.3,56.8 L484.6,57.4 L504.8,55.5 L525,54.2 L545.2,54.9 L565.4,53 L585.6,51.7 L605.8,50.4 L626,49.1" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>\n' +
+'      <circle class="dlo-dot" cx="626" cy="49.1" r="4.5" fill="#3987e5" stroke="#1a1a19" stroke-width="2"/>\n' +
+'      <text x="40" y="156" font-size="11" fill="#898781">30s ago</text><text x="626" y="156" text-anchor="end" font-size="11" fill="#898781">now</text>\n' +
+'    </svg>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var data = [420,445,430,470,460,490,510,500,530,520,555,540,560,580,570,600,590,610,630,620,640,650,645,660,670,665,680,690,700,710];\n' +
+'  var X0 = 40, X1 = 626, TOP = 12, BOT = 140, MAX = 1000;\n' +
+'  var line = document.querySelector(".dlo-line");\n' +
+'  var area = document.querySelector(".dlo-area");\n' +
+'  var dot = document.querySelector(".dlo-dot");\n' +
+'  var now = document.querySelector(".dlo-now");\n' +
+'  var meters = document.querySelectorAll(".dlo-m");\n' +
+'  var seed = 3;\n' +
+'  function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }\n' +
+'  function y(v) { return BOT - v / MAX * (BOT - TOP); }\n' +
+'  function path() {\n' +
+'    return data.map(function (v, i) { return (i ? "L" : "M") + (X0 + i / (data.length - 1) * (X1 - X0)).toFixed(1) + "," + y(v).toFixed(1); }).join(" ");\n' +
+'  }\n' +
+'  function tick() {\n' +
+'    var last = data[data.length - 1];\n' +
+'    var next = Math.max(200, Math.min(950, last + (rnd() - 0.48) * 70));\n' +
+'    data.push(next); data.shift();\n' +
+'    var d = path();\n' +
+'    line.setAttribute("d", d);\n' +
+'    area.setAttribute("d", d + " L" + X1 + "," + BOT + " L" + X0 + "," + BOT + " Z");\n' +
+'    dot.setAttribute("cy", y(next).toFixed(1));\n' +
+'    now.textContent = Math.round(next) + " rps";\n' +
+'    meters.forEach(function (m, k) {\n' +
+'      var b = m.querySelector("b"), bar = m.querySelector("i"), track = m.querySelector(".dlo-track");\n' +
+'      var isPct = b.getAttribute("data-k") === "pct";\n' +
+'      var cur = parseFloat(b.textContent);\n' +
+'      var v = isPct ? Math.max(0.05, Math.min(3, cur + (rnd() - 0.5) * 0.12)) : Math.max(10, Math.min(98, cur + (rnd() - 0.5) * 6));\n' +
+'      b.textContent = isPct ? v.toFixed(2) + "%" : Math.round(v) + "%";\n' +
+'      bar.style.width = (isPct ? v * 20 : v) + "%";\n' +
+'      track.classList.toggle("dlo-warn", isPct ? v > 1 : v > 85);\n' +
+'    });\n' +
+'  }\n' +
+'  setInterval(tick, 1000);\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'dash-treemap', name: 'Treemap Dashboard', cat: 'Dashboards', dark: false, fill: true, wide: true, h: 540, code:
+'<style>\n' +
+'.dtm { background: #f9f9f7; color: #0b0b0b; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 44px 26px 18px; min-height: 100%; box-sizing: border-box; }\n' +
+'.dtm-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }\n' +
+'.dtm-head h2 { margin: 0 0 3px; font-size: 16px; font-weight: 600; }\n' +
+'.dtm-head p { margin: 0; font-size: 12px; color: #898781; }\n' +
+'.dtm-card { position: relative; background: #fcfcfb; border: 1px solid rgba(11,11,11,0.10); border-radius: 10px; padding: 14px; }\n' +
+'.dtm-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }\n' +
+'.dtm-card svg { width: 100%; height: auto; display: block; }\n' +
+'.dtm-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #52514e; }\n' +
+'.dtm-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }\n' +
+'.dtm-tip { position: absolute; pointer-events: none; background: #0b0b0b; color: #f9f9f7; font: 12px/1.5 system-ui, sans-serif; padding: 7px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -105%); opacity: 0; transition: opacity 0.1s ease; z-index: 2; }\n' +
+'.dtm-tip b { font-weight: 600; }\n' +
+'.dtm-stat { text-align: right; font-size: 12px; color: #52514e; }\n' +
+'.dtm-stat b { display: block; font-size: 22px; font-weight: 600; color: #0b0b0b; letter-spacing: -0.01em; }\n' +
+'.dtm-cell rect { transition: opacity 0.1s ease; }\n' +
+'.dtm-cell:hover rect { opacity: 0.85; }\n' +
+'.dtm-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 10px; border-top: 1px solid #e1e0d9; font-size: 11.5px; color: #898781; }\n' +
+'.dtm-scale { display: flex; align-items: center; gap: 5px; }\n' +
+'.dtm-scale i { width: 14px; height: 10px; border-radius: 2px; }\n' +
+'</style>\n' +
+'<div class="dtm">\n' +
+'  <div class="dtm-head">\n' +
+'    <div><h2>Monthly spending</h2><p>Area = share of total &middot; darker = larger &middot; hover a tile</p></div>\n' +
+'    <div class="dtm-stat"><b>$5,400</b>August total</div>\n' +
+'  </div>\n' +
+'  <div class="dtm-card">\n' +
+'    <svg viewBox="0 0 640 300" role="img" aria-label="Treemap of monthly spending by category"><g class="dtm-cell"><rect x="1" y="1" width="216.1" height="298" rx="4" fill="#104281"><title>Housing: $1,840 (34%)</title></rect><text x="10" y="20" font-size="12" font-weight="600" fill="#fff">Housing</text><text x="10" y="36" font-size="11" fill="rgba(255,255,255,0.75)">$1,840 &middot; 34%</text></g><g class="dtm-cell"><rect x="219.1" y="1" width="201.9" height="165.4" rx="4" fill="#2a78d6"><title>Food: $960 (18%)</title></rect><text x="228.1" y="20" font-size="12" font-weight="600" fill="#fff">Food</text><text x="228.1" y="36" font-size="11" fill="rgba(255,255,255,0.75)">$960 &middot; 18%</text></g><g class="dtm-cell"><rect x="219.1" y="168.4" width="201.9" height="130.6" rx="4" fill="#3987e5"><title>Savings: $760 (14%)</title></rect><text x="228.1" y="187.4" font-size="12" font-weight="600" fill="#0b0b0b">Savings</text><text x="228.1" y="203.4" font-size="11" fill="#52514e">$760 &middot; 14%</text></g><g class="dtm-cell"><rect x="422.9" y="1" width="216.1" height="99.1" rx="4" fill="#3987e5"><title>Transport: $620 (11%)</title></rect><text x="431.9" y="20" font-size="12" font-weight="600" fill="#0b0b0b">Transport</text><text x="431.9" y="36" font-size="11" fill="#52514e">$620 &middot; 11%</text></g><g class="dtm-cell"><rect x="422.9" y="102.1" width="83.8" height="196.9" rx="4" fill="#5598e7"><title>Leisure: $480 (9%)</title></rect><text x="429.9" y="117.1" font-size="10.5" font-weight="600" fill="#0b0b0b">Leisure</text></g><g class="dtm-cell"><rect x="508.7" y="102.1" width="130.3" height="108.2" rx="4" fill="#5598e7"><title>Health: $410 (8%)</title></rect><text x="517.7" y="121.1" font-size="12" font-weight="600" fill="#0b0b0b">Health</text><text x="517.7" y="137.1" font-size="11" fill="#52514e">$410 &middot; 8%</text></g><g class="dtm-cell"><rect x="508.7" y="212.3" width="130.3" height="86.7" rx="4" fill="#6da7ec"><title>Other: $330 (6%)</title></rect><text x="517.7" y="231.3" font-size="12" font-weight="600" fill="#0b0b0b">Other</text><text x="517.7" y="247.3" font-size="11" fill="#52514e">$330 &middot; 6%</text></g></svg>\n' +
+'    <div class="dtm-foot"><span>Seven categories &middot; smaller items fold into Other</span><span class="dtm-scale">Smaller <i style="background:#86b6ef"></i><i style="background:#3987e5"></i><i style="background:#1c5cab"></i><i style="background:#104281"></i> Larger</span></div>\n' +
+'  </div>\n' +
+'</div>'
+  });
+
   /* ════════════════════════════════════════════════════════
      RENDER + INTERACTIONS
      ════════════════════════════════════════════════════════ */
