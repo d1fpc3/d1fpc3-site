@@ -1145,6 +1145,12 @@
     .news-title { color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .news-row.major { box-shadow: inset 3px 0 0 var(--gold); padding-left: 12px; }
     .news-row.major .news-title { color: var(--gold); font-weight: 600; }
+    /* week paging: ‹ label › as plain text controls */
+    .news-nav { display: inline-flex; align-items: center; gap: 4px; }
+    .news-nav .label { min-width: 118px; text-align: center; }
+    .news-arrow { background: none; border: 0; color: var(--muted); font-size: 22px; line-height: 1; padding: 0 9px 3px; cursor: pointer; border-radius: 7px; -webkit-tap-highlight-color: transparent; }
+    .news-arrow:hover:not(:disabled) { color: var(--ink); background: var(--panel-2); }
+    .news-arrow:disabled { opacity: 0.25; cursor: default; }
     .news-fp { margin-left: auto; display: flex; gap: 16px; flex: none; }
     .news-fp .v { color: var(--muted); font-size: 12px; min-width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
     .news-fp .v em { font-style: normal; color: var(--faint); font-size: 10px; letter-spacing: 0.08em; margin-right: 5px; }
@@ -2534,7 +2540,7 @@
         <!-- NEWS: the week's USD calendar -->
         <section class="view" id="v-news">
           <div class="block">
-            <div class="block-head"><h3>USD news</h3><span class="label">Red &amp; orange folders · this week</span></div>
+            <div class="block-head"><h3>USD news</h3><span class="news-nav"><button class="news-arrow" id="news-prev" type="button" title="Previous week" aria-label="Previous week">&#8249;</button><span class="label" id="news-week">this week</span><button class="news-arrow" id="news-next" type="button" title="Next week" aria-label="Next week" disabled>&#8250;</button></span></div>
             <div id="news-list"></div>
             <p class="hint" id="news-empty" hidden>Nothing scheduled.</p>
           </div>
@@ -4788,13 +4794,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const res = await fetch(NEWS_URL)
         if (!res.ok) throw new Error('news ' + res.status)
         const rows = await res.json()
-        newsEvents = (Array.isArray(rows) ? rows : [])
-          .filter((e) => e.country === 'USD' && (e.impact === 'High' || e.impact === 'Medium'))
-          .map((e) => ({ ...e, at: new Date(e.date) }))
-          .filter((e) => !isNaN(e.at))
-          .sort((a, b) => a.at - b.at)
-        renderNews()
+        newsEvents = newsFilter(rows)
+        if (!NEWS.key) renderNews(newsEvents, true)   // browsing an older week: leave it on screen
         renderOvNews()
+        if (!NEWS.weeks.length) loadNewsWeeks()
       } catch {
         // keep whatever is on screen; only admit emptiness if there's nothing
         if (!host.childElementCount) el('news-empty').hidden = false
@@ -4818,19 +4821,25 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       row.appendChild(fp)
       return row
     }
-    function renderNews() {
+    const newsFilter = (rows) => (Array.isArray(rows) ? rows : [])
+      .filter((e) => e.country === 'USD' && (e.impact === 'High' || e.impact === 'Medium'))
+      .map((e) => ({ ...e, at: new Date(e.date) }))
+      .filter((e) => !isNaN(e.at))
+      .sort((a, b) => a.at - b.at)
+    function renderNews(list = newsEvents, live = true) {
       const host = el('news-list'); if (!host) return
-      const now = Date.now()
+      const now = live ? Date.now() : 0          // an archived week has no "past" rows to dim
       const today = ET_DAY.format(new Date())
-      el('news-empty').hidden = newsEvents.length > 0
+      el('news-empty').hidden = list.length > 0
+      el('news-empty').textContent = 'Nothing scheduled.'
       host.textContent = ''
       let lastDay = ''
-      for (const e of newsEvents) {
+      for (const e of list) {
         const dk = ET_DAY.format(e.at)
         if (dk !== lastDay) {
           lastDay = dk
           const h = document.createElement('div'); h.className = 'news-day'
-          h.textContent = dk === today ? 'Today' : e.at.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })
+          h.textContent = live && dk === today ? 'Today' : e.at.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })
           host.appendChild(h)
         }
         host.appendChild(newsRow(e, now))
@@ -4847,6 +4856,51 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       host.textContent = ''
       for (const e of rows) host.appendChild(newsRow(e, now))
     }
+    /* ── week paging: the news worker archives each week's calendar (Forex
+       Factory only serves the current week), so ‹ › walk that archive.
+       History starts the week it was switched on (Sep 2026). ── */
+    const NEWS = { weeks: [], current: null, key: null }   // key = archived Sunday being read; null = live
+    const newsSunday = (d) => { const [y, m, day] = ET_DAY.format(d).split('-').map(Number); const t = new Date(Date.UTC(y, m - 1, day)); t.setUTCDate(t.getUTCDate() - t.getUTCDay()); return t.toISOString().slice(0, 10) }
+    const weekLabel = (key) => { const [y, m, d] = key.split('-').map(Number); const f = (off) => new Date(Date.UTC(y, m - 1, d + off)).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' }); return `${f(1)} – ${f(5)}` }
+    async function loadNewsWeeks() {
+      try { const r = await fetch(NEWS_URL.replace('calendar.json', 'weeks.json'), { cache: 'no-cache' }); if (r.ok) { const j = await r.json(); NEWS.weeks = j.weeks || []; NEWS.current = j.current || null } } catch {}
+      syncNewsNav()
+    }
+    function syncNewsNav() {
+      const prev = el('news-prev'), next = el('news-next'), lbl = el('news-week'); if (!prev) return
+      const cur = NEWS.current || newsSunday(new Date())
+      const at = NEWS.key || cur
+      prev.disabled = !NEWS.weeks.some((w) => w < at)
+      next.disabled = !NEWS.key
+      lbl.textContent = NEWS.key ? `Week of ${weekLabel(NEWS.key)}` : 'this week'
+    }
+    async function showNewsWeek(key) {
+      NEWS.key = key
+      syncNewsNav()
+      if (!key) { renderNews(newsEvents, true); return }
+      const host = el('news-list'); host.textContent = ''; el('news-empty').hidden = true
+      try {
+        const r = await fetch(`${NEWS_URL}?week=${key}`, { cache: 'no-cache' })
+        if (!r.ok) throw new Error('no record')
+        const list = newsFilter(await r.json())
+        if (NEWS.key !== key) return
+        renderNews(list, false)
+      } catch {
+        if (NEWS.key !== key) return
+        el('news-empty').textContent = 'No record for that week.'; el('news-empty').hidden = false
+      }
+    }
+    el('news-prev')?.addEventListener('click', () => {
+      const cur = NEWS.current || newsSunday(new Date()), at = NEWS.key || cur
+      const older = NEWS.weeks.filter((w) => w < at)
+      if (older.length) showNewsWeek(older[older.length - 1])
+    })
+    el('news-next')?.addEventListener('click', () => {
+      if (!NEWS.key) return
+      const cur = NEWS.current || newsSunday(new Date())
+      const newer = NEWS.weeks.filter((w) => w > NEWS.key && w < cur)
+      showNewsWeek(newer.length ? newer[0] : null)
+    })
     loadNews()
     setInterval(loadNews, 5 * 60e3)
 
