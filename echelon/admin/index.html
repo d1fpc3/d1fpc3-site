@@ -2528,7 +2528,10 @@
           const x = PL + i * slot
           if (i) seps += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${PT}" y2="${H - PB + 6}" stroke="var(--line)"/>`
           const span = ordered.filter((o) => o.module_id === l.module_id).length
-          seps += `<text x="${(x + (span * slot) / 2).toFixed(1)}" y="${H - 8}" fill="var(--faint)" font-size="10.5" text-anchor="middle">${(modTitle.get(l.module_id) || '').slice(0, 22)}</text>`
+          // the title has to fit its own module's width: ~6.4px per character at 10.5px
+          const room = Math.max(5, Math.floor((span * slot - 8) / 6.4)), full = modTitle.get(l.module_id) || ''
+          const shown = full.length > room ? full.slice(0, room - 1).trimEnd() + '…' : full
+          seps += `<text x="${(x + (span * slot) / 2).toFixed(1)}" y="${H - 8}" fill="var(--faint)" font-size="10.5" text-anchor="middle"><title>${full}</title>${shown}</text>`
           lastMod = l.module_id
         }
       })
