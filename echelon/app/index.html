@@ -1174,6 +1174,14 @@
     .news-title { color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .news-row.major { box-shadow: inset 3px 0 0 var(--gold); padding-left: 12px; }
     .news-row.major .news-title { color: var(--gold); font-weight: 600; }
+    /* the circled ? beside each release: hover or tap for what it is and what it means (D1, 9/4) */
+    .news-q { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line-bright); background: none; color: var(--faint); font: 600 10px/1 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .news-q:hover, .news-q.on { color: var(--gold); border-color: var(--gold); }
+    .news-row.past .news-q { opacity: 1; }
+    .news-tip { position: fixed; z-index: 60; pointer-events: none; width: min(320px, calc(100vw - 24px)); background: var(--panel-2); border: 1px solid var(--line-bright); border-radius: 8px; padding: 11px 13px 12px; font-size: 12.5px; line-height: 1.55; color: var(--muted); box-shadow: 0 14px 34px -14px rgba(0,0,0,0.55); }
+    .news-tip b { display: block; color: var(--ink); font-weight: 600; margin-bottom: 4px; }
+    .news-tip .k { display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin: 8px 0 1px; }
+    .news-tip p { margin: 0; }
     /* week paging: ‹ label › as plain text controls */
     .news-nav { display: inline-flex; align-items: center; gap: 4px; }
     .news-nav .label { min-width: 118px; text-align: center; }
@@ -2573,6 +2581,7 @@
             <div id="news-list"></div>
             <p class="hint" id="news-empty" hidden>Nothing scheduled.</p>
             <p class="hint" id="news-note" hidden>What has been released so far. It fills in as the week is published.</p>
+            <div class="news-tip" id="news-tip" role="tooltip" hidden></div>
           </div>
         </section>
 
@@ -4853,6 +4862,102 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (!host.childElementCount) el('news-empty').hidden = false
       }
     }
+    /* ── what each release is and what it means for the session ──
+       Matched by title (Forex Factory and TradingView names both). ── */
+    const NEWS_GLOSSARY = [
+      [/\bADP\b/i, 'ADP employment', 'A private payroll firm’s count of private-sector jobs added, out two days before the official payrolls report.', 'A preview of Friday’s payrolls. Moves the market for a few minutes, and a big miss or beat sets the tone into NFP. It is a loose guide, not a lock.'],
+      [/non-?farm (employment|payroll)|\bNFP\b/i, 'Non-farm payrolls', 'Jobs added or lost across the US economy last month, excluding farms. Out the first Friday of the month at 8:30am with the unemployment rate and wages.', 'The biggest print of the month. A hot number says the economy is strong and the Fed can stay tight, which usually knocks NQ; a soft number does the opposite. Expect the widest range of the week in the first 15 minutes, and a first move that often gets faded.'],
+      [/unemployment rate/i, 'Unemployment rate', 'Share of the workforce looking for a job. Released with payrolls.', 'Read it with payrolls. Rising unemployment with weak payrolls is the combination that moves the Fed toward cutting, which the index tends to like unless it starts to look like a recession.'],
+      [/average hourly earnings/i, 'Average hourly earnings', 'How much wages grew last month. Released with payrolls.', 'The inflation piece of the jobs report. Wages running hot keeps the Fed cautious; cooling wages are index-friendly. Usually second fiddle to the headline payrolls number.'],
+      [/unemployment claims|initial jobless claims/i, 'Jobless claims', 'How many people filed for unemployment for the first time last week. Every Thursday at 8:30am.', 'A weekly pulse on layoffs. A quiet print does little; a sharp jump above 250K starts to worry the market about the labour market cracking. Watch it more when the Fed is focused on jobs.'],
+      [/continuing (jobless )?claims/i, 'Continuing claims', 'How many people are still collecting unemployment.', 'Rarely moves price on its own. A steady climb says people are taking longer to find work.'],
+      [/JOLT/i, 'JOLTS job openings', 'How many open positions employers had at the end of the month.', 'The Fed watches openings versus job seekers as a measure of how tight the labour market is. Fewer openings means less wage pressure. It is a month old on release, so it moves price less than it used to.'],
+      [/core (CPI|inflation rate)/i, 'Core CPI', 'Consumer prices excluding food and energy, the Fed’s preferred read on the inflation trend.', 'The number that matters inside the CPI report. A 0.1 miss or beat versus the forecast can move NQ a full percent at the open. Hot core inflation means higher for longer; cool core inflation opens the door to cuts.'],
+      [/\bCPI\b|consumer price|inflation rate/i, 'CPI', 'Consumer Price Index: how much prices rose for the basket of goods and services people buy. Monthly, 8:30am.', 'Second only to payrolls and the Fed itself. The market trades the core number against the forecast. Expect a fast, wide first move and a wider than normal range for the whole session.'],
+      [/core PPI/i, 'Core PPI', 'Producer prices excluding food and energy.', 'Feeds into the Fed’s preferred inflation gauge, so parts of this print matter more than the headline. Usually a smaller reaction than CPI unless it surprises hard.'],
+      [/\bPPI\b|producer price/i, 'PPI', 'Producer Price Index: what businesses pay for inputs, one step ahead of consumer prices.', 'A pipeline read on inflation. Normally a modest move unless it lands the day after a big CPI and confirms or contradicts it.'],
+      [/core PCE|PCE price/i, 'Core PCE', 'The Fed’s preferred inflation measure, out with personal income and spending.', 'Mostly priced in by the time it prints because CPI and PPI already hinted at it. Big surprises are rare, so the reaction is usually smaller than the headline suggests.'],
+      [/core retail sales/i, 'Core retail sales', 'Retail sales excluding autos.', 'A cleaner read on how the consumer is spending. Read it with the headline number; a beat on both is a strong-economy signal.'],
+      [/retail sales/i, 'Retail sales', 'How much people spent at stores and online last month.', 'The consumer is two thirds of the US economy. Strong sales support earnings but can keep the Fed tight, so the index reaction depends on what the market is worried about that month.'],
+      [/ISM manufacturing prices/i, 'ISM manufacturing prices', 'What factories are paying for inputs, from the ISM survey.', 'A quick inflation tell. Rarely moves price on its own but adds to the picture on ISM day.'],
+      [/ISM (manufacturing|services|non-manufacturing)/i, 'ISM PMI', 'A survey of purchasing managers: above 50 means that part of the economy is growing, below 50 shrinking. Manufacturing early in the month, services a couple of days later.', 'Services is the bigger of the two for NQ since the US economy is mostly services. A surprise drop below 50 tends to hit the index; the prices-paid line inside the report is watched for inflation.'],
+      [/flash|S&P global .*(PMI)/i, 'Flash PMI', 'An early read of the monthly purchasing managers survey.', 'A preview of the ISM numbers. Usually a small reaction unless it surprises.'],
+      [/(prelim|revised) UoM|michigan consumer sentiment|michigan/i, 'Consumer sentiment', 'University of Michigan survey of how households feel about the economy and their finances. Preliminary mid-month at 10am, revised two weeks later.', 'The inflation-expectations line inside it moves the market more than the headline. A jump in expected inflation is Fed-hawkish and tends to weigh on NQ.'],
+      [/inflation expectations/i, 'Inflation expectations', 'How much inflation households expect over the next year and the next five.', 'The Fed watches this closely. Rising expectations make it harder to cut; falling ones are index-friendly.'],
+      [/CB consumer confidence|consumer confidence/i, 'Consumer confidence', 'Conference Board survey of how households feel, out late in the month at 10am.', 'A 10am mover on a slow day. Big misses hint at weaker spending ahead.'],
+      [/GDP/i, 'GDP', 'How fast the whole economy grew last quarter, annualised. Advance estimate first, then two revisions.', 'The advance print can move price; revisions mostly do not. The market often reads the price index inside it as much as the growth number.'],
+      [/federal funds rate|fed interest rate|FOMC statement|rate decision/i, 'Fed rate decision', 'The Federal Reserve announces its target interest rate and releases its statement at 2pm, eight times a year.', 'The single most important event on the calendar. The rate itself is usually priced in; the statement wording and the projections move price. Expect a whipsaw at 2pm and the real move during the 2:30pm press conference.'],
+      [/FOMC press conference|powell/i, 'Fed press conference', 'The Fed chair takes questions for about an hour, starting 2:30pm on decision day.', 'This is where the real move happens. Price often reverses the 2pm reaction once the chair frames the decision. Trade small or sit out until the tone is clear.'],
+      [/economic projections|dot plot/i, 'Fed projections', 'The Fed’s quarterly forecasts for rates, growth, inflation and unemployment, including the dot plot of where each official sees rates going.', 'The dots move the market. More cuts than expected is index-friendly; fewer cuts or a higher end point weighs on NQ.'],
+      [/meeting minutes/i, 'FOMC minutes', 'The written record of the last Fed meeting, out three weeks later at 2pm.', 'Old news by design, but the market combs it for how many officials leaned each way. Usually a short 2pm burst that fades.'],
+      [/beige book/i, 'Beige book', 'Anecdotal reports on the economy from each Fed district, two weeks before a meeting.', 'Rarely moves price. Useful colour on hiring and pricing pressure.'],
+      [/FOMC member|fed .*(speech|speaks)|\bfed (governor|chair|president)|speaks/i, 'Fed speaker', 'A Fed official giving remarks or an interview.', 'Most speeches are noise. The ones that matter are the chair and the voting members in the days before a meeting, especially if they push against what the market is pricing. Headlines can hit at any point in the slot.'],
+      [/crude oil inventories|crude oil stock/i, 'Crude inventories', 'Weekly change in US oil stockpiles, Wednesday 10:30am.', 'An oil market event. Spills into NQ only when energy is driving the inflation story.'],
+      [/philly fed|philadelphia fed/i, 'Philly Fed', 'Manufacturing survey for the Philadelphia district.', 'A Thursday 8:30am mover on quiet weeks. Big misses get attention as an early read on the ISM.'],
+      [/empire state/i, 'Empire State index', 'Manufacturing survey for the New York district.', 'First regional survey of the month. Noisy; a small mover.'],
+      [/building permits|housing starts/i, 'Housing starts and permits', 'New homes started and permits issued last month.', 'A rate-sensitive read on the economy. Small direct effect on NQ.'],
+      [/(existing|new|pending) home sales/i, 'Home sales', 'Homes sold last month.', 'Housing is the most rate-sensitive part of the economy, so this is a read on how tight policy is biting. Small direct effect on NQ.'],
+      [/durable goods/i, 'Durable goods orders', 'Orders for long-lasting goods like aircraft, machinery and appliances.', 'Aircraft orders swing the headline, so the market looks at the core number. Usually a modest move.'],
+      [/trade balance/i, 'Trade balance', 'Exports minus imports.', 'Feeds into GDP. Rarely moves the index.'],
+      [/factory orders/i, 'Factory orders', 'New orders placed with US factories.', 'Mostly known from durable goods a week earlier. Small mover.'],
+      [/unit labor costs|productivity/i, 'Productivity and labour costs', 'Output per hour worked and what it costs.', 'The Fed likes rising productivity because it lets wages grow without inflation. Small mover.'],
+      [/import prices/i, 'Import prices', 'What the US pays for imported goods.', 'A minor inflation input. Rarely moves price.'],
+      [/personal (income|spending)/i, 'Personal income and spending', 'How much households earned and spent last month, out with core PCE.', 'Spending is the consumer read; core PCE is the number that gets traded.'],
+      [/employment cost/i, 'Employment cost index', 'Quarterly measure of wages and benefits.', 'The Fed’s favourite wage gauge. Out quarterly, so a surprise gets more attention than the monthly wage prints.'],
+      [/challenger/i, 'Challenger job cuts', 'Announced layoffs from a private outplacement firm.', 'A headline generator more than a market mover.'],
+      [/(10|20|30)-?y(ear)? bond auction|note auction/i, 'Treasury auction', 'The government sells new debt at 1pm; the market watches demand and the yield versus expectations.', 'A weak auction pushes yields up, which can pull NQ down in the early afternoon. Matters more when rates are the story.'],
+      [/industrial production|capacity utilization/i, 'Industrial production', 'Output from factories, mines and utilities.', 'A growth read with a small market footprint.'],
+      [/richmond|dallas fed|chicago pmi|kansas/i, 'Regional survey', 'A regional Fed or purchasing managers survey.', 'Small mover. Adds to the picture ahead of the ISM.'],
+      [/wholesale inventories|business inventories/i, 'Inventories', 'Stock held by wholesalers or businesses.', 'A GDP input. Rarely moves price.'],
+      [/consumer credit/i, 'Consumer credit', 'Change in borrowing on cards and loans.', 'Late-day print with little market effect.'],
+      [/NAHB/i, 'NAHB housing index', 'Homebuilder confidence survey.', 'Rate-sensitive sentiment read. Small mover.'],
+      [/current account/i, 'Current account', 'The broadest trade balance.', 'Quarterly and rarely traded.'],
+      [/bank holiday|holiday|labor day|memorial day|thanksgiving|christmas|independence day|juneteenth|presidents/i, 'Market holiday', 'US markets are closed or on a shortened session.', 'Futures may still trade, but with thin volume and no cash-session flow. Most of the edge is gone; a good day to sit out.'],
+    ]
+    const NEWS_GENERIC = ['Scheduled release', 'A scheduled US economic release.', 'Expect a burst of volatility at the print, then the market settles into its read within a few minutes. Size down or wait for the reaction to clear.']
+    function newsGloss(title) {
+      const hit = NEWS_GLOSSARY.find(([re]) => re.test(title || ''))
+      return hit ? hit.slice(1) : NEWS_GENERIC
+    }
+    const newsTipEl = () => el('news-tip')
+    let newsTipFor = null
+    function newsTipShow(btn, title) {
+      const tip = newsTipEl(); if (!tip) return
+      const [name, what, means] = newsGloss(title)
+      tip.textContent = ''
+      const b = document.createElement('b'); b.textContent = name
+      const k1 = document.createElement('span'); k1.className = 'k'; k1.textContent = 'What it is'
+      const p1 = document.createElement('p'); p1.textContent = what
+      const k2 = document.createElement('span'); k2.className = 'k'; k2.textContent = 'What it means'
+      const p2 = document.createElement('p'); p2.textContent = means
+      tip.append(b, k1, p1, k2, p2)
+      tip.hidden = false
+      const r = btn.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight
+      let x = Math.min(window.innerWidth - tw - 12, Math.max(12, r.left + r.width / 2 - tw / 2))
+      let y = r.bottom + 8
+      if (y + th > window.innerHeight - 12) y = Math.max(12, r.top - th - 8)
+      tip.style.left = x + 'px'; tip.style.top = y + 'px'
+      document.querySelectorAll('.news-q.on').forEach((q) => q.classList.remove('on'))
+      btn.classList.add('on'); newsTipFor = btn
+    }
+    function newsTipHide() {
+      const tip = newsTipEl(); if (!tip) return
+      tip.hidden = true
+      if (newsTipFor) newsTipFor.classList.remove('on')
+      newsTipFor = null
+    }
+    document.addEventListener('pointerdown', (e) => { if (newsTipFor && !e.target.closest('.news-q') && !e.target.closest('#news-tip')) newsTipHide() })
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && newsTipFor) newsTipHide() })
+    window.addEventListener('scroll', () => { if (newsTipFor) newsTipHide() }, true)
+    function newsHelpButton(title) {
+      const q = document.createElement('button'); q.type = 'button'; q.className = 'news-q'; q.textContent = '?'
+      q.setAttribute('aria-label', `What ${title} is and what it means`)
+      let hover = false
+      q.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hover = true; newsTipShow(q, title) } })
+      q.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && hover) { hover = false; newsTipHide() } })
+      q.addEventListener('click', (e) => { e.stopPropagation(); hover = false; if (newsTipFor === q) newsTipHide(); else newsTipShow(q, title) })
+      return q
+    }
     function newsRow(e, now) {
       // NFP, CPI and the FOMC decision are the big ones: gold title, gold rule (D1, 9/3)
       const major = /non-?farm|\bNFP\b|\bCPI\b|consumer price|inflation rate|FOMC (statement|press conference|economic projections|meeting minutes)|federal funds rate|fed interest rate/i.test(e.title || '')
@@ -4860,7 +4965,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const dot = document.createElement('span'); dot.className = 'news-dot ' + (e.impact === 'High' ? 'high' : 'med'); dot.title = e.impact + ' impact'
       const when = document.createElement('span'); when.className = 'news-when'; when.textContent = e.at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
       const t = document.createElement('span'); t.className = 'news-title'; t.textContent = e.title
-      row.append(dot, when, t)
+      row.append(dot, when, t, newsHelpButton(e.title))
       // two fixed right-aligned slots so forecast/previous line up down the page
       const fp = document.createElement('span'); fp.className = 'news-fp'
       for (const [lbl, val] of [['F', e.forecast], ['P', e.previous]]) {
