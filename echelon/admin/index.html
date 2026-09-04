@@ -442,6 +442,15 @@
     .gw-note { font-size: 12.5px; color: var(--faint); margin: 6px 0 0; max-width: 80ch; }
     .gw-empty { color: var(--faint); font-size: 13.5px; padding: 22px 0 6px; }
     .gw-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 44px; }
+    .gw-fn { display: grid; grid-template-columns: 170px 1fr 96px; gap: 12px; align-items: center; padding: 7px 0; font-size: 13px; }
+    .gw-fn .n { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gw-fn .bar { height: 18px; }
+    .gw-fn .bar i { display: block; height: 100%; border-radius: 0 3px 3px 0; background: var(--gold); }
+    .gw-fn .c { text-align: right; font-variant-numeric: tabular-nums; color: var(--faint); white-space: nowrap; }
+    .gw-fn .c b { color: var(--ink); font-weight: 600; }
+    .gw-fn-conv { margin: -2px 0 2px 182px; font-size: 11.5px; color: var(--faint); }
+    .gw-fn-conv b { color: var(--muted); font-weight: 600; }
+    @media (max-width: 900px) { .gw-fn { grid-template-columns: 120px 1fr 80px; } .gw-fn-conv { margin-left: 132px; } }
     @media (max-width: 900px) { .gw-split { grid-template-columns: 1fr; } }
     @media (max-width: 900px) { .st-head { grid-template-columns: repeat(2, minmax(0, 1fr)); } .st-head .st-n:nth-child(2) { border-right: 0; } .st-grid { grid-template-columns: 1fr; } }
     .ov-room { margin: -10px 0 28px; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 13.5px; line-height: 1.6; color: var(--muted); max-width: 90ch; }
@@ -1016,6 +1025,14 @@
               <div class="gw-cap"><h4>Room activity</h4><span class="label" id="gw-act-n"></span></div>
               <div class="gw-chart" id="gw-activity"></div>
             </div>
+          </div>
+          <div class="gw-sec">
+            <div class="gw-cap"><h4>Course progress</h4><span class="label" id="gw-course-n"></span></div>
+            <div id="gw-funnel"></div>
+          </div>
+          <div class="gw-sec">
+            <div class="gw-cap"><h4>Where they stop</h4><span class="label" id="gw-stop-n"></span></div>
+            <div class="gw-chart" id="gw-lessons"></div>
           </div>
         </section>
 
@@ -2307,12 +2324,22 @@
         GW.acts = { recaps: (rc.data ?? []).map((x) => x.created_at), messages: (ms.data ?? []).map((x) => x.created_at), capped: (ms.data ?? []).length >= 8000 }
         gwActivity()
       }
+      if (!GW.course) {
+        const [mods, les, views] = await Promise.all([
+          supabase.from('modules').select('id, title, position').order('position'),
+          supabase.from('lessons').select('id, module_id, title, position, is_published').eq('is_published', true).order('position'),
+          supabase.from('lesson_views').select('user_id, lesson_id'),
+        ])
+        GW.course = { modules: mods.data ?? [], lessons: les.data ?? [], views: views.data ?? [] }
+        gwCourse()
+      }
     }
 
     function renderGrowth() {
       el('gw-range').querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.d === GW.range))
       gwHead(); gwMembers(); gwRevenue(); gwSource()
       if (GW.acts) gwActivity()
+      if (GW.course) gwCourse()
     }
 
     // the four figures: members, revenue, this month's arrivals, average order
@@ -2445,6 +2472,76 @@
           ${hits}
         </svg>
         <p class="gw-note">Gold is trades logged, grey is chat messages.${A.capped ? ' Message counts are capped at 8,000 and may run low.' : ''}</p>`
+    }
+
+    // the course, as a funnel and as the lesson where people stop
+    function gwCourse() {
+      const C = GW.course; if (!C) return
+      const active = BUYERS.filter((b) => b.status === 'active')
+      const total = C.lessons.length
+      const opened = new Set(C.views.map((v) => v.user_id)).size
+      const finishedOne = BUYERS.filter((b) => (b.lessons_done ?? 0) >= 1).length
+      const finishedAll = total ? BUYERS.filter((b) => (b.lessons_done ?? 0) >= total).length : 0
+      // funnel
+      const fh = el('gw-funnel'); fh.textContent = ''
+      el('gw-course-n').textContent = total ? `${total} lessons` : ''
+      const stages = [['Joined', active.length], ['Opened a lesson', opened], ['Finished a lesson', finishedOne], ['Finished everything', finishedAll]]
+      const top = Math.max(stages[0][1], 1)
+      stages.forEach(([n, v], i) => {
+        if (i) {
+          const prev = stages[i - 1][1]
+          const conv = document.createElement('div'); conv.className = 'gw-fn-conv'
+          const b = document.createElement('b'); b.textContent = prev ? `${Math.round((v / prev) * 100)}%` : '0%'
+          conv.append(b, ' continue'); fh.appendChild(conv)
+        }
+        const row = document.createElement('div'); row.className = 'gw-fn'
+        const name = document.createElement('span'); name.className = 'n'; name.textContent = n
+        const bar = document.createElement('span'); bar.className = 'bar'
+        const fill = document.createElement('i'); fill.style.width = `${Math.max((v / top) * 100, v ? 1.5 : 0)}%`; fill.style.opacity = String(0.45 + i * 0.18); bar.appendChild(fill)
+        const c = document.createElement('span'); c.className = 'c'; const cb = document.createElement('b'); cb.textContent = String(v); c.append(cb, ` · ${Math.round((v / top) * 100)}%`)
+        row.append(name, bar, c); fh.appendChild(row)
+      })
+      // where they stop: different members who opened each lesson, in course order
+      const lh = el('gw-lessons'), ln = el('gw-stop-n'); ln.textContent = ''
+      if (!total || !C.views.length) { gwEmpty(lh, 'No lesson has been opened yet.'); return }
+      const modPos = new Map(C.modules.map((m) => [m.id, m.position ?? 0]))
+      const modTitle = new Map(C.modules.map((m) => [m.id, m.title]))
+      const ordered = [...C.lessons].sort((a, b) => (modPos.get(a.module_id) - modPos.get(b.module_id)) || (a.position - b.position))
+      const per = new Map()
+      for (const v of C.views) { if (!per.has(v.lesson_id)) per.set(v.lesson_id, new Set()); per.get(v.lesson_id).add(v.user_id) }
+      const counts = ordered.map((l) => per.get(l.id)?.size ?? 0)
+      const max = Math.max(...counts, 1)
+      let wall = -1, drop = 0
+      for (let i = 1; i < counts.length; i++) { const d = counts[i - 1] - counts[i]; if (d > drop) { drop = d; wall = i - 1 } }
+      const W = 900, H = 190, PL = 30, PR = 10, PT = 18, PB = 44
+      const slot = (W - PL - PR) / ordered.length, bw = Math.min(22, slot - 4)
+      const bars = ordered.map((l, i) => {
+        const v = counts[i], h = (v / max) * (H - PT - PB), x = PL + i * slot + (slot - bw) / 2, y = H - PB - h
+        const hot = i === wall || i === wall + 1
+        const label = (i === 0 || i === wall || i === wall + 1 || i === ordered.length - 1) ? `<text x="${(x + bw / 2).toFixed(1)}" y="${(y - 5).toFixed(1)}" fill="${hot ? 'var(--ink)' : 'var(--faint)'}" font-size="10.5" font-weight="${hot ? 600 : 400}" text-anchor="middle">${v}</text>` : ''
+        return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(h, v ? 2 : 0).toFixed(1)}" rx="3" fill="var(--gold)"${hot ? '' : ' fill-opacity="0.55"'}><title>${l.title} · ${v} ${v === 1 ? 'viewer' : 'viewers'}</title></rect>${label}`
+      }).join('')
+      // module boundaries as hairlines, module titles beneath
+      let seps = '', lastMod = null
+      ordered.forEach((l, i) => {
+        if (l.module_id !== lastMod) {
+          const x = PL + i * slot
+          if (i) seps += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${PT}" y2="${H - PB + 6}" stroke="var(--line)"/>`
+          const span = ordered.filter((o) => o.module_id === l.module_id).length
+          seps += `<text x="${(x + (span * slot) / 2).toFixed(1)}" y="${H - 8}" fill="var(--faint)" font-size="10.5" text-anchor="middle">${(modTitle.get(l.module_id) || '').slice(0, 22)}</text>`
+          lastMod = l.module_id
+        }
+      })
+      ln.textContent = `${opened} of ${active.length} have opened a lesson`
+      const note = wall >= 0 && drop > 0
+        ? `Most people stop after <b>${ordered[wall].title}</b>: ${counts[wall]} opened it, ${counts[wall + 1]} opened ${ordered[wall + 1].title}. Each bar is how many different members opened that lesson.`
+        : 'Each bar is how many different members opened that lesson.'
+      lh.innerHTML = `
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Members who opened each lesson, in course order">
+          <line x1="${PL}" x2="${W - PR}" y1="${H - PB}" y2="${H - PB}" stroke="var(--line)"/>
+          ${seps}${bars}
+        </svg>
+        <p class="gw-note">${note}</p>`
     }
 
     let ONB_ROWS = [], ONB_DIR = []

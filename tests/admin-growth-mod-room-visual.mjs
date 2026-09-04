@@ -50,7 +50,11 @@ const [truth] = await sql(`
     (select coalesce(sum(amount_cents), 0) from admin_buyers where source = 'stripe' and amount_cents is not null) as revenue,
     (select count(*) from admin_buyers where source = 'stripe' and amount_cents is not null) as paid,
     (select count(*) from admin_buyers where granted_at >= date_trunc('month', now())) as joined_this_month,
-    (select count(*) from admin_buyers) as total`);
+    (select count(*) from admin_buyers) as total,
+    (select count(distinct user_id) from lesson_views) as opened,
+    (select count(*) from admin_buyers where lessons_done >= 1) as finished_one,
+    (select count(*) from admin_buyers where lessons_done >= (select count(*) from lessons where is_published)) as finished_all,
+    (select count(*) from lessons where is_published) as lessons`);
 console.log("admin truth:", JSON.stringify(truth));
 
 {
@@ -81,6 +85,11 @@ console.log("admin truth:", JSON.stringify(truth));
     sourceRows: [...document.querySelectorAll("#gw-source .st-row")].map((r) => r.querySelector(".n").textContent + " " + r.querySelector(".c b").textContent),
     activity: document.querySelector("#gw-activity svg") ? "chart" : document.querySelector("#gw-activity .gw-empty")?.textContent,
     actN: document.getElementById("gw-act-n").textContent,
+    funnel: [...document.querySelectorAll("#gw-funnel .gw-fn")].map((r) => r.querySelector(".n").textContent + "=" + r.querySelector(".c b").textContent),
+    convs: [...document.querySelectorAll("#gw-funnel .gw-fn-conv b")].map((b) => b.textContent),
+    lessonBars: document.querySelectorAll("#gw-lessons svg rect").length,
+    stopNote: document.querySelector("#gw-lessons .gw-note")?.textContent,
+    stopN: document.getElementById("gw-stop-n").textContent,
     help: !!document.querySelector("#v-growth .pg-help"),
     noCards: document.querySelectorAll("#v-growth .scard").length === 0,
   }));
@@ -99,6 +108,13 @@ console.log("admin truth:", JSON.stringify(truth));
   if (!g.sourceRows.length && +truth.total > 0) fails.push("arrivals split is empty although members exist");
   if (!g.help) fails.push("page help note missing on Growth");
   if (!g.noCards) fails.push("Growth uses boxed .scard panels; it should be flat");
+  const want = [`Joined=${truth.members}`, `Opened a lesson=${truth.opened}`, `Finished a lesson=${truth.finished_one}`, `Finished everything=${truth.finished_all}`];
+  if (JSON.stringify(g.funnel) !== JSON.stringify(want)) fails.push(`funnel ${JSON.stringify(g.funnel)} != db ${JSON.stringify(want)}`);
+  if (g.convs.length !== 3) fails.push(`funnel should show 3 conversion lines, got ${g.convs.length}`);
+  if (g.lessonBars !== +truth.lessons) fails.push(`lesson bars ${g.lessonBars} != published lessons ${truth.lessons}`);
+  if (!/Most people stop after/.test(g.stopNote || "") && +truth.opened > 0) fails.push(`drop-off note missing: ${g.stopNote}`);
+  if (!g.stopN.startsWith(`${truth.opened} of ${truth.members}`)) fails.push(`stop caption ${g.stopN}`);
+  if (/—/.test((g.stopNote || "") + g.funnel.join(""))) fails.push("em dash in course copy");
   if (/—/.test(g.memberNote || "")) fails.push(`em dash in the members note: ${g.memberNote}`);
   await page.screenshot({ path: `${OUT}/admin-01-growth.png`, fullPage: true });
 
