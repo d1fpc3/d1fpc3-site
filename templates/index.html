@@ -22877,6 +22877,671 @@
 '</div>'
   });
 
+
+  /* ── TABLES + FORMS (2026-09-04) ── */
+
+  T.push({ id: 'tbl-sortable', name: 'Sortable Table', cat: 'Tables', dark: false, fill: true, wide: true, h: 450, code:
+'<style>\n' +
+'.tso { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.tso [hidden] { display: none !important; }\n' +
+'.tso button { font-family: inherit; }\n' +
+'.tso .st { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 6px; }\n' +
+'.tso .st-active { background: #dcfce7; color: #166534; }\n' +
+'.tso .st-invited { background: #dbeafe; color: #1e40af; }\n' +
+'.tso .st-suspended { background: #fee2e2; color: #991b1b; }\n' +
+'.tso { padding: 28px 26px; background: #f9fafb; min-height: 100%; box-sizing: border-box; }\n' +
+'.tso table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }\n' +
+'.tso th { text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; padding: 0; border-bottom: 1px solid #e5e7eb; background: #f9fafb; }\n' +
+'.tso th button { width: 100%; display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 11px 14px; font: inherit; color: inherit; cursor: pointer; text-align: left; }\n' +
+'.tso th button:hover { color: #111827; }\n' +
+'.tso th button svg { width: 12px; height: 12px; opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; }\n' +
+'.tso th.on button { color: #111827; }\n' +
+'.tso th.on button svg { opacity: 1; }\n' +
+'.tso th.desc button svg { transform: rotate(180deg); }\n' +
+'.tso th.num button { justify-content: flex-end; text-align: right; }\n' +
+'.tso td { padding: 11px 14px; font-size: 13.5px; border-bottom: 1px solid #e5e7eb; }\n' +
+'.tso tr:last-child td { border-bottom: 0; }\n' +
+'.tso tbody tr:hover td { background: #f9fafb; }\n' +
+'.tso td.num { text-align: right; font-variant-numeric: tabular-nums; }\n' +
+'.tso td small { display: block; color: #6b7280; font-size: 12px; }\n' +
+'</style>\n' +
+'<div class="tso">\n' +
+'  <table>\n' +
+'    <thead><tr>\n' +
+'      <th data-k="name" class="on"><button type="button">Name <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></button></th>\n' +
+'      <th data-k="role"><button type="button">Role <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></button></th>\n' +
+'      <th data-k="status"><button type="button">Status <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></button></th>\n' +
+'      <th data-k="spend" class="num"><button type="button">Spend <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></button></th>\n' +
+'    </tr></thead>\n' +
+'    <tbody>\n' +
+'      <tr data-name="Eleanor Vance" data-role="Admin" data-status="Active" data-spend="12480"><td>Eleanor Vance<small>eleanor@northwind.io</small></td><td>Admin</td><td><span class="st st-active">Active</span></td><td class="num">$12,480</td></tr><tr data-name="Marcus Hale" data-role="Editor" data-status="Active" data-spend="8210"><td>Marcus Hale<small>marcus@acme.co</small></td><td>Editor</td><td><span class="st st-active">Active</span></td><td class="num">$8,210</td></tr><tr data-name="Priya Natarajan" data-role="Viewer" data-status="Invited" data-spend="0"><td>Priya Natarajan<small>priya@globex.com</small></td><td>Viewer</td><td><span class="st st-invited">Invited</span></td><td class="num">$0</td></tr><tr data-name="Tom Okafor" data-role="Editor" data-status="Active" data-spend="15900"><td>Tom Okafor<small>tom@initech.dev</small></td><td>Editor</td><td><span class="st st-active">Active</span></td><td class="num">$15,900</td></tr><tr data-name="Sofia Reyes" data-role="Viewer" data-status="Suspended" data-spend="3300"><td>Sofia Reyes<small>sofia@umbrella.org</small></td><td>Viewer</td><td><span class="st st-suspended">Suspended</span></td><td class="num">$3,300</td></tr><tr data-name="Jonas Lindqvist" data-role="Admin" data-status="Active" data-spend="22750"><td>Jonas Lindqvist<small>jonas@vandelay.se</small></td><td>Admin</td><td><span class="st st-active">Active</span></td><td class="num">$22,750</td></tr>\n' +
+'    </tbody>\n' +
+'  </table>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  // rows stay real DOM nodes; sorting just re-appends them in the new order\n' +
+'  var box = document.querySelector(".tso"), body = box.querySelector("tbody");\n' +
+'  var key = "name", dir = 1;\n' +
+'  function paint() {\n' +
+'    var rows = Array.prototype.slice.call(body.querySelectorAll("tr"));\n' +
+'    rows.sort(function (a, b) {\n' +
+'      var x = a.getAttribute("data-" + key), y = b.getAttribute("data-" + key);\n' +
+'      return (key === "spend" ? (+x) - (+y) : x.localeCompare(y)) * dir;\n' +
+'    });\n' +
+'    rows.forEach(function (r) { body.appendChild(r); });\n' +
+'  }\n' +
+'  box.querySelectorAll("th").forEach(function (th) {\n' +
+'    th.querySelector("button").addEventListener("click", function () {\n' +
+'      var k = th.getAttribute("data-k");\n' +
+'      if (k === key) dir = -dir; else { key = k; dir = 1; }\n' +
+'      box.querySelectorAll("th").forEach(function (t) { t.classList.toggle("on", t === th); t.classList.toggle("desc", t === th && dir < 0); });\n' +
+'      paint();\n' +
+'    });\n' +
+'  });\n' +
+'  paint();\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'tbl-expand', name: 'Expandable Rows Table', cat: 'Tables', dark: false, fill: true, wide: true, h: 400, code:
+'<style>\n' +
+'.tex { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.tex [hidden] { display: none !important; }\n' +
+'.tex button { font-family: inherit; }\n' +
+'.tex { padding: 28px 26px; background: #f9fafb; min-height: 100%; box-sizing: border-box; }\n' +
+'.tex table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }\n' +
+'.tex th { text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; padding: 11px 14px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }\n' +
+'.tex td { padding: 11px 14px; font-size: 13.5px; border-bottom: 1px solid #e5e7eb; }\n' +
+'.tex tr.row { cursor: pointer; }\n' +
+'.tex tr.row:hover td { background: #f9fafb; }\n' +
+'.tex tr.row td:first-child { width: 28px; padding-right: 0; }\n' +
+'.tex .chev { width: 16px; height: 16px; color: #9ca3af; transition: transform 0.2s ease; }\n' +
+'.tex tr.row.open .chev { transform: rotate(90deg); color: #111827; }\n' +
+'.tex tr.detail td { background: #f9fafb; padding: 0 14px 0 42px; border-bottom: 1px solid #e5e7eb; }\n' +
+'.tex .dt { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 12px 0 14px; font-size: 12.5px; animation: tex-in 0.18s ease; }\n' +
+'@keyframes tex-in { from { opacity: 0; transform: translateY(-3px); } }\n' +
+'.tex .dt span { display: block; color: #6b7280; font-size: 11px; margin-bottom: 3px; }\n' +
+'.tex .num { text-align: right; font-variant-numeric: tabular-nums; }\n' +
+'</style>\n' +
+'<div class="tex">\n' +
+'  <table>\n' +
+'    <thead><tr><th></th><th>Order</th><th>Customer</th><th>Status</th><th class="num">Total</th></tr></thead>\n' +
+'    <tbody>\n' +
+'      <tr class="row"><td><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></td><td>#10482</td><td>Eleanor Vance</td><td>Shipped</td><td class="num">$212.40</td></tr>\n' +
+'      <tr class="detail" hidden><td colspan="5"><div class="dt"><div><span>Items</span>3 · Desk lamp, cable set, mat</div><div><span>Ships to</span>Portland, OR 97209</div><div><span>Tracking</span>1Z 999 AA1 01 2345 6784</div></div></td></tr>\n' +
+'      <tr class="row"><td><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></td><td>#10481</td><td>Marcus Hale</td><td>Processing</td><td class="num">$89.00</td></tr>\n' +
+'      <tr class="detail" hidden><td colspan="5"><div class="dt"><div><span>Items</span>1 · Monitor arm</div><div><span>Ships to</span>Austin, TX 78701</div><div><span>Tracking</span>Not yet assigned</div></div></td></tr>\n' +
+'      <tr class="row"><td><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></td><td>#10480</td><td>Priya Natarajan</td><td>Delivered</td><td class="num">$1,240.00</td></tr>\n' +
+'      <tr class="detail" hidden><td colspan="5"><div class="dt"><div><span>Items</span>2 · Standing desk, chair</div><div><span>Ships to</span>Seattle, WA 98101</div><div><span>Delivered</span>Aug 30, 2:14 PM</div></div></td></tr>\n' +
+'    </tbody>\n' +
+'  </table>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  document.querySelectorAll(".tex tr.row").forEach(function (tr) {\n' +
+'    tr.addEventListener("click", function () {\n' +
+'      var open = tr.classList.toggle("open");\n' +
+'      tr.nextElementSibling.hidden = !open;\n' +
+'    });\n' +
+'  });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'tbl-sticky', name: 'Sticky Header Wide Table', cat: 'Tables', dark: false, fill: true, wide: true, h: 400, code:
+'<style>\n' +
+'.tst { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.tst [hidden] { display: none !important; }\n' +
+'.tst button { font-family: inherit; }\n' +
+'.tst { padding: 28px 26px; background: #f9fafb; min-height: 100%; box-sizing: border-box; max-width: 100%; overflow-x: hidden; }\n' +
+'.tst .wrap { max-width: 100%; }\n' +
+'.tst .wrap { max-height: 260px; overflow: auto; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; }\n' +
+'.tst table { border-collapse: separate; border-spacing: 0; min-width: 900px; width: 100%; }\n' +
+'.tst th { position: sticky; top: 0; z-index: 2; background: #f9fafb; text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; padding: 10px 14px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }\n' +
+'.tst th:first-child, .tst td:first-child { position: sticky; left: 0; z-index: 1; background: #fff; border-right: 1px solid #e5e7eb; }\n' +
+'.tst th:first-child { z-index: 3; background: #f9fafb; }\n' +
+'.tst td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; font-variant-numeric: tabular-nums; }\n' +
+'.tst tr:last-child td { border-bottom: 0; }\n' +
+'.tst td.neg { color: #dc2626; }\n' +
+'.tst .hint { font-size: 12px; color: #9ca3af; margin: 8px 2px 0; }\n' +
+'</style>\n' +
+'<div class="tst">\n' +
+'  <div class="wrap">\n' +
+'    <table>\n' +
+'      <thead><tr><th>Region</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th><th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th></tr></thead>\n' +
+'      <tbody>\n' +
+'        <tr><td>Northeast</td><td>1,200</td><td>1,627</td><td>1,871</td><td>1,838</td><td>1,561</td><td>1,190</td><td>917</td><td class="neg">891</td><td>1,141</td><td>1,570</td><td>1,994</td><td>2,233</td></tr><tr><td>Midwest</td><td>1,868</td><td>1,876</td><td>1,626</td><td>1,257</td><td>959</td><td class="neg">892</td><td>1,107</td><td>1,520</td><td>1,957</td><td>2,231</td><td>2,231</td><td>1,977</td></tr><tr><td>South</td><td>1,689</td><td>1,325</td><td>1,006</td><td>900</td><td>1,076</td><td>1,471</td><td>1,916</td><td>2,223</td><td>2,264</td><td>2,041</td><td>1,675</td><td>1,359</td></tr><tr><td>West</td><td>1,057</td><td>914</td><td>1,051</td><td>1,422</td><td>1,873</td><td>2,209</td><td>2,292</td><td>2,101</td><td>1,745</td><td>1,410</td><td>1,273</td><td>1,416</td></tr><tr><td>Canada</td><td>1,030</td><td>1,376</td><td>1,827</td><td>2,190</td><td>2,314</td><td>2,158</td><td>1,815</td><td>1,465</td><td>1,291</td><td>1,395</td><td>1,745</td><td>2,196</td></tr><tr><td>UK</td><td>1,779</td><td>2,166</td><td>2,329</td><td>2,211</td><td>1,885</td><td>1,524</td><td>1,316</td><td>1,378</td><td>1,700</td><td>2,149</td><td>2,532</td><td>2,689</td></tr><tr><td>Germany</td><td>2,339</td><td>2,259</td><td>1,954</td><td>1,585</td><td>1,346</td><td>1,368</td><td>1,658</td><td>2,100</td><td>2,504</td><td>2,700</td><td>2,613</td><td>2,304</td></tr><tr><td>France</td><td>2,021</td><td>1,650</td><td>1,382</td><td>1,362</td><td>1,619</td><td>2,050</td><td>2,472</td><td>2,704</td><td>2,657</td><td>2,372</td><td>2,001</td><td>1,737</td></tr><tr><td>Japan</td><td>1,423</td><td>1,363</td><td>1,584</td><td>2,000</td><td>2,435</td><td>2,703</td><td>2,697</td><td>2,438</td><td>2,067</td><td>1,778</td><td>1,724</td><td>1,951</td></tr><tr><td>Australia</td><td>1,553</td><td>1,951</td><td>2,395</td><td>2,696</td><td>2,731</td><td>2,502</td><td>2,135</td><td>1,823</td><td>1,730</td><td>1,919</td><td>2,321</td><td>2,764</td></tr>\n' +
+'      </tbody>\n' +
+'    </table>\n' +
+'  </div>\n' +
+'  <p class="hint">Scroll both ways. The header row and the first column stay put.</p>\n' +
+'</div>'
+  });
+
+  T.push({ id: 'tbl-inline', name: 'Inline Edit Table', cat: 'Tables', dark: false, fill: true, wide: true, h: 380, code:
+'<style>\n' +
+'.tie { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.tie [hidden] { display: none !important; }\n' +
+'.tie button { font-family: inherit; }\n' +
+'.tie { padding: 28px 26px; background: #f9fafb; min-height: 100%; box-sizing: border-box; }\n' +
+'.tie table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }\n' +
+'.tie th { text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; padding: 11px 14px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }\n' +
+'.tie td { padding: 0; font-size: 13.5px; border-bottom: 1px solid #e5e7eb; }\n' +
+'.tie tr:last-child td { border-bottom: 0; }\n' +
+'.tie td .cell { display: block; padding: 11px 14px; min-height: 18px; }\n' +
+'.tie td.ed .cell { cursor: text; border-radius: 6px; }\n' +
+'.tie td.ed .cell:hover { background: #f9fafb; box-shadow: inset 0 0 0 1px #d1d5db; }\n' +
+'.tie td input { width: 100%; box-sizing: border-box; font: inherit; padding: 10px 13px; border: 0; outline: none; background: #eff6ff; box-shadow: inset 0 0 0 2px #2563eb; }\n' +
+'.tie td.num .cell, .tie td.num input { text-align: right; font-variant-numeric: tabular-nums; }\n' +
+'.tie .saved { font-size: 12px; color: #16a34a; margin: 8px 2px 0; min-height: 14px; }\n' +
+'.tie .hint { font-size: 12px; color: #9ca3af; margin: 8px 2px 0; }\n' +
+'</style>\n' +
+'<div class="tie">\n' +
+'  <table>\n' +
+'    <thead><tr><th>Product</th><th>SKU</th><th class="num">Price</th><th class="num">Stock</th></tr></thead>\n' +
+'    <tbody>\n' +
+'      <tr><td class="ed"><span class="cell">Desk lamp</span></td><td><span class="cell">DL-100</span></td><td class="ed num"><span class="cell">$49.00</span></td><td class="ed num"><span class="cell">128</span></td></tr>\n' +
+'      <tr><td class="ed"><span class="cell">Cable set</span></td><td><span class="cell">CS-12</span></td><td class="ed num"><span class="cell">$18.50</span></td><td class="ed num"><span class="cell">402</span></td></tr>\n' +
+'      <tr><td class="ed"><span class="cell">Monitor arm</span></td><td><span class="cell">MA-2</span></td><td class="ed num"><span class="cell">$89.00</span></td><td class="ed num"><span class="cell">36</span></td></tr>\n' +
+'    </tbody>\n' +
+'  </table>\n' +
+'  <p class="hint">Click a name, price or stock cell. Enter saves, Escape cancels.</p>\n' +
+'  <p class="saved"></p>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var box = document.querySelector(".tie"), saved = box.querySelector(".saved");\n' +
+'  box.querySelectorAll("td.ed .cell").forEach(function (cell) {\n' +
+'    cell.addEventListener("click", function () {\n' +
+'      if (cell.hidden) return;\n' +
+'      var input = document.createElement("input"); input.value = cell.textContent;\n' +
+'      cell.hidden = true; cell.parentNode.appendChild(input); input.focus(); input.select();\n' +
+'      var closed = false;\n' +
+'      function done(commit) {\n' +
+'        if (closed) return; // Enter removes the input, which fires blur, which must not run this twice\n' +
+'        closed = true;\n' +
+'        if (commit && input.value.trim()) { cell.textContent = input.value.trim(); saved.textContent = "Saved."; setTimeout(function () { saved.textContent = ""; }, 1500); }\n' +
+'        input.remove(); cell.hidden = false;\n' +
+'      }\n' +
+'      input.addEventListener("keydown", function (e) { if (e.key === "Enter") done(true); if (e.key === "Escape") done(false); });\n' +
+'      input.addEventListener("blur", function () { done(true); });\n' +
+'    });\n' +
+'  });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'tbl-paged', name: 'Paginated Table', cat: 'Tables', dark: false, fill: true, wide: true, h: 420, code:
+'<style>\n' +
+'.tpg { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.tpg [hidden] { display: none !important; }\n' +
+'.tpg button { font-family: inherit; }\n' +
+'.tpg .st { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 6px; }\n' +
+'.tpg .st-active { background: #dcfce7; color: #166534; }\n' +
+'.tpg .st-invited { background: #dbeafe; color: #1e40af; }\n' +
+'.tpg .st-suspended { background: #fee2e2; color: #991b1b; }\n' +
+'.tpg { padding: 28px 26px; background: #f9fafb; min-height: 100%; box-sizing: border-box; }\n' +
+'.tpg table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px 10px 0 0; overflow: hidden; }\n' +
+'.tpg th { text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; padding: 11px 14px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }\n' +
+'.tpg td { padding: 11px 14px; font-size: 13.5px; border-bottom: 1px solid #e5e7eb; }\n' +
+'.tpg td small { display: block; color: #6b7280; font-size: 12px; }\n' +
+'.tpg .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fff; border: 1px solid #e5e7eb; border-top: 0; border-radius: 0 0 10px 10px; padding: 10px 14px; font-size: 12.5px; color: #6b7280; }\n' +
+'.tpg .foot select { font: inherit; color: #374151; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px 8px; background: #fff; }\n' +
+'.tpg .pages { display: flex; gap: 4px; }\n' +
+'.tpg .pages button { min-width: 30px; height: 30px; padding: 0 8px; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; color: #374151; font: 500 12.5px system-ui, sans-serif; cursor: pointer; }\n' +
+'.tpg .pages button:hover:not(:disabled) { background: #f9fafb; }\n' +
+'.tpg .pages button.on { background: #111827; border-color: #111827; color: #fff; }\n' +
+'.tpg .pages button:disabled { opacity: 0.4; cursor: default; }\n' +
+'</style>\n' +
+'<div class="tpg">\n' +
+'  <table><thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Joined</th></tr></thead><tbody>\n' +
+'    <tr><td>Eleanor Vance<small>eleanor@example.com</small></td><td>Admin</td><td><span class="st st-active">Active</span></td><td>Jan 3, 2026</td></tr><tr><td>Marcus Hale<small>marcus@example.com</small></td><td>Editor</td><td><span class="st st-suspended">Suspended</span></td><td>Feb 4, 2026</td></tr><tr><td>Priya Natarajan<small>priya@example.com</small></td><td>Viewer</td><td><span class="st st-invited">Invited</span></td><td>Mar 5, 2026</td></tr><tr><td>Tom Okafor<small>tom@example.com</small></td><td>Admin</td><td><span class="st st-active">Active</span></td><td>Apr 6, 2026</td></tr><tr><td>Sofia Reyes<small>sofia@example.com</small></td><td>Editor</td><td><span class="st st-suspended">Suspended</span></td><td>May 7, 2026</td></tr><tr><td>Jonas Lindqvist<small>jonas@example.com</small></td><td>Viewer</td><td><span class="st st-invited">Invited</span></td><td>Jun 8, 2026</td></tr><tr><td>Amara Diallo<small>amara@example.com</small></td><td>Admin</td><td><span class="st st-active">Active</span></td><td>Jul 9, 2026</td></tr><tr><td>Ken Watanabe<small>ken@example.com</small></td><td>Editor</td><td><span class="st st-suspended">Suspended</span></td><td>Aug 10, 2026</td></tr><tr><td>Lucia Ferrer<small>lucia@example.com</small></td><td>Viewer</td><td><span class="st st-invited">Invited</span></td><td>Jan 11, 2026</td></tr><tr><td>Noah Brennan<small>noah@example.com</small></td><td>Admin</td><td><span class="st st-active">Active</span></td><td>Feb 12, 2026</td></tr><tr><td>Zara Qureshi<small>zara@example.com</small></td><td>Editor</td><td><span class="st st-suspended">Suspended</span></td><td>Mar 13, 2026</td></tr><tr><td>Felix Adler<small>felix@example.com</small></td><td>Viewer</td><td><span class="st st-invited">Invited</span></td><td>Apr 14, 2026</td></tr><tr><td>Maya Chen<small>maya@example.com</small></td><td>Admin</td><td><span class="st st-active">Active</span></td><td>May 15, 2026</td></tr>\n' +
+'  </tbody></table>\n' +
+'  <div class="foot">\n' +
+'    <span><label>Rows <select><option>3</option><option selected>5</option><option>10</option></select></label> <span class="range"></span></span>\n' +
+'    <span class="pages"></span>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  // every row is already in the table; paging shows the slice for the current page\n' +
+'  var box = document.querySelector(".tpg"), rows = Array.prototype.slice.call(box.querySelectorAll("tbody tr")), sel = box.querySelector("select"), range = box.querySelector(".range"), pages = box.querySelector(".pages");\n' +
+'  var per = 5, page = 1;\n' +
+'  function paint() {\n' +
+'    var n = Math.ceil(rows.length / per); if (page > n) page = n;\n' +
+'    rows.forEach(function (r, i) { r.hidden = i < (page - 1) * per || i >= page * per; });\n' +
+'    range.textContent = ((page - 1) * per + 1) + " to " + Math.min(page * per, rows.length) + " of " + rows.length;\n' +
+'    pages.innerHTML = "";\n' +
+'    var mk = function (label, p, on, dis) { var b = document.createElement("button"); b.type = "button"; b.textContent = label; if (on) b.className = "on"; b.disabled = !!dis; b.addEventListener("click", function () { page = p; paint(); }); pages.appendChild(b); };\n' +
+'    mk("‹", page - 1, false, page === 1);\n' +
+'    for (var i = 1; i <= n; i++) mk(String(i), i, i === page, false);\n' +
+'    mk("›", page + 1, false, page === n);\n' +
+'  }\n' +
+'  sel.addEventListener("change", function () { per = +sel.value; page = 1; paint(); });\n' +
+'  paint();\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'tbl-responsive', name: 'Responsive Collapse Table', cat: 'Tables', dark: false, fill: true, wide: true, h: 340, code:
+'<style>\n' +
+'.trs { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.trs [hidden] { display: none !important; }\n' +
+'.trs button { font-family: inherit; }\n' +
+'.trs .st { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 6px; }\n' +
+'.trs .st-active { background: #dcfce7; color: #166534; }\n' +
+'.trs .st-invited { background: #dbeafe; color: #1e40af; }\n' +
+'.trs .st-suspended { background: #fee2e2; color: #991b1b; }\n' +
+'.trs { padding: 28px 26px; background: #f9fafb; min-height: 100%; box-sizing: border-box; }\n' +
+'.trs table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }\n' +
+'.trs th { text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; padding: 11px 14px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }\n' +
+'.trs td { padding: 11px 14px; font-size: 13.5px; border-bottom: 1px solid #e5e7eb; }\n' +
+'.trs tr:last-child td { border-bottom: 0; }\n' +
+'.trs .num { text-align: right; font-variant-numeric: tabular-nums; }\n' +
+'.trs .hint { font-size: 12px; color: #9ca3af; margin: 8px 2px 0; }\n' +
+'@media (max-width: 560px) {\n' +
+'  .trs thead { display: none; }\n' +
+'  .trs table, .trs tbody, .trs tr, .trs td { display: block; }\n' +
+'  .trs tr { border-bottom: 1px solid #e5e7eb; padding: 6px 0; }\n' +
+'  .trs tr:last-child { border-bottom: 0; }\n' +
+'  .trs td { display: flex; justify-content: space-between; gap: 12px; padding: 6px 14px; border-bottom: 0; }\n' +
+'  .trs td::before { content: attr(data-l); color: #6b7280; font-size: 12px; }\n' +
+'  .trs td.num { text-align: right; }\n' +
+'}\n' +
+'</style>\n' +
+'<div class="trs">\n' +
+'  <table>\n' +
+'    <thead><tr><th>Name</th><th>Role</th><th>Status</th><th class="num">Spend</th></tr></thead>\n' +
+'    <tbody>\n' +
+'      <tr><td data-l="Name">Eleanor Vance</td><td data-l="Role">Admin</td><td data-l="Status"><span class="st st-active">Active</span></td><td class="num" data-l="Spend">$12,480</td></tr><tr><td data-l="Name">Marcus Hale</td><td data-l="Role">Editor</td><td data-l="Status"><span class="st st-active">Active</span></td><td class="num" data-l="Spend">$8,210</td></tr><tr><td data-l="Name">Priya Natarajan</td><td data-l="Role">Viewer</td><td data-l="Status"><span class="st st-invited">Invited</span></td><td class="num" data-l="Spend">$0</td></tr><tr><td data-l="Name">Tom Okafor</td><td data-l="Role">Editor</td><td data-l="Status"><span class="st st-active">Active</span></td><td class="num" data-l="Spend">$15,900</td></tr>\n' +
+'    </tbody>\n' +
+'  </table>\n' +
+'  <p class="hint">Under 560px each row becomes a stacked card with its labels. Narrow the preview to see it.</p>\n' +
+'</div>'
+  });
+
+  T.push({ id: 'form-signup', name: 'Sign-up Form', cat: 'Forms', dark: false, h: 520, code:
+'<style>\n' +
+'.fsu { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.fsu [hidden] { display: none !important; }\n' +
+'.fsu button { font-family: inherit; }\n' +
+'.fsu label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin: 0 0 6px; }\n' +
+'.fsu .f { margin-bottom: 14px; }\n' +
+'.fsu .in { width: 100%; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #111827; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }\n' +
+'.fsu .in:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }\n' +
+'.fsu .f.bad .in { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }\n' +
+'.fsu .f.ok .in { border-color: #16a34a; }\n' +
+'.fsu .err { font-size: 12px; color: #dc2626; margin-top: 5px; min-height: 0; }\n' +
+'.fsu .help { font-size: 12px; color: #6b7280; margin-top: 5px; }\n' +
+'.fsu .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }\n' +
+'.fsu .btn { width: 100%; font: 600 14px/1 system-ui, sans-serif; background: #2563eb; border: 1px solid #2563eb; color: #fff; border-radius: 8px; padding: 12px 0; cursor: pointer; transition: background 0.15s ease; }\n' +
+'.fsu .btn:hover { background: #1d4ed8; }\n' +
+'.fsu .btn:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.fsu h3 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }\n' +
+'.fsu .sub { margin: 0 0 20px; font-size: 13.5px; color: #6b7280; }\n' +
+'.fsu { width: min(380px, 92vw); background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 26px 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }\n' +
+'.fsu .terms { display: flex; gap: 9px; align-items: flex-start; font-size: 13px; color: #374151; margin: 4px 0 16px; }\n' +
+'.fsu .terms input { margin: 2px 0 0; accent-color: #2563eb; }\n' +
+'.fsu .terms a { color: #2563eb; text-decoration: none; }\n' +
+'.fsu .done { text-align: center; padding: 30px 0 10px; }\n' +
+'.fsu .done i { display: inline-flex; width: 44px; height: 44px; border-radius: 50%; background: #dcfce7; color: #16a34a; align-items: center; justify-content: center; margin-bottom: 12px; }\n' +
+'.fsu .done i svg { width: 22px; height: 22px; }\n' +
+'.fsu .done b { display: block; font-size: 17px; margin-bottom: 4px; }\n' +
+'.fsu .done p { margin: 0; font-size: 13.5px; color: #6b7280; }\n' +
+'</style>\n' +
+'<form class="fsu" novalidate>\n' +
+'  <div class="body">\n' +
+'    <h3>Create your account</h3>\n' +
+'    <p class="sub">Free for 14 days. No card needed.</p>\n' +
+'    <div class="row2">\n' +
+'      <div class="f" data-f="first"><label>First name</label><input class="in" name="first" type="text" autocomplete="given-name"><div class="err"></div></div>\n' +
+'      <div class="f" data-f="last"><label>Last name</label><input class="in" name="last" type="text" autocomplete="family-name"><div class="err"></div></div>\n' +
+'    </div>\n' +
+'    <div class="f" data-f="email"><label>Work email</label><input class="in" name="email" type="email" autocomplete="email" placeholder="you@company.com"><div class="err"></div></div>\n' +
+'    <div class="f" data-f="pass"><label>Password</label><input class="in" name="pass" type="password" autocomplete="new-password"><div class="help">At least 8 characters with a number.</div><div class="err"></div></div>\n' +
+'    <label class="terms"><input type="checkbox" name="terms"> I agree to the <a href="#">terms</a> and <a href="#">privacy policy</a>.</label>\n' +
+'    <button class="btn" type="submit">Create account</button>\n' +
+'  </div>\n' +
+'  <div class="done" hidden><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></i><b>Check your inbox</b><p>We sent a confirmation link to <span class="to"></span>.</p></div>\n' +
+'</form>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var form = document.querySelector(".fsu");\n' +
+'  var rules = {\n' +
+'    first: function (v) { return v.trim() ? "" : "Enter your first name."; },\n' +
+'    last: function (v) { return v.trim() ? "" : "Enter your last name."; },\n' +
+'    email: function (v) { var at = v.indexOf("@"); return (at > 0 && v.indexOf(".", at) > at + 1 && v.indexOf(" ") < 0 && !v.endsWith(".")) ? "" : "That does not look like an email address."; },\n' +
+'    pass: function (v) { return v.length >= 8 && /[0-9]/.test(v) ? "" : "Use 8 or more characters and include a number."; }\n' +
+'  };\n' +
+'  function check(f, quiet) {\n' +
+'    var wrap = form.querySelector("[data-f=" + f + "]"), input = wrap.querySelector("input"), msg = rules[f](input.value);\n' +
+'    if (quiet && !input.value) { wrap.className = "f"; wrap.querySelector(".err").textContent = ""; return false; }\n' +
+'    wrap.classList.toggle("bad", !!msg); wrap.classList.toggle("ok", !msg);\n' +
+'    wrap.querySelector(".err").textContent = msg;\n' +
+'    return !msg;\n' +
+'  }\n' +
+'  Object.keys(rules).forEach(function (f) {\n' +
+'    var input = form.querySelector("[name=" + f + "]");\n' +
+'    input.addEventListener("blur", function () { check(f, true); });\n' +
+'    input.addEventListener("input", function () { if (input.closest(".f").classList.contains("bad")) check(f, false); });\n' +
+'  });\n' +
+'  form.addEventListener("submit", function (e) {\n' +
+'    e.preventDefault();\n' +
+'    var ok = Object.keys(rules).map(function (f) { return check(f, false); }).every(Boolean);\n' +
+'    var terms = form.querySelector("[name=terms]");\n' +
+'    if (!terms.checked) { terms.focus(); ok = false; }\n' +
+'    if (!ok) { form.querySelector(".f.bad input, [name=terms]").focus(); return; }\n' +
+'    form.querySelector(".to").textContent = form.querySelector("[name=email]").value;\n' +
+'    form.querySelector(".body").hidden = true; form.querySelector(".done").hidden = false;\n' +
+'  });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'form-settings', name: 'Settings Form', cat: 'Forms', dark: false, h: 770, code:
+'<style>\n' +
+'.fst { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.fst [hidden] { display: none !important; }\n' +
+'.fst button { font-family: inherit; }\n' +
+'.fst label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin: 0 0 6px; }\n' +
+'.fst .f { margin-bottom: 14px; }\n' +
+'.fst .in { width: 100%; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #111827; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }\n' +
+'.fst .in:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }\n' +
+'.fst .f.bad .in { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }\n' +
+'.fst .f.ok .in { border-color: #16a34a; }\n' +
+'.fst .err { font-size: 12px; color: #dc2626; margin-top: 5px; min-height: 0; }\n' +
+'.fst .help { font-size: 12px; color: #6b7280; margin-top: 5px; }\n' +
+'.fst .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }\n' +
+'.fst .btn { width: 100%; font: 600 14px/1 system-ui, sans-serif; background: #2563eb; border: 1px solid #2563eb; color: #fff; border-radius: 8px; padding: 12px 0; cursor: pointer; transition: background 0.15s ease; }\n' +
+'.fst .btn:hover { background: #1d4ed8; }\n' +
+'.fst .btn:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.fst h3 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }\n' +
+'.fst .sub { margin: 0 0 20px; font-size: 13.5px; color: #6b7280; }\n' +
+'.fst { width: min(440px, 92vw); background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; }\n' +
+'.fst .sec { padding: 20px 24px; border-bottom: 1px solid #e5e7eb; }\n' +
+'.fst .sec:last-child { border-bottom: 0; }\n' +
+'.fst .sec h4 { margin: 0 0 14px; font-size: 14px; font-weight: 600; }\n' +
+'.fst .av { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }\n' +
+'.fst .av i { width: 52px; height: 52px; border-radius: 50%; background: #111827; color: #fff; display: flex; align-items: center; justify-content: center; font: 600 17px system-ui, sans-serif; }\n' +
+'.fst .av button { background: #fff; border: 1px solid #d1d5db; border-radius: 7px; padding: 8px 12px; font: 500 13px system-ui, sans-serif; color: #374151; cursor: pointer; }\n' +
+'.fst .tg { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 9px 0; }\n' +
+'.fst .tg + .tg { border-top: 1px solid #e5e7eb; }\n' +
+'.fst .tg b { display: block; font-size: 13.5px; font-weight: 500; }\n' +
+'.fst .tg small { display: block; font-size: 12px; color: #6b7280; margin-top: 2px; }\n' +
+'.fst .sw { position: relative; width: 40px; height: 22px; flex-shrink: 0; }\n' +
+'.fst .sw input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }\n' +
+'.fst .sw span { position: absolute; inset: 0; background: #d1d5db; border-radius: 11px; transition: background 0.2s ease; }\n' +
+'.fst .sw span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.2s ease; }\n' +
+'.fst .sw input:checked + span { background: #2563eb; }\n' +
+'.fst .sw input:checked + span::after { transform: translateX(18px); }\n' +
+'.fst .bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 24px; background: #f9fafb; }\n' +
+'.fst .bar .msg { font-size: 12.5px; color: #6b7280; }\n' +
+'.fst .bar .msg.ok { color: #16a34a; }\n' +
+'.fst .bar .btn { width: auto; padding: 10px 18px; }\n' +
+'.fst .danger { color: #dc2626; background: none; border: 1px solid #fecaca; border-radius: 7px; padding: 8px 12px; font: 500 13px system-ui, sans-serif; cursor: pointer; }\n' +
+'.fst .danger:hover { background: #fef2f2; }\n' +
+'</style>\n' +
+'<form class="fst" novalidate>\n' +
+'  <div class="sec">\n' +
+'    <h4>Profile</h4>\n' +
+'    <div class="av"><i>EV</i><button type="button">Change photo</button></div>\n' +
+'    <div class="row2">\n' +
+'      <div class="f"><label>Display name</label><input class="in" name="name" value="Eleanor Vance"></div>\n' +
+'      <div class="f"><label>Username</label><input class="in" name="user" value="eleanor"></div>\n' +
+'    </div>\n' +
+'    <div class="f" style="margin-bottom:0"><label>Email</label><input class="in" name="email" type="email" value="eleanor@northwind.io"><div class="help">We send a confirmation to the new address before it changes.</div></div>\n' +
+'  </div>\n' +
+'  <div class="sec">\n' +
+'    <h4>Notifications</h4>\n' +
+'    <div class="tg"><div><b>Product updates</b><small>New features, once a month at most.</small></div><label class="sw"><input type="checkbox" name="n1" checked><span></span></label></div>\n' +
+'    <div class="tg"><div><b>Comment replies</b><small>Someone answers a thread you are in.</small></div><label class="sw"><input type="checkbox" name="n2" checked><span></span></label></div>\n' +
+'    <div class="tg"><div><b>Weekly digest</b><small>Sunday evening summary.</small></div><label class="sw"><input type="checkbox" name="n3"><span></span></label></div>\n' +
+'  </div>\n' +
+'  <div class="sec"><h4>Danger zone</h4><button class="danger" type="button">Delete account</button></div>\n' +
+'  <div class="bar"><span class="msg"></span><button class="btn" type="submit" disabled>Save changes</button></div>\n' +
+'</form>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var form = document.querySelector(".fst"), save = form.querySelector(".btn"), msg = form.querySelector(".msg");\n' +
+'  var snap = function () { return JSON.stringify(Array.from(form.elements).filter(function (e) { return e.name; }).map(function (e) { return e.type === "checkbox" ? e.checked : e.value; })); };\n' +
+'  var clean = snap();\n' +
+'  form.addEventListener("input", function () { var dirty = snap() !== clean; save.disabled = !dirty; msg.className = "msg"; msg.textContent = dirty ? "Unsaved changes" : ""; });\n' +
+'  form.addEventListener("submit", function (e) { e.preventDefault(); clean = snap(); save.disabled = true; msg.className = "msg ok"; msg.textContent = "Saved."; });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'form-address', name: 'Shipping Address Form', cat: 'Forms', dark: false, h: 600, code:
+'<style>\n' +
+'.fad { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.fad [hidden] { display: none !important; }\n' +
+'.fad button { font-family: inherit; }\n' +
+'.fad label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin: 0 0 6px; }\n' +
+'.fad .f { margin-bottom: 14px; }\n' +
+'.fad .in { width: 100%; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #111827; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }\n' +
+'.fad .in:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }\n' +
+'.fad .f.bad .in { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }\n' +
+'.fad .f.ok .in { border-color: #16a34a; }\n' +
+'.fad .err { font-size: 12px; color: #dc2626; margin-top: 5px; min-height: 0; }\n' +
+'.fad .help { font-size: 12px; color: #6b7280; margin-top: 5px; }\n' +
+'.fad .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }\n' +
+'.fad .btn { width: 100%; font: 600 14px/1 system-ui, sans-serif; background: #2563eb; border: 1px solid #2563eb; color: #fff; border-radius: 8px; padding: 12px 0; cursor: pointer; transition: background 0.15s ease; }\n' +
+'.fad .btn:hover { background: #1d4ed8; }\n' +
+'.fad .btn:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.fad h3 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }\n' +
+'.fad .sub { margin: 0 0 20px; font-size: 13.5px; color: #6b7280; }\n' +
+'.fad { width: min(420px, 92vw); background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 24px 26px; }\n' +
+'.fad select.in { appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; padding-right: 34px; }\n' +
+'.fad .row3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }\n' +
+'.fad .same { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: #374151; margin: 2px 0 16px; }\n' +
+'.fad .same input { accent-color: #2563eb; margin: 0; }\n' +
+'.fad .billing { border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 4px; }\n' +
+'.fad .billing h4 { margin: 0 0 12px; font-size: 14px; }\n' +
+'</style>\n' +
+'<form class="fad" novalidate>\n' +
+'  <h3>Shipping address</h3>\n' +
+'  <p class="sub">Where should we send the order?</p>\n' +
+'  <div class="f"><label>Full name</label><input class="in" type="text" autocomplete="name" placeholder="Eleanor Vance"></div>\n' +
+'  <div class="f"><label>Address</label><input class="in" type="text" autocomplete="address-line1" placeholder="Street and number"></div>\n' +
+'  <div class="f"><input class="in" type="text" autocomplete="address-line2" placeholder="Apartment, suite, unit (optional)"></div>\n' +
+'  <div class="row3">\n' +
+'    <div class="f"><label>City</label><input class="in" type="text" autocomplete="address-level2"></div>\n' +
+'    <div class="f"><label>State</label><input class="in" type="text" autocomplete="address-level1" placeholder="OR"></div>\n' +
+'    <div class="f"><label>ZIP</label><input class="in" type="text" inputmode="numeric" autocomplete="postal-code"></div>\n' +
+'  </div>\n' +
+'  <div class="f"><label>Country</label><select class="in" autocomplete="country"><option>United States</option><option>Canada</option><option>United Kingdom</option><option>Australia</option><option>Germany</option></select></div>\n' +
+'  <label class="same"><input type="checkbox" class="chk" checked> Billing address is the same</label>\n' +
+'  <div class="billing" hidden>\n' +
+'    <h4>Billing address</h4>\n' +
+'    <div class="f"><input class="in" type="text" placeholder="Street and number"></div>\n' +
+'    <div class="row3"><div class="f"><input class="in" type="text" placeholder="City"></div><div class="f"><input class="in" type="text" placeholder="State"></div><div class="f"><input class="in" type="text" placeholder="ZIP"></div></div>\n' +
+'  </div>\n' +
+'  <button class="btn" type="submit">Continue to payment</button>\n' +
+'</form>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var form = document.querySelector(".fad"), chk = form.querySelector(".chk"), bill = form.querySelector(".billing");\n' +
+'  chk.addEventListener("change", function () { bill.hidden = chk.checked; });\n' +
+'  form.addEventListener("submit", function (e) { e.preventDefault(); });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'form-survey', name: 'Survey Form', cat: 'Forms', dark: false, h: 560, code:
+'<style>\n' +
+'.fsv { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.fsv [hidden] { display: none !important; }\n' +
+'.fsv button { font-family: inherit; }\n' +
+'.fsv label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin: 0 0 6px; }\n' +
+'.fsv .f { margin-bottom: 14px; }\n' +
+'.fsv .in { width: 100%; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #111827; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }\n' +
+'.fsv .in:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }\n' +
+'.fsv .f.bad .in { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }\n' +
+'.fsv .f.ok .in { border-color: #16a34a; }\n' +
+'.fsv .err { font-size: 12px; color: #dc2626; margin-top: 5px; min-height: 0; }\n' +
+'.fsv .help { font-size: 12px; color: #6b7280; margin-top: 5px; }\n' +
+'.fsv .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }\n' +
+'.fsv .btn { width: 100%; font: 600 14px/1 system-ui, sans-serif; background: #2563eb; border: 1px solid #2563eb; color: #fff; border-radius: 8px; padding: 12px 0; cursor: pointer; transition: background 0.15s ease; }\n' +
+'.fsv .btn:hover { background: #1d4ed8; }\n' +
+'.fsv .btn:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.fsv h3 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }\n' +
+'.fsv .sub { margin: 0 0 20px; font-size: 13.5px; color: #6b7280; }\n' +
+'.fsv { width: min(440px, 92vw); background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 24px 26px; }\n' +
+'.fsv .q { margin-bottom: 18px; }\n' +
+'.fsv .q > b { display: block; font-size: 14px; font-weight: 500; margin-bottom: 10px; }\n' +
+'.fsv .scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }\n' +
+'.fsv .scale label { position: relative; margin: 0; cursor: pointer; }\n' +
+'.fsv .scale input { position: absolute; opacity: 0; inset: 0; margin: 0; }\n' +
+'.fsv .scale span { display: block; text-align: center; padding: 10px 0; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-weight: 500; color: #374151; transition: all 0.15s ease; }\n' +
+'.fsv .scale input:checked + span { background: #111827; border-color: #111827; color: #fff; }\n' +
+'.fsv .scale input:focus-visible + span { box-shadow: 0 0 0 3px rgba(37,99,235,0.25); }\n' +
+'.fsv .ends { display: flex; justify-content: space-between; font-size: 11.5px; color: #9ca3af; margin-top: 6px; }\n' +
+'.fsv .opts label { display: flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 400; color: #374151; padding: 7px 0; margin: 0; cursor: pointer; }\n' +
+'.fsv .opts input { accent-color: #2563eb; margin: 0; }\n' +
+'.fsv textarea.in { resize: vertical; min-height: 74px; }\n' +
+'.fsv .count { text-align: right; font-size: 11.5px; color: #9ca3af; margin-top: 4px; }\n' +
+'.fsv .count.over { color: #dc2626; }\n' +
+'.fsv .thanks { text-align: center; padding: 34px 0 14px; font-size: 15px; color: #374151; }\n' +
+'</style>\n' +
+'<form class="fsv" novalidate>\n' +
+'  <div class="body">\n' +
+'    <h3>Two minutes of your time</h3>\n' +
+'    <p class="sub">Your answers shape what we build next.</p>\n' +
+'    <div class="q"><b>How likely are you to recommend us?</b>\n' +
+'      <div class="scale"><label><input type="radio" name="rec" value="1"><span>1</span></label><label><input type="radio" name="rec" value="2"><span>2</span></label><label><input type="radio" name="rec" value="3"><span>3</span></label><label><input type="radio" name="rec" value="4"><span>4</span></label><label><input type="radio" name="rec" value="5"><span>5</span></label></div>\n' +
+'      <div class="ends"><span>Not likely</span><span>Very likely</span></div>\n' +
+'    </div>\n' +
+'    <div class="q"><b>What do you use most? Pick any.</b>\n' +
+'      <div class="opts"><label><input type="checkbox" name="u" value="reports"> Reports</label><label><input type="checkbox" name="u" value="alerts"> Alerts</label><label><input type="checkbox" name="u" value="api"> The API</label></div>\n' +
+'    </div>\n' +
+'    <div class="q"><b>Anything we should know?</b><textarea class="in" name="notes" maxlength="240" placeholder="Optional"></textarea><div class="count">0 / 240</div></div>\n' +
+'    <button class="btn" type="submit" disabled>Send answers</button>\n' +
+'  </div>\n' +
+'  <div class="thanks" hidden>Thank you. That helps more than you would think.</div>\n' +
+'</form>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var form = document.querySelector(".fsv"), btn = form.querySelector(".btn"), ta = form.querySelector("textarea"), count = form.querySelector(".count");\n' +
+'  form.addEventListener("change", function () { btn.disabled = !form.querySelector("[name=rec]:checked"); });\n' +
+'  ta.addEventListener("input", function () { count.textContent = ta.value.length + " / 240"; count.classList.toggle("over", ta.value.length >= 230); });\n' +
+'  form.addEventListener("submit", function (e) { e.preventDefault(); form.querySelector(".body").hidden = true; form.querySelector(".thanks").hidden = false; });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'form-filters', name: 'Filter Panel', cat: 'Forms', dark: false, h: 620, code:
+'<style>\n' +
+'.ffl { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.ffl [hidden] { display: none !important; }\n' +
+'.ffl button { font-family: inherit; }\n' +
+'.ffl { width: min(300px, 92vw); background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; }\n' +
+'.ffl .head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #e5e7eb; }\n' +
+'.ffl .head b { font-size: 14px; }\n' +
+'.ffl .head button { background: none; border: 0; color: #2563eb; font: 500 13px system-ui, sans-serif; cursor: pointer; padding: 0; visibility: hidden; }\n' +
+'.ffl .head button.show { visibility: visible; }\n' +
+'.ffl .grp { padding: 14px 18px; border-bottom: 1px solid #e5e7eb; }\n' +
+'.ffl .grp h5 { margin: 0 0 10px; font-size: 12px; font-weight: 600; color: #6b7280; }\n' +
+'.ffl label { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: #374151; padding: 5px 0; cursor: pointer; }\n' +
+'.ffl label input { accent-color: #2563eb; margin: 0; }\n' +
+'.ffl label small { margin-left: auto; color: #9ca3af; font-size: 12px; }\n' +
+'.ffl .rng { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6b7280; }\n' +
+'.ffl .rng input { width: 100%; box-sizing: border-box; font: 13.5px system-ui, sans-serif; border: 1px solid #d1d5db; border-radius: 7px; padding: 8px 10px; outline: none; }\n' +
+'.ffl .rng input:focus { border-color: #2563eb; }\n' +
+'.ffl .sw { display: flex; gap: 6px; }\n' +
+'.ffl .sw i { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); transition: box-shadow 0.15s ease; }\n' +
+'.ffl .sw i.on { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #111827; }\n' +
+'.ffl .foot { padding: 14px 18px; }\n' +
+'.ffl .apply { width: 100%; font: 600 14px system-ui, sans-serif; background: #111827; border: 1px solid #111827; color: #fff; border-radius: 8px; padding: 12px 0; cursor: pointer; }\n' +
+'.ffl .apply:hover { background: #1f2937; }\n' +
+'</style>\n' +
+'<form class="ffl" novalidate>\n' +
+'  <div class="head"><b>Filters</b><button type="button" class="clear">Clear all</button></div>\n' +
+'  <div class="grp"><h5>Category</h5>\n' +
+'    <label><input type="checkbox" name="c" value="Desks"> Desks <small>128</small></label>\n' +
+'    <label><input type="checkbox" name="c" value="Chairs"> Chairs <small>84</small></label>\n' +
+'    <label><input type="checkbox" name="c" value="Lighting"> Lighting <small>42</small></label>\n' +
+'  </div>\n' +
+'  <div class="grp"><h5>Price</h5><div class="rng"><input name="min" type="number" inputmode="numeric" placeholder="Min"> to <input name="max" type="number" inputmode="numeric" placeholder="Max"></div></div>\n' +
+'  <div class="grp"><h5>Colour</h5><div class="sw"><i style="background:#111827" data-c="#111827" title="#111827"></i><i style="background:#f3f4f6" data-c="#f3f4f6" title="#f3f4f6"></i><i style="background:#b45309" data-c="#b45309" title="#b45309"></i><i style="background:#1d4ed8" data-c="#1d4ed8" title="#1d4ed8"></i><i style="background:#15803d" data-c="#15803d" title="#15803d"></i></div></div>\n' +
+'  <div class="grp"><h5>Availability</h5><label><input type="checkbox" name="stock" value="1"> In stock only</label></div>\n' +
+'  <div class="foot"><button class="apply" type="submit">Show results</button></div>\n' +
+'</form>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var form = document.querySelector(".ffl"), apply = form.querySelector(".apply"), clear = form.querySelector(".clear"), colours = [];\n' +
+'  function count() {\n' +
+'    var n = form.querySelectorAll("input[type=checkbox]:checked").length + colours.length + (form.min.value ? 1 : 0) + (form.max.value ? 1 : 0);\n' +
+'    apply.textContent = n ? "Show results · " + n + (n === 1 ? " filter" : " filters") : "Show results";\n' +
+'    clear.classList.toggle("show", n > 0);\n' +
+'  }\n' +
+'  form.querySelectorAll(".sw i").forEach(function (i) { i.addEventListener("click", function () { var c = i.getAttribute("data-c"), k = colours.indexOf(c); if (k < 0) colours.push(c); else colours.splice(k, 1); i.classList.toggle("on", k < 0); count(); }); });\n' +
+'  form.addEventListener("input", count);\n' +
+'  clear.addEventListener("click", function () { form.reset(); colours = []; form.querySelectorAll(".sw i").forEach(function (i) { i.classList.remove("on"); }); count(); });\n' +
+'  form.addEventListener("submit", function (e) { e.preventDefault(); });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'form-apply', name: 'Application Form', cat: 'Forms', dark: false, h: 660, code:
+'<style>\n' +
+'.fap { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }\n' +
+'.fap [hidden] { display: none !important; }\n' +
+'.fap button { font-family: inherit; }\n' +
+'.fap label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin: 0 0 6px; }\n' +
+'.fap .f { margin-bottom: 14px; }\n' +
+'.fap .in { width: 100%; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #111827; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }\n' +
+'.fap .in:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }\n' +
+'.fap .f.bad .in { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }\n' +
+'.fap .f.ok .in { border-color: #16a34a; }\n' +
+'.fap .err { font-size: 12px; color: #dc2626; margin-top: 5px; min-height: 0; }\n' +
+'.fap .help { font-size: 12px; color: #6b7280; margin-top: 5px; }\n' +
+'.fap .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }\n' +
+'.fap .btn { width: 100%; font: 600 14px/1 system-ui, sans-serif; background: #2563eb; border: 1px solid #2563eb; color: #fff; border-radius: 8px; padding: 12px 0; cursor: pointer; transition: background 0.15s ease; }\n' +
+'.fap .btn:hover { background: #1d4ed8; }\n' +
+'.fap .btn:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.fap h3 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }\n' +
+'.fap .sub { margin: 0 0 20px; font-size: 13.5px; color: #6b7280; }\n' +
+'.fap { width: min(440px, 92vw); background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 24px 26px; }\n' +
+'.fap .up { border: 1px dashed #d1d5db; border-radius: 10px; padding: 18px; text-align: center; font-size: 13.5px; color: #6b7280; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }\n' +
+'.fap .up:hover, .fap .up.over { border-color: #2563eb; background: #eff6ff; }\n' +
+'.fap .up b { color: #2563eb; font-weight: 500; }\n' +
+'.fap .up input { display: none; }\n' +
+'.fap .file { display: flex; align-items: center; gap: 10px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 9px 12px; font-size: 13px; margin-top: 8px; }\n' +
+'.fap .file i { width: 30px; height: 30px; border-radius: 6px; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font: 700 9.5px system-ui, sans-serif; }\n' +
+'.fap .file span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\n' +
+'.fap .file small { color: #9ca3af; }\n' +
+'.fap .file button { background: none; border: 0; color: #9ca3af; cursor: pointer; padding: 4px; }\n' +
+'.fap .file button svg { width: 14px; height: 14px; }\n' +
+'.fap .file button:hover { color: #dc2626; }\n' +
+'.fap textarea.in { resize: vertical; min-height: 64px; }\n' +
+'</style>\n' +
+'<form class="fap" novalidate>\n' +
+'  <h3>Apply for the position</h3>\n' +
+'  <p class="sub">Senior product designer, remote. We reply within a week.</p>\n' +
+'  <div class="row2"><div class="f"><label>Full name</label><input class="in" type="text" autocomplete="name"></div><div class="f"><label>Email</label><input class="in" type="email" autocomplete="email"></div></div>\n' +
+'  <div class="f"><label>Portfolio or LinkedIn</label><input class="in" type="url" placeholder="https://"></div>\n' +
+'  <div class="f"><label>Resume</label>\n' +
+'    <label class="up"><input type="file" accept=".pdf,.doc,.docx"><b>Choose a file</b> or drop it here. PDF or Word, up to 10 MB.</label>\n' +
+'    <div class="file" hidden><i>PDF</i><span></span><small></small><button type="button" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>\n' +
+'  </div>\n' +
+'  <div class="f"><label>Why this role?</label><textarea class="in" placeholder="A few sentences is plenty."></textarea></div>\n' +
+'  <button class="btn" type="submit">Send application</button>\n' +
+'</form>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var form = document.querySelector(".fap"), up = form.querySelector(".up"), input = up.querySelector("input"), row = form.querySelector(".file");\n' +
+'  function show(name, size) { row.querySelector("span").textContent = name; row.querySelector("small").textContent = size; row.hidden = false; up.hidden = true; }\n' +
+'  input.addEventListener("change", function () { var f = input.files[0]; if (f) show(f.name, (f.size / 1048576).toFixed(1) + " MB"); });\n' +
+'  ["dragenter", "dragover"].forEach(function (ev) { up.addEventListener(ev, function (e) { e.preventDefault(); up.classList.add("over"); }); });\n' +
+'  ["dragleave", "drop"].forEach(function (ev) { up.addEventListener(ev, function (e) { e.preventDefault(); up.classList.remove("over"); }); });\n' +
+'  up.addEventListener("drop", function (e) { var f = e.dataTransfer.files[0]; if (f) show(f.name, (f.size / 1048576).toFixed(1) + " MB"); });\n' +
+'  row.querySelector("button").addEventListener("click", function () { input.value = ""; row.hidden = true; up.hidden = false; });\n' +
+'  form.addEventListener("submit", function (e) { e.preventDefault(); });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
   /* ════════════════════════════════════════════════════════
      RENDER + INTERACTIONS
      ════════════════════════════════════════════════════════ */
