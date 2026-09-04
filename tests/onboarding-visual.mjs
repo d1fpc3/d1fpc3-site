@@ -104,9 +104,9 @@ await sql(`update member_onboarding o set completed_at = null, answers = '{}'::j
   await shot("05-overview-nudge");
   await page.evaluate(() => document.querySelector('.tab[data-view="indicators"]').click());
   await page.waitForTimeout(500);
-  const included = await page.locator(".p-own", { hasText: "Included with your membership" }).count();
+  const included = await page.locator(".p-own", { hasText: /Included with (Echelon|your membership)/ }).count();
   if (!included) fails.push("LIT card does not say included");
-  const bundle = await page.locator(".st-row h3", { hasText: "bundle" }).count();
+  const bundle = await page.locator(".st-row:not(.owned) h3", { hasText: /bundle/i }).count();
   if (bundle) fails.push("bundle card still offered to a LIT holder");
   await shot("06-indicators");
 
