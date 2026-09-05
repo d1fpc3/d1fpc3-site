@@ -1167,6 +1167,7 @@
     .news-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
     .news-row:last-child { border-bottom: 0; }
     .news-row.past { opacity: 0.45; }
+    .news-row.past.has-a { opacity: 0.85; }   /* a result is the point of a past row: keep it readable */
     .news-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
     .news-dot.high { background: #d06a5a; }
     .news-dot.med { background: #d9953c; }
@@ -5069,7 +5070,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const NEWS_INVERSE = /unemployment|claims|jobless|inflation|\bcpi\b|\bppi\b|\bpce\b|price|budget|deficit|job cuts/i
     function newsVerdict(e) {
       if (!e.actual) return null
-      const a = newsNum(e.actual), f = newsNum(e.tvForecast ?? e.forecast)
+      const a = newsNum(e.actual), f = newsNum(e.forecast) ?? newsNum(e.tvForecast)   // judge against the forecast the row shows
       if (a == null || f == null) return 'in'
       if (Math.abs(a - f) < 1e-9) return 'inline'
       const better = NEWS_INVERSE.test(e.title) ? a < f : a > f
