@@ -40,6 +40,13 @@ const LIVE = [
   { title: "Non-Farm Employment Change", country: "USD", date: "2026-09-04T12:30:00Z", impact: "High", forecast: "55K", previous: "-23K" },
   { title: "Unemployment Rate", country: "USD", date: "2026-09-04T12:30:00Z", impact: "High", forecast: "4.1%", previous: "4.1%" },
 ];
+const THIS_TV = [
+  { title: "ISM Manufacturing PMI", country: "USD", date: "2026-09-01T14:00:00.000Z", impact: "High", forecast: "55.2", previous: "55.6", actual: "54.6", source: "tradingview" },
+  { title: "JOLTs Job Openings", country: "USD", date: "2026-09-01T14:00:00.000Z", impact: "High", forecast: "7.3M", previous: "7.182M", actual: "7.271M", source: "tradingview" },
+  { title: "Non Farm Payrolls", country: "USD", date: "2026-09-04T12:30:00.000Z", impact: "High", forecast: "56K", previous: "21K", actual: "162K", source: "tradingview" },
+  { title: "Unemployment Rate", country: "USD", date: "2026-09-04T12:30:00.000Z", impact: "High", forecast: "4.1%", previous: "4.1%", actual: "4.1%", source: "tradingview" },
+  { title: "Average Hourly Earnings MoM", country: "USD", date: "2026-09-04T12:30:00.000Z", impact: "Medium", forecast: "0.3%", previous: "0.2%", actual: "0.3%", source: "tradingview" },
+];
 const NEXT = [
   { title: "Labor Day", country: "USD", date: "2026-09-07T00:00:00.000Z", impact: "Holiday", forecast: "", previous: "", actual: "", source: "tradingview" },
   { title: "Initial Jobless Claims", country: "USD", date: "2026-09-10T12:30:00.000Z", impact: "Medium", forecast: "205K", previous: "206K", actual: "", source: "tradingview" },
@@ -52,6 +59,7 @@ async function stubWorker(page, current = CURRENT, live = LIVE) {
     const u = route.request().url();
     if (u.endsWith("weeks.json")) return route.fulfill(json({ weeks: [current], current }));
     if (u.includes("week=next")) return route.fulfill(json(current === CURRENT ? NEXT : []));
+    if (u.includes("week=this")) return route.fulfill(json(current === CURRENT ? THIS_TV : []));
     if (u.includes("week=")) return route.fulfill(json({ error: "no record" }, 404));
     return route.fulfill(json(live));
   });
@@ -87,6 +95,19 @@ async function open(clockAt, current = CURRENT, live = LIVE) {
 {
   const { ctx, page } = await open(new Date("2026-09-02T14:00:00Z"));
   const live = await state(page); note("live: " + JSON.stringify(live));
+  // results matched from the TradingView copy: ISM missed (red), NFP beat (green), unemployment inline (plain)
+  const acts = await page.evaluate(() => [...document.querySelectorAll("#news-list .news-row")].map((r) => ({ t: r.querySelector(".news-title").textContent, a: r.querySelector(".v.act")?.textContent || null, cls: r.querySelector(".v.act")?.className || null })));
+  note("actuals: " + JSON.stringify(acts));
+  if (acts[0].a !== "A54.6" || !/miss/.test(acts[0].cls)) fails.push("ISM actual/miss wrong " + JSON.stringify(acts[0]));
+  if (acts[1].a !== "A162K" || !/beat/.test(acts[1].cls)) fails.push("NFP actual/beat wrong " + JSON.stringify(acts[1]));
+  if (acts[2].a !== "A4.1%" || /beat|miss/.test(acts[2].cls)) fails.push("Unemployment inline wrong " + JSON.stringify(acts[2]));
+  await page.locator("#news-list .news-q").nth(1).tap(); await page.waitForTimeout(250);
+  const res = await page.evaluate(() => document.querySelector("#news-tip .res")?.textContent);
+  note("result line: " + res);
+  if (!/Result: 162K vs 55K expected · better than expected/.test(res || "")) fails.push("result line wrong: " + res);
+  const prevHidden = await page.evaluate(() => getComputedStyle(document.querySelector("#news-list .news-row.has-a .v.prev")).display === "none");
+  if (!prevHidden) fails.push("phone should hide P when an actual is in");
+  await page.tap("#news-list .news-day >> nth=0"); await page.waitForTimeout(200);
   if (live.label !== "this week" || live.next || live.rows !== 3 || live.note) fails.push("live week state wrong " + JSON.stringify(live));
   await page.screenshot({ path: `${OUT}/1-live.png` });
   await page.click("#news-next");

@@ -1195,6 +1195,17 @@
     .news-fp { margin-left: auto; display: flex; gap: 16px; flex: none; }
     .news-fp .v { color: var(--muted); font-size: 12px; min-width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
     .news-fp .v em { font-style: normal; color: var(--faint); font-size: 10px; letter-spacing: 0.08em; margin-right: 5px; }
+    .news-fp .v.act { color: var(--ink); font-weight: 600; }
+    .news-fp .v.act.beat { color: var(--good); }
+    .news-fp .v.act.miss { color: var(--bad); }
+    @media (max-width: 640px) {
+      .news-fp { gap: 10px; }
+      .news-fp .v { min-width: 58px; }
+      .news-row.has-a .news-fp .v.prev { display: none; }
+    }
+    .news-tip .res { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--ink); }
+    .news-tip .res.beat b, .news-tip .res.miss b { display: inline; margin: 0; }
+    .news-tip .res.beat b { color: var(--good); } .news-tip .res.miss b { color: var(--bad); }
     @media (max-width: 620px) { .news-fp { gap: 10px; } .news-fp .v { min-width: 0; } .news-when { width: 58px; } }
 
     .mr-title { font-size: 15.5px; font-weight: 650; letter-spacing: -0.01em; margin-top: 7px; }
@@ -4853,10 +4864,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function loadNews() {
       const host = el('news-list'); if (!host) return
       try {
-        const res = await fetch(NEWS_URL)
+        const [res, tv] = await Promise.all([
+          fetch(NEWS_URL),
+          fetch(`${NEWS_URL}?week=this`, { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        ])
         if (!res.ok) throw new Error('news ' + res.status)
         const rows = await res.json()
-        newsEvents = withHolidays(newsFilter(rows), newsCurrent())
+        newsEvents = applyActuals(withHolidays(newsFilter(rows), newsCurrent()), tv)
         if (!NEWS.key) renderNews(newsEvents, true)   // browsing another week: leave it on screen
         renderOvNews()
         if (!NEWS.weeks.length) loadNewsWeeks()
@@ -4925,7 +4939,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     const newsTipEl = () => el('news-tip')
     let newsTipFor = null
-    function newsTipShow(btn, title, override) {
+    function newsTipShow(btn, title, override, ev) {
       const tip = newsTipEl(); if (!tip) return
       const [name, what, means] = override || newsGloss(title)
       tip.textContent = ''
@@ -4935,6 +4949,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const k2 = document.createElement('span'); k2.className = 'k'; k2.textContent = 'What it means'
       const p2 = document.createElement('p'); p2.textContent = means
       tip.append(b, k1, p1, k2, p2)
+      const verdict = ev ? newsVerdict(ev) : null
+      if (verdict) {
+        const r = document.createElement('p'); r.className = 'res ' + verdict
+        const word = { beat: 'better than expected', miss: 'worse than expected', inline: 'as expected', in: 'result is in' }[verdict]
+        const exp = ev.forecast || ev.tvForecast
+        r.textContent = 'Result: '
+        const bb = document.createElement('b'); bb.textContent = ev.actual; r.appendChild(bb)
+        r.append(exp ? ` vs ${exp} expected · ${word}` : ` · ${word}`)
+        tip.appendChild(r)
+      }
       tip.hidden = false
       const r = btn.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight
       let x = Math.min(window.innerWidth - tw - 12, Math.max(12, r.right - tw))
@@ -4953,13 +4977,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     document.addEventListener('pointerdown', (e) => { if (newsTipFor && !e.target.closest('.news-q') && !e.target.closest('#news-tip')) newsTipHide() })
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && newsTipFor) newsTipHide() })
     window.addEventListener('scroll', () => { if (newsTipFor) newsTipHide() }, true)
-    function newsHelpButton(title, override) {
+    function newsHelpButton(title, override, ev) {
       const q = document.createElement('button'); q.type = 'button'; q.className = 'news-q'; q.textContent = '?'
       q.setAttribute('aria-label', `What ${title} is and what it means`)
       let hover = false
-      q.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hover = true; newsTipShow(q, title, override) } })
+      q.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hover = true; newsTipShow(q, title, override, ev) } })
       q.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && hover) { hover = false; newsTipHide() } })
-      q.addEventListener('click', (e) => { e.stopPropagation(); hover = false; if (newsTipFor === q) newsTipHide(); else newsTipShow(q, title, override) })
+      q.addEventListener('click', (e) => { e.stopPropagation(); hover = false; if (newsTipFor === q) newsTipHide(); else newsTipShow(q, title, override, ev) })
       return q
     }
     function newsRow(e, now) {
@@ -4980,13 +5004,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (hol) { row.appendChild(newsHelpButton(e.title, [e.kind === 'early' ? 'Shortened day' : 'Market holiday', e.kind === 'early' ? `${e.title}. The cash session ends early and most desks are gone by lunch.` : `${e.title}. The stock market is closed for the day.`, e.note + (e.kind === 'early' ? ' Volume thins out fast after the open; treat it as a half day.' : ' Without the cash session there is little flow to trade against; most of the edge is gone.')])); return row }
       // two fixed right-aligned slots so forecast/previous line up down the page
       const fp = document.createElement('span'); fp.className = 'news-fp'
-      for (const [lbl, val] of [['F', e.forecast], ['P', e.previous]]) {
-        const v = document.createElement('span'); v.className = 'v'
+      const verdict = newsVerdict(e)
+      if (e.actual) row.classList.add('has-a')
+      for (const [lbl, val, cls] of [['A', e.actual, 'act'], ['F', e.forecast, 'fc'], ['P', e.previous, 'prev']]) {
+        if (lbl === 'A' && !val) continue
+        const v = document.createElement('span'); v.className = 'v ' + cls + (lbl === 'A' && (verdict === 'beat' || verdict === 'miss') ? ' ' + verdict : '')
         if (val) { const em = document.createElement('em'); em.textContent = lbl; v.append(em, val) }
         fp.appendChild(v)
       }
       row.appendChild(fp)
-      row.appendChild(newsHelpButton(e.title))   // far right, after the numbers (D1, 9/4)
+      row.appendChild(newsHelpButton(e.title, null, e))   // far right, after the numbers (D1, 9/4)
       return row
     }
     /* ── US market calendar: full closures and shortened days, with the
@@ -5020,6 +5047,49 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         out.push({ ...e, at: new Date(d + 'T12:00:00Z'), kind: 'closed', note: CLOSED })
       }
       return out.sort((a, b) => a.at - b.at)
+    }
+    /* ── results: Forex Factory's feed never fills in actuals, so the live
+       week's numbers come from the worker's TradingView copy (?week=this)
+       and are matched onto the FF rows by time + title (D1, 9/4). ── */
+    const newsNorm = (t) => (t || '').toLowerCase()
+      .replace(/m\/m/g, 'mom').replace(/y\/y/g, 'yoy').replace(/q\/q/g, 'qoq')
+      .replace(/non-?farm employment change|non farm payrolls/g, 'nfp')
+      .replace(/adp nfp|adp employment change/g, 'adp')
+      .replace(/unemployment claims|initial jobless claims/g, 'claims')
+      .replace(/consumer price index|\bcpi\b/g, 'inflation rate')
+      .replace(/prelim uom consumer sentiment|michigan consumer sentiment prel/g, 'michigan prel')
+      .replace(/revised uom consumer sentiment|michigan consumer sentiment final/g, 'michigan final')
+      .replace(/federal funds rate|fed interest rate decision/g, 'fed rate')
+      .replace(/core retail sales|retail sales ex autos/g, 'core retail')
+      .replace(/[^a-z0-9 ]+/g, ' ').replace(/\b(change|index|the|of|and|s)\b/g, ' ')
+      .trim().split(/\s+/).filter(Boolean)
+    const newsSim = (a, b) => { const A = new Set(a), B = new Set(b); let n = 0; for (const x of A) if (B.has(x)) n++; return n / (A.size + B.size - n || 1) }
+    const newsNum = (v) => { const m = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/); return m ? parseFloat(m[0]) : null }
+    // for these, a higher print is the worse one for the economy
+    const NEWS_INVERSE = /unemployment|claims|jobless|inflation|\bcpi\b|\bppi\b|\bpce\b|price|budget|deficit|job cuts/i
+    function newsVerdict(e) {
+      if (!e.actual) return null
+      const a = newsNum(e.actual), f = newsNum(e.tvForecast ?? e.forecast)
+      if (a == null || f == null) return 'in'
+      if (Math.abs(a - f) < 1e-9) return 'inline'
+      const better = NEWS_INVERSE.test(e.title) ? a < f : a > f
+      return better ? 'beat' : 'miss'
+    }
+    function applyActuals(list, tv) {
+      if (!Array.isArray(tv) || !tv.length) return list
+      const rows = tv.map((r) => ({ ...r, at: new Date(r.date), norm: newsNorm(r.title) })).filter((r) => !isNaN(r.at) && r.actual)
+      for (const e of list) {
+        if (e.impact === 'Holiday') continue
+        const t = e.at.getTime(), norm = newsNorm(e.title)
+        let best = null, bs = 0
+        for (const r of rows) {
+          if (Math.abs(r.at.getTime() - t) > 90e3) continue
+          const sc = newsSim(norm, r.norm)
+          if (sc > bs) { bs = sc; best = r }
+        }
+        if (best && bs >= 0.34) { e.actual = best.actual; e.tvForecast = best.forecast || null }
+      }
+      return list
     }
     const newsFilter = (rows) => (Array.isArray(rows) ? rows : [])
       .filter((e) => e.country === 'USD' && (e.impact === 'High' || e.impact === 'Medium' || e.impact === 'Holiday'))
