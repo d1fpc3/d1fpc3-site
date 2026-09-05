@@ -23962,6 +23962,624 @@
 '</div>'
   });
 
+
+  /* ── MODALS II (2026-09-04) ── */
+
+  T.push({ id: 'mod-wizard', name: 'Multi-step Modal', cat: 'Modals', dark: false, fill: true, wide: true, h: 460, code:
+'<style>\n' +
+'.mwz-stage { min-height: 100%; box-sizing: border-box; padding: 40px 26px; background: #f9fafb; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; display: flex; align-items: center; justify-content: center;  }\n' +
+'.mwz-stage [hidden] { display: none !important; }\n' +
+'.mwz-open { font: 500 14px system-ui, sans-serif; background: #111827; color: #fff; border: 1px solid #111827; border-radius: 8px; padding: 12px 22px; cursor: pointer; }\n' +
+'.mwz-open:hover { background: #1f2937; }\n' +
+'.mwz-scrim { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); opacity: 0; transition: opacity 0.2s ease; z-index: 10; }\n' +
+'.mwz-scrim.on { opacity: 1; }\n' +
+'.mwz-btn { font: 500 14px system-ui, sans-serif; border-radius: 8px; padding: 10px 16px; cursor: pointer; }\n' +
+'.mwz-ghost { background: #fff; border: 1px solid #d1d5db; color: #374151; }\n' +
+'.mwz-ghost:hover { background: #f9fafb; }\n' +
+'.mwz-prime { background: #2563eb; border: 1px solid #2563eb; color: #fff; }\n' +
+'.mwz-prime:hover { background: #1d4ed8; }\n' +
+'.mwz-prime:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.mwz-x { background: none; border: 0; color: #6b7280; cursor: pointer; padding: 4px; border-radius: 6px; }\n' +
+'.mwz-x:hover { background: #f9fafb; color: #111827; }\n' +
+'.mwz-x svg { width: 18px; height: 18px; }\n' +
+'.mwz { position: fixed; left: 50%; top: 50%; width: min(440px, 92vw); transform: translate(-50%, -46%) scale(0.98); opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; background: #fff; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); z-index: 11; overflow: hidden; }\n' +
+'.mwz.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }\n' +
+'.mwz .hd { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 0; }\n' +
+'.mwz .dots { display: flex; gap: 6px; }\n' +
+'.mwz .dots i { width: 8px; height: 8px; border-radius: 50%; background: #d1d5db; transition: background 0.2s ease, width 0.2s ease; }\n' +
+'.mwz .dots i.on { background: #2563eb; width: 22px; border-radius: 4px; }\n' +
+'.mwz .dots i.done { background: #2563eb; }\n' +
+'.mwz .step { padding: 14px 20px 6px; }\n' +
+'.mwz h3 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }\n' +
+'.mwz p { margin: 0 0 14px; font-size: 13.5px; color: #6b7280; line-height: 1.5; }\n' +
+'.mwz label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 6px; }\n' +
+'.mwz .in { width: 100%; box-sizing: border-box; font: 14px system-ui, sans-serif; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; outline: none; }\n' +
+'.mwz .in:focus { border-color: #2563eb; }\n' +
+'.mwz .chk { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: #374151; padding: 7px 0; }\n' +
+'.mwz .chk input { accent-color: #2563eb; margin: 0; }\n' +
+'.mwz .fin { text-align: center; padding: 14px 0 6px; }\n' +
+'.mwz .fin i { display: inline-flex; width: 48px; height: 48px; border-radius: 50%; background: #dcfce7; color: #16a34a; align-items: center; justify-content: center; margin-bottom: 10px; }\n' +
+'.mwz .fin i svg { width: 24px; height: 24px; }\n' +
+'.mwz .ft { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 18px; }\n' +
+'.mwz .ft .n { font-size: 12px; color: #9ca3af; }\n' +
+'.mwz .ft div { display: flex; gap: 8px; }\n' +
+'</style>\n' +
+'<div class="mwz-stage">\n' +
+'  <button class="mwz-open" type="button">Set up workspace</button>\n' +
+'  <div class="mwz-scrim" hidden></div>\n' +
+'  <div class="mwz" role="dialog" aria-modal="true" aria-label="Set up workspace" hidden>\n' +
+'    <div class="hd"><span class="dots"><i class="on"></i><i></i><i></i></span><button class="mwz-x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>\n' +
+'    <div class="step" data-s="0"><h3>Name your workspace</h3><p>You can change this later.</p><label>Workspace name</label><input class="in" type="text" value="Phoenix"><label>Team size</label><input class="in" type="text" placeholder="Just me, 2 to 10, 11 to 50"></div>\n' +
+'    <div class="step" data-s="1" hidden><h3>What will you use it for?</h3><p>Pick any that apply. It tunes the defaults.</p><label class="chk"><input type="checkbox" checked> Reports and dashboards</label><label class="chk"><input type="checkbox"> Alerts</label><label class="chk"><input type="checkbox"> Sharing with clients</label></div>\n' +
+'    <div class="step" data-s="2" hidden><div class="fin"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></i><h3>Phoenix is ready</h3><p>Invite your team from Settings whenever you like.</p></div></div>\n' +
+'    <div class="ft"><span class="n">Step 1 of 3</span><div><button class="mwz-btn mwz-ghost back" type="button">Back</button><button class="mwz-btn mwz-prime next" type="button">Next</button></div></div>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mwz-stage"), open = stage.querySelector(".mwz-open"), scrim = stage.querySelector(".mwz-scrim"), panel = stage.querySelector(".mwz");\n' +
+'  function show() { scrim.hidden = false; panel.hidden = false; requestAnimationFrame(function () { scrim.classList.add("on"); panel.classList.add("on"); }); var f = panel.querySelector(".in"); if (f) f.focus(); stage.dispatchEvent(new Event("opened")); }\n' +
+'  function hide() { scrim.classList.remove("on"); panel.classList.remove("on"); setTimeout(function () { scrim.hidden = true; panel.hidden = true; open.focus(); }, 200); stage.dispatchEvent(new Event("closed")); }\n' +
+'  open.addEventListener("click", show);\n' +
+'  scrim.addEventListener("click", hide);\n' +
+'  stage.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });\n' +
+'  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) hide(); });\n' +
+'  stage.show = show; stage.hide = hide;\n' +
+'})();\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mwz-stage"), box = stage.querySelector(".mwz"), steps = box.querySelectorAll(".step"), dots = box.querySelectorAll(".dots i"), back = box.querySelector(".back"), next = box.querySelector(".next"), n = box.querySelector(".n");\n' +
+'  var i = 0;\n' +
+'  function paint() {\n' +
+'    steps.forEach(function (s, k) { s.hidden = k !== i; });\n' +
+'    dots.forEach(function (d, k) { d.className = k < i ? "done" : k === i ? "on" : ""; });\n' +
+'    back.hidden = i === 0; n.textContent = "Step " + (i + 1) + " of 3";\n' +
+'    next.textContent = i === 2 ? "Finish" : "Next";\n' +
+'  }\n' +
+'  back.addEventListener("click", function () { if (i > 0) { i--; paint(); } });\n' +
+'  next.addEventListener("click", function () { if (i < 2) { i++; paint(); } else { stage.hide(); } });\n' +
+'  stage.addEventListener("opened", function () { i = 0; paint(); });\n' +
+'  paint();\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'mod-video', name: 'Video Modal', cat: 'Modals', dark: false, fill: true, wide: true, h: 440, code:
+'<style>\n' +
+'.mvd-stage { min-height: 100%; box-sizing: border-box; padding: 40px 26px; background: #f9fafb; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; display: flex; align-items: center; justify-content: center;  }\n' +
+'.mvd-stage [hidden] { display: none !important; }\n' +
+'.mvd-open { font: 500 14px system-ui, sans-serif; background: #111827; color: #fff; border: 1px solid #111827; border-radius: 8px; padding: 12px 22px; cursor: pointer; }\n' +
+'.mvd-open:hover { background: #1f2937; }\n' +
+'.mvd-scrim { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); opacity: 0; transition: opacity 0.2s ease; z-index: 10; }\n' +
+'.mvd-scrim.on { opacity: 1; }\n' +
+'.mvd-btn { font: 500 14px system-ui, sans-serif; border-radius: 8px; padding: 10px 16px; cursor: pointer; }\n' +
+'.mvd-ghost { background: #fff; border: 1px solid #d1d5db; color: #374151; }\n' +
+'.mvd-ghost:hover { background: #f9fafb; }\n' +
+'.mvd-prime { background: #2563eb; border: 1px solid #2563eb; color: #fff; }\n' +
+'.mvd-prime:hover { background: #1d4ed8; }\n' +
+'.mvd-prime:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.mvd-x { background: none; border: 0; color: #6b7280; cursor: pointer; padding: 4px; border-radius: 6px; }\n' +
+'.mvd-x:hover { background: #f9fafb; color: #111827; }\n' +
+'.mvd-x svg { width: 18px; height: 18px; }\n' +
+'.mvd-open { display: inline-flex; align-items: center; gap: 10px; }\n' +
+'.mvd-open i { width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #111827; display: inline-flex; align-items: center; justify-content: center; }\n' +
+'.mvd-open i svg { width: 10px; height: 10px; margin-left: 2px; }\n' +
+'.mvd-scrim { background: rgba(0,0,0,0.85); }\n' +
+'.mvd { position: fixed; left: 50%; top: 50%; width: min(640px, 92vw); transform: translate(-50%, -50%) scale(0.96); opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; z-index: 11; }\n' +
+'.mvd.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }\n' +
+'.mvd .player { aspect-ratio: 16 / 9; border-radius: 12px; background: linear-gradient(135deg, #1f2937, #0b1020); position: relative; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.5); }\n' +
+'.mvd .play { position: absolute; inset: 0; margin: auto; width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,0.92); border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; }\n' +
+'.mvd .play svg { width: 24px; height: 24px; margin-left: 3px; }\n' +
+'.mvd .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,0.2); }\n' +
+'.mvd .bar i { display: block; height: 100%; width: 0; background: #fff; transition: width 0.25s linear; }\n' +
+'.mvd .time { position: absolute; left: 14px; bottom: 12px; color: rgba(255,255,255,0.8); font: 12px system-ui, sans-serif; font-variant-numeric: tabular-nums; }\n' +
+'.mvd .x { position: absolute; top: -44px; right: 0; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.14); border: 0; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }\n' +
+'.mvd .x svg { width: 18px; height: 18px; }\n' +
+'</style>\n' +
+'<div class="mvd-stage">\n' +
+'  <button class="mvd-open" type="button"><i><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></i>Watch the demo (2:14)</button>\n' +
+'  <div class="mvd-scrim" hidden></div>\n' +
+'  <div class="mvd" role="dialog" aria-modal="true" aria-label="Demo video" hidden>\n' +
+'    <button class="x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>\n' +
+'    <div class="player">\n' +
+'      <button class="play" type="button" aria-label="Play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>\n' +
+'      <div class="time">0:00 / 2:14</div>\n' +
+'      <div class="bar"><i></i></div>\n' +
+'    </div>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mvd-stage"), open = stage.querySelector(".mvd-open"), scrim = stage.querySelector(".mvd-scrim"), panel = stage.querySelector(".mvd");\n' +
+'  function show() { scrim.hidden = false; panel.hidden = false; requestAnimationFrame(function () { scrim.classList.add("on"); panel.classList.add("on"); }); var f = panel.querySelector(".play"); if (f) f.focus(); stage.dispatchEvent(new Event("opened")); }\n' +
+'  function hide() { scrim.classList.remove("on"); panel.classList.remove("on"); setTimeout(function () { scrim.hidden = true; panel.hidden = true; open.focus(); }, 200); stage.dispatchEvent(new Event("closed")); }\n' +
+'  open.addEventListener("click", show);\n' +
+'  scrim.addEventListener("click", hide);\n' +
+'  stage.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });\n' +
+'  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) hide(); });\n' +
+'  stage.show = show; stage.hide = hide;\n' +
+'})();\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mvd-stage"), play = stage.querySelector(".play"), bar = stage.querySelector(".bar i"), time = stage.querySelector(".time"), t = 0, timer = null;\n' +
+'  function tick() { t++; bar.style.width = (t / 134 * 100) + "%"; time.textContent = Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0") + " / 2:14"; if (t >= 134) stop(); }\n' +
+'  function stop() { clearInterval(timer); timer = null; play.hidden = false; }\n' +
+'  play.addEventListener("click", function () { play.hidden = true; timer = setInterval(tick, 1000); });\n' +
+'  stage.addEventListener("closed", function () { stop(); t = 0; bar.style.width = "0%"; time.textContent = "0:00 / 2:14"; });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'mod-login', name: 'Login Modal', cat: 'Modals', dark: false, fill: true, wide: true, h: 480, code:
+'<style>\n' +
+'.mlg-stage { min-height: 100%; box-sizing: border-box; padding: 40px 26px; background: #f9fafb; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; display: flex; align-items: center; justify-content: center;  }\n' +
+'.mlg-stage [hidden] { display: none !important; }\n' +
+'.mlg-open { font: 500 14px system-ui, sans-serif; background: #111827; color: #fff; border: 1px solid #111827; border-radius: 8px; padding: 12px 22px; cursor: pointer; }\n' +
+'.mlg-open:hover { background: #1f2937; }\n' +
+'.mlg-scrim { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); opacity: 0; transition: opacity 0.2s ease; z-index: 10; }\n' +
+'.mlg-scrim.on { opacity: 1; }\n' +
+'.mlg-btn { font: 500 14px system-ui, sans-serif; border-radius: 8px; padding: 10px 16px; cursor: pointer; }\n' +
+'.mlg-ghost { background: #fff; border: 1px solid #d1d5db; color: #374151; }\n' +
+'.mlg-ghost:hover { background: #f9fafb; }\n' +
+'.mlg-prime { background: #2563eb; border: 1px solid #2563eb; color: #fff; }\n' +
+'.mlg-prime:hover { background: #1d4ed8; }\n' +
+'.mlg-prime:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.mlg-x { background: none; border: 0; color: #6b7280; cursor: pointer; padding: 4px; border-radius: 6px; }\n' +
+'.mlg-x:hover { background: #f9fafb; color: #111827; }\n' +
+'.mlg-x svg { width: 18px; height: 18px; }\n' +
+'.mlg { position: fixed; left: 50%; top: 50%; width: min(400px, 92vw); transform: translate(-50%, -46%) scale(0.98); opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; background: #fff; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); z-index: 11; overflow: hidden; }\n' +
+'.mlg.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }\n' +
+'.mlg .tabs { display: flex; border-bottom: 1px solid #e5e7eb; padding: 0 20px; }\n' +
+'.mlg .tabs button { background: none; border: 0; padding: 16px 0 12px; margin-right: 22px; font: 500 14px system-ui, sans-serif; color: #6b7280; border-bottom: 2px solid transparent; cursor: pointer; margin-bottom: -1px; }\n' +
+'.mlg .tabs button.on { color: #111827; border-bottom-color: #111827; }\n' +
+'.mlg .x { position: absolute; top: 12px; right: 12px; }\n' +
+'.mlg form { padding: 18px 20px 20px; }\n' +
+'.mlg label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 6px; }\n' +
+'.mlg .in { width: 100%; box-sizing: border-box; font: 14px system-ui, sans-serif; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; outline: none; }\n' +
+'.mlg .in:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }\n' +
+'.mlg .row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #374151; margin: -2px 0 14px; }\n' +
+'.mlg .row a { color: #2563eb; text-decoration: none; }\n' +
+'.mlg .mlg-prime { width: 100%; padding: 12px 0; }\n' +
+'.mlg .or { text-align: center; font-size: 12px; color: #9ca3af; margin: 14px 0 10px; }\n' +
+'.mlg .soc { width: 100%; padding: 10px 0; display: flex; align-items: center; justify-content: center; gap: 8px; }\n' +
+'</style>\n' +
+'<div class="mlg-stage">\n' +
+'  <button class="mlg-open" type="button">Sign in</button>\n' +
+'  <div class="mlg-scrim" hidden></div>\n' +
+'  <div class="mlg" role="dialog" aria-modal="true" aria-label="Sign in" hidden>\n' +
+'    <button class="mlg-x x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>\n' +
+'    <div class="tabs"><button type="button" class="on" data-t="in">Sign in</button><button type="button" data-t="up">Create account</button></div>\n' +
+'    <form data-p="in" novalidate>\n' +
+'      <label>Email</label><input class="in" type="email" autocomplete="email" placeholder="you@company.com">\n' +
+'      <label>Password</label><input class="in" type="password" autocomplete="current-password">\n' +
+'      <div class="row"><label style="display:flex;gap:7px;align-items:center;margin:0;font-weight:400;"><input type="checkbox" style="margin:0;accent-color:#2563eb;"> Remember me</label><a href="#">Forgot password?</a></div>\n' +
+'      <button class="mlg-btn mlg-prime" type="submit">Sign in</button>\n' +
+'      <div class="or">or</div>\n' +
+'      <button class="mlg-btn mlg-ghost soc" type="button">Continue with Google</button>\n' +
+'    </form>\n' +
+'    <form data-p="up" hidden novalidate>\n' +
+'      <label>Name</label><input class="in" type="text" autocomplete="name">\n' +
+'      <label>Email</label><input class="in" type="email" autocomplete="email">\n' +
+'      <label>Password</label><input class="in" type="password" autocomplete="new-password">\n' +
+'      <button class="mlg-btn mlg-prime" type="submit">Create account</button>\n' +
+'      <div class="or">By continuing you agree to the terms.</div>\n' +
+'    </form>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mlg-stage"), open = stage.querySelector(".mlg-open"), scrim = stage.querySelector(".mlg-scrim"), panel = stage.querySelector(".mlg");\n' +
+'  function show() { scrim.hidden = false; panel.hidden = false; requestAnimationFrame(function () { scrim.classList.add("on"); panel.classList.add("on"); }); var f = panel.querySelector("input"); if (f) f.focus(); stage.dispatchEvent(new Event("opened")); }\n' +
+'  function hide() { scrim.classList.remove("on"); panel.classList.remove("on"); setTimeout(function () { scrim.hidden = true; panel.hidden = true; open.focus(); }, 200); stage.dispatchEvent(new Event("closed")); }\n' +
+'  open.addEventListener("click", show);\n' +
+'  scrim.addEventListener("click", hide);\n' +
+'  stage.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });\n' +
+'  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) hide(); });\n' +
+'  stage.show = show; stage.hide = hide;\n' +
+'})();\n' +
+'(function () {\n' +
+'  var box = document.querySelector(".mlg");\n' +
+'  box.querySelectorAll(".tabs button").forEach(function (b) {\n' +
+'    b.addEventListener("click", function () {\n' +
+'      box.querySelectorAll(".tabs button").forEach(function (x) { x.classList.toggle("on", x === b); });\n' +
+'      box.querySelectorAll("form").forEach(function (f) { f.hidden = f.getAttribute("data-p") !== b.getAttribute("data-t"); });\n' +
+'      box.querySelector("form:not([hidden]) input").focus();\n' +
+'    });\n' +
+'  });\n' +
+'  box.querySelectorAll("form").forEach(function (f) { f.addEventListener("submit", function (e) { e.preventDefault(); document.querySelector(".mlg-stage").hide(); }); });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'mod-navdrawer', name: 'Navigation Drawer', cat: 'Modals', dark: false, fill: true, wide: true, h: 440, code:
+'<style>\n' +
+'.mnd-stage { min-height: 100%; box-sizing: border-box; padding: 40px 26px; background: #f9fafb; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; display: flex; align-items: center; justify-content: center;  }\n' +
+'.mnd-stage [hidden] { display: none !important; }\n' +
+'.mnd-open { font: 500 14px system-ui, sans-serif; background: #111827; color: #fff; border: 1px solid #111827; border-radius: 8px; padding: 12px 22px; cursor: pointer; }\n' +
+'.mnd-open:hover { background: #1f2937; }\n' +
+'.mnd-scrim { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); opacity: 0; transition: opacity 0.2s ease; z-index: 10; }\n' +
+'.mnd-scrim.on { opacity: 1; }\n' +
+'.mnd-btn { font: 500 14px system-ui, sans-serif; border-radius: 8px; padding: 10px 16px; cursor: pointer; }\n' +
+'.mnd-ghost { background: #fff; border: 1px solid #d1d5db; color: #374151; }\n' +
+'.mnd-ghost:hover { background: #f9fafb; }\n' +
+'.mnd-prime { background: #2563eb; border: 1px solid #2563eb; color: #fff; }\n' +
+'.mnd-prime:hover { background: #1d4ed8; }\n' +
+'.mnd-prime:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.mnd-x { background: none; border: 0; color: #6b7280; cursor: pointer; padding: 4px; border-radius: 6px; }\n' +
+'.mnd-x:hover { background: #f9fafb; color: #111827; }\n' +
+'.mnd-x svg { width: 18px; height: 18px; }\n' +
+'.mnd-open { display: inline-flex; align-items: center; gap: 10px; }\n' +
+'.mnd-open svg { width: 18px; height: 18px; }\n' +
+'.mnd { position: fixed; top: 0; left: 0; bottom: 0; width: min(280px, 84vw); background: #fff; box-shadow: 12px 0 40px rgba(0,0,0,0.18); transform: translateX(-100%); transition: transform 0.25s cubic-bezier(0.3, 0.9, 0.4, 1); z-index: 11; display: flex; flex-direction: column; }\n' +
+'.mnd.on { transform: none; }\n' +
+'.mnd .hd { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 12px 20px; }\n' +
+'.mnd .hd b { font-size: 16px; }\n' +
+'.mnd nav { padding: 6px 10px; flex: 1; }\n' +
+'.mnd nav a { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 8px; font-size: 14.5px; color: #374151; text-decoration: none; }\n' +
+'.mnd nav a svg { width: 18px; height: 18px; color: #9ca3af; }\n' +
+'.mnd nav a:hover { background: #f9fafb; }\n' +
+'.mnd nav a.on { background: #eff6ff; color: #1d4ed8; font-weight: 500; }\n' +
+'.mnd nav a.on svg { color: #2563eb; }\n' +
+'.mnd .ft { padding: 14px 20px 18px; border-top: 1px solid #e5e7eb; display: flex; align-items: center; gap: 10px; font-size: 13px; }\n' +
+'.mnd .ft i { width: 32px; height: 32px; border-radius: 50%; background: #111827; color: #fff; display: flex; align-items: center; justify-content: center; font: 600 12px system-ui, sans-serif; }\n' +
+'.mnd .ft small { display: block; color: #6b7280; font-size: 12px; }\n' +
+'</style>\n' +
+'<div class="mnd-stage">\n' +
+'  <button class="mnd-open" type="button" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menu</button>\n' +
+'  <div class="mnd-scrim" hidden></div>\n' +
+'  <aside class="mnd" role="dialog" aria-modal="true" aria-label="Menu" hidden>\n' +
+'    <div class="hd"><b>Northwind</b><button class="mnd-x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>\n' +
+'    <nav>\n' +
+'      <a href="#" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg>Home</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v13H3zM3 7l3-4h12l3 4"/></svg>Projects</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 15V9M12 15V6M16 15v-4"/></svg>Reports</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8"/></svg>Team</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 0 0-1.7-1l-.4-2.5h-4l-.4 2.5a7 7 0 0 0-1.7 1l-2.3-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5c.1-.3.1-.7.1-1z"/></svg>Settings</a>\n' +
+'    </nav>\n' +
+'    <div class="ft"><i>EV</i><span>Eleanor Vance<small>Admin</small></span></div>\n' +
+'  </aside>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mnd-stage"), open = stage.querySelector(".mnd-open"), scrim = stage.querySelector(".mnd-scrim"), panel = stage.querySelector(".mnd");\n' +
+'  function show() { scrim.hidden = false; panel.hidden = false; requestAnimationFrame(function () { scrim.classList.add("on"); panel.classList.add("on"); }); var f = panel.querySelector("nav a"); if (f) f.focus(); stage.dispatchEvent(new Event("opened")); }\n' +
+'  function hide() { scrim.classList.remove("on"); panel.classList.remove("on"); setTimeout(function () { scrim.hidden = true; panel.hidden = true; open.focus(); }, 200); stage.dispatchEvent(new Event("closed")); }\n' +
+'  open.addEventListener("click", show);\n' +
+'  scrim.addEventListener("click", hide);\n' +
+'  stage.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });\n' +
+'  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) hide(); });\n' +
+'  stage.show = show; stage.hide = hide;\n' +
+'})();\n' +
+'(function () {\n' +
+'  var nav = document.querySelector(".mnd nav");\n' +
+'  nav.addEventListener("click", function (e) { var a = e.target.closest("a"); if (!a) return; e.preventDefault(); nav.querySelectorAll("a").forEach(function (x) { x.classList.toggle("on", x === a); }); document.querySelector(".mnd-stage").hide(); });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'mod-cookies', name: 'Cookie Preferences Modal', cat: 'Modals', dark: false, fill: true, wide: true, h: 480, code:
+'<style>\n' +
+'.mck-stage { min-height: 100%; box-sizing: border-box; padding: 40px 26px; background: #f9fafb; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; display: flex; align-items: center; justify-content: center;  }\n' +
+'.mck-stage [hidden] { display: none !important; }\n' +
+'.mck-open { font: 500 14px system-ui, sans-serif; background: #111827; color: #fff; border: 1px solid #111827; border-radius: 8px; padding: 12px 22px; cursor: pointer; }\n' +
+'.mck-open:hover { background: #1f2937; }\n' +
+'.mck-scrim { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); opacity: 0; transition: opacity 0.2s ease; z-index: 10; }\n' +
+'.mck-scrim.on { opacity: 1; }\n' +
+'.mck-btn { font: 500 14px system-ui, sans-serif; border-radius: 8px; padding: 10px 16px; cursor: pointer; }\n' +
+'.mck-ghost { background: #fff; border: 1px solid #d1d5db; color: #374151; }\n' +
+'.mck-ghost:hover { background: #f9fafb; }\n' +
+'.mck-prime { background: #2563eb; border: 1px solid #2563eb; color: #fff; }\n' +
+'.mck-prime:hover { background: #1d4ed8; }\n' +
+'.mck-prime:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.mck-x { background: none; border: 0; color: #6b7280; cursor: pointer; padding: 4px; border-radius: 6px; }\n' +
+'.mck-x:hover { background: #f9fafb; color: #111827; }\n' +
+'.mck-x svg { width: 18px; height: 18px; }\n' +
+'.mck { position: fixed; left: 50%; top: 50%; width: min(460px, 92vw); transform: translate(-50%, -46%) scale(0.98); opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; background: #fff; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); z-index: 11; overflow: hidden; }\n' +
+'.mck.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }\n' +
+'.mck .hd { padding: 18px 20px 6px; }\n' +
+'.mck h3 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }\n' +
+'.mck p { margin: 0; font-size: 13.5px; color: #6b7280; line-height: 1.5; }\n' +
+'.mck .list { padding: 8px 20px 4px; }\n' +
+'.mck .it { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-top: 1px solid #e5e7eb; }\n' +
+'.mck .it b { display: block; font-size: 14px; font-weight: 500; }\n' +
+'.mck .it small { display: block; font-size: 12.5px; color: #6b7280; margin-top: 2px; }\n' +
+'.mck .sw { position: relative; width: 40px; height: 22px; flex-shrink: 0; }\n' +
+'.mck .sw input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }\n' +
+'.mck .sw input:disabled { cursor: not-allowed; }\n' +
+'.mck .sw span { position: absolute; inset: 0; background: #d1d5db; border-radius: 11px; transition: background 0.2s ease; }\n' +
+'.mck .sw span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.2s ease; }\n' +
+'.mck .sw input:checked + span { background: #2563eb; }\n' +
+'.mck .sw input:disabled + span { background: #93c5fd; }\n' +
+'.mck .sw input:checked + span::after { transform: translateX(18px); }\n' +
+'.mck .ft { display: flex; justify-content: space-between; gap: 8px; padding: 14px 20px 18px; border-top: 1px solid #e5e7eb; }\n' +
+'.mck .ft div { display: flex; gap: 8px; }\n' +
+'.mck .saved { font-size: 12.5px; color: #16a34a; align-self: center; }\n' +
+'</style>\n' +
+'<div class="mck-stage">\n' +
+'  <button class="mck-open" type="button">Cookie preferences</button>\n' +
+'  <div class="mck-scrim" hidden></div>\n' +
+'  <div class="mck" role="dialog" aria-modal="true" aria-label="Cookie preferences" hidden>\n' +
+'    <div class="hd"><h3>Cookie preferences</h3><p>Choose what we can use. Necessary cookies keep the site working and cannot be turned off.</p></div>\n' +
+'    <div class="list">\n' +
+'      <div class="it"><div><b>Necessary</b><small>Sign-in, security, your basket.</small></div><label class="sw"><input type="checkbox" checked disabled><span></span></label></div>\n' +
+'      <div class="it"><div><b>Analytics</b><small>Anonymous usage so we can improve pages.</small></div><label class="sw"><input type="checkbox" name="analytics" checked><span></span></label></div>\n' +
+'      <div class="it"><div><b>Marketing</b><small>Relevant offers here and on other sites.</small></div><label class="sw"><input type="checkbox" name="marketing"><span></span></label></div>\n' +
+'    </div>\n' +
+'    <div class="ft"><span class="saved"></span><div><button class="mck-btn mck-ghost save" type="button">Save choices</button><button class="mck-btn mck-prime all" type="button">Accept all</button></div></div>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mck-stage"), open = stage.querySelector(".mck-open"), scrim = stage.querySelector(".mck-scrim"), panel = stage.querySelector(".mck");\n' +
+'  function show() { scrim.hidden = false; panel.hidden = false; requestAnimationFrame(function () { scrim.classList.add("on"); panel.classList.add("on"); }); var f = panel.querySelector(".save"); if (f) f.focus(); stage.dispatchEvent(new Event("opened")); }\n' +
+'  function hide() { scrim.classList.remove("on"); panel.classList.remove("on"); setTimeout(function () { scrim.hidden = true; panel.hidden = true; open.focus(); }, 200); stage.dispatchEvent(new Event("closed")); }\n' +
+'  open.addEventListener("click", show);\n' +
+'  scrim.addEventListener("click", hide);\n' +
+'  stage.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });\n' +
+'  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) hide(); });\n' +
+'  stage.show = show; stage.hide = hide;\n' +
+'})();\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mck-stage"), box = stage.querySelector(".mck"), open = stage.querySelector(".mck-open");\n' +
+'  function done(label) { open.textContent = label; stage.hide(); setTimeout(function () { open.textContent = "Cookie preferences"; }, 2500); }\n' +
+'  box.querySelector(".all").addEventListener("click", function () { box.querySelectorAll("input:not(:disabled)").forEach(function (i) { i.checked = true; }); done("All cookies accepted"); });\n' +
+'  box.querySelector(".save").addEventListener("click", function () { var on = Array.prototype.filter.call(box.querySelectorAll("input:not(:disabled)"), function (i) { return i.checked; }).length; done("Saved: necessary + " + on + " optional"); });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'mod-progress', name: 'Progress Modal', cat: 'Modals', dark: false, fill: true, wide: true, h: 400, code:
+'<style>\n' +
+'.mpg-stage { min-height: 100%; box-sizing: border-box; padding: 40px 26px; background: #f9fafb; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; display: flex; align-items: center; justify-content: center;  }\n' +
+'.mpg-stage [hidden] { display: none !important; }\n' +
+'.mpg-open { font: 500 14px system-ui, sans-serif; background: #111827; color: #fff; border: 1px solid #111827; border-radius: 8px; padding: 12px 22px; cursor: pointer; }\n' +
+'.mpg-open:hover { background: #1f2937; }\n' +
+'.mpg-scrim { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); opacity: 0; transition: opacity 0.2s ease; z-index: 10; }\n' +
+'.mpg-scrim.on { opacity: 1; }\n' +
+'.mpg-btn { font: 500 14px system-ui, sans-serif; border-radius: 8px; padding: 10px 16px; cursor: pointer; }\n' +
+'.mpg-ghost { background: #fff; border: 1px solid #d1d5db; color: #374151; }\n' +
+'.mpg-ghost:hover { background: #f9fafb; }\n' +
+'.mpg-prime { background: #2563eb; border: 1px solid #2563eb; color: #fff; }\n' +
+'.mpg-prime:hover { background: #1d4ed8; }\n' +
+'.mpg-prime:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.mpg-x { background: none; border: 0; color: #6b7280; cursor: pointer; padding: 4px; border-radius: 6px; }\n' +
+'.mpg-x:hover { background: #f9fafb; color: #111827; }\n' +
+'.mpg-x svg { width: 18px; height: 18px; }\n' +
+'.mpg { position: fixed; left: 50%; top: 50%; width: min(380px, 92vw); transform: translate(-50%, -46%) scale(0.98); opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; background: #fff; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); z-index: 11; overflow: hidden; }\n' +
+'.mpg.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }\n' +
+'.mpg .body { padding: 22px 22px 18px; }\n' +
+'.mpg h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }\n' +
+'.mpg p { margin: 0 0 16px; font-size: 13.5px; color: #6b7280; }\n' +
+'.mpg .track { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }\n' +
+'.mpg .track i { display: block; height: 100%; width: 0; background: #2563eb; border-radius: 4px; transition: width 0.4s ease; }\n' +
+'.mpg .meta { display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; margin-top: 8px; font-variant-numeric: tabular-nums; }\n' +
+'.mpg .ft { display: flex; justify-content: flex-end; padding: 0 22px 18px; }\n' +
+'.mpg .done { color: #16a34a; }\n' +
+'.mpg-hint { position: absolute; bottom: 22px; left: 0; right: 0; text-align: center; font-size: 12px; color: #9ca3af; }\n' +
+'</style>\n' +
+'<div class="mpg-stage">\n' +
+'  <button class="mpg-open" type="button">Upload 8 files</button>\n' +
+'  <div class="mpg-scrim" hidden></div>\n' +
+'  <div class="mpg" role="dialog" aria-modal="true" aria-label="Uploading" hidden>\n' +
+'    <div class="body"><h3 class="t">Uploading</h3><p class="s">Keep this window open until it finishes.</p><div class="track"><i></i></div><div class="meta"><span class="cur">Preparing</span><span class="pct">0%</span></div></div>\n' +
+'    <div class="ft"><button class="mpg-btn mpg-ghost cancel" type="button" data-close>Cancel</button></div>\n' +
+'  </div>\n' +
+'  <div class="mpg-hint">Cannot be dismissed by clicking outside or pressing Escape</div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mpg-stage"), open = stage.querySelector(".mpg-open"), scrim = stage.querySelector(".mpg-scrim"), panel = stage.querySelector(".mpg");\n' +
+'  function show() { scrim.hidden = false; panel.hidden = false; requestAnimationFrame(function () { scrim.classList.add("on"); panel.classList.add("on"); }); var f = panel.querySelector(".cancel"); if (f) f.focus(); stage.dispatchEvent(new Event("opened")); }\n' +
+'  function hide() { scrim.classList.remove("on"); panel.classList.remove("on"); setTimeout(function () { scrim.hidden = true; panel.hidden = true; open.focus(); }, 200); stage.dispatchEvent(new Event("closed")); }\n' +
+'  open.addEventListener("click", show);\n' +
+'  \n' +
+'  stage.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });\n' +
+'  \n' +
+'  stage.show = show; stage.hide = hide;\n' +
+'})();\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mpg-stage"), bar = stage.querySelector(".track i"), cur = stage.querySelector(".cur"), pct = stage.querySelector(".pct"), t = stage.querySelector(".t"), s = stage.querySelector(".s"), cancel = stage.querySelector(".cancel");\n' +
+'  var files = ["hero.png", "team.jpg", "pricing.pdf", "logo.svg", "deck.pdf", "photo-1.jpg", "photo-2.jpg", "notes.txt"], i = 0, timer = null;\n' +
+'  function reset() { clearInterval(timer); i = 0; bar.style.width = "0%"; pct.textContent = "0%"; cur.textContent = "Preparing"; t.textContent = "Uploading"; t.className = "t"; s.textContent = "Keep this window open until it finishes."; cancel.textContent = "Cancel"; }\n' +
+'  stage.addEventListener("opened", function () {\n' +
+'    reset();\n' +
+'    timer = setInterval(function () {\n' +
+'      i++; bar.style.width = (i / files.length * 100) + "%"; pct.textContent = Math.round(i / files.length * 100) + "%";\n' +
+'      if (i < files.length) cur.textContent = "Uploading " + files[i] + " (" + (i + 1) + " of " + files.length + ")";\n' +
+'      else { clearInterval(timer); cur.textContent = "All files uploaded"; t.textContent = "Done"; t.className = "t done"; s.textContent = "8 files are in your library."; cancel.textContent = "Close"; }\n' +
+'    }, 650);\n' +
+'  });\n' +
+'  stage.addEventListener("closed", function () { clearInterval(timer); });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'mod-typeconfirm', name: 'Type to Confirm Modal', cat: 'Modals', dark: false, fill: true, wide: true, h: 440, code:
+'<style>\n' +
+'.mtc-stage { min-height: 100%; box-sizing: border-box; padding: 40px 26px; background: #f9fafb; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; display: flex; align-items: center; justify-content: center;  }\n' +
+'.mtc-stage [hidden] { display: none !important; }\n' +
+'.mtc-open { font: 500 14px system-ui, sans-serif; background: #111827; color: #fff; border: 1px solid #111827; border-radius: 8px; padding: 12px 22px; cursor: pointer; }\n' +
+'.mtc-open:hover { background: #1f2937; }\n' +
+'.mtc-scrim { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); opacity: 0; transition: opacity 0.2s ease; z-index: 10; }\n' +
+'.mtc-scrim.on { opacity: 1; }\n' +
+'.mtc-btn { font: 500 14px system-ui, sans-serif; border-radius: 8px; padding: 10px 16px; cursor: pointer; }\n' +
+'.mtc-ghost { background: #fff; border: 1px solid #d1d5db; color: #374151; }\n' +
+'.mtc-ghost:hover { background: #f9fafb; }\n' +
+'.mtc-prime { background: #2563eb; border: 1px solid #2563eb; color: #fff; }\n' +
+'.mtc-prime:hover { background: #1d4ed8; }\n' +
+'.mtc-prime:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.mtc-x { background: none; border: 0; color: #6b7280; cursor: pointer; padding: 4px; border-radius: 6px; }\n' +
+'.mtc-x:hover { background: #f9fafb; color: #111827; }\n' +
+'.mtc-x svg { width: 18px; height: 18px; }\n' +
+'.mtc { position: fixed; left: 50%; top: 50%; width: min(420px, 92vw); transform: translate(-50%, -46%) scale(0.98); opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; background: #fff; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); z-index: 11; overflow: hidden; }\n' +
+'.mtc.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }\n' +
+'.mtc .body { padding: 20px 22px 6px; }\n' +
+'.mtc h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }\n' +
+'.mtc p { margin: 0 0 14px; font-size: 13.5px; color: #6b7280; line-height: 1.55; }\n' +
+'.mtc p code { font: 13px ui-monospace, Menlo, monospace; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; padding: 1px 6px; color: #111827; }\n' +
+'.mtc .in { width: 100%; box-sizing: border-box; font: 14px ui-monospace, Menlo, monospace; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px; outline: none; }\n' +
+'.mtc .in:focus { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.12); }\n' +
+'.mtc .ft { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px 18px; }\n' +
+'.mtc .danger { background: #dc2626; border-color: #dc2626; }\n' +
+'.mtc .danger:hover:not(:disabled) { background: #b91c1c; }\n' +
+'</style>\n' +
+'<div class="mtc-stage">\n' +
+'  <button class="mtc-open" type="button">Delete repository</button>\n' +
+'  <div class="mtc-scrim" hidden></div>\n' +
+'  <div class="mtc" role="dialog" aria-modal="true" aria-label="Delete repository" hidden>\n' +
+'    <div class="body"><h3>Delete northwind/phoenix?</h3><p>This removes the repository, its issues and every release. To confirm, type <code>northwind/phoenix</code> below.</p><input class="in" type="text" autocomplete="off" spellcheck="false" placeholder="northwind/phoenix"></div>\n' +
+'    <div class="ft"><button class="mtc-btn mtc-ghost" type="button" data-close>Cancel</button><button class="mtc-btn mtc-prime danger del" type="button" disabled>Delete this repository</button></div>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mtc-stage"), open = stage.querySelector(".mtc-open"), scrim = stage.querySelector(".mtc-scrim"), panel = stage.querySelector(".mtc");\n' +
+'  function show() { scrim.hidden = false; panel.hidden = false; requestAnimationFrame(function () { scrim.classList.add("on"); panel.classList.add("on"); }); var f = panel.querySelector(".in"); if (f) f.focus(); stage.dispatchEvent(new Event("opened")); }\n' +
+'  function hide() { scrim.classList.remove("on"); panel.classList.remove("on"); setTimeout(function () { scrim.hidden = true; panel.hidden = true; open.focus(); }, 200); stage.dispatchEvent(new Event("closed")); }\n' +
+'  open.addEventListener("click", show);\n' +
+'  scrim.addEventListener("click", hide);\n' +
+'  stage.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });\n' +
+'  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) hide(); });\n' +
+'  stage.show = show; stage.hide = hide;\n' +
+'})();\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mtc-stage"), input = stage.querySelector(".in"), del = stage.querySelector(".del");\n' +
+'  input.addEventListener("input", function () { del.disabled = input.value.trim() !== "northwind/phoenix"; });\n' +
+'  del.addEventListener("click", function () { stage.querySelector(".mtc-open").textContent = "Repository deleted"; stage.hide(); });\n' +
+'  stage.addEventListener("opened", function () { input.value = ""; del.disabled = true; });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'mod-shortcuts', name: 'Keyboard Shortcuts Modal', cat: 'Modals', dark: false, fill: true, wide: true, h: 460, code:
+'<style>\n' +
+'.mks-stage { min-height: 100%; box-sizing: border-box; padding: 40px 26px; background: #f9fafb; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; display: flex; align-items: center; justify-content: center;  }\n' +
+'.mks-stage [hidden] { display: none !important; }\n' +
+'.mks-open { font: 500 14px system-ui, sans-serif; background: #111827; color: #fff; border: 1px solid #111827; border-radius: 8px; padding: 12px 22px; cursor: pointer; }\n' +
+'.mks-open:hover { background: #1f2937; }\n' +
+'.mks-scrim { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); opacity: 0; transition: opacity 0.2s ease; z-index: 10; }\n' +
+'.mks-scrim.on { opacity: 1; }\n' +
+'.mks-btn { font: 500 14px system-ui, sans-serif; border-radius: 8px; padding: 10px 16px; cursor: pointer; }\n' +
+'.mks-ghost { background: #fff; border: 1px solid #d1d5db; color: #374151; }\n' +
+'.mks-ghost:hover { background: #f9fafb; }\n' +
+'.mks-prime { background: #2563eb; border: 1px solid #2563eb; color: #fff; }\n' +
+'.mks-prime:hover { background: #1d4ed8; }\n' +
+'.mks-prime:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.mks-x { background: none; border: 0; color: #6b7280; cursor: pointer; padding: 4px; border-radius: 6px; }\n' +
+'.mks-x:hover { background: #f9fafb; color: #111827; }\n' +
+'.mks-x svg { width: 18px; height: 18px; }\n' +
+'.mks { position: fixed; left: 50%; top: 50%; width: min(520px, 92vw); transform: translate(-50%, -46%) scale(0.98); opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; background: #fff; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); z-index: 11; overflow: hidden; }\n' +
+'.mks.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }\n' +
+'.mks .hd { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }\n' +
+'.mks .hd b { font-size: 15px; }\n' +
+'.mks .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; padding: 14px 20px 18px; }\n' +
+'.mks h4 { margin: 8px 0 6px; font-size: 12px; font-weight: 600; color: #6b7280; }\n' +
+'.mks .r { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 13.5px; color: #374151; }\n' +
+'.mks kbd { display: inline-block; min-width: 18px; text-align: center; font: 600 11.5px system-ui, sans-serif; color: #374151; background: #f9fafb; border: 1px solid #d1d5db; border-bottom-width: 2px; border-radius: 5px; padding: 3px 6px; margin-left: 4px; }\n' +
+'.mks-hint { position: absolute; bottom: 22px; left: 0; right: 0; text-align: center; font-size: 12px; color: #9ca3af; }\n' +
+'@media (max-width: 560px) { .mks .cols { grid-template-columns: 1fr; } }\n' +
+'</style>\n' +
+'<div class="mks-stage">\n' +
+'  <button class="mks-open" type="button">Keyboard shortcuts</button>\n' +
+'  <div class="mks-scrim" hidden></div>\n' +
+'  <div class="mks" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" hidden>\n' +
+'    <div class="hd"><b>Keyboard shortcuts</b><button class="mks-x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>\n' +
+'    <div class="cols">\n' +
+'      <div><h4>Navigation</h4><div class="r"><span>Go to home</span><span><kbd>G</kbd><kbd>H</kbd></span></div><div class="r"><span>Go to projects</span><span><kbd>G</kbd><kbd>P</kbd></span></div><div class="r"><span>Search</span><span><kbd>/</kbd></span></div><div class="r"><span>Command palette</span><span><kbd>Ctrl</kbd><kbd>K</kbd></span></div></div>\n' +
+'      <div><h4>Actions</h4><div class="r"><span>New item</span><span><kbd>N</kbd></span></div><div class="r"><span>Save</span><span><kbd>Ctrl</kbd><kbd>S</kbd></span></div><div class="r"><span>Undo</span><span><kbd>Ctrl</kbd><kbd>Z</kbd></span></div><div class="r"><span>This help</span><span><kbd>?</kbd></span></div></div>\n' +
+'    </div>\n' +
+'  </div>\n' +
+'  <div class="mks-hint">Press ? anywhere to open this</div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mks-stage"), open = stage.querySelector(".mks-open"), scrim = stage.querySelector(".mks-scrim"), panel = stage.querySelector(".mks");\n' +
+'  function show() { scrim.hidden = false; panel.hidden = false; requestAnimationFrame(function () { scrim.classList.add("on"); panel.classList.add("on"); }); var f = panel.querySelector(".mks-x"); if (f) f.focus(); stage.dispatchEvent(new Event("opened")); }\n' +
+'  function hide() { scrim.classList.remove("on"); panel.classList.remove("on"); setTimeout(function () { scrim.hidden = true; panel.hidden = true; open.focus(); }, 200); stage.dispatchEvent(new Event("closed")); }\n' +
+'  open.addEventListener("click", show);\n' +
+'  scrim.addEventListener("click", hide);\n' +
+'  stage.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });\n' +
+'  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) hide(); });\n' +
+'  stage.show = show; stage.hide = hide;\n' +
+'})();\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mks-stage");\n' +
+'  document.addEventListener("keydown", function (e) { if (e.key === "?" && stage.querySelector(".mks").hidden) { e.preventDefault(); stage.show(); } });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
+  T.push({ id: 'mod-newsletter', name: 'Newsletter Popup', cat: 'Modals', dark: false, fill: true, wide: true, h: 440, code:
+'<style>\n' +
+'.mnl-stage { min-height: 100%; box-sizing: border-box; padding: 40px 26px; background: #f9fafb; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; display: flex; align-items: center; justify-content: center;  }\n' +
+'.mnl-stage [hidden] { display: none !important; }\n' +
+'.mnl-open { font: 500 14px system-ui, sans-serif; background: #111827; color: #fff; border: 1px solid #111827; border-radius: 8px; padding: 12px 22px; cursor: pointer; }\n' +
+'.mnl-open:hover { background: #1f2937; }\n' +
+'.mnl-scrim { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); opacity: 0; transition: opacity 0.2s ease; z-index: 10; }\n' +
+'.mnl-scrim.on { opacity: 1; }\n' +
+'.mnl-btn { font: 500 14px system-ui, sans-serif; border-radius: 8px; padding: 10px 16px; cursor: pointer; }\n' +
+'.mnl-ghost { background: #fff; border: 1px solid #d1d5db; color: #374151; }\n' +
+'.mnl-ghost:hover { background: #f9fafb; }\n' +
+'.mnl-prime { background: #2563eb; border: 1px solid #2563eb; color: #fff; }\n' +
+'.mnl-prime:hover { background: #1d4ed8; }\n' +
+'.mnl-prime:disabled { opacity: 0.45; cursor: not-allowed; }\n' +
+'.mnl-x { background: none; border: 0; color: #6b7280; cursor: pointer; padding: 4px; border-radius: 6px; }\n' +
+'.mnl-x:hover { background: #f9fafb; color: #111827; }\n' +
+'.mnl-x svg { width: 18px; height: 18px; }\n' +
+'.mnl { position: fixed; left: 50%; top: 50%; width: min(560px, 92vw); transform: translate(-50%, -46%) scale(0.98); opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; background: #fff; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); z-index: 11; overflow: hidden; }\n' +
+'.mnl.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }\n' +
+'.mnl .grid { display: grid; grid-template-columns: 200px 1fr; }\n' +
+'.mnl .art { background: linear-gradient(160deg, #7c5cbf, #b0538c 55%, #d98a4e); }\n' +
+'.mnl .body { padding: 26px 24px 22px; position: relative; }\n' +
+'.mnl .x { position: absolute; top: 10px; right: 10px; }\n' +
+'.mnl .eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; color: #2563eb; margin-bottom: 8px; }\n' +
+'.mnl h3 { margin: 0 0 6px; font-size: 20px; font-weight: 600; line-height: 1.25; }\n' +
+'.mnl p { margin: 0 0 16px; font-size: 13.5px; color: #6b7280; line-height: 1.5; }\n' +
+'.mnl .row { display: flex; gap: 8px; }\n' +
+'.mnl .in { flex: 1; min-width: 0; font: 14px system-ui, sans-serif; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px; outline: none; }\n' +
+'.mnl .in:focus { border-color: #2563eb; }\n' +
+'.mnl .in.bad { border-color: #dc2626; }\n' +
+'.mnl .no { display: block; background: none; border: 0; color: #9ca3af; font: 12.5px system-ui, sans-serif; margin-top: 12px; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }\n' +
+'.mnl .ok { font-size: 14px; color: #16a34a; padding: 8px 0; }\n' +
+'@media (max-width: 560px) { .mnl .grid { grid-template-columns: 1fr; } .mnl .art { height: 90px; } }\n' +
+'</style>\n' +
+'<div class="mnl-stage">\n' +
+'  <button class="mnl-open" type="button">Show newsletter popup</button>\n' +
+'  <div class="mnl-scrim" hidden></div>\n' +
+'  <div class="mnl" role="dialog" aria-modal="true" aria-label="Newsletter" hidden>\n' +
+'    <div class="grid">\n' +
+'      <div class="art"></div>\n' +
+'      <div class="body">\n' +
+'        <button class="mnl-x x" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>\n' +
+'        <div class="eyebrow">Once a week</div>\n' +
+'        <h3>The good stuff, before everyone else</h3>\n' +
+'        <p>New pieces, the occasional discount, and nothing else. Unsubscribe in one click.</p>\n' +
+'        <form class="row" novalidate><input class="in" type="email" placeholder="you@company.com" autocomplete="email"><button class="mnl-btn mnl-prime" type="submit">Subscribe</button></form>\n' +
+'        <div class="ok" hidden>You are in. Check your inbox to confirm.</div>\n' +
+'        <button class="no" type="button" data-close>No thanks</button>\n' +
+'      </div>\n' +
+'    </div>\n' +
+'  </div>\n' +
+'</div>\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mnl-stage"), open = stage.querySelector(".mnl-open"), scrim = stage.querySelector(".mnl-scrim"), panel = stage.querySelector(".mnl");\n' +
+'  function show() { scrim.hidden = false; panel.hidden = false; requestAnimationFrame(function () { scrim.classList.add("on"); panel.classList.add("on"); }); var f = panel.querySelector(".in"); if (f) f.focus(); stage.dispatchEvent(new Event("opened")); }\n' +
+'  function hide() { scrim.classList.remove("on"); panel.classList.remove("on"); setTimeout(function () { scrim.hidden = true; panel.hidden = true; open.focus(); }, 200); stage.dispatchEvent(new Event("closed")); }\n' +
+'  open.addEventListener("click", show);\n' +
+'  scrim.addEventListener("click", hide);\n' +
+'  stage.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", hide); });\n' +
+'  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) hide(); });\n' +
+'  stage.show = show; stage.hide = hide;\n' +
+'})();\n' +
+'(function () {\n' +
+'  var stage = document.querySelector(".mnl-stage"), form = stage.querySelector("form"), input = form.querySelector(".in"), ok = stage.querySelector(".ok");\n' +
+'  form.addEventListener("submit", function (e) {\n' +
+'    e.preventDefault();\n' +
+'    var v = input.value.trim(), at = v.indexOf("@");\n' +
+'    if (!(at > 0 && v.indexOf(".", at) > at + 1)) { input.classList.add("bad"); input.focus(); return; }\n' +
+'    input.classList.remove("bad"); form.hidden = true; ok.hidden = false;\n' +
+'    setTimeout(function () { stage.hide(); }, 1800);\n' +
+'  });\n' +
+'  stage.addEventListener("opened", function () { form.hidden = false; ok.hidden = true; input.value = ""; input.classList.remove("bad"); });\n' +
+'})();\n' +
+'<\/script>'
+  });
+
   /* ════════════════════════════════════════════════════════
      RENDER + INTERACTIONS
      ════════════════════════════════════════════════════════ */
