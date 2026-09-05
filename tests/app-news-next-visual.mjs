@@ -47,13 +47,13 @@ const NEXT = [
   { title: "Inflation Rate MoM", country: "USD", date: "2026-09-11T12:30:00.000Z", impact: "High", forecast: "0.4%", previous: "0.1%", actual: "", source: "tradingview" },
   { title: "Michigan Consumer Sentiment Prel", country: "USD", date: "2026-09-11T14:00:00.000Z", impact: "High", forecast: "", previous: "51.7", actual: "", source: "tradingview" },
 ];
-async function stubWorker(page) {
+async function stubWorker(page, current = CURRENT, live = LIVE) {
   await page.route(WORKER, (route) => {
     const u = route.request().url();
-    if (u.endsWith("weeks.json")) return route.fulfill(json({ weeks: [CURRENT], current: CURRENT }));
-    if (u.includes("week=next")) return route.fulfill(json(NEXT));
+    if (u.endsWith("weeks.json")) return route.fulfill(json({ weeks: [current], current }));
+    if (u.includes("week=next")) return route.fulfill(json(current === CURRENT ? NEXT : []));
     if (u.includes("week=")) return route.fulfill(json({ error: "no record" }, 404));
-    return route.fulfill(json(LIVE));
+    return route.fulfill(json(live));
   });
 }
 const state = (page) => page.evaluate(() => ({
@@ -68,13 +68,13 @@ const state = (page) => page.evaluate(() => ({
 }));
 
 const browser = await chromium.launch();
-async function open(clockAt) {
+async function open(clockAt, current = CURRENT, live = LIVE) {
   const ctx = await browser.newContext({ ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
   const page = await ctx.newPage();
   page.on("pageerror", (e) => fails.push("pageerror: " + e.message));
   if (clockAt) { await page.clock.install({ time: clockAt }); await page.clock.setFixedTime(clockAt); }
-  await stubWorker(page);
+  await stubWorker(page, current, live);
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#ov-hi", { timeout: 25000 });
   await page.evaluate(() => document.querySelector('.tab[data-view="news"]').click());
@@ -93,7 +93,11 @@ async function open(clockAt) {
   await page.waitForFunction(() => document.getElementById("news-week").textContent === "next week", null, { timeout: 5000 }).catch(() => fails.push("› did not open next week"));
   await page.waitForTimeout(300);
   const nx = await state(page); note("next: " + JSON.stringify(nx));
-  if (nx.rows !== 4 || nx.gold !== 1 || nx.dimmed !== 0 || !nx.note || nx.prev || !nx.next || nx.days.includes("Today")) fails.push("next week render wrong " + JSON.stringify(nx));
+  if (nx.rows !== 5 || nx.gold !== 1 || nx.dimmed !== 0 || !nx.note || nx.prev || !nx.next || nx.days.includes("Today")) fails.push("next week render wrong " + JSON.stringify(nx));
+  // Labor Day (Mon 9/7) comes from the built-in market calendar, on its own day, with the futures halt time
+  const hol = await page.evaluate(() => { const r = document.querySelector("#news-list .news-row.hol"); return r ? { day: r.previousElementSibling?.textContent, text: r.textContent, when: r.querySelector(".news-when").textContent } : null; });
+  note("holiday: " + JSON.stringify(hol));
+  if (!hol || !/Monday, Sep 7/.test(hol.day) || !/Labor Day · markets closed/.test(hol.text) || !/1:00pm ET/.test(hol.text) || hol.when !== "All day") fails.push("Labor Day row wrong " + JSON.stringify(hol));
   await page.screenshot({ path: `${OUT}/2-next.png` });
   await page.click("#news-prev");
   await page.waitForTimeout(300);
@@ -108,7 +112,7 @@ async function open(clockAt) {
   await page.waitForFunction(() => document.getElementById("news-week").textContent === "next week", null, { timeout: 6000 }).catch(() => fails.push("did not auto-advance to next week on Saturday"));
   await page.waitForTimeout(300);
   const auto = await state(page); note("saturday: " + JSON.stringify(auto));
-  if (auto.rows !== 4 || !auto.note || auto.prev) fails.push("auto next week wrong " + JSON.stringify(auto));
+  if (auto.rows !== 5 || !auto.note || auto.prev) fails.push("auto next week wrong " + JSON.stringify(auto));
   await page.screenshot({ path: `${OUT}/3-saturday-auto.png` });
   await page.click("#news-prev");
   await page.waitForTimeout(300);
@@ -117,6 +121,21 @@ async function open(clockAt) {
   await page.waitForTimeout(1200);
   const pinned = await state(page); note("pinned: " + JSON.stringify(pinned));
   if (pinned.label !== "this week" || pinned.rows !== 3 || pinned.next) fails.push("this week did not stay pinned after a poll " + JSON.stringify(pinned));
+  await ctx.close();
+}
+
+// ── 3. Thanksgiving week (Wed 11/25/26): closure Thursday, shortened Friday with the close time ──
+{
+  const { ctx, page } = await open(new Date("2026-11-25T15:00:00Z"), "2026-11-22", [
+    { title: "Unemployment Claims", country: "USD", date: "2026-11-25T13:30:00Z", impact: "Medium", forecast: "215K", previous: "213K" },
+    { title: "Bank Holiday", country: "USD", date: "2026-11-26T00:00:00-05:00", impact: "Holiday" },
+  ]);
+  const tg = await page.evaluate(() => [...document.querySelectorAll("#news-list .news-row.hol")].map((r) => ({ day: r.previousElementSibling?.classList.contains("news-day") ? r.previousElementSibling.textContent : "", when: r.querySelector(".news-when").textContent, text: r.querySelector(".news-title").textContent })));
+  note("thanksgiving: " + JSON.stringify(tg));
+  if (tg.length !== 2 || !/Thanksgiving · markets closed/.test(tg[0].text) || !/1:00pm ET/.test(tg[0].text) || tg[0].when !== "All day") fails.push("Thanksgiving row wrong " + JSON.stringify(tg));
+  if (tg.length !== 2 || !/shortened day/.test(tg[1].text) || !/1:00pm ET/.test(tg[1].text) || !/1:15pm ET/.test(tg[1].text) || tg[1].when !== "1:00 PM") fails.push("day-after row wrong " + JSON.stringify(tg));
+  if ((await page.locator("#news-list .news-row").count()) !== 3) fails.push("feed Bank Holiday row should be replaced by the calendar entry");
+  await page.screenshot({ path: `${OUT}/4-thanksgiving.png` });
   await ctx.close();
 }
 

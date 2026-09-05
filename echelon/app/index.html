@@ -1170,6 +1170,10 @@
     .news-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
     .news-dot.high { background: #d06a5a; }
     .news-dot.med { background: #d9953c; }
+    .news-dot.hol { background: none; border: 1.5px solid var(--gold); box-sizing: border-box; }
+    .news-row.hol .news-title { white-space: normal; }
+    .news-row.hol .news-title b { display: block; font-weight: 600; color: var(--ink); }
+    .news-row.hol .news-title small { display: block; font-size: 12px; color: var(--muted); line-height: 1.4; margin-top: 1px; }
     .news-when { color: var(--faint); font-size: 12px; width: 68px; flex: none; font-variant-numeric: tabular-nums; }
     .news-title { color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .news-row.major { box-shadow: inset 3px 0 0 var(--gold); padding-left: 12px; }
@@ -4852,7 +4856,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const res = await fetch(NEWS_URL)
         if (!res.ok) throw new Error('news ' + res.status)
         const rows = await res.json()
-        newsEvents = newsFilter(rows)
+        newsEvents = withHolidays(newsFilter(rows), newsCurrent())
         if (!NEWS.key) renderNews(newsEvents, true)   // browsing another week: leave it on screen
         renderOvNews()
         if (!NEWS.weeks.length) loadNewsWeeks()
@@ -4921,9 +4925,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     const newsTipEl = () => el('news-tip')
     let newsTipFor = null
-    function newsTipShow(btn, title) {
+    function newsTipShow(btn, title, override) {
       const tip = newsTipEl(); if (!tip) return
-      const [name, what, means] = newsGloss(title)
+      const [name, what, means] = override || newsGloss(title)
       tip.textContent = ''
       const b = document.createElement('b'); b.textContent = name
       const k1 = document.createElement('span'); k1.className = 'k'; k1.textContent = 'What it is'
@@ -4949,23 +4953,31 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     document.addEventListener('pointerdown', (e) => { if (newsTipFor && !e.target.closest('.news-q') && !e.target.closest('#news-tip')) newsTipHide() })
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && newsTipFor) newsTipHide() })
     window.addEventListener('scroll', () => { if (newsTipFor) newsTipHide() }, true)
-    function newsHelpButton(title) {
+    function newsHelpButton(title, override) {
       const q = document.createElement('button'); q.type = 'button'; q.className = 'news-q'; q.textContent = '?'
       q.setAttribute('aria-label', `What ${title} is and what it means`)
       let hover = false
-      q.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hover = true; newsTipShow(q, title) } })
+      q.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hover = true; newsTipShow(q, title, override) } })
       q.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && hover) { hover = false; newsTipHide() } })
-      q.addEventListener('click', (e) => { e.stopPropagation(); hover = false; if (newsTipFor === q) newsTipHide(); else newsTipShow(q, title) })
+      q.addEventListener('click', (e) => { e.stopPropagation(); hover = false; if (newsTipFor === q) newsTipHide(); else newsTipShow(q, title, override) })
       return q
     }
     function newsRow(e, now) {
       // NFP, CPI and the FOMC decision are the big ones: gold title, gold rule (D1, 9/3)
       const major = /non-?farm|\bNFP\b|\bCPI\b|consumer price|inflation rate|FOMC (statement|press conference|economic projections|meeting minutes)|federal funds rate|fed interest rate/i.test(e.title || '')
-      const row = document.createElement('div'); row.className = 'news-row' + (e.at.getTime() < now ? ' past' : '') + (major ? ' major' : '')
-      const dot = document.createElement('span'); dot.className = 'news-dot ' + (e.impact === 'High' ? 'high' : 'med'); dot.title = e.impact + ' impact'
-      const when = document.createElement('span'); when.className = 'news-when'; when.textContent = e.at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-      const t = document.createElement('span'); t.className = 'news-title'; t.textContent = e.title
+      const hol = e.impact === 'Holiday'
+      const past = hol ? (now && ET_DAY.format(e.at) < ET_DAY.format(new Date(now))) : e.at.getTime() < now
+      const row = document.createElement('div'); row.className = 'news-row' + (past ? ' past' : '') + (major ? ' major' : '') + (hol ? ' hol' : '')
+      const dot = document.createElement('span'); dot.className = 'news-dot ' + (hol ? 'hol' : e.impact === 'High' ? 'high' : 'med'); dot.title = hol ? 'Market holiday' : e.impact + ' impact'
+      const when = document.createElement('span'); when.className = 'news-when'; when.textContent = hol ? (e.kind === 'early' ? '1:00 PM' : 'All day') : e.at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+      const t = document.createElement('span'); t.className = 'news-title'
+      if (hol) {
+        const b = document.createElement('b'); b.textContent = e.kind === 'early' ? `${e.title} · shortened day` : `${e.title} · markets closed`
+        const sm = document.createElement('small'); sm.textContent = e.note
+        t.append(b, sm)
+      } else t.textContent = e.title
       row.append(dot, when, t)
+      if (hol) { row.appendChild(newsHelpButton(e.title, [e.kind === 'early' ? 'Shortened day' : 'Market holiday', e.kind === 'early' ? `${e.title}. The cash session ends early and most desks are gone by lunch.` : `${e.title}. The stock market is closed for the day.`, e.note + (e.kind === 'early' ? ' Volume thins out fast after the open; treat it as a half day.' : ' Without the cash session there is little flow to trade against; most of the edge is gone.')])); return row }
       // two fixed right-aligned slots so forecast/previous line up down the page
       const fp = document.createElement('span'); fp.className = 'news-fp'
       for (const [lbl, val] of [['F', e.forecast], ['P', e.previous]]) {
@@ -4977,8 +4989,40 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       row.appendChild(newsHelpButton(e.title))   // far right, after the numbers (D1, 9/4)
       return row
     }
+    /* ── US market calendar: full closures and shortened days, with the
+       times that matter for NQ. NYSE + CME equity-index schedule; neither
+       news feed marks early closes, so this is the source (D1, 9/4). ── */
+    const CLOSED = 'US stock market closed. NQ futures trade overnight, halt at 1:00pm ET, and reopen at 6:00pm ET.'
+    const EARLY = 'Shortened day. Stocks close at 1:00pm ET; NQ futures halt at 1:15pm ET and reopen at 6:00pm ET.'
+    const US_MARKET_DAYS = {
+      '2026-09-07': ['Labor Day', 'closed'], '2026-11-26': ['Thanksgiving', 'closed'], '2026-11-27': ['Day after Thanksgiving', 'early'],
+      '2026-12-24': ['Christmas Eve', 'early'], '2026-12-25': ['Christmas Day', 'closed'],
+      '2027-01-01': ['New Year’s Day', 'closed'], '2027-01-18': ['Martin Luther King Jr. Day', 'closed'], '2027-02-15': ['Presidents’ Day', 'closed'],
+      '2027-03-26': ['Good Friday', 'closed'], '2027-05-31': ['Memorial Day', 'closed'], '2027-06-18': ['Juneteenth', 'closed'],
+      '2027-07-05': ['Independence Day (observed)', 'closed'], '2027-09-06': ['Labor Day', 'closed'], '2027-11-25': ['Thanksgiving', 'closed'],
+      '2027-11-26': ['Day after Thanksgiving', 'early'], '2027-12-24': ['Christmas Day (observed)', 'closed'],
+    }
+    // Rows for the week starting `sunday` (YYYY-MM-DD): the built-in calendar
+    // first, then any feed holiday the calendar does not know about.
+    function withHolidays(list, sunday) {
+      const out = list.filter((e) => e.impact !== 'Holiday')
+      const days = new Set()
+      if (sunday) for (let i = 0; i < 7; i++) { const d = new Date(sunday + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + i); days.add(d.toISOString().slice(0, 10)) }
+      for (const d of days) {
+        const m = US_MARKET_DAYS[d]; if (!m) continue
+        out.push({ title: m[0], country: 'USD', impact: 'Holiday', kind: m[1], note: m[1] === 'early' ? EARLY : CLOSED, at: new Date(d + 'T12:00:00Z') })
+      }
+      for (const e of list) {
+        if (e.impact !== 'Holiday') continue
+        // feeds stamp holidays at midnight (FF local, TradingView UTC): the calendar date is the day
+        const d = /T00:00(:00)?/.test(e.date || '') ? String(e.date).slice(0, 10) : ET_DAY.format(e.at)
+        if (US_MARKET_DAYS[d] || (sunday && !days.has(d))) continue
+        out.push({ ...e, at: new Date(d + 'T12:00:00Z'), kind: 'closed', note: CLOSED })
+      }
+      return out.sort((a, b) => a.at - b.at)
+    }
     const newsFilter = (rows) => (Array.isArray(rows) ? rows : [])
-      .filter((e) => e.country === 'USD' && (e.impact === 'High' || e.impact === 'Medium'))
+      .filter((e) => e.country === 'USD' && (e.impact === 'High' || e.impact === 'Medium' || e.impact === 'Holiday'))
       .map((e) => ({ ...e, at: new Date(e.date) }))
       .filter((e) => !isNaN(e.at))
       .sort((a, b) => a.at - b.at)
@@ -5025,7 +5069,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function loadNextWeek() {
       try {
         const r = await fetch(`${NEWS_URL}?week=next`, { cache: 'no-cache' })
-        NEWS.next = r.ok ? newsFilter(await r.json()) : null
+        NEWS.next = r.ok ? withHolidays(newsFilter(await r.json()), newsNextKey()) : null
       } catch { NEWS.next = null }
       const nk = newsNextKey()
       if (NEWS.key === nk) renderNews(NEWS.next || [], false)   // keep the preview fresh while it is on screen
@@ -5037,10 +5081,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // feed to the new week on its own.
     function newsWeekDone() {
       const now = Date.now()
-      if (!newsEvents.every((e) => e.at.getTime() < now)) return false
+      const prints = newsEvents.filter((e) => e.impact !== 'Holiday')
+      if (!prints.every((e) => e.at.getTime() < now)) return false
       const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', hour12: false }).formatToParts(new Date()).map((x) => [x.type, x.value]))
       const hour = Number(p.hour) % 24
-      return p.weekday === 'Sat' || p.weekday === 'Sun' || hour >= 16 || !newsEvents.length
+      return p.weekday === 'Sat' || p.weekday === 'Sun' || hour >= 16 || !prints.length
     }
     const weekLabel = (key) => { const [y, m, d] = key.split('-').map(Number); const f = (off) => new Date(Date.UTC(y, m - 1, d + off)).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' }); return `${f(1)} – ${f(5)}` }
     async function loadNewsWeeks() {
@@ -5066,7 +5111,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       try {
         const r = await fetch(`${NEWS_URL}?week=${key}`, { cache: 'no-cache' })
         if (!r.ok) throw new Error('no record')
-        const list = newsFilter(await r.json())
+        const list = withHolidays(newsFilter(await r.json()), key)
         if (NEWS.key !== key) return
         renderNews(list, false)
       } catch {
