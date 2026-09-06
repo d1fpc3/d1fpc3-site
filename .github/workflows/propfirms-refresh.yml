@@ -1,0 +1,40 @@
+name: Prop firm prices
+
+# Nightly: read each firm's official plan pages and correct list prices in
+# echelon/propfirms/propfirms.json (scripts/propfirms-refresh.mjs). A change
+# is committed and the site deploy is dispatched, so the sheet cannot drift
+# the way MFFU did on 9/6/26. A probe failure fails the run on purpose.
+
+on:
+  schedule:
+    - cron: "20 11 * * 1-5"   # 07:20 ET summer / 06:20 ET winter, weekdays
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Refresh prices from the firms' pages
+        run: node scripts/propfirms-refresh.mjs
+      - name: Commit and deploy if anything moved
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- echelon/propfirms/propfirms.json; then
+            echo "no price changes"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add echelon/propfirms/propfirms.json
+          git commit -m "propfirms: prices refreshed from the firms' pages"
+          git push
+          # a push made with GITHUB_TOKEN does not trigger the deploy workflow on its own
+          gh workflow run deploy.yml --ref main
