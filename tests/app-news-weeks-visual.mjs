@@ -58,7 +58,7 @@ await page.waitForSelector("#news-list .news-row", { timeout: 20000 });
 await page.waitForTimeout(800);
 const live = await page.evaluate(() => ({ label: document.getElementById("news-week").textContent, prev: document.getElementById("news-prev").disabled, next: document.getElementById("news-next").disabled, rows: document.querySelectorAll("#news-list .news-row").length, today: !!document.querySelector("#news-list .news-day") }));
 note("live (real archive): " + JSON.stringify(live));
-if (live.label !== "this week" || !live.next || !live.rows) fails.push("live week state wrong " + JSON.stringify(live));
+if (live.label !== "this week" || !live.rows) fails.push("live week state wrong " + JSON.stringify(live));   // › may be enabled: next week preview (9/4)
 await page.locator("#v-news .block-head").screenshot({ path: `${OUT}/1-live-head.png` });
 
 // now with the stubbed archive: reload the week index, page back, page forward
@@ -84,7 +84,7 @@ await page.click("#news-next");
 await page.waitForTimeout(400);
 const back = await page.evaluate(() => ({ label: document.getElementById("news-week").textContent, next: document.getElementById("news-next").disabled, rows: document.querySelectorAll("#news-list .news-row").length }));
 note("back to live: " + JSON.stringify(back));
-if (back.label !== "this week" || !back.next || !back.rows) fails.push("› did not return to the live week " + JSON.stringify(back));
+if (back.label !== "this week" || !back.rows) fails.push("› did not return to the live week " + JSON.stringify(back));
 
 await browser.close();
 console.log(fails.length ? "FAIL\n - " + fails.join("\n - ") : "ALL OK");

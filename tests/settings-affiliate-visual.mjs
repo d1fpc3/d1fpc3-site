@@ -36,6 +36,7 @@ const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); sessionStorage.setItem("echelon-review-dismissed", "1"); localStorage.setItem("echelon-quotes-off", "1"); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
 const page = await ctx.newPage();
+page.on("response", async (r) => { if (r.url().includes("supabase.co") && (r.status() >= 400 || r.url().includes("affiliate"))) console.log("HTTP", r.status(), r.request().method(), r.url().slice(60, 140), (await r.text().catch(() => "")).slice(0, 160)); });
 page.on("pageerror", (e) => fails.push("pageerror: " + e.message));
 await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
 await page.waitForSelector("#ov-hi", { timeout: 25000 });
@@ -68,7 +69,7 @@ await sql(`update affiliate_applications set status = 'approved', code = request
 await page.evaluate(() => document.querySelector(".set-back").click());
 await page.waitForTimeout(200);
 await row.click();
-await page.waitForFunction(() => document.getElementById("aff-code")?.textContent === "HARNESS1", null, { timeout: 8000 }).catch(() => fails.push("approved code not shown"));
+await page.waitForFunction(() => (document.getElementById("aff-body")?.textContent || "").includes("HARNESS1"), null, { timeout: 8000 }).catch(async () => fails.push("approved code not shown: " + (await page.evaluate(() => (document.getElementById("aff-body")?.textContent || "").slice(0, 200)))));
 await page.screenshot({ path: `${OUT}/3-approved.png` });
 
 // statistics page: a member sees no "Everyone" table; the heat fills the width

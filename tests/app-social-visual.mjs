@@ -5,7 +5,7 @@
 // posts with like / comment / share; liking the owner's trade writes a
 // post_likes row and a notification for the owner; commenting writes a
 // post_comments row; following the owner writes a follows row and the member
-// card shows Following + counts + heatmap; the leaderboard renders; the home
+// card shows Following + counts + heatmap; no leaderboard tab; the home
 // stats show a Day streak; the profile shows an invite code; then, as the
 // owner, the bell shows unread and the inbox lists the like / comment /
 // follow. Cleans up its own rows afterwards. Screenshots in OUT.
@@ -112,12 +112,8 @@ const view = async (page, v) => { await page.evaluate((v) => document.querySelec
   // one feed, no scopes; the owner (staff) carries the gold check on the card
   if (await page.locator("#v-feed .feed-scopes").count()) fails.push("feed still has scope tabs");
   if (!(await card.locator(".rv-user .vcheck").count())) fails.push("no gold check on the owner's card");
-  // leaderboard
-  await view(page, "board"); await page.waitForTimeout(1200);
-  if (!(await page.locator("#board .lb-row").count()) && (await page.locator("#board-empty").isHidden())) fails.push("leaderboard rendered nothing");
-  if (await page.locator("#board-optin").count()) fails.push("leaderboard opt-out still present");
-  if (await page.locator("#v-board .feed-scopes").count()) fails.push("leaderboard still has a time toggle");
-  await shot("04-board");
+  // leaderboard was removed (commit 20d471a): the tab must be gone
+  if (await page.locator('.tab[data-view="board"]').count()) fails.push("leaderboard tab still present");
   // profile: follow counts only (no invite code, no invited count, no heatmap)
   await page.click('#bnav button[data-view="set-profile"]'); await page.waitForTimeout(1500);
   if (await page.locator("#pro-ref").count()) fails.push("invite code still on the profile");
@@ -135,8 +131,7 @@ const view = async (page, v) => { await page.evaluate((v) => document.querySelec
   // Settings → Statistics: your grid + everyone's numbers
   await view(page, "set-stats"); await page.waitForTimeout(1500);
   if (!(await page.locator("#stx-heat").count())) fails.push("statistics heatmap missing");
-  const stxRows = await page.locator("#stx-list .stx-row").count();
-  if (stxRows < 5) fails.push("statistics list rows: " + stxRows);
+  if (await page.locator("#stx-list .stx-row").count()) fails.push("statistics page should be yours alone (0050)");
   if (await page.locator("#ov-heat-sec").count()) fails.push("heatmap still on the home screen");
   await shot("07-statistics");
   // notifications page: device row present

@@ -22,6 +22,8 @@ const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api
 const service = keys.find((k) => k.name === "service_role").api_key;
 const anon = keys.find((k) => k.name === "anon").api_key;
 const email = (await sql("select email from admins order by added_at limit 1"))[0].email;
+// the Study gate: a completed course intake so lessons render instead of the questionnaire
+await sql(`insert into course_intake (user_id, answers, completed_at) select id, '{}'::jsonb, now() from auth.users where email = '${email.replace(/'/g, "''")}' on conflict (user_id) do update set completed_at = now()`);
 const link = await (await fetch(`${SB}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email }) })).json();
 const session = await (await fetch(`${SB}/auth/v1/verify`, { method: "POST", headers: { apikey: anon, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: link.hashed_token }) })).json();
 if (!session.access_token) throw new Error("verify failed");
@@ -32,7 +34,7 @@ const fails = [];
 // 1. App: open the Inducement lesson, expect a real <img> in a .diagram figure
 {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  await ctx.addInitScript(([k, v]) => localStorage.setItem(k, v), [`sb-${REF}-auth-token`, JSON.stringify(session)]);
+  await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
   const page = await ctx.newPage();
   await page.goto("http://127.0.0.1:8123/echelon/app/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => document.querySelectorAll("#index button").length > 0, null, { timeout: 20000 });
@@ -41,11 +43,11 @@ const fails = [];
   // intake may appear for a fresh state; skip it if the course grid is hidden
   const clicked = await page.evaluate(() => {
     const links = [...document.querySelectorAll("#index button, .toc button, button")];
-    const btn = links.find((b) => b.textContent.trim() === "Inducement");
+    const btn = links.find((b) => /^Mitigation$/.test(b.textContent.trim()));
     if (btn) { btn.click(); return true; }
     return false;
   });
-  if (!clicked) fails.push("could not find Inducement lesson button");
+  if (!clicked) fails.push("could not find Mitigation lesson button");
   await page.waitForSelector(".diagram.media-img img", { timeout: 15000 }).catch(() => fails.push("lesson image did not render"));
   await page.waitForTimeout(800);
   await page.screenshot({ path: `${OUT}/lesson-inducement.png`, fullPage: true });
@@ -55,7 +57,7 @@ const fails = [];
 // 2. Admin: phone-width topbar
 {
   const ctx = await browser.newContext({ ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-  await ctx.addInitScript(([k, v]) => localStorage.setItem(k, v), [`sb-${REF}-auth-token`, JSON.stringify(session)]);
+  await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
   const page = await ctx.newPage();
   await page.goto("http://127.0.0.1:8123/echelon/admin/", { waitUntil: "domcontentloaded" });
   await page.waitForSelector(".topbar", { timeout: 20000 });

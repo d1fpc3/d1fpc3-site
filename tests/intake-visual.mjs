@@ -1,7 +1,7 @@
 // Adaptive starting-point intake harness (manual, not a node:test).
 //   1. from the repo root:  python -m http.server 8123
 //   2. node tests/intake-visual.mjs        (THEME=dark to see dark)
-// Mints a session for the admin email (memory only), DELETES its course_intake
+// Mints a session for the App Review member (memory only), DELETES its progress + course_intake
 // row so the flow starts fresh, then: sees question 1, answers "Not really" to
 // get an explainer, walks the rest, lands on the summary, enters the course,
 // and asserts the row persisted + the "Start here" chip appears + the course
@@ -28,7 +28,9 @@ const sql = (q) => fetch(`https://api.supabase.com/v1/projects/${REF}/database/q
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
 const service = keys.find((k) => k.name === "service_role").api_key;
 const anon = keys.find((k) => k.name === "anon").api_key;
-const email = process.env.EMAIL || (await sql("select email from admins order by added_at limit 1"))[0].email;
+const email = process.env.EMAIL || "appreview@d1fpc3.com";   // the App Review test member: its progress is disposable
+// chips only show on lessons not yet completed, so start this account from zero
+await sql(`delete from progress using auth.users u where progress.user_id = u.id and u.email = '${email.replace(/'/g, "''")}'`);
 await sql(`delete from course_intake using auth.users u where course_intake.user_id = u.id and u.email = '${email.replace(/'/g, "''")}'`);
 const link = await (await fetch(`${SB}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email }) })).json();
 const session = await (await fetch(`${SB}/auth/v1/verify`, { method: "POST", headers: { apikey: anon, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: link.hashed_token }) })).json();
@@ -37,7 +39,7 @@ console.log(`fresh intake for ${email}`);
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-await ctx.addInitScript(([k, v, theme]) => { localStorage.setItem(k, v); if (theme) localStorage.setItem("echelon-theme", theme); }, [`sb-${REF}-auth-token`, JSON.stringify(session), process.env.THEME || ""]);
+await ctx.addInitScript(([k, v, theme]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); if (theme) localStorage.setItem("echelon-theme", theme); }, [`sb-${REF}-auth-token`, JSON.stringify(session), process.env.THEME || ""]);
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
@@ -113,13 +115,8 @@ await page.evaluate(() => document.getElementById("toc-toggle").click());
 await page.waitForTimeout(350);
 await shot("5-toc-chips");
 
-// redo path
-await page.evaluate(() => window.scrollTo(0, 0));
-await page.click("#intake-redo");
-await page.waitForSelector("#intake .intake-card", { timeout: 5000 });
-await shot("6-redo");
-const redoShown = await page.evaluate(() => !document.getElementById("intake").hidden);
-if (!redoShown) fails.push("redo did not reopen intake");
+// the "redo intake" entry left with the Study path bar (e42a7f6); make sure it stays gone
+if (await page.locator("#intake-redo").count()) fails.push("intake-redo button is back");
 
 await browser.close();
 console.log(`\n${fails.length ? fails.length + " FAILED:\n  " + fails.join("\n  ") : "all good"}, shots in ${OUT}`);

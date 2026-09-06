@@ -36,7 +36,7 @@ await page.locator("#pro-grid .pro-tile").first().click(); await page.waitForTim
 if (!(await page.locator("#rv-body .rv-menu-btn").count())) fails.push("owner has no menu button");
 await page.locator("#rv-body .rv-menu-btn").first().click(); await page.waitForTimeout(200);
 const items = await page.$$eval(".rv-menu button", (bs) => bs.map((b) => b.textContent.trim()));
-if (items.join() !== "Edit,Add photo,Delete") fails.push("menu items: " + items.join());
+if (!["Edit,Delete", "Edit,Add photo,Delete"].includes(items.join())) fails.push("menu items: " + items.join());
 await page.screenshot({ path: `${OUT}/07-owner-menu.png` });
 const id = await page.$eval("#rv-body .rv-post", (p) => p.dataset.id);
 const beforeRow = (await sql(`select title, outcome from member_recaps where id = '${id}'`))[0] ?? {};

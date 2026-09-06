@@ -73,8 +73,8 @@ if (await page.locator("#v-set-profile .set-back").count()) fails.push("profile 
 if (!(await page.locator("#pro-edit-wrap").isHidden())) fails.push("edit form open by default");
 const name = await page.textContent("#pro-name");
 if (!/^@\w/.test(name.trim())) fails.push("profile name: " + name);
-const statsText = await page.textContent("#pro-stats");
-if (!/trades?/.test(statsText) || !/win rate/.test(statsText) || !/net R/.test(statsText)) fails.push("stats row: " + statsText);
+// profiles carry no trade stats since d3c8471 (followers, following and the posts are the profile)
+if ((await page.textContent("#pro-stats")).trim()) fails.push("stats row should be empty now");
 await shot("03-profile");
 await page.click("#pro-edit"); await page.waitForTimeout(300);
 if (await page.locator("#pro-edit-wrap").isHidden()) fails.push("Edit profile did not open the form");
@@ -103,7 +103,6 @@ if (poster) {
     if (!(await page.evaluate(() => document.getElementById("mm-scrim").classList.contains("on")))) fails.push("member modal did not open");
     const tiles = await page.locator("#mm-grid .pro-tile").count();
     if (tiles < 1) fails.push(`no tiles for ${poster.username} (has ${poster.n})`);
-    if (!/trades?/.test(await page.textContent("#mm-stats"))) fails.push("member stats missing");
     const cardBox = await page.locator(".mm-card").boundingBox();
     if (!cardBox || cardBox.height < 800 || cardBox.width < 380) fails.push("member card not full screen on phone: " + JSON.stringify(cardBox));
     await shot("05-member-profile");
@@ -112,7 +111,7 @@ if (poster) {
       if (!(await page.locator("#rvmodal").isVisible())) fails.push("recap viewer did not open");
       const sheet = await page.locator(".rv-sheet").boundingBox();
       if (!sheet || sheet.height < 800 || sheet.width < 380) fails.push("trade view not full screen on phone: " + JSON.stringify(sheet));
-      for (const sel of [".rv-user b", ".rv-user .d", ".rv-media img, .rv-media video"]) if (!(await page.locator(sel).count())) fails.push("trade view missing " + sel);
+      for (const sel of [".rv-user b", ".rv-media img, .rv-media video"]) if (!(await page.locator(sel).count())) fails.push("trade view missing " + sel);
       // it is a feed: one .rv-post per trade in the list, the tapped one at the top, and the sheet scrolls
       const posts = await page.locator("#rv-body .rv-post").count();
       if (posts !== tiles) fails.push(`feed has ${posts} posts for ${tiles} tiles`);
