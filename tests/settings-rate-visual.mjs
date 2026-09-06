@@ -56,26 +56,26 @@ await page.screenshot({ path: `${OUT}/1-settings.png` });
 
 await page.evaluate(() => document.querySelectorAll("#rate-stars button")[3].click());
 await page.waitForTimeout(600);
-if (!(await page.evaluate(() => document.getElementById("v-rate")?.classList.contains("on")))) fails.push("Rate page did not open from the stars");
-const preChecked = await page.evaluate(() => document.getElementById("r4").checked);
+if (!(await page.evaluate(() => document.getElementById("ratemodal")?.classList.contains("on")))) fails.push("Rate modal did not open from the stars");
+const preChecked = await page.evaluate(() => document.querySelector('#rate-modal-stars button.on')?.dataset.v === "4");
 if (!preChecked) fails.push("tapping the 4th star did not preselect 4 stars");
 const lit = await page.evaluate(() => document.querySelectorAll("#rate-stars button.lit").length);
 if (lit !== 4) fails.push(`${lit} stars lit after tapping the 4th`);
 await page.fill("#review-text", "Harness check — ignore.");
 await page.screenshot({ path: `${OUT}/2-popup.png` });
 await page.click("#review-send");
-await page.waitForFunction(() => { const t = document.getElementById("review-msg").textContent; return t.length > 0 && t !== "Sending…"; }, null, { timeout: 15000 });
-const msg = await page.textContent("#review-msg");
-if (msg !== "Thank you.") fails.push(`send message: "${msg}"`);
+await page.waitForFunction(() => !document.getElementById("rate-thanks").hidden || document.getElementById("review-msg").textContent.length > 0, null, { timeout: 15000 });
+const thanked = await page.evaluate(() => !document.getElementById("rate-thanks").hidden);
+if (!thanked) fails.push(`send did not reach the thanks state: "${await page.textContent("#review-msg")}"`);
 
 const saved = await sql(`select rating, comment from reviews where user_id = '${uid}'`);
 if (!(saved[0]?.rating === 4 && /Harness check/.test(saved[0]?.comment ?? ""))) fails.push(`db row wrong: ${JSON.stringify(saved)}`);
 
 // reopen: prefilled with what they sent
-await page.waitForTimeout(1400); // popup auto-hides
+await page.waitForTimeout(2300); // thanks state auto-closes after 1.8s
 await page.evaluate(() => document.querySelectorAll("#rate-stars button")[3].click());
 await page.waitForTimeout(600);
-const pre = await page.evaluate(() => ({ r4: document.getElementById("r4").checked, text: document.getElementById("review-text").value }));
+const pre = await page.evaluate(() => ({ r4: document.querySelector('#rate-modal-stars button.on')?.dataset.v === "4", text: document.getElementById("review-text").value }));
 if (!pre.r4 || !/Harness check/.test(pre.text)) fails.push(`reopen not prefilled: ${JSON.stringify(pre)}`);
 await page.screenshot({ path: `${OUT}/3-reopen.png` });
 await browser.close();

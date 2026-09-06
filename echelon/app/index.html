@@ -1257,7 +1257,6 @@
     .nu-step.done .tick { background: linear-gradient(135deg, var(--gold), var(--gold-deep)); border-color: transparent; }
     .nu-step.done span { color: var(--faint); text-decoration: line-through; }
     .nu-skip { display: block; width: 100%; background: none; border: 0; padding: 9px 0 7px; color: var(--faint); font: inherit; font-size: 11.5px; cursor: pointer; }
-    #v-rate .rate { width: max-content; }
     .rowbtn.fol-back { background: none; border: 0; border-radius: 0; padding: 0; font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; -webkit-tap-highlight-color: transparent; }
     .rowbtn.fol-back:hover, .rowbtn.fol-back:active { background: none; box-shadow: none; color: var(--gold); }
     .fol-row { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 11px 2px; cursor: pointer; color: var(--ink); font: inherit; text-align: left; -webkit-tap-highlight-color: transparent; }
@@ -2023,7 +2022,34 @@
     }
     .review-pop .x:hover { color: var(--ink); }
     .set-rate { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 14px 6px; }
-    .set-rate b { font-size: 14px; font-weight: 500; }
+    /* Rate Echelon modal (templates mod-rate, themed) */
+    .mrt-scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.45); opacity: 0; transition: opacity 0.2s ease; z-index: 70; }
+    .mrt-scrim.on { opacity: 1; }
+    .mrt { position: fixed; left: 50%; top: 50%; width: min(400px, 92vw); transform: translate(-50%, -46%) scale(0.98); opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.35); z-index: 71; overflow: hidden; }
+    .mrt.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    .mrt .body { position: relative; padding: 26px 24px 20px; text-align: center; }
+    .mrt h3 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }
+    .mrt p { margin: 0 0 14px; font-size: 13.5px; color: var(--muted); }
+    .mrt .mrt-x { position: absolute; top: 10px; right: 10px; background: none; border: 0; color: var(--faint); cursor: pointer; padding: 4px; border-radius: 6px; }
+    .mrt .mrt-x:hover { background: var(--panel-2); color: var(--ink); }
+    .mrt .mrt-x svg { width: 18px; height: 18px; }
+    .mrt .stars { display: inline-flex; gap: 4px; direction: rtl; }
+    .mrt .stars button { background: none; border: 0; padding: 4px; cursor: pointer; color: var(--line-bright); transition: color 0.1s ease, transform 0.1s ease; -webkit-tap-highlight-color: transparent; }
+    .mrt .stars button svg { width: 32px; height: 32px; }
+    .mrt .stars button:hover, .mrt .stars button:hover ~ button, .mrt .stars.set button.on, .mrt .stars.set button.on ~ button { color: var(--gold); }
+    .mrt .stars button:hover { transform: scale(1.12); }
+    .mrt .hint { font-size: 12.5px; color: var(--faint); min-height: 16px; margin: 6px 0 12px; }
+    .mrt textarea { width: 100%; box-sizing: border-box; min-height: 72px; resize: vertical; margin-bottom: 12px; text-align: left; }
+    .mrt .row { display: flex; gap: 8px; justify-content: center; }
+    .mrt .msg { margin: 8px 0 0; min-height: 0; }
+    .mrt .msg:empty { display: none; }
+    .mrt .thanks { padding: 36px 24px; text-align: center; }
+    .mrt .thanks i { display: inline-flex; width: 44px; height: 44px; border-radius: 50%; background: rgba(120,180,110,0.18); color: var(--good); align-items: center; justify-content: center; margin-bottom: 10px; }
+    .mrt .thanks i svg { width: 22px; height: 22px; }
+    .mrt .thanks b { display: block; font-size: 16px; margin-bottom: 4px; }
+    .mrt .thanks p { margin: 0; }
+    .mrt .thanks a.go { display: inline-block; margin-top: 14px; color: var(--gold); text-decoration: none; font-size: 13.5px; }
+    .set-rate b { font-size: 14px; font-weight: 500; cursor: pointer; }
     .set-rate .stars { display: flex; gap: 0; }
     .set-rate .stars button { background: none; border: 0; padding: 4px 3px; cursor: pointer; color: var(--faint); display: inline-flex; -webkit-tap-highlight-color: transparent; }
     .set-rate .stars button svg { width: 20px; height: 20px; }
@@ -2892,28 +2918,6 @@
           </div>
         </section>
 
-        <section class="view setpage" id="v-rate">
-          <div style="max-width:640px;margin-bottom:14px;"><button class="rowbtn fol-back" id="rate-back" type="button">&larr; Settings</button></div>
-          <div class="block" style="max-width:640px;">
-            <div class="block-head"><h3>Rate Echelon</h3></div>
-            <div class="setgrid" id="rate-page-body">
-              <p class="label" style="margin:0 0 10px;">How's Echelon so far?</p>
-              <div class="rate" id="rate">
-                <input type="radio" name="rate" id="r5" value="5"><label for="r5" aria-label="5 stars"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></label>
-                <input type="radio" name="rate" id="r4" value="4"><label for="r4" aria-label="4 stars"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></label>
-                <input type="radio" name="rate" id="r3" value="3"><label for="r3" aria-label="3 stars"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></label>
-                <input type="radio" name="rate" id="r2" value="2"><label for="r2" aria-label="2 stars"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></label>
-                <input type="radio" name="rate" id="r1" value="1"><label for="r1" aria-label="1 star"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></label>
-              </div>
-              <textarea class="inp" id="review-text" rows="4" maxlength="300" placeholder="Say a little more (optional)" style="width:100%;margin-top:14px;resize:none;"></textarea>
-              <div class="filters" style="margin-top:12px;">
-                <button class="btn" id="review-send">Send</button>
-                <span class="msg" id="review-msg"></span>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section class="view setpage" id="v-follows">
           <div style="max-width:640px;margin-bottom:14px;"><button class="rowbtn fol-back" id="follows-back" type="button">&larr; Back</button></div>
           <div class="feed-scopes" style="max-width:640px;">
@@ -3195,6 +3199,26 @@
     </div>
   </div>
 
+  <!-- Rate Echelon: the templates "Rate Your Experience" modal (mod-rate) on the app's palette -->
+  <div class="mrt-scrim" id="rate-scrim" hidden></div>
+  <div class="mrt" id="ratemodal" role="dialog" aria-modal="true" aria-label="Rate Echelon" hidden>
+    <div class="body" id="rate-body">
+      <button class="mrt-x" id="rate-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      <h3>How's Echelon so far?</h3>
+      <p>One tap. Say more if you like.</p>
+      <div class="stars" id="rate-modal-stars"></div>
+      <div class="hint" id="rate-hint"></div>
+      <textarea class="inp" id="review-text" rows="3" maxlength="300" placeholder="Anything we should know? Optional." hidden></textarea>
+      <div class="row"><button class="rowbtn" id="rate-later" type="button">Not now</button><button class="btn" id="review-send" type="button" disabled>Send</button></div>
+      <p class="msg" id="review-msg"></p>
+    </div>
+    <div class="thanks" id="rate-thanks" hidden>
+      <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></i>
+      <b>Thank you.</b>
+      <p>It goes straight to D1.</p>
+      <div id="rate-thanks-extra"></div>
+    </div>
+  </div>
   <div class="ga-scrim" id="ga-scrim" role="dialog" aria-modal="true" aria-label="What is GEX">
     <!-- How GEX works: the breakdown members see with their subscription -->
     <div class="block gex-about" id="gex-about">
@@ -7398,62 +7422,97 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
 
 
-    el('review-send').addEventListener('click', async () => {
-      const msg = el('review-msg')
-      const checked = document.querySelector('input[name="rate"]:checked')
-      if (!checked) { msg.className = 'msg err'; msg.textContent = 'Stars first.'; return }
-      el('review-send').disabled = true; msg.className = 'msg'; msg.textContent = 'Sending…'
-      const { error } = await supabase.from('reviews').upsert({
-        user_id: state.user.id,
-        rating: Number(checked.value),
-        comment: el('review-text').value.trim() || null,
-      }, { onConflict: 'user_id' })
-      if (error) {
-        msg.className = 'msg err'; msg.textContent = error.message
-        el('review-send').disabled = false
-        return
-      }
-      msg.className = 'msg ok'; msg.textContent = 'Thank you.'
-      litStars(Number(checked.value))
-      if (NATIVE && APP_STORE_ID && Number(checked.value) >= 4 && !el('rate-page-body').querySelector('a.go')) {
-        const a = document.createElement('a')
-        a.href = `https://apps.apple.com/app/id${APP_STORE_ID}?action=write-review`
-        a.target = '_blank'; a.rel = 'noopener'; a.className = 'go'
-        a.style.cssText = 'display:block;margin-top:10px;text-align:center;text-decoration:none;'
-        a.textContent = 'Rate it on the App Store →'
-        el('rate-page-body').appendChild(a)
-      }
-    })
-
-    // Settings, bottom: five stars. Tapping one opens the popup on that
-    // rating; a happy rating inside the app offers the App Store too.
+    // Settings, bottom: five stars. Tapping one opens the Rate Echelon modal
+    // on that rating (the templates "Rate Your Experience" design); a happy
+    // rating inside the native app also offers the App Store.
     const APP_STORE_ID = '6792515544' // Echelon's numeric Apple id (ASC app record)
+    const RATE_WORDS = ['', 'Not good', 'Could be better', 'Fine', 'Good', 'Excellent']
+    const RATE = { v: 0, saved: null, timer: 0 }
     function litStars(n) {
       document.querySelectorAll('#rate-stars button').forEach((b, i) => b.classList.toggle('lit', i < n))
     }
+    function rateSet(v, focus = true) {
+      RATE.v = v
+      const stars = el('rate-modal-stars')
+      stars.classList.toggle('set', v > 0)
+      stars.querySelectorAll('button').forEach((b) => b.classList.toggle('on', Number(b.dataset.v) === v))
+      el('rate-hint').textContent = RATE_WORDS[v] || ''
+      el('review-text').hidden = v === 0
+      el('review-send').disabled = v === 0
+      if (v && focus && !isPhone()) el('review-text').focus()
+    }
+    function rateOpen(v) {
+      clearTimeout(RATE.timer)
+      el('rate-body').hidden = false; el('rate-thanks').hidden = true; el('rate-thanks-extra').textContent = ''
+      el('review-msg').className = 'msg'; el('review-msg').textContent = ''
+      el('review-send').textContent = 'Send'
+      el('review-text').value = RATE.saved?.comment ?? ''
+      rateSet(v || RATE.saved?.rating || 0, false)
+      const scrim = el('rate-scrim'), panel = el('ratemodal')
+      scrim.hidden = false; panel.hidden = false
+      requestAnimationFrame(() => { scrim.classList.add('on'); panel.classList.add('on') })
+      document.body.style.overflow = 'hidden'
+    }
+    function rateClose() {
+      clearTimeout(RATE.timer)
+      const scrim = el('rate-scrim'), panel = el('ratemodal')
+      scrim.classList.remove('on'); panel.classList.remove('on')
+      document.body.style.overflow = ''
+      setTimeout(() => { scrim.hidden = true; panel.hidden = true }, 200)
+    }
     {
+      const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6 6.6 0.9-4.8 4.6 1.2 6.5-5.9-3.1-5.9 3.1 1.2-6.5-4.8-4.6 6.6-0.9z"/></svg>'
+      const stars = el('rate-modal-stars')
+      for (let v = 5; v >= 1; v--) {
+        const b = document.createElement('button'); b.type = 'button'; b.dataset.v = String(v); b.innerHTML = STAR
+        b.setAttribute('aria-label', v === 1 ? '1 star' : `${v} stars`)
+        b.addEventListener('click', () => rateSet(v))
+        stars.appendChild(b)
+      }
+      el('rate-scrim').addEventListener('click', rateClose)
+      el('rate-x').addEventListener('click', rateClose)
+      el('rate-later').addEventListener('click', rateClose)
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !el('ratemodal').hidden) rateClose() })
+      // Settings row: the five small stars, and the row label itself
       const host = el('rate-stars')
-      const starSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+      const rowSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
       if (host) for (let i = 1; i <= 5; i++) {
-        const b = document.createElement('button'); b.type = 'button'; b.innerHTML = starSvg
+        const b = document.createElement('button'); b.type = 'button'; b.innerHTML = rowSvg
         b.setAttribute('aria-label', i === 1 ? '1 star' : `${i} stars`)
-        b.addEventListener('click', () => {
-          litStars(i)
-          const r = el(`r${i}`); if (r) r.checked = true
-          el('review-msg').className = 'msg'; el('review-msg').textContent = ''
-          el('review-send').disabled = false
-          showView('rate')
-        })
+        b.addEventListener('click', () => { litStars(i); rateOpen(i) })
         host.appendChild(b)
       }
+      el('set-rate-row')?.querySelector('b')?.addEventListener('click', () => rateOpen(0))
     }
+    el('review-send').addEventListener('click', async () => {
+      const msg = el('review-msg')
+      if (!RATE.v) { msg.className = 'msg err'; msg.textContent = 'Stars first.'; return }
+      el('review-send').disabled = true; el('review-send').textContent = 'Sending…'; msg.className = 'msg'; msg.textContent = ''
+      const rating = RATE.v, comment = el('review-text').value.trim() || null
+      const { error } = await supabase.from('reviews').upsert({ user_id: state.user.id, rating, comment }, { onConflict: 'user_id' })
+      if (error) {
+        msg.className = 'msg err'; msg.textContent = error.message
+        el('review-send').disabled = false; el('review-send').textContent = 'Send'
+        return
+      }
+      RATE.saved = { rating, comment }
+      litStars(rating)
+      el('rate-body').hidden = true; el('rate-thanks').hidden = false
+      const extra = el('rate-thanks-extra'); extra.textContent = ''
+      if (NATIVE && APP_STORE_ID && rating >= 4) {
+        const a = document.createElement('a')
+        a.href = `https://apps.apple.com/app/id${APP_STORE_ID}?action=write-review`
+        a.target = '_blank'; a.rel = 'noopener'; a.className = 'go'
+        a.textContent = 'Rate it on the App Store →'
+        extra.appendChild(a)
+      } else RATE.timer = setTimeout(rateClose, 1800)
+    })
     async function syncRateRow() {
       const { data } = await supabase.from('reviews').select('rating, comment')
         .eq('user_id', state.user.id).maybeSingle()
       if (!data) return
+      RATE.saved = { rating: data.rating, comment: data.comment }
       litStars(data.rating)
-      const r = el(`r${data.rating}`); if (r) r.checked = true
-      el('review-text').value = data.comment ?? ''
     }
 
     // ── settings: affiliate ─────────────────────────────────
