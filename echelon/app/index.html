@@ -7906,10 +7906,26 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       try { localStorage.setItem(PROMO_KEY, String(Date.now() + days * 864e5)) } catch {}
     }
     function promoMaybe() {
-      try { if (Number(localStorage.getItem(PROMO_KEY) || 0) > Date.now()) return } catch {}
       if (!el('onb')?.hidden || !el('quotemodal')?.hidden || !el('ratemodal')?.hidden) return
       if (el('intake') && !el('intake').hidden && el('v-course')?.classList.contains('on')) return
-      promoOpen()
+      let rested = false
+      try { rested = Number(localStorage.getItem(PROMO_KEY) || 0) > Date.now() } catch {}
+      if (!rested) { promoOpen(); return }
+      rateNudge()
+    }
+    // One ask for a rating, once ever, from members who have been in a week
+    // and opened the app at least three times (the landing shows approved
+    // reviews; there were none on 9/6). Never the owner, never twice.
+    const RATE_ASKED = 'echelon-rate-asked', SESSIONS = 'echelon-sessions'
+    function rateNudge() {
+      try {
+        if (state.isAdmin || RATE.saved || localStorage.getItem(RATE_ASKED)) return
+        const sessions = Number(localStorage.getItem(SESSIONS) || 0)
+        const since = state.user?.created_at ? Date.now() - new Date(state.user.created_at).getTime() : 0
+        if (sessions < 3 || since < 7 * 864e5) return
+        localStorage.setItem(RATE_ASKED, '1')
+        rateOpen(0)
+      } catch {}
     }
     {
       el('promo-scrim')?.addEventListener('click', () => promoClose(3))
@@ -11046,6 +11062,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // Stay close popup (Instagram, Discord, BackTrader) — everywhere, native
       // shells included (D1 accepted the App Review look of an external offer
       // in-app on 9/2). It waits for the questionnaire and the daily quote.
+      try { localStorage.setItem(SESSIONS, String(Number(localStorage.getItem(SESSIONS) || 0) + 1)) } catch {}
       setTimeout(promoMaybe, 2500)
 
       // Signed in is not the same as member. A Discord or email sign-in with
