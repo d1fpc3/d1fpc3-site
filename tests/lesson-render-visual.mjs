@@ -26,7 +26,7 @@ const fnSrc = (name) => {
   if (!m) throw new Error(`could not extract ${name} from app source`);
   return m[0];
 };
-const renderSrc = fnSrc("inlineText") + fnSrc("renderProse");
+const renderSrc = fnSrc("linkifyInto") + fnSrc("inlineText") + fnSrc("renderProse");
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
