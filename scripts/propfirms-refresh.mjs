@@ -190,7 +190,7 @@ for (const firm of data.firms) {
     try { rows = await PROBES[firm.slug]() } catch (e) {
       // Lucid's WAF lets a home connection through but 403s cloud runners: not a
       // parser failure, so the run stays green and the sheet says hand-checked.
-      if (/-> 403|bot wall/.test(e.message)) { log(`blocked ${firm.slug}: ${e.message} (marked hand-checked for this run)`); if (!DRY) firm.verify = 'manual'; continue }
+      if (/-> 403|bot wall/.test(e.message)) { log(`blocked ${firm.slug}: ${e.message} (hand-check it)`); continue }
       failures++; log(`FAIL ${firm.slug}: ${e.message}`); continue
     }
     let matched = 0
@@ -222,6 +222,7 @@ for (const firm of data.firms) {
     log(`manual ${firm.slug}: ${MANUAL[firm.slug]}`)
   } else log(`skip ${firm.slug}: no probe`)
 }
-if (!DRY) { if (changes || stale) data.checked = today; data.refreshed = today; writeFileSync(FILE, JSON.stringify(data, null, 1) + '\n') }
+// write only when a price moved or went stale: date stamps alone must not make the nightly job commit and redeploy
+if (!DRY && (changes || stale)) { data.checked = today; data.refreshed = today; writeFileSync(FILE, JSON.stringify(data, null, 1) + String.fromCharCode(10)) }
 log(`${changes} change(s), ${stale} stale, ${failures} probe failure(s)${DRY ? ' (dry run)' : ''}`)
 process.exit(failures || stale ? 2 : 0)
