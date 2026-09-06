@@ -371,6 +371,12 @@
     .gex-levels td.lvl-name small { font-size: 10.5px; }
     .gex-levels .tbl-scroll { overflow-y: auto; }
     .gex-stamp { padding: 9px 14px 11px; border-top: 1px solid var(--line); }
+    /* back in time: ‹ day › + a print picker (D1, 9/6) */
+    .gex-tools { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+    .gex-nav .label { min-width: 92px; }
+    .gex-time { background: var(--panel-2); border: 1px solid var(--line-bright); color: var(--ink); border-radius: 6px; font: inherit; font-size: 12px; padding: 3px 6px; }
+    .gex-histnote { margin: 0; padding: 0 18px 12px; }
+    .gex-readwrap.hist .gex-read .v { color: var(--ink); }
     .gex-topbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
     #gex-whatis { background: none; border: 0; outline: none; color: var(--muted); font-family: inherit; font-size: 12.5px; cursor: pointer; padding: 0; }
     #gex-whatis:hover { color: var(--ink); text-decoration: underline; }
@@ -2627,7 +2633,8 @@
         <!-- GEX dashboard (GEX subscribers only) -->
         <section class="view" id="v-gex">
           <div class="block gex-readwrap">
-            <div class="block-head"><h3>Today's read</h3><button id="gex-whatis" type="button">What is GEX?</button></div>
+            <div class="block-head"><h3 id="gex-read-title">Today's read</h3><span class="gex-tools"><span class="news-nav gex-nav"><button class="news-arrow" id="gex-prev" type="button" title="Earlier day" aria-label="Earlier day">&#8249;</button><span class="label" id="gex-day">today</span><button class="news-arrow" id="gex-next" type="button" title="Later day" aria-label="Later day" disabled>&#8250;</button></span><select class="gex-time" id="gex-time" aria-label="Print" hidden></select><button id="gex-whatis" type="button">What is GEX?</button></span></div>
+            <p class="hint gex-histnote" id="gex-histnote" hidden></p>
             <div class="gex-read" id="gex-read"></div>
             <div class="gex-regime" id="gex-regime" hidden></div>
           </div>
@@ -8252,6 +8259,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       set: localStorage.getItem('echelon-gex-set') || 'zdte',
       scale: localStorage.getItem('echelon-gex-scale') || 'linear',
       yaw: -0.5, pitch: 0.66,
+      live: null, hist: null, days: [],   // back in time: archived prints from the worker
     }
     const GEX_FONT = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
     const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
@@ -8287,8 +8295,105 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!res.ok) throw new Error(`gex-worker ${res.status}`)
       const d = await res.json()
       if (!d.surface) throw new Error('snapshot has no surface yet')
-      GEX.data = d; GEX.loadedAt = Date.now()
+      GEX.live = d; GEX.loadedAt = Date.now()
+      if (GEX.hist) return   // a past day is on screen; the live board waits
+      GEX.data = d
       renderGex()
+    }
+
+    /* ── back in time: the worker archives every RTH print (snap:<day>:<HHMM>)
+       from Sep 4, 2026; earlier days carry only the logged trail. ‹ › walk the
+       days, the picker walks the prints within a day. ── */
+    const gexDayLabel = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+    const gexTimeLabel = (t) => { const h = +t.slice(0, 2), m = t.slice(2); return `${((h + 11) % 12) + 1}:${m} ${h < 12 ? 'AM' : 'PM'}` }
+    async function loadGexHistory() {
+      try { const r = await fetch(`${GEX_URL}/history.json`, { cache: 'no-cache' }); if (r.ok) { const j = await r.json(); GEX.days = (j.days || []).filter((d) => d.times.length || d.summary) } } catch {}
+      syncGexNav()
+    }
+    function syncGexNav() {
+      const prev = el('gex-prev'), next = el('gex-next'), lbl = el('gex-day'), sel = el('gex-time'); if (!prev) return
+      const days = GEX.days, cur = GEX.hist?.day || null
+      const ix = cur ? days.findIndex((d) => d.date === cur) : -1
+      const older = cur ? days.slice(ix + 1) : days.filter((d) => d.date < (GEX.live?.generatedAt || new Date().toISOString()).slice(0, 10) || !GEX.live)
+      prev.disabled = !older.length
+      next.disabled = !cur
+      lbl.textContent = cur ? gexDayLabel(cur) : 'today'
+      const entry = cur ? days[ix] : null
+      sel.hidden = !(entry && entry.times.length > 1)
+      if (entry && entry.times.length) {
+        sel.textContent = ''
+        for (const t of entry.times) { const o = document.createElement('option'); o.value = t; o.textContent = `${gexTimeLabel(t)} ET`; sel.appendChild(o) }
+        sel.value = GEX.hist?.t || entry.times[entry.times.length - 1]
+      }
+      el('gex-read-title').textContent = cur ? `${gexDayLabel(cur)} read` : "Today's read"
+      const rf = el('gex-refresh'); if (rf) rf.hidden = !!cur
+      el('v-gex').querySelector('.gex-readwrap').classList.toggle('hist', !!cur)
+    }
+    async function showGexDay(day, t) {
+      if (!day) {   // back to live
+        GEX.hist = null
+        el('gex-histnote').hidden = true
+        el('gex-grid').hidden = false
+        if (GEX.live) { GEX.data = GEX.live; renderGex() } else loadGex().catch(() => {})
+        syncGexNav(); return
+      }
+      const entry = GEX.days.find((d) => d.date === day); if (!entry) return
+      GEX.hist = { day, t: t || (entry.times[entry.times.length - 1] || null) }
+      GEX.hover = null; el('gex-tip').hidden = true
+      if (entry.times.length) {
+        el('gex-histnote').hidden = true
+        el('gex-grid').hidden = false
+        try {
+          const r = await fetch(`${GEX_URL}/gex.json?day=${day}${GEX.hist.t ? `&t=${GEX.hist.t}` : ''}`, { cache: 'no-cache' })
+          if (!r.ok) throw new Error(`gex-worker ${r.status}`)
+          const d = await r.json()
+          if (GEX.hist?.day !== day) return
+          GEX.data = d; renderGex()
+        } catch (err) { el('gex-histnote').textContent = `Could not load that print: ${err.message}`; el('gex-histnote').hidden = false }
+      } else renderGexSummary(entry)
+      syncGexNav()
+    }
+    // Days before the archive: only the logged trail exists (morning book, flip and major wall open to close, closing spot).
+    function renderGexSummary(entry) {
+      const sm = entry.summary || {}
+      const rd = el('gex-read'); rd.textContent = ''
+      const fig = (k, v, cls, desc) => {
+        const w = document.createElement('div')
+        const a = document.createElement('div'); a.className = 'label'; a.textContent = k
+        const b = document.createElement('div'); b.className = 'v' + (cls ? ' ' + cls : ''); b.textContent = v
+        const c = document.createElement('div'); c.className = 'd'; c.textContent = desc
+        w.append(a, b, c); rd.appendChild(w)
+      }
+      const pos = sm.net0 != null && sm.net0 >= 0
+      fig('0DTE net GEX at the open', sm.net0 == null ? '—' : fmtM(sm.net0), sm.net0 == null ? '' : pos ? 'pos' : 'neg', sm.net0 == null ? 'not logged' : pos ? 'positive gamma day' : 'negative gamma day')
+      fig('Gamma flip', sm.flipOpen == null ? '—' : `${sm.flipOpen} → ${sm.flipClose ?? '—'}`, '', 'QQQ, open → close')
+      fig('Major wall', sm.mwOpen == null ? '—' : `${sm.mwOpen} → ${sm.mwClose ?? '—'}`, '', 'QQQ, open → close')
+      fig('QQQ close', sm.spotClose == null ? '—' : Number(sm.spotClose).toFixed(2), '', 'last print of the day')
+      const rg = el('gex-regime')
+      rg.innerHTML = sm.net0 == null ? '' : pos
+        ? `<b class="pos">Positive gamma</b> — dealers hedged against price that day: moves were dampened, ranges held, dips got bought and rips got sold.`
+        : `<b class="neg">Negative gamma</b> — dealers hedged with price that day: moves got amplified, breaks kept going, bounces were sharp but short.`
+      rg.hidden = sm.net0 == null
+      el('gex-grid').hidden = true
+      el('gex-sheet').hidden = true; el('gex-sheet-copy').parentElement.hidden = true
+      el('gex-stamp').textContent = `Trail only for ${gexDayLabel(entry.date)}. Full boards are archived from Sep 4, 2026.`
+      el('gex-histnote').textContent = 'Only the logged trail exists for this day: the board itself was not archived yet.'
+      el('gex-histnote').hidden = false
+    }
+    {
+      el('gex-prev')?.addEventListener('click', () => {
+        const days = GEX.days, cur = GEX.hist?.day
+        const older = cur ? days.slice(days.findIndex((d) => d.date === cur) + 1) : days.filter((d) => !GEX.live || d.date < GEX.live.generatedAt.slice(0, 10))
+        if (older.length) showGexDay(older[0].date)
+      })
+      el('gex-next')?.addEventListener('click', () => {
+        const days = GEX.days, cur = GEX.hist?.day; if (!cur) return
+        const ix = days.findIndex((d) => d.date === cur)
+        const liveDay = GEX.live ? GEX.live.generatedAt.slice(0, 10) : null
+        const newer = days.slice(0, ix).reverse().find((d) => !liveDay || d.date < liveDay)
+        showGexDay(newer ? newer.date : null)
+      })
+      el('gex-time')?.addEventListener('change', (e) => { if (GEX.hist) showGexDay(GEX.hist.day, e.target.value) })
     }
 
     // ── New-print notification on the GEX tab ─────────────────────
@@ -8338,7 +8443,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function renderGex() {
       const d = GEX.data
       if (!d) return
-      ntGexRegime(d.regime)
+      if (!GEX.hist) ntGexRegime(d.regime)
       const rd = el('gex-read'); rd.textContent = ''
       const fig = (k, v, cls, desc) => {
         const w = document.createElement('div')
@@ -8350,15 +8455,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const z = d.zdte, s = d.swing
       fig('0DTE net GEX', fmtM(z.netGexM), z.netGexM >= 0 ? 'pos' : 'neg', `${expLabel(z.expiry)} · ${z.dte} DTE · ${d.regime}`)
       fig('Swing net GEX', s ? fmtM(s.netGexM) : '—', s && s.netGexM >= 0 ? 'pos' : 'neg', s ? `${s.expiries} expiries out to 60d` : 'no swing horizon')
-      fig('QQQ spot', d.spot.toFixed(2), '', d.marketOpen ? 'market open · CBOE ~15 min delayed' : 'market closed · last snapshot')
+      fig('QQQ spot', d.spot.toFixed(2), '', GEX.hist ? 'archived print' : d.marketOpen ? 'market open · CBOE ~15 min delayed' : 'market closed · last snapshot')
       fig('NQ', Math.round(d.nq).toLocaleString(), '', `= QQQ × ${d.conversion.divisor} + ${d.conversion.basis} (as of ${d.conversion.asOf ?? '—'})`)
       renderRegime(d)
       el('gex-sheet').textContent = d.levelsText || ''
       el('gex-sheet').hidden = !d.levelsText
       el('gex-sheet-copy').parentElement.hidden = !d.levelsText
-      el('gex-stamp').textContent = `Updated ${etStamp(d.generatedAt)}`
+      el('gex-stamp').textContent = GEX.hist ? `Viewing the ${etStamp(d.generatedAt)} print` : `Updated ${etStamp(d.generatedAt)}`
       // The member is looking at this print: clear the new-levels dot.
-      if (el('v-gex').classList.contains('on')) gexMarkSeen(d.generatedAt)
+      if (!GEX.hist && el('v-gex').classList.contains('on')) gexMarkSeen(d.generatedAt)
       // Dynamic bits of the "How GEX works" breakdown.
       const conv = el('ga-conv'); if (conv) conv.textContent = `NQ = QQQ × ${d.conversion.divisor} + ${d.conversion.basis}`
       const gstamp = el('ga-stamp'); if (gstamp) gstamp.textContent = etStamp(d.generatedAt)
@@ -8904,6 +9009,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (!GEX.data) el('gex-empty').hidden = false
         loadGex().catch((err) => { const e = el('gex-empty'); e.hidden = false; e.textContent = `Could not reach gex-worker: ${err.message}` })
       } else drawGex()
+      if (!GEX.days.length) loadGexHistory()
       clearInterval(GEX.timer)
       GEX.timer = setInterval(() => {
         if (!el('v-gex').classList.contains('on')) { clearInterval(GEX.timer); GEX.timer = null; return }
