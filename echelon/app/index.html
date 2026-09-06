@@ -366,7 +366,7 @@
     .gex-grid > .block { margin-top: 0; }
     @media (min-width: 1240px) { .gex-grid { grid-template-columns: minmax(0, 1fr) minmax(330px, 400px); } }
     .gex-levels table { min-width: 0; font-size: 12.5px; }
-    .gex-levels th { padding: 8px 10px; }
+    .gex-levels th { padding: 8px 10px; position: sticky; top: 0; z-index: 1; }
     .gex-levels td { padding: 5px 10px; white-space: nowrap; }
     .gex-levels td.lvl-name small { font-size: 10.5px; }
     .gex-levels .tbl-scroll { overflow-y: auto; }
@@ -2049,6 +2049,17 @@
     .mrt .thanks b { display: block; font-size: 16px; margin-bottom: 4px; }
     .mrt .thanks p { margin: 0; }
     .mrt .thanks a.go { display: inline-block; margin-top: 14px; color: var(--gold); text-decoration: none; font-size: 13.5px; }
+    /* Confirm dialog: the templates "Type to Confirm" and "Send back" forms on the same shell */
+    .mrt.cf .body { text-align: left; padding: 24px 24px 20px; }
+    .mrt.cf h3 { font-size: 16px; margin-bottom: 6px; }
+    .mrt.cf p { margin: 0 0 16px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+    .mrt.cf .cf-field { margin: -4px 0 18px; }
+    .mrt.cf .cf-field .inp { width: 100%; box-sizing: border-box; display: block; }
+    .mrt.cf .cf-field textarea.inp { resize: vertical; min-height: 74px; }
+    .mrt.cf .cf-field .hint { margin: 0 0 8px; }
+    .mrt.cf .cf-field .hint b { color: var(--ink); font-weight: 600; }
+    .mrt.cf .row { justify-content: flex-end; }
+    .mrt.cf .btn.danger { background: var(--bad); color: #1a100c; }
     .set-rate b { font-size: 14px; font-weight: 500; cursor: pointer; }
     .set-rate .stars { display: flex; gap: 0; }
     .set-rate .stars button { background: none; border: 0; padding: 4px 3px; cursor: pointer; color: var(--faint); display: inline-flex; -webkit-tap-highlight-color: transparent; }
@@ -3129,6 +3140,7 @@
     .co-toast.drag{transition:none}
     .co-toast.gone{opacity:0;transform:translateX(-50%) translateY(60px);pointer-events:none}
     .co-toast .ck{color:var(--gold,#c9a24a);font-weight:700;margin-right:8px}
+    .co-toast .act{margin-left:14px;background:none;border:0;padding:0;color:var(--gold,#c9a24a);font:inherit;font-weight:600;cursor:pointer}
     /* upload progress: one bar, 0 to 100 */
     .upbar { display: none; align-items: center; gap: 10px; }
     .upbar.on { display: flex; }
@@ -3217,6 +3229,20 @@
       <b>Thank you.</b>
       <p>It goes straight to D1.</p>
       <div id="rate-thanks-extra"></div>
+    </div>
+  </div>
+  <!-- Confirm dialog: one shell for every destructive ask (delete account, recap, send back) -->
+  <div class="mrt-scrim" id="cf-scrim" hidden></div>
+  <div class="mrt cf" id="cfmodal" role="dialog" aria-modal="true" aria-labelledby="cf-title" hidden>
+    <div class="body">
+      <h3 id="cf-title"></h3>
+      <p id="cf-body"></p>
+      <div class="cf-field" id="cf-field" hidden>
+        <p class="hint" id="cf-field-hint"></p>
+        <input class="inp" id="cf-input" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <textarea class="inp" id="cf-text" rows="3" maxlength="300" hidden></textarea>
+      </div>
+      <div class="row"><button class="rowbtn" id="cf-no" type="button">Cancel</button><button class="btn" id="cf-yes" type="button">Confirm</button></div>
     </div>
   </div>
   <div class="ga-scrim" id="ga-scrim" role="dialog" aria-modal="true" aria-label="What is GEX">
@@ -4469,7 +4495,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const grid = document.createElement('div'); grid.className = 'hw-grid'
           for (const m of myHw.media) {
             if (!m?.url) continue
-            const a = document.createElement('a'); a.href = m.url; a.target = '_blank'; a.rel = 'noopener'
+            const a = document.createElement('a'); a.href = m.url; a.addEventListener('click', (e) => { e.preventDefault(); openImage(m.url, 'Markup') })
             const i = document.createElement('img'); i.src = m.url; i.alt = ''; i.loading = 'lazy'
             a.appendChild(i); grid.appendChild(a)
           }
@@ -4813,7 +4839,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     async function mrDelete(r) {
-      if (!confirm('Delete this recap?')) return false
+      if (!(await askConfirm({ title: 'Delete this recap?', body: 'The post and its chart go away for everyone. Your stats update.', yes: 'Delete', danger: true }))) return false
       const { error } = await supabase.from('member_recaps').delete().eq('id', r.id)
       if (error) { toast('Could not delete that.'); return false }
       // best-effort: clear its media out of storage (RLS allows own or staff)
@@ -5312,7 +5338,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const grid = document.createElement('div'); grid.className = 'hw-grid'
         for (const m of s.media ?? []) {
           if (!m?.url) continue
-          const a = document.createElement('a'); a.href = m.url; a.target = '_blank'; a.rel = 'noopener'
+          const a = document.createElement('a'); a.href = m.url; a.addEventListener('click', (e) => { e.preventDefault(); openImage(m.url, 'Markup') })
           const i = document.createElement('img'); i.src = m.url; i.alt = ''; i.loading = 'lazy'
           a.appendChild(i); grid.appendChild(a)
         }
@@ -5321,10 +5347,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const ok = document.createElement('button'); ok.className = 'btn'; ok.type = 'button'; ok.textContent = 'Approve'
         ok.addEventListener('click', () => hwReview(s, 'approved', null))
         const no = document.createElement('button'); no.className = 'rowbtn'; no.type = 'button'; no.textContent = 'Send back'
-        no.addEventListener('click', () => {
-          const why = prompt('A line for them (optional):')
+        no.addEventListener('click', async () => {
+          const why = await askConfirm({ title: 'Send it back', body: `${info.username} gets it back to redo. A line for them helps.`, text: { placeholder: 'What to look at next time (optional)' }, yes: 'Send back' })
           if (why === null) return
-          hwReview(s, 'denied', why.trim() || null)
+          hwReview(s, 'denied', why || null)
         })
         act.append(ok, no)
         row.appendChild(act)
@@ -6614,7 +6640,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         el('nt-device-hint').textContent = on ? 'This device gets pushes even when the app is closed.' : 'Get pushes here even when the app is closed.'
       }
       el('nt-enable').addEventListener('click', async () => {
-        if (Notification.permission === 'default' && (await Notification.requestPermission()) !== 'granted') { paint(); return }
+        if (Notification.permission === 'default' && !(await ntAsk())) { paint(); return }
         if (Notification.permission !== 'granted') { paint(); return }
         const ok = await webPushSubscribe()
         toast(ok ? 'Pushes are on for this device.' : 'Could not turn that on here.')
@@ -6912,7 +6938,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       } catch { return }
       try { await navigator.clipboard.writeText(url); toast('Profile link copied.') } catch { prompt('Your profile link', url) }
     })
-    el('pro-edit-done').addEventListener('click', () => { el('pro-edit-wrap').hidden = true; renderProfilePage() })
+    // Save only lights up once something changed; Done asks before dropping edits.
+    const proDirty = () => el('set-username').value.trim() !== (state.profile?.username ?? '') || el('set-bio').value.trim() !== (state.profile?.bio ?? '')
+    const proPaint = () => { el('profile-save').disabled = !proDirty() }
+    for (const id of ['set-username', 'set-bio']) el(id).addEventListener('input', proPaint)
+    el('pro-edit-done').addEventListener('click', async () => {
+      if (proDirty() && !(await askConfirm({ title: 'Discard changes?', body: 'Your username or bio edits are not saved yet.', yes: 'Discard', no: 'Keep editing', danger: true }))) return
+      fillSettings(); el('pro-edit-wrap').hidden = true; renderProfilePage()
+    })
     // Tapping your photo opens edit profile at the photo, not the camera roll.
     el('pro-av').addEventListener('click', () => { el('pro-edit-wrap').hidden = false; el('pfp-preview').scrollIntoView({ block: 'center', behavior: 'smooth' }) })
     el('pro-av').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el('pro-av').click() } })
@@ -7175,6 +7208,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('set-bio').value = state.profile?.bio ?? ''
       el('bio-count').textContent = `${el('set-bio').value.length} / 200`
       renderPfpPreview()
+      proPaint()
     }
 
     el('set-bio').addEventListener('input', () => {
@@ -7198,7 +7232,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         msg.textContent = /duplicate|unique|23505/i.test(error.message + error.code) ? 'That username is taken.' : error.message
         return
       }
-      state.profile = data
+      state.profile = data; proPaint()
       msg.className = 'msg ok'; msg.textContent = 'Saved.'
       renderSidebarUser(); loadMembers()
     })
@@ -7441,6 +7475,54 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('review-send').disabled = v === 0
       if (v && focus && !isPhone()) el('review-text').focus()
     }
+    // ── confirm dialog ──────────────────────────────────────
+    // Replaces window.confirm/prompt. Plain yes/no, type-to-confirm (match),
+    // or a short note (text). Resolves null when dismissed, true on confirm,
+    // or the trimmed note when text is set.
+    let CF = null
+    function askConfirm({ title, body = '', yes = 'Confirm', no = 'Cancel', danger = false, match = null, text = null }) {
+      if (CF) CF.done(null)
+      const scrim = el('cf-scrim'), panel = el('cfmodal'), input = el('cf-input'), ta = el('cf-text'), ok = el('cf-yes'), hint = el('cf-field-hint')
+      el('cf-title').textContent = title
+      el('cf-body').textContent = body; el('cf-body').hidden = !body
+      el('cf-no').textContent = no
+      ok.textContent = yes; ok.classList.toggle('danger', danger)
+      el('cf-field').hidden = !match && !text
+      input.hidden = !match; ta.hidden = !text; hint.hidden = !match
+      hint.textContent = ''
+      if (match) {
+        hint.append('Type '); const b = document.createElement('b'); b.textContent = match; hint.append(b, ' to confirm.')
+        input.value = ''; input.placeholder = match
+      }
+      if (text) { ta.value = ''; ta.placeholder = text.placeholder ?? '' }
+      ok.disabled = !!match
+      const prev = document.activeElement
+      scrim.hidden = false; panel.hidden = false
+      requestAnimationFrame(() => { scrim.classList.add('on'); panel.classList.add('on'); (match ? input : text ? ta : ok).focus() })
+      document.body.style.overflow = 'hidden'
+      return new Promise((resolve) => {
+        CF = {
+          match, text,
+          done(v) {
+            CF = null
+            scrim.classList.remove('on'); panel.classList.remove('on'); document.body.style.overflow = ''
+            setTimeout(() => { scrim.hidden = true; panel.hidden = true }, 200)
+            if (prev && typeof prev.focus === 'function') prev.focus()
+            resolve(v)
+          },
+        }
+      })
+    }
+    {
+      const input = el('cf-input'), ok = el('cf-yes')
+      input.addEventListener('input', () => { if (CF?.match) ok.disabled = input.value.trim() !== CF.match })
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !ok.disabled) { e.preventDefault(); ok.click() } })
+      ok.addEventListener('click', () => { if (CF) CF.done(CF.text ? el('cf-text').value.trim() : true) })
+      el('cf-no').addEventListener('click', () => { if (CF) CF.done(null) })
+      el('cf-scrim').addEventListener('click', () => { if (CF) CF.done(null) })
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && CF) CF.done(null) })
+    }
+
     function rateOpen(v) {
       clearTimeout(RATE.timer)
       el('rate-body').hidden = false; el('rate-thanks').hidden = true; el('rate-thanks-extra').textContent = ''
@@ -7909,7 +7991,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     el('del-account').addEventListener('click', async () => {
       const msg = el('del-msg')
-      if (!confirm('Are you sure? This deletes your account for good.')) return
+      if (!(await askConfirm({ title: 'Delete your account', body: 'Everything about you goes for good, including anything you bought. There is no way back.', match: 'DELETE', yes: 'Delete my account', danger: true }))) return
       el('del-account').disabled = true; msg.className = 'msg'; msg.textContent = 'Deleting…'
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -8228,7 +8310,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       document.body.appendChild(box)
     }
 
-    function toast(msg, ms = 4500) {
+    function toast(msg, ms = 4500, action = null) {
       let t = el('co-toast')
       if (!t) { t = document.createElement('div'); t.id = 'co-toast'; t.className = 'co-toast'; document.body.appendChild(t) }
       t.textContent = ''
@@ -8238,6 +8320,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         t.appendChild(ck); t.appendChild(document.createTextNode(msg.slice(2)))
       } else {
         t.textContent = msg
+      }
+      if (action) {
+        // an Undo / Retry sits on the right; it must not start the swipe
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'act'; b.textContent = action.label
+        b.addEventListener('pointerdown', (e) => e.stopPropagation())
+        b.addEventListener('click', (e) => { e.stopPropagation(); clearTimeout(t._t); t.classList.remove('on'); action.fn() })
+        t.appendChild(b)
       }
       t.classList.remove('gone'); t.style.setProperty('--ty', '0px')
       t.classList.add('on')
@@ -9615,6 +9704,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // Notification API. Same switches, same per-channel rules, either way.
     const ntNative = () => globalThis.Capacitor?.isNativePlatform?.() ? globalThis.Capacitor?.Plugins?.PushNotifications : null
     const ntSupported = () => !!ntNative() || 'Notification' in window
+    // The browser's own prompt is one-shot, so say what it is for first.
+    async function ntAsk() {
+      if (!('Notification' in window)) return false
+      if (Notification.permission !== 'default') return Notification.permission === 'granted'
+      const go = await askConfirm({ title: 'Turn on notifications', body: 'Your browser asks next. Allow it, and Echelon can reach you when a level is swept, GEX refreshes, or someone replies.', yes: 'Continue', no: 'Not now' })
+      if (!go) return false
+      return (await Notification.requestPermission()) === 'granted'
+    }
     let _ntPushWired = false
     async function ntWireNative() {
       const P = ntNative(); if (!P || _ntPushWired) return
@@ -9663,7 +9760,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (!(await ntNativeEnable())) cb.checked = false
         } else {
           if (cb.checked && ntSupported() && Notification.permission === 'default') {
-            if (await Notification.requestPermission() !== 'granted') cb.checked = false
+            if (!(await ntAsk())) cb.checked = false
           }
           if (cb.checked && (!ntSupported() || Notification.permission === 'denied')) cb.checked = false
         }
@@ -9718,7 +9815,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (sel.value === 'on') {
             if (ntNative()) { if (!(await ntNativeEnable())) sel.value = '' }
             else if (ntSupported() && Notification.permission === 'default') {
-              if (await Notification.requestPermission() !== 'granted') sel.value = ''
+              if (!(await ntAsk())) sel.value = ''
             }
           }
           const cur = ntPrefs()
@@ -10074,7 +10171,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (m.user_id === state.user.id || (chat.isStaff && chatPerm('delete'))) {
           const del = document.createElement('button'); del.className = 'm-del'; del.title = 'Delete'
           del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
-          del.addEventListener('click', () => { if (confirm('Delete this message?')) deleteMessage(m.id) })
+          del.addEventListener('click', () => deleteMessage(m.id))
           acts.appendChild(del)
         }
         row.appendChild(acts)
@@ -10084,9 +10181,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (nearBottom) log.scrollTop = log.scrollHeight
     }
 
-    async function deleteMessage(id) {
-      await supabase.from('messages').update({ deleted_at: new Date().toISOString(), deleted_by: state.user.id }).eq('id', id)
-      const i = chat.msgs.findIndex((m) => m.id === id); if (i >= 0) { chat.msgs.splice(i, 1); renderLog() }
+    // Delete is optimistic with an Undo toast; the row is only marked in the
+    // database once the toast has had its six seconds.
+    const pendingDeletes = new Map()
+    function deleteMessage(id) {
+      const i = chat.msgs.findIndex((m) => m.id === id); if (i < 0) return
+      const [m] = chat.msgs.splice(i, 1); renderLog()
+      const commit = async () => {
+        pendingDeletes.delete(id)
+        await supabase.from('messages').update({ deleted_at: new Date().toISOString(), deleted_by: state.user.id }).eq('id', id)
+      }
+      const timer = setTimeout(commit, 6000); pendingDeletes.set(id, timer)
+      toast('Message deleted.', 6000, { label: 'Undo', fn: () => {
+        clearTimeout(timer); pendingDeletes.delete(id)
+        if (!chat.msgs.some((x) => x.id === id)) { chat.msgs.splice(Math.min(i, chat.msgs.length), 0, m); renderLog() }
+      } })
     }
 
     // Image paste / upload in chat.
@@ -10128,6 +10237,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (error) {
         input.value = body
         if (img) { pendingImage = img; el('cc-thumb').src = img; el('cc-pending').classList.add('on') }
+        toast('Could not send that.', 7000, { label: 'Retry', fn: sendMessage })
         return
       }
       if (!chat.msgs.some((m) => m.id === data.id)) { chat.msgs.push(data); renderLog(true) }

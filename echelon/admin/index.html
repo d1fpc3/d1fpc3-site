@@ -352,6 +352,22 @@
     .rowbtn:disabled { opacity: 0.4; cursor: default; }
 
     .empty { padding: 34px 18px; text-align: center; color: var(--faint); font-size: 13.5px; }
+    /* users: search, status, sortable heads, pager */
+    .users-tools { padding: 0 18px 14px; }
+    .users-tools .inp { padding: 7px 10px; font-size: 12.5px; }
+    #users-q { min-width: 250px; }
+    .users-pager { padding: 12px 18px 16px; justify-content: flex-end; }
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { color: var(--ink); }
+    th.sorted { color: var(--gold); }
+    /* tradingview access: bulk bar */
+    .access-bulk { padding: 0 18px 12px; }
+    .access-bulk .label { color: var(--gold); }
+    .access-bulk .label.err { color: var(--bad); }
+    /* lesson editor: unsaved changes */
+    .pe-unsaved { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--gold); font-size: 12.5px; color: var(--ink); }
+    .pe-unsaved span { flex: 1; }
+    .pe-unsaved.warn span { color: var(--gold); }
 
     /* ── forms / buttons ─────────────────────────────────── */
 
@@ -553,7 +569,7 @@
     .gex-grid > .block { margin-top: 0; }
     @media (min-width: 1240px) { .gex-grid { grid-template-columns: minmax(0, 1fr) minmax(330px, 400px); } }
     .gex-levels table { min-width: 0; font-size: 12.5px; }
-    .gex-levels th { padding: 8px 10px; }
+    .gex-levels th { padding: 8px 10px; position: sticky; top: 0; z-index: 1; background: var(--panel); }
     .gex-levels td { padding: 5px 10px; white-space: nowrap; }
     .gex-levels td.lvl-name small { font-size: 10.5px; }
     .gex-levels .tbl-scroll { overflow-y: auto; }
@@ -1059,8 +1075,18 @@
               <button class="btn" id="grant-btn">Grant access</button>
             </div>
             <p class="msg" id="grant-msg"></p>
+            <div class="filters users-tools" id="users-tools">
+              <input class="inp" id="users-q" placeholder="Search email, username, source" autocomplete="off">
+              <select class="inp" id="users-status" aria-label="Status"><option value="">Every status</option></select>
+              <span class="label" id="users-shown"></span>
+            </div>
             <div class="tbl-scroll"><table id="users-table"></table></div>
             <div class="empty" id="users-empty" hidden>No buyers yet.</div>
+            <div class="filters users-pager" id="users-pager" hidden>
+              <span class="label" id="users-page-lbl"></span>
+              <button class="rowbtn" id="users-prev" type="button">Previous</button>
+              <button class="rowbtn" id="users-next" type="button">Next</button>
+            </div>
           </div>
         </section>
 
@@ -1091,6 +1117,11 @@
             <p class="settings-note" style="margin:0 0 2px;">
               Each row is a TradingView job. For <b>Add</b>, open the script's Manage access and invite the username, then click Mark added. For <b>Remove</b>, delete them, then Mark removed. Rows waiting on the member for a username sit in the lower table.
             </p>
+            <div class="filters access-bulk" id="access-bulk" hidden>
+              <span class="label" id="access-bulk-n"></span>
+              <button class="rowbtn" id="access-bulk-go" type="button">Mark selected done</button>
+              <button class="rowbtn" id="access-bulk-clear" type="button">Clear</button>
+            </div>
             <div class="tbl-scroll"><table id="access-table"></table></div>
             <div class="empty" id="access-empty" hidden>Nothing to action. New purchases and cancellations show up here.</div>
           </div>
@@ -1130,6 +1161,11 @@
                   <span class="msg" id="pe-msg"></span>
                   <button class="btn" id="pe-save">Save</button>
                 </div>
+              </div>
+              <div class="pe-unsaved" id="pe-unsaved" hidden>
+                <span id="pe-unsaved-msg">Unsaved changes</span>
+                <button class="rowbtn" id="pe-discard" type="button">Discard</button>
+                <button class="rowbtn" id="pe-save-2" type="button">Save</button>
               </div>
               <div class="pe-wrap">
                 <input class="pe-title" id="pe-title" placeholder="Lesson title" maxlength="120" autocomplete="off">
@@ -1915,14 +1951,43 @@
       })
     }
 
+    const US = { q: '', status: '', key: 'granted_at', dir: -1, page: 0, size: 50 }
+    const US_COLS = [['Email', 'email'], ['Status', 'status'], ['Source', 'source'], ['Paid', 'amount_cents'], ['Joined', 'granted_at'], ['Discord', 'discord_username'], ['Lessons', 'lessons_done'], ['', null]]
+    function usersFiltered() {
+      const q = US.q.trim().toLowerCase()
+      const rows = BUYERS.filter((b) => (!US.status || b.status === US.status) &&
+        (!q || [b.email, b.username, b.source, b.discord_username].some((v) => String(v ?? '').toLowerCase().includes(q))))
+      const k = US.key
+      return rows.sort((a, b) => {
+        let x = a[k] ?? '', y = b[k] ?? ''
+        if (typeof x === 'string') x = x.toLowerCase()
+        if (typeof y === 'string') y = y.toLowerCase()
+        return (x < y ? -1 : x > y ? 1 : 0) * US.dir
+      })
+    }
     function renderUsers() {
       el('c-users').textContent = String(BUYERS.length)
       el('users-total').textContent = `${BUYERS.length} total`
-      el('users-empty').hidden = BUYERS.length > 0
+      // the status filter follows whatever statuses exist
+      const sel = el('users-status'), seen = [...new Set(BUYERS.map((b) => b.status).filter(Boolean))].sort()
+      sel.textContent = ''
+      const any = document.createElement('option'); any.value = ''; any.textContent = 'Every status'; sel.appendChild(any)
+      for (const s of seen) { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o) }
+      if (!seen.includes(US.status)) US.status = ''
+      sel.value = US.status
+      const rows = usersFiltered()
+      const pages = Math.max(1, Math.ceil(rows.length / US.size)); US.page = Math.min(US.page, pages - 1)
+      const slice = rows.slice(US.page * US.size, (US.page + 1) * US.size)
+      el('users-shown').textContent = rows.length === BUYERS.length ? '' : rows.length === 1 ? '1 match' : `${rows.length} match`
+      el('users-empty').textContent = BUYERS.length ? 'No one matches that.' : 'No buyers yet.'
+      el('users-empty').hidden = rows.length > 0
+      el('users-pager').hidden = rows.length <= US.size
+      el('users-page-lbl').textContent = `${US.page * US.size + 1} to ${Math.min(rows.length, (US.page + 1) * US.size)} of ${rows.length}`
+      el('users-prev').disabled = US.page === 0; el('users-next').disabled = US.page >= pages - 1
       table(
         el('users-table'),
-        ['Email', 'Status', 'Source', 'Paid', 'Joined', 'Discord', 'Lessons', ''],
-        BUYERS,
+        US_COLS.map((c) => c[0]),
+        slice,
         (b) => {
           const tr = document.createElement('tr')
           tr.append(cell(b.email, 'ink'), statusBadge(b.status), cell(b.source),
@@ -1942,7 +2007,21 @@
           return tr
         },
       )
+      el('users-table').querySelectorAll('th').forEach((th, i) => {
+        const key = US_COLS[i]?.[1]; if (!key) return
+        th.classList.add('sortable')
+        if (key === US.key) { th.classList.add('sorted'); th.textContent += US.dir < 0 ? ' \u2193' : ' \u2191' }
+        th.addEventListener('click', () => {
+          if (US.key === key) US.dir = -US.dir
+          else { US.key = key; US.dir = ['email', 'status', 'source', 'discord_username'].includes(key) ? 1 : -1 }
+          US.page = 0; renderUsers()
+        })
+      })
     }
+    el('users-q').addEventListener('input', () => { US.q = el('users-q').value; US.page = 0; renderUsers() })
+    el('users-status').addEventListener('change', () => { US.status = el('users-status').value; US.page = 0; renderUsers() })
+    el('users-prev').addEventListener('click', () => { US.page = Math.max(0, US.page - 1); renderUsers() })
+    el('users-next').addEventListener('click', () => { US.page += 1; renderUsers() })
 
     function renderBilling() {
       const s = computeStats()
@@ -2054,6 +2133,18 @@
         else { td.appendChild(document.createTextNode('not published')) ; td.className = 'faint' }
         return td
       }
+      // bulk: tick rows, one button marks every ticked job done
+      const picked = new Set()
+      const paintBulk = () => {
+        const n = picked.size; el('access-bulk').hidden = !n
+        el('access-bulk-n').className = 'label'; el('access-bulk-n').textContent = n === 1 ? '1 selected' : `${n} selected`
+      }
+      const checkCell = (r) => {
+        const td = document.createElement('td')
+        const c = document.createElement('input'); c.type = 'checkbox'; c.setAttribute('aria-label', 'Select ' + (r.email ?? ''))
+        c.addEventListener('change', () => { if (c.checked) picked.add(r.id); else picked.delete(r.id); paintBulk() })
+        td.appendChild(c); return td
+      }
       const actionCell = (r) => {
         const td = document.createElement('td')
         const isGrant = r.state === 'pending_grant'
@@ -2069,14 +2160,37 @@
 
       // to-action table
       el('access-table').textContent = ''
-      table(el('access-table'), ['Member', 'Indicator', 'TradingView username', 'Job', 'TradingView', 'Action'], toAction, (r) => {
+      table(el('access-table'), ['', 'Member', 'Indicator', 'TradingView username', 'Job', 'TradingView', 'Action'], toAction, (r) => {
         const tr = document.createElement('tr')
+        tr.appendChild(checkCell(r))
         tr.append(cell(r.email, 'ink'), cell(nameOf(r.product)), cell(r.tv_username ?? '—', 'ink'))
         tr.appendChild(badge(r.state))
         tr.appendChild(manageCell(r.product))
         tr.appendChild(actionCell(r))
         return tr
       })
+      const th0 = el('access-table').querySelector('th')
+      if (th0 && toAction.length) {
+        const all = document.createElement('input'); all.type = 'checkbox'; all.setAttribute('aria-label', 'Select all')
+        all.addEventListener('change', () => {
+          el('access-table').querySelectorAll('tbody input[type=checkbox]').forEach((c) => { if (c.checked !== all.checked) c.click() })
+        })
+        th0.appendChild(all)
+      }
+      paintBulk()
+      el('access-bulk-clear').onclick = () => {
+        picked.clear(); el('access-table').querySelectorAll('input[type=checkbox]').forEach((c) => { c.checked = false }); paintBulk()
+      }
+      el('access-bulk-go').onclick = async () => {
+        const go = el('access-bulk-go'); go.disabled = true; go.textContent = 'Working…'
+        let failed = 0
+        for (const r of toAction.filter((x) => picked.has(x.id))) {
+          try { await adminAction({ action: r.state === 'pending_grant' ? 'tv_grant' : 'tv_revoke', id: r.id }) } catch { failed++ }
+        }
+        go.disabled = false; go.textContent = 'Mark selected done'
+        await loadTvAccess()
+        if (failed) { el('access-bulk').hidden = false; el('access-bulk-n').className = 'label err'; el('access-bulk-n').textContent = failed === 1 ? '1 job failed and is still listed.' : `${failed} jobs failed and are still listed.` }
+      }
 
       // everyone table (granted / needs_username / revoked)
       el('access-all-table').textContent = ''
@@ -2807,11 +2921,35 @@
       el('course-list-wrap').hidden = true
       el('page-editor').hidden = false
       peRender()
+      PE.snap = peSnap(); pePaint()
       if (!l) el('pe-title').focus()
       window.scrollTo({ top: 0 })
     }
 
+    // Unsaved changes: a bar under the header while the page differs from the
+    // last save; Back will not leave until it is saved or discarded.
+    const peSnap = () => JSON.stringify({ t: el('pe-title').value, s: el('pe-summary').value, h: el('pe-hw').value, m: el('pe-module').value, b: PE.blocks })
+    const peDirty = () => !el('page-editor').hidden && PE.snap !== undefined && peSnap() !== PE.snap
+    function pePaint() {
+      const d = peDirty(), bar = el('pe-unsaved')
+      bar.hidden = !d
+      if (!d) { bar.classList.remove('warn'); el('pe-unsaved-msg').textContent = 'Unsaved changes' }
+    }
+    el('page-editor').addEventListener('input', pePaint)
+    el('page-editor').addEventListener('change', pePaint)
+    new MutationObserver(() => pePaint()).observe(el('pe-blocks'), { childList: true, subtree: true })
+    el('pe-discard').addEventListener('click', () => { PE.snap = undefined; closePageEditor() })
+    el('pe-save-2').addEventListener('click', () => el('pe-save').click())
+    window.addEventListener('beforeunload', (e) => { if (peDirty()) { e.preventDefault(); e.returnValue = '' } })
+
     function closePageEditor() {
+      if (peDirty()) {
+        const bar = el('pe-unsaved'); bar.hidden = false; bar.classList.add('warn')
+        el('pe-unsaved-msg').textContent = 'Save or discard your changes first.'
+        bar.scrollIntoView({ block: 'nearest' })
+        return
+      }
+      PE.snap = undefined
       el('page-editor').hidden = true
       el('course-list-wrap').hidden = false
     }
@@ -2963,6 +3101,7 @@
           body_md: '',
         })
         if (!PE.id) PE.id = res.id
+        PE.snap = peSnap(); pePaint()
         msg.className = 'msg ok'
         msg.textContent = 'Saved. Publish it from the course list when it is ready.'
         loadContent()
