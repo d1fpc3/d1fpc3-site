@@ -178,7 +178,7 @@ const VERIFY = {
   fundednext: 'https://fundednext.com/futures', tradeday: 'https://www.tradeday.com/', tpt: 'https://takeprofittrader.com/',
   bulenox: 'https://bulenox.com/accounts-pricing', earn2trade: 'https://www.earn2trade.com/gauntlet-mini', purdia: 'https://purdia.com/evaluation',
 }
-const MANUAL = { apex: 'Cloudflare bot wall', tradeify: 'Cloudflare bot wall on the help center' }
+const MANUAL = { apex: 'Cloudflare bot wall', tradeify: 'Cloudflare bot wall on the help center' }   // Lucid joins this list at runtime when its WAF 403s the runner
 
 const data = JSON.parse(readFileSync(FILE, 'utf8'))
 let changes = 0, failures = 0, stale = 0
@@ -187,7 +187,12 @@ for (const firm of data.firms) {
   if (!firm.active) continue
   if (PROBES[firm.slug]) {
     let rows
-    try { rows = await PROBES[firm.slug]() } catch (e) { failures++; log(`FAIL ${firm.slug}: ${e.message}`); continue }
+    try { rows = await PROBES[firm.slug]() } catch (e) {
+      // Lucid's WAF lets a home connection through but 403s cloud runners: not a
+      // parser failure, so the run stays green and the sheet says hand-checked.
+      if (/-> 403|bot wall/.test(e.message)) { log(`blocked ${firm.slug}: ${e.message} (marked hand-checked for this run)`); if (!DRY) firm.verify = 'manual'; continue }
+      failures++; log(`FAIL ${firm.slug}: ${e.message}`); continue
+    }
     let matched = 0
     for (const r of rows) {
       const plan = firm.plans.find((p) => p.plan === r.plan && p.size === r.size)
