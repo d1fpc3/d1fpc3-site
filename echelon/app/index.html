@@ -843,6 +843,50 @@
       .notes-drawer::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--line-bright); margin: 8px auto 0; }
     }
 
+    /* ── study room: quick check + review ── */
+    .qc { margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--line); max-width: 62ch; }
+    .qc-cap { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+    .qc-cap h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .qc-cap .n { color: var(--faint); font-size: 12px; margin-left: auto; font-variant-numeric: tabular-nums; }
+    .qc-q { padding: 14px 0 6px; }
+    .qc-q + .qc-q { border-top: 1px solid var(--line); }
+    .qc-prompt { margin: 0 0 10px; font-size: 14.5px; font-weight: 600; color: var(--ink); line-height: 1.45; }
+    .qc-opts { display: grid; gap: 4px; }
+    .qc-opt { display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left; background: none; border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; color: var(--muted); font: inherit; font-size: 13.5px; line-height: 1.4; cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease; -webkit-tap-highlight-color: transparent; }
+    .qc-opt:hover:not(:disabled) { border-color: var(--line-bright); color: var(--ink); }
+    .qc-opt:disabled { cursor: default; }
+    .qc-opt .k { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line-bright); font-size: 10.5px; display: inline-flex; align-items: center; justify-content: center; color: var(--faint); margin-top: 1px; }
+    .qc-opt.right { border-color: rgba(134,181,127,0.6); color: var(--ink); }
+    .qc-opt.right .k { background: rgba(134,181,127,0.18); border-color: transparent; color: var(--good); }
+    .qc-opt.wrong { border-color: rgba(217,100,80,0.5); }
+    .qc-opt.wrong .k { background: rgba(217,100,80,0.16); border-color: transparent; color: var(--bad, #d96450); }
+    .qc-opt.dim { opacity: 0.5; }
+    .qc-explain { margin: 10px 0 4px; font-size: 13px; color: var(--muted); line-height: 1.5; padding-left: 12px; border-left: 2px solid var(--gold); }
+    .qc-explain b { color: var(--ink); font-weight: 600; }
+    .qc-done { margin-top: 14px; font-size: 13px; color: var(--muted); }
+    .qc-done b { color: var(--gold); font-weight: 600; }
+    /* the review line (index + Overview) */
+    .rv-line { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 10px 12px; border: 1px solid rgba(201,162,74,0.35); border-radius: 8px; font-size: 12.5px; color: var(--muted); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color 0.15s ease; }
+    .rv-line:hover { border-color: var(--gold); }
+    .rv-line b { color: var(--ink); font-weight: 600; }
+    .rv-line .go { margin-left: auto; color: var(--gold); font-weight: 600; white-space: nowrap; }
+    .rv-line .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex: none; }
+    /* the review session dialog */
+    .mrt.rv { width: min(520px, 94vw); }
+    .mrt.rv .body { text-align: left; padding: 22px 22px 18px; }
+    .rv-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+    .rv-top .label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rv-top .pos { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .rv-prompt { margin: 0 0 12px; font-size: 16px; font-weight: 600; line-height: 1.4; color: var(--ink); }
+    .rv-grade { display: flex; gap: 8px; margin-top: 16px; }
+    .rv-grade button { flex: 1; }
+    .rv-grade small { display: block; font-weight: 400; color: var(--faint); font-size: 11px; margin-top: 2px; }
+    .rv-end { text-align: center; padding: 26px 8px 10px; }
+    .rv-end b { display: block; font-size: 17px; margin-bottom: 6px; }
+    .rv-end p { margin: 0 0 16px; color: var(--muted); font-size: 13.5px; }
+    .rv-end .stat { display: inline-flex; gap: 18px; margin-bottom: 18px; font-size: 13px; color: var(--muted); }
+    .rv-end .stat b { display: inline; font-size: 16px; margin: 0 4px 0 0; color: var(--gold); }
+
     /* homework */
     .hw { border-top: 1px solid var(--line); margin-top: 26px; padding-top: 18px; }
     .hw-cap { display: flex; align-items: center; gap: 10px; }
@@ -3399,6 +3443,14 @@
       <button class="pm-x" type="button" data-promo-x aria-label="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
     </div>
   </div>
+  <!-- Study room: review session (one due question at a time) -->
+  <div class="mrt-scrim" id="rv-scrim" hidden></div>
+  <div class="mrt rv" id="rvmodal" role="dialog" aria-modal="true" aria-label="Review" hidden>
+    <div class="body">
+      <button class="mrt-x" id="rv-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      <div id="rv-body"></div>
+    </div>
+  </div>
   <!-- Study room: highlights and notes drawer (right drawer on desktop, bottom sheet on phone) -->
   <div class="notes-scrim" id="notes-scrim" hidden></div>
   <aside class="notes-drawer" id="notes-drawer" role="dialog" aria-label="Your notes" hidden>
@@ -4254,7 +4306,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const x = document.createElement('button'); x.type = 'button'; x.className = 'ts-x'; x.setAttribute('aria-label', 'Clear search')
       x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>'
       const list = document.createElement('div'); list.id = 'toc-list'
-      const refresh = () => { list.textContent = ''; sw.classList.toggle('has', !!STUDY_Q); if (STUDY_Q.trim()) renderHits(list, STUDY_Q); else renderGroups(list) }
+      const refresh = () => { list.textContent = ''; sw.classList.toggle('has', !!STUDY_Q); if (STUDY_Q.trim()) renderHits(list, STUDY_Q); else { const rv = reviewLine(); if (rv) list.appendChild(rv); renderGroups(list) } }
       inp.addEventListener('input', () => { STUDY_Q = inp.value; refresh() })
       inp.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { const first = list.querySelector('.hit'); if (first) first.click() }
@@ -4720,6 +4772,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       studyGlossary(host, lesson)
       notesApply(host, lesson)
+      quickCheck(host, lesson)
 
       // ── homework ──
       const myHw = lesson.homework ? state.hw.find((s) => s.lesson_id === lesson.id && s.user_id === state.user.id) : null
@@ -4940,6 +4993,151 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       bar.appendChild(notes)
       notesCount()
       return bar
+    }
+
+    /* ── study room: recall and review ───────────────────────
+       Quick check: the approved questions for a lesson, answered inline.
+       Each answer writes one check_results row (per member per question)
+       with a due date on a short ladder. The review line counts rows that
+       are due and the session shows them one at a time; Again / Good /
+       Easy reschedule. Quick checks never gate Mark complete. */
+    const LADDER = [1, 3, 7, 14, 30, 60]   // days
+    function lessonChecks(lessonId) { return (state.checks ?? []).filter((c) => c.lesson_id === lessonId).sort((a, b) => a.position - b.position) }
+    function dueChecks() {
+      const now = Date.now()
+      return (state.checks ?? []).filter((c) => { const r = state.results?.get(c.id); return r && new Date(r.due_at).getTime() <= now })
+    }
+    async function recordResult(check, correct, grade) {
+      // grade: 'again' | 'good' | 'easy' (review) or undefined (quick check: correct → +1, wrong → 0)
+      const prev = state.results?.get(check.id)
+      let step = prev ? prev.step : 0
+      if (grade === 'again') step = 0
+      else if (grade === 'easy') step = Math.min(LADDER.length - 1, step + 2)
+      else if (grade === 'good') step = Math.min(LADDER.length - 1, step + 1)
+      else step = correct ? Math.min(LADDER.length - 1, (prev ? step + 1 : 0)) : 0
+      const due = new Date(Date.now() + LADDER[step] * 864e5).toISOString()
+      const row = { user_id: state.user.id, check_id: check.id, correct, step, seen: (prev?.seen ?? 0) + 1, answered_at: new Date().toISOString(), due_at: due }
+      const { error } = await supabase.from('check_results').upsert(row, { onConflict: 'user_id,check_id' })
+      if (error) { toast('Could not save that answer.'); return null }
+      if (!state.results) state.results = new Map()
+      state.results.set(check.id, row)
+      return row
+    }
+    function optionButton(text, k, onPick) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'qc-opt'
+      const key = document.createElement('span'); key.className = 'k'; key.textContent = String.fromCharCode(65 + k)
+      b.appendChild(key); b.appendChild(document.createTextNode(text))
+      b.addEventListener('click', () => onPick(k))
+      return b
+    }
+    function reveal(host, check, picked) {
+      const btns = [...host.querySelectorAll('.qc-opt')]
+      btns.forEach((b, k) => { b.disabled = true; if (k === check.answer) b.classList.add('right'); else if (k === picked) b.classList.add('wrong'); else b.classList.add('dim') })
+      const ex = document.createElement('p'); ex.className = 'qc-explain'
+      const lead = document.createElement('b'); lead.textContent = picked === check.answer ? 'Right. ' : 'Not quite. '
+      ex.appendChild(lead); ex.appendChild(document.createTextNode(check.explain || ''))
+      host.appendChild(ex)
+      return ex
+    }
+    function quickCheck(host, lesson) {
+      const checks = lessonChecks(lesson.id)
+      if (!checks.length) return
+      const sec = document.createElement('section'); sec.className = 'qc'
+      const cap = document.createElement('div'); cap.className = 'qc-cap'
+      const h = document.createElement('h3'); h.textContent = 'Quick check'
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = `${checks.length} ${checks.length === 1 ? 'question' : 'questions'}`
+      cap.appendChild(h); cap.appendChild(n); sec.appendChild(cap)
+      let answered = 0, right = 0
+      const done = document.createElement('p'); done.className = 'qc-done'; done.hidden = true
+      checks.forEach((c) => {
+        const q = document.createElement('div'); q.className = 'qc-q'
+        const pr = document.createElement('p'); pr.className = 'qc-prompt'; pr.textContent = c.prompt
+        const opts = document.createElement('div'); opts.className = 'qc-opts'
+        const pick = async (k) => {
+          const ok = k === c.answer
+          reveal(q, c, k)
+          answered++; if (ok) right++
+          if (answered === checks.length) {
+            done.hidden = false; done.textContent = ''
+            const b = document.createElement('b'); b.textContent = `${right} of ${checks.length}`
+            done.appendChild(b); done.appendChild(document.createTextNode(right === checks.length ? ' right. These come back in your review queue in a few days.' : ' right. The ones you missed come back sooner in your review queue.'))
+          }
+          await recordResult(c, ok)
+          renderIndex(); renderOverview()
+        }
+        c.options.forEach((o, k) => opts.appendChild(optionButton(o, k, pick)))
+        q.appendChild(pr); q.appendChild(opts); sec.appendChild(q)
+      })
+      sec.appendChild(done)
+      host.appendChild(sec)
+    }
+    function reviewLine() {
+      const due = dueChecks()
+      if (!due.length) return null
+      const line = document.createElement('div'); line.className = 'rv-line'; line.setAttribute('role', 'button'); line.tabIndex = 0
+      const dot = document.createElement('span'); dot.className = 'dot'
+      const t = document.createElement('span'); const b = document.createElement('b'); b.textContent = String(due.length); t.appendChild(b); t.appendChild(document.createTextNode(due.length === 1 ? ' question due for review' : ' questions due for review'))
+      const go = document.createElement('span'); go.className = 'go'; go.textContent = 'Review →'
+      line.append(dot, t, go)
+      line.addEventListener('click', reviewOpen)
+      line.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); reviewOpen() } })
+      return line
+    }
+    // the session
+    const RVW = { queue: [], i: 0, right: 0, again: 0 }
+    function reviewOpen() {
+      RVW.queue = dueChecks().sort(() => Math.random() - 0.5); RVW.i = 0; RVW.right = 0; RVW.again = 0
+      if (!RVW.queue.length) { toast('Nothing due for review.'); return }
+      const scrim = el('rv-scrim'), panel = el('rvmodal')
+      scrim.hidden = false; panel.hidden = false
+      requestAnimationFrame(() => { scrim.classList.add('on'); panel.classList.add('on') })
+      reviewStep()
+    }
+    function reviewClose() {
+      const scrim = el('rv-scrim'), panel = el('rvmodal')
+      scrim.classList.remove('on'); panel.classList.remove('on')
+      setTimeout(() => { scrim.hidden = true; panel.hidden = true }, 200)
+      renderIndex(); renderOverview()
+    }
+    function reviewStep() {
+      const body = el('rv-body'); body.textContent = ''
+      const c = RVW.queue[RVW.i]
+      if (!c) {
+        const end = document.createElement('div'); end.className = 'rv-end'
+        const b = document.createElement('b'); b.textContent = RVW.again ? 'Done for now.' : 'All clear.'
+        const stat = document.createElement('div'); stat.className = 'stat'
+        const s1 = document.createElement('span'); const b1 = document.createElement('b'); b1.textContent = String(RVW.right); s1.appendChild(b1); s1.appendChild(document.createTextNode('right'))
+        const s2 = document.createElement('span'); const b2 = document.createElement('b'); b2.textContent = String(RVW.again); s2.appendChild(b2); s2.appendChild(document.createTextNode('to see again'))
+        stat.append(s1, s2)
+        const p = document.createElement('p'); p.textContent = RVW.again ? 'The ones you marked Again come back tomorrow. The rest are spaced out.' : 'Everything you reviewed is spaced further out now.'
+        const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'btn'; ok.textContent = 'Back to studying'; ok.addEventListener('click', reviewClose)
+        end.append(b, stat, p, ok); body.appendChild(end); return
+      }
+      const lesson = state.lessons.find((l) => l.id === c.lesson_id)
+      const top = document.createElement('div'); top.className = 'rv-top'
+      const lab = document.createElement('span'); lab.className = 'label'; lab.textContent = lesson?.title ?? 'Review'
+      const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = `${RVW.i + 1} of ${RVW.queue.length}`
+      top.append(lab, pos)
+      const pr = document.createElement('p'); pr.className = 'rv-prompt'; pr.textContent = c.prompt
+      const wrap = document.createElement('div')
+      const opts = document.createElement('div'); opts.className = 'qc-opts'
+      const pick = (k) => {
+        const ok = k === c.answer
+        reveal(wrap, c, k)
+        const g = document.createElement('div'); g.className = 'rv-grade'
+        const mk = (label, sub, grade, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = label; const sm = document.createElement('small'); sm.textContent = sub; b.appendChild(sm); b.addEventListener('click', async () => { g.querySelectorAll('button').forEach((x) => x.disabled = true); await recordResult(c, ok, grade); if (grade === 'again') RVW.again++; else RVW.right++; RVW.i++; reviewStep() }); return b }
+        if (ok) { g.appendChild(mk('Again', 'tomorrow', 'again', 'rowbtn')); g.appendChild(mk('Good', `in ${LADDER[Math.min(LADDER.length - 1, (state.results?.get(c.id)?.step ?? 0) + 1)]} days`, 'good', 'btn')); g.appendChild(mk('Easy', `in ${LADDER[Math.min(LADDER.length - 1, (state.results?.get(c.id)?.step ?? 0) + 2)]} days`, 'easy', 'rowbtn')) }
+        else { g.appendChild(mk('Again', 'tomorrow', 'again', 'btn')) }
+        wrap.appendChild(g)
+      }
+      c.options.forEach((o, k) => opts.appendChild(optionButton(o, k, pick)))
+      wrap.appendChild(opts)
+      body.append(top, pr, wrap)
+    }
+    {
+      el('rv-x').addEventListener('click', reviewClose)
+      el('rv-scrim').addEventListener('click', reviewClose)
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !el('rvmodal').hidden) reviewClose() })
     }
 
     /* ── study room: highlights and notes ────────────────────
@@ -8893,6 +9091,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       row.addEventListener('click', open)
       row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } })
       cont.appendChild(row)
+      const rv = reviewLine(); if (rv) { rv.style.marginTop = '12px'; rv.style.marginBottom = '0'; cont.appendChild(rv) }
     }
 
     // ── indicators store ────────────────────────────────────
@@ -11402,6 +11601,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         supabase.from('homework_submissions').select('id, lesson_id, user_id, media, note, status, review_note, created_at').order('created_at', { ascending: false }).limit(300),
         ensureProfile().then(() => loadMembers()),
         supabase.from('lesson_notes').select('id, lesson_id, kind, block_index, quote, note, created_at').order('created_at').then(({ data }) => { state.notes = data ?? [] }),
+        supabase.from('lesson_checks').select('id, lesson_id, position, prompt, options, answer, explain').order('position').then(({ data }) => { state.checks = data ?? [] }),
+        supabase.from('check_results').select('check_id, correct, step, seen, answered_at, due_at').then(({ data }) => { state.results = new Map((data ?? []).map((r) => [r.check_id, r])) }),
       ])
 
       state.modules = modules ?? []

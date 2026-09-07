@@ -302,6 +302,29 @@
       width: 100%; background: none; border: 0; outline: none;
       color: var(--muted); font-family: inherit; font-size: 14px; margin: 6px 0 22px;
     }
+    /* quick-check questions under the block editor: flat rows, saved on their own */
+    .pe-checks { margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .pe-checks-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+    .pe-checks-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .pe-checks-head .n { color: var(--faint); font-size: 12.5px; margin-right: auto; }
+    .pe-checks .hint { font-size: 12.5px; color: var(--faint); margin: 0 0 12px; max-width: 70ch; line-height: 1.5; }
+    .pc-row { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px 12px; }
+    .pc-row .pc-n { color: var(--faint); font-size: 12px; padding-top: 8px; font-variant-numeric: tabular-nums; }
+    .pc-row.off { opacity: 0.72; }
+    .pc-prompt { width: 100%; background: none; border: 0; border-bottom: 1px solid transparent; color: var(--ink); font: inherit; font-size: 14.5px; font-weight: 600; padding: 6px 0; resize: none; outline: none; }
+    .pc-prompt:focus, .pc-explain:focus, .pc-opt input:focus { border-bottom-color: var(--gold); }
+    .pc-opts { display: grid; gap: 4px; margin: 4px 0; }
+    .pc-opt { display: flex; align-items: center; gap: 10px; }
+    .pc-opt input[type="radio"] { accent-color: var(--gold); margin: 0; }
+    .pc-opt input[type="text"] { flex: 1; background: none; border: 0; border-bottom: 1px solid transparent; color: var(--muted); font: inherit; font-size: 13.5px; padding: 4px 0; outline: none; }
+    .pc-opt.right input[type="text"] { color: var(--ink); }
+    .pc-explain { width: 100%; background: none; border: 0; border-bottom: 1px solid transparent; color: var(--muted); font: inherit; font-size: 13px; padding: 4px 0; outline: none; }
+    .pc-explain::placeholder, .pc-prompt::placeholder, .pc-opt input::placeholder { color: var(--faint); }
+    .pc-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12.5px; }
+    .pc-foot .st { margin-right: auto; color: var(--faint); }
+    .pc-foot .st.ok { color: var(--good); }
+    .pc-foot .st.err { color: var(--bad); }
+    .pc-foot .rowbtn.gold { color: var(--gold); border-color: rgba(201,162,74,0.4); }
     .pe-block {
       position: relative; border: 1px solid transparent; border-radius: 10px;
       padding: 8px 100px 8px 10px; margin: 2px -10px;
@@ -1179,6 +1202,17 @@
                   <button class="rowbtn" data-add="video">Video</button>
                   <button class="rowbtn" data-add="image">Image</button>
                   <button class="rowbtn" data-add="file">File</button>
+                </div>
+                <!-- quick check: the questions members answer at the end of this lesson; saved row by row, nothing shows until approved -->
+                <div class="pe-checks" id="pe-checks" hidden>
+                  <div class="pe-checks-head">
+                    <h3>Quick check</h3>
+                    <span class="n" id="pc-n"></span>
+                    <button class="rowbtn" id="pc-approve-all" type="button">Approve all</button>
+                    <button class="rowbtn" id="pc-add" type="button">Add question</button>
+                  </div>
+                  <p class="hint">Members answer these at the end of the lesson and see them again in their review queue. Pick the right answer with the radio. Nothing reaches members until you approve it; a question you edit later needs approving again.</p>
+                  <div id="pc-list"></div>
                 </div>
               </div>
             </div>
@@ -2924,7 +2958,109 @@
       PE.snap = peSnap(); pePaint()
       if (!l) el('pe-title').focus()
       window.scrollTo({ top: 0 })
+      pcLoad(l?.id ?? null)
     }
+
+    // ── quick-check questions (lesson_checks) ──
+    // Writes go straight to the table under the admin RLS policies; each row
+    // saves on its own so the page's unsaved-changes tracking stays out of it.
+    let PC = { lessonId: null, rows: [] }
+    async function pcLoad(lessonId) {
+      PC = { lessonId, rows: [] }
+      const wrap = el('pe-checks'); wrap.hidden = !lessonId
+      if (!lessonId) return
+      const { data } = await supabase.from('lesson_checks').select('id, position, prompt, options, answer, explain, approved').eq('lesson_id', lessonId).order('position')
+      PC.rows = data ?? []
+      pcRender()
+    }
+    function pcRender() {
+      const list = el('pc-list'); list.textContent = ''
+      const n = PC.rows.length, ok = PC.rows.filter((r) => r.approved).length
+      el('pc-n').textContent = n ? `${ok} of ${n} approved` : 'No questions yet'
+      el('pc-approve-all').hidden = !n || ok === n
+      PC.rows.forEach((r, i) => list.appendChild(pcRow(r, i)))
+    }
+    function pcRow(r, i) {
+      const row = document.createElement('div'); row.className = 'pc-row' + (r.approved ? '' : ' off')
+      const num = document.createElement('div'); num.className = 'pc-n'; num.textContent = String(i + 1)
+      const body = document.createElement('div')
+      const prompt = document.createElement('textarea'); prompt.className = 'pc-prompt'; prompt.rows = 1; prompt.placeholder = 'The question'; prompt.value = r.prompt ?? ''
+      const autosize = () => { prompt.style.height = 'auto'; prompt.style.height = prompt.scrollHeight + 'px' }
+      prompt.addEventListener('input', autosize); requestAnimationFrame(autosize)
+      body.appendChild(prompt)
+      const opts = document.createElement('div'); opts.className = 'pc-opts'
+      const options = Array.isArray(r.options) && r.options.length ? r.options.slice() : ['', '', '', '']
+      while (options.length < 4) options.push('')
+      const name = 'pc-ans-' + (r.id ?? 'new' + i)
+      const optEls = options.slice(0, 4).map((o, k) => {
+        const line = document.createElement('label'); line.className = 'pc-opt' + (k === r.answer ? ' right' : '')
+        const radio = document.createElement('input'); radio.type = 'radio'; radio.name = name; radio.checked = k === r.answer; radio.title = 'This is the right answer'
+        radio.addEventListener('change', () => { opts.querySelectorAll('.pc-opt').forEach((x, j) => x.classList.toggle('right', j === k)) })
+        const inp = document.createElement('input'); inp.type = 'text'; inp.value = o; inp.placeholder = 'Option ' + (k + 1); inp.maxLength = 200
+        line.appendChild(radio); line.appendChild(inp); opts.appendChild(line)
+        return { radio, inp }
+      })
+      body.appendChild(opts)
+      const explain = document.createElement('input'); explain.className = 'pc-explain'; explain.placeholder = 'One line shown after they answer (optional)'; explain.value = r.explain ?? ''; explain.maxLength = 800
+      body.appendChild(explain)
+      const foot = document.createElement('div'); foot.className = 'pc-foot'
+      const st = document.createElement('span'); st.className = 'st'; st.textContent = r.id ? (r.approved ? 'Approved · members see this' : 'Not approved yet') : 'New'
+      const save = document.createElement('button'); save.type = 'button'; save.className = 'rowbtn'; save.textContent = 'Save'
+      const appr = document.createElement('button'); appr.type = 'button'; appr.className = 'rowbtn' + (r.approved ? '' : ' gold'); appr.textContent = r.approved ? 'Unapprove' : 'Approve'; appr.hidden = !r.id
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'rowbtn'; del.textContent = 'Delete'
+      const read = () => {
+        const answer = optEls.findIndex((o) => o.radio.checked)
+        const options = optEls.map((o) => o.inp.value.trim())
+        return { prompt: prompt.value.trim(), options, answer, explain: explain.value.trim() }
+      }
+      const valid = (v) => {
+        if (!v.prompt) return 'Write the question.'
+        if (v.options.filter(Boolean).length < 2) return 'At least two options.'
+        if (v.options.some((o, k) => !o && k < v.options.filter(Boolean).length)) return 'Fill options in order, no gaps.'
+        if (v.answer < 0 || !v.options[v.answer]) return 'Pick the right answer.'
+        return ''
+      }
+      const persist = async (extra = {}) => {
+        const v = read(); const why = valid(v)
+        if (why) { st.textContent = why; st.className = 'st err'; return false }
+        const payload = { lesson_id: PC.lessonId, position: i, prompt: v.prompt, options: v.options.filter(Boolean), answer: v.answer, explain: v.explain, updated_at: new Date().toISOString(), ...extra }
+        st.textContent = 'Saving…'; st.className = 'st'
+        const changed = r.id && (v.prompt !== r.prompt || JSON.stringify(v.options.filter(Boolean)) !== JSON.stringify(r.options) || v.answer !== r.answer || v.explain !== (r.explain ?? ''))
+        if (changed && !('approved' in extra)) payload.approved = false   // an edited question needs approving again
+        const q = r.id ? supabase.from('lesson_checks').update(payload).eq('id', r.id) : supabase.from('lesson_checks').insert(payload)
+        const { data, error } = await q.select('id, position, prompt, options, answer, explain, approved').single()
+        if (error) { st.textContent = error.message; st.className = 'st err'; return false }
+        Object.assign(r, data); PC.rows[i] = r
+        pcRender()
+        return true
+      }
+      save.addEventListener('click', () => persist())
+      appr.addEventListener('click', () => persist({ approved: !r.approved }))
+      del.addEventListener('click', async () => {
+        if (r.id) {
+          if (!confirm('Delete this question? Members\' review history for it goes too.')) return
+          const { error } = await supabase.from('lesson_checks').delete().eq('id', r.id)
+          if (error) { st.textContent = error.message; st.className = 'st err'; return }
+        }
+        PC.rows.splice(i, 1)
+        // close the gap in positions so the unique (lesson, position) stays tidy
+        for (let k = i; k < PC.rows.length; k++) if (PC.rows[k].id) await supabase.from('lesson_checks').update({ position: k }).eq('id', PC.rows[k].id)
+        pcRender()
+      })
+      foot.appendChild(st); foot.appendChild(save); foot.appendChild(appr); foot.appendChild(del)
+      body.appendChild(foot)
+      row.appendChild(num); row.appendChild(body)
+      return row
+    }
+    el('pc-add').addEventListener('click', () => { PC.rows.push({ id: null, prompt: '', options: ['', '', '', ''], answer: 0, explain: '', approved: false }); pcRender(); el('pc-list').lastElementChild?.querySelector('.pc-prompt')?.focus() })
+    el('pc-approve-all').addEventListener('click', async () => {
+      const ids = PC.rows.filter((r) => r.id && !r.approved).map((r) => r.id)
+      if (!ids.length) return
+      const { error } = await supabase.from('lesson_checks').update({ approved: true, updated_at: new Date().toISOString() }).in('id', ids)
+      if (error) { alert(error.message); return }
+      PC.rows.forEach((r) => { if (ids.includes(r.id)) r.approved = true })
+      pcRender()
+    })
 
     // Unsaved changes: a bar under the header while the page differs from the
     // last save; Back will not leave until it is saved or discarded.
