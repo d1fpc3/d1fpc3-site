@@ -806,6 +806,43 @@
       .lesson-tools .tb { padding: 6px 8px; }
     }
 
+    /* ── study room: highlights, notes, the drawer ── */
+    mark.hl { background: rgba(201,162,74,0.22); color: inherit; border-radius: 2px; padding: 0 1px; box-decoration-break: clone; -webkit-box-decoration-break: clone; cursor: pointer; }
+    mark.hl.has-note { border-bottom: 1.5px solid var(--gold); }
+    mark.hl.flash { background: rgba(201,162,74,0.5); transition: background 0.6s ease; }
+    .selbar { position: absolute; z-index: 65; display: flex; gap: 2px; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 9px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); padding: 3px; }
+    .selbar button { background: none; border: 0; color: var(--ink); font: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; -webkit-tap-highlight-color: transparent; }
+    .selbar button:hover { background: var(--panel-2); color: var(--gold); }
+    .selbar button svg { width: 14px; height: 14px; }
+    .notes-scrim { position: fixed; inset: 0; z-index: 66; background: rgba(0,0,0,0.35); opacity: 0; transition: opacity 0.2s ease; }
+    .notes-scrim.on { opacity: 1; }
+    .notes-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 100vw); z-index: 67; background: var(--panel); color: var(--ink); border-left: 1px solid var(--line); box-shadow: -18px 0 50px rgba(0,0,0,0.35); transform: translateX(100%); transition: transform 0.25s cubic-bezier(.2,.8,.2,1); display: flex; flex-direction: column; }
+    .notes-drawer.on { transform: none; }
+    .nd-head { display: flex; align-items: center; gap: 10px; padding: 16px 16px 10px; border-bottom: 1px solid var(--line); }
+    .nd-head h3 { margin: 0; font-size: 15px; font-weight: 600; flex: 1; }
+    .nd-head .seg { margin: 0; }
+    .nd-tools { display: flex; gap: 6px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--faint); }
+    .nd-tools .n { margin-right: auto; }
+    .nd-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 6px 16px calc(18px + env(safe-area-inset-bottom)); }
+    .nd-lesson { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin: 16px 0 4px; font-weight: 600; }
+    .nd-lesson button { background: none; border: 0; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; padding: 0; }
+    .nd-lesson button:hover { color: var(--gold); }
+    .nd-row { padding: 10px 0 11px; border-bottom: 1px solid var(--line); cursor: pointer; }
+    .nd-row:hover .nd-quote { color: var(--ink); }
+    .nd-row.on { box-shadow: -16px 0 0 -14px var(--gold); }
+    .nd-quote { margin: 0; padding-left: 10px; border-left: 2px solid rgba(201,162,74,0.55); color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .nd-quote.lost { border-left-color: var(--line); color: var(--faint); }
+    .nd-note { margin: 6px 0 0 12px; font-size: 13.5px; color: var(--ink); line-height: 1.5; white-space: pre-wrap; }
+    .nd-meta { display: flex; gap: 10px; align-items: center; margin: 6px 0 0 12px; font-size: 11.5px; color: var(--faint); }
+    .nd-meta button { background: none; border: 0; color: var(--faint); font: inherit; font-size: 11.5px; cursor: pointer; padding: 0; }
+    .nd-meta button:hover { color: var(--ink); }
+    .nd-meta .lost { color: var(--bad, #d96450); }
+    .nd-empty { padding: 28px 4px; color: var(--faint); font-size: 13px; line-height: 1.5; }
+    @media (max-width: 860px) {
+      .notes-drawer { top: auto; left: 0; right: 0; width: auto; max-height: 78vh; border-left: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; transform: translateY(100%); box-shadow: 0 -18px 50px rgba(0,0,0,0.35); }
+      .notes-drawer::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--line-bright); margin: 8px auto 0; }
+    }
+
     /* homework */
     .hw { border-top: 1px solid var(--line); margin-top: 26px; padding-top: 18px; }
     .hw-cap { display: flex; align-items: center; gap: 10px; }
@@ -3362,6 +3399,17 @@
       <button class="pm-x" type="button" data-promo-x aria-label="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
     </div>
   </div>
+  <!-- Study room: highlights and notes drawer (right drawer on desktop, bottom sheet on phone) -->
+  <div class="notes-scrim" id="notes-scrim" hidden></div>
+  <aside class="notes-drawer" id="notes-drawer" role="dialog" aria-label="Your notes" hidden>
+    <div class="nd-head">
+      <h3>Notes</h3>
+      <div class="seg" id="nd-seg"><button type="button" class="on" data-scope="lesson">This lesson</button><button type="button" data-scope="all">All</button></div>
+      <button class="x-close" id="nd-x" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="nd-tools"><span class="n" id="nd-n"></span><button class="rowbtn" id="nd-copy" type="button">Copy all</button></div>
+    <div class="nd-list" id="nd-list"></div>
+  </aside>
   <div class="ga-scrim" id="ga-scrim" role="dialog" aria-modal="true" aria-label="What is GEX">
     <!-- How GEX works: the breakdown members see with their subscription -->
     <div class="block gex-about" id="gex-about">
@@ -4671,6 +4719,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
 
       studyGlossary(host, lesson)
+      notesApply(host, lesson)
 
       // ── homework ──
       const myHw = lesson.homework ? state.hw.find((s) => s.lesson_id === lesson.id && s.user_id === state.user.id) : null
@@ -4886,7 +4935,211 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       plus.addEventListener('click', () => { studySetSize(Math.min(3, studySize() + 1)); sync() })
       size.appendChild(minus); size.appendChild(plus); sync()
       bar.appendChild(size)
+      const notes = mk('tb-notes', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg>', 'Notes', 'Your highlights and notes')
+      notes.addEventListener('click', () => notesOpen('lesson'))
+      bar.appendChild(notes)
+      notesCount()
       return bar
+    }
+
+    /* ── study room: highlights and notes ────────────────────
+       Select text in a lesson and a small bar offers Highlight or Note. A
+       row is (lesson, block index, quoted text, note). On open, each row
+       finds its quote inside its block (falling back to anywhere in the
+       lesson) and wraps it in <mark>; rows that no longer match are kept
+       and flagged in the drawer instead of vanishing. */
+    const NOTES_ID = 'echelon-notes-open'
+    function proseBlocks(host) { return [...host.querySelectorAll('.prose > *')].filter((n) => !n.classList?.contains('lesson-foot')) }
+    function textNodesIn(root) { const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); const out = []; let n; while ((n = w.nextNode())) out.push(n); return out }
+    function wrapTextRange(block, start, end, row) {
+      // wrap the character span [start, end) of block.textContent in mark.hl, across inline elements
+      let pos = 0, first = null
+      for (const node of textNodesIn(block)) {
+        const len = node.nodeValue.length, a = Math.max(start, pos), b = Math.min(end, pos + len)
+        if (b > a) {
+          let target = node
+          if (a - pos > 0) target = target.splitText(a - pos)
+          if (b - a < target.nodeValue.length) target.splitText(b - a)
+          const m = document.createElement('mark'); m.className = 'hl' + (row.kind === 'note' ? ' has-note' : ''); m.dataset.nid = row.id
+          m.title = row.kind === 'note' && row.note ? row.note : 'Highlight'
+          target.replaceWith(m); m.appendChild(target)
+          if (!first) first = m
+        }
+        pos += len
+        if (pos >= end) break
+      }
+      return first
+    }
+    function notesApply(host, lesson) {
+      const rows = (state.notes ?? []).filter((r) => r.lesson_id === lesson.id)
+      if (!rows.length) return
+      const blocks = proseBlocks(host)
+      for (const row of rows) {
+        row._lost = true
+        const order = [blocks[row.block_index], ...blocks].filter(Boolean)
+        for (const block of order) {
+          const i = block.textContent.indexOf(row.quote)
+          if (i < 0) continue
+          wrapTextRange(block, i, i + row.quote.length, row)
+          row._lost = false
+          break
+        }
+      }
+    }
+    function notesCount() {
+      const b = document.querySelector('.lesson-tools .tb-notes'); if (!b) return
+      const n = (state.notes ?? []).filter((r) => r.lesson_id === state.currentId).length
+      b.querySelector('.t').textContent = n ? `Notes · ${n}` : 'Notes'
+      b.classList.toggle('on', n > 0)
+    }
+
+    // the selection bar
+    let SELBAR = null, SEL_T = 0
+    function selbarHide() { if (SELBAR) { SELBAR.remove(); SELBAR = null } }
+    function selectionInfo() {
+      const sel = window.getSelection(); if (!sel || sel.rangeCount !== 1 || sel.isCollapsed) return null
+      const range = sel.getRangeAt(0), host = el('lesson'); if (!host || !host.contains(range.commonAncestorContainer)) return null
+      const blocks = proseBlocks(host)
+      const startBlock = blocks.find((b) => b.contains(range.startContainer)), endBlock = blocks.find((b) => b.contains(range.endContainer))
+      if (!startBlock || startBlock !== endBlock) return null
+      const quote = sel.toString().replace(/\s+/g, ' ').trim()
+      if (quote.length < 2 || quote.length > 2000) return null
+      const pre = document.createRange(); pre.selectNodeContents(startBlock); pre.setEnd(range.startContainer, range.startOffset)
+      const offset = pre.toString().length
+      return { range, quote, block: startBlock, blockIndex: blocks.indexOf(startBlock), offset }
+    }
+    function selbarShow() {
+      selbarHide()
+      const info = selectionInfo(); if (!info) return
+      const bar = document.createElement('div'); bar.className = 'selbar'; bar.setAttribute('role', 'toolbar')
+      const mk = (label, svg, fn) => { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = svg; b.appendChild(document.createTextNode(label)); b.addEventListener('mousedown', (e) => e.preventDefault()); b.addEventListener('click', (e) => { e.preventDefault(); fn() }); return b }
+      bar.appendChild(mk('Highlight', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>', () => notesSave(info, 'highlight')))
+      bar.appendChild(mk('Note', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg>', () => notesSave(info, 'note')))
+      document.body.appendChild(bar); SELBAR = bar
+      const r = info.range.getBoundingClientRect(), w = bar.offsetWidth, h = bar.offsetHeight
+      let left = r.left + r.width / 2 - w / 2 + window.scrollX; left = Math.max(8, Math.min(left, window.scrollX + innerWidth - w - 8))
+      const above = r.top - h - 10 > 60
+      bar.style.left = left + 'px'; bar.style.top = (above ? r.top + window.scrollY - h - 10 : r.bottom + window.scrollY + 10) + 'px'
+    }
+    document.addEventListener('selectionchange', () => { clearTimeout(SEL_T); SEL_T = setTimeout(() => { if (!el('v-course')?.classList.contains('on')) return; if (selectionInfo()) selbarShow(); else selbarHide() }, 180) })
+    document.addEventListener('scroll', () => { if (SELBAR) selbarHide() }, { passive: true })
+    async function notesSave(info, kind) {
+      let note = ''
+      if (kind === 'note') {
+        note = await askConfirm({ title: 'Add a note', body: '“' + (info.quote.length > 140 ? info.quote.slice(0, 140) + '…' : info.quote) + '”', yes: 'Save note', text: { placeholder: 'What do you want to remember about this?' } })
+        if (note === null) { selbarHide(); return }
+        if (!note) kind = 'highlight'
+      }
+      selbarHide(); try { window.getSelection()?.removeAllRanges() } catch {}
+      const lesson_id = state.currentId
+      const { data, error } = await supabase.from('lesson_notes').insert({ user_id: state.user.id, lesson_id, kind, block_index: info.blockIndex, quote: info.quote, note }).select('id, lesson_id, kind, block_index, quote, note, created_at').single()
+      if (error) { toast('Could not save that.'); return }
+      state.notes = [...(state.notes ?? []), data]
+      // wrap the exact selection (offset-aware, so a repeated phrase lands where it was selected)
+      const i = info.block.textContent.indexOf(info.quote, Math.max(0, info.offset - 2))
+      const start = i >= 0 ? i : info.block.textContent.indexOf(info.quote)
+      if (start >= 0) { const m = wrapTextRange(info.block, start, start + info.quote.length, data); if (m) { m.classList.add('flash'); setTimeout(() => m.classList.remove('flash'), 700) } }
+      notesCount()
+      toast(kind === 'note' ? '✓ Note saved' : '✓ Highlighted', 2200, { label: 'Undo', fn: () => notesDelete(data.id) })
+    }
+    async function notesDelete(id) {
+      const { error } = await supabase.from('lesson_notes').delete().eq('id', id)
+      if (error) { toast('Could not delete that.'); return }
+      state.notes = (state.notes ?? []).filter((r) => r.id !== id)
+      document.querySelectorAll(`mark.hl[data-nid="${id}"]`).forEach((m) => { const t = document.createTextNode(m.textContent); m.replaceWith(t); t.parentNode?.normalize() })
+      notesCount(); if (!el('notes-drawer').hidden) notesRender()
+    }
+    async function notesEdit(row) {
+      const v = await askConfirm({ title: row.note ? 'Edit note' : 'Add a note', body: '“' + (row.quote.length > 140 ? row.quote.slice(0, 140) + '…' : row.quote) + '”', yes: 'Save', text: { placeholder: 'What do you want to remember about this?' } })
+      if (v === null) return
+      const kind = v ? 'note' : 'highlight'
+      const { error } = await supabase.from('lesson_notes').update({ note: v, kind, updated_at: new Date().toISOString() }).eq('id', row.id)
+      if (error) { toast('Could not save that.'); return }
+      row.note = v; row.kind = kind
+      document.querySelectorAll(`mark.hl[data-nid="${row.id}"]`).forEach((m) => { m.classList.toggle('has-note', kind === 'note'); m.title = v || 'Highlight' })
+      notesRender()
+    }
+    // clicking a highlight opens the drawer on that row
+    document.addEventListener('click', (e) => {
+      const m = e.target.closest?.('mark.hl'); if (!m) return
+      const sel = window.getSelection(); if (sel && !sel.isCollapsed) return
+      notesOpen('lesson', m.dataset.nid)
+    })
+
+    let ND_SCOPE = 'lesson'
+    function notesOpen(scope, focusId) {
+      ND_SCOPE = scope || ND_SCOPE
+      const d = el('notes-drawer'), sc = el('notes-scrim')
+      d.hidden = false; sc.hidden = false
+      requestAnimationFrame(() => { d.classList.add('on'); sc.classList.add('on') })
+      notesRender(focusId)
+    }
+    function notesClose() {
+      const d = el('notes-drawer'), sc = el('notes-scrim')
+      d.classList.remove('on'); sc.classList.remove('on')
+      setTimeout(() => { d.hidden = true; sc.hidden = true }, 250)
+    }
+    function notesRender(focusId) {
+      el('nd-seg').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.scope === ND_SCOPE))
+      const list = el('nd-list'); list.textContent = ''
+      const all = (state.notes ?? []).slice().sort((a, b) => a.created_at < b.created_at ? -1 : 1)
+      const rows = ND_SCOPE === 'lesson' ? all.filter((r) => r.lesson_id === state.currentId) : all
+      el('nd-n').textContent = rows.length ? `${rows.length} ${rows.length === 1 ? 'entry' : 'entries'}` : ''
+      el('nd-copy').hidden = !rows.length
+      if (!rows.length) {
+        const e = document.createElement('p'); e.className = 'nd-empty'
+        e.textContent = ND_SCOPE === 'lesson' ? 'Nothing saved from this lesson yet. Select any text to highlight it or leave a note.' : 'Nothing saved yet. Select any text in a lesson to highlight it or leave a note.'
+        list.appendChild(e); return
+      }
+      const byLesson = new Map()
+      for (const r of rows) { if (!byLesson.has(r.lesson_id)) byLesson.set(r.lesson_id, []); byLesson.get(r.lesson_id).push(r) }
+      const ordered = orderedLessons().map((l) => l.id).filter((id) => byLesson.has(id))
+      for (const lid of ordered) {
+        const lesson = state.lessons.find((l) => l.id === lid)
+        if (ND_SCOPE === 'all') {
+          const cap = document.createElement('div'); cap.className = 'nd-lesson'
+          const b = document.createElement('button'); b.type = 'button'; b.textContent = lesson?.title ?? 'Lesson'
+          b.addEventListener('click', () => { notesClose(); openLesson(lid); scrollToLesson() })
+          cap.appendChild(b); list.appendChild(cap)
+        }
+        for (const r of byLesson.get(lid)) {
+          const row = document.createElement('div'); row.className = 'nd-row' + (r.id === focusId ? ' on' : ''); row.dataset.id = r.id
+          const q = document.createElement('p'); q.className = 'nd-quote' + (r._lost && r.lesson_id === state.currentId ? ' lost' : ''); q.textContent = r.quote
+          row.appendChild(q)
+          if (r.note) { const n = document.createElement('p'); n.className = 'nd-note'; n.textContent = r.note; row.appendChild(n) }
+          const meta = document.createElement('div'); meta.className = 'nd-meta'
+          const when = document.createElement('span'); when.textContent = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); meta.appendChild(when)
+          if (r._lost && r.lesson_id === state.currentId) { const l = document.createElement('span'); l.className = 'lost'; l.textContent = 'text changed'; meta.appendChild(l) }
+          const ed = document.createElement('button'); ed.type = 'button'; ed.textContent = r.note ? 'Edit' : 'Add note'; ed.addEventListener('click', (e) => { e.stopPropagation(); notesEdit(r) }); meta.appendChild(ed)
+          const del = document.createElement('button'); del.type = 'button'; del.textContent = 'Delete'; del.addEventListener('click', async (e) => { e.stopPropagation(); if (await askConfirm({ title: 'Delete this?', body: r.note ? 'The highlight and its note go together.' : '', yes: 'Delete', danger: true })) notesDelete(r.id) }); meta.appendChild(del)
+          row.appendChild(meta)
+          row.addEventListener('click', () => {
+            if (r.lesson_id !== state.currentId) { notesClose(); openLesson(r.lesson_id); setTimeout(() => notesJump(r.id), 400); return }
+            if (isPhone()) notesClose()
+            notesJump(r.id)
+          })
+          list.appendChild(row)
+        }
+      }
+      if (focusId) requestAnimationFrame(() => list.querySelector('.nd-row.on')?.scrollIntoView({ block: 'center' }))
+    }
+    function notesJump(id) {
+      const m = document.querySelector(`mark.hl[data-nid="${id}"]`); if (!m) return
+      m.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      document.querySelectorAll(`mark.hl[data-nid="${id}"]`).forEach((x) => { x.classList.add('flash'); setTimeout(() => x.classList.remove('flash'), 900) })
+    }
+    {
+      el('nd-x').addEventListener('click', notesClose)
+      el('notes-scrim').addEventListener('click', notesClose)
+      el('nd-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { ND_SCOPE = b.dataset.scope; notesRender() } })
+      el('nd-copy').addEventListener('click', async () => {
+        const all = (state.notes ?? []).slice().sort((a, b) => a.created_at < b.created_at ? -1 : 1)
+        const rows = ND_SCOPE === 'lesson' ? all.filter((r) => r.lesson_id === state.currentId) : all
+        const lines = []; let last = null
+        for (const l of orderedLessons()) for (const r of rows.filter((x) => x.lesson_id === l.id)) { if (last !== l.id) { lines.push((lines.length ? '\n' : '') + l.title.toUpperCase()); last = l.id } lines.push('“' + r.quote + '”' + (r.note ? '\n  ' + r.note : '')) }
+        try { await navigator.clipboard.writeText(lines.join('\n')); toast('✓ Copied') } catch { toast('Could not copy.') }
+      })
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !el('notes-drawer').hidden) notesClose() })
     }
 
     // Glossary: term -> the lesson that teaches it. The popover shows that
@@ -11148,6 +11401,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         // own submissions for members; staff see everyone's (RLS decides)
         supabase.from('homework_submissions').select('id, lesson_id, user_id, media, note, status, review_note, created_at').order('created_at', { ascending: false }).limit(300),
         ensureProfile().then(() => loadMembers()),
+        supabase.from('lesson_notes').select('id, lesson_id, kind, block_index, quote, note, created_at').order('created_at').then(({ data }) => { state.notes = data ?? [] }),
       ])
 
       state.modules = modules ?? []
