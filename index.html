@@ -236,14 +236,14 @@
     .faq details[open] summary .mk { color: var(--gold); }
     .faq .a { padding: 0 20px 16px; color: var(--muted); font-size: 13.5px; max-width: 64ch; }
 
-    /* member trade proof: horizontal snap carousel, gentle auto-advance */
+    /* member trade proof: double marquee, top row drifts left, bottom row drifts right */
     .trades-wrap { margin-top: clamp(52px, 9vh, 92px); }
     .trades-wrap .label { display: block; margin-bottom: 16px; }
-    .tr-car { position: relative; }
+    .tr-car { position: relative; display: flex; flex-direction: column; gap: 14px; }
     .tr-track { overflow: hidden; }
     .tr-inner { display: flex; gap: 14px; will-change: transform; }
     .tr-track img {
-      height: clamp(220px, 34vw, 340px); width: auto; max-width: 86vw;
+      height: clamp(180px, 26vw, 300px); width: auto; max-width: 86vw;
       object-fit: contain; background: var(--panel);
       border: 1px solid var(--line); border-radius: 14px;
       flex-shrink: 0; user-select: none;
@@ -426,6 +426,7 @@
     <div class="trades-wrap" id="trades" hidden><div class="col">
       <div class="tr-car">
         <div class="tr-track" id="tr-track" aria-label="Member trade screenshots"></div>
+        <div class="tr-track" id="tr-track-2" aria-label="More member trade screenshots"></div>
       </div>
     </div></div>
 
@@ -859,41 +860,54 @@
       .then(function (r) { return r.ok ? r.json() : null })
       .then(function (list) {
         if (!Array.isArray(list) || !list.length) return;
-        var wrap = document.getElementById('trades'), track = document.getElementById('tr-track');
-        /* Never-ending marquee on a GPU transform (scrollLeft janks): the
-           list is doubled inside an inner strip that drifts every frame and
-           wraps invisibly at the first copy's end. Pauses under a pointer. */
-        var inner = document.createElement('div'); inner.className = 'tr-inner';
-        track.appendChild(inner);
-        var addAll = function (hidden) {
-          list.forEach(function (f) {
-            var img = document.createElement('img');
-            img.src = '/echelon/trades/' + f;
-            img.alt = hidden ? '' : 'Member trade screenshot';
-            img.draggable = false;
-            if (hidden) img.setAttribute('aria-hidden', 'true');
-            inner.appendChild(img);
-          });
-        };
-        addAll(false); addAll(true);
+        var wrap = document.getElementById('trades');
+        /* Double marquee on GPU transforms (scrollLeft janks): the photos
+           split alternately into two rows; the top row drifts left, the
+           bottom row drifts right. Each row repeats its list COPIES times and
+           wraps invisibly one period in, so wide screens never see the seam.
+           Both pause under a pointer or a touch. */
+        var COPIES = 3, SPEED = 28; /* px per second */
+        var rows = [
+          { track: document.getElementById('tr-track'), files: list.filter(function (_, i) { return i % 2 === 0 }), dir: 1 },
+          { track: document.getElementById('tr-track-2'), files: list.filter(function (_, i) { return i % 2 === 1 }), dir: -1 }
+        ].filter(function (r) { return r.track && r.files.length });
+        if (rows.length === 1 && list.length > 1) { rows[0].files = list; }
+        rows.forEach(function (r) {
+          var inner = document.createElement('div'); inner.className = 'tr-inner';
+          r.track.appendChild(inner); r.inner = inner; r.offset = 0;
+          for (var c = 0; c < COPIES; c++) {
+            r.files.forEach(function (f) {
+              var img = document.createElement('img');
+              img.src = '/echelon/trades/' + f;
+              img.alt = c ? '' : 'Member trade screenshot';
+              img.draggable = false;
+              if (c) img.setAttribute('aria-hidden', 'true');
+              inner.appendChild(img);
+            });
+          }
+        });
+        if (rows.length < 2) { var t2 = document.getElementById('tr-track-2'); if (t2) t2.remove(); }
         wrap.hidden = false;
-        var offset = 0, hold = false, last = null;
-        var half = function () { return inner.scrollWidth / 2 };
-        var apply = function () { inner.style.transform = 'translate3d(' + (-offset) + 'px,0,0)' };
+        var hold = false, last = null;
         wrap.addEventListener('pointerenter', function () { hold = true });
         wrap.addEventListener('pointerleave', function () { hold = false });
         wrap.addEventListener('touchstart', function () { hold = true }, { passive: true });
         wrap.addEventListener('touchend', function () { setTimeout(function () { hold = false }, 4000) }, { passive: true });
         if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-        var SPEED = 28; /* px per second */
         function tick(t) {
           if (last === null) last = t;
           var dt = Math.min(100, t - last); last = t;
           if (!hold && !document.hidden) {
-            offset += SPEED * dt / 1000;
-            var h = half();
-            if (h > 0 && offset >= h) offset -= h;
-            apply();
+            rows.forEach(function (r) {
+              var period = r.inner.scrollWidth / COPIES;
+              if (!(period > 0)) return;
+              /* offset is measured in the row's own direction of travel and
+                 lives in [0, period); the right-moving row translates from
+                 one period back so it never exposes its left edge. */
+              r.offset = (r.offset + SPEED * dt / 1000) % period;
+              var x = r.dir > 0 ? -r.offset : -(period - r.offset);
+              r.inner.style.transform = 'translate3d(' + x + 'px,0,0)';
+            });
           }
           requestAnimationFrame(tick);
         }
