@@ -265,7 +265,23 @@
     .bt-copy { font-size: 13.5px; color: var(--muted); }
     .bt-copy b { color: var(--ink); font-weight: 600; }
     .bt-go { margin-left: auto; color: var(--muted); font-size: 12.5px; white-space: nowrap; transition: color 0.15s ease; }
-    .btbar:hover .bt-go { color: var(--gold); }
+    .bt-copy a { color: inherit; text-decoration: none; }
+    .bt-go:hover { color: var(--gold); }
+    /* copy chip for the partner code: flat, hairline, gold on hover; flips to "Copied" for a moment */
+    .code-copy {
+      display: inline-flex; align-items: center; gap: 6px; vertical-align: baseline;
+      margin: 0 1px; padding: 2px 8px 2px 9px; border: 1px solid var(--line-bright); border-radius: 6px;
+      background: transparent; color: var(--ink); font: inherit; font-size: 12.5px; letter-spacing: 0.04em;
+      cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .code-copy b { font-weight: 600; color: inherit; }
+    .code-copy svg { color: var(--muted); transition: color 0.15s ease; }
+    .code-copy:hover { border-color: var(--gold); color: var(--gold); }
+    .code-copy:hover svg { color: var(--gold); }
+    .code-copy .cc-done { display: none; color: var(--gold); font-size: 11.5px; letter-spacing: 0.02em; }
+    .code-copy.is-done { border-color: var(--gold); }
+    .code-copy.is-done svg { display: none; }
+    .code-copy.is-done .cc-done { display: inline; }
     @media (max-width: 560px) { .bt-go { display: none; } }
 
     /* the free room: one wide panel above the footer */
@@ -463,11 +479,13 @@
         <img class="gb-surface" src="/echelon/assets/gex-surface-past.webp" alt="A past session's gamma surface: dealer positioning by strike and expiry, walls traced" loading="lazy" width="2444" height="1048">
         <p class="gb-line">One past session, straight from the board: dealer gamma by strike and expiry, the walls traced, mapped onto NQ. Rebuilt every 15 minutes through the trading day.</p>
       </a>
-      <a class="btbar" href="https://www.backtrader.io/" target="_blank" rel="noopener">
-        <img src="/assets/partners/backtrader.png" alt="BackTrader" width="30" height="30" loading="lazy">
-        <span class="bt-copy"><b>BackTrader</b> &mdash; trade copier and analytics for futures. Code <b>D1FPC3</b> gets a discount.</span>
-        <span class="bt-go">backtrader.io &rarr;</span>
-      </a>
+      <div class="btbar">
+        <a href="https://www.backtrader.io/" target="_blank" rel="noopener" style="display:flex;flex:none;"><img src="/assets/partners/backtrader.png" alt="BackTrader" width="30" height="30" loading="lazy"></a>
+        <span class="bt-copy"><a href="https://www.backtrader.io/" target="_blank" rel="noopener"><b>BackTrader</b></a> &mdash; trade copier and analytics for futures. Code
+          <button class="code-copy" type="button" data-copy="D1FPC3" aria-label="Copy code D1FPC3"><b>D1FPC3</b><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg><span class="cc-done">Copied</span></button>
+          gets a discount.</span>
+        <a class="bt-go" href="https://www.backtrader.io/" target="_blank" rel="noopener">backtrader.io &rarr;</a>
+      </div>
     </div></div>
 
     <div class="disc-wrap" id="free-room" hidden><div class="col">
@@ -686,6 +704,22 @@
       var td = document.getElementById('top-discord');
       td.href = CONFIG.discordUrl; td.hidden = false;
       var wd = document.getElementById('who-discord'); if (wd) wd.href = CONFIG.discordUrl;
+      // copy chips (partner codes): clipboard API, execCommand fallback, "Copied" for 1.6s
+      document.querySelectorAll('[data-copy]').forEach(function (b) {
+        b.addEventListener('click', function (e) {
+          e.preventDefault();
+          var code = b.getAttribute('data-copy');
+          var done = function () { b.classList.add('is-done'); clearTimeout(b._t); b._t = setTimeout(function () { b.classList.remove('is-done'); }, 1600); };
+          var fallback = function () {
+            var ta = document.createElement('textarea'); ta.value = code; ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); } catch (err) {}
+            document.body.removeChild(ta); done();
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, fallback);
+          else fallback();
+        });
+      });
       var dj = document.getElementById('disc-join');
       dj.href = CONFIG.discordUrl;
       document.getElementById('free-room').hidden = false;
