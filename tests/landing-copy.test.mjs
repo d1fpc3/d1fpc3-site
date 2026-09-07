@@ -17,13 +17,17 @@ test('the landing stays stripped (D1 rules, 8/24)', () => {
     'panels, software band, steps and recap tease stay deleted');
 });
 
-test('the feature index lists the real app surface, flat (D1, 8/26)', () => {
-  for (const row of ['Study', 'Video library', 'Journal', 'Risk calculator', 'News', 'Chat', 'Indicators', 'GEX']) {
-    assert.ok(html.includes(`</span>${row}</span>`), `feature index row: ${row}`);
-  }
-  for (const [row] of html.matchAll(/<div class="in-row">[\s\S]*?<\/div>/g)) {
-    assert.ok(!row.includes('<svg'), 'index rows stay typographic — no icons');
-  }
+test('the feature index and phone screens stay OFF the landing (D1, 9/6)', () => {
+  assert.doesNotMatch(html, /class="in-row"|id="inside"|id="screens"|screen-(overview|lesson|gex|news)\.webp/,
+    'the numbered tab list and the app screenshots were cut; the who-is-d1 block and hero fine line stay');
+  assert.doesNotMatch(html, /class="what"|one app for NQ/, 'the hero "one app" line stays deleted');
+  assert.match(html, /id="who"/);
+  assert.match(html, /lifetime access · no subscription · <span data-discord-count>/);
+});
+
+test('the call to action is Join (D1, 9/6)', () => {
+  assert.doesNotMatch(html, />Get Echelon<\/button>/);
+  assert.ok((html.match(/data-buy[^>]*>Join<\/button>/g) || []).length >= 3, 'header, hero and price card buttons all say Join');
 });
 
 test('concepts and curriculum stay OFF the landing (D1 rule, 8/24)', () => {
