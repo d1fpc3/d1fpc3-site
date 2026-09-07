@@ -887,6 +887,21 @@
     .rv-end .stat { display: inline-flex; gap: 18px; margin-bottom: 18px; font-size: 13px; color: var(--muted); }
     .rv-end .stat b { display: inline; font-size: 16px; margin: 0 4px 0 0; color: var(--gold); }
 
+    /* ── Apple In-App Purchase (iOS shell only) ── */
+    .iap-buy { display: flex; flex-direction: column; gap: 8px; }
+    .iap-buy .btn, .iap-buy .rowbtn { width: 100%; }
+    .iap-terms { margin: 10px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--faint); }
+    .iap-terms a { color: var(--muted); text-decoration: underline; }
+    .iap-links { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; }
+    .iap-links button { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; }
+    .iap-links button:hover { color: var(--ink); }
+    .gate .iap-gate { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+    .gate .iap-gate .go { margin-top: 0; }
+    .gate .iap-gate .iap-terms { text-align: left; }
+    .gate .iap-gate .iap-terms a { color: rgba(255,255,255,0.7); }
+    .gate .iap-gate .iap-links { justify-content: center; }
+    .gate .iap-gate .iap-links button { color: rgba(255,255,255,0.65); }
+
     /* homework */
     .hw { border-top: 1px solid var(--line); margin-top: 26px; padding-top: 18px; }
     .hw-cap { display: flex; align-items: center; gap: 10px; }
@@ -4993,6 +5008,139 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       bar.appendChild(notes)
       notesCount()
       return bar
+    }
+
+    /* ── Apple In-App Purchase (iOS shell) ───────────────────
+       App Review 3.1.1: anything the app unlocks must be buyable inside it.
+       On iOS the store tab and the not-a-member gate sell through StoreKit
+       (the @capgo/native-purchases plugin in the shell); the web keeps
+       Stripe. Every signed transaction goes to the apple-iap function,
+       which verifies it against Apple's root and grants the entitlement to
+       the signed-in account. Renewals and refunds arrive server-side via
+       App Store Server Notifications; the app also re-syncs its current
+       entitlements on boot. */
+    const IAP_SKUS = {
+      course: { one_time: 'com.d1fpc3.echelon.course' },
+      'd1-gex': { month: 'com.d1fpc3.echelon.gex.monthly', one_time: 'com.d1fpc3.echelon.gex.once' },
+    }
+    const iapPlugin = () => (globalThis.Capacitor?.getPlatform?.() === 'ios' ? globalThis.Capacitor?.Plugins?.NativePurchases : null) ?? null
+    const iapAvailable = () => !!iapPlugin()
+    const IAP = { products: null, busy: false }
+    async function iapProducts() {
+      if (IAP.products) return IAP.products
+      const np = iapPlugin(); if (!np) return {}
+      const out = {}
+      try {
+        const subs = await np.getProducts({ productIdentifiers: ['com.d1fpc3.echelon.gex.monthly'], productType: 'subs' })
+        for (const pr of subs?.products ?? []) out[pr.identifier] = pr
+      } catch (e) { console.warn('iap subs', e) }
+      try {
+        const inapp = await np.getProducts({ productIdentifiers: ['com.d1fpc3.echelon.course', 'com.d1fpc3.echelon.gex.once'], productType: 'inapp' })
+        for (const pr of inapp?.products ?? []) out[pr.identifier] = pr
+      } catch (e) { console.warn('iap inapp', e) }
+      IAP.products = out
+      return out
+    }
+    async function iapSync(transactions) {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/apple-iap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ sync: true, transactions }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? `${res.status}`)
+      return body
+    }
+    function iapApplyOwned(owned) {
+      const before = [...state.owned].sort().join(), after = [...owned].sort().join()
+      if (before === after) return false
+      // entitlements changed: reboot the app so every gate, tab and comp re-evaluates
+      location.reload()
+      return true
+    }
+    async function iapBuy(product, interval) {
+      const np = iapPlugin(); const sku = IAP_SKUS[product]?.[interval]
+      if (!np || !sku || IAP.busy) return
+      IAP.busy = true
+      try {
+        const tx = await np.purchaseProduct({ productIdentifier: sku, productType: interval === 'month' ? 'subs' : 'inapp', appAccountToken: state.user?.id })
+        if (!tx?.jwsRepresentation) { toast('The purchase did not complete.'); return }
+        toast('Confirming with Apple…', 6000)
+        const r = await iapSync([tx.jwsRepresentation])
+        const bad = (r.results ?? []).find((x) => x.error || x.skipped)
+        if (!iapApplyOwned(r.owned ?? [])) toast(bad ? `Could not unlock: ${bad.error ?? bad.skipped}` : '✓ Purchased')
+      } catch (e) {
+        const msg = String(e?.message ?? e ?? '')
+        if (!/cancel/i.test(msg)) toast(msg ? `Purchase failed: ${msg.slice(0, 120)}` : 'Purchase failed.')
+      } finally { IAP.busy = false }
+    }
+    async function iapRestore() {
+      const np = iapPlugin(); if (!np || IAP.busy) return
+      IAP.busy = true
+      try {
+        await np.restorePurchases()
+        const { purchases } = await np.getPurchases()
+        const jws = (purchases ?? []).map((t) => t.jwsRepresentation).filter(Boolean)
+        if (!jws.length) { toast('Nothing to restore on this Apple ID.'); return }
+        const r = await iapSync(jws)
+        if (!iapApplyOwned(r.owned ?? [])) toast((r.owned ?? []).length ? '✓ Purchases are on this account' : 'Nothing to restore for this account.')
+      } catch (e) { toast(`Restore failed: ${String(e?.message ?? e).slice(0, 120)}`) }
+      finally { IAP.busy = false }
+    }
+    // Boot: hand the server whatever StoreKit says this Apple ID currently holds (renewals, refunds, family sharing).
+    async function iapBootSync() {
+      const np = iapPlugin(); if (!np) return
+      try {
+        if (sessionStorage.getItem('echelon-iap-synced')) return
+        sessionStorage.setItem('echelon-iap-synced', '1')
+        const { purchases } = await np.getPurchases()
+        const jws = (purchases ?? []).map((t) => t.jwsRepresentation).filter(Boolean)
+        if (!jws.length) return
+        const r = await iapSync(jws)
+        iapApplyOwned(r.owned ?? [])
+      } catch (e) { console.warn('iap boot sync', e) }
+    }
+    function iapTerms(kind) {
+      const p = document.createElement('p'); p.className = 'iap-terms'
+      p.textContent = kind === 'subs'
+        ? 'Payment is charged to your Apple ID at confirmation. The subscription renews monthly at the same price unless cancelled at least 24 hours before the end of the period; manage or cancel it in your App Store account settings. '
+        : 'One payment, charged to your Apple ID at confirmation. '
+      const t = document.createElement('a'); t.href = 'https://d1fpc3.com/terms/'; t.target = '_blank'; t.rel = 'noopener'; t.textContent = 'Terms of Use'
+      const pv = document.createElement('a'); pv.href = 'https://d1fpc3.com/privacy/'; pv.target = '_blank'; pv.rel = 'noopener'; pv.textContent = 'Privacy Policy'
+      p.append(t, ' · ', pv); return p
+    }
+    function iapLinks(withManage) {
+      const row = document.createElement('div'); row.className = 'iap-links'
+      const r = document.createElement('button'); r.type = 'button'; r.textContent = 'Restore purchases'; r.addEventListener('click', iapRestore); row.appendChild(r)
+      if (withManage) { const m = document.createElement('button'); m.type = 'button'; m.textContent = 'Manage subscription'; m.addEventListener('click', () => iapPlugin()?.manageSubscriptions?.()); row.appendChild(m) }
+      return row
+    }
+    function iapBuyBlock(productKey) {
+      const wrap = document.createElement('div'); wrap.className = 'p-buy iap-buy'
+      const skus = IAP_SKUS[productKey] ?? {}
+      const mk = (label, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = label; b.disabled = true; wrap.appendChild(b); return b }
+      const month = skus.month ? mk('Subscribe', 'btn') : null
+      const once = skus.one_time ? mk('Buy once', 'rowbtn') : null
+      iapProducts().then((pr) => {
+        if (month) { const p = pr[skus.month]; month.textContent = p ? `Subscribe · ${p.priceString} / month` : 'Subscription unavailable'; month.disabled = !p; month.addEventListener('click', () => iapBuy(productKey, 'month')) }
+        if (once) { const p = pr[skus.one_time]; once.textContent = p ? `Buy once · ${p.priceString}` : 'Unavailable'; once.disabled = !p; once.addEventListener('click', () => iapBuy(productKey, 'one_time')) }
+      })
+      wrap.appendChild(iapTerms(skus.month ? 'subs' : 'inapp'))
+      wrap.appendChild(iapLinks(false))
+      const note = document.createElement('p'); note.className = 'p-price-note'; note.textContent = 'Add your TradingView username after purchase and access is added to your account.'
+      wrap.appendChild(note)
+      return wrap
+    }
+    function iapGateBlock() {
+      const wrap = document.createElement('div'); wrap.className = 'iap-gate'
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'go'; b.textContent = 'Get Echelon'; b.disabled = true
+      iapProducts().then((pr) => { const p = pr[IAP_SKUS.course.one_time]; b.textContent = p ? `Get Echelon · ${p.priceString}` : 'Purchase unavailable right now'; b.disabled = !p })
+      b.addEventListener('click', () => iapBuy('course', 'one_time'))
+      wrap.appendChild(b)
+      wrap.appendChild(iapTerms('inapp'))
+      wrap.appendChild(iapLinks(false))
+      return wrap
     }
 
     /* ── study room: recall and review ───────────────────────
@@ -9246,7 +9394,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('echelon-checkout').innerHTML = ''
     }
     async function openCheckout(product, interval, title) {
-      if (NATIVE) return // no purchases inside the native shells, ever
+      if (NATIVE) { if (iapAvailable()) iapBuy(product, interval); return } // native: Apple In-App Purchase or nothing
       el('co-title').textContent = title || 'Checkout'
       el('co-scrim').classList.add('on'); document.body.style.overflow = 'hidden'
       const loading = el('co-loading')
@@ -10164,11 +10312,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // buy buttons) don't render; if nothing is owned the tab hides itself.
       const ownsAnyProduct = cards.some((p) => (p.kind === 'bundle' ? ownsBundle : state.owned.has(p.key)))
       const storeTab = document.querySelector('.tab[data-view="indicators"]')
-      if (storeTab && NATIVE) storeTab.hidden = !ownsAnyProduct
+      // iOS with StoreKit: the tab stays so Apple-sellable products can be bought in-app (App Review 3.1.1).
+      if (storeTab && NATIVE) storeTab.hidden = !ownsAnyProduct && !(iapAvailable() && cards.some((p) => IAP_SKUS[p.key]))
 
       for (const p of cards) {
         const owned = p.kind === 'bundle' ? ownsBundle : state.owned.has(p.key)
-        if (NATIVE && !owned) continue
+        if (NATIVE && !owned && !(iapAvailable() && IAP_SKUS[p.key])) continue
         // Half-owned: the bundle would sell them something they already have.
         if (p.kind === 'bundle' && !owned && (state.owned.has('d1-gex') || state.owned.has('d1-lit'))) continue
         const row = document.createElement('section'); row.className = 'st-row' + (owned ? ' owned' : '')
@@ -10207,6 +10356,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             if (p.kind === 'bundle') { const nm = document.createElement('span'); nm.className = 'hint'; nm.style.margin = '0'; nm.textContent = c === 'd1-gex' ? 'GEX' : 'LIT'; line.appendChild(nm) }
             line.appendChild(badge); card.appendChild(line)
           }
+        } else if (NATIVE) {
+          card.appendChild(iapBuyBlock(p.key))
         } else {
           const buy = document.createElement('div'); buy.className = 'p-buy'
           const cfg = STORE[p.key]
@@ -11876,11 +12027,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // Signed in is not the same as member. A Discord or email sign-in with
       // nothing on the account stops here: the door is the free signup (which
       // records who they are and comps them) or a purchase. Staff pass.
+      iapBootSync()
       if (!state.owned.size && !state.isAdmin && !state.isMod && !state.realAdmin) {
         gate({
           title: 'Not a member yet.',
-          body: 'This account has no access.',
+          body: iapAvailable() ? 'Get Echelon to open the training, the recaps and the chat.' : 'This account has no access.',
           render(host) {
+            if (iapAvailable()) host.appendChild(iapGateBlock())
             const out = document.createElement('button')
             out.className = 'go dim'; out.style.marginTop = '18px'; out.textContent = 'Sign out'
             out.addEventListener('click', async () => { await supabase.auth.signOut(); location.reload() })
