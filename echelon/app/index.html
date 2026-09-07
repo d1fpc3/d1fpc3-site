@@ -2053,21 +2053,28 @@
     .mrt .thanks b { display: block; font-size: 16px; margin-bottom: 4px; }
     .mrt .thanks p { margin: 0; }
     .mrt .thanks a.go { display: inline-block; margin-top: 14px; color: var(--gold); text-decoration: none; font-size: 13.5px; }
-    /* Stay close: three rows inside the same card */
-    .mrt.pm { width: min(420px, 92vw); }
-    .mrt.pm .body { text-align: left; }
-    .mrt.pm h3, .mrt.pm > .body > p { text-align: center; }
-    .pm-list { display: flex; flex-direction: column; border-top: 1px solid var(--line); margin: 4px 0 14px; }
-    .pm-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); -webkit-tap-highlight-color: transparent; }
+    /* Stay close: three separate little tabs stacked bottom-right, each with
+       its own X (D1, 9/6: not a centered card). Slide in from the right,
+       staggered; sit above the phone bottom nav. */
+    .pm-stack { position: fixed; right: 14px; bottom: calc(14px + var(--bnav, 0px)); z-index: 69; display: flex; flex-direction: column; gap: 8px; width: min(340px, calc(100vw - 28px)); pointer-events: none; }
+    .pm-card { display: flex; align-items: center; gap: 4px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,0.35); pointer-events: auto; transform: translateX(calc(100% + 20px)); opacity: 0; transition: transform 0.28s cubic-bezier(.2,.8,.2,1), opacity 0.28s ease; }
+    .pm-card.on { transform: none; opacity: 1; }
+    .pm-card.off { transform: translateX(calc(100% + 20px)); opacity: 0; }
+    .pm-row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; padding: 11px 4px 11px 12px; text-decoration: none; color: var(--ink); -webkit-tap-highlight-color: transparent; border-radius: 12px 0 0 12px; }
     .pm-row:hover .pm-btn { color: var(--ink); border-color: var(--line-bright); }
-    .pm-ico { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--panel-2); display: inline-flex; align-items: center; justify-content: center; color: var(--gold); }
-    .pm-ico svg { width: 20px; height: 20px; }
-    .pm-ico.pm-img img { width: 28px; height: 28px; border-radius: 7px; display: block; }
-    .pm-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-    .pm-txt b { font-size: 14px; font-weight: 600; }
-    .pm-txt small { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
-    .pm-txt small b { font-size: 12.5px; color: var(--ink); }
-    .pm-btn { flex: none; font-size: 12.5px; }
+    .pm-ico { flex: none; width: 34px; height: 34px; border-radius: 10px; background: var(--panel-2); display: inline-flex; align-items: center; justify-content: center; color: var(--gold); }
+    .pm-ico svg { width: 19px; height: 19px; }
+    .pm-ico.pm-img img { width: 26px; height: 26px; border-radius: 7px; display: block; }
+    .pm-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .pm-txt b { font-size: 13.5px; font-weight: 600; }
+    .pm-txt small { font-size: 12px; color: var(--muted); line-height: 1.35; }
+    .pm-txt small b { font-size: 12px; color: var(--ink); }
+    .pm-btn { flex: none; font-size: 12px; padding: 5px 10px; }
+    .pm-x { flex: none; align-self: stretch; background: none; border: 0; border-left: 1px solid var(--line); color: var(--faint); cursor: pointer; padding: 0 10px; border-radius: 0 12px 12px 0; -webkit-tap-highlight-color: transparent; }
+    .pm-x:hover { background: var(--panel-2); color: var(--ink); }
+    .pm-x svg { width: 15px; height: 15px; display: block; }
+    @media (max-width: 480px) { .pm-btn { display: none; } }
+    @media (prefers-reduced-motion: reduce) { .pm-card { transition: opacity 0.2s ease; transform: none; } .pm-card.off { transform: none; } }
     /* Confirm dialog: the templates "Type to Confirm" and "Send back" forms on the same shell */
     .mrt.cf .body { text-align: left; padding: 24px 24px 20px; }
     .mrt.cf h3 { font-size: 16px; margin-bottom: 6px; }
@@ -3275,31 +3282,31 @@
       <div class="row"><button class="rowbtn" id="cf-no" type="button">Cancel</button><button class="btn" id="cf-yes" type="button">Confirm</button></div>
     </div>
   </div>
-  <!-- Stay close: Instagram, the free Discord, the BackTrader deal (same card as Rate Echelon; D1, 9/6) -->
-  <div class="mrt-scrim" id="promo-scrim" hidden></div>
-  <div class="mrt pm" id="promomodal" role="dialog" aria-modal="true" aria-label="Stay close" hidden>
-    <div class="body">
-      <button class="mrt-x" id="promo-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
-      <h3>Stay close.</h3>
-      <p>Three places worth a tap.</p>
-      <div class="pm-list">
-        <a class="pm-row" id="promo-ig" href="https://www.instagram.com/d1fpc3/" target="_blank" rel="noopener">
-          <span class="pm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none"/></svg></span>
-          <span class="pm-txt"><b>Instagram</b><small>Charts, recaps and the day's read from D1.</small></span>
-          <span class="rowbtn pm-btn">Follow</span>
-        </a>
-        <a class="pm-row" id="promo-dc" href="https://discord.gg/FAQD5Cr5p7" target="_blank" rel="noopener">
-          <span class="pm-ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.3 5.4A16.5 16.5 0 0 0 15.2 4l-.2.4a15 15 0 0 1 3.7 1.8 13 13 0 0 0-13.4 0A15 15 0 0 1 9 4.4L8.8 4a16.5 16.5 0 0 0-4.1 1.4C2.1 9.2 1.4 12.9 1.7 16.5a16.6 16.6 0 0 0 5 2.5l1.1-1.7a10 10 0 0 1-1.7-.8l.4-.3a11.8 11.8 0 0 0 11 0l.4.3a10 10 0 0 1-1.7.8l1.1 1.7a16.6 16.6 0 0 0 5-2.5c.4-4.2-.7-7.8-3-11.1ZM8.7 14.3c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z"/></svg></span>
-          <span class="pm-txt"><b>Free Discord</b><small>Where the day gets called live.</small></span>
-          <span class="rowbtn pm-btn">Join</span>
-        </a>
-        <a class="pm-row" id="promo-bt" href="https://www.backtrader.io/" target="_blank" rel="noopener">
-          <span class="pm-ico pm-img"><img src="/assets/partners/backtrader.png" alt="" width="28" height="28" loading="lazy"></span>
-          <span class="pm-txt"><b>BackTrader</b><small>Trade copier and analytics for futures. Code <b>D1FPC3</b> gets a discount.</small></span>
-          <span class="rowbtn pm-btn">Get the deal</span>
-        </a>
-      </div>
-      <div class="row"><button class="rowbtn" id="promo-later" type="button">Not now</button></div>
+  <!-- Stay close: Instagram, the free Discord, the BackTrader deal as three little tabs bottom-right, each with its own X (D1, 9/6) -->
+  <div class="pm-stack" id="promostack" aria-label="Stay close" hidden>
+    <div class="pm-card" data-promo="ig" hidden>
+      <a class="pm-row" id="promo-ig" href="https://www.instagram.com/d1fpc3/" target="_blank" rel="noopener">
+        <span class="pm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none"/></svg></span>
+        <span class="pm-txt"><b>Instagram</b><small>Charts, recaps and the day's read from D1.</small></span>
+        <span class="rowbtn pm-btn">Follow</span>
+      </a>
+      <button class="pm-x" type="button" data-promo-x aria-label="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+    <div class="pm-card" data-promo="dc" hidden>
+      <a class="pm-row" id="promo-dc" href="https://discord.gg/FAQD5Cr5p7" target="_blank" rel="noopener">
+        <span class="pm-ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.3 5.4A16.5 16.5 0 0 0 15.2 4l-.2.4a15 15 0 0 1 3.7 1.8 13 13 0 0 0-13.4 0A15 15 0 0 1 9 4.4L8.8 4a16.5 16.5 0 0 0-4.1 1.4C2.1 9.2 1.4 12.9 1.7 16.5a16.6 16.6 0 0 0 5 2.5l1.1-1.7a10 10 0 0 1-1.7-.8l.4-.3a11.8 11.8 0 0 0 11 0l.4.3a10 10 0 0 1-1.7.8l1.1 1.7a16.6 16.6 0 0 0 5-2.5c.4-4.2-.7-7.8-3-11.1ZM8.7 14.3c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z"/></svg></span>
+        <span class="pm-txt"><b>Free Discord</b><small>Where the day gets called live.</small></span>
+        <span class="rowbtn pm-btn">Join</span>
+      </a>
+      <button class="pm-x" type="button" data-promo-x aria-label="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+    <div class="pm-card" data-promo="bt" hidden>
+      <a class="pm-row" id="promo-bt" href="https://www.backtrader.io/" target="_blank" rel="noopener">
+        <span class="pm-ico pm-img"><img src="/assets/partners/backtrader.png" alt="" width="28" height="28" loading="lazy"></span>
+        <span class="pm-txt"><b>BackTrader</b><small>Trade copier and analytics for futures. Code <b>D1FPC3</b> gets a discount.</small></span>
+        <span class="rowbtn pm-btn">Get the deal</span>
+      </a>
+      <button class="pm-x" type="button" data-promo-x aria-label="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
     </div>
   </div>
   <div class="ga-scrim" id="ga-scrim" role="dialog" aria-modal="true" aria-label="What is GEX">
@@ -7888,29 +7895,41 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderModCodes(); renderModAff(); renderModRoom()
     }
 
-    // ── Stay close popup ───────────────────────────────────
-    // Instagram, the free Discord and the BackTrader deal in one card (the
-    // Rate Echelon design). Shows on the Overview a beat after boot, at most
-    // every 3 days; a tap on any row rests it for 30. Never over the
-    // questionnaire or the daily quote: it waits its turn.
-    const PROMO_KEY = 'echelon-promo-until'
-    function promoOpen() {
-      const scrim = el('promo-scrim'), panel = el('promomodal'); if (!panel) return
-      scrim.hidden = false; panel.hidden = false
-      requestAnimationFrame(() => { scrim.classList.add('on'); panel.classList.add('on') })
+    // ── Stay close tabs ────────────────────────────────────
+    // Instagram, the free Discord and the BackTrader deal as three separate
+    // little tabs bottom-right (D1, 9/6). Each has its own X and its own
+    // memory: X rests that one for 3 days, a tap on it rests it for 30. They
+    // show on boot a beat after sign-in, never over the questionnaire or the
+    // daily quote. The rating nudge only gets its turn once all three rest.
+    const PROMO_IDS = ['ig', 'dc', 'bt']
+    const promoKey = (id) => `echelon-promo-until:${id}`
+    function promoRested(id) {
+      try { return Number(localStorage.getItem(promoKey(id)) || localStorage.getItem('echelon-promo-until') || 0) > Date.now() } catch { return false }
     }
-    function promoClose(days) {
-      const scrim = el('promo-scrim'), panel = el('promomodal'); if (!panel) return
-      scrim.classList.remove('on'); panel.classList.remove('on')
-      setTimeout(() => { scrim.hidden = true; panel.hidden = true }, 200)
-      try { localStorage.setItem(PROMO_KEY, String(Date.now() + days * 864e5)) } catch {}
+    function promoCard(id) { return document.querySelector(`.pm-card[data-promo="${id}"]`) }
+    function promoOpen(ids) {
+      const stack = el('promostack'); if (!stack) return
+      stack.hidden = false
+      ids.forEach((id, i) => {
+        const c = promoCard(id); if (!c) return
+        c.hidden = false; c.classList.remove('off')
+        setTimeout(() => c.classList.add('on'), 60 + i * 110)
+      })
+    }
+    function promoClose(id, days) {
+      const c = promoCard(id); if (!c || c.hidden) return
+      c.classList.remove('on'); c.classList.add('off')
+      setTimeout(() => {
+        c.hidden = true
+        if (PROMO_IDS.every((k) => promoCard(k)?.hidden !== false)) { const st = el('promostack'); if (st) st.hidden = true }
+      }, 280)
+      try { localStorage.setItem(promoKey(id), String(Date.now() + days * 864e5)) } catch {}
     }
     function promoMaybe() {
       if (!el('onb')?.hidden || !el('quotemodal')?.hidden || !el('ratemodal')?.hidden) return
       if (el('intake') && !el('intake').hidden && el('v-course')?.classList.contains('on')) return
-      let rested = false
-      try { rested = Number(localStorage.getItem(PROMO_KEY) || 0) > Date.now() } catch {}
-      if (!rested) { promoOpen(); return }
+      const due = PROMO_IDS.filter((id) => !promoRested(id))
+      if (due.length) { promoOpen(due); return }
       rateNudge()
     }
     // One ask for a rating, once ever, from members who have been in a week
@@ -7927,12 +7946,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         rateOpen(0)
       } catch {}
     }
-    {
-      el('promo-scrim')?.addEventListener('click', () => promoClose(3))
-      el('promo-x')?.addEventListener('click', () => promoClose(3))
-      el('promo-later')?.addEventListener('click', () => promoClose(3))
-      for (const id of ['promo-ig', 'promo-dc', 'promo-bt']) el(id)?.addEventListener('click', () => setTimeout(() => promoClose(30), 150))
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && el('promomodal') && !el('promomodal').hidden) promoClose(3) })
+    for (const id of PROMO_IDS) {
+      const c = promoCard(id); if (!c) continue
+      c.querySelector('[data-promo-x]')?.addEventListener('click', () => promoClose(id, 3))
+      c.querySelector('.pm-row')?.addEventListener('click', () => setTimeout(() => promoClose(id, 30), 150))
     }
 
     // ── settings: affiliate partner portal (approved view) ──
@@ -11059,11 +11076,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       applyStaffComps()
       state.hasCourse = state.owned.has('course') || state.isAdmin
       el('set-modtools-row').hidden = !(state.isMod || state.isAdmin)
-      // Stay close popup (Instagram, Discord, BackTrader) — everywhere, native
+      // Stay close tabs (Instagram, Discord, BackTrader) — everywhere, native
       // shells included (D1 accepted the App Review look of an external offer
       // in-app on 9/2). It waits for the questionnaire and the daily quote.
       try { localStorage.setItem(SESSIONS, String(Number(localStorage.getItem(SESSIONS) || 0) + 1)) } catch {}
-      setTimeout(promoMaybe, 2500)
+      setTimeout(promoMaybe, 5500) // after the sign-in toast (4.5s) has left the bottom edge
 
       // Signed in is not the same as member. A Discord or email sign-in with
       // nothing on the account stops here: the door is the free signup (which
