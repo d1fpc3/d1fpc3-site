@@ -11710,8 +11710,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         link.hidden = false
       }
       // Everyone gets the Overview — it's their personal dashboard (recaps,
-      // stats, announcements). Only the course tabs stay behind the purchase
-      // (RLS would hand them empty lists anyway).
+      // stats, announcements). Study shows for every member who passed the
+      // gate (state.hasCourse mirrors has_access(); RLS decides the rows).
       document.querySelector('.tab[data-view="course"]').hidden = !state.hasCourse
       // The library is for everyone signed in: members, mods, free accounts
       // (migration 0045 + media-url v21 match this server-side).
@@ -12016,7 +12016,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       state.owned = new Set((ents ?? []).map((e) => e.product))
       applyStaffComps()
-      state.hasCourse = state.owned.has('course') || state.isAdmin
+      // Mirrors has_access() server-side: any active entitlement (or staff)
+      // reads the lessons, so the Study room is on every member's nav, not
+      // just course buyers. Mods hold GEX + LIT comps, so they pass too.
+      state.hasCourse = state.owned.size > 0 || state.isAdmin || state.isMod
       el('set-modtools-row').hidden = !(state.isMod || state.isAdmin)
       // Stay close tabs (Instagram, Discord, BackTrader) — everywhere, native
       // shells included (D1 accepted the App Review look of an external offer
