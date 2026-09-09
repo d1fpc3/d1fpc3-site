@@ -8,13 +8,13 @@
   <meta name="robots" content="noindex, nofollow">
   <style>
     /* ─────────────────────────────────────────────────────────
-       d1fpc3.com | echelon — admin dashboard
+       d1fpc3.com | echelon | admin dashboard
 
        A real dashboard shell: fixed sidebar with tabs, the signed-in
        user pinned bottom-left, a content pane that swaps per tab.
 
        This file is public. Everything it shows, it shows because
-       Postgres decided the signed-in user is an admin — never
+       Postgres decided the signed-in user is an admin, never
        because the page said so. Writes go through admin-api, which
        re-checks server-side.
        ───────────────────────────────────────────────────────── */
@@ -40,7 +40,7 @@
     }
 
     /* light theme: same bones, paper palette. The login gate stays dark
-       on purpose — the door is black, the house has lights. */
+       on purpose: the door is black, the house has lights. */
     :root[data-theme="light"] {
       --bg: #f6f4f0;
       --panel: #ffffff;
@@ -148,7 +148,7 @@
 
     .side-brand {
       display: flex; align-items: center; gap: 10px;
-      padding: 20px 20px 18px;
+      padding: 18px 20px 12px;
       font-weight: 700; font-size: 16px; letter-spacing: -0.02em;
     }
     .side-brand small {
@@ -157,13 +157,16 @@
       border: 1px solid rgba(201,162,74,0.25); border-radius: 5px; padding: 2px 6px; margin-left: auto;
     }
 
-    .side-nav { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+    .side-nav { padding: 4px 12px 8px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
 
-    .side-cap { padding: 14px 8px 6px; }
+    /* group captions: quiet, uppercase, the rhythm of the list */
+    .side-cap { padding: 11px 12px 3px; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); line-height: 1.4; }
+    .side-cap:first-child { padding-top: 6px; }
+    .tab.tab-settings { margin-top: 10px; }
 
     .tab {
       display: flex; align-items: center; gap: 11px;
-      padding: 9px 12px; border-radius: 8px;
+      padding: 7px 12px; border-radius: 8px;
       background: none; border: 0; width: 100%; text-align: left;
       font-family: inherit; font-size: 13.5px; font-weight: 500; color: var(--muted);
       cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
@@ -248,6 +251,23 @@
     }
     .topbar h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
     .topbar .crumb { font-size: 12.5px; color: var(--faint); margin-top: 1px; }
+    /* topbar actions: the walkthrough is a ghost, opening the app is the one outlined action */
+    .tb-ghost {
+      display: inline-flex; align-items: center; gap: 7px; background: none; border: 0; cursor: pointer;
+      font-family: inherit; font-size: 12.5px; font-weight: 500; color: var(--faint); padding: 8px 10px; border-radius: 8px;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+    .tb-ghost svg { width: 15px; height: 15px; }
+    .tb-ghost:hover { color: var(--ink); background: var(--panel-2); }
+    .tb-open {
+      display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+      font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ink);
+      background: var(--panel); border: 1px solid var(--line-bright); border-radius: 9px; padding: 8px 14px;
+      transition: border-color 0.18s ease, color 0.18s ease, transform 0.15s ease;
+    }
+    .tb-open svg { width: 14px; height: 14px; transition: transform 0.2s ease; }
+    .tb-open:hover { border-color: var(--gold); color: var(--gold); transform: translateY(-1px); }
+    .tb-open:hover svg { transform: translate(1px, -1px); }
 
     .pane { padding: clamp(20px, 3vw, 34px); }
     .view { display: none; }
@@ -257,14 +277,33 @@
 
     /* ── stat cards ──────────────────────────────────────── */
 
-    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
-    @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } }
-    .scard {
-      background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 17px 18px;
+    /* headline figures: the same flat strip Growth and Statistics use, hairlines
+       between figures, nothing boxed. A figure can carry a delta and a sparkline. */
+    .cards {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 26px;
     }
+    .scard { position: relative; min-width: 0; padding: 16px 18px 14px 0; border-right: 1px solid var(--line); margin-right: 18px; }
+    .scard:last-child { border-right: 0; margin-right: 0; }
     .scard .k { font-size: 11px; letter-spacing: 0.02em; color: var(--faint); }
-    .scard .v { font-size: 27px; font-weight: 700; letter-spacing: -0.02em; margin-top: 7px; font-variant-numeric: tabular-nums; }
-    .scard .d { font-size: 11.5px; color: var(--faint); margin-top: 3px; }
+    .scard .v { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .scard .d { font-size: 11.5px; color: var(--faint); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .scard .d b { color: var(--good); font-weight: 600; }
+    .scard .d b.gold { color: var(--gold); }
+    .scard .spark { position: absolute; right: 18px; bottom: 16px; width: 84px; height: 30px; display: block; }
+    .scard .spark path.a { fill: var(--gold); fill-opacity: 0.12; }
+    .scard .spark path.l { fill: none; stroke: var(--gold); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+    .scard .spark circle { fill: var(--gold); }
+    @media (max-width: 900px) {
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .scard:nth-child(2) { border-right: 0; margin-right: 0; }
+      .scard:nth-child(n+3) { border-top: 1px solid var(--line); }
+    }
+    @media (max-width: 640px) {
+      .scard .spark { display: none; } .scard .v { font-size: 23px; }
+      .seg + .seg { margin-left: 0; padding-left: 0; border-left: 0; }
+      .chips { flex-wrap: nowrap; }
+    }
 
     /* ── panels + tables ─────────────────────────────────── */
 
@@ -277,17 +316,68 @@
     .block-head h3 { font-size: 14.5px; font-weight: 650; letter-spacing: -0.01em; }
 
     /* flat lists, not boxed grids (D1, 9/2): no header band, no cell walls,
-       no hover wash — rows sit on the page with hairlines between them */
+       no hover wash. Rows sit on the page with hairlines between them */
     .tbl-scroll { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 640px; }
     th {
       text-align: left; font-size: 11px; letter-spacing: 0.02em; color: var(--faint);
-      font-weight: 500; padding: 0 18px 9px 0; background: none; border-bottom: 1px solid var(--line);
+      font-weight: 500; padding: 11px 18px 9px 0; background: none; border-bottom: 1px solid var(--line);
+      white-space: nowrap;
     }
-    td { padding: 14px 18px 14px 0; border-bottom: 1px solid var(--line); color: var(--muted); vertical-align: middle; }
+    td { padding: 13px 18px 13px 0; border-bottom: 1px solid var(--line); color: var(--muted); vertical-align: middle; }
     tbody tr:last-child td { border-bottom: 0; }
+    /* the first and last columns line up with the panel's own padding */
+    .block th:first-child, .block td:first-child { padding-left: 18px; }
+    .block th:last-child, .block td:last-child { padding-right: 18px; }
     td.ink { color: var(--ink); font-weight: 500; }
+    td .sub { display: block; font-size: 11.5px; color: var(--faint); font-weight: 400; margin-top: 1px; }
+    td.right, th.right { text-align: right; }
     .num { font-variant-numeric: tabular-nums; }
+
+    /* product chips: one per entitlement, click to revoke or restore */
+    .chips { display: flex; gap: 5px; flex-wrap: wrap; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.01em;
+      color: var(--ink); background: var(--panel-2); border: 1px solid transparent;
+      border-radius: 6px; padding: 3px 8px; cursor: pointer; white-space: nowrap;
+      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    }
+    .chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--good); flex-shrink: 0; }
+    .chip.course::before { background: var(--gold); }
+    .chip.off { color: var(--faint); background: none; border-color: var(--line); text-decoration: line-through; }
+    .chip.off::before { background: var(--faint); }
+    .chip small { font-weight: 400; color: var(--faint); font-size: 10px; }
+    .chip:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+    .chip:disabled { opacity: 0.4; cursor: default; }
+    .chip.static { cursor: default; }
+    .chip.static:hover { border-color: transparent; color: var(--ink); }
+    .chip.static.off:hover { color: var(--faint); border-color: var(--line); }
+
+    /* quiet row actions: text-only until hovered, the danger one goes red */
+    .ract { display: inline-flex; gap: 2px; align-items: center; justify-content: flex-end; white-space: nowrap; }
+    .ract .rowbtn { background: none; border-color: transparent; color: var(--faint); padding: 5px 8px; }
+    .ract .rowbtn:hover:not(:disabled) { background: var(--panel-2); border-color: transparent; color: var(--ink); }
+    .ract .rowbtn.danger:hover:not(:disabled) { color: var(--bad); }
+    .ract .rowbtn.gold { color: var(--gold); }
+    .ract .rowbtn.gold:hover:not(:disabled) { color: var(--gold); background: rgba(201,162,74,0.1); }
+    .mv { display: inline-flex; flex-direction: column; gap: 1px; vertical-align: middle; }
+    .mv .rowbtn { background: none; border: 0; color: var(--muted); padding: 0 7px; line-height: 1.05; font-size: 13px; border-radius: 4px; }
+    .mv .rowbtn:hover:not(:disabled) { color: var(--gold); background: var(--panel-2); border: 0; }
+    .mv .rowbtn:disabled { opacity: 0.2; }
+    /* live / draft: a tiny state pill, not a bordered button */
+    .live {
+      display: inline-flex; align-items: center; gap: 6px; font-family: inherit; font-size: 11px; font-weight: 600;
+      color: var(--good); background: rgba(134,181,127,0.12); border: 0; border-radius: 6px; padding: 4px 9px; cursor: pointer;
+      transition: filter 0.15s ease, opacity 0.15s ease;
+    }
+    .live::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .live.draft { color: var(--faint); background: var(--panel-2); }
+    .live:hover:not(:disabled) { filter: brightness(1.15); }
+    .live:disabled { opacity: 0.4; cursor: default; }
+    .views-btn { background: none; border: 0; padding: 0; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer; font-variant-numeric: tabular-nums; border-bottom: 1px dotted var(--line-bright); }
+    .views-btn:hover { color: var(--gold); border-color: var(--gold); }
+    .views-btn b { color: var(--ink); font-weight: 600; }
 
     /* ── page editor ─────────────────────────────────────────── */
 
@@ -410,6 +500,16 @@
     }
     .inp:focus { outline: none; border-color: var(--gold); }
     .inp::placeholder { color: var(--faint); }
+    /* selects: no browser chrome, a faint chevron of our own */
+    select.inp {
+      appearance: none; -webkit-appearance: none; padding-right: 32px; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239d978c' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 11px center;
+    }
+    select.inp:hover { border-color: var(--faint); }
+    input[type="date"].inp::-webkit-calendar-picker-indicator { opacity: 0.45; cursor: pointer; }
+    :root:not([data-theme="light"]) input[type="date"].inp::-webkit-calendar-picker-indicator { filter: invert(1); }
+    input[type="checkbox"] { accent-color: var(--gold); }
 
     .field-row { padding: 16px 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     .field-row .inp { flex: 1; min-width: 220px; }
@@ -629,7 +729,7 @@
       .topbar h2 { font-size: 17px; }
       .topbar .crumb { display: none; }
       .topbar #admin-tour-btn { display: none; }
-      .topbar .btn { padding: 9px 14px; font-size: 12.5px; }
+      .tb-open { padding: 7px 12px; font-size: 12.5px; }
     }
     .scrim {
       position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,0.5);
@@ -673,6 +773,12 @@
     /* phones: wide tables scroll inside their own box instead of pushing the page sideways */
     @media (max-width: 840px) {
       .view table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      th { padding: 10px 14px 8px 0; }
+      td { padding: 11px 14px 11px 0; }
+      .block th:first-child, .block td:first-child { padding-left: 14px; }
+      .block th:last-child, .block td:last-child { padding-right: 14px; }
+      .block-head { padding: 13px 14px; }
+      .field-row, .users-tools { padding-left: 14px; padding-right: 14px; }
     }
     /* playbooks: long code never widens the page */
     .pb code, .pb pre { overflow-wrap: anywhere; white-space: pre-wrap; }
@@ -699,17 +805,22 @@
     @keyframes skel-sweep { to { transform: translateX(100%); } }
 
     /* standing page help: quiet, collapsed, always there */
-    .pg-help { margin: 0 0 16px; }
+    .pg-help { margin: -6px 0 18px; }
     .pg-help summary {
-      cursor: pointer; list-style: none; display: inline-block;
-      font-size: 10.5px; letter-spacing: 0.02em;
-      color: var(--faint); border-bottom: 1px dotted var(--line-bright); padding-bottom: 1px;
-      transition: color 0.15s ease;
+      cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 500; letter-spacing: 0.01em;
+      color: var(--faint); padding: 4px 9px 4px 6px; border-radius: 999px; border: 1px solid transparent;
+      transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .pg-help summary::before {
+      content: "i"; display: inline-flex; align-items: center; justify-content: center;
+      width: 14px; height: 14px; border-radius: 50%; border: 1px solid currentColor;
+      font-size: 9px; font-weight: 700; font-family: Georgia, serif; font-style: italic; line-height: 1;
     }
     .pg-help summary::-webkit-details-marker { display: none; }
-    .pg-help summary:hover { color: var(--gold); }
-    .pg-help[open] summary { color: var(--gold); border-color: var(--gold); }
-    .pg-help p { margin-top: 9px; max-width: 74ch; font-size: 13px; line-height: 1.65; color: var(--muted); }
+    .pg-help summary:hover { color: var(--ink); border-color: var(--line); }
+    .pg-help[open] summary { color: var(--gold); border-color: rgba(201,162,74,0.35); background: rgba(201,162,74,0.06); }
+    .pg-help p { margin: 10px 0 0 6px; max-width: 74ch; font-size: 13px; line-height: 1.65; color: var(--muted); }
 
     /* ── guided walkthrough: questionnaire cards + gliding spotlight ── */
     .tour-ring {
@@ -937,6 +1048,7 @@
       </div>
 
       <nav class="side-nav" id="tabs" aria-label="Sections">
+        <div class="side-cap">Business</div>
         <button class="tab on" data-view="overview" data-title="Overview" data-crumb="At a glance">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
           Overview
@@ -949,25 +1061,22 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg>
           Growth
         </button>
-        <button class="tab" data-view="users" data-title="Users" data-crumb="Buyers and access">
+        <button class="tab" data-view="users" data-title="Users" data-crumb="Everyone with access, one row per person">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Users <span class="count" id="c-users">—</span>
-        </button>
-        <button class="tab" data-view="access" data-title="TradingView access" data-crumb="Grant and remove indicator access">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          TV access <span class="count" id="c-access">—</span>
+          Users <span class="count" id="c-users">–</span>
         </button>
         <button class="tab" data-view="billing" data-title="Billing" data-crumb="Revenue and Stripe events">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           Billing
         </button>
+        <div class="side-cap">Course</div>
         <button class="tab" data-view="content" data-title="Content" data-crumb="Curriculum and publishing">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          Content <span class="count" id="c-content">—</span>
+          Content <span class="count" id="c-content">–</span>
         </button>
         <button class="tab" data-view="homework" data-title="Homework" data-crumb="Assignments and what's waiting">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          Homework <span class="count" id="c-hw">—</span>
+          Homework <span class="count" id="c-hw">–</span>
         </button>
         <button class="tab" data-view="library" data-title="Video library" data-crumb="Recaps, breakdowns and concept videos">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/></svg>
@@ -975,8 +1084,13 @@
         </button>
         <button class="tab" data-view="codes" data-title="Access codes" data-crumb="Free passes and discounts">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5v2"/><path d="M15 11v2"/><path d="M15 17v2"/><path d="M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
-          Codes <span class="count" id="c-codes">—</span>
+          Codes <span class="count" id="c-codes">–</span>
         </button>
+        <button class="tab" data-view="access" data-title="TradingView access" data-crumb="Grant and remove indicator access">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          TV access <span class="count" id="c-access">–</span>
+        </button>
+        <div class="side-cap">Room</div>
         <button class="tab" data-view="community" data-title="Community" data-crumb="Channels and moderators">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
           Community
@@ -985,6 +1099,7 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           Permissions
         </button>
+        <div class="side-cap">Desk</div>
         <button class="tab" data-view="gex" data-title="GEX" data-crumb="QQQ gamma exposure, mapped to NQ">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13V3"/><path d="M12 13l8 4.5"/><path d="M12 13l-8 4.5"/><path d="M12 13v8"/></svg>
           GEX
@@ -1005,7 +1120,7 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4v3"/><rect x="6" y="7" width="4" height="8" rx="1"/><path d="M8 15v4"/><path d="M16 5v4"/><rect x="14" y="9" width="4" height="7" rx="1"/><path d="M16 16v3"/></svg>
           MSNR
         </button>
-        <button class="tab" data-view="settings" data-title="Settings" data-crumb="Integrations and project">
+        <button class="tab tab-settings" data-view="settings" data-title="Settings" data-crumb="Integrations and project">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Settings
         </button>
@@ -1014,7 +1129,7 @@
       <div class="side-user">
         <div class="avatar" id="u-avatar">D1</div>
         <div class="u-meta">
-          <div class="u-name" id="u-name">—</div>
+          <div class="u-name" id="u-name">–</div>
           <div class="u-role">Owner · Admin</div>
         </div>
         <button class="u-signout" id="signout" title="Sign out" aria-label="Sign out">
@@ -1034,8 +1149,8 @@
           <h2 id="pane-title">Overview</h2>
           <div class="crumb" id="pane-crumb">At a glance</div>
         </div>
-        <button class="rowbtn" id="admin-tour-btn" type="button" title="Replay the guided walkthrough">Walkthrough</button>
-        <a class="btn" href="/echelon/app/" style="background:var(--panel-2);color:var(--ink);">Open Echelon →</a>
+        <button class="tb-ghost" id="admin-tour-btn" type="button" title="Replay the guided walkthrough"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Walkthrough</button>
+        <a class="tb-open" href="/echelon/app/">Open Echelon<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></a>
       </div>
 
       <div class="pane">
@@ -1044,9 +1159,9 @@
           <div class="cards" id="cards"></div>
           <p class="ov-room" id="ov-room" hidden></p>
           <div class="block">
-            <div class="block-head"><h3>Latest buyers</h3></div>
+            <div class="block-head"><h3>Latest members</h3><span class="label" id="recent-note"></span></div>
             <div class="tbl-scroll"><table id="recent-buyers"></table></div>
-            <div class="empty" id="recent-empty" hidden>No buyers yet — the page goes live the moment Stripe is connected.</div>
+            <div class="empty" id="recent-empty" hidden>No members yet. Comps and purchases both land here.</div>
           </div>
           <div class="block">
             <div class="block-head"><h3>Reviews</h3><span class="label" id="reviews-avg"></span></div>
@@ -1090,17 +1205,18 @@
         <section class="view" id="v-users">
           <div class="block">
             <div class="block-head">
-              <h3>Buyers &amp; access</h3>
+              <h3>Members</h3>
               <span class="label" id="users-total"></span>
             </div>
             <div class="field-row">
-              <input class="inp" type="email" id="grant-email" placeholder="Grant free access — their email">
+              <input class="inp" type="email" id="grant-email" placeholder="Comp the course: their email">
               <button class="btn" id="grant-btn">Grant access</button>
             </div>
             <p class="msg" id="grant-msg"></p>
             <div class="filters users-tools" id="users-tools">
-              <input class="inp" id="users-q" placeholder="Search email, username, source" autocomplete="off">
-              <select class="inp" id="users-status" aria-label="Status"><option value="">Every status</option></select>
+              <input class="inp" id="users-q" placeholder="Search email, username, Discord" autocomplete="off">
+              <span class="seg" id="users-status" role="group" aria-label="Status"><button type="button" data-v="" class="on">Everyone</button><button type="button" data-v="active">Active</button><button type="button" data-v="off">Revoked</button></span>
+              <span class="seg" id="users-product" role="group" aria-label="Product"><button type="button" data-v="" class="on">All</button><button type="button" data-v="course">Course</button><button type="button" data-v="d1-gex">GEX</button><button type="button" data-v="d1-lit">LIT</button></span>
               <span class="label" id="users-shown"></span>
             </div>
             <div class="tbl-scroll"><table id="users-table"></table></div>
@@ -1116,10 +1232,10 @@
         <!-- STATISTICS: the onboarding answers, aggregated -->
         <section class="view" id="v-stats">
           <div class="st-head">
-            <div class="st-n"><span class="v" id="st-answered">—</span><span class="k">answered</span></div>
-            <div class="st-n"><span class="v" id="st-members">—</span><span class="k">members</span></div>
-            <div class="st-n"><span class="v" id="st-rate">—</span><span class="k">completion</span></div>
-            <div class="st-n"><span class="v" id="st-latest">—</span><span class="k">latest answer</span></div>
+            <div class="st-n"><span class="v" id="st-answered">–</span><span class="k">answered</span></div>
+            <div class="st-n"><span class="v" id="st-members">–</span><span class="k">members</span></div>
+            <div class="st-n"><span class="v" id="st-rate">–</span><span class="k">completion</span></div>
+            <div class="st-n"><span class="v" id="st-latest">–</span><span class="k">latest answer</span></div>
           </div>
           <p class="st-read" id="st-read"></p>
           <div class="st-grid" id="st-grid"></div>
@@ -1252,7 +1368,7 @@
               <span class="label" id="hw-total"></span>
             </div>
             <div id="hw-list"></div>
-            <div class="empty" id="hw-list-empty" hidden>No lessons yet. Homework lives on a lesson — build the course in Content first, then attach the markups here.</div>
+            <div class="empty" id="hw-list-empty" hidden>No lessons yet. Homework lives on a lesson, so build the course in Content first, then attach the markups here.</div>
           </div>
         </section>
 
@@ -1262,7 +1378,7 @@
           <div class="block">
             <div class="block-head"><h3>Add a video</h3></div>
             <div class="field-row">
-              <input class="inp" id="lib-title-in" placeholder="Title — e.g. Friday recap: the 10am short" style="flex:2;min-width:220px;">
+              <input class="inp" id="lib-title-in" placeholder="Title, e.g. Friday recap: the 10am short" style="flex:2;min-width:220px;">
               <select class="inp" id="lib-cat-in" style="flex:0 1 180px;min-width:160px;">
                 <option value="recap">Trade recap</option>
                 <option value="breakdown">PA breakdown</option>
@@ -1295,7 +1411,7 @@
               <button class="rowbtn" id="recap-new" hidden>Start a new one</button>
             </div>
             <div class="field-row">
-              <input class="inp" id="recap-title" placeholder="Title — e.g. Tuesday: two NQ shorts into the open">
+              <input class="inp" id="recap-title" placeholder="Title, e.g. Tuesday: two NQ shorts into the open">
               <input class="inp" id="recap-date" type="date" style="flex:0 1 170px;min-width:150px;">
             </div>
             <div class="field-row" style="padding-top:0;">
@@ -1331,12 +1447,12 @@
               <input class="inp" id="code-custom" placeholder="Custom code (blank = random)" style="flex:1;min-width:180px;">
               <input class="inp" id="code-uses" type="number" min="1" value="1" title="Max uses" style="flex:0 1 90px;min-width:80px;">
               <input class="inp" id="code-exp" type="date" title="Expires" style="flex:0 1 160px;min-width:140px;">
-              <input class="inp" id="code-note" placeholder="Note — who it's for" style="flex:1;min-width:160px;">
+              <input class="inp" id="code-note" placeholder="Note: who it's for" style="flex:1;min-width:160px;">
               <button class="btn" id="code-create">Create</button>
             </div>
             <p class="msg" id="code-msg"></p>
             <p class="settings-note" style="margin:0 18px 16px;">
-              Free codes are redeemable right now — "Have an access code?" on the members sign-in screen.
+              Free codes are redeemable right now, under "Have an access code?" on the members sign-in screen.
               Discount codes are recorded here and get attached to Stripe checkout once Stripe is connected.
             </p>
           </div>
@@ -1374,7 +1490,7 @@
           </div>
           <div class="block">
             <div class="block-head"><h3>Affiliates</h3><span class="label" id="aff-total"></span></div>
-            <p class="settings-note" style="margin:0 0 2px;">Members applying from Settings &rarr; Affiliate in the app. Approve mints their code &mdash; the one they asked for, when it's free.</p>
+            <p class="settings-note" style="margin:0 0 2px;">Members applying from Settings &rarr; Affiliate in the app. Approve mints their code, the one they asked for when it's free.</p>
             <div class="tbl-scroll"><table id="aff-table"></table></div>
             <div class="empty" id="aff-empty" hidden>No applications yet.</div>
           </div>
@@ -1553,7 +1669,7 @@
             <div id="integrations"></div>
           </div>
           <p class="settings-note">
-            Secrets are set in Supabase, never here — this page only reports whether each one exists.
+            Secrets are set in Supabase, never here. This page only reports whether each one exists.
             Stripe and Discord keys go in <code>Edge Functions → Secrets</code>; provider logins in
             <code>Authentication → Providers</code>.
           </p>
@@ -1612,8 +1728,8 @@
       setTimeout(done, 1700)
     }
     el('play-intro')?.addEventListener('click', playIntro)
-    const money = (c) => c == null ? '—' : '$' + (c / 100).toFixed(c % 100 ? 2 : 0)
-    const when = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' }) : '—'
+    const money = (c) => c == null ? '–' : '$' + (c / 100).toFixed(c % 100 ? 2 : 0)
+    const when = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' }) : '–'
 
     /* ── theme: system by default, sticky once toggled ── */
     const THEME_KEY = 'echelon-theme'
@@ -1736,16 +1852,16 @@
     /* ── standing page help: one quiet note atop every view ── */
     const PAGE_HELP = {
       growth: 'The shape of the business over time. Members is every active entitlement counted the day it was granted, so the line only goes up when someone new arrives. Revenue is what Stripe actually took, by month. Arrivals splits paid from comped and moderator seats, and room activity is trades logged and messages sent, week by week.',
-      overview: 'The pulse. Revenue, members and course progress refresh on every load. Latest buyers land the moment Stripe fires, and approving a review down there is what publishes it to the landing page.',
+      overview: 'The pulse. Every figure is per person, not per product: a member holding the course, GEX and LIT counts once. Latest members land the moment access is granted, and approving a review down there is what publishes it to the landing page.',
       stats: 'The room, described by the members themselves. Every first entry asks five questions; this page adds them up: who is new, what they trade, where they are, what blocks them, where they came from. The sentence up top is the majority answer to each. The table is every member, one row each.',
-      users: 'Everyone with access. Grant comps the course by email and creates their account so the sign-in link works; revoke and restore sit on each row. Every member also holds D1 LIT with the course, so their TradingView username lands in the access queue.',
+      users: 'Everyone with access, one row per person. The chips are what they hold: click one to revoke or restore that product on its own. Grant comps the course by email and creates their account so the sign-in link works. Every member also holds D1 LIT with the course, so their TradingView username lands in the access queue.',
       access: 'The TradingView fulfillment queue. Indicator buyers land here with their TV username, and the worker adds them on TradingView automatically every 15 minutes. The buttons are your manual fallback; notes flag anything odd, like an old username that needs pulling.',
       billing: 'Money in. The cards summarize revenue, Orders is the ledger, and the Stripe events below are the raw webhook feed, kept as your audit trail when something looks off.',
       content: 'The course builder. Categories hold lessons, the arrows reorder them, and opening a lesson gives the block editor for text, headings, video and files. Viewers shows who actually watched. Nothing reaches members until it is published.',
-      homework: 'Every lesson with its assignment, in one place. Add or edit a prompt and members see it immediately on that lesson; Remove lets the lesson complete on its own again. The counts show what is sitting in the review queue — the markups themselves get approved in the members app, by you or a mod.',
-      library: 'Videos and written recaps in one place. Upload and publish puts a video live immediately; below it, write the session recap — blank line between paragraphs, ## for a heading, paste or drop a video to attach. Members only ever see what you publish.',
+      homework: 'Every lesson with its assignment, in one place. Add or edit a prompt and members see it immediately on that lesson; Remove lets the lesson complete on its own again. The counts show what is sitting in the review queue. The markups themselves get approved in the members app, by you or a mod.',
+      library: 'Videos and written recaps in one place. Upload and publish puts a video live immediately; below it, write the session recap: blank line between paragraphs, ## for a heading, paste or drop a video to attach. Members only ever see what you publish.',
       codes: 'Passes and discounts. A free code comps the course when redeemed at sign-in; a discount code takes its percentage at checkout. Cap the uses, set an expiry, and note who it was for so future-you knows.',
-      community: 'The room itself. Channels are created and ordered here (announcements are staff-post-only). The free signup page lets people straight in now — the list below is the record of who joined and what they wrote, with Deny as your kick switch. Mods moderate chat and get the indicators free while they hold the role.',
+      community: 'The room itself. Channels are created and ordered here (announcements are staff-post-only). The free signup page lets people straight in now. The list below is the record of who joined and what they wrote, with Deny as your kick switch. Mods moderate chat and get the indicators free while they hold the role.',
       perms: 'What each role may do in chat, enforced by the database rather than hidden buttons. Tap On or Off and it saves on the spot; the app updates AND the server refuses the write. Per channel, posting can be everyone, mods only, or just you.',
       gex: 'Your gamma board, the same one GEX subscribers see in their app plus the admin extras. Copy pineData is the manual feed for the TradingView script; the daily job normally republishes it on its own.',
       cars: 'A reference playbook, for you. Nothing on this page is member-facing.',
@@ -1765,25 +1881,25 @@
 
     /* ── guided walkthrough: every screen, one card at a time ── */
     const ADMIN_TOUR = [
-      { view: 'overview', sel: '#cards', t: 'The pulse', b: 'Headline numbers, refreshed on every load — revenue, members, course progress across everyone. When something moves, it shows here first.' },
-      { view: 'overview', sel: '#recent-buyers', t: 'Latest buyers and reviews', b: 'Every purchase lands the moment Stripe fires, newest reviews below. Approving a review is what publishes it to the landing page — nothing goes public without you.' },
+      { view: 'overview', sel: '#cards', t: 'The pulse', b: 'Headline numbers, refreshed on every load: members, revenue, who holds the course and the indicators. Every figure counts people, not products. When something moves, it shows here first.' },
+      { view: 'overview', sel: '#recent-buyers', t: 'Latest members and reviews', b: 'Every new member lands the moment access is granted, newest reviews below. Approving a review is what publishes it to the landing page. Nothing goes public without you.' },
       { view: 'stats', sel: '#st-grid', t: 'Who is in the room', b: 'Every member answers five questions on first entry. This adds them up: experience, market, stage, what blocks them, where they came from. Read it before you plan a lesson or a post.' },
       { view: 'growth', sel: '#gw-members', t: 'The shape of it', b: 'Members, revenue and activity over time rather than as of today. The line climbs the day someone joins, revenue is what Stripe actually took by month, and the split below shows how many seats were paid for against comped.' },
-      { view: 'users', sel: '#grant-email', t: 'Grant access by email', b: 'Type an email, hit Grant: the course is comped and an account is created so their sign-in link has something to land on. The ledger below is every entitlement — revoke or restore per row.' },
+      { view: 'users', sel: '#grant-email', t: 'Grant access by email', b: 'Type an email, hit Grant: the course is comped and an account is created so their sign-in link has something to land on. The list below is every person, with a chip per product they hold. Click a chip to revoke or restore just that one.' },
       { view: 'access', sel: '#access-table', t: 'The TradingView queue', b: 'Every indicator sale queues here with the buyer’s TV username. The worker adds them on TradingView automatically every 15 minutes; the buttons are your manual fallback if it ever cannot.' },
-      { view: 'billing', sel: '#billing-cards', t: 'Money in', b: 'Revenue at a glance, the order ledger, and the raw Stripe events exactly as the webhook received them — the audit trail for when something looks off.' },
-      { view: 'content', sel: '#course-list-wrap', t: 'The course builder', b: 'Categories and lessons, reordered with the arrows. Opening a lesson gives you the block editor — text, headings, video, files — and Viewers shows who actually watched what.' },
-      { view: 'library', sel: '#recap-title', t: 'Write the session recap', b: 'Title, date, write-up. Blank line between paragraphs, ## for headings, paste or drop a video straight in. Save keeps it a draft — members only ever see what you publish.' },
+      { view: 'billing', sel: '#billing-cards', t: 'Money in', b: 'Revenue at a glance, the order ledger, and the raw Stripe events exactly as the webhook received them, the audit trail for when something looks off.' },
+      { view: 'content', sel: '#course-list-wrap', t: 'The course builder', b: 'Categories and lessons, reordered with the arrows. Opening a lesson gives you the block editor (text, headings, video, files), and Viewers shows who actually watched what.' },
+      { view: 'library', sel: '#recap-title', t: 'Write the session recap', b: 'Title, date, write-up. Blank line between paragraphs, ## for headings, paste or drop a video straight in. Save keeps it a draft. Members only ever see what you publish.' },
       { view: 'codes', sel: '#code-custom', t: 'Mint a pass', b: 'Free codes comp the course at redemption; discount codes shave a percentage at checkout. Cap the uses, set an expiry, note who it was for.' },
       { view: 'community', sel: '#chan-table', t: 'Channels', b: 'Create, reorder and delete the chat rooms. Announcements are staff-post-only by design, and deleting a channel takes its messages with it.' },
       { view: 'community', sel: '#app-table', t: 'Access requests', b: 'People applying for free access at /echelon/apply. Approve comps the course and creates their account in one motion; Deny just closes it out.' },
       { view: 'community', sel: '#mod-table', t: 'Moderators', b: 'Promote anyone from the search below. Mods moderate chat, post announcements, and get the GEX dashboard free. Remove takes it all back instantly.' },
-      { view: 'perms', sel: '#perm-matrix', t: 'What each role can do', b: 'Live switches, enforced by the database — not just hidden buttons. Turn images off for members and the upload button disappears AND the write is refused server-side.' },
-      { view: 'perms', sel: '#perm-chan', t: 'Posting, per channel', b: 'Everyone, mods only, or just you — decided per channel. Reading is untouched; this only controls who can speak where.' },
+      { view: 'perms', sel: '#perm-matrix', t: 'What each role can do', b: 'Live switches, enforced by the database, not just hidden buttons. Turn images off for members and the upload button disappears AND the write is refused server-side.' },
+      { view: 'perms', sel: '#perm-chan', t: 'Posting, per channel', b: 'Everyone, mods only, or just you, decided per channel. Reading is untouched; this only controls who can speak where.' },
       { view: 'gex', sel: '#gex-stage', t: 'Your gamma board', b: 'The same dashboard members pay $35 a month for, plus the admin extras. It recomputes from the live QQQ chain every 15 minutes and re-maps every level onto NQ.' },
-      { view: 'gex', sel: '#gex-copy', t: 'Copy pineData', b: 'Admin-only: the levels in the exact format the D1 GEX TradingView indicator eats. The daily job republishes the script on its own — this is the manual path.' },
-      { view: 'msnr', sel: '#v-msnr .block', t: 'The playbooks', b: 'MSNR, exotic cars, the Civic sheet, memecoins — research write-ups that live in the dashboard. This one carries twelve chart figures; the others read the same way.' },
-      { view: 'settings', sel: '#integrations', t: 'Settings', b: 'Which secrets are wired — booleans only, the page never sees the values. And that is every screen. The Walkthrough button up top replays this any time.' },
+      { view: 'gex', sel: '#gex-copy', t: 'Copy pineData', b: 'Admin-only: the levels in the exact format the D1 GEX TradingView indicator eats. The daily job republishes the script on its own. This is the manual path.' },
+      { view: 'msnr', sel: '#v-msnr .block', t: 'The playbooks', b: 'MSNR, exotic cars, the Civic sheet, memecoins: research write-ups that live in the dashboard. This one carries twelve chart figures; the others read the same way.' },
+      { view: 'settings', sel: '#integrations', t: 'Settings', b: 'Which secrets are wired, as booleans only. The page never sees the values. And that is every screen. The Walkthrough button up top replays this any time.' },
     ]
     const tour = { on: false, i: 0, ring: null, card: null }
     function tourTarget() { return document.querySelector(ADMIN_TOUR[tour.i].sel) }
@@ -1883,13 +1999,55 @@
       td.appendChild(s); return td
     }
 
-    function scard(host, k, v, d) {
+    function scard(host, k, v, d, opts = {}) {
       const c = document.createElement('div'); c.className = 'scard'
       const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = k
-      const vv = document.createElement('div'); vv.className = 'v'; vv.textContent = v
+      const vv = document.createElement('div'); vv.className = 'v'
+      if (opts.animate) countUp(vv, String(v)); else vv.textContent = String(v)
       c.append(kk, vv)
-      if (d) { const dd = document.createElement('div'); dd.className = 'd'; dd.textContent = d; c.appendChild(dd) }
+      if (d) {
+        const dd = document.createElement('div'); dd.className = 'd'
+        if (typeof d === 'string') dd.textContent = d; else dd.append(...d)
+        c.appendChild(dd)
+      }
+      if (opts.spark?.length) c.appendChild(sparkline(opts.spark))
       host.appendChild(c)
+    }
+    // "+3" in green (or gold), the rest of the sentence faint
+    const delta = (strong, rest, tone) => { const b = document.createElement('b'); b.textContent = strong; if (tone) b.className = tone; return [b, rest] }
+
+    // whole numbers and dollars count up on their first paint; everything else lands as is
+    function countUp(node, text) {
+      const m = /^(\$?)(\d{1,7})$/.exec(text)
+      if (!m || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { node.textContent = text; return }
+      const target = +m[2], t0 = performance.now(), dur = 620
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3)
+        node.textContent = m[1] + Math.round(target * e)
+        if (k < 1) requestAnimationFrame(step)
+      }
+      requestAnimationFrame(step)
+    }
+
+    // cumulative count over the last 30 days, as a small gold line
+    function sparkline(dates, days = 30) {
+      const NS = 'http://www.w3.org/2000/svg'
+      const end = new Date(); end.setHours(23, 59, 59, 999)
+      const start = end.getTime() - days * 864e5
+      const ts = dates.map((d) => new Date(d).getTime()).filter((t) => !Number.isNaN(t)).sort((a, b) => a - b)
+      const counts = []
+      for (let i = 0; i <= days; i++) { const t = start + i * 864e5; counts.push(ts.filter((x) => x <= t).length) }
+      const lo = counts[0], hi = Math.max(counts[counts.length - 1], lo + 1)
+      const W = 84, H = 30, P = 2
+      const X = (i) => P + (i / days) * (W - P * 2), Y = (v) => H - P - ((v - lo) / (hi - lo)) * (H - P * 2)
+      const line = counts.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ')
+      const svg = document.createElementNS(NS, 'svg')
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('class', 'spark'); svg.setAttribute('aria-hidden', 'true')
+      const a = document.createElementNS(NS, 'path'); a.setAttribute('class', 'a'); a.setAttribute('d', `${line} L${X(days).toFixed(1)},${H} L${X(0).toFixed(1)},${H} Z`)
+      const l = document.createElementNS(NS, 'path'); l.setAttribute('class', 'l'); l.setAttribute('d', line)
+      const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', X(days).toFixed(1)); c.setAttribute('cy', Y(counts[days]).toFixed(1)); c.setAttribute('r', '2')
+      svg.append(a, l, c)
+      return svg
     }
 
     /* ── skeleton loaders: painted at boot, replaced as data lands ── */
@@ -1951,46 +2109,134 @@
       }
     }
 
-    /* ── data ── */
+    /* ── data ──
+       admin_buyers is one row per entitlement. Everything the dashboard shows
+       about "members" is per person, so the rows get folded into PEOPLE first. */
     let BUYERS = []
+    let PEOPLE = []
+    const PRODUCT = {
+      course: { short: 'Course', name: 'Echelon' },
+      'd1-gex': { short: 'GEX', name: 'D1 GEX' },
+      'd1-lit': { short: 'LIT', name: 'D1 LIT' },
+      'indicators-bundle': { short: 'Bundle', name: 'GEX + LIT' },
+    }
+    const PRODUCT_ORDER = ['course', 'd1-gex', 'd1-lit', 'indicators-bundle']
+    const productShort = (p) => PRODUCT[p]?.short ?? (p || 'Access')
+    const productName = (p) => PRODUCT[p]?.name ?? (p || 'Access')
+    const SOURCE_LABEL = { stripe: 'Paid', apple: 'App Store', comp: 'Comped', mod: 'Mod seat', member: 'With the course', manual: 'By hand' }
+    const SOURCE_RANK = { stripe: 0, apple: 1, mod: 2, comp: 3, manual: 4, member: 5 }
+    const sourceLabel = (k) => SOURCE_LABEL[k] ?? (k || 'By hand')
+    const isPaidSource = (k) => k === 'stripe' || k === 'apple'
+
+    function groupPeople() {
+      const map = new Map()
+      for (const b of BUYERS) {
+        const key = b.user_id ?? `email:${(b.email ?? '').toLowerCase()}`
+        let p = map.get(key)
+        if (!p) {
+          p = { key, user_id: b.user_id, email: b.email, username: b.username ?? null, ents: [], discord_username: b.discord_username ?? null, discord_role: !!b.discord_role, lessons_done: b.lessons_done ?? 0, has_account: !!b.has_account }
+          map.set(key, p)
+        }
+        p.ents.push(b)
+        if (!p.username && b.username) p.username = b.username
+        if (!p.discord_username && b.discord_username) p.discord_username = b.discord_username
+        if (b.discord_role) p.discord_role = true
+        if (b.has_account) p.has_account = true
+        p.lessons_done = Math.max(p.lessons_done, b.lessons_done ?? 0)
+      }
+      for (const p of map.values()) {
+        p.ents.sort((a, b) => PRODUCT_ORDER.indexOf(a.product) - PRODUCT_ORDER.indexOf(b.product))
+        p.active = p.ents.filter((e) => e.status === 'active')
+        p.status = p.active.length ? 'active' : (p.ents[0]?.status ?? 'revoked')
+        p.products = p.active.map((e) => e.product)
+        p.granted_at = p.ents.reduce((m, e) => (e.granted_at && (!m || e.granted_at < m)) ? e.granted_at : m, null)
+        p.last_at = p.ents.reduce((m, e) => (e.granted_at && (!m || e.granted_at > m)) ? e.granted_at : m, null)
+        p.amount_cents = p.ents.reduce((t, e) => t + (isPaidSource(e.source) ? (e.amount_cents ?? 0) : 0), 0)
+        p.paid = p.ents.some((e) => isPaidSource(e.source))
+        // how they came in: the course's own source, else the strongest source they hold
+        const course = p.ents.find((e) => e.product === 'course')
+        p.source = course?.source ?? [...p.ents].sort((a, b) => (SOURCE_RANK[a.source] ?? 9) - (SOURCE_RANK[b.source] ?? 9))[0]?.source ?? 'manual'
+      }
+      PEOPLE = [...map.values()].sort((a, b) => (b.granted_at ?? '').localeCompare(a.granted_at ?? ''))
+    }
 
     function computeStats() {
-      const active = BUYERS.filter((b) => b.status === 'active')
-      const paid = BUYERS.filter((b) => b.source === 'stripe' && b.amount_cents)
-      const revenue = paid.reduce((s, b) => s + (b.amount_cents ?? 0), 0)
+      const active = PEOPLE.filter((p) => p.status === 'active')
+      const orders = BUYERS.filter((b) => isPaidSource(b.source))
+      const revenue = orders.reduce((t, b) => t + (b.amount_cents ?? 0), 0)
+      const holders = (prod) => BUYERS.filter((b) => b.status === 'active' && b.product === prod)
+      const weekAgo = Date.now() - 7 * 864e5
+      const gex = holders('d1-gex'), lit = holders('d1-lit'), course = holders('course')
       return {
-        active: active.length,
-        revenue,
-        refunded: BUYERS.filter((b) => b.status !== 'active').length,
-        discord: BUYERS.filter((b) => b.discord_role).length,
-        comps: BUYERS.filter((b) => b.source === 'comp').length,
-        paidCount: paid.length,
+        members: active.length,
+        newWeek: PEOPLE.filter((p) => p.granted_at && new Date(p.granted_at).getTime() >= weekAgo).length,
+        revenue, paidCount: orders.length,
+        refunded: BUYERS.filter((b) => b.status === 'refunded').length,
+        revoked: BUYERS.filter((b) => b.status === 'revoked').length,
+        course: course.length, courseComp: course.filter((b) => b.source === 'comp').length,
+        gex: gex.length, gexMonthly: gex.filter((b) => b.interval === 'month' || b.interval === 'monthly').length, lit: lit.length,
+        indicators: active.filter((p) => p.products.some((x) => x !== 'course')).length,
+        discord: PEOPLE.filter((p) => p.discord_role).length,
       }
+    }
+
+    // one chip per entitlement; live chips revoke or restore that one product
+    function chips(p, live = false) {
+      const wrap = document.createElement('div'); wrap.className = 'chips'
+      for (const e of p.ents) {
+        const on = e.status === 'active'
+        const c = document.createElement('button'); c.type = 'button'
+        c.className = 'chip' + (e.product === 'course' ? ' course' : '') + (on ? '' : ' off') + (live ? '' : ' static')
+        c.textContent = productShort(e.product)
+        if (on && e.interval && e.interval !== 'one_time') { const sm = document.createElement('small'); sm.textContent = e.interval === 'month' ? 'monthly' : e.interval; c.appendChild(sm) }
+        c.title = `${productName(e.product)} · ${sourceLabel(e.source)}${on ? '' : ' · ' + e.status}${live ? (on ? ' · click to revoke' : ' · click to restore') : ''}`
+        if (live) c.addEventListener('click', async () => {
+          const verb = on ? 'Revoke' : 'Restore'
+          if (!confirm(`${verb} ${productName(e.product)} for ${p.email}?`)) return
+          c.disabled = true
+          try { await adminAction({ action: on ? 'revoke' : 'restore', id: e.id }); await loadBuyers() }
+          catch (err) { c.disabled = false; c.textContent = err.message.slice(0, 16) }
+        })
+        wrap.appendChild(c)
+      }
+      return wrap
+    }
+    // email on top, username underneath
+    function memberCell(p) {
+      const td = cell(p.email ?? '–', 'ink')
+      if (p.username) { const sub = document.createElement('span'); sub.className = 'sub'; sub.textContent = '@' + p.username; td.appendChild(sub) }
+      else if (!p.has_account) { const sub = document.createElement('span'); sub.className = 'sub'; sub.textContent = 'no account yet'; td.appendChild(sub) }
+      return td
     }
 
     function renderOverview() {
       const s = computeStats()
-      const host = el('cards'); host.textContent = ''
-      scard(host, 'Active members', String(s.active), `${s.comps} comped`)
-      scard(host, 'Revenue', money(s.revenue), `${s.paidCount} paid`)
-      scard(host, 'Refunded', String(s.refunded))
-      scard(host, 'In Discord', String(s.discord))
+      const host = el('cards'); const first = !host.dataset.painted; host.dataset.painted = '1'; host.textContent = ''
+      const anim = { animate: first }
+      scard(host, 'Members', s.members, s.newWeek ? delta(`+${s.newWeek}`, ' this week') : `${s.course} with the course`, { ...anim, spark: PEOPLE.map((p) => p.granted_at).filter(Boolean) })
+      scard(host, 'Revenue', money(s.revenue), `${s.paidCount} paid ${s.paidCount === 1 ? 'order' : 'orders'}`, anim)
+      scard(host, 'Course', s.course, `${s.courseComp} comped · ${s.course - s.courseComp} paid`, anim)
+      scard(host, 'Indicators', s.indicators, `GEX ${s.gex} · LIT ${s.lit}${s.gexMonthly ? ` · ${s.gexMonthly} monthly` : ''}`, anim)
 
-      const recent = BUYERS.slice(0, 6)
+      const recent = PEOPLE.slice(0, 6)
       el('recent-empty').hidden = recent.length > 0
-      table(el('recent-buyers'), ['Email', 'Status', 'Paid', 'Joined'], recent, (b) => {
+      el('recent-note').textContent = PEOPLE.length > 6 ? `newest 6 of ${PEOPLE.length}` : ''
+      table(el('recent-buyers'), ['Member', 'Access', 'Source', 'Paid', 'Joined'], recent, (p) => {
         const tr = document.createElement('tr')
-        tr.append(cell(b.email, 'ink'), statusBadge(b.status), cell(money(b.amount_cents), 'num'), cell(when(b.granted_at), 'num'))
+        const ch = document.createElement('td'); ch.appendChild(chips(p))
+        tr.append(memberCell(p), ch, cell(sourceLabel(p.source)), cell(p.paid ? money(p.amount_cents) : '–', 'num'), cell(when(p.granted_at), 'num'))
         return tr
       })
     }
 
-    const US = { q: '', status: '', key: 'granted_at', dir: -1, page: 0, size: 50 }
-    const US_COLS = [['Email', 'email'], ['Status', 'status'], ['Source', 'source'], ['Paid', 'amount_cents'], ['Joined', 'granted_at'], ['Discord', 'discord_username'], ['Lessons', 'lessons_done'], ['', null]]
+    const US = { q: '', status: '', product: '', key: 'granted_at', dir: -1, page: 0, size: 50 }
+    const US_COLS = [['Member', 'email'], ['Access', null], ['Source', 'source'], ['Paid', 'amount_cents'], ['Joined', 'granted_at'], ['Discord', 'discord_username'], ['Lessons', 'lessons_done']]
     function usersFiltered() {
       const q = US.q.trim().toLowerCase()
-      const rows = BUYERS.filter((b) => (!US.status || b.status === US.status) &&
-        (!q || [b.email, b.username, b.source, b.discord_username].some((v) => String(v ?? '').toLowerCase().includes(q))))
+      const rows = PEOPLE.filter((p) =>
+        (!US.status || (US.status === 'active' ? p.status === 'active' : p.status !== 'active')) &&
+        (!US.product || p.ents.some((e) => e.product === US.product && (US.status !== 'active' || e.status === 'active'))) &&
+        (!q || [p.email, p.username, p.source, sourceLabel(p.source), p.discord_username, ...p.ents.map((e) => productName(e.product))].some((v) => String(v ?? '').toLowerCase().includes(q))))
       const k = US.key
       return rows.sort((a, b) => {
         let x = a[k] ?? '', y = b[k] ?? ''
@@ -2000,20 +2246,14 @@
       })
     }
     function renderUsers() {
-      el('c-users').textContent = String(BUYERS.length)
-      el('users-total').textContent = `${BUYERS.length} total`
-      // the status filter follows whatever statuses exist
-      const sel = el('users-status'), seen = [...new Set(BUYERS.map((b) => b.status).filter(Boolean))].sort()
-      sel.textContent = ''
-      const any = document.createElement('option'); any.value = ''; any.textContent = 'Every status'; sel.appendChild(any)
-      for (const s of seen) { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o) }
-      if (!seen.includes(US.status)) US.status = ''
-      sel.value = US.status
+      el('c-users').textContent = String(PEOPLE.length)
+      const s = computeStats()
+      el('users-total').textContent = PEOPLE.length ? `${s.members} active · ${PEOPLE.length} total` : ''
       const rows = usersFiltered()
       const pages = Math.max(1, Math.ceil(rows.length / US.size)); US.page = Math.min(US.page, pages - 1)
       const slice = rows.slice(US.page * US.size, (US.page + 1) * US.size)
-      el('users-shown').textContent = rows.length === BUYERS.length ? '' : rows.length === 1 ? '1 match' : `${rows.length} match`
-      el('users-empty').textContent = BUYERS.length ? 'No one matches that.' : 'No buyers yet.'
+      el('users-shown').textContent = rows.length === PEOPLE.length ? '' : rows.length === 1 ? '1 match' : `${rows.length} match`
+      el('users-empty').textContent = PEOPLE.length ? 'No one matches that.' : 'No members yet.'
       el('users-empty').hidden = rows.length > 0
       el('users-pager').hidden = rows.length <= US.size
       el('users-page-lbl').textContent = `${US.page * US.size + 1} to ${Math.min(rows.length, (US.page + 1) * US.size)} of ${rows.length}`
@@ -2022,22 +2262,13 @@
         el('users-table'),
         US_COLS.map((c) => c[0]),
         slice,
-        (b) => {
+        (p) => {
           const tr = document.createElement('tr')
-          tr.append(cell(b.email, 'ink'), statusBadge(b.status), cell(b.source),
-            cell(money(b.amount_cents), 'num'), cell(when(b.granted_at), 'num'),
-            cell(b.discord_username ?? (b.discord_role ? 'linked' : '—')),
-            cell(String(b.lessons_done ?? 0), 'num'))
-          const act = document.createElement('td')
-          const btn = document.createElement('button'); btn.className = 'rowbtn'
-          const isActive = b.status === 'active'
-          btn.textContent = isActive ? 'Revoke' : 'Restore'
-          btn.addEventListener('click', async () => {
-            btn.disabled = true; btn.textContent = '…'
-            try { await adminAction({ action: isActive ? 'revoke' : 'restore', id: b.id }); await loadBuyers() }
-            catch (err) { btn.disabled = false; btn.textContent = err.message.slice(0, 18) }
-          })
-          act.appendChild(btn); tr.appendChild(act)
+          const ch = document.createElement('td'); ch.appendChild(chips(p, true))
+          tr.append(memberCell(p), ch, cell(sourceLabel(p.source)),
+            cell(p.paid ? money(p.amount_cents) : '–', 'num'), cell(when(p.granted_at), 'num'),
+            cell(p.discord_username ?? (p.discord_role ? 'linked' : '–')),
+            cell(String(p.lessons_done ?? 0), 'num'))
           return tr
         },
       )
@@ -2047,33 +2278,44 @@
         if (key === US.key) { th.classList.add('sorted'); th.textContent += US.dir < 0 ? ' \u2193' : ' \u2191' }
         th.addEventListener('click', () => {
           if (US.key === key) US.dir = -US.dir
-          else { US.key = key; US.dir = ['email', 'status', 'source', 'discord_username'].includes(key) ? 1 : -1 }
+          else { US.key = key; US.dir = ['email', 'source', 'discord_username'].includes(key) ? 1 : -1 }
           US.page = 0; renderUsers()
         })
       })
     }
+    // segmented filters: one button lit per group
+    function segWire(id, onPick) {
+      const seg = el(id)
+      seg.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+        seg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b))
+        onPick(b.dataset.v ?? '')
+      }))
+    }
     el('users-q').addEventListener('input', () => { US.q = el('users-q').value; US.page = 0; renderUsers() })
-    el('users-status').addEventListener('change', () => { US.status = el('users-status').value; US.page = 0; renderUsers() })
+    segWire('users-status', (v) => { US.status = v; US.page = 0; renderUsers() })
+    segWire('users-product', (v) => { US.product = v; US.page = 0; renderUsers() })
     el('users-prev').addEventListener('click', () => { US.page = Math.max(0, US.page - 1); renderUsers() })
     el('users-next').addEventListener('click', () => { US.page += 1; renderUsers() })
 
     function renderBilling() {
       const s = computeStats()
-      const host = el('billing-cards'); host.textContent = ''
-      scard(host, 'Gross revenue', money(s.revenue), 'lifetime')
-      scard(host, 'Paid orders', String(s.paidCount))
-      scard(host, 'Refunded', String(s.refunded))
-      scard(host, 'Avg order', s.paidCount ? money(Math.round(s.revenue / s.paidCount)) : '—')
+      const host = el('billing-cards'); const first = !host.dataset.painted; host.dataset.painted = '1'; host.textContent = ''
+      const anim = { animate: first }
+      scard(host, 'Gross revenue', money(s.revenue), 'lifetime, before fees', anim)
+      scard(host, 'Paid orders', s.paidCount, s.paidCount ? `${BUYERS.filter((b) => isPaidSource(b.source) && !b.amount_cents).length} at $0 (full-discount codes)` : 'none yet', anim)
+      scard(host, 'Refunded', s.refunded, s.revoked ? `${s.revoked} revoked by hand` : '', anim)
+      scard(host, 'Avg order', s.paidCount ? money(Math.round(s.revenue / s.paidCount)) : '–', s.paidCount ? 'across every paid order' : '', anim)
 
-      const orders = BUYERS.filter((b) => b.source === 'stripe')
+      const orders = BUYERS.filter((b) => isPaidSource(b.source))
       el('orders-total').textContent = orders.length ? `${orders.length} total` : ''
       el('orders-empty').hidden = orders.length > 0
       const STATUS = { active: 'Paid', refunded: 'Refunded', revoked: 'Revoked' }
-      table(el('orders-table'), ['Order', 'Customer', 'Amount', 'When', 'Status'], orders, (b) => {
+      table(el('orders-table'), ['Order', 'Customer', 'Product', 'Amount', 'When', 'Status'], orders, (b) => {
         const tr = document.createElement('tr')
         tr.append(
           cell(`#${(b.id ?? '').slice(0, 6)}`, 'oid'),
           cell(b.email, 'ink'),
+          cell(productName(b.product) + (b.interval && b.interval !== 'one_time' ? (b.interval === 'month' ? ' · monthly' : ' · ' + b.interval) : '')),
           cell(money(b.amount_cents), 'num'),
           cell(when(b.granted_at), 'num'),
         )
@@ -2104,7 +2346,7 @@
         const sp = document.createElement('span'); sp.className = 'stars'
         sp.textContent = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating)
         st.appendChild(sp); tr.appendChild(st)
-        tr.append(cell(r.comment ?? '—'), cell(when(r.updated_at), 'num'))
+        tr.append(cell(r.comment ?? '–'), cell(when(r.updated_at), 'num'))
         // Approving publishes the member's username and avatar on the sales
         // page, so it stays a per-review decision made here.
         const td = document.createElement('td')
@@ -2123,6 +2365,7 @@
     async function loadBuyers() {
       const { data } = await supabase.from('admin_buyers').select('*').order('granted_at', { ascending: false })
       BUYERS = data ?? []
+      groupPeople()
       renderOverview(); renderUsers(); renderBilling(); renderGrowth()
     }
 
@@ -2197,7 +2440,7 @@
       table(el('access-table'), ['', 'Member', 'Indicator', 'TradingView username', 'Job', 'TradingView', 'Action'], toAction, (r) => {
         const tr = document.createElement('tr')
         tr.appendChild(checkCell(r))
-        tr.append(cell(r.email, 'ink'), cell(nameOf(r.product)), cell(r.tv_username ?? '—', 'ink'))
+        tr.append(cell(r.email, 'ink'), cell(nameOf(r.product)), cell(r.tv_username ?? '–', 'ink'))
         tr.appendChild(badge(r.state))
         tr.appendChild(manageCell(r.product))
         tr.appendChild(actionCell(r))
@@ -2230,7 +2473,7 @@
       el('access-all-table').textContent = ''
       table(el('access-all-table'), ['Member', 'Indicator', 'TradingView username', 'State', ''], rest, (r) => {
         const tr = document.createElement('tr')
-        tr.append(cell(r.email, 'ink'), cell(nameOf(r.product)), cell(r.tv_username ?? '—'))
+        tr.append(cell(r.email, 'ink'), cell(nameOf(r.product)), cell(r.tv_username ?? '–'))
         tr.appendChild(badge(r.state))
         // let the owner pull a currently-active grant, or re-add a removed one
         const td = document.createElement('td')
@@ -2272,8 +2515,8 @@
         const nm = document.createElement('div'); nm.textContent = a.name || a.email; nm.style.fontWeight = '600'
         const em = document.createElement('div'); em.textContent = a.email; em.style.color = 'var(--faint)'; em.style.fontSize = '12px'
         who.append(nm, em); tr.appendChild(who)
-        tr.appendChild(cell(a.experience || '—'))
-        tr.appendChild(cell(a.note || '—'))
+        tr.appendChild(cell(a.experience || '–'))
+        tr.appendChild(cell(a.note || '–'))
         tr.appendChild(cell(new Date(a.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })))
         const act = document.createElement('td')
         if (a.status === 'pending') {
@@ -2327,12 +2570,12 @@
         tr.appendChild(who)
         const reach = document.createElement('td')
         const r1 = document.createElement('div')
-        r1.textContent = Object.entries(a.socials ?? {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'
+        r1.textContent = Object.entries(a.socials ?? {}).map(([k, v]) => `${k} ${v}`).join(' · ') || '–'
         const r2 = document.createElement('div'); r2.style.color = 'var(--faint)'; r2.style.fontSize = '12px'
         if (a.followers) r2.textContent = `~${a.followers} followers`
         reach.append(r1, r2); tr.appendChild(reach)
         const plan = cell(a.pitch); plan.style.maxWidth = '320px'; plan.style.whiteSpace = 'normal'; tr.appendChild(plan)
-        tr.appendChild(cell(a.code ?? (a.requested_code ? `wants ${a.requested_code}` : '—'), a.code ? 'ink' : ''))
+        tr.appendChild(cell(a.code ?? (a.requested_code ? `wants ${a.requested_code}` : '–'), a.code ? 'ink' : ''))
         const e = affEarnings.get(a.user_id)
         const earn = document.createElement('td'); earn.className = 'num'
         if (e) {
@@ -2349,7 +2592,7 @@
             const pay = document.createElement('button'); pay.className = 'rowbtn'; pay.textContent = 'Mark paid'
             pay.style.marginTop = '4px'
             pay.addEventListener('click', async () => {
-              if (!confirm(`Mark ${money(e.earned)} as paid out? Do the actual transfer first — this only records it.`)) return
+              if (!confirm(`Mark ${money(e.earned)} as paid out? Do the actual transfer first. This only records it.`)) return
               pay.disabled = true
               const { error } = await supabase.rpc('pay_affiliate', { p_user: a.user_id })
               if (error) { alert(error.message); pay.disabled = false; return }
@@ -2357,7 +2600,7 @@
             })
             earn.appendChild(pay)
           }
-        } else earn.textContent = a.status === 'approved' ? 'no sales yet' : '—'
+        } else earn.textContent = a.status === 'approved' ? 'no sales yet' : '–'
         tr.appendChild(earn)
         const act = document.createElement('td')
         if (a.status === 'pending') {
@@ -2505,22 +2748,22 @@
     // the four figures: members, revenue, this month's arrivals, average order
     function gwHead() {
       const host = el('gw-head'); host.textContent = ''
-      const active = BUYERS.filter((b) => b.status === 'active')
-      const paid = BUYERS.filter((b) => b.source === 'stripe' && b.amount_cents)
+      const active = PEOPLE.filter((p) => p.status === 'active')
+      const paid = BUYERS.filter((b) => isPaidSource(b.source))
       const revenue = paid.reduce((s, b) => s + (b.amount_cents ?? 0), 0)
       const thisMonth = monthKey(new Date())
-      const joined = BUYERS.filter((b) => b.granted_at && monthKey(new Date(b.granted_at)) === thisMonth).length
+      const joined = PEOPLE.filter((p) => p.granted_at && monthKey(new Date(p.granted_at)) === thisMonth).length
       const put = (v, k) => { const d = document.createElement('div'); d.className = 'st-n'; const a = document.createElement('span'); a.className = 'v'; a.textContent = v; const c = document.createElement('span'); c.className = 'k'; c.textContent = k; d.append(a, c); host.appendChild(d) }
       put(String(active.length), 'members')
       put(money(revenue), 'revenue, all time')
       put(String(joined), 'joined this month')
-      put(paid.length ? money(Math.round(revenue / paid.length)) : '—', 'average order')
+      put(paid.length ? money(Math.round(revenue / paid.length)) : '–', 'average order')
     }
 
     // cumulative members, one step per arrival
     function gwMembers() {
       const host = el('gw-members')
-      const rows = BUYERS.filter((b) => b.granted_at).map((b) => new Date(b.granted_at)).filter((d) => !Number.isNaN(d.getTime())).sort((a, b) => a - b)
+      const rows = PEOPLE.filter((p) => p.granted_at).map((p) => new Date(p.granted_at)).filter((d) => !Number.isNaN(d.getTime())).sort((a, b) => a - b)
       if (rows.length < 2) return gwEmpty(host, rows.length ? 'One member so far. The line starts with the second.' : 'Nobody has joined yet.')
       const since = GW.range ? Date.now() - GW.range * gwDay : 0
       const before = rows.filter((d) => d.getTime() < since).length
@@ -2549,14 +2792,14 @@
           <text x="${W - PR}" y="${H - 6}" fill="var(--faint)" font-size="10.5" text-anchor="end">${when(shown[shown.length - 1].toISOString())}</text>
           ${hits}
         </svg>
-        <p class="gw-note">${shown.length} joined ${GW.range ? `in the last ${GW.range === 365 ? '12 months' : GW.range + ' days'}` : 'in total'}${before ? `, on top of ${before} already here` : ''}. Counted the day access was granted.</p>`
+        <p class="gw-note">${shown.length} joined ${GW.range ? `in the last ${GW.range === 365 ? '12 months' : GW.range + ' days'}` : 'in total'}${before ? `, on top of ${before} already here` : ''}. One point per person, counted the day their first access was granted.</p>`
     }
 
     // what Stripe actually took, by month
     function gwRevenue() {
       const host = el('gw-revenue'), nEl = el('gw-rev-n'); nEl.textContent = ''
-      const paid = BUYERS.filter((b) => b.source === 'stripe' && b.amount_cents && b.granted_at)
-      if (!paid.length) return gwEmpty(host, 'No paid orders yet.')
+      const paid = BUYERS.filter((b) => isPaidSource(b.source) && b.amount_cents && b.granted_at)
+      if (!paid.length) return gwEmpty(host, BUYERS.some((b) => isPaidSource(b.source)) ? 'Every paid order so far was $0 (a full-discount code), so there is nothing to chart.' : 'No paid orders yet.')
       const months = GW.range === 90 ? 6 : GW.range === 365 ? 12 : 18
       const keys = []
       const now = new Date()
@@ -2588,17 +2831,17 @@
     // paid, comped, moderator, and everything else
     function gwSource() {
       const host = el('gw-source'); host.textContent = ''
-      if (!BUYERS.length) { gwEmpty(host, 'Nobody has joined yet.'); return }
-      const LABELS = { stripe: 'Paid', comp: 'Comped by you', mod: 'Moderator seat', member: 'With the training', manual: 'Added by hand' }
+      if (!PEOPLE.length) { gwEmpty(host, 'Nobody has joined yet.'); return }
+      const LABELS = { stripe: 'Paid', apple: 'App Store', comp: 'Comped by you', mod: 'Moderator seat', member: 'With the course', manual: 'Added by hand' }
       const tally = new Map()
-      for (const b of BUYERS) { const k = b.source || 'manual'; tally.set(k, (tally.get(k) ?? 0) + 1) }
+      for (const p of PEOPLE) { const k = p.source || 'manual'; tally.set(k, (tally.get(k) ?? 0) + 1) }
       const rows = [...tally.entries()].sort((a, b) => b[1] - a[1])
       const max = rows[0][1]
       rows.forEach(([k, n], i) => {
         const row = document.createElement('div'); row.className = 'st-row' + (i === 0 ? ' top' : '')
         const name = document.createElement('span'); name.className = 'n'; name.textContent = LABELS[k] || k
         const bar = document.createElement('span'); bar.className = 'st-bar'; const fill = document.createElement('i'); fill.style.width = `${Math.round((n / max) * 100)}%`; bar.appendChild(fill)
-        const c = document.createElement('span'); c.className = 'c'; const b = document.createElement('b'); b.textContent = String(n); c.append(b, ` · ${Math.round((n / BUYERS.length) * 100)}%`)
+        const c = document.createElement('span'); c.className = 'c'; const b = document.createElement('b'); b.textContent = String(n); c.append(b, ` · ${Math.round((n / PEOPLE.length) * 100)}%`)
         row.append(name, bar, c); host.appendChild(row)
       })
     }
@@ -2637,11 +2880,11 @@
     // the course, as a funnel and as the lesson where people stop
     function gwCourse() {
       const C = GW.course; if (!C) return
-      const active = BUYERS.filter((b) => b.status === 'active')
+      const active = PEOPLE.filter((p) => p.status === 'active')
       const total = C.lessons.length
       const opened = new Set(C.views.map((v) => v.user_id)).size
-      const finishedOne = BUYERS.filter((b) => (b.lessons_done ?? 0) >= 1).length
-      const finishedAll = total ? BUYERS.filter((b) => (b.lessons_done ?? 0) >= total).length : 0
+      const finishedOne = PEOPLE.filter((p) => (p.lessons_done ?? 0) >= 1).length
+      const finishedAll = total ? PEOPLE.filter((p) => (p.lessons_done ?? 0) >= total).length : 0
       // funnel
       const fh = el('gw-funnel'); fh.textContent = ''
       el('gw-course-n').textContent = total ? `${total} lessons` : ''
@@ -2731,8 +2974,8 @@
 
       el('st-answered').textContent = String(answered.length)
       el('st-members').textContent = String(members)
-      el('st-rate').textContent = members ? Math.round((answered.length / members) * 100) + '%' : '—'
-      el('st-latest').textContent = latest ? when(latest) : '—'
+      el('st-rate').textContent = members ? Math.round((answered.length / members) * 100) + '%' : '–'
+      el('st-latest').textContent = latest ? when(latest) : '–'
 
       // One sentence: the majority answer to each question.
       const top = Object.fromEntries(Object.keys(ONB_QUESTIONS).map((k) => [k, onbTally(answered, k)[0]]))
@@ -2779,7 +3022,7 @@
         const tr = document.createElement('tr')
         tr.appendChild(cell('@' + (who.get(r.user_id) ?? '?'), 'ink'))
         for (const k of ['exp', 'market', 'stage', 'blocker', 'source']) {
-          tr.appendChild(cell(ONB_LABELS[k][r.answers?.[k]] ?? '—'))
+          tr.appendChild(cell(ONB_LABELS[k][r.answers?.[k]] ?? '–'))
         }
         const skipped = r.completed_at && !Object.keys(r.answers ?? {}).length
         tr.appendChild(cell(r.completed_at ? (skipped ? 'skipped' : when(r.completed_at)) : 'in progress', 'num'))
@@ -3284,8 +3527,8 @@
       el('content-empty').hidden = MODS.length > 0
       el('c-content').textContent = String(LESSONS.length)
 
-      const mkBtn = (label, titleText, fn) => {
-        const b = document.createElement('button'); b.className = 'rowbtn'; b.textContent = label
+      const mkBtn = (label, titleText, fn, cls = 'rowbtn') => {
+        const b = document.createElement('button'); b.className = cls; b.type = 'button'; b.textContent = label
         if (titleText) b.title = titleText
         b.addEventListener('click', () => fn(b))
         return b
@@ -3294,75 +3537,89 @@
         b.disabled = true
         try { await adminAction(payload); await loadContent() } catch { b.disabled = false }
       }
+      // up/down as one small stack; the ends are disabled so the order reads at a glance
+      const mover = (payload, first, last) => {
+        const st = document.createElement('span'); st.className = 'mv'
+        const up = mkBtn('\u25B4', 'Move up', act({ ...payload, dir: 'up' })); up.disabled = first
+        const dn = mkBtn('\u25BE', 'Move down', act({ ...payload, dir: 'down' })); dn.disabled = last
+        st.append(up, dn); return st
+      }
 
-      for (const m of MODS) {
+      MODS.forEach((m, mi) => {
         const head = document.createElement('div'); head.className = 'intg'
-        const left = document.createElement('div')
+        const left = document.createElement('div'); left.style.display = 'flex'; left.style.alignItems = 'center'; left.style.gap = '10px'; left.style.minWidth = '0'
+        left.appendChild(mover({ action: 'module_move', id: m.id }, mi === 0, mi === MODS.length - 1))
+        const txt = document.createElement('div'); txt.style.minWidth = '0'
         const n = document.createElement('div'); n.className = 'n'; n.textContent = m.title
-        left.appendChild(n)
-        if (m.summary) { const h = document.createElement('div'); h.className = 'h'; h.textContent = m.summary; left.appendChild(h) }
-        const controls = document.createElement('div'); controls.className = 'filters'
+        txt.appendChild(n)
+        if (m.summary) { const h = document.createElement('div'); h.className = 'h'; h.textContent = m.summary; txt.appendChild(h) }
+        left.appendChild(txt)
+        const controls = document.createElement('div'); controls.className = 'ract'
+        const del = mkBtn('Delete', 'Delete this category and everything in it', async (b) => {
+          const inside = LESSONS.filter((l) => l.module_id === m.id).length
+          if (!confirm(`Delete "${m.title}"${inside ? ` and its ${inside} lesson${inside === 1 ? '' : 's'}` : ''}? Members lose it immediately.`)) return
+          b.disabled = true
+          try { await adminAction({ action: 'module_delete', id: m.id }); await loadContent() } catch { b.disabled = false }
+        }, 'rowbtn danger')
         controls.append(
-          mkBtn('+ Lesson', 'Write a new lesson page in this category', () => openPageEditor(null, m.id)),
-          mkBtn('↑', 'Move up', act({ action: 'module_move', id: m.id, dir: 'up' })),
-          mkBtn('↓', 'Move down', act({ action: 'module_move', id: m.id, dir: 'down' })),
-          mkBtn('Rename', '', async () => {
+          mkBtn('Rename', 'Rename this category', async () => {
             const title = prompt('Category name', m.title)
             if (!title?.trim()) return
             try { await adminAction({ action: 'module_save', id: m.id, title, summary: m.summary ?? '' }); await loadContent() } catch { /* row stays */ }
           }),
-          mkBtn('Delete', '', async (b) => {
-            const inside = LESSONS.filter((l) => l.module_id === m.id).length
-            if (!confirm(`Delete "${m.title}"${inside ? ` and its ${inside} lesson${inside === 1 ? '' : 's'}` : ''}? Members lose it immediately.`)) return
-            b.disabled = true
-            try { await adminAction({ action: 'module_delete', id: m.id }); await loadContent() } catch { b.disabled = false }
-          }),
+          del,
+          mkBtn('+ Lesson', 'Write a new lesson page in this category', () => openPageEditor(null, m.id), 'rowbtn gold'),
         )
         head.append(left, controls)
         host.appendChild(head)
 
         const lessons = LESSONS.filter((l) => l.module_id === m.id)
-        if (!lessons.length) continue
+        if (!lessons.length) return
         const scroll = document.createElement('div'); scroll.className = 'tbl-scroll'
         const tbl = document.createElement('table')
-        table(tbl, ['', 'Lesson', 'Type', 'Views', 'Live', '', ''], lessons, (l) => {
+        table(tbl, ['', 'Lesson', 'Type', 'Viewers', 'State', ''], lessons, (l) => {
+          const li = lessons.indexOf(l)
           const tr = document.createElement('tr')
-          const mv = document.createElement('td'); mv.style.whiteSpace = 'nowrap'
-          mv.append(
-            mkBtn('↑', '', act({ action: 'lesson_move', id: l.id, dir: 'up' })),
-            document.createTextNode(' '),
-            mkBtn('↓', '', act({ action: 'lesson_move', id: l.id, dir: 'down' })),
-          )
+          const mv = document.createElement('td'); mv.style.width = '1%'
+          mv.appendChild(mover({ action: 'lesson_move', id: l.id }, li === 0, li === lessons.length - 1))
           tr.appendChild(mv)
-          tr.append(cell(l.title, 'ink'), cell(KINDS[l.kind] ?? l.kind))
+          const title = cell(l.title, 'ink')
+          if (l.summary) { const sub = document.createElement('span'); sub.className = 'sub'; sub.textContent = l.summary; title.appendChild(sub) }
+          tr.append(title, cell(KINDS[l.kind] ?? l.kind))
 
           const vs = viewsFor(l.id)
           const opens = vs.reduce((s, v) => s + v.view_count, 0)
           const vTd = document.createElement('td')
-          vTd.appendChild(mkBtn(vs.length ? `${vs.length} · ${opens} opens` : '0', 'Who watched this', () => showViewers(l)))
+          const vb = document.createElement('button'); vb.type = 'button'; vb.className = 'views-btn'; vb.title = 'Who watched this'
+          if (vs.length) { const b = document.createElement('b'); b.textContent = String(vs.length); vb.append(b, ` · ${opens} ${opens === 1 ? 'open' : 'opens'}`) }
+          else vb.textContent = 'nobody yet'
+          vb.addEventListener('click', () => showViewers(l))
+          vTd.appendChild(vb)
           tr.appendChild(vTd)
 
           const pubTd = document.createElement('td')
-          pubTd.appendChild(mkBtn(l.is_published ? 'Live' : 'Draft', 'Toggle published',
-            act({ action: 'set_published', id: l.id, value: !l.is_published })))
+          const pill = mkBtn(l.is_published ? 'Live' : 'Draft', l.is_published ? 'Members can see this. Click to unpublish.' : 'Hidden from members. Click to publish.',
+            act({ action: 'set_published', id: l.id, value: !l.is_published }), 'live' + (l.is_published ? '' : ' draft'))
+          pubTd.appendChild(pill)
           tr.appendChild(pubTd)
 
-          const editTd = document.createElement('td')
-          editTd.appendChild(mkBtn('Edit', 'Open the page editor', () => openPageEditor(l)))
-          tr.appendChild(editTd)
-
-          const delTd = document.createElement('td')
-          delTd.appendChild(mkBtn('Delete', '', async (b) => {
-            if (!confirm(`Delete "${l.title}"?`)) return
-            b.disabled = true
-            try { await adminAction({ action: 'lesson_delete', id: l.id }); await loadContent() } catch { b.disabled = false }
-          }))
-          tr.appendChild(delTd)
+          const actTd = document.createElement('td'); actTd.className = 'right'
+          const ra = document.createElement('span'); ra.className = 'ract'
+          ra.append(
+            mkBtn('Edit', 'Open the page editor', () => openPageEditor(l)),
+            mkBtn('Delete', '', async (b) => {
+              if (!confirm(`Delete "${l.title}"?`)) return
+              b.disabled = true
+              try { await adminAction({ action: 'lesson_delete', id: l.id }); await loadContent() } catch { b.disabled = false }
+            }, 'rowbtn danger'),
+          )
+          actTd.appendChild(ra)
+          tr.appendChild(actTd)
           return tr
         })
         scroll.appendChild(tbl)
         host.appendChild(scroll)
-      }
+      })
     }
 
     async function loadContent() {
@@ -3446,14 +3703,14 @@
       top.appendChild(act)
       row.appendChild(top)
       const prompt = document.createElement('p'); prompt.className = 'hwl-prompt' + (l.homework ? '' : ' none')
-      prompt.textContent = l.homework || 'No homework — the lesson completes on its own.'
+      prompt.textContent = l.homework || 'No homework. The lesson completes on its own.'
       row.appendChild(prompt)
       edit.addEventListener('click', () => {
         if (row.querySelector('.hwl-edit')) return
         prompt.hidden = true; edit.hidden = true
         const wrap = document.createElement('div'); wrap.className = 'hwl-edit'
         const ta = document.createElement('textarea'); ta.className = 'inp'; ta.maxLength = 5000
-        ta.placeholder = 'What they must mark up and submit — e.g. "Mark the buildup, the inducement and the mitigation on one NQ session from this week, then submit the chart."'
+        ta.placeholder = 'What they must mark up and submit, e.g. "Mark the buildup, the inducement and the mitigation on one NQ session from this week, then submit the chart."'
         ta.value = l.homework ?? ''
         const bar = document.createElement('div'); bar.className = 'bar'
         const save = document.createElement('button'); save.className = 'btn'; save.type = 'button'; save.textContent = 'Save'
@@ -3480,13 +3737,13 @@
       let integrations = {}
       try { integrations = (await adminAction({ action: 'status' })).integrations ?? {} } catch { /* keep defaults */ }
       const rows = [
-        ['Stripe — secret key', 'Charges and refunds', integrations.stripe_key],
-        ['Stripe — webhook', 'Grants access on purchase', integrations.stripe_webhook],
-        ['Bunny Stream — library', 'Video hosting', integrations.bunny_library],
-        ['Bunny Stream — token key', 'Signed video URLs', integrations.bunny_token],
-        ['Discord — bot token', 'Auto-join and roles', integrations.discord_bot],
-        ['Discord — guild id', 'Which server', integrations.discord_guild],
-        ['Discord — paid role id', 'Role granted to buyers', integrations.discord_role],
+        ['Stripe secret key', 'Charges and refunds', integrations.stripe_key],
+        ['Stripe webhook', 'Grants access on purchase', integrations.stripe_webhook],
+        ['Bunny Stream library', 'Video hosting', integrations.bunny_library],
+        ['Bunny Stream token key', 'Signed video URLs', integrations.bunny_token],
+        ['Discord bot token', 'Auto-join and roles', integrations.discord_bot],
+        ['Discord guild id', 'Which server', integrations.discord_guild],
+        ['Discord paid role id', 'Role granted to buyers', integrations.discord_role],
       ]
       const host = el('integrations'); host.textContent = ''
       for (const [name, hint, on] of rows) {
@@ -3523,26 +3780,31 @@
       const cRecaps = el('c-recaps'); if (cRecaps) cRecaps.textContent = String(RECAPS.length)
       el('recaps-total').textContent = `${RECAPS.length} total`
       el('recaps-empty').hidden = RECAPS.length > 0
-      table(el('recaps-table'), ['Date', 'Title', 'Live', '', '', ''], RECAPS, (r) => {
+      table(el('recaps-table'), ['Date', 'Title', 'State', ''], RECAPS, (r) => {
         const tr = document.createElement('tr')
-        tr.append(cell(when(r.recap_date), 'num'), cell(r.title, 'ink'), cell(r.is_published ? 'Yes' : 'Draft'))
-        const mk = (label, fn) => {
-          const td = document.createElement('td')
-          const b = document.createElement('button'); b.className = 'rowbtn'; b.textContent = label
-          b.addEventListener('click', () => fn(b)); td.appendChild(b); return td
-        }
-        tr.appendChild(mk('Edit', () => { recapEditor(r); window.scrollTo({ top: 0, behavior: 'smooth' }) }))
-        tr.appendChild(mk(r.is_published ? 'Unpublish' : 'Publish', async (b) => {
-          b.disabled = true
+        tr.append(cell(when(r.recap_date), 'num'), cell(r.title, 'ink'))
+        const st = document.createElement('td')
+        const pill = document.createElement('button'); pill.type = 'button'; pill.className = 'live' + (r.is_published ? '' : ' draft'); pill.textContent = r.is_published ? 'Live' : 'Draft'
+        pill.title = r.is_published ? 'Click to unpublish' : 'Click to publish'
+        pill.addEventListener('click', async () => {
+          pill.disabled = true
           try { await adminAction({ action: 'recap_publish', id: r.id, value: !r.is_published }); await loadRecaps() }
-          catch { b.disabled = false }
-        }))
-        tr.appendChild(mk('Delete', async (b) => {
-          if (!confirm(`Delete "${r.title}"? Members lose it too.`)) return
-          b.disabled = true
-          try { await adminAction({ action: 'recap_delete', id: r.id }); if (recapEditing === r.id) recapEditor(null); await loadRecaps() }
-          catch { b.disabled = false }
-        }))
+          catch { pill.disabled = false }
+        })
+        st.appendChild(pill); tr.appendChild(st)
+        const td = document.createElement('td'); td.className = 'right'
+        const ra = document.createElement('span'); ra.className = 'ract'
+        const mk = (label, fn, cls = 'rowbtn') => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = label; b.addEventListener('click', () => fn(b)); return b }
+        ra.append(
+          mk('Edit', () => { recapEditor(r); window.scrollTo({ top: 0, behavior: 'smooth' }) }),
+          mk('Delete', async (b) => {
+            if (!confirm(`Delete "${r.title}"? Members lose it too.`)) return
+            b.disabled = true
+            try { await adminAction({ action: 'recap_delete', id: r.id }); if (recapEditing === r.id) recapEditor(null); await loadRecaps() }
+            catch { b.disabled = false }
+          }, 'rowbtn danger'),
+        )
+        td.appendChild(ra); tr.appendChild(td)
         return tr
       })
     }
@@ -3583,7 +3845,7 @@
           img.style.cssText = 'width:56px;height:32px;object-fit:cover;border-radius:5px;display:block;border:1px solid var(--line);'
           th.appendChild(img)
         } else {
-          th.textContent = '—'; th.className = 'num'
+          th.textContent = '–'; th.className = 'num'
         }
         tr.appendChild(th)
         const vc = LIBVIEWS[r.id]
@@ -3591,7 +3853,7 @@
           cell(r.title, 'ink'),
           cell(LIB_CAT_NAME[r.category] ?? r.category),
           cell(when(r.created_at), 'num'),
-          cell(vc ? `${vc.people} member${vc.people === 1 ? '' : 's'} · ${vc.opens} open${vc.opens === 1 ? '' : 's'}` : '—', 'num'),
+          cell(vc ? `${vc.people} member${vc.people === 1 ? '' : 's'} · ${vc.opens} open${vc.opens === 1 ? '' : 's'}` : '–', 'num'),
           cell(r.is_published ? 'Live' : 'Hidden'),
         )
         const td = document.createElement('td'); td.className = 'num'
@@ -3710,7 +3972,7 @@
       loadLibraryAdmin()
     }
     /* Poster frame for the feed card: seek a second in, draw to canvas. Best
-       effort — a codec the browser can't decode just means no thumbnail. */
+       effort: a codec the browser can't decode just means no thumbnail. */
     function libMakeThumb(file) {
       return new Promise((resolve) => {
         const url = URL.createObjectURL(file)
@@ -3793,7 +4055,7 @@
       body.value = `${before}${pad}${marker}\n${after}`
       recapUploading++
       el('recap-save').disabled = true
-      msg.className = 'msg'; msg.textContent = `Uploading ${f.name} — keep this tab open.`
+      msg.className = 'msg'; msg.textContent = `Uploading ${f.name}. Keep this tab open.`
       try {
         const safe = f.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-')
         const path = `recaps/${Date.now()}-${safe}`
@@ -3809,7 +4071,7 @@
           if (!thErr) recapThumb = tp
         })
         body.value = body.value.replace(marker, `[video:${path}]`)
-        msg.className = 'msg ok'; msg.textContent = 'Video attached — members get an inline player. Save when ready.'
+        msg.className = 'msg ok'; msg.textContent = 'Video attached. Members get an inline player. Save when ready.'
       } catch (err) {
         body.value = body.value.replace(marker + '\n', '').replace(marker, '')
         msg.className = 'msg err'; msg.textContent = `Upload failed: ${err.message}`
@@ -3848,7 +4110,7 @@
           ...(recapThumb ? { thumb_path: recapThumb } : {}),
         })
         recapThumb = null
-        msg.className = 'msg ok'; msg.textContent = recapEditing ? 'Saved.' : 'Saved as a draft — publish it below when it is ready.'
+        msg.className = 'msg ok'; msg.textContent = recapEditing ? 'Saved.' : 'Saved as a draft. Publish it below when it is ready.'
         if (!recapEditing) recapEditor(null)
         await loadRecaps()
       } catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
@@ -3888,7 +4150,7 @@
         badge.className = `badge ${c.is_active && !spent ? 'b-active' : 'b-revoked'}`
         badge.textContent = spent ? 'used up' : (c.is_active ? 'active' : 'off')
         st.appendChild(badge); tr.appendChild(st)
-        tr.appendChild(cell(c.note ?? '—'))
+        tr.appendChild(cell(c.note ?? '–'))
 
         const mk = (label, fn) => {
           const td = document.createElement('td')
@@ -3934,7 +4196,7 @@
           note: el('code-note').value.trim() || undefined,
         })
         msg.className = 'msg ok'
-        msg.textContent = `${res.code.code} minted${kind === 'free' ? ' — redeemable on the members sign-in screen.' : '.'}`
+        msg.textContent = `${res.code.code} minted${kind === 'free' ? ', redeemable on the members sign-in screen.' : '.'}`
         el('code-custom').value = ''; el('code-note').value = ''
         await loadCodes()
       } catch (err) { msg.className = 'msg err'; msg.textContent = err.message }
@@ -3971,7 +4233,7 @@
     }
     const alpha = (hex, a) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)); return `rgba(${r},${g},${b},${a})` }
     const fmtM = (v, signed = true) => {
-      if (v == null || isNaN(v)) return '—'
+      if (v == null || isNaN(v)) return '–'
       const a = Math.abs(v)
       const s = a >= 1000 ? (a / 1000).toFixed(2) + 'B' : a >= 100 ? a.toFixed(0) + 'M' : (Number.isInteger(a) ? String(a) : a.toFixed(1)) + 'M'
       return (v < 0 ? '−' : signed && v > 0 ? '+' : '') + s
@@ -4061,14 +4323,14 @@
         w.append(a, b, c); rd.appendChild(w)
       }
       const pos = sm.net0 != null && sm.net0 >= 0
-      fig('0DTE net GEX at the open', sm.net0 == null ? '—' : fmtM(sm.net0), sm.net0 == null ? '' : pos ? 'pos' : 'neg', sm.net0 == null ? 'not logged' : pos ? 'positive gamma day' : 'negative gamma day')
-      fig('Gamma flip', sm.flipOpen == null ? '—' : `${sm.flipOpen} → ${sm.flipClose ?? '—'}`, '', 'QQQ, open → close')
-      fig('Major wall', sm.mwOpen == null ? '—' : `${sm.mwOpen} → ${sm.mwClose ?? '—'}`, '', 'QQQ, open → close')
-      fig('QQQ close', sm.spotClose == null ? '—' : Number(sm.spotClose).toFixed(2), '', 'last print of the day')
+      fig('0DTE net GEX at the open', sm.net0 == null ? '–' : fmtM(sm.net0), sm.net0 == null ? '' : pos ? 'pos' : 'neg', sm.net0 == null ? 'not logged' : pos ? 'positive gamma day' : 'negative gamma day')
+      fig('Gamma flip', sm.flipOpen == null ? '–' : `${sm.flipOpen} → ${sm.flipClose ?? '–'}`, '', 'QQQ, open → close')
+      fig('Major wall', sm.mwOpen == null ? '–' : `${sm.mwOpen} → ${sm.mwClose ?? '–'}`, '', 'QQQ, open → close')
+      fig('QQQ close', sm.spotClose == null ? '–' : Number(sm.spotClose).toFixed(2), '', 'last print of the day')
       const rg = el('gex-regime')
       rg.innerHTML = sm.net0 == null ? '' : pos
-        ? `<b class="pos">Positive gamma</b> — dealers hedged against price that day: moves were dampened, ranges held, dips got bought and rips got sold.`
-        : `<b class="neg">Negative gamma</b> — dealers hedged with price that day: moves got amplified, breaks kept going, bounces were sharp but short.`
+        ? `<b class="pos">Positive gamma</b>: dealers hedged against price that day: moves were dampened, ranges held, dips got bought and rips got sold.`
+        : `<b class="neg">Negative gamma</b>: dealers hedged with price that day: moves got amplified, breaks kept going, bounces were sharp but short.`
       rg.hidden = sm.net0 == null
       el('gex-grid').hidden = true
       el('gex-sheet').hidden = true; el('gex-sheet-copy').parentElement.hidden = true
@@ -4105,9 +4367,9 @@
       }
       const z = d.zdte, s = d.swing
       fig('0DTE net GEX', fmtM(z.netGexM), z.netGexM >= 0 ? 'pos' : 'neg', `${expLabel(z.expiry)} · ${z.dte} DTE · ${d.regime}`)
-      fig('Swing net GEX', s ? fmtM(s.netGexM) : '—', s && s.netGexM >= 0 ? 'pos' : 'neg', s ? `${s.expiries} expiries out to 60d` : 'no swing horizon')
+      fig('Swing net GEX', s ? fmtM(s.netGexM) : '–', s && s.netGexM >= 0 ? 'pos' : 'neg', s ? `${s.expiries} expiries out to 60d` : 'no swing horizon')
       fig('QQQ spot', d.spot.toFixed(2), '', GEX.hist ? 'archived print' : d.marketOpen ? 'market open · CBOE ~15 min delayed' : 'market closed · last snapshot')
-      fig('NQ', Math.round(d.nq).toLocaleString(), '', `= QQQ × ${d.conversion.divisor} + ${d.conversion.basis} (as of ${d.conversion.asOf ?? '—'})`)
+      fig('NQ', Math.round(d.nq).toLocaleString(), '', `= QQQ × ${d.conversion.divisor} + ${d.conversion.basis} (as of ${d.conversion.asOf ?? '–'})`)
       renderRegime(d)
       // the same monospace sheet the morning refresh pastes into Discord (worker-composed,
       // so the two can never drift apart); hidden if the snapshot predates the field
@@ -4130,30 +4392,30 @@
       const lead = (cls, txt) => `<b class="${cls}">${txt}</b>`
       let msg
       if (z < 0 && (s == null || s < 0)) {
-        msg = `${lead('neg', 'Negative gamma')} — dealers hedge in the same direction as price, so moves get amplified. Expect expansion: breaks keep going, bounces are sharp but short-lived, and fading a move means fighting the hedging flow.`
+        msg = `${lead('neg', 'Negative gamma')}: dealers hedge in the same direction as price, so moves get amplified. Expect expansion: breaks keep going, bounces are sharp but short-lived, and fading a move means fighting the hedging flow.`
         if (put) msg += ` The put wall at ${put} is the downside magnet${call ? `; the call wall at ${call} is the ceiling` : ''}.`
       } else if (z >= 0 && (s == null || s >= 0)) {
-        msg = `${lead('pos', 'Positive gamma')} — dealers hedge against price, absorbing moves. Expect compression: pushes stall, dips get bought, and price drifts back toward the big strikes.`
+        msg = `${lead('pos', 'Positive gamma')}: dealers hedge against price, absorbing moves. Expect compression: pushes stall, dips get bought, and price drifts back toward the big strikes.`
         if (put && call) msg += ` Edges to fade: put wall ${put} below, call wall ${call} above.`
       } else if (z < 0) {
-        msg = `${lead('mix', 'Mixed')} — negative today, positive further out. Expect whippy intraday swings inside a range that still mean-reverts over the next few days; trust the walls more than the trend.`
+        msg = `${lead('mix', 'Mixed')}: negative today, positive further out. Expect whippy intraday swings inside a range that still mean-reverts over the next few days; trust the walls more than the trend.`
       } else {
-        msg = `${lead('mix', 'Mixed')} — calm today, negative further out. Intraday chop is likely, but multi-day moves can still run; keep an eye on the swing walls.`
+        msg = `${lead('mix', 'Mixed')}: calm today, negative further out. Intraday chop is likely, but multi-day moves can still run; keep an eye on the swing walls.`
       }
       const flip = d.zdte.flip
       if (flip) {
         const below = d.spot < flip.qqq
-        msg += ` Spot is ${below ? 'below' : 'above'} the flip at ${Math.round(flip.nq ?? gexNQ(flip.qqq)).toLocaleString()} — ${below ? 'the amplifier side; a rally only gets trustworthy once it reclaims that level' : 'the calmer side; moves tend to slow into it'}.`
+        msg += ` Spot is ${below ? 'below' : 'above'} the flip at ${Math.round(flip.nq ?? gexNQ(flip.qqq)).toLocaleString()}, ${below ? 'the amplifier side; a rally only gets trustworthy once it reclaims that level' : 'the calmer side; moves tend to slow into it'}.`
       }
-      // second read: flow check, GTBR, major wall, flip drift, charm — fields the worker
+      // second read: flow check, GTBR, major wall, flip drift, charm. Fields the worker
       // added later, so each is guarded (an old cached snapshot just shows less)
       const extra = []
       if (d.gexMatrix) extra.push(`${d.gexMatrix.text.replace(/\.$/, '')} (standing book ${fmtM(d.gexMatrix.oiGexM)} vs today's flow ${fmtM(d.gexMatrix.volGexM)}).`)
       if (d.gtbr) extra.push(d.gtbr.state === 'inside'
-        ? `Price is inside the GTBR band, NQ ${d.gtbr.lowerNQ.toLocaleString()}–${d.gtbr.upperNQ.toLocaleString()} (one expected daily move off the open) — forced hedging stays quiet until an edge breaks${z >= 0 ? '; a positive-gamma day that never leaves the band tends to fade its own move into the close' : ''}.`
-        : `Price is ${d.gtbr.state} the GTBR band, NQ ${d.gtbr.lowerNQ.toLocaleString()}–${d.gtbr.upperNQ.toLocaleString()} — past the daily breakeven, the hedging machine is live${d.gtbr.state === 'below' ? '; the forced-hedge push runs hardest on downside breaks' : ''}.`)
-      if (d.majorWall) extra.push(`The major wall at ${d.majorWall.strike} (NQ ${d.majorWall.nq.toLocaleString()}) sits ${d.majorWall.side} spot — the session's gravity point${d.majorWallMoved ? `, and it has moved today (${d.majorWallMoved.from} → ${d.majorWallMoved.to}), a sentiment shift` : ''}.`)
-      if (d.flipDrift) extra.push(`The flip has drifted ${d.flipDrift > 0 ? '+' : ''}${d.flipDrift} QQQ since the open — fresh 0DTE flow drags it, so re-check it into the afternoon.`)
+        ? `Price is inside the GTBR band, NQ ${d.gtbr.lowerNQ.toLocaleString()}–${d.gtbr.upperNQ.toLocaleString()} (one expected daily move off the open), so forced hedging stays quiet until an edge breaks${z >= 0 ? '; a positive-gamma day that never leaves the band tends to fade its own move into the close' : ''}.`
+        : `Price is ${d.gtbr.state} the GTBR band, NQ ${d.gtbr.lowerNQ.toLocaleString()}–${d.gtbr.upperNQ.toLocaleString()}, past the daily breakeven, so the hedging machine is live${d.gtbr.state === 'below' ? '; the forced-hedge push runs hardest on downside breaks' : ''}.`)
+      if (d.majorWall) extra.push(`The major wall at ${d.majorWall.strike} (NQ ${d.majorWall.nq.toLocaleString()}) sits ${d.majorWall.side} spot, the session's gravity point${d.majorWallMoved ? `, and it has moved today (${d.majorWallMoved.from} → ${d.majorWallMoved.to}), a sentiment shift` : ''}.`)
+      if (d.flipDrift) extra.push(`The flip has drifted ${d.flipDrift > 0 ? '+' : ''}${d.flipDrift} QQQ since the open. Fresh 0DTE flow drags it, so re-check it into the afternoon.`)
       if (d.zdte.netChexM) extra.push(`Charm leans ${d.zdte.netChexM > 0 ? 'sell' : 'buy'}-side into the close; it runs the final 90 minutes on 0DTE.`)
       if (extra.length) msg += `<br>${extra.join(' ')}`
       rg.innerHTML = msg
@@ -4199,8 +4461,8 @@
         const tr = document.createElement('tr')
         const n = document.createElement('td'); n.className = 'lvl-name'; n.textContent = r.name
         const sm = document.createElement('small'); sm.textContent = r.sub; n.appendChild(sm)
-        const g = cell(r.gex == null ? '—' : fmtM(r.gex), 'num'); if (r.gex != null) g.style.color = r.gex >= 0 ? 'var(--good)' : 'var(--bad)'
-        const tier = document.createElement('td'); const ts = document.createElement('span'); ts.className = 'tier'; ts.textContent = r.tier ? '•'.repeat(r.tier) : '—'; tier.appendChild(ts)
+        const g = cell(r.gex == null ? '–' : fmtM(r.gex), 'num'); if (r.gex != null) g.style.color = r.gex >= 0 ? 'var(--good)' : 'var(--bad)'
+        const tier = document.createElement('td'); const ts = document.createElement('span'); ts.className = 'tier'; ts.textContent = r.tier ? '•'.repeat(r.tier) : '–'; tier.appendChild(ts)
         tr.append(n, cell(String(r.qqq), 'num ink'), cell(r.nq.toLocaleString(), 'num'), g, tier)
         return tr
       })
@@ -4268,7 +4530,7 @@
       return items
     }
 
-    /* ── surface: X strike, Y expiry, Z $M — a smooth, shaded, colour-mapped surface ──
+    /* ── surface: X strike, Y expiry, Z $M, a smooth, shaded, colour-mapped surface ──
        The strike x expiry grid is resampled with a shape-preserving cubic (PCHIP): every
        real grid point keeps its exact value, nothing overshoots, and the flanks between
        points become smooth bells instead of pyramids. Facets are coloured by height on a
@@ -4745,9 +5007,9 @@
       el('mm-playbook').hidden = key !== 'playbook'
       memesShown()
     }))
-    const mmPrice = (v) => v == null ? '—' : v >= 1 ? '$' + v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : v >= 1e-6 ? '$' + Number(v.toPrecision(3)).toFixed(Math.max(2, 1 - Math.floor(Math.log10(v)) + 1)) : '$' + v.toFixed(9)
-    const mmPct = (v) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
-    const mmCap = (v) => v == null ? '—' : v >= 1e9 ? '$' + (v / 1e9).toFixed(2) + 'B' : '$' + Math.round(v / 1e6) + 'M'
+    const mmPrice = (v) => v == null ? '–' : v >= 1 ? '$' + v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : v >= 1e-6 ? '$' + Number(v.toPrecision(3)).toFixed(Math.max(2, 1 - Math.floor(Math.log10(v)) + 1)) : '$' + v.toFixed(9)
+    const mmPct = (v) => v == null ? '–' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
+    const mmCap = (v) => v == null ? '–' : v >= 1e9 ? '$' + (v / 1e9).toFixed(2) + 'B' : '$' + Math.round(v / 1e6) + 'M'
     // micro-cap prices: dim the run of leading zeros so the significant digits read
     function mmPriceEl(v) {
       const d = document.createElement('div'); d.className = 'px'
@@ -4893,6 +5155,10 @@
       if (!session) return loginScreen()
       const { data: isAdmin } = await supabase.rpc('is_admin')
       if (!isAdmin) return notAdminScreen(session.user.email)
+      // boot() is called once directly and once more when supabase-js announces the
+      // session; only the first one past the gate gets to load the dashboard
+      if (booted) return
+      booted = true
 
       el('gate').style.display = 'none'
       el('app').classList.add('on')
@@ -4912,10 +5178,10 @@
     }
 
     // Magic-link returns land with tokens in the URL fragment; supabase-js
-    // consumes them, then fires SIGNED_IN — re-run the gate when it does.
+    // consumes them, then fires SIGNED_IN. Re-run the gate when it does.
     let booted = false
     supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' && !booted) { booted = true; boot() }
+      if (event === 'SIGNED_IN' && !booted) boot()
     })
 
     boot()
