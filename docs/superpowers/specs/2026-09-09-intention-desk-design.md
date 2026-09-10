@@ -1,3 +1,5 @@
+> Superseded the same day: D1 parked the Desk for a charting workspace (the Chart view, `tests/app-chart-visual.mjs`) and the NQ archive (`nq_bars`). Kept for the record.
+
 # Intention Desk
 
 The session instrument. One screen a member opens before the bell and keeps open through the close: the day's read, the live NQ tape with the levels that matter drawn on it, the news that can move it, and at the close a scorecard of what the read got right.

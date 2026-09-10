@@ -68,17 +68,13 @@ async function fetchTape(range: string) {
   };
 }
 
-// read every row in a window, a page at a time (PostgREST caps a request at 1000)
-async function readBars(interval: string, from: Date, to: Date, cap = 20000) {
+// one window of bars in one round trip: nq_bars_json builds the array in SQL,
+// so PostgREST's 1000-row page never applies
+async function readBars(interval: string, from: Date, to: Date, cap = 60000) {
   const sb = admin();
-  const out: number[][] = [];
-  for (let start = 0; start < cap; start += 1000) {
-    const { data, error } = await sb.from("nq_bars").select("t,o,h,l,c,v").eq("interval", interval).gte("t", from.toISOString()).lt("t", to.toISOString()).order("t").range(start, start + 999);
-    if (error) throw new Error(error.message);
-    for (const r of data ?? []) out.push([Math.floor(new Date(r.t).getTime() / 1000), +r.o, +r.h, +r.l, +r.c, +r.v]);
-    if (!data || data.length < 1000) break;
-  }
-  return out;
+  const { data, error } = await sb.rpc("nq_bars_json", { p_interval: interval, p_from: from.toISOString(), p_to: to.toISOString(), p_cap: cap });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as number[][];
 }
 
 function admin() {
@@ -159,8 +155,8 @@ Deno.serve(async (req) => {
     const to = p.get("to") ? new Date(p.get("to")!) : new Date();
     if (isNaN(+from) || isNaN(+to)) return json(400, { error: "from/to must be dates" });
     let bars: number[][];
-    try { bars = await readBars(interval, from, new Date(+to + 1), 20000); } catch (err) { return json(500, { error: String((err as Error).message) }); }
-    return json(200, { symbol: SYMBOL, interval, from: from.toISOString(), to: to.toISOString(), bars, capped: bars.length >= 20000 }, { "Cache-Control": "public, max-age=300" });
+    try { bars = await readBars(interval, from, new Date(+to + 1), 60000); } catch (err) { return json(500, { error: String((err as Error).message) }); }
+    return json(200, { symbol: SYMBOL, interval, from: from.toISOString(), to: to.toISOString(), bars, capped: bars.length >= 60000 }, { "Cache-Control": "public, max-age=300" });
   }
 
   /* ── the live tape ── */

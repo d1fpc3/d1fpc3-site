@@ -612,116 +612,88 @@
     .recap-pane { padding: clamp(18px, 3vw, 28px); }
     .recap-pane .lesson-h { margin-top: 8px; }
 
-    /* ── desk: the session instrument ─────────────────────────
-       Flat like Overview: hairlines, tabular figures, the tape is the hero.
-       Gold marks the live price and the nearest levels, nothing else. */
-    .ov-desk {
-      display: grid; grid-template-columns: auto auto auto minmax(0, 1fr) auto; align-items: center; gap: 14px;
-      width: 100%; margin-top: 14px; padding: 12px 2px; border: 0; border-bottom: 1px solid var(--line); background: none;
-      font-family: inherit; text-align: left; cursor: pointer; color: var(--muted);
+    /* ── chart: NQ, a charting platform inside the app ─────────
+       The stage fills the pane. Tools on a rail (a row on phones), the
+       settings drawer slides over the stage, everything else is canvas. */
+    .ch-wrap { display: flex; flex-direction: column; height: calc(100dvh - 128px); min-height: 440px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg); }
+    #v-chart.ch-fullscreen .ch-wrap { position: fixed; inset: 0; z-index: 300; height: auto; border: 0; border-radius: 0; }
+    .ch-bar { display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--panel); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
+    .ch-bar::-webkit-scrollbar { display: none; }
+    .ch-sym { display: flex; align-items: baseline; gap: 8px; padding-right: 10px; margin-right: 4px; border-right: 1px solid var(--line); flex-shrink: 0; }
+    .ch-sym b { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+    .ch-sess { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+    .ch-sess.open { color: var(--good); }
+    .ch-tfs { flex-shrink: 0; }
+    .ch-tfs button { padding: 5px 7px 4px; font-size: 12px; }
+    .ch-sp { flex: 1; min-width: 8px; }
+    .ch-ib { background: none; border: 0; color: var(--muted); padding: 6px; border-radius: 7px; cursor: pointer; display: inline-flex; flex-shrink: 0; transition: color 0.15s ease, background 0.15s ease; }
+    .ch-ib svg { width: 17px; height: 17px; }
+    .ch-ib:hover { color: var(--ink); background: var(--panel-2); }
+    .ch-ib.on { color: var(--gold); background: rgba(201,162,74,0.12); }
+    .ch-body { flex: 1; min-height: 0; display: flex; }
+    .ch-tools { display: flex; flex-direction: column; gap: 2px; padding: 6px 4px; border-right: 1px solid var(--line); background: var(--panel); flex-shrink: 0; }
+    .ch-tools button { width: 32px; height: 32px; background: none; border: 0; border-radius: 7px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ch-tools button svg { width: 16px; height: 16px; }
+    .ch-tools button:hover { color: var(--ink); background: var(--panel-2); }
+    .ch-tools button.on { color: var(--gold); background: rgba(201,162,74,0.12); }
+    .ch-tools .danger:hover { color: var(--bad); }
+    .ch-tools-gap { flex: 1; }
+    .ch-stage { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
+    .ch-stage canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+    .ch-legend { position: absolute; top: 8px; left: 10px; display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; font-size: 11.5px; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; max-width: calc(100% - 100px); }
+    .ch-legend b { color: var(--ink); font-size: 13px; }
+    .ch-legend .tf { color: var(--faint); margin-left: -4px; }
+    .ch-legend i { font-style: normal; color: var(--ink); }
+    .ch-legend .up, .ch-legend i.up { color: var(--good); } .ch-legend .down, .ch-legend i.down { color: var(--bad); }
+    .ch-busy { position: absolute; top: 10px; right: 80px; width: 12px; height: 12px; border: 2px solid var(--line-bright); border-top-color: var(--gold); border-radius: 50%; animation: ch-spin 0.8s linear infinite; }
+    @keyframes ch-spin { to { transform: rotate(360deg); } }
+    .ch-latest { position: absolute; right: 80px; bottom: 34px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-bright); background: var(--panel); color: var(--ink); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
+    .ch-latest svg { width: 14px; height: 14px; }
+    .ch-latest:hover { border-color: var(--gold); color: var(--gold); }
+    .ch-selbar { position: absolute; top: 8px; right: 80px; display: flex; gap: 6px; align-items: center; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 8px; padding: 4px 6px; }
+    .ch-selbar input[type="color"] { width: 26px; height: 22px; border: 0; background: none; padding: 0; cursor: pointer; }
+    .ch-selbar button { background: none; border: 0; color: var(--bad); font: inherit; font-size: 12px; cursor: pointer; padding: 2px 6px; }
+    .ch-replay { position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 10px; padding: 6px 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+    .ch-replay button { background: none; border: 0; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; padding: 4px 7px; border-radius: 6px; }
+    .ch-replay button:hover { background: var(--panel-2); }
+    .ch-replay .ch-rp-at { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; margin: 0 6px 0 2px; white-space: nowrap; }
+    .ch-replay #ch-rp-exit { color: var(--bad); font-size: 12px; }
+    .ch-replay .seg button { padding: 4px 6px 3px; }
+    .ch-menu { position: absolute; top: 0; right: 0; bottom: 0; width: min(320px, 100%); background: var(--panel); border-left: 1px solid var(--line); z-index: 5; display: flex; flex-direction: column; box-shadow: -20px 0 40px rgba(0,0,0,0.3); }
+    .ch-menu-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    .ch-menu-head b { font-size: 14px; }
+    .ch-menu-head button { background: none; border: 0; color: var(--faint); font-size: 22px; cursor: pointer; line-height: 1; padding: 0 2px; }
+    .ch-menu-body { padding: 4px 14px 16px; overflow-y: auto; }
+    .ch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .ch-row-t small { display: block; font-size: 11px; color: var(--faint); margin-top: 1px; }
+    .ch-row-wide { justify-content: flex-start; }
+    .ch-row-wide .seg button { padding: 5px 8px 4px; }
+    .ch-h { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); font-weight: 600; padding: 16px 0 4px; }
+    .ch-opt { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 10px 0; font-family: inherit; color: var(--ink); cursor: pointer; }
+    .ch-opt b { display: block; font-size: 13.5px; font-weight: 600; } .ch-opt small { display: block; color: var(--faint); font-size: 11.5px; margin-top: 2px; }
+    .ch-opt.on b { color: var(--gold); }
+    .ch-color { display: flex; align-items: center; gap: 6px; }
+    .ch-color input[type="color"] { width: 30px; height: 24px; border: 1px solid var(--line-bright); border-radius: 6px; background: none; padding: 1px; cursor: pointer; }
+    .ch-reset { background: none; border: 0; color: var(--faint); font: inherit; font-size: 11px; cursor: pointer; text-decoration: underline dotted; }
+    .ch-lens { display: flex; gap: 6px; } .ch-lens input { width: 58px; padding: 5px 7px; font-size: 12px; }
+    .tgl.sm { width: 40px; height: 24px; } .tgl.sm .track::before { width: 20px; height: 20px; } .tgl.sm input:checked + .track::before { transform: translateX(16px); }
+    @media (max-width: 840px) {
+      .ch-wrap { height: calc(100dvh - 66px - 20px - var(--bnav, 0px)); min-height: 380px; border-radius: 10px; }
+      /* two rows: symbol and the icon buttons, then the timeframes across the full width */
+      .ch-bar { flex-wrap: wrap; row-gap: 0; padding: 4px 8px 2px; overflow: visible; }
+      .ch-sym { order: 0; }
+      .ch-sp { order: 0; }
+      .ch-ib { order: 0; }
+      .ch-tfs { order: 1; flex: 1 1 100%; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 2px; }
+      .ch-tfs button { flex: 1; padding: 7px 2px 6px; }
+      .ch-body { flex-direction: column-reverse; }
+      .ch-tools { flex-direction: row; border-right: 0; border-top: 1px solid var(--line); padding: 4px 6px; overflow-x: auto; scrollbar-width: none; }
+      .ch-legend { font-size: 10.5px; gap: 7px; }
+      .ch-menu { width: 100%; }
+      .ch-replay { left: 8px; right: 8px; transform: none; justify-content: center; flex-wrap: wrap; bottom: 12px; }
+      .ch-latest { bottom: 12px; right: 66px; }
+      .ch-busy { right: 66px; }
     }
-    .ov-desk .od-state { font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
-    .ov-desk .od-state.open { color: var(--good); }
-    .ov-desk .od-px { font-size: 17px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-    .ov-desk .od-chg { font-size: 12.5px; font-variant-numeric: tabular-nums; }
-    .ov-desk .od-chg.up { color: var(--good); } .ov-desk .od-chg.down { color: var(--bad); }
-    .ov-desk .od-read { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ov-desk .od-go { font-size: 12.5px; font-weight: 600; color: var(--gold); white-space: nowrap; }
-    .ov-desk:hover .od-go { text-decoration: underline; }
-    @media (max-width: 720px) {
-      .ov-desk { grid-template-columns: auto auto auto minmax(0, 1fr); gap: 6px 10px; }
-      .ov-desk .od-go { grid-column: 4; grid-row: 1; justify-self: end; }
-      .ov-desk .od-read { grid-column: 1 / -1; grid-row: 2; white-space: normal; }
-    }
-
-    .dk-strip { display: grid; grid-template-columns: auto auto auto auto minmax(0, 1fr); align-items: center; gap: 0 28px; padding: 2px 2px 16px; border-bottom: 1px solid var(--line); }
-    .dk-state { display: flex; flex-direction: column; gap: 3px; }
-    .dk-pill { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .dk-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-    .dk-pill.open { color: var(--good); }
-    .dk-pill.open::before { box-shadow: 0 0 0 0 rgba(134,181,127,0.5); animation: dk-pulse 1.8s ease-out infinite; }
-    .dk-pill.pre { color: var(--gold); }
-    .dk-pill.replay { color: var(--muted); }
-    @keyframes dk-pulse { 0% { box-shadow: 0 0 0 0 rgba(134,181,127,0.55); } 100% { box-shadow: 0 0 0 7px rgba(134,181,127,0); } }
-    @media (prefers-reduced-motion: reduce) { .dk-pill.open::before { animation: none; } }
-    .dk-clock { font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
-    .dk-px { display: flex; align-items: baseline; gap: 10px; }
-    .dk-px .v { font-size: clamp(26px, 3vw, 34px); font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--ink); transition: color 0.4s ease; }
-    .dk-px .v.tick-up { color: var(--good); } .dk-px .v.tick-down { color: var(--bad); }
-    .dk-px .chg { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--faint); }
-    .dk-px .chg.up { color: var(--good); } .dk-px .chg.down { color: var(--bad); }
-    .dk-fig { display: flex; flex-direction: column; gap: 3px; }
-    .dk-fig .v { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
-    .dk-days { display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap; }
-    .dk-days button { background: none; border: 1px solid transparent; border-radius: 999px; padding: 4px 10px; font-family: inherit; font-size: 11.5px; font-weight: 500; color: var(--faint); cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease; }
-    .dk-days button:hover { color: var(--ink); border-color: var(--line); }
-    .dk-days button.on { color: var(--gold); border-color: rgba(201,162,74,0.4); background: rgba(201,162,74,0.07); }
-    @media (max-width: 900px) {
-      .dk-strip { grid-template-columns: 1fr 1fr; gap: 12px 18px; }
-      .dk-days { grid-column: 1 / -1; justify-content: flex-start; }
-    }
-
-    .dk-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; column-gap: clamp(28px, 4vw, 48px); align-items: start; }
-    @media (max-width: 1100px) { .dk-grid { grid-template-columns: 1fr; } .dk-side .dk-sec.first { margin-top: 30px; } }
-    .dk-main, .dk-side { min-width: 0; }
-    .dk-cap { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 18px 2px 10px; border-bottom: 1px solid var(--line); }
-    .dk-tools { display: inline-flex; align-items: center; gap: 14px; }
-    .dk-sec { margin-top: 6px; }
-    .dk-sec.first { margin-top: 0; }
-    .dk-stage { position: relative; padding: 10px 0 4px; }
-    .dk-stage canvas { display: block; width: 100%; height: 440px; cursor: crosshair; touch-action: pan-y; }
-    @media (max-width: 720px) { .dk-stage canvas { height: 320px; } }
-    .dk-tip { position: absolute; z-index: 3; pointer-events: none; background: var(--panel-2); border: 1px solid var(--line-bright); border-radius: 8px; padding: 7px 10px; font-size: 11.5px; line-height: 1.5; color: var(--muted); white-space: nowrap; box-shadow: 0 10px 30px -12px rgba(0,0,0,0.6); font-variant-numeric: tabular-nums; }
-    .dk-tip b { color: var(--ink); font-weight: 600; }
-    .dk-tip .up { color: var(--good); } .dk-tip .down { color: var(--bad); }
-    .dk-empty { position: absolute; inset: 10px 0 4px; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--faint); font-size: 13.5px; padding: 0 24px; }
-
-    .dk-read { padding: 14px 2px 6px; font-size: 14.5px; line-height: 1.7; color: var(--muted); max-width: 78ch; }
-    .dk-read p { margin: 0 0 10px; text-wrap: pretty; }
-    .dk-read p:last-child { margin-bottom: 0; }
-    .dk-read b { color: var(--ink); font-weight: 600; }
-    .dk-read .neg { color: var(--bad); } .dk-read .pos { color: var(--good); } .dk-read .mix, .dk-read .gold { color: var(--gold); }
-    .dk-read p.intent { padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--line); color: var(--ink); }
-    .dk-read p.intent::before { content: "Intention"; display: block; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); font-weight: 600; margin-bottom: 4px; }
-    .dk-read .lock { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12.5px; color: var(--faint); }
-    .dk-read .lock button { background: none; border: 0; padding: 0; font: inherit; color: var(--gold); cursor: pointer; }
-    .dk-read .lock button:hover { text-decoration: underline; }
-
-    .dk-ladder { padding: 6px 0 0; }
-    .dk-lv { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
-    .dk-lv:last-child { border-bottom: 0; }
-    .dk-lv .sw { width: 12px; height: 2px; border-radius: 1px; background: var(--faint); }
-    .dk-lv .sw.dash { background: repeating-linear-gradient(90deg, var(--faint) 0 3px, transparent 3px 5px); }
-    .dk-lv .sw.gold { background: var(--gold); } .dk-lv .sw.good { background: var(--good); } .dk-lv .sw.bad { background: var(--bad); } .dk-lv .sw.ink { background: var(--ink); }
-    .dk-lv .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .dk-lv .nm small { color: var(--faint); margin-left: 6px; font-size: 11px; }
-    .dk-lv .px { color: var(--ink); font-weight: 600; }
-    .dk-lv .dist { min-width: 52px; text-align: right; color: var(--faint); font-size: 12px; }
-    .dk-lv.near .nm, .dk-lv.near .dist { color: var(--ink); }
-    .dk-lv.near .dist { color: var(--gold); font-weight: 600; }
-    .dk-lv.here { background: linear-gradient(90deg, rgba(201,162,74,0.08), transparent); }
-    .dk-lv.here .px { color: var(--gold); }
-    .dk-lv.lock { color: var(--faint); cursor: pointer; }
-    .dk-lv.lock .nm { color: var(--faint); }
-    .dk-lv.lock .px { color: var(--gold); font-weight: 600; font-size: 12px; }
-    .dk-lv.lock:hover .px { text-decoration: underline; }
-    .dk-none { padding: 14px 2px; font-size: 13px; color: var(--faint); margin: 0; }
-    #dk-news .news-row { padding-left: 2px; padding-right: 2px; }
-    #dk-news .news-row.major { padding-left: 12px; }
-    #dk-news .news-title { flex: 1; }
-    #dk-news .news-fp { display: none; }   /* the rail has no room for forecast and previous; the News tab keeps them */
-
-    .dk-score { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-top: 6px; }
-    .dk-sc { padding: 12px 14px 12px 0; border-right: 1px solid var(--line); margin-right: 14px; min-width: 0; }
-    .dk-sc:last-child { border-right: 0; margin-right: 0; }
-    .dk-sc .k { font-size: 10.5px; letter-spacing: 0.02em; color: var(--faint); }
-    .dk-sc .v { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; margin-top: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
-    .dk-sc .v.good { color: var(--good); } .dk-sc .v.bad { color: var(--bad); } .dk-sc .v.gold { color: var(--gold); }
-    .dk-sc .d { font-size: 11.5px; color: var(--faint); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    @media (max-width: 720px) { .dk-score { grid-template-columns: 1fr 1fr; } .dk-sc:nth-child(2n) { border-right: 0; margin-right: 0; } .dk-sc:nth-child(n+3) { border-top: 1px solid var(--line); } }
-    .dk-verdict { margin: 6px 2px 0; padding: 12px 0 4px; font-size: 14px; line-height: 1.65; color: var(--muted); max-width: 78ch; text-wrap: pretty; }
-    .dk-verdict b { color: var(--ink); font-weight: 600; }
-    .dk-verdict:empty { display: none; }
 
     /* ── overview: flat personal dashboard ───────────────────
        No cards, no boxes. Typography and hairlines carry it;
@@ -1509,7 +1481,8 @@
     .rowbtn.set-back:hover, .rowbtn.set-back:active { background: none; box-shadow: none; }
     /* what's next: a floating bubble under the top bar until the basics are done */
     .nextup { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 62px); left: 50%; transform: translateX(-50%); z-index: 70; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    body.in-chat .nextup, body.in-feed .nextup { display: none; }
+    body.in-chat .nextup, body.in-feed .nextup, body.in-chart .nextup { display: none; }
+    body.in-chart .pm-stack { display: none; }
     .nextup { transition: opacity 0.2s ease; }
     body.ptr-pulling .nextup, body.ptr-busy .nextup { opacity: 0; pointer-events: none; }   /* the pull disc rests where it sits */
     .nu-pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line-bright); background: var(--panel); color: var(--ink); font: inherit; font-size: 12.5px; cursor: pointer; box-shadow: 0 8px 26px -10px rgba(0,0,0,0.4); -webkit-tap-highlight-color: transparent; }
@@ -2498,11 +2471,9 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
           Overview
         </button>
-        <!-- Desk: parked (D1, 9/9). The tape, levels and replay code stays for the backtester; the tab and the Overview strip are off. -->
-        <button class="tab" data-view="desk" data-title="Desk" data-crumb="" hidden>
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2-6 4 12 3-8 2 4h4"/></svg>
-          Desk
-          <span class="notif" id="n-desk" hidden></span>
+        <button class="tab" data-view="chart" data-title="Chart" data-crumb="">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5v3"/><rect x="6" y="8" width="4" height="8" rx="1"/><path d="M8 16v3"/><path d="M16 3v4"/><rect x="14" y="7" width="4" height="7" rx="1"/><path d="M16 14v4"/></svg>
+          Chart
         </button>
         <button class="tab" data-view="feed" data-title="Feed" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3.5"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor"/></svg>
@@ -2624,13 +2595,6 @@
           </header>
 
           <div class="ov-stats" id="ov-mystats"></div>
-          <button class="ov-desk" id="ov-desk" type="button" hidden>
-            <span class="od-state" id="od-state"></span>
-            <span class="od-px" id="od-px"></span>
-            <span class="od-chg" id="od-chg"></span>
-            <span class="od-read" id="od-read"></span>
-            <span class="od-go">Open the Desk →</span>
-          </button>
           <p class="ov-lit" id="ov-lit" hidden>D1 LIT is on your account. <button type="button" id="ov-lit-go">Add your TradingView username →</button></p>
 
           <section class="ov-sec" id="ov-continue-sec">
@@ -2971,50 +2935,46 @@
         </section>
 
         <!-- NEWS: the week's USD calendar -->
-        <!-- DESK: the session instrument -->
-        <section class="view" id="v-desk">
-          <header class="dk-strip" id="dk-strip">
-            <div class="dk-state"><span class="dk-pill" id="dk-pill">·</span><span class="dk-clock" id="dk-clock"></span></div>
-            <div class="dk-px"><span class="v" id="dk-last">–</span><span class="chg" id="dk-chg"></span></div>
-            <div class="dk-fig"><span class="label">Range</span><span class="v" id="dk-range">–</span></div>
-            <div class="dk-fig"><span class="label" id="dk-until-k">Until open</span><span class="v" id="dk-until">–</span></div>
-            <div class="dk-days" id="dk-days"></div>
-          </header>
-          <div class="dk-grid">
-            <div class="dk-main">
-              <div class="dk-cap">
-                <span class="label" id="dk-tape-title">The tape</span>
-                <span class="dk-tools">
-                  <span class="seg" id="dk-agg" role="group" aria-label="Bars"><button type="button" data-v="1">1m</button><button type="button" data-v="5">5m</button><button type="button" data-v="15">15m</button></span>
-                  <span class="label" id="dk-stamp"></span>
-                </span>
-              </div>
-              <div class="dk-stage" id="dk-stage">
-                <canvas id="dk-canvas" aria-label="NQ, one-minute bars with the day's levels"></canvas>
-                <div class="dk-tip" id="dk-tip" hidden></div>
-                <div class="dk-empty" id="dk-empty" hidden></div>
-              </div>
-              <section class="dk-sec">
-                <div class="dk-cap"><span class="label">The read</span><span class="label" id="dk-read-meta"></span></div>
-                <div class="dk-read" id="dk-read"></div>
-              </section>
-              <section class="dk-sec">
-                <div class="dk-cap"><span class="label" id="dk-score-title">Scorecard</span><span class="label" id="dk-score-meta"></span></div>
-                <div class="dk-score" id="dk-score"></div>
-                <p class="dk-verdict" id="dk-verdict"></p>
-              </section>
+        <!-- CHART: NQ -->
+        <section class="view" id="v-chart">
+          <div class="ch-wrap">
+            <div class="ch-bar">
+              <div class="ch-sym"><b>NQ</b><span class="ch-sess" id="ch-sess"></span></div>
+              <span class="seg ch-tfs" id="ch-tf" role="group" aria-label="Timeframe"><button type="button" data-tf="1m">1m</button><button type="button" data-tf="3m">3m</button><button type="button" data-tf="5m">5m</button><button type="button" data-tf="15m">15m</button><button type="button" data-tf="30m">30m</button><button type="button" data-tf="1h">1h</button><button type="button" data-tf="4h">4h</button><button type="button" data-tf="D">D</button></span>
+              <span class="ch-sp"></span>
+              <button class="ch-ib" id="ch-type-btn" type="button" title="Chart type" aria-label="Chart type"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4v3"/><rect x="5" y="7" width="4" height="9" rx="1"/><path d="M7 16v4"/><path d="M17 3v4"/><rect x="15" y="7" width="4" height="7" rx="1"/><path d="M17 14v5"/></svg></button>
+              <button class="ch-ib" id="ch-ind-btn" type="button" title="Indicators" aria-label="Indicators"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-8 5-8 8-2s5 6 10-8"/></svg></button>
+              <button class="ch-ib" id="ch-replay-btn" type="button" title="Replay bar by bar" aria-label="Replay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M10 9l5 3-5 3z" fill="currentColor"/></svg></button>
+              <button class="ch-ib" id="ch-settings-btn" type="button" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+              <button class="ch-ib" id="ch-full" type="button" title="Fullscreen" aria-label="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
             </div>
-            <aside class="dk-side">
-              <section class="dk-sec first">
-                <div class="dk-cap"><span class="label">Levels</span><span class="label" id="dk-lv-meta"></span></div>
-                <div class="dk-ladder" id="dk-ladder"></div>
-              </section>
-              <section class="dk-sec">
-                <div class="dk-cap"><span class="label">Today's calendar</span><span class="label" id="dk-news-meta"></span></div>
-                <div id="dk-news"></div>
-                <p class="dk-none" id="dk-news-none" hidden>Nothing on the calendar.</p>
-              </section>
-            </aside>
+            <div class="ch-body">
+              <div class="ch-tools" id="ch-tools" aria-label="Drawing tools">
+                <button type="button" data-tool="cross" class="on" title="Crosshair (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/></svg></button>
+                <button type="button" data-tool="hline" title="Horizontal line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg></button>
+                <button type="button" data-tool="trend" title="Trend line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19L20 5"/><circle cx="4" cy="19" r="2" fill="currentColor"/><circle cx="20" cy="5" r="2" fill="currentColor"/></svg></button>
+                <button type="button" data-tool="ray" title="Ray"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 18L21 6"/><circle cx="4" cy="18" r="2" fill="currentColor"/><circle cx="12" cy="12.3" r="2" fill="currentColor"/></svg></button>
+                <button type="button" data-tool="rect" title="Rectangle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="1"/></svg></button>
+                <button type="button" data-tool="measure" title="Measure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 17L17 3l4 4L7 21z"/><path d="M8 12l2 2M11 9l2 2M14 6l2 2"/></svg></button>
+                <span class="ch-tools-gap"></span>
+                <button type="button" id="ch-trash" class="danger" title="Delete the selected drawing (Del)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+                <button type="button" id="ch-clear" class="danger" title="Remove every drawing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+              </div>
+              <div class="ch-stage" id="ch-stage">
+                <canvas id="ch-canvas" aria-label="NQ chart"></canvas>
+                <div class="ch-legend" id="ch-legend"></div>
+                <div class="ch-busy" id="ch-busy" hidden></div>
+                <button class="ch-latest" id="ch-latest" type="button" title="Back to the latest bar" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+                <div class="ch-selbar" id="ch-selbar" hidden><input type="color" id="ch-selcolor" aria-label="Drawing colour"><button type="button" id="ch-seldel">Delete</button></div>
+                <div class="ch-replay" id="ch-replay" hidden>
+                  <span class="label">Replay</span><span class="ch-rp-at" id="ch-rp-at"></span>
+                  <button type="button" id="ch-rp-back" title="Back one bar (,)">&#9198;</button><button type="button" id="ch-rp-play" title="Play or pause (space)">&#9654;</button><button type="button" id="ch-rp-fwd" title="Forward one bar (.)">&#9197;</button>
+                  <span class="seg" id="ch-rp-speed"><button type="button" data-s="1" class="on">1&times;</button><button type="button" data-s="3">3&times;</button><button type="button" data-s="10">10&times;</button></span>
+                  <button type="button" id="ch-rp-exit">Exit</button>
+                </div>
+                <div class="ch-menu" id="ch-menu" hidden><div class="ch-menu-head"><b id="ch-menu-title"></b><button type="button" id="ch-menu-close" aria-label="Close">&times;</button></div><div class="ch-menu-body" id="ch-menu-body"></div></div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -4091,12 +4051,13 @@
       document.body.classList.toggle('journal-full', view === 'journal')
       document.body.classList.toggle('in-chat', view === 'chat')
       document.body.classList.toggle('in-feed', view === 'feed')
+      document.body.classList.toggle('in-chart', view === 'chart')
       syncBnav(view)
       window.scrollTo({ top: 0 })
       if (view === 'chat' && !chat.loaded) loadChat()
       if (view === 'library') { if (!LIB.loaded) loadLibrary(); markRead('recaps') }
       if (view === 'gex') gexShown()
-      if (view === 'desk') deskShown(); else deskHidden()
+      if (view === 'chart') chartShown(); else chartHidden()
       if (view === 'feed') feedShown()
       if (view === 'inbox') loadInbox()
       if (view === 'news') loadNews()
@@ -9413,7 +9374,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     function renderOverview() {
-      renderOvDesk()
       const total = state.lessons.length
       const done = [...state.done].filter((id) => state.lessons.some((l) => l.id === id)).length
       const pct = total ? Math.round((done / total) * 100) : 0
@@ -9822,631 +9782,581 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       setInterval(() => checkGexNews(), 5 * 60 * 1000)
     }
 
-    /* ══ Desk: the session instrument ═══════════════════════════════
-       The tape (1-minute NQ through the tape function), the levels that
-       matter drawn on it, the day's read, the calendar, a scorecard at the
-       close, and the last sessions to replay. Everything is computed here
-       from the tape, the worker's prints and the calendar; no server state. */
-    const DESK = {
-      tape: null, bars: new Map(), last: null, prevClose: null, fetchedAt: 0, fullAt: 0,
-      day: null, days: [], agg: [1, 5, 15].includes(+localStorage.getItem('echelon-desk-agg')) ? +localStorage.getItem('echelon-desk-agg') : 5,
-      gex: null, gexDay: null, gexNote: '',
-      timer: null, clock: null, raf: 0, hover: null, alerts: new Map(), on: false, err: null, lastPx: null, levels: [],
+    /* ══ Chart: NQ, the way a charting platform does it ═══════════════════
+       The archive (nq_bars through the tape function) plus the live
+       1-minute tail. Drag to pan, wheel or pinch to zoom, drag either axis
+       to scale, timeframes from a minute to a day, candles / bars / line /
+       area / hollow, a crosshair with an OHLC legend, volume, sessions,
+       EMA and VWAP, drawings, bar-by-bar replay, and a settings drawer for
+       every colour and toggle. One canvas, redrawn on demand. */
+    const CH_TF = { '1m': ['1m', 1], '3m': ['1m', 3], '5m': ['5m', 5], '15m': ['5m', 15], '30m': ['5m', 30], '1h': ['60m', 60], '4h': ['60m', 240], 'D': ['1d', 1440] }
+    const CH_SPAN = { '1m': 32, '5m': 62, '60m': 740, '1d': 9800 }   // days each source reaches back, at most
+    const CH_DEFAULTS = { type: 'candles', up: '', down: '', wickUp: '', wickDown: '', border: true, grid: true, volume: true, sessions: true, lastLine: true, legend: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: true, bg: '' }
+    const CH = {
+      on: false, raf: 0, timer: null, err: null, busy: 0, wired: false,
+      base: { '1m': [], '5m': [], '60m': [], '1d': [] }, have: { '1m': null, '5m': null, '60m': null, '1d': null },
+      tf: CH_TF[localStorage.getItem('echelon-chart-tf')] ? localStorage.getItem('echelon-chart-tf') : '5m',
+      bars: [], barW: 9, offset: 6, auto: true, pMin: 0, pMax: 0, tfSec: 300,
+      hover: null, drag: null, pointers: new Map(), pinch: null, lastTap: 0,
+      tool: 'cross', drawings: [], sel: null, pending: null, measure: null, handle: null,
+      replay: { on: false, cut: null, playing: false, speed: 1, timer: null, arm: false },
+      s: null, gexLive: null, menu: null,
     }
-    const DK_OPEN = 9 * 60 + 30, DK_CLOSE = 16 * 60, DK_X0 = 8 * 60, DK_X1 = 16 * 60 + 15, DK_GLOBEX = 18 * 60
-    const DK_PARTS = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    function etOf(ms) {
-      const p = {}; for (const x of DK_PARTS.formatToParts(new Date(ms))) p[x.type] = x.value
-      const h = (+p.hour) % 24
-      return { day: `${p.year}-${p.month}-${p.day}`, wd: p.weekday, h, m: +p.minute, s: +p.second, min: h * 60 + +p.minute }
-    }
-    // a bar after 18:00 ET belongs to the next calendar day's session
-    function dkSessionDay(sec) {
-      const e = etOf(sec * 1000)
-      if (e.min < DK_GLOBEX) return e.day
-      const d = new Date(e.day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1)
-      return d.toISOString().slice(0, 10)
-    }
-    const dkPts = (v, signed = true) => (v == null || isNaN(v)) ? '–' : (v < 0 ? '−' : signed && v > 0 ? '+' : '') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: Math.abs(v) < 10 ? 2 : 0 })
-    const dkPx = (v) => v == null || isNaN(v) ? '–' : Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    const dkPx0 = (v) => v == null || isNaN(v) ? '–' : Math.round(v).toLocaleString('en-US')
-    const dkClock = (min) => { const h = Math.floor(min / 60), m = min % 60; return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}` }
-    const dkDayLabel = (day, long = false) => new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: long ? 'long' : 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
-    const dkGexOk = () => state.owned.has('d1-gex') || state.isMod || state.isAdmin
+    try { CH.s = { ...CH_DEFAULTS, ...JSON.parse(localStorage.getItem('echelon-chart-settings') || '{}') } } catch { CH.s = { ...CH_DEFAULTS } }
+    try { CH.drawings = JSON.parse(localStorage.getItem('echelon-chart-drawings') || '[]') } catch { CH.drawings = [] }
+    const chSave = () => { try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)); localStorage.setItem('echelon-chart-drawings', JSON.stringify(CH.drawings)) } catch {} }
 
-    // what the clock says about the session right now
-    function dkSession(nowMs = Date.now()) {
-      const e = etOf(nowMs)
-      const weekday = !['Sat', 'Sun'].includes(e.wd)
-      const holiday = newsEvents.find((x) => x.impact === 'Holiday' && ET_DAY.format(x.at) === e.day)
-      if (holiday && holiday.kind !== 'early') return { key: 'holiday', label: holiday.title, day: e.day, e }
-      const close = holiday?.kind === 'early' ? 13 * 60 : DK_CLOSE
-      if (weekday && e.min >= DK_OPEN && e.min < close) return { key: 'open', label: 'Open', day: e.day, e, until: close - e.min, untilK: 'Until close' }
-      if (weekday && e.min < DK_OPEN && e.min >= 4 * 60) return { key: 'pre', label: 'Pre-market', day: e.day, e, until: DK_OPEN - e.min, untilK: 'Until open' }
-      if (weekday && e.min < 4 * 60) return { key: 'globex', label: 'Globex', day: e.day, e, until: DK_OPEN - e.min, untilK: 'Until open' }
-      const toNextOpen = (1440 - e.min) + DK_OPEN
-      if ((weekday && e.wd !== 'Fri') || (e.wd === 'Sun' && e.min >= DK_GLOBEX)) {
-        if (e.wd === 'Sun' || e.min >= DK_GLOBEX) return { key: 'globex', label: 'Globex', day: e.day, e, until: toNextOpen, untilK: 'Until open' }
-        return { key: 'closed', label: 'Closed', day: e.day, e, until: DK_GLOBEX - e.min, untilK: 'Globex opens in' }
+    /* ── time: everything is bucketed on New York wall-clock ── */
+    const chOffCache = new Map()
+    function chEtOff(t) {   // seconds to add to a UTC epoch to land on New York wall-clock
+      const k = Math.floor(t / 86400)
+      let v = chOffCache.get(k)
+      if (v == null) {
+        const s = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'shortOffset' }).formatToParts(new Date(t * 1000)).find((p) => p.type === 'timeZoneName')?.value || 'GMT-4'
+        const m = /GMT([+-]\d+)/.exec(s); v = (m ? +m[1] : -4) * 3600; chOffCache.set(k, v)
       }
-      return { key: 'weekend', label: 'Weekend', day: e.day, e }
+      return v
     }
+    const chWall = (t) => CH.s.tz === 'local' ? t - new Date(t * 1000).getTimezoneOffset() * 60 : t + chEtOff(t)
+    const chMin = (t) => Math.floor(((t + chEtOff(t)) % 86400 + 86400) % 86400 / 60)   // ET minute of day
+    const chSessionKey = (t) => Math.floor((t + chEtOff(t) + 6 * 3600) / 86400)          // 18:00 ET rolls to the next day
+    const chFmtTime = (t) => { const w = chWall(t), m = Math.floor((w % 86400 + 86400) % 86400 / 60); const h = Math.floor(m / 60), mm = m % 60; return `${((h + 11) % 12) + 1}:${String(mm).padStart(2, '0')}${h < 12 ? 'a' : 'p'}` }
+    const chFmtDate = (t, long = false) => new Date(t * 1000).toLocaleDateString('en-US', { timeZone: CH.s.tz === 'local' ? undefined : 'America/New_York', month: 'short', day: 'numeric', ...(long ? { weekday: 'short', year: 'numeric' } : {}) })
+    const chPx = (v, d = 2) => v == null || isNaN(v) ? '' : Number(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
+    const chPts = (v) => (v < 0 ? '−' : '+') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 })
 
-    async function loadTape(full = false) {
+    /* ── data ── */
+    async function chFetch(qs) {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-      const range = full || Date.now() - DESK.fullAt > 5 * 60 * 1000 ? '5d' : '1d'
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/tape?range=${range}`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}` }, cache: 'no-store' })
-      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || `tape ${res.status}`) }
-      const t = await res.json()
-      if (range === '5d') { DESK.bars = new Map(); DESK.fullAt = Date.now() }
-      for (const b of t.bars) DESK.bars.set(b[0], b)
-      DESK.tape = t; DESK.fetchedAt = Date.now(); DESK.err = null
-      const prevPx = DESK.last
-      DESK.last = t.last
-      if (t.prevClose != null && range === '1d') DESK.prevClose = t.prevClose
-      // replayable sessions: every day with regular-hours bars, newest first
-      const seen = new Map()
-      for (const b of DESK.bars.values()) { const d = dkSessionDay(b[0]); const m = etOf(b[0] * 1000).min; if (m >= DK_OPEN && m < DK_CLOSE) seen.set(d, (seen.get(d) || 0) + 1) }
-      DESK.days = [...seen.entries()].filter(([, c]) => c > 30).map(([d]) => d).sort().reverse().slice(0, 6)
-      if (prevPx != null && t.last !== prevPx) DESK.tickDir = t.last > prevPx ? 'up' : 'down'
+      if (!session) throw new Error('signed out')
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/tape?${qs}`, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}` }, cache: 'no-store' })
+      if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || `tape ${r.status}`) }
+      return r.json()
     }
-
-    // the bars of one session, in order; overnight = prior 18:00 to 09:30
-    function dkSessionBars(day) {
-      const out = []
-      for (const b of DESK.bars.values()) if (dkSessionDay(b[0]) === day) out.push(b)
-      return out.sort((a, b) => a[0] - b[0])
+    // merge sorted bars: newer rows replace older ones on the same timestamp
+    function chMerge(into, add) {
+      if (!add?.length) return into
+      const map = new Map(into.map((b) => [b[0], b]))
+      for (const b of add) map.set(b[0], b)
+      return [...map.values()].sort((a, b) => a[0] - b[0])
     }
-    function dkAggregate(bars, agg) {
-      if (agg <= 1) return bars.map((b) => ({ t: b[0], o: b[1], h: b[2], l: b[3], c: b[4], v: b[5], min: etOf(b[0] * 1000).min }))
-      const out = []; let cur = null
-      for (const b of bars) {
-        const m = etOf(b[0] * 1000).min, slot = Math.floor(m / agg) * agg
-        if (!cur || cur.min !== slot || dkSessionDay(cur.t) !== dkSessionDay(b[0])) { cur = { t: b[0], o: b[1], h: b[2], l: b[3], c: b[4], v: b[5], min: slot }; out.push(cur) }
-        else { cur.h = Math.max(cur.h, b[2]); cur.l = Math.min(cur.l, b[3]); cur.c = b[4]; cur.v += b[5] }
+    function chBusy(d) { CH.busy = Math.max(0, CH.busy + d); const b = el('ch-busy'); if (b) b.hidden = !CH.busy }
+    async function chLoad(src) {
+      if (CH.have[src]) return
+      CH.have[src] = 'loading'; chBusy(1)
+      try {
+        const from = new Date(Date.now() - CH_SPAN[src] * 864e5).toISOString().slice(0, 10), to = new Date(Date.now() + 864e5).toISOString().slice(0, 10)
+        const j = await chFetch(`interval=${src}&from=${from}&to=${to}`)
+        CH.base[src] = chMerge(CH.base[src], j.bars); CH.have[src] = true; CH.err = null
+      } catch (err) { CH.have[src] = null; CH.err = err.message }
+      finally { chBusy(-1); chBuild(); chDraw() }
+    }
+    async function chTail() {   // the live minutes, merged over the archive
+      try {
+        const j = await chFetch('range=1d')
+        CH.base['1m'] = chMerge(CH.base['1m'], j.bars); CH.err = null
+        CH.last = j.last; CH.prevClose = j.prevClose ?? CH.prevClose
+      } catch (err) { CH.err = err.message }
+      chBuild(); chDraw()
+    }
+    // bars of the current timeframe: the fine archive where it reaches, the coarse one before that
+    function chAggregate(src, m) {
+      const out = []; let cur = null, key = null
+      for (const b of src) {
+        const k = m >= 1440 ? chSessionKey(b[0]) : Math.floor((b[0] + chEtOff(b[0])) / (m * 60))
+        if (k !== key) { key = k; cur = { k, t: m >= 1440 ? b[0] : k * m * 60 - chEtOff(b[0]), o: b[1], h: b[2], l: b[3], c: b[4], v: b[5] }; out.push(cur) }
+        else { if (b[2] > cur.h) cur.h = b[2]; if (b[3] < cur.l) cur.l = b[3]; cur.c = b[4]; cur.v += b[5] }
       }
       return out
     }
-
-    // yesterday's settle: Yahoo's figure when the 1-day tape has landed, else the
-    // last regular-hours close before the day on screen
-    function dkPrevSettle(day, live) {
-      if (live && DESK.prevClose != null) return DESK.prevClose
-      const older = [...DESK.bars.values()].filter((b) => dkSessionDay(b[0]) < day).sort((a, b) => a[0] - b[0])
-      const pd = older.length ? dkSessionDay(older[older.length - 1][0]) : null
-      const prevRth = older.filter((b) => dkSessionDay(b[0]) === pd && etOf(b[0] * 1000).min < DK_CLOSE + 1)
-      return prevRth.length ? prevRth[prevRth.length - 1][4] : (older.length ? older[older.length - 1][4] : null)
+    function chBuild() {
+      const [src, m] = CH_TF[CH.tf]
+      CH.tfSec = m * 60
+      const fine = CH.base['1m']
+      let bars = chAggregate(fine, m)
+      if (src !== '1m' && CH.base[src].length) {
+        const coarse = chAggregate(CH.base[src], m)
+        const firstFine = bars.length ? bars[0].k : Infinity
+        const older = coarse.filter((b) => b.k < firstFine)
+        bars = older.concat(bars)
+      }
+      CH.bars = bars
+      chSetVis()
     }
-    // the levels for the day on screen: structure for everyone, gamma for GEX holders
-    function dkLevels(day, bars, live) {
-      const L = []
-      const on = bars.filter((b) => { const m = etOf(b[0] * 1000).min; return m >= DK_GLOBEX || m < DK_OPEN })
-      const rth = bars.filter((b) => { const m = etOf(b[0] * 1000).min; return m >= DK_OPEN && m < DK_CLOSE })
-      const or = rth.filter((b) => etOf(b[0] * 1000).min < DK_OPEN + 15)
-      const prev = dkPrevSettle(day, live)
-      if (prev != null) L.push({ key: 'prev', name: 'Prior settle', px: prev, kind: 'structure', style: 'dash', color: 'faint' })
-      if (on.length) {
-        L.push({ key: 'onh', name: 'Overnight high', px: Math.max(...on.map((b) => b[2])), kind: 'structure', style: 'solid', color: 'faint' })
-        L.push({ key: 'onl', name: 'Overnight low', px: Math.min(...on.map((b) => b[3])), kind: 'structure', style: 'solid', color: 'faint' })
-      }
-      if (or.length) {
-        L.push({ key: 'orh', name: 'Opening range high', px: Math.max(...or.map((b) => b[2])), kind: 'structure', style: 'box', color: 'ink' })
-        L.push({ key: 'orl', name: 'Opening range low', px: Math.min(...or.map((b) => b[3])), kind: 'structure', style: 'box', color: 'ink' })
-      }
-      if (rth.length) {
-        L.push({ key: 'hod', name: 'Session high', px: Math.max(...rth.map((b) => b[2])), kind: 'structure', style: 'tag', color: 'ink' })
-        L.push({ key: 'lod', name: 'Session low', px: Math.min(...rth.map((b) => b[3])), kind: 'structure', style: 'tag', color: 'ink' })
-      }
-      const g = DESK.gex
-      if (g && dkGexOk()) {
-        const z = g.zdte || {}, sw = g.swing || {}, gt = g.gtbr || {}
-        const put = (key, name, px, style, color, extra = {}) => { if (px != null && !isNaN(px)) L.push({ key, name, px: +px, kind: 'gex', style, color, ...extra }) }
-        put('cw', 'Call wall', z.callWall?.nq, 'solid', 'good', { tag: g.wallHealth?.callWall?.tag, sub: '0DTE' })
-        put('pw', 'Put wall', z.putWall?.nq, 'solid', 'bad', { tag: g.wallHealth?.putWall?.tag, sub: '0DTE' })
-        put('flip', 'Gamma flip', z.flip?.nq ?? (z.flip?.qqq != null && g.conversion ? Math.round(z.flip.qqq * g.conversion.divisor + g.conversion.basis) : null), 'dash', 'gold')
-        put('mw', 'Major wall', g.majorWall?.nq, 'solid', 'gold', { sub: g.majorWall?.strike ? `QQQ ${g.majorWall.strike}` : '' })
-        put('gtu', 'GTBR upper', gt.upperNQ, 'band', 'faint')
-        put('gtl', 'GTBR lower', gt.lowerNQ, 'band', 'faint')
-        put('scw', 'Swing call wall', sw.callWall?.nq, 'dot', 'good')
-        put('spw', 'Swing put wall', sw.putWall?.nq, 'dot', 'bad')
-      }
-      const SHORT = { prev: 'Settle', onh: 'ON high', onl: 'ON low', cw: 'Call wall', pw: 'Put wall', flip: 'Flip', mw: 'Major wall', gtu: 'GTBR top', gtl: 'GTBR low', scw: 'Swing CW', spw: 'Swing PW' }
-      for (const l of L) l.short = SHORT[l.key] || l.name
-      // two levels on one price read as one line with both names
-      const out = []
-      for (const l of L) {
-        const twin = out.find((o) => Math.abs(o.px - l.px) < 0.6 && !['hod', 'lod', 'orh', 'orl'].includes(o.key) && !['hod', 'lod', 'orh', 'orl'].includes(l.key))
-        if (twin) { twin.name += ' · ' + l.name; twin.short += ' · ' + l.short; if (l.kind === 'gex') twin.kind = 'gex'; continue }
-        out.push(l)
-      }
+
+    /* ── geometry ── */
+    function chLayout() {
+      const cv = el('ch-canvas'); const W = cv.clientWidth, H = cv.clientHeight
+      const ax = W < 520 ? 60 : 78, tx = 24
+      const volH = CH.s.volume ? Math.round((H - tx) * 0.16) : 0
+      return { W, H, ax, plotW: W - ax, tx, volH, mainH: H - tx - volH, volTop: H - tx - volH }
+    }
+    const chVisible = () => CH.vis || CH.bars
+    function chSetVis() { CH.vis = CH.replay.on && CH.replay.cut != null ? CH.bars.filter((b) => b.t <= CH.replay.cut) : CH.bars }
+    function chX(i, L) { const n = chVisible().length; return L.plotW - (n - 1 + CH.offset - i + 0.5) * CH.barW }
+    function chI(x, L) { const n = chVisible().length; return n - 1 + CH.offset - (L.plotW - x) / CH.barW + 0.5 }
+    function chY(p, L) { return (CH.pMax - p) / (CH.pMax - CH.pMin || 1) * L.mainH }
+    function chP(y, L) { return CH.pMax - (y / L.mainH) * (CH.pMax - CH.pMin) }
+    function chRange(L) {
+      const bars = chVisible(), n = bars.length
+      const i0 = Math.max(0, Math.floor(chI(0, L))), i1 = Math.min(n - 1, Math.ceil(chI(L.plotW, L)))
+      return { bars, n, i0, i1 }
+    }
+    // time <-> bar index, fractional between bars and beyond the ends
+    function chIofT(t) {
+      const b = chVisible(), n = b.length; if (!n) return 0
+      if (t <= b[0].t) return (t - b[0].t) / CH.tfSec
+      if (t >= b[n - 1].t) return n - 1 + (t - b[n - 1].t) / CH.tfSec
+      let lo = 0, hi = n - 1
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (b[mid].t <= t) lo = mid; else hi = mid }
+      return lo + (t - b[lo].t) / Math.max(b[hi].t - b[lo].t, 1)
+    }
+    function chTofI(i) {
+      const b = chVisible(), n = b.length; if (!n) return 0
+      if (i <= 0) return b[0].t + i * CH.tfSec
+      if (i >= n - 1) return b[n - 1].t + (i - (n - 1)) * CH.tfSec
+      const j = Math.floor(i); return b[j].t + (i - j) * (b[j + 1].t - b[j].t)
+    }
+    function chAutoScale(L) {
+      if (!CH.auto) return
+      const { bars, i0, i1 } = chRange(L)
+      if (!bars.length || i1 < i0) return
+      let lo = Infinity, hi = -Infinity
+      for (let i = i0; i <= i1; i++) { if (bars[i].l < lo) lo = bars[i].l; if (bars[i].h > hi) hi = bars[i].h }
+      if (CH.s.emaOn) for (const e of chEmas()) for (let i = i0; i <= i1; i++) { const v = e.v[i]; if (v != null) { if (v < lo) lo = v; if (v > hi) hi = v } }
+      if (!isFinite(lo)) return
+      const pad = (hi - lo) * 0.08 || 5
+      CH.pMin = lo - pad; CH.pMax = hi + pad
+    }
+
+    /* ── indicators ── */
+    let chEmaCache = { key: '', list: [] }
+    function chEmas() {
+      const bars = chVisible(), key = `${CH.tf}|${bars.length}|${bars[bars.length - 1]?.c}|${CH.s.ema.join()}`
+      if (chEmaCache.key === key) return chEmaCache.list
+      const list = CH.s.ema.filter((n) => n > 0).map((n, idx) => {
+        const k = 2 / (n + 1), v = new Array(bars.length); let e = null
+        for (let i = 0; i < bars.length; i++) { e = e == null ? bars[i].c : bars[i].c * k + e * (1 - k); v[i] = i >= n - 1 ? e : null }
+        return { n, v, color: ['#c9a24a', '#7aa2d9', '#d97ab0'][idx % 3] }
+      })
+      chEmaCache = { key, list }; return list
+    }
+    let chVwapCache = { key: '', v: [] }
+    function chVwap() {
+      const bars = chVisible(), key = `${CH.tf}|${bars.length}|${bars[bars.length - 1]?.c}`
+      if (chVwapCache.key === key) return chVwapCache.v
+      const v = new Array(bars.length); let pv = 0, vol = 0, day = null
+      for (let i = 0; i < bars.length; i++) { const b = bars[i], d = chSessionKey(b.t); if (d !== day) { day = d; pv = 0; vol = 0 } const tp = (b.h + b.l + b.c) / 3; pv += tp * b.v; vol += b.v; v[i] = vol ? pv / vol : null }
+      chVwapCache = { key, v }; return v
+    }
+    function chGexLevels() {
+      const g = CH.gexLive || GEX.live; if (!g || !CH.s.gex || !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return []
+      const z = g.zdte || {}, out = []
+      const put = (name, px, color) => { if (px != null && !isNaN(px)) out.push({ name, px: +px, color }) }
+      put('Call wall', z.callWall?.nq, 'good'); put('Put wall', z.putWall?.nq, 'bad'); put('Flip', z.flip?.nq, 'gold'); put('Major wall', g.majorWall?.nq, 'gold')
+      put('GTBR top', g.gtbr?.upperNQ, 'faint'); put('GTBR low', g.gtbr?.lowerNQ, 'faint')
       return out
     }
-
-    // the gamma print for the day on screen: live board, or the 09:30 print of a replayed day
-    async function dkLoadGex(day, live) {
-      if (!dkGexOk()) { DESK.gex = null; DESK.gexNote = ''; return }
-      try {
-        if (live) {
-          if (GEX.live && Date.now() - GEX.loadedAt < 5 * 60 * 1000) { DESK.gex = GEX.live; DESK.gexDay = day; DESK.gexNote = ''; return }
-          const r = await fetch(`${GEX_URL}/gex.json`, { cache: 'no-store' }); if (!r.ok) throw new Error(`gex-worker ${r.status}`)
-          DESK.gex = await r.json(); DESK.gexDay = day; DESK.gexNote = ''
-          return
-        }
-        if (!GEX.days.length) await loadGexHistory()
-        const entry = GEX.days.find((d) => d.date === day)
-        const t = entry?.times?.find((x) => x >= '0930') || entry?.times?.[entry.times.length - 1]
-        if (!entry || !t) { DESK.gex = null; DESK.gexDay = day; DESK.gexNote = 'No gamma print archived for this day.'; return }
-        const r = await fetch(`${GEX_URL}/gex.json?day=${day}&t=${t}`, { cache: 'no-cache' }); if (!r.ok) throw new Error(`gex-worker ${r.status}`)
-        DESK.gex = await r.json(); DESK.gexDay = day; DESK.gexNote = `Gamma levels from the ${gexTimeLabel(t)} ET print${DESK.day ? '' : '; the live board is on the GEX tab'}.`
-      } catch (err) { DESK.gex = null; DESK.gexNote = `Gamma levels unavailable: ${err.message}` }
-    }
-
-    async function deskShown() {
-      DESK.on = true
-      localStorage.setItem('echelon-desk-seen', '1'); const nd = el('n-desk'); if (nd) nd.hidden = true
-      dkWireOnce()
-      dkSyncAgg()
-      if (!DESK.clock) DESK.clock = setInterval(dkStrip, 1000)
-      const first = !DESK.tape
-      if (first) { el('dk-empty').textContent = 'Loading the tape…'; el('dk-empty').hidden = false }
-      await dkRefresh(true)
-      dkSchedule()
-      if (!newsEvents.length) loadNews().then(() => { if (DESK.on) renderDesk() }).catch(() => {})
-    }
-    function deskHidden() {
-      DESK.on = false
-      clearTimeout(DESK.timer); DESK.timer = null
-      clearInterval(DESK.clock); DESK.clock = null
-    }
-    function dkSchedule() {
-      clearTimeout(DESK.timer)
-      if (!DESK.on) return
-      const st = dkSession()
-      const ms = DESK.day ? 5 * 60 * 1000 : st.key === 'open' ? 20 * 1000 : (st.key === 'pre' || st.key === 'globex') ? 60 * 1000 : 5 * 60 * 1000
-      DESK.timer = setTimeout(() => dkRefresh(false).then(dkSchedule), ms)
-    }
-    async function dkRefresh(full) {
-      try {
-        await loadTape(full)
-        const live = !DESK.day
-        const day = live ? (DESK.days[0] || etOf(Date.now()).day) : DESK.day
-        // while the session trades the levels are the live board; once it is done
-        // (and for any replayed day) the day is judged against its morning print
-        const mode = live && !dkDone(dkSession(), true) ? 'live' : 'morning'
-        if (DESK.gexDay !== day || DESK.gexMode !== mode || (mode === 'live' && DESK.gex && Date.now() - GEX.loadedAt > 5 * 60 * 1000)) { await dkLoadGex(day, mode === 'live'); DESK.gexMode = mode }
-      } catch (err) {
-        DESK.err = err.message
-        if (!DESK.tape) { el('dk-empty').textContent = `The tape is not answering: ${err.message}`; el('dk-empty').hidden = false }
+    function chPrevDay() {
+      if (!CH.s.prevDay) return []
+      const bars = chVisible(); if (!bars.length) return []
+      const today = chSessionKey(bars[bars.length - 1].t)
+      let prevKey = null, h = -Infinity, l = Infinity
+      for (let i = bars.length - 1; i >= 0; i--) {
+        const k = chSessionKey(bars[i].t)
+        if (k >= today) continue
+        if (prevKey == null) prevKey = k
+        if (k !== prevKey) break
+        const m = chMin(bars[i].t)
+        if (CH.tfSec >= 86400 || (m >= 570 && m < 960)) { if (bars[i].h > h) h = bars[i].h; if (bars[i].l < l) l = bars[i].l }
       }
-      renderDesk()
-    }
-    let dkWired = false
-    function dkWireOnce() {
-      if (dkWired) return; dkWired = true
-      el('dk-agg').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { DESK.agg = +b.dataset.v; localStorage.setItem('echelon-desk-agg', String(DESK.agg)); dkSyncAgg(); dkDraw() }))
-      const cv = el('dk-canvas')
-      const move = (e) => { const r = cv.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; DESK.hover = { x: p.clientX - r.left, y: p.clientY - r.top }; dkDraw() }
-      cv.addEventListener('mousemove', move)
-      cv.addEventListener('touchstart', move, { passive: true }); cv.addEventListener('touchmove', move, { passive: true })
-      cv.addEventListener('mouseleave', () => { DESK.hover = null; dkDraw() })
-      cv.addEventListener('touchend', () => { DESK.hover = null; dkDraw() })
-      new ResizeObserver(() => dkDraw()).observe(el('dk-stage'))
-      new MutationObserver(() => dkDraw()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-      document.addEventListener('visibilitychange', () => { if (!document.hidden && DESK.on) { dkRefresh(false).then(dkSchedule) } })
-    }
-    function dkSyncAgg() { el('dk-agg').querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.v === DESK.agg)) }
-
-    // the strip: state, clock, last, change, range, countdown, the day chips
-    function dkStrip() {
-      const st = dkSession()
-      const live = !DESK.day
-      const pill = el('dk-pill')
-      pill.className = 'dk-pill ' + (live ? (st.key === 'open' ? 'open' : st.key === 'pre' ? 'pre' : '') : 'replay')
-      pill.textContent = live ? st.label : `Replay · ${dkDayLabel(DESK.day)}`
-      const e = st.e
-      el('dk-clock').textContent = `${dkClock(e.min).replace(' ', `:${String(e.s).padStart(2, '0')} `)} ET · ${dkDayLabel(e.day, true)}`
-      const uk = el('dk-until-k'), uv = el('dk-until')
-      if (live && st.until != null) { uk.textContent = st.untilK; const h = Math.floor(st.until / 60), m = st.until % 60; uv.textContent = h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m` }
-      else if (live) { uk.textContent = 'Next session'; uv.textContent = st.key === 'holiday' ? 'after the holiday' : 'Sunday 6:00 PM' }
-      else { uk.textContent = 'Session'; uv.textContent = dkDayLabel(DESK.day) }
+      return h > -Infinity ? [{ name: 'PDH', px: h, color: 'muted' }, { name: 'PDL', px: l, color: 'muted' }] : []
     }
 
-    function renderDesk() {
-      if (!el('v-desk').classList.contains('on')) { renderOvDesk(); return }
-      dkStrip()
-      const live = !DESK.day
-      const day = live ? (DESK.days[0] || etOf(Date.now()).day) : DESK.day
-      const bars = dkSessionBars(day)
-      const rth = bars.filter((b) => { const m = etOf(b[0] * 1000).min; return m >= DK_OPEN && m < DK_CLOSE })
-      const last = live ? DESK.last : (rth.length ? rth[rth.length - 1][4] : (bars.length ? bars[bars.length - 1][4] : null))
-      DESK.levels = dkLevels(day, bars, live)
-      const prev = DESK.levels.find((l) => l.key === 'prev')?.px ?? null
-      // last + change
-      const lv = el('dk-last'); lv.textContent = dkPx(last)
-      lv.classList.remove('tick-up', 'tick-down'); if (live && DESK.tickDir) { void lv.offsetWidth; lv.classList.add('tick-' + DESK.tickDir); DESK.tickDir = null; clearTimeout(DESK.tickT); DESK.tickT = setTimeout(() => lv.classList.remove('tick-up', 'tick-down'), 900) }
-      const chg = el('dk-chg'); chg.className = 'chg'
-      if (last != null && prev != null) { const d = last - prev; chg.textContent = `${dkPts(d)} · ${(d / prev * 100).toFixed(2)}%`; chg.classList.add(d >= 0 ? 'up' : 'down') } else chg.textContent = ''
-      const hod = DESK.levels.find((l) => l.key === 'hod')?.px, lod = DESK.levels.find((l) => l.key === 'lod')?.px
-      el('dk-range').textContent = hod != null ? `${dkPx0(lod)} to ${dkPx0(hod)} · ${dkPts(hod - lod, false)} pts` : (bars.length ? 'no regular-hours bars yet' : '–')
-      // day chips
-      const dh = el('dk-days'); dh.textContent = ''
-      const mk = (label, d) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.classList.toggle('on', DESK.day === d); b.addEventListener('click', () => dkPick(d)); dh.appendChild(b) }
-      mk('Today', null)
-      for (const d of DESK.days.filter((d) => d !== DESK.days[0] || DESK.day)) if (d !== (live ? DESK.days[0] : null)) mk(dkDayLabel(d), d)
-      el('dk-tape-title').textContent = live ? 'The tape' : `The tape · ${dkDayLabel(DESK.day, true)}`
-      el('dk-stamp').textContent = DESK.err ? `last good print · ${DESK.err}` : (DESK.fetchedAt ? `${dkClock(etOf(DESK.fetchedAt).min)} ET` : '')
-      el('dk-empty').hidden = bars.length > 0
-      if (!bars.length) el('dk-empty').textContent = DESK.err ? `The tape is not answering: ${DESK.err}` : 'No bars for this session yet.'
-      dkDraw()
-      dkLadder(last)
-      dkRead(day, bars, rth, last, prev, live)
-      dkNews(day)
-      dkScore(day, rth, live)
-      if (live) dkAlerts(last)
-      renderOvDesk()
-    }
-    function dkPick(day) {
-      DESK.day = day; DESK.hover = null
-      dkRefresh(false).then(dkSchedule)
-    }
-
-    /* ── the chart ── */
-    function dkDraw() {
-      cancelAnimationFrame(DESK.raf)
-      DESK.raf = requestAnimationFrame(dkPaint)
-    }
-    function dkPaint() {
-      const cv = el('dk-canvas'); if (!cv || !el('v-desk').classList.contains('on')) return
-      const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(window.devicePixelRatio || 1, 2)
-      if (!W || !H) return
-      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr) }
-      const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H)
-      const T = gexTokens()
-      const live = !DESK.day
-      const day = live ? (DESK.days[0] || etOf(Date.now()).day) : DESK.day
-      const all = dkSessionBars(day)
-      const bars = dkAggregate(all, DESK.agg).filter((b) => b.min >= DK_X0 && b.min < DK_X1)
-      const phone = W < 520
-      const PL = 6, PR = phone ? 64 : 104, PT = 16, PB = 22
-      const X = (min) => PL + ((min - DK_X0) / (DK_X1 - DK_X0)) * (W - PL - PR)
+    /* ── drawing ── */
+    function chDraw() { cancelAnimationFrame(CH.raf); CH.raf = requestAnimationFrame(chPaint) }
+    function chPaint() {
+      const cv = el('ch-canvas'); if (!cv || !CH.on) return
+      const L = chLayout(); if (!L.W || !L.H) return
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      if (cv.width !== Math.round(L.W * dpr) || cv.height !== Math.round(L.H * dpr)) { cv.width = Math.round(L.W * dpr); cv.height = Math.round(L.H * dpr) }
+      const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      const T = gexTokens(), S = CH.s, light = document.documentElement.getAttribute('data-theme') === 'light'
+      const C = { up: S.up || T.good, down: S.down || T.bad, wickUp: S.wickUp || S.up || T.good, wickDown: S.wickDown || S.down || T.bad }
+      const col = (c) => ({ good: T.good, bad: T.bad, gold: T.gold, faint: T.faint, muted: T.muted, ink: T.ink })[c] || c
+      const BG = S.bg || cssVar('--bg') || (light ? '#f6f4f0' : '#0b0a09')
+      ctx.fillStyle = BG; ctx.fillRect(0, 0, L.W, L.H)
+      const { bars, n, i0, i1 } = chRange(L)
+      chAutoScale(L)
       ctx.font = `11px ${GEX_FONT}`; ctx.textBaseline = 'middle'
-      if (!bars.length) return
-      const last = live ? DESK.last : bars[bars.length - 1].c
-      // y domain: the bars and the last price, then any level within most of
-      // one bar-range of them (measured against the bars, so nothing cascades)
-      const bLo = Math.min(...bars.map((b) => b.l), last ?? Infinity), bHi = Math.max(...bars.map((b) => b.h), last ?? -Infinity)
-      const reach = Math.max(bHi - bLo, 40) * 0.75
-      let lo = bLo, hi = bHi
-      for (const l of DESK.levels) if (!['hod', 'lod'].includes(l.key) && l.px > bLo - reach && l.px < bHi + reach) { lo = Math.min(lo, l.px); hi = Math.max(hi, l.px) }
-      const pad = (hi - lo) * 0.07 || 10; lo -= pad; hi += pad
-      const Y = (px) => PT + (1 - (px - lo) / (hi - lo)) * (H - PT - PB)
-      // pre-market shade
-      ctx.fillStyle = alpha(T.ink, document.documentElement.getAttribute('data-theme') === 'light' ? 0.035 : 0.045)
-      ctx.fillRect(X(DK_X0), PT, X(DK_OPEN) - X(DK_X0), H - PT - PB)
-      ctx.fillRect(X(DK_CLOSE), PT, X(DK_X1) - X(DK_CLOSE), H - PT - PB)
-      // price grid: lines now, labels after the level tags have taken their places
-      const step = niceStep(hi - lo, 5)
-      const gridYs = []
-      ctx.strokeStyle = T.line; ctx.lineWidth = 1
-      for (let p = Math.ceil(lo / step) * step; p < hi; p += step) { const y = Math.round(Y(p)) + 0.5; ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W - PR, y); ctx.stroke(); gridYs.push({ y, p }) }
-      // time axis
-      ctx.textAlign = 'center'
-      for (let m = 8 * 60; m <= 16 * 60; m += 60) { const x = Math.round(X(m)) + 0.5; ctx.strokeStyle = T.line; ctx.beginPath(); ctx.moveTo(x, H - PB); ctx.lineTo(x, H - PB + 4); ctx.stroke(); ctx.fillStyle = m === DK_OPEN - 30 ? T.faint : T.faint; ctx.fillText(m === 9 * 60 ? '9' : String(((m / 60 + 11) % 12) + 1), x, H - 9) }
-      { const x = Math.round(X(DK_OPEN)) + 0.5; ctx.strokeStyle = T.lineB; ctx.setLineDash([2, 4]); ctx.beginPath(); ctx.moveTo(x, PT); ctx.lineTo(x, H - PB); ctx.stroke(); ctx.setLineDash([]) }
-      // bands and boxes first, lines after, price on top
-      const col = (c) => ({ faint: T.faint, ink: T.ink, gold: T.gold, good: T.good, bad: T.bad, muted: T.muted })[c] || T.faint
-      const gtu = DESK.levels.find((l) => l.key === 'gtu'), gtl = DESK.levels.find((l) => l.key === 'gtl')
-      if (gtu && gtl) { ctx.fillStyle = alpha(T.gold, 0.06); ctx.fillRect(PL, Y(gtu.px), W - PL - PR, Y(gtl.px) - Y(gtu.px)) }
-      const orh = DESK.levels.find((l) => l.key === 'orh'), orl = DESK.levels.find((l) => l.key === 'orl')
-      if (orh && orl) { ctx.fillStyle = alpha(T.ink, 0.05); ctx.fillRect(X(DK_OPEN), Y(orh.px), W - PR - X(DK_OPEN), Y(orl.px) - Y(orh.px)); ctx.strokeStyle = alpha(T.ink, 0.25); ctx.strokeRect(X(DK_OPEN) + 0.5, Math.round(Y(orh.px)) + 0.5, W - PR - X(DK_OPEN) - 1, Math.round(Y(orl.px)) - Math.round(Y(orh.px))) }
-      const tags = []
-      for (const l of DESK.levels) {
-        if (['orh', 'orl', 'hod', 'lod'].includes(l.key)) continue
-        if (l.px < lo || l.px > hi) continue
-        const y = Math.round(Y(l.px)) + 0.5, c = col(l.color)
-        ctx.strokeStyle = l.kind === 'gex' ? alpha(c, 0.75) : alpha(c, 0.55); ctx.lineWidth = l.key === 'flip' || l.key === 'mw' ? 1.5 : 1
-        ctx.setLineDash(l.style === 'dash' ? [6, 5] : l.style === 'dot' ? [2, 4] : l.style === 'band' ? [1, 3] : [])
-        ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W - PR, y); ctx.stroke(); ctx.setLineDash([])
-        tags.push({ y, text: phone ? dkPx0(l.px) : `${l.short} ${dkPx0(l.px)}`, c: l.kind === 'gex' ? c : T.muted })
+      if (!n) { ctx.fillStyle = T.faint; ctx.textAlign = 'center'; ctx.fillText(CH.err ? `The tape is not answering: ${CH.err}` : 'Loading the archive…', L.plotW / 2, L.mainH / 2); return }
+      // sessions: shade everything outside 9:30 to 16:00 ET, hairline at each open
+      if (S.sessions && CH.tfSec < 86400) {
+        ctx.fillStyle = alpha(T.ink, light ? 0.035 : 0.045)
+        let runStart = null
+        for (let i = i0; i <= i1 + 1; i++) {
+          const b = bars[i]; const m = b ? chMin(b.t) : null; const rth = m != null && m >= 570 && m < 960
+          if (!rth && b && runStart == null) runStart = chX(i, L) - CH.barW / 2
+          if ((rth || !b) && runStart != null) { const xe = b ? chX(i, L) - CH.barW / 2 : L.plotW; ctx.fillRect(Math.max(0, runStart), 0, Math.min(L.plotW, xe) - Math.max(0, runStart), L.mainH + L.volH); runStart = null }
+          if (b && rth && i > 0 && chMin(bars[i - 1].t) < 570 && CH.tfSec <= 1800) { const x = Math.round(chX(i, L) - CH.barW / 2) + 0.5; ctx.strokeStyle = T.line; ctx.setLineDash([2, 4]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.mainH + L.volH); ctx.stroke(); ctx.setLineDash([]) }
+        }
       }
-      // session high and low sit beside the bar that made them
-      const hod = DESK.levels.find((l) => l.key === 'hod'), lod = DESK.levels.find((l) => l.key === 'lod')
-      const hBar = hod && bars.reduce((b, x) => (x.h >= (b?.h ?? -Infinity) ? x : b), null), lBar = lod && bars.reduce((b, x) => (x.l <= (b?.l ?? Infinity) ? x : b), null)
-      ctx.fillStyle = T.muted; ctx.textAlign = 'center'; ctx.font = `10.5px ${GEX_FONT}`
-      if (hBar) ctx.fillText(`H ${dkPx0(hod.px)}`, Math.min(Math.max(X(hBar.min + DESK.agg / 2), PL + 28), W - PR - 28), Y(hod.px) - 9)
-      if (lBar) ctx.fillText(`L ${dkPx0(lod.px)}`, Math.min(Math.max(X(lBar.min + DESK.agg / 2), PL + 28), W - PR - 28), Y(lod.px) + 10)
-      ctx.font = `11px ${GEX_FONT}`
-      // candles
-      const slot = (W - PL - PR) / ((DK_X1 - DK_X0) / DESK.agg)
-      const bw = Math.max(1, Math.min(9, slot * 0.68))
-      for (const b of bars) {
-        const x = X(b.min + DESK.agg / 2), up = b.c >= b.o
-        ctx.strokeStyle = up ? T.good : T.bad; ctx.fillStyle = up ? T.good : T.bad; ctx.lineWidth = 1
-        ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, Y(b.h)); ctx.lineTo(Math.round(x) + 0.5, Y(b.l)); ctx.stroke()
-        const y1 = Y(Math.max(b.o, b.c)), y2 = Y(Math.min(b.o, b.c))
-        if (bw >= 2) ctx.fillRect(Math.round(x - bw / 2), y1, Math.round(bw), Math.max(1, y2 - y1))
+      // grid
+      const step = niceStep(CH.pMax - CH.pMin, Math.max(3, Math.round(L.mainH / 70)))
+      const ticks = []
+      for (let p = Math.ceil(CH.pMin / step) * step; p < CH.pMax; p += step) ticks.push(p)
+      if (S.grid) { ctx.strokeStyle = alpha(T.line, 0.9); ctx.lineWidth = 1; for (const p of ticks) { const y = Math.round(chY(p, L)) + 0.5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke() } }
+      // time labels: a label every ~90px, snapped to round times
+      const labelEvery = Math.max(1, Math.round(90 / CH.barW))
+      const tlabels = []
+      let lastDay = null
+      for (let i = Math.max(0, i0 - 1); i <= i1; i++) {
+        const b = bars[i], w = chWall(b.t), day = Math.floor(w / 86400), m = Math.floor((w % 86400 + 86400) % 86400 / 60)
+        const newDay = lastDay != null && day !== lastDay; lastDay = day
+        let want = newDay
+        if (!want) {
+          const secsPerLabel = labelEvery * CH.tfSec
+          const snap = [60, 300, 900, 1800, 3600, 7200, 14400, 43200, 86400].find((x) => x >= secsPerLabel) || 86400
+          want = CH.tfSec >= 86400 ? (i === 0 || new Date(bars[i - 1].t * 1000).getUTCMonth() !== new Date(b.t * 1000).getUTCMonth()) : (w % snap === 0)
+        }
+        if (want) tlabels.push({ x: chX(i, L), text: CH.tfSec >= 86400 ? chFmtDate(b.t) : newDay ? chFmtDate(b.t) : chFmtTime(b.t), strong: newDay })
       }
+      if (S.grid) { ctx.strokeStyle = alpha(T.line, 0.6); for (const t of tlabels) { const x = Math.round(t.x) + 0.5; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.mainH + L.volH); ctx.stroke() } }
+      // volume
+      if (S.volume && L.volH) {
+        let vmax = 0; for (let i = i0; i <= i1; i++) if (bars[i].v > vmax) vmax = bars[i].v
+        for (let i = i0; i <= i1; i++) { const b = bars[i]; const h = vmax ? (b.v / vmax) * (L.volH - 6) : 0; const x = chX(i, L); ctx.fillStyle = alpha(b.c >= b.o ? C.up : C.down, 0.35); ctx.fillRect(Math.round(x - Math.max(1, CH.barW * 0.7) / 2), L.H - L.tx - h, Math.max(1, CH.barW * 0.7), h) }
+      }
+      // previous day and gamma levels
+      const lv = [...chPrevDay(), ...chGexLevels()]
+      for (const l of lv) { if (l.px < CH.pMin || l.px > CH.pMax) continue; const y = Math.round(chY(l.px, L)) + 0.5; ctx.strokeStyle = alpha(col(l.color), 0.7); ctx.setLineDash(l.color === 'faint' ? [1, 3] : [4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = alpha(col(l.color), 0.9); ctx.textAlign = 'right'; ctx.font = `10px ${GEX_FONT}`; ctx.fillText(l.name, L.plotW - 6, y - 7); ctx.font = `11px ${GEX_FONT}` }
+      // price
+      const bw = Math.max(1, Math.min(CH.barW * 0.72, 40))
+      ctx.lineWidth = 1
+      if (S.type === 'line' || S.type === 'area') {
+        ctx.beginPath()
+        for (let i = i0; i <= i1; i++) { const x = chX(i, L), y = chY(bars[i].c, L); if (i === i0) ctx.moveTo(x, y); else ctx.lineTo(x, y) }
+        if (S.type === 'area') { ctx.save(); ctx.strokeStyle = T.gold; ctx.lineWidth = 1.6; ctx.stroke(); ctx.lineTo(chX(i1, L), L.mainH); ctx.lineTo(chX(i0, L), L.mainH); ctx.closePath(); const gr = ctx.createLinearGradient(0, 0, 0, L.mainH); gr.addColorStop(0, alpha(T.gold, 0.28)); gr.addColorStop(1, alpha(T.gold, 0)); ctx.fillStyle = gr; ctx.fill(); ctx.restore() }
+        else { ctx.strokeStyle = T.gold; ctx.lineWidth = 1.6; ctx.stroke(); ctx.lineWidth = 1 }
+      } else {
+        for (let i = i0; i <= i1; i++) {
+          const b = bars[i], up = b.c >= b.o, x = Math.round(chX(i, L)) + 0.5
+          const yo = chY(b.o, L), yc = chY(b.c, L), yh = chY(b.h, L), yl = chY(b.l, L)
+          if (S.type === 'bars') {
+            ctx.strokeStyle = up ? C.up : C.down; ctx.beginPath(); ctx.moveTo(x, yh); ctx.lineTo(x, yl); ctx.moveTo(x - bw / 2, yo); ctx.lineTo(x, yo); ctx.moveTo(x, yc); ctx.lineTo(x + bw / 2, yc); ctx.stroke()
+            continue
+          }
+          ctx.strokeStyle = up ? C.wickUp : C.wickDown; ctx.beginPath(); ctx.moveTo(x, yh); ctx.lineTo(x, Math.min(yo, yc)); ctx.moveTo(x, Math.max(yo, yc)); ctx.lineTo(x, yl); ctx.stroke()
+          const top = Math.min(yo, yc), hgt = Math.max(1, Math.abs(yc - yo))
+          if (bw < 2) { ctx.strokeStyle = up ? C.up : C.down; ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, top + hgt); ctx.stroke(); continue }
+          if (S.type === 'hollow' && up) { ctx.strokeStyle = C.up; ctx.strokeRect(Math.round(x - bw / 2) + 0.5, Math.round(top) + 0.5, Math.round(bw) - 1, Math.max(1, Math.round(hgt) - 1)) }
+          else { ctx.fillStyle = up ? C.up : C.down; ctx.fillRect(Math.round(x - bw / 2), Math.round(top), Math.round(bw), Math.max(1, Math.round(hgt))); if (S.border && bw >= 4) { ctx.strokeStyle = alpha(light ? '#000000' : '#000000', 0.25); ctx.strokeRect(Math.round(x - bw / 2) + 0.5, Math.round(top) + 0.5, Math.round(bw) - 1, Math.max(1, Math.round(hgt) - 1)) } }
+        }
+      }
+      // EMA and VWAP
+      if (S.emaOn) for (const e of chEmas()) { ctx.strokeStyle = e.color; ctx.lineWidth = 1.2; ctx.beginPath(); let started = false; for (let i = i0; i <= i1; i++) { const v = e.v[i]; if (v == null) continue; const x = chX(i, L), y = chY(v, L); if (!started) { ctx.moveTo(x, y); started = true } else ctx.lineTo(x, y) } ctx.stroke() }
+      if (S.vwap) { const v = chVwap(); ctx.strokeStyle = alpha(T.ink, 0.7); ctx.lineWidth = 1.2; ctx.setLineDash([5, 3]); ctx.beginPath(); let prevDay = null; for (let i = i0; i <= i1; i++) { if (v[i] == null) continue; const d = chSessionKey(bars[i].t); const x = chX(i, L), y = chY(v[i], L); if (d !== prevDay) { ctx.moveTo(x, y); prevDay = d } else ctx.lineTo(x, y) } ctx.stroke(); ctx.setLineDash([]) }
+      ctx.lineWidth = 1
       // last price
-      if (last != null) {
-        const y = Math.round(Y(last)) + 0.5
-        ctx.strokeStyle = alpha(T.gold, 0.9); ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W - PR, y); ctx.stroke(); ctx.setLineDash([])
-        ctx.fillStyle = T.gold; ctx.fillRect(W - PR + 4, y - 9, Math.min(PR - 6, 66), 18)
-        ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'light' ? '#fff' : '#1a1207'; ctx.font = `600 11px ${GEX_FONT}`; ctx.textAlign = 'left'; ctx.fillText(phone ? dkPx0(last) : dkPx(last), W - PR + 9, y)
-        ctx.font = `11px ${GEX_FONT}`
-        tags.push({ y, skip: true })
+      const lastBar = bars[n - 1]
+      if (S.lastLine && lastBar) {
+        const y = Math.round(chY(lastBar.c, L)) + 0.5, up = lastBar.c >= lastBar.o
+        if (lastBar.c >= CH.pMin && lastBar.c <= CH.pMax) { ctx.strokeStyle = alpha(up ? C.up : C.down, 0.9); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([]) }
       }
-      // level tags at the right edge: stacked with a minimum gap, walking
-      // around the last-price marker, which owns its slot
-      const GAP = 13
-      const lastY = tags.find((t) => t.skip)?.y
-      const placed = tags.filter((t) => !t.skip).sort((a, b) => a.y - b.y)
-      const taken = []   // y positions already used, the marker included
-      if (lastY != null) taken.push(lastY)
-      const free = (y) => taken.every((t) => Math.abs(t - y) >= GAP)
-      for (const t of placed) {
-        let y = t.y
-        // try the natural spot, then step away from it, nearest first
-        for (let k = 0; k < 12 && !free(y); k++) y = t.y + (k % 2 ? -1 : 1) * Math.ceil((k + 1) / 2) * GAP
-        if (y < PT + 4) y = PT + 4
-        if (y > H - PB - 4) y = H - PB - 4
-        taken.push(y)
-        ctx.fillStyle = t.c; ctx.textAlign = 'left'; ctx.font = `10.5px ${GEX_FONT}`
-        ctx.fillText(t.text, W - PR + 8, y)
-        // a hairline from the level to its tag when the tag had to move
-        if (Math.abs(y - t.y) > 2) { ctx.strokeStyle = alpha(t.c, 0.5); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(W - PR + 1, t.y); ctx.lineTo(W - PR + 6, y); ctx.stroke() }
-      }
-      // grid labels only where no tag sits
-      ctx.fillStyle = T.faint; ctx.textAlign = 'left'; ctx.font = `10.5px ${GEX_FONT}`
-      for (const g of gridYs) if (free(g.y)) { ctx.fillText(dkPx0(g.p), W - PR + 8, g.y); taken.push(g.y) }
+      // drawings, clipped to the plot; their axis tags come after the axis paints
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH + L.volH); ctx.clip(); chPaintDrawings(ctx, L, T, false); ctx.restore()
+      // clip line for the axes
+      ctx.fillStyle = BG; ctx.fillRect(L.plotW, 0, L.ax, L.H); ctx.fillRect(0, L.H - L.tx, L.W, L.tx)
+      ctx.strokeStyle = T.line; ctx.beginPath(); ctx.moveTo(L.plotW + 0.5, 0); ctx.lineTo(L.plotW + 0.5, L.H); ctx.moveTo(0, L.H - L.tx + 0.5); ctx.lineTo(L.W, L.H - L.tx + 0.5); ctx.stroke()
+      // price axis
+      ctx.fillStyle = T.faint; ctx.textAlign = 'left'
+      for (const p of ticks) ctx.fillText(chPx(p, step < 1 ? 2 : 0), L.plotW + 7, chY(p, L))
+      if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.fillStyle = up ? C.up : C.down; ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = light ? '#fff' : '#0b0a09'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
+      chPaintDrawings(ctx, L, T, true)
+      // time axis
+      ctx.fillStyle = T.faint; ctx.textAlign = 'center'
+      for (const t of tlabels) { if (t.x < 10 || t.x > L.plotW - 10) continue; ctx.fillStyle = t.strong ? T.muted : T.faint; ctx.font = `${t.strong ? 600 : 400} 10.5px ${GEX_FONT}`; ctx.fillText(t.text, t.x, L.H - L.tx / 2) }
+      ctx.font = `11px ${GEX_FONT}`
+      // replay cut marker
+      if (CH.replay.on && CH.replay.cut != null && lastBar) { const x = Math.round(chX(n - 1, L) + CH.barW / 2) + 0.5; ctx.strokeStyle = alpha(T.gold, 0.8); ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.mainH + L.volH); ctx.stroke(); ctx.setLineDash([]) }
       // crosshair
-      const tip = el('dk-tip')
-      if (DESK.hover && DESK.hover.x > PL && DESK.hover.x < W - PR) {
-        const min = DK_X0 + ((DESK.hover.x - PL) / (W - PL - PR)) * (DK_X1 - DK_X0)
-        const b = bars.reduce((best, x) => (Math.abs(x.min + DESK.agg / 2 - min) < Math.abs(best.min + DESK.agg / 2 - min) ? x : best), bars[0])
-        const x = Math.round(X(b.min + DESK.agg / 2)) + 0.5
-        ctx.strokeStyle = alpha(T.ink, 0.35); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x, PT); ctx.lineTo(x, H - PB); ctx.stroke()
-        const yh = Math.round(DESK.hover.y) + 0.5; ctx.beginPath(); ctx.moveTo(PL, yh); ctx.lineTo(W - PR, yh); ctx.stroke(); ctx.setLineDash([])
-        const pxAt = lo + (1 - (DESK.hover.y - PT) / (H - PT - PB)) * (hi - lo)
-        ctx.fillStyle = T.panel2; ctx.fillRect(W - PR + 4, yh - 8, Math.min(PR - 6, 66), 16); ctx.fillStyle = T.ink; ctx.textAlign = 'left'; ctx.fillText(dkPx0(pxAt), W - PR + 9, yh)
-        const d = b.c - b.o
-        tip.innerHTML = `<b>${dkClock(b.min)}</b> ET · ${DESK.agg}m<br>O ${dkPx(b.o)} H ${dkPx(b.h)} L ${dkPx(b.l)} C ${dkPx(b.c)}<br><span class="${d >= 0 ? 'up' : 'down'}">${dkPts(d)} pts</span>${b.v ? ` · ${b.v.toLocaleString()} contracts` : ''}`
-        tip.hidden = false
-        const tw = tip.offsetWidth || 180
-        tip.style.left = `${Math.min(Math.max(8, DESK.hover.x + 14), W - tw - 8)}px`; tip.style.top = `${Math.max(8, DESK.hover.y - 62)}px`
-      } else tip.hidden = true
+      const hv = CH.hover
+      if (hv && hv.x >= 0 && hv.x <= L.plotW && hv.y <= L.H - L.tx) {
+        const i = Math.round(chI(hv.x, L)); const b = bars[i]
+        const x = Math.round(chX(i >= 0 && i < n ? i : chI(hv.x, L), L)) + 0.5, y = Math.round(hv.y) + 0.5
+        ctx.strokeStyle = alpha(T.ink, 0.45); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.H - L.tx); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([])
+        if (hv.y <= L.mainH) { ctx.fillStyle = T.panel2; ctx.fillRect(L.plotW + 2, y - 8, L.ax - 4, 16); ctx.fillStyle = T.ink; ctx.textAlign = 'left'; ctx.fillText(chPx(chP(hv.y, L)), L.plotW + 7, y) }
+        const tt = b ? b.t : chTofI(chI(hv.x, L)); const text = CH.tfSec >= 86400 ? chFmtDate(tt, true) : `${chFmtDate(tt)} ${chFmtTime(tt)}`
+        ctx.font = `600 10.5px ${GEX_FONT}`; const tw = ctx.measureText(text).width + 12; const tx0 = Math.min(Math.max(0, x - tw / 2), L.W - tw)
+        ctx.fillStyle = T.panel2; ctx.fillRect(tx0, L.H - L.tx + 2, tw, L.tx - 4); ctx.fillStyle = T.ink; ctx.textAlign = 'center'; ctx.fillText(text, tx0 + tw / 2, L.H - L.tx / 2); ctx.font = `11px ${GEX_FONT}`
+        chLegend(b || lastBar, b ? i : n - 1)
+      } else chLegend(lastBar, n - 1)
+      if (CH.measure?.b) chPaintMeasure(ctx, L, T)
+      if (CH.replay.arm && hv && hv.x <= L.plotW) { ctx.fillStyle = alpha(T.gold, 0.12); ctx.fillRect(hv.x, 0, L.plotW - hv.x, L.mainH + L.volH) }
+      // latest button
+      const lb = el('ch-latest'); if (lb) lb.hidden = CH.offset >= -2
+    }
+    function chLegend(b, i) {
+      const lg = el('ch-legend'); if (!lg) return
+      lg.hidden = !CH.s.legend
+      if (!b) { lg.textContent = ''; return }
+      const bars = chVisible(); const prev = bars[i - 1]; const d = b.c - b.o; const chg = prev ? b.c - prev.c : d
+      const up = d >= 0
+      lg.innerHTML = `<b>NQ</b><span class="tf">${CH.tf}</span><span>O <i>${chPx(b.o)}</i></span><span>H <i>${chPx(b.h)}</i></span><span>L <i>${chPx(b.l)}</i></span><span>C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)} (${(d / b.o * 100).toFixed(2)}%)</span>${CH.s.volume ? `<span>V <i>${b.v.toLocaleString()}</i></span>` : ''}${CH.s.emaOn ? chEmas().map((e) => `<span style="color:${e.color}">EMA ${e.n} <i>${e.v[i] != null ? chPx(e.v[i]) : '–'}</i></span>`).join('') : ''}${CH.s.vwap ? `<span>VWAP <i>${chVwap()[i] != null ? chPx(chVwap()[i]) : '–'}</i></span>` : ''}`
     }
 
-    /* ── the ladder ── */
-    function dkLadder(last) {
-      const host = el('dk-ladder'); host.textContent = ''
-      const rows = DESK.levels.filter((l) => !['orh', 'orl'].includes(l.key)).sort((a, b) => b.px - a.px)
-      let above = null, below = null
-      if (last != null) { above = rows.filter((l) => l.px >= last).sort((a, b) => a.px - b.px)[0]; below = rows.filter((l) => l.px < last).sort((a, b) => b.px - a.px)[0] }
-      let hereDone = false
-      const put = (l) => {
-        const r = document.createElement('div'); r.className = 'dk-lv' + ((l === above || l === below) ? ' near' : '')
-        const sw = document.createElement('span'); sw.className = 'sw ' + (l.style === 'dash' || l.style === 'dot' ? 'dash ' : '') + (l.kind === 'gex' ? l.color : l.color === 'ink' ? 'ink' : '')
-        const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = l.name
-        if (l.sub || l.tag) { const sm = document.createElement('small'); sm.textContent = [l.sub, l.tag].filter(Boolean).join(' · '); nm.appendChild(sm) }
-        const px = document.createElement('span'); px.className = 'px'; px.textContent = dkPx0(l.px)
-        const dist = document.createElement('span'); dist.className = 'dist'; dist.textContent = last != null ? dkPts(l.px - last) : ''
-        r.append(sw, nm, px, dist); host.appendChild(r)
-      }
-      for (const l of rows) {
-        if (!hereDone && last != null && l.px < last) {
-          const h = document.createElement('div'); h.className = 'dk-lv here'
-          const sw = document.createElement('span'); sw.className = 'sw gold'
-          const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = 'NQ now'
-          const px = document.createElement('span'); px.className = 'px'; px.textContent = dkPx(last)
-          h.append(sw, nm, px, document.createElement('span')); host.appendChild(h); hereDone = true
+    /* ── drawings: horizontal, trendline, ray, rectangle, measure ── */
+    function chPaintDrawings(ctx, L, T, tagsOnly) {
+      const all = CH.pending ? [...CH.drawings, CH.pending] : CH.drawings
+      for (const d of all) {
+        const c = d.color || T.gold, sel = d === CH.sel
+        ctx.strokeStyle = c; ctx.lineWidth = sel ? 2 : 1.3; ctx.setLineDash([])
+        const P = d.p.map((q) => ({ x: chX(chIofT(q.t), L), y: chY(q.p, L) }))
+        if (tagsOnly) { if (d.type === 'hline' && P[0].y >= 0 && P[0].y <= L.mainH) { const y = Math.round(P[0].y) + 0.5; ctx.fillStyle = c; ctx.fillRect(L.plotW + 2, y - 8, L.ax - 4, 16); ctx.fillStyle = '#0b0a09'; ctx.textAlign = 'left'; ctx.font = `600 10.5px ${GEX_FONT}`; ctx.fillText(chPx(d.p[0].p), L.plotW + 6, y); ctx.font = `11px ${GEX_FONT}` } continue }
+        if (d.type === 'hline') { const y = Math.round(P[0].y) + 0.5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke() }
+        else if (d.type === 'trend' || d.type === 'ray') {
+          if (P.length < 2) continue
+          let [a, b] = P
+          if (d.type === 'ray' && b.x !== a.x) { const k = (b.y - a.y) / (b.x - a.x); const xe = b.x > a.x ? L.plotW : 0; b = { x: xe, y: a.y + k * (xe - a.x) } }
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke()
         }
-        put(l)
+        else if (d.type === 'rect') { if (P.length < 2) continue; const x = Math.min(P[0].x, P[1].x), y = Math.min(P[0].y, P[1].y), w = Math.abs(P[1].x - P[0].x), h = Math.abs(P[1].y - P[0].y); ctx.fillStyle = alpha(c, 0.1); ctx.fillRect(x, y, w, h); ctx.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.round(w), Math.round(h)) }
+        if (sel || d === CH.pending) for (const q of P) { ctx.fillStyle = cssVar('--bg') || '#0b0a09'; ctx.strokeStyle = c; ctx.beginPath(); ctx.arc(q.x, q.y, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke() }
       }
-      if (!hereDone && last != null) { const h = document.createElement('div'); h.className = 'dk-lv here'; const sw = document.createElement('span'); sw.className = 'sw gold'; const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = 'NQ now'; const px = document.createElement('span'); px.className = 'px'; px.textContent = dkPx(last); h.append(sw, nm, px, document.createElement('span')); host.appendChild(h) }
-      if (!dkGexOk()) {
-        const r = document.createElement('div'); r.className = 'dk-lv lock'; r.setAttribute('role', 'button'); r.tabIndex = 0
-        const sw = document.createElement('span'); sw.className = 'sw'
-        const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = 'Gamma layer: walls, flip, GTBR band'
-        const px = document.createElement('span'); px.className = 'px'; px.textContent = 'Unlock'
-        r.append(sw, nm, px, document.createElement('span'))
-        r.addEventListener('click', () => showView('indicators')); r.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showView('indicators') } })
-        host.appendChild(r)
-      } else if (DESK.gexNote) { const p = document.createElement('p'); p.className = 'dk-none'; p.textContent = DESK.gexNote; host.appendChild(p) }
-      const gexN = DESK.levels.filter((l) => l.kind === 'gex').length
-      el('dk-lv-meta').textContent = rows.length ? `${rows.length} levels${gexN ? ` · ${gexN} gamma` : ''}` : ''
+      ctx.lineWidth = 1
     }
+    function chPaintMeasure(ctx, L, T) {
+      const m = CH.measure; if (!m || !m.b) return
+      const a = { x: chX(chIofT(m.a.t), L), y: chY(m.a.p, L) }, b = { x: chX(chIofT(m.b.t), L), y: chY(m.b.p, L) }
+      const up = m.b.p >= m.a.p, c = up ? T.good : T.bad
+      ctx.fillStyle = alpha(c, 0.12); ctx.fillRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y))
+      ctx.strokeStyle = c; ctx.strokeRect(Math.round(Math.min(a.x, b.x)) + 0.5, Math.round(Math.min(a.y, b.y)) + 0.5, Math.round(Math.abs(b.x - a.x)), Math.round(Math.abs(b.y - a.y)))
+      const dp = m.b.p - m.a.p, bars = Math.round(Math.abs(chIofT(m.b.t) - chIofT(m.a.t))), secs = Math.abs(m.b.t - m.a.t)
+      const dur = secs >= 86400 ? `${(secs / 86400).toFixed(1)}d` : secs >= 3600 ? `${Math.floor(secs / 3600)}h ${Math.round((secs % 3600) / 60)}m` : `${Math.round(secs / 60)}m`
+      const lines = [`${chPts(dp)} pts (${(dp / m.a.p * 100).toFixed(2)}%)`, `${bars} bars · ${dur}`]
+      ctx.font = `600 11px ${GEX_FONT}`; const w = Math.max(...lines.map((s) => ctx.measureText(s).width)) + 16
+      const bx = Math.min(Math.max(4, (a.x + b.x) / 2 - w / 2), L.plotW - w - 4), by = Math.min(a.y, b.y) - 44 < 4 ? Math.max(a.y, b.y) + 6 : Math.min(a.y, b.y) - 44
+      ctx.fillStyle = T.panel2; ctx.fillRect(bx, by, w, 38); ctx.strokeStyle = c; ctx.strokeRect(bx + 0.5, by + 0.5, w - 1, 37)
+      ctx.fillStyle = c; ctx.textAlign = 'left'; ctx.fillText(lines[0], bx + 8, by + 12); ctx.fillStyle = T.muted; ctx.font = `11px ${GEX_FONT}`; ctx.fillText(lines[1], bx + 8, by + 27)
+    }
+    const chDist = (px, py, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay; const t = dx || dy ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy))) : 0; return Math.hypot(px - (ax + t * dx), py - (ay + t * dy)) }
+    function chHit(x, y, L) {
+      for (let k = CH.drawings.length - 1; k >= 0; k--) {
+        const d = CH.drawings[k]; const P = d.p.map((q) => ({ x: chX(chIofT(q.t), L), y: chY(q.p, L) }))
+        for (let h = 0; h < P.length; h++) if (Math.hypot(P[h].x - x, P[h].y - y) < 8) return { d, handle: h }
+        if (d.type === 'hline' && Math.abs(P[0].y - y) < 6) return { d, handle: -1 }
+        if ((d.type === 'trend' || d.type === 'ray') && P.length === 2) { let [a, b] = P; if (d.type === 'ray' && b.x !== a.x) { const kk = (b.y - a.y) / (b.x - a.x); const xe = b.x > a.x ? L.plotW : 0; b = { x: xe, y: a.y + kk * (xe - a.x) } } if (chDist(x, y, a.x, a.y, b.x, b.y) < 6) return { d, handle: -1 } }
+        if (d.type === 'rect' && P.length === 2) { const x0 = Math.min(P[0].x, P[1].x), x1 = Math.max(P[0].x, P[1].x), y0 = Math.min(P[0].y, P[1].y), y1 = Math.max(P[0].y, P[1].y); const near = (Math.abs(x - x0) < 6 || Math.abs(x - x1) < 6) && y >= y0 - 6 && y <= y1 + 6 || (Math.abs(y - y0) < 6 || Math.abs(y - y1) < 6) && x >= x0 - 6 && x <= x1 + 6; if (near) return { d, handle: -1 } }
+      }
+      return null
+    }
+    function chPoint(x, y, L) { return { t: Math.round(chTofI(chI(x, L))), p: +chP(y, L).toFixed(2) } }
+    function chSetTool(t, keepMeasure = false) { CH.tool = t; CH.pending = null; if (!keepMeasure) CH.measure = null; if (t !== 'cross') CH.sel = null; document.querySelectorAll('#ch-tools button').forEach((b) => b.classList.toggle('on', b.dataset.tool === t)); el('ch-canvas').style.cursor = t === 'cross' ? 'crosshair' : 'cell'; chDraw() }
+    function chDeleteSel() { if (!CH.sel) return; CH.drawings = CH.drawings.filter((d) => d !== CH.sel); CH.sel = null; chSave(); chDraw(); chSelBar() }
+    function chSelBar() { const bar = el('ch-selbar'); if (!bar) return; bar.hidden = !CH.sel; if (CH.sel) el('ch-selcolor').value = CH.sel.color || cssVar('--gold') || '#c9a24a' }
 
-    /* ── the read ── */
-    function dkRead(day, bars, rth, last, prev, live) {
-      const host = el('dk-read'); host.textContent = ''
-      const P = (html, cls) => { const p = document.createElement('p'); if (cls) p.className = cls; p.innerHTML = html; host.appendChild(p) }
-      const L = Object.fromEntries(DESK.levels.map((l) => [l.key, l.px]))
-      const st = dkSession()
-      const sess = live ? st : { key: 'closed' }
-      if (last == null) { P('No tape yet for this session.'); el('dk-read-meta').textContent = ''; return }
-      const done = dkDone(st, live) && rth.length > 0
-      const settled = done ? rth[rth.length - 1][4] : null
-      // where price is
-      let s1 = done ? `NQ settled at <b>${dkPx0(settled)}</b>` : `NQ is at <b>${dkPx0(last)}</b>`
-      if (prev != null) { const ref = done ? settled : last; const d = ref - prev; s1 += `, <b class="${d >= 0 ? 'pos' : 'neg'}">${dkPts(Math.abs(d), false)} points ${d >= 0 ? 'above' : 'below'}</b> ${live ? "yesterday's" : 'the prior'} settle at ${dkPx0(prev)}` }
-      s1 += '.'
-      if (done && live && Math.abs(last - settled) >= 0.25) s1 += ` It is <b>${dkPx0(last)}</b> now in Globex, ${dkPts(last - settled)} from the settle.`
-      if (L.onh != null && L.onl != null) {
-        const pos = (last - L.onl) / Math.max(L.onh - L.onl, 1)
-        const where = last > L.onh ? 'above the overnight range' : last < L.onl ? 'below the overnight range' : pos > 0.66 ? 'in the upper third of the overnight range' : pos < 0.34 ? 'in the lower third of the overnight range' : 'mid overnight range'
-        s1 += ` Overnight ran <b>${dkPx0(L.onl)}</b> to <b>${dkPx0(L.onh)}</b> (${dkPts(L.onh - L.onl, false)} points) and price sits ${where}.`
-      }
-      if (rth.length && L.orh != null) {
-        const o = rth[0][1]
-        s1 += ` It opened at ${dkPx0(o)}${(L.onh != null && o > L.onh) ? ', above the overnight high' : (L.onl != null && o < L.onl) ? ', below the overnight low' : ''}; the first fifteen minutes ran ${dkPx0(L.orl)} to ${dkPx0(L.orh)}.`
-      }
-      P(s1)
-      // gamma
-      const g = DESK.gex
-      let regime = null
-      if (g && dkGexOk()) {
-        const rg = String(g.regime || '').toLowerCase()
-        regime = /neg/.test(rg) ? 'neg' : /pos/.test(rg) ? 'pos' : 'mix'
-        const matrix = g.gexMatrix?.state || ''
-        const confirmed = /confirmed/.test(matrix)
-        const lead = regime === 'neg' ? '<b class="neg">Negative gamma</b>' : regime === 'pos' ? '<b class="pos">Positive gamma</b>' : '<b class="mix">Mixed gamma</b>'
-        let s2 = `${lead}${g.zdte?.netGexM != null ? ` (0DTE net ${fmtM(g.zdte.netGexM)}${g.swing?.netGexM != null ? `, swing ${fmtM(g.swing.netGexM)}` : ''})` : ''}`
-        s2 += regime === 'neg' ? ': dealers hedge with price, so moves get amplified.' : regime === 'pos' ? ': dealers hedge against price, absorbing moves.' : ': the sign differs between today and the weeks out.'
-        if (matrix) s2 += confirmed ? ` Today's flow agrees with the open interest${g.gexMatrix?.text ? ': ' + g.gexMatrix.text.replace(/^OI and today's flow both (negative|positive): /i, '') : '.'}` : ` Today's flow does not agree with the open interest yet${g.gexMatrix?.text ? ': ' + g.gexMatrix.text : '.'}`
-        P(s2)
-        let s3 = ''
-        if (L.gtu != null && L.gtl != null) {
-          const inside = last <= L.gtu && last >= L.gtl
-          s3 += `The GTBR band runs <b>${dkPx0(L.gtl)}</b> to <b>${dkPx0(L.gtu)}</b>, one expected daily move off the open, and price is <b>${inside ? 'inside it' : last > L.gtu ? 'above it' : 'below it'}</b>${inside ? ': forced hedging stays quiet until an edge breaks.' : ': past the daily breakeven, the hedging machine is live.'}`
+    /* ── interaction ── */
+    function chWire() {
+      if (CH.wired) return; CH.wired = true
+      const cv = el('ch-canvas'), stage = el('ch-stage')
+      const pos = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top } }
+      cv.addEventListener('pointerdown', (e) => {
+        cv.setPointerCapture(e.pointerId); const p = pos(e); const L = chLayout()
+        CH.pointers.set(e.pointerId, p)
+        if (CH.pointers.size === 2) { const [a, b] = [...CH.pointers.values()]; CH.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), barW: CH.barW, mid: (a.x + b.x) / 2, i: chI((a.x + b.x) / 2, L) }; CH.drag = null; return }
+        const zone = p.x > L.plotW ? 'price' : p.y > L.H - L.tx ? 'time' : 'plot'
+        CH.drag = { x0: p.x, y0: p.y, x: p.x, y: p.y, offset: CH.offset, barW: CH.barW, pMin: CH.pMin, pMax: CH.pMax, zone, moved: false, t0: Date.now() }
+        if (zone !== 'plot') return
+        if (CH.replay.arm) { const i = Math.round(chI(p.x, L)); const b = CH.bars[Math.max(0, Math.min(CH.bars.length - 1, i))]; if (b) { CH.replay.arm = false; CH.replay.on = true; CH.replay.cut = b.t; chSetVis(); chReplayUi(); CH.offset = 6; CH.auto = true; chDraw() } CH.drag = null; return }
+        if (CH.measure && !CH.measure.live) CH.measure = null
+        if (CH.tool === 'cross') {
+          const hit = chHit(p.x, p.y, L)
+          if (hit) { CH.sel = hit.d; CH.handle = hit.handle; CH.drag.move = { d: hit.d, handle: hit.handle, p0: hit.d.p.map((q) => ({ ...q })), pt: chPoint(p.x, p.y, L) } } else CH.sel = null
+          chSelBar(); chDraw(); return
         }
-        const walls = []
-        if (L.pw != null) walls.push(`the put wall at <b>${dkPx0(L.pw)}</b>${g.wallHealth?.putWall?.tag ? ` (${g.wallHealth.putWall.tag})` : ''}`)
-        if (L.cw != null) walls.push(`the call wall at <b>${dkPx0(L.cw)}</b>${g.wallHealth?.callWall?.tag ? ` (${g.wallHealth.callWall.tag})` : ''}`)
-        if (walls.length) s3 += ` Today's walls: ${walls.join(' and ')}.`
-        if (L.mw != null) s3 += ` The major wall sits ${L.mw < last ? 'below' : 'above'} at <b>${dkPx0(L.mw)}</b>, the session's gravity point.`
-        if (L.flip != null) s3 += ` Spot is ${last < L.flip ? 'below' : 'above'} the flip at <b>${dkPx0(L.flip)}</b>${last < L.flip ? ', the amplifier side.' : ', the absorbing side.'}`
-        if (s3) P(s3)
-      } else if (!dkGexOk()) {
-        P(`<span class="lock">The gamma read (regime, walls, flip, the GTBR band) is part of D1 GEX. <button type="button" id="dk-unlock">See the indicators →</button></span>`)
-        host.querySelector('#dk-unlock')?.addEventListener('click', () => showView('indicators'))
-      } else if (DESK.gexNote) P(`<span class="lock">${DESK.gexNote}</span>`)
-      // calendar
-      const today = newsEvents.filter((e) => ET_DAY.format(e.at) === day && e.impact !== 'Holiday')
-      if (today.length) P(`On the calendar: ${today.map((e) => `<b>${e.title}</b> at ${e.at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' })}`).join(', ')}.`)
-      else if (newsEvents.length) P('Nothing on the calendar today.')
-      // intention
-      let intent
-      const inside = L.gtu != null && L.gtl != null ? (last <= L.gtu && last >= L.gtl) : null
-      if (regime === 'neg') intent = inside === false ? 'The hedging machine is live past the band. Breaks keep going and bounces are sharp but short. Trade with the break, not against it, and let the walls be targets rather than fades.' : 'Expansion once an edge of the band breaks. Inside it, fade nothing: wait for the break to pick the side, then the far wall is the target.'
-      else if (regime === 'pos') intent = inside === false ? 'A break past the band in positive gamma tends to get absorbed. Expect a return toward the band before anything trends; the extremes are for fading, not chasing.' : 'Compression. Pushes stall into the walls and dips get bought. Fade the extremes back toward the big strikes and take profit early.'
-      else if (regime === 'mix') intent = 'Whippy intraday swings inside a range that still mean-reverts over the next few days. Trust the walls more than the trend and keep size honest.'
-      else intent = (L.onh != null) ? `Read the open against the overnight range. Acceptance above ${dkPx0(L.onh)} is the trend-day setup, a rejection back inside is the range day. The first fifteen minutes decide which one you are trading.` : 'Read the open against the overnight range. Acceptance outside it is the trend-day setup, a rejection back inside is the range day.'
-      if (sess.key === 'open' && rth.length && L.orh != null) {
-        const o = rth[0][1], l = last
-        if (l > L.orh) intent += ' Price is above the opening range: holding it keeps the day long-biased.'
-        else if (l < L.orl) intent += ' Price is below the opening range: holding it keeps the day short-biased.'
-        else intent += ' Price is still inside the opening range, so the day has not chosen yet.'
+        if (CH.tool === 'hline') { CH.drawings.push({ type: 'hline', p: [chPoint(p.x, p.y, L)], color: cssVar('--gold') || '#c9a24a' }); chSave(); chSetTool('cross'); CH.sel = CH.drawings[CH.drawings.length - 1]; chSelBar(); return }
+        if (CH.tool === 'measure') {
+          if (CH.measure?.live && CH.measure.b) { CH.measure.live = false; chSetTool('cross', true) }
+          else { CH.measure = { a: chPoint(p.x, p.y, L), b: null, live: true }; CH.drag.measure = true }
+          chDraw(); return
+        }
+        const pt = chPoint(p.x, p.y, L)
+        if (!CH.pending) { CH.pending = { type: CH.tool, p: [pt, pt], color: cssVar('--gold') || '#c9a24a' }; CH.drag.pend = true }
+        else { CH.pending.p[1] = pt; CH.drawings.push(CH.pending); CH.sel = CH.pending; CH.pending = null; chSave(); chSetTool('cross'); chSelBar() }
+      })
+      cv.addEventListener('pointermove', (e) => {
+        const p = pos(e); const L = chLayout()
+        if (CH.pointers.has(e.pointerId)) CH.pointers.set(e.pointerId, p)
+        if (CH.pinch && CH.pointers.size === 2) { const [a, b] = [...CH.pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); const bw = Math.max(1.5, Math.min(60, CH.pinch.barW * d / Math.max(CH.pinch.d, 1))); const mid = (a.x + b.x) / 2; CH.barW = bw; const n = chVisible().length; CH.offset = CH.pinch.i - (n - 1) + (L.plotW - mid) / bw - 0.5; chDraw(); return }
+        CH.hover = p
+        const dg = CH.drag
+        if (dg) {
+          const dx = p.x - dg.x0, dy = p.y - dg.y0
+          if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dg.moved = true
+          if (dg.zone === 'price') { if (!CH.auto && !dg.manual) {} CH.auto = false; dg.manual = true; const c = (dg.pMin + dg.pMax) / 2, r = (dg.pMax - dg.pMin) / 2 * Math.exp(dy * 0.006); CH.pMin = c - r; CH.pMax = c + r; chDraw(); return }
+          if (dg.zone === 'time') { CH.barW = Math.max(1.5, Math.min(60, dg.barW * Math.exp(-dx * 0.005))); chDraw(); return }
+          if (dg.move) { const { d, handle, p0, pt } = dg.move; const now = chPoint(p.x, p.y, L); const dt = now.t - pt.t, dp = now.p - pt.p; d.p = p0.map((q, k) => (handle === -1 || handle === k) ? { t: q.t + dt, p: +(q.p + dp).toFixed(2) } : q); if (d.type === 'hline') d.p = [{ t: p0[0].t, p: +(p0[0].p + dp).toFixed(2) }]; chDraw(); return }
+          if (dg.measure && CH.measure?.live) { CH.measure.b = chPoint(p.x, p.y, L); chDraw(); return }
+          if (dg.pend && CH.pending) { CH.pending.p[1] = chPoint(p.x, p.y, L); chDraw(); return }
+          if (CH.tool === 'cross' && !CH.replay.arm) { CH.offset = dg.offset - dx / CH.barW; chClampOffset(L); cv.style.cursor = 'grabbing'; chDraw(); return }
+        }
+        if (CH.pending) CH.pending.p[1] = chPoint(p.x, p.y, L)
+        if (CH.measure?.live) CH.measure.b = chPoint(p.x, p.y, L)
+        chDraw()
+      })
+      const up = (e) => {
+        CH.pointers.delete(e.pointerId)
+        if (CH.pointers.size < 2) CH.pinch = null
+        const dg = CH.drag; CH.drag = null
+        if (dg?.move) { chSave() }
+        if (dg?.pend && CH.pending && dg.moved) { CH.drawings.push(CH.pending); CH.sel = CH.pending; CH.pending = null; chSave(); chSetTool('cross'); chSelBar() }
+        if (dg?.measure && dg.moved && CH.measure?.b) { CH.measure.live = false; chSetTool('cross', true) }
+        // a tap without movement on a phone: park the crosshair there
+        if (e.pointerType === 'touch' && dg && !dg.moved && dg.zone === 'plot') { CH.hover = { x: dg.x0, y: dg.y0 } }
+        else if (e.pointerType === 'touch') CH.hover = null
+        // double tap on the price axis: back to auto scale
+        if (dg && dg.zone === 'price' && !dg.moved) { if (Date.now() - CH.lastTap < 350) { CH.auto = true } CH.lastTap = Date.now() }
+        cv.style.cursor = CH.tool === 'cross' ? 'crosshair' : 'cell'
+        chDraw()
       }
-      if (done && live) intent = 'The session is done. The scorecard below is the day; the read refreshes with tomorrow\'s overnight and the morning print.'
-      P(intent, 'intent')
-      el('dk-read-meta').textContent = live ? (DESK.fetchedAt ? `as of ${dkClock(etOf(DESK.fetchedAt).min)} ET` : '') : `${dkDayLabel(day)}${DESK.gex ? ' · levels from the morning print' : ''}`
+      cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up)
+      cv.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') { CH.hover = null; chDraw() } })
+      cv.addEventListener('dblclick', (e) => { const p = pos(e), L = chLayout(); if (p.x > L.plotW) { CH.auto = true; chDraw() } })
+      cv.addEventListener('wheel', (e) => {
+        e.preventDefault(); const p = pos(e), L = chLayout()
+        if (p.x > L.plotW) { CH.auto = false; const c = (CH.pMin + CH.pMax) / 2, r = (CH.pMax - CH.pMin) / 2 * Math.exp(e.deltaY * 0.0015); CH.pMin = c - r; CH.pMax = c + r; chDraw(); return }
+        if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) { CH.offset -= (e.deltaX || e.deltaY) / CH.barW; chClampOffset(L); chDraw(); return }
+        const i = chI(p.x, L); const bw = Math.max(1.5, Math.min(60, CH.barW * Math.exp(-e.deltaY * 0.0015)))
+        CH.barW = bw; const n = chVisible().length; CH.offset = i - (n - 1) + (L.plotW - p.x) / bw - 0.5; chClampOffset(L); chDraw()
+      }, { passive: false })
+      new ResizeObserver(() => chDraw()).observe(stage)
+      new MutationObserver(() => chDraw()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+      document.addEventListener('keydown', (e) => {
+        if (!CH.on || !el('v-chart').classList.contains('on')) return
+        if (/input|textarea|select/i.test(e.target.tagName) || e.target.isContentEditable) return
+        const L = chLayout()
+        if (e.key === 'ArrowLeft') { CH.offset += e.shiftKey ? 20 : 5; chClampOffset(L); chDraw() }
+        else if (e.key === 'ArrowRight') { CH.offset -= e.shiftKey ? 20 : 5; chClampOffset(L); chDraw() }
+        else if (e.key === '+' || e.key === '=') { CH.barW = Math.min(60, CH.barW * 1.2); chDraw() }
+        else if (e.key === '-' || e.key === '_') { CH.barW = Math.max(1.5, CH.barW / 1.2); chDraw() }
+        else if (e.key === 'Home') { CH.offset = 6; chDraw() }
+        else if (e.key === 'Escape') { CH.pending = null; CH.measure = null; CH.sel = null; CH.replay.arm = false; chSetTool('cross'); chMenu(null); chSelBar(); chReplayUi() }
+        else if (e.key === 'Delete' || e.key === 'Backspace') { chDeleteSel() }
+        else if (e.key === ' ' && CH.replay.on) { e.preventDefault(); chReplayPlay(!CH.replay.playing) }
+        else if (e.key === '.' && CH.replay.on) chReplayStep(1)
+        else if (e.key === ',' && CH.replay.on) chReplayStep(-1)
+        else return
+        e.preventDefault()
+      })
+      // toolbar
+      el('ch-tf').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => chSetTf(b.dataset.tf)))
+      el('ch-tools').querySelectorAll('button[data-tool]').forEach((b) => b.addEventListener('click', () => chSetTool(b.dataset.tool)))
+      el('ch-trash').addEventListener('click', chDeleteSel)
+      el('ch-clear').addEventListener('click', () => { if (!CH.drawings.length || !confirm('Remove every drawing?')) return; CH.drawings = []; CH.sel = null; chSave(); chSelBar(); chDraw() })
+      el('ch-selcolor').addEventListener('input', () => { if (CH.sel) { CH.sel.color = el('ch-selcolor').value; chSave(); chDraw() } })
+      el('ch-seldel').addEventListener('click', chDeleteSel)
+      el('ch-latest').addEventListener('click', () => { CH.offset = 6; CH.auto = true; chDraw() })
+      el('ch-type-btn').addEventListener('click', () => chMenu('type'))
+      el('ch-ind-btn').addEventListener('click', () => chMenu('ind'))
+      el('ch-settings-btn').addEventListener('click', () => chMenu('settings'))
+      el('ch-replay-btn').addEventListener('click', () => { if (CH.replay.on) chReplayExit(); else { CH.replay.arm = !CH.replay.arm; chReplayUi(); toast(CH.replay.arm ? 'Click the bar to start replaying from.' : 'Replay cancelled.', 2500) } })
+      el('ch-full').addEventListener('click', () => { el('v-chart').classList.toggle('ch-fullscreen'); setTimeout(chDraw, 50) })
+      el('ch-menu-close').addEventListener('click', () => chMenu(null))
+      el('ch-rp-play').addEventListener('click', () => chReplayPlay(!CH.replay.playing))
+      el('ch-rp-back').addEventListener('click', () => chReplayStep(-1))
+      el('ch-rp-fwd').addEventListener('click', () => chReplayStep(1))
+      el('ch-rp-exit').addEventListener('click', chReplayExit)
+      el('ch-rp-speed').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { CH.replay.speed = +b.dataset.s; el('ch-rp-speed').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); if (CH.replay.playing) chReplayPlay(true) }))
+      document.addEventListener('click', (e) => { if (CH.menu && !e.target.closest('#ch-menu') && !e.target.closest('.ch-bar button')) chMenu(null) })
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && CH.on) chTick() })
+    }
+    function chClampOffset(L) { const n = chVisible().length; const vis = L.plotW / CH.barW; CH.offset = Math.max(-(n - 1) + Math.min(5, n - 1), Math.min(vis - 3, CH.offset)) }
+    function chSetTf(tf) {
+      if (!CH_TF[tf]) return
+      // keep the time under the right edge where it is
+      const L = chLayout(); const tRight = chTofI(chVisible().length - 1 + CH.offset)
+      CH.tf = tf; localStorage.setItem('echelon-chart-tf', tf)
+      el('ch-tf').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tf === tf))
+      chBuild()
+      const [src] = CH_TF[tf]; if (src !== '1m' && !CH.have[src]) chLoad(src)
+      const n = chVisible().length; CH.offset = Math.min(6, chIofT(tRight) - (n - 1)); chClampOffset(L); CH.auto = true
+      chDraw()
     }
 
-    /* ── the calendar, today's rows ── */
-    function dkNews(day) {
-      const host = el('dk-news'); host.textContent = ''
-      const now = Date.now()
-      const rows = newsEvents.filter((e) => ET_DAY.format(e.at) === day)
-      el('dk-news-none').hidden = rows.length > 0 || !newsEvents.length
-      if (!newsEvents.length) { el('dk-news-none').hidden = false; el('dk-news-none').textContent = 'Loading the calendar…' } else el('dk-news-none').textContent = 'Nothing on the calendar.'
-      for (const e of rows) host.appendChild(newsRow(e, DESK.day ? 0 : now))
-      const next = rows.find((e) => e.at.getTime() > now && e.impact !== 'Holiday')
-      el('dk-news-meta').textContent = !DESK.day && next ? `next in ${Math.max(1, Math.round((next.at.getTime() - now) / 60000))}m` : rows.length ? `${rows.length} ${rows.length === 1 ? 'release' : 'releases'}` : ''
+    /* ── menus: chart type, indicators, settings ── */
+    function chMenu(which) {
+      const m = el('ch-menu'); CH.menu = which
+      if (!which) { m.hidden = true; return }
+      const body = el('ch-menu-body'); body.textContent = ''
+      el('ch-menu-title').textContent = which === 'type' ? 'Chart type' : which === 'ind' ? 'Indicators' : 'Settings'
+      const S = CH.s
+      const row = (label, control, hint) => { const r = document.createElement('div'); r.className = 'ch-row'; const t = document.createElement('div'); t.className = 'ch-row-t'; t.textContent = label; if (hint) { const h = document.createElement('small'); h.textContent = hint; t.appendChild(h) } r.append(t, control); body.appendChild(r); return r }
+      const toggle = (key, label, hint, after) => { const l = document.createElement('label'); l.className = 'tgl sm'; const i = document.createElement('input'); i.type = 'checkbox'; i.checked = !!S[key]; i.addEventListener('change', () => { S[key] = i.checked; chSave(); after?.(); chDraw() }); const tr = document.createElement('span'); tr.className = 'track'; l.append(i, tr); row(label, l, hint) }
+      const color = (key, label, hint) => { const w = document.createElement('div'); w.className = 'ch-color'; const i = document.createElement('input'); i.type = 'color'; const fallback = key === 'bg' ? (cssVar('--bg') || '#0b0a09') : key === 'wickUp' ? (S.up || cssVar('--good') || '#86b57f') : key === 'wickDown' ? (S.down || cssVar('--bad') || '#d98b7a') : key === 'up' ? (cssVar('--good') || '#86b57f') : (cssVar('--bad') || '#d98b7a'); i.value = S[key] || fallback; i.addEventListener('input', () => { S[key] = i.value; chSave(); chDraw() }); const r = document.createElement('button'); r.type = 'button'; r.className = 'ch-reset'; r.textContent = 'theme'; r.title = 'Back to the theme colour'; r.addEventListener('click', () => { S[key] = ''; i.value = fallback; chSave(); chDraw() }); w.append(i, r); row(label, w, hint) }
+      const seg = (key, opts, after) => { const s = document.createElement('span'); s.className = 'seg'; for (const [v, t] of opts) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.classList.toggle('on', S[key] === v); b.addEventListener('click', () => { S[key] = v; s.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); chSave(); after?.(); chDraw() }); s.appendChild(b) } return s }
+      if (which === 'type') {
+        for (const [v, t, d] of [['candles', 'Candles', 'Body and wick, coloured by close against open'], ['hollow', 'Hollow candles', 'Up bars hollow, down bars filled'], ['bars', 'Bars', 'OHLC ticks'], ['line', 'Line', 'Closes joined'], ['area', 'Area', 'Line with a gold fill']]) {
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'ch-opt' + (S.type === v ? ' on' : ''); b.innerHTML = `<b>${t}</b><small>${d}</small>`; b.addEventListener('click', () => { S.type = v; chSave(); chDraw(); chMenu(null) }); body.appendChild(b)
+        }
+      } else if (which === 'ind') {
+        toggle('emaOn', 'EMA', 'Three exponential averages')
+        const lens = document.createElement('div'); lens.className = 'ch-lens'
+        S.ema.forEach((n, k) => { const i = document.createElement('input'); i.type = 'number'; i.min = 1; i.max = 500; i.value = n; i.className = 'inp'; i.addEventListener('change', () => { S.ema[k] = Math.max(1, Math.min(500, +i.value || 1)); chSave(); chDraw() }); lens.appendChild(i) })
+        row('Lengths', lens)
+        toggle('vwap', 'VWAP', 'Volume-weighted average, resets at 6:00 PM ET')
+        toggle('prevDay', 'Prior day high and low', 'PDH and PDL from the last regular session')
+        if (state.owned.has('d1-gex') || state.isMod || state.isAdmin) toggle('gex', 'Gamma levels', 'Walls, flip, major wall and the GTBR band from the live board', () => { if (S.gex && !GEX.live) loadGex().catch(() => {}) })
+        toggle('sessions', 'Sessions', 'Shade the hours outside 9:30 to 4:00 ET')
+      } else {
+        const h0 = document.createElement('div'); h0.className = 'ch-h'; h0.textContent = 'Chart type'; body.appendChild(h0)
+        const typeRow = document.createElement('div'); typeRow.className = 'ch-row ch-row-wide'; typeRow.appendChild(seg('type', [['candles', 'Candles'], ['hollow', 'Hollow'], ['bars', 'Bars'], ['line', 'Line'], ['area', 'Area']])); body.appendChild(typeRow)
+        const h1 = document.createElement('div'); h1.className = 'ch-h'; h1.textContent = 'Colours'; body.appendChild(h1)
+        color('up', 'Up body'); color('down', 'Down body'); color('wickUp', 'Up wick'); color('wickDown', 'Down wick'); color('bg', 'Background')
+        const h2 = document.createElement('div'); h2.className = 'ch-h'; h2.textContent = 'Show'; body.appendChild(h2)
+        toggle('border', 'Candle borders'); toggle('grid', 'Grid'); toggle('volume', 'Volume'); toggle('sessions', 'Sessions'); toggle('lastLine', 'Last price line'); toggle('legend', 'OHLC legend', '', () => chDraw())
+        const h3 = document.createElement('div'); h3.className = 'ch-h'; h3.textContent = 'Time'; body.appendChild(h3)
+        row('Timezone', seg('tz', [['ET', 'New York'], ['local', 'Your clock']]))
+        const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'rowbtn'; reset.textContent = 'Reset everything to the defaults'; reset.style.marginTop = '14px'
+        reset.addEventListener('click', () => { CH.s = { ...CH_DEFAULTS, ema: [20, 50, 200] }; chSave(); chDraw(); chMenu('settings') }); body.appendChild(reset)
+      }
+      m.hidden = false
     }
 
-    /* ── proximity alerts while the session is open ── */
-    function dkAlerts(last) {
-      if (last == null || dkSession().key !== 'open') return
-      const now = Date.now()
-      for (const l of DESK.levels) {
-        if (!['cw', 'pw', 'flip', 'mw', 'onh', 'onl', 'prev'].includes(l.key)) continue
-        const d = Math.abs(last - l.px)
-        if (d > 12) continue
-        const at = DESK.alerts.get(l.key) || 0
-        if (now - at < 30 * 60 * 1000) continue
-        DESK.alerts.set(l.key, now)
-        toast(`NQ at the ${l.name.toLowerCase()}: ${dkPx0(l.px)} (${dkPts(last - l.px)})`, 6000)
-        break
-      }
+    /* ── replay ── */
+    function chReplayUi() { const rp = el('ch-replay'); rp.hidden = !CH.replay.on; el('ch-replay-btn').classList.toggle('on', CH.replay.on || CH.replay.arm); el('ch-rp-play').textContent = CH.replay.playing ? '⏸' : '▶'; el('ch-canvas').style.cursor = CH.replay.arm ? 'col-resize' : (CH.tool === 'cross' ? 'crosshair' : 'cell'); if (CH.replay.on && CH.replay.cut != null) el('ch-rp-at').textContent = `${chFmtDate(CH.replay.cut)} ${chFmtTime(CH.replay.cut)}` }
+    function chReplayStep(dir) {
+      if (!CH.replay.on) return
+      const all = CH.bars; let i = all.findIndex((b) => b.t > CH.replay.cut); if (i < 0) i = all.length
+      const cur = i - 1; const next = Math.max(0, Math.min(all.length - 1, cur + dir))
+      if (next === cur && dir > 0) { chReplayPlay(false); toast('Caught up to the live tape.', 2500); return }
+      CH.replay.cut = all[next].t; chSetVis(); if (CH.offset < 0) CH.offset = 6; chReplayUi(); chDraw()
     }
+    function chReplayPlay(on) { clearInterval(CH.replay.timer); CH.replay.playing = on; if (on) CH.replay.timer = setInterval(() => chReplayStep(1), Math.max(60, 700 / CH.replay.speed)); chReplayUi() }
+    function chReplayExit() { chReplayPlay(false); CH.replay.on = false; CH.replay.cut = null; CH.replay.arm = false; chSetVis(); CH.offset = 6; CH.auto = true; chReplayUi(); chDraw() }
 
-    // is the regular session on screen over? (a replayed day always is)
-    const dkDone = (st, live) => !live || st.key === 'closed' || st.key === 'weekend' || st.key === 'holiday' || (st.key === 'globex' && st.e.min >= DK_GLOBEX) || (st.key === 'globex' && DESK.days[0] !== st.e.day)
-
-    /* ── the scorecard: what the read expected, what the day did ── */
-    function dkScore(day, rth, live) {
-      const host = el('dk-score'); host.textContent = ''
-      const verdict = el('dk-verdict'); verdict.textContent = ''
-      const st = dkSession()
-      const closed = dkDone(st, live)
-      el('dk-score-title').textContent = closed ? 'Scorecard' : 'Scorecard, so far'
-      if (!rth.length) { el('dk-score-meta').textContent = ''; const p = document.createElement('p'); p.className = 'dk-none'; p.textContent = live && (st.key === 'pre' || st.key === 'globex') ? 'Fills in from the open.' : 'No regular-hours bars for this session.'; host.appendChild(p); return }
-      const L = Object.fromEntries(DESK.levels.map((l) => [l.key, l.px]))
-      const o = rth[0][1], c = rth[rth.length - 1][4], h = Math.max(...rth.map((b) => b[2])), l = Math.min(...rth.map((b) => b[3]))
-      const hAt = rth.find((b) => b[2] === h), lAt = rth.find((b) => b[3] === l)
-      const put = (k, v, d, cls) => { const w = document.createElement('div'); w.className = 'dk-sc'; const a = document.createElement('div'); a.className = 'k'; a.textContent = k; const b = document.createElement('div'); b.className = 'v' + (cls ? ' ' + cls : ''); b.textContent = v; const e = document.createElement('div'); e.className = 'd'; e.textContent = d || ''; w.append(a, b, e); host.appendChild(w) }
-      const chg = c - o
-      put('Open to ' + (closed ? 'close' : 'now'), dkPts(chg), `${dkPx0(o)} to ${dkPx0(c)}`, chg >= 0 ? 'good' : 'bad')
-      put('Range', dkPts(h - l, false) + ' pts', `high ${dkClock(etOf(hAt[0] * 1000).min)} · low ${dkClock(etOf(lAt[0] * 1000).min)}`)
-      const parts = []
-      if (L.gtu != null && L.gtl != null) {
-        const up = h > L.gtu, dn = l < L.gtl
-        const band = up && dn ? 'broke both edges' : up ? 'broke the upper edge' : dn ? 'broke the lower edge' : 'stayed inside'
-        const ratio = (h - l) / Math.max(L.gtu - L.gtl, 1)
-        put('GTBR band', band, `range ${Math.round(ratio * 100)}% of the band`, up || dn ? 'gold' : '')
-        parts.push({ band, ratio, up, dn })
-      } else if (L.onh != null && L.onl != null) {
-        const up = h > L.onh, dn = l < L.onl
-        put('Overnight range', up && dn ? 'broke both sides' : up ? 'took the high' : dn ? 'took the low' : 'stayed inside', `${dkPx0(L.onl)} to ${dkPx0(L.onh)}`, up || dn ? 'gold' : '')
-        parts.push({ on: true, up, dn })
-      }
-      const held = (px, side) => { if (px == null) return null; const brk = rth.find((b) => side === 'put' ? b[4] < px - 10 : b[4] > px + 10); return brk ? { held: false, at: etOf(brk[0] * 1000).min } : { held: true } }
-      const pw = held(L.pw, 'put'), cw = held(L.cw, 'call')
-      if (pw || cw) {
-        const txt = [pw ? `put ${pw.held ? 'held' : 'failed ' + dkClock(pw.at)}` : null, cw ? `call ${cw.held ? 'held' : 'failed ' + dkClock(cw.at)}` : null].filter(Boolean).join(' · ')
-        put('Walls', (pw?.held ?? true) && (cw?.held ?? true) ? 'both held' : 'a wall failed', txt, (pw?.held ?? true) && (cw?.held ?? true) ? 'good' : 'bad')
-      } else if (L.flip == null && L.prev != null) {
-        put('Prior settle', c >= L.prev ? 'closed above' : 'closed below', `${dkPx0(L.prev)}`, c >= L.prev ? 'good' : 'bad')
-      }
-      if (L.flip != null) {
-        let cross = 0, side = null
-        for (const b of rth) { const s = b[4] >= L.flip ? 1 : -1; if (side != null && s !== side) cross++; side = s }
-        put('Gamma flip', cross ? `crossed ${cross}×` : (side > 0 ? 'stayed above' : 'stayed below'), dkPx0(L.flip), cross > 2 ? 'gold' : '')
-      }
-      el('dk-score-meta').textContent = `${rth.length} minutes${closed ? '' : ' so far'}`
-      // the sentence
-      const g = DESK.gex, regime = g && dkGexOk() ? (/neg/.test(String(g.regime).toLowerCase()) ? 'neg' : /pos/.test(String(g.regime).toLowerCase()) ? 'pos' : 'mix') : null
-      const p = parts[0]
-      let v = ''
-      if (regime && p && !p.on) {
-        const expanded = p.ratio >= 0.9 || p.up || p.dn
-        if (regime === 'neg') v = expanded ? `<b>The read said expansion and the day expanded:</b> ${p.band}, range ${Math.round(p.ratio * 100)}% of one expected move.` : `<b>The read said expansion and the day stayed quiet:</b> ${p.band}, range only ${Math.round(p.ratio * 100)}% of one expected move. Negative gamma without a break is a chop day.`
-        else if (regime === 'pos') v = expanded ? `<b>The read said compression and the day broke anyway:</b> ${p.band}. Positive gamma lost to flow; check what the calendar or the flip did.` : `<b>The read said compression and the day compressed:</b> ${p.band}, range ${Math.round(p.ratio * 100)}% of one expected move.`
-        else v = `<b>Mixed gamma:</b> the day ${p.band}, range ${Math.round(p.ratio * 100)}% of one expected move.`
-      } else if (p && p.on) {
-        v = p.up && !p.dn ? '<b>The overnight high went and the day held above it:</b> the trend-day setup played.' : p.dn && !p.up ? '<b>The overnight low went and the day held below it:</b> the trend-day setup played to the downside.' : p.up && p.dn ? '<b>Both sides of the overnight range went:</b> a sweep day, the kind that punishes chasing either break.' : '<b>The overnight range held:</b> a range day, rotations between the two extremes.'
-      }
-      if ((pw && !pw.held) || (cw && !cw.held)) v += ` ${pw && !pw.held ? `The put wall failed at ${dkClock(pw.at)}` : ''}${pw && !pw.held && cw && !cw.held ? ' and ' : ''}${cw && !cw.held ? `the call wall failed at ${dkClock(cw.at)}` : ''}, so the levels that were meant to hold did not.`
-      verdict.innerHTML = v
+    /* ── life cycle ── */
+    async function chartShown() {
+      CH.on = true; chWire()
+      el('ch-tf').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tf === CH.tf))
+      chSetTool(CH.tool); chReplayUi()
+      chDraw()
+      if (!CH.have['1m']) { await chTail(); chLoad('1m').then(() => { const [src] = CH_TF[CH.tf]; if (src !== '1m') chLoad(src) }) }
+      else chTail()
+      chSchedule()
     }
-
-    /* ── the one-line strip on Overview ── */
-    const DESK_PARKED = true   // D1, 9/9: off for members until it comes back as the backtester
-    function renderOvDesk() {
-      const b = el('ov-desk'); if (!b) return
-      if (DESK_PARKED) { b.hidden = true; return }
-      // new for everyone: a quiet dot on the tab until the Desk has been opened once
-      const nd = el('n-desk'); if (nd && !localStorage.getItem('echelon-desk-seen')) { nd.textContent = ''; nd.hidden = false }
-      if (!DESK.tape) {
-        // first paint: a cheap fetch so the strip has a price without opening the Desk
-        if (!DESK.ovTried) { DESK.ovTried = true; loadTape(true).then(() => renderOvDesk()).catch(() => {}) }
-        b.hidden = true; return
-      }
-      const st = dkSession()
-      const last = DESK.last, prev = dkPrevSettle(DESK.days[0] || st.day, true)
-      el('od-state').textContent = st.label; el('od-state').className = 'od-state' + (st.key === 'open' ? ' open' : '')
-      el('od-px').textContent = dkPx0(last)
-      const chg = el('od-chg'); chg.className = 'od-chg'
-      if (last != null && prev != null) { const d = last - prev; chg.textContent = `${dkPts(d)} (${(d / prev * 100).toFixed(2)}%)`; chg.classList.add(d >= 0 ? 'up' : 'down') } else chg.textContent = ''
-      const g = GEX.live || (dkGexOk() ? DESK.gex : null)
-      let read = ''
-      if (g && dkGexOk()) { const rg = String(g.regime || '').toLowerCase(); read = /neg/.test(rg) ? 'Negative gamma: moves get amplified.' : /pos/.test(rg) ? 'Positive gamma: moves get absorbed.' : 'Mixed gamma: whippy inside a range.'; if (g.gtbr?.state) read += ` Price ${g.gtbr.state} the band.` }
-      else { const today = newsEvents.filter((e) => ET_DAY.format(e.at) === st.day && e.impact !== 'Holiday'); read = today.length ? `${today.length} ${today.length === 1 ? 'release' : 'releases'} today, first at ${today[0].at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' })}.` : 'Nothing on the calendar today.' }
-      el('od-read').textContent = read
-      b.hidden = false
+    function chartHidden() { CH.on = false; clearTimeout(CH.timer); CH.timer = null; chMenu(null) }
+    // where the clock is in the futures week, for the poll cadence and the pill
+    function chSession() {
+      const p = {}; for (const x of new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date())) p[x.type] = x.value
+      const min = ((+p.hour) % 24) * 60 + +p.minute, wd = p.weekday
+      if (wd === 'Sat' || (wd === 'Sun' && min < 18 * 60) || (wd === 'Fri' && min >= 17 * 60)) return { key: 'weekend', label: 'Weekend' }
+      if (min >= 570 && min < 960) return { key: 'open', label: 'Open' }
+      if (min >= 16 * 60 && min < 17 * 60) return { key: 'closed', label: 'Post' }
+      if (min >= 17 * 60 && min < 18 * 60) return { key: 'closed', label: 'Closed' }
+      return { key: min < 570 && min >= 240 ? 'pre' : 'globex', label: min < 570 && min >= 240 ? 'Pre-market' : 'Globex' }
     }
-    el('ov-desk')?.addEventListener('click', () => showView('desk'))
+    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { sp.textContent = st.label; sp.className = 'ch-sess' + (st.key === 'open' ? ' open' : '') } const ms = st.key === 'open' ? 15000 : (st.key === 'pre' || st.key === 'globex') ? 45000 : 5 * 60 * 1000; CH.timer = setTimeout(chTick, ms) }
+    async function chTick() { if (!CH.on) return; await chTail(); chSchedule() }
 
     function renderGex() {
       const d = GEX.data
