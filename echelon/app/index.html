@@ -10653,12 +10653,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const hv = CH.hover
       if (hv && hv.x >= 0 && hv.x <= L.plotW && hv.y <= L.H - L.tx) {
         const i = Math.round(chI(hv.x, L)); const b = bars[i]
-        const x = Math.round(chX(i >= 0 && i < n ? i : chI(hv.x, L), L)) + 0.5, y = Math.round(hv.y) + 0.5
+        const sn = CH.tool === 'cross' && b && hv.y <= L.mainH && (CH.ctrl || S.magnet !== 'off') && !CH.drag ? chSnapPt(hv.x, hv.y, L) : null
+        const x = Math.round(chX(i >= 0 && i < n ? i : chI(hv.x, L), L)) + 0.5, y = Math.round(sn && sn.snapped ? sn.y : hv.y) + 0.5, hvP = sn && sn.snapped ? sn.p : chP(hv.y, L)
         const cur = CH.tool === 'cross' ? (S.cursor || 'cross') : 'cross', crossC = alpha(C.cross.length === 7 ? C.cross : (light ? '#000000' : '#ffffff'), S.crossC ? 0.7 : 0.45)
         if (cur === 'cross') { ctx.strokeStyle = crossC; ctx.setLineDash(S.crossStyle === 'solid' ? [] : S.crossStyle === 'dot' ? [1, 3] : [3, 3]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.H - L.tx); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([]) }
         else if (cur === 'dot') { ctx.fillStyle = crossC; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill() }
         if (cur !== 'arrow' && hv.y > L.mainH + L.volH) { const pn = L.panes.find((p) => hv.y >= p.top && hv.y < p.top + p.h), sc = pn && CH.paneScale?.[pn.key]; if (sc) { const v = sc.lo + (sc.top + sc.h - 4 - hv.y) / (sc.h - 22) * (sc.hi - sc.lo); ctx.fillStyle = T.panel2; ctx.fillRect(L.plotW + 2, y - 8, L.ax - 4, 16); ctx.fillStyle = T.ink; ctx.textAlign = 'left'; ctx.fillText(pn.key === 'rsi' ? v.toFixed(1) : v.toFixed(2), L.plotW + 7, y) } }
-        if (cur !== 'arrow' && hv.y <= L.mainH) { ctx.fillStyle = T.panel2; ctx.fillRect(L.plotW + 2, y - 8, L.ax - 4, 16); ctx.fillStyle = T.ink; ctx.textAlign = 'left'; ctx.fillText(chPx(chP(hv.y, L)), L.plotW + 7, y) }
+        if (cur !== 'arrow' && hv.y <= L.mainH) { ctx.fillStyle = sn && sn.snapped ? T.gold : T.panel2; ctx.fillRect(L.plotW + 2, y - 8, L.ax - 4, 16); ctx.fillStyle = sn && sn.snapped ? '#1a1207' : T.ink; ctx.textAlign = 'left'; ctx.fillText(chPx(hvP), L.plotW + 7, y) }
+        if (sn && sn.snapped && cur !== 'arrow') { ctx.strokeStyle = T.gold; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = T.gold; ctx.beginPath(); ctx.arc(x, y, 1.5, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 1 }
         const tt = b ? b.t : chTofI(chI(hv.x, L)); const text = chFmtFull(tt)
         if (cur !== 'arrow') { ctx.font = `600 10.5px ${GEX_FONT}`; const tw = ctx.measureText(text).width + 12; const tx0 = Math.min(Math.max(0, x - tw / 2), L.W - tw); ctx.fillStyle = T.panel2; ctx.fillRect(tx0, L.H - L.tx + 2, tw, L.tx - 4); ctx.fillStyle = T.ink; ctx.textAlign = 'center'; ctx.fillText(text, tx0 + tw / 2, L.H - L.tx / 2); ctx.font = `11px ${GEX_FONT}` }
         chLegend(b || lastBar, b ? i : n - 1)
@@ -11189,8 +11191,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       return { t, p, x: sx, y: sy, snapped }
     }
     function chPoint(x, y, L) { const s = chSnapPt(x, y, L); CH.snap = s.snapped ? { x: s.x, y: s.y } : null; return { t: s.t, p: s.p } }
-    function chSnapAngle(d, p, L) {   // the second point snaps to the nearest 45 degrees from the first, in pixels
-      const a = { x: chX(chIofT(d.p[0].t), L), y: chY(d.p[0].p, L) }, dx = p.x - a.x, dy = p.y - a.y, r = Math.hypot(dx, dy)
+    function chSnapAngle(d, p, L) { return chSnapAngleFrom(d.p[0], p, L) }   // the second point snaps to the nearest 45 degrees from the first, in pixels
+    function chSnapAngleFrom(anchor, p, L) {
+      const a = { x: chX(chIofT(anchor.t), L), y: chY(anchor.p, L) }, dx = p.x - a.x, dy = p.y - a.y, r = Math.hypot(dx, dy)
       const ang = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4), x = a.x + r * Math.cos(ang), y = a.y + r * Math.sin(ang)
       CH.snap = null; return { t: Math.round(chTofI(chI(x, L))), p: +chP(y, L).toFixed(2) }
     }
@@ -11492,12 +11495,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           else { CH.measure = { a: chPoint(p.x, p.y, L), b: null, live: true }; CH.drag.measure = true }
           chDraw(); return
         }
-        const pt = chPoint(p.x, p.y, L)
+        const pt = CH.pending && CH.shift && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)   // Shift keeps the angle snap on the committing click
         if (!CH.pending) { const type = CH.tool === 'xline' ? 'trend' : CH.tool; CH.pending = fresh(type, [pt, { ...pt }], CH.tool === 'fib' || CH.tool === 'fibext' ? { ext: { r: true } } : CH.tool === 'xline' ? { ext: { l: true, r: true } } : {}); CH.pending.need = CH_MULTI[CH.tool] || 2; CH.drag.pend = true }
         else chPendingAdvance(pt)
       })
       cv.addEventListener('pointermove', (e) => {
         const p = pos(e); const L = chLayout()
+        CH.ctrl = e.ctrlKey || e.metaKey; CH.shift = !!e.shiftKey
         if (CH.pointers.has(e.pointerId)) CH.pointers.set(e.pointerId, p)
         if (CH.pinch && CH.pointers.size === 2) { const [a, b] = [...CH.pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); const bw = Math.max(1.5, Math.min(60, CH.pinch.barW * d / Math.max(CH.pinch.d, 1))); const mid = (a.x + b.x) / 2; CH.barW = bw; const n = chVisible().length; CH.offset = CH.pinch.i - (n - 1) + (L.plotW - mid) / bw - 0.5; chDraw(); return }
         CH.hover = p
@@ -11527,16 +11531,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             else if (d.type === 'vline') d.p = [{ t: now.t, p: p0[0].p }]
             else if (handle >= 10 && dg.move.box0) chBoxApply(d, dg.move.box0, handle - 10, now)
             else if ((d.type === 'regression' || d.type === 'daterange' || d.type === 'vprofile') && handle >= 0) { const left = p0[0].t <= p0[1].t ? 0 : 1, k = handle === 0 ? left : 1 - left; d.p = p0.map((q, i) => i === k ? { t: now.t, p: d.type === 'daterange' ? p0[0].p : q.p } : q) }
+            else if (handle >= 0 && CH.shift && (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') && p0.length === 2) { const snapped = chSnapAngleFrom(p0[1 - handle], p, L); d.p = p0.map((q, k) => k === handle ? snapped : q) }
             else if (handle >= 0) d.p = p0.map((q, k) => k === handle ? { t: now.t, p: now.p } : q)
             else d.p = p0.map((q) => ({ t: q.t + dt, p: +(q.p + dp).toFixed(2) }))
             chDraw(); return
           }
           if (dg.measure && CH.measure?.live) { CH.measure.b = chPoint(p.x, p.y, L); chDraw(); return }
           if (dg.brush && CH.pending) { const q = CH.pending.p[CH.pending.p.length - 1], qx = chX(chIofT(q.t), L), qy = chY(q.p, L); if (Math.hypot(p.x - qx, p.y - qy) >= 3) CH.pending.p.push({ t: chTofI(chI(p.x, L)), p: +chP(p.y, L).toFixed(2) }); chDraw(); return }
-          if (dg.pend && CH.pending) { CH.pending.p[CH.pending.p.length - 1] = e.shiftKey ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L); chDraw(); return }
+          if (dg.pend && CH.pending) { CH.pending.p[CH.pending.p.length - 1] = CH.shift && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L); chDraw(); return }
           if (CH.tool === 'cross' && !CH.replay.arm) { CH.offset = dg.offset - dx / CH.barW; chClampOffset(L); if (!CH.auto) { const shift = dy / L.mainH * (dg.pMax - dg.pMin); CH.pMin = dg.pMin + shift; CH.pMax = dg.pMax + shift } cv.style.cursor = 'grabbing'; chDraw(); return }
         }
-        if (CH.pending && !CH.pending.free) CH.pending.p[CH.pending.p.length - 1] = e.shiftKey && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)
+        if (CH.pending && !CH.pending.free) CH.pending.p[CH.pending.p.length - 1] = CH.shift && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)
         else if (CH.measure?.live) CH.measure.b = chPoint(p.x, p.y, L)
         else if (CH.tool !== 'cross' && CH.tool !== 'measure') chPoint(p.x, p.y, L)   // keeps the snap ring live under a drawing tool
         else CH.snap = null
@@ -11590,8 +11595,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       new ResizeObserver(() => chDraw()).observe(stage)
       new MutationObserver(() => chDraw()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
       const CH_ALT = { h: 'hline', v: 'vline', t: 'trend', r: 'rect', f: 'fib', m: 'measure', l: 'long', n: 'text' }
-      const ctrlSync = (e) => { const on = e.ctrlKey || e.metaKey; if (on !== CH.ctrl) { CH.ctrl = on; if (CH.hover && (CH.pending || CH.measure?.live || CH.drag?.move)) chDraw() } }
-      document.addEventListener('keydown', ctrlSync); document.addEventListener('keyup', ctrlSync); window.addEventListener('blur', () => { CH.ctrl = false })
+      const ctrlSync = (e) => { const ctrl = e.ctrlKey || e.metaKey, shift = !!e.shiftKey; if (ctrl !== CH.ctrl || shift !== CH.shift) { CH.ctrl = ctrl; CH.shift = shift; chHoverRefresh() } }
+      // the point under the cursor, recomputed from the last hover: pressing Ctrl or Shift snaps without waiting for a move
+      function chHoverRefresh() {
+        const p = CH.hover; if (!p) return
+        const L = chLayout()
+        if (CH.drag?.move) { chDraw(); return }
+        if (CH.pending && !CH.pending.free) CH.pending.p[CH.pending.p.length - 1] = CH.shift && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)
+        else if (CH.measure?.live) CH.measure.b = chPoint(p.x, p.y, L)
+        else if (CH.tool !== 'cross' && CH.tool !== 'measure') chPoint(p.x, p.y, L)
+        else CH.snap = null
+        chDraw()
+      }
+      document.addEventListener('keydown', ctrlSync); document.addEventListener('keyup', ctrlSync); window.addEventListener('blur', () => { CH.ctrl = false; CH.shift = false })
       document.addEventListener('keydown', (e) => {
         if (!CH.on || !el('v-chart').classList.contains('on')) return
         if (/input|textarea|select/i.test(e.target.tagName) || e.target.isContentEditable) return

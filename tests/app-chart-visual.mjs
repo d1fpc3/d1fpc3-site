@@ -146,12 +146,13 @@ async function run(vpName) {
       await page.keyboard.press("Escape");
       await page.mouse.click(box.x + box.width * 0.15, box.y + h.y); await page.waitForTimeout(150);
       st = await state(page); check(st.sel, "clicking the horizontal line selects it");
+      const selId = await page.evaluate(() => window.__CH.sel && window.__CH.sel.id);   // two horizontal lines can sit within a few px on live data: follow the one that took the click
       await page.click('#ch-selbar .sw[data-c="#2962ff"]'); await page.click('#ch-selbar .wb[data-w="3"]'); await page.click('#ch-selbar .db[data-d="dash"]'); await page.waitForTimeout(150);
       const styled = await page.evaluate(() => { const d = window.__CH.sel; return d && `${d.color} ${d.w} ${d.dash}`; });
       check(styled === "#2962ff 3 dash", `selection strip restyled the line: ${styled}`);
       await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-selbar.png` });
       await page.keyboard.press("Control+z"); await page.keyboard.press("Control+z"); await page.waitForTimeout(150);
-      const undone = await page.evaluate(() => { const d = window.__CH.drawings.find((x) => x.type === "hline"); return `${d.color} ${d.w || 1} ${d.dash || "solid"}`; });
+      const undone = await page.evaluate((id) => { const d = window.__CH.drawings.find((x) => x.id === id); return `${d.color} ${d.w || 1} ${d.dash || "solid"}`; }, selId);
       check(undone === "#2962ff 1 solid", `undo stepped the style back: ${undone}`);
       await page.click("#ch-eye"); await page.waitForTimeout(120); const hidden = await page.evaluate(() => window.__CH.hideDr); await page.click("#ch-eye");
       check(hidden === true, "eye hides the drawings");
@@ -216,11 +217,12 @@ async function run(vpName) {
         await page.mouse.down(); await page.mouse.move(box.x + r0.x + 90, box.y + r0.y + 40, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(150);
         const r1 = await page.evaluate(() => { const d = window.__CH.drawings.find((x) => x.type === "rect"); return { t0: Math.min(d.p[0].t, d.p[1].t), t1: Math.max(d.p[0].t, d.p[1].t), pHi: Math.max(d.p[0].p, d.p[1].p), pLo: Math.min(d.p[0].p, d.p[1].p) }; });
         check(cur === "ew-resize" && r1.t1 > r0.t1 && r1.t0 === r0.t0 && r1.pHi === r0.pHi && r1.pLo === r0.pLo, `right side handle stretched the rectangle in time only (cursor ${cur}; ${r0.t1} -> ${r1.t1}, height kept)`);
-        // Shift + body drag: pure horizontal move
-        const mid = await page.evaluate(() => { const CH = window.__CH; const d = CH.drawings.find((x) => x.type === "rect"); return CH.$.pt((d.p[0].t + d.p[1].t) / 2, (d.p[0].p + d.p[1].p) / 2); });
+        // Shift + body drag: pure horizontal move (other drawings hidden so the fib levels cannot take the hit)
+        const mid = await page.evaluate(() => { const CH = window.__CH; const d = CH.drawings.find((x) => x.type === "rect"); CH.drawings.forEach((x) => { if (x !== d) x.hidden = true }); CH.sel = d; return CH.$.pt((d.p[0].t + d.p[1].t) / 2, (d.p[0].p + d.p[1].p) / 2); });
         await page.mouse.move(box.x + mid.x, box.y + mid.y); await page.keyboard.down("Shift"); await page.mouse.down(); await page.mouse.move(box.x + mid.x + 60, box.y + mid.y + 50, { steps: 6 }); await page.mouse.up(); await page.keyboard.up("Shift"); await page.waitForTimeout(150);
         const r2 = await page.evaluate(() => { const d = window.__CH.drawings.find((x) => x.type === "rect"); return { t0: Math.min(d.p[0].t, d.p[1].t), pHi: Math.max(d.p[0].p, d.p[1].p) }; });
         check(r2.t0 > r1.t0 && r2.pHi === r1.pHi, `Shift-drag moved the rectangle sideways only (${r1.t0} -> ${r2.t0}, price kept)`);
+        await page.evaluate(() => window.__CH.drawings.forEach((x) => { delete x.hidden }));
         await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-rect-handles.png` });
         // a path: three clicks and a double-click; a volume profile by drag
         await page.evaluate(() => window.__CH.$.setTool("path"));
@@ -231,6 +233,24 @@ async function run(vpName) {
         const vp = await page.evaluate(() => { const d = window.__CH.drawings.find((x) => x.type === "vprofile"); return d ? d.p.length : 0; });
         check(pathPts >= 4 && vp === 2, `path committed with ${pathPts} points, volume profile drawn (${vp} points)`);
         await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-tools3.png` });
+        await page.keyboard.press("Escape");
+      }
+      // Shift pressed while a line is pending straightens it without a mouse move; Ctrl pressed snaps the crosshair
+      {
+        await page.evaluate(() => window.__CH.$.setTool("trend"));
+        await page.mouse.click(box.x + box.width * 0.3, cy + 40); await page.mouse.move(box.x + box.width * 0.5, cy + 52, { steps: 4 }); await page.waitForTimeout(100);
+        const before = await page.evaluate(() => { const d = window.__CH.pending; return d && d.p[1].p - d.p[0].p; });
+        await page.keyboard.down("Shift"); await page.waitForTimeout(120);
+        const after = await page.evaluate(() => { const d = window.__CH.pending; return d && d.p[1].p - d.p[0].p; });
+        await page.mouse.click(box.x + box.width * 0.5, cy + 52); await page.keyboard.up("Shift"); await page.waitForTimeout(150);
+        const flat = await page.evaluate(() => { const d = window.__CH.drawings[window.__CH.drawings.length - 1]; return d.type === "trend" && d.p[0].p === d.p[1].p; });
+        check(before !== 0 && after === 0 && flat, `Shift straightened the pending line on key down (${before} -> ${after}) and it committed flat`);
+        await page.mouse.move(box.x + box.width * 0.6, cy - 30); await page.waitForTimeout(80);
+        await page.keyboard.down("Control"); await page.waitForTimeout(120);
+        const ctrlOn = await page.evaluate(() => window.__CH.ctrl);
+        await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-ctrl-snap.png` });
+        await page.keyboard.up("Control"); await page.waitForTimeout(80);
+        check(ctrlOn === true && (await page.evaluate(() => window.__CH.ctrl)) === false, "Ctrl held snaps the crosshair, released clears it");
         await page.keyboard.press("Escape");
       }
       // typing digits picks an interval: 10 Enter = 10m, a custom pill joins the bar
