@@ -60,7 +60,8 @@ async function run(vpName) {
   await page.waitForFunction(() => /O\s/.test(document.getElementById("ch-legend").textContent), null, { timeout: 30000 }).catch(() => {});
   await page.waitForTimeout(4000);   // the month of minutes lands in the background
   let st = await state(page);
-  check(await painted(page) > 200 && /O\s.*H\s.*L\s.*C\s/.test(st.legend), `painted with a legend: ${st.legend.slice(0, 90)} · session ${st.sess}`);
+  const legendOk = (t) => vpName === "phone" ? /C\s/.test(t) : /O\s.*H\s.*L\s.*C\s/.test(t);   // phones show a compact legend until a tap parks the crosshair
+  check(await painted(page) > 200 && legendOk(st.legend), `painted with a legend: ${st.legend.slice(0, 90)} · session ${st.sess}`);
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart.png` });
   const cv = await page.$("#ch-canvas"); const box = await cv.boundingBox();
   const cx = box.x + box.width * 0.5, cy = box.y + box.height * 0.45;
@@ -69,7 +70,7 @@ async function run(vpName) {
     await page.evaluate((t) => document.querySelector(`#ch-tf button[data-tf="${t}"]`).click(), tf);
     await page.waitForTimeout(tf === "1h" || tf === "D" ? 3500 : 800);
     st = await state(page);
-    check(st.tf === tf && /O\s/.test(st.legend) && await painted(page) > 150, `timeframe ${tf}: ${st.legend.slice(0, 70)}`);
+    check(st.tf === tf && /C\s/.test(st.legend) && await painted(page) > 150, `timeframe ${tf}: ${st.legend.slice(0, 70)}`);
     if (tf === "D" || tf === "1h") await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-${tf}.png` });
   }
   await page.evaluate(() => document.querySelector('#ch-tf button[data-tf="5m"]').click());
@@ -141,8 +142,36 @@ async function run(vpName) {
   await page.click("#ch-ind-btn"); await page.waitForTimeout(200);
   await page.evaluate(() => { const rows = [...document.querySelectorAll("#ch-menu-body .ch-row")]; for (const r of rows) if (/EMA|VWAP/.test(r.textContent) && !/Lengths/.test(r.textContent)) { const i = r.querySelector("input[type=checkbox]"); if (i && !i.checked) i.click(); } });
   await page.waitForTimeout(300);
-  st = await state(page); check(/EMA 20/.test(st.legend) && /VWAP/.test(st.legend), `indicators on: ${st.legend.slice(-80)}`);
+  st = await state(page);
+  if (vpName === "phone") { const sv = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}")); check(sv.emaOn && sv.vwap, `indicators on (phone, from settings): ema ${sv.emaOn} vwap ${sv.vwap}`); }
+  else check(/EMA 20/.test(st.legend) && /VWAP/.test(st.legend), `indicators on: ${st.legend.slice(-80)}`);
+  // D1 GEX on (holders), D1 LIT is on by default: both show in the legend
+  await page.evaluate(() => { const rows = [...document.querySelectorAll("#ch-menu-body .ch-row")]; for (const r of rows) if (/^D1 GEX/.test(r.textContent.trim())) { const i = r.querySelector("input[type=checkbox]"); if (i && !i.checked) i.click(); } });
+  await page.waitForTimeout(2500);
+  st = await state(page);
+  if (vpName === "desk") { check(/D1 LIT/.test(st.legend), "D1 LIT tag in the legend"); if (email === "d1fpc3@gmail.com") check(/D1 GEX/.test(st.legend), "D1 GEX tag in the legend (holder)"); }
+  else { const sv = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}")); check(sv.lit !== false && (email !== "d1fpc3@gmail.com" || sv.gex), `D1 LIT / D1 GEX on (phone, from settings): lit ${sv.lit !== false} gex ${sv.gex}`); }
   await page.click("#ch-menu-close");
+  await page.evaluate(() => document.querySelector('#ch-tf button[data-tf="5m"]').click()); await page.waitForTimeout(600);
+  await page.evaluate(() => { const s2 = JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}"); s2.type = "candles"; localStorage.setItem("echelon-chart-settings", JSON.stringify(s2)); });
+  await page.click("#ch-type-btn"); await page.evaluate(() => [...document.querySelectorAll("#ch-menu-body .ch-opt")].find((b) => /^Candles/.test(b.textContent)).click()); await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-indicators.png` });
+  // timezone corner flips the clock
+  const tz0 = await page.evaluate(() => document.getElementById("ch-tz").textContent);
+  await page.click("#ch-tz"); await page.waitForTimeout(200);
+  const tz1 = await page.evaluate(() => document.getElementById("ch-tz").textContent);
+  check(tz0 !== tz1 && /UTC/.test(tz1), `timezone corner: "${tz0}" -> "${tz1}"`);
+  await page.click("#ch-tz");
+  // the volume pane closes from its own ×
+  {
+    const b2 = await (await page.$("#ch-canvas")).boundingBox();
+    const H = b2.height, volH = Math.round((H - 24) * 0.16), volTop = H - 24 - volH;
+    await page.mouse.click(b2.x + 88, b2.y + volTop + 11);
+    await page.waitForTimeout(300);
+    const vol = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}").volume);
+    check(vol === false, "volume × closes the pane");
+    await page.evaluate(() => { const s2 = JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}"); s2.volume = true; localStorage.setItem("echelon-chart-settings", JSON.stringify(s2)); });
+  }
   await page.click("#ch-settings-btn"); await page.waitForTimeout(200);
   st = await state(page); check(st.menu && st.menuTitle === "Settings", "settings drawer opens");
   await page.evaluate(() => { const s = [...document.querySelectorAll("#ch-menu-body .seg")][0]; s.querySelector("button")?.click(); const up = document.querySelector("#ch-menu-body input[type=color]"); up.value = "#2ec4b6"; up.dispatchEvent(new Event("input", { bubbles: true })); });

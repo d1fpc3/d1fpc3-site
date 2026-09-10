@@ -646,8 +646,11 @@
     .ch-legend .tf { color: var(--faint); margin-left: -4px; }
     .ch-legend i { font-style: normal; color: var(--ink); }
     .ch-legend .up, .ch-legend i.up { color: var(--good); } .ch-legend .down, .ch-legend i.down { color: var(--bad); }
+    .ch-legend .ind { color: var(--gold); font-weight: 600; font-size: 10.5px; letter-spacing: 0.04em; }
     .ch-busy { position: absolute; top: 10px; right: 80px; width: 12px; height: 12px; border: 2px solid var(--line-bright); border-top-color: var(--gold); border-radius: 50%; animation: ch-spin 0.8s linear infinite; }
     @keyframes ch-spin { to { transform: rotate(360deg); } }
+    .ch-tz { position: absolute; right: 0; bottom: 0; height: 24px; width: 78px; background: none; border: 0; border-left: 1px solid var(--line); color: var(--faint); font-family: inherit; font-size: 10px; font-weight: 600; letter-spacing: 0.01em; cursor: pointer; white-space: nowrap; padding: 0; }
+    .ch-tz:hover { color: var(--ink); background: var(--panel-2); }
     .ch-latest { position: absolute; right: 80px; bottom: 34px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-bright); background: var(--panel); color: var(--ink); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
     .ch-latest svg { width: 14px; height: 14px; }
     .ch-latest:hover { border-color: var(--gold); color: var(--gold); }
@@ -677,6 +680,10 @@
     .ch-color input[type="color"] { width: 30px; height: 24px; border: 1px solid var(--line-bright); border-radius: 6px; background: none; padding: 1px; cursor: pointer; }
     .ch-reset { background: none; border: 0; color: var(--faint); font: inherit; font-size: 11px; cursor: pointer; text-decoration: underline dotted; }
     .ch-lens { display: flex; gap: 6px; } .ch-lens input { width: 58px; padding: 5px 7px; font-size: 12px; }
+    .ch-parts { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 0 10px; border-bottom: 1px solid var(--line); }
+    .ch-part { background: none; border: 1px solid var(--line); border-radius: 999px; color: var(--faint); font-family: inherit; font-size: 11.5px; padding: 4px 9px; cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease; }
+    .ch-part:hover { color: var(--ink); }
+    .ch-part.on { color: var(--gold); border-color: rgba(201,162,74,0.45); background: rgba(201,162,74,0.07); }
     .tgl.sm { width: 40px; height: 24px; } .tgl.sm .track::before { width: 20px; height: 20px; } .tgl.sm input:checked + .track::before { transform: translateX(16px); }
     @media (max-width: 840px) {
       .ch-wrap { height: calc(100dvh - 66px - 20px - var(--bnav, 0px)); min-height: 380px; border-radius: 10px; }
@@ -684,7 +691,10 @@
       .ch-bar { flex-wrap: wrap; row-gap: 0; padding: 4px 8px 2px; overflow: visible; }
       .ch-sym { order: 0; }
       .ch-sp { order: 0; }
-      .ch-ib { order: 0; }
+      .ch-ib { order: 0; padding: 5px; }
+      .ch-ib svg { width: 16px; height: 16px; }
+      .ch-sym { padding-right: 6px; margin-right: 0; gap: 6px; }
+      .ch-sess { font-size: 9px; }
       .ch-tfs { order: 1; flex: 1 1 100%; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 2px; }
       .ch-tfs button { flex: 1; padding: 7px 2px 6px; }
       .ch-body { flex-direction: column-reverse; }
@@ -2965,6 +2975,7 @@
                 <canvas id="ch-canvas" aria-label="NQ chart"></canvas>
                 <div class="ch-legend" id="ch-legend"></div>
                 <div class="ch-busy" id="ch-busy" hidden></div>
+                <button class="ch-tz" id="ch-tz" type="button" title="Timezone"></button>
                 <button class="ch-latest" id="ch-latest" type="button" title="Back to the latest bar" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
                 <div class="ch-selbar" id="ch-selbar" hidden><input type="color" id="ch-selcolor" aria-label="Drawing colour"><button type="button" id="ch-seldel">Delete</button></div>
                 <div class="ch-replay" id="ch-replay" hidden>
@@ -9792,7 +9803,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        every colour and toggle. One canvas, redrawn on demand. */
     const CH_TF = { '1m': ['1m', 1], '3m': ['1m', 3], '5m': ['5m', 5], '15m': ['5m', 15], '30m': ['5m', 30], '1h': ['60m', 60], '4h': ['60m', 240], 'D': ['1d', 1440] }
     const CH_SPAN = { '1m': 32, '5m': 62, '60m': 740, '1d': 9800 }   // days each source reaches back, at most
-    const CH_DEFAULTS = { type: 'candles', up: '', down: '', wickUp: '', wickDown: '', border: true, grid: true, volume: true, sessions: true, lastLine: true, legend: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: true, bg: '' }
+    const CH_DEFAULTS = { type: 'candles', up: '', down: '', wickUp: '', wickDown: '', border: true, grid: true, volume: true, sessions: true, lastLine: true, legend: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
+      lit: true, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: true, litKo: true, litPo3: true, litEighths: true, litGold: true, litVector: true, litDays: 3 }
     const CH = {
       on: false, raf: 0, timer: null, err: null, busy: 0, wired: false,
       base: { '1m': [], '5m': [], '60m': [], '1d': [] }, have: { '1m': null, '5m': null, '60m': null, '1d': null },
@@ -9821,7 +9833,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const chWall = (t) => CH.s.tz === 'local' ? t - new Date(t * 1000).getTimezoneOffset() * 60 : t + chEtOff(t)
     const chMin = (t) => Math.floor(((t + chEtOff(t)) % 86400 + 86400) % 86400 / 60)   // ET minute of day
     const chSessionKey = (t) => Math.floor((t + chEtOff(t) + 6 * 3600) / 86400)          // 18:00 ET rolls to the next day
-    const chFmtTime = (t) => { const w = chWall(t), m = Math.floor((w % 86400 + 86400) % 86400 / 60); const h = Math.floor(m / 60), mm = m % 60; return `${((h + 11) % 12) + 1}:${String(mm).padStart(2, '0')}${h < 12 ? 'a' : 'p'}` }
+    const chFmtTime = (t) => { const w = chWall(t), m = Math.floor((w % 86400 + 86400) % 86400 / 60); const h = Math.floor(m / 60), mm = m % 60; return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}` }
+    const CH_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], CH_WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const chWallParts = (t) => { const d = new Date(chWall(t) * 1000); return { y: d.getUTCFullYear(), mo: d.getUTCMonth(), d: d.getUTCDate(), wd: d.getUTCDay() } }
+    const chFmtAxisDay = (t) => { const p = chWallParts(t); return `${p.d} ${CH_MON[p.mo]}` }
+    const chFmtFull = (t) => { const p = chWallParts(t); return `${CH_WD[p.wd]} ${String(p.d).padStart(2, '0')} ${CH_MON[p.mo]} '${String(p.y).slice(2)}${CH.tfSec >= 86400 ? '' : '  ' + chFmtTime(t)}` }
     const chFmtDate = (t, long = false) => new Date(t * 1000).toLocaleDateString('en-US', { timeZone: CH.s.tz === 'local' ? undefined : 'America/New_York', month: 'short', day: 'numeric', ...(long ? { weekday: 'short', year: 'numeric' } : {}) })
     const chPx = (v, d = 2) => v == null || isNaN(v) ? '' : Number(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
     const chPts = (v) => (v < 0 ? '−' : '+') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 })
@@ -9995,6 +10011,172 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       return h > -Infinity ? [{ name: 'PDH', px: h, color: 'muted' }, { name: 'PDL', px: l, color: 'muted' }] : []
     }
 
+    /* ── D1 LIT: levels and timing, the Pine indicator's rules on our bars ──
+       Sessions are New York wall-clock. A "day" is the futures session, 18:00
+       to 17:00, and a week opens Sunday 18:00. Everything is computed once per
+       bar set and cached, then painted in bar coordinates. */
+    let chLitCache = { key: '', v: null }
+    const chDayKey = (t) => chSessionKey(t)                       // days since epoch, session-rolled
+    const chWeekKey = (t) => Math.floor((chSessionKey(t) - 4) / 7) // Monday 1970-01-05 opens week 0
+    const chEtDate = (t) => new Date((t + chEtOff(t)) * 1000)      // UTC methods read as New York wall-clock
+    function chLit() {
+      const bars = chVisible(), n = bars.length
+      const key = `${CH.tf}|${n}|${bars[n - 1]?.c}|${bars[n - 1]?.t}`
+      if (chLitCache.key === key) return chLitCache.v
+      const tf = CH.tfSec, S = CH.s
+      const v = { pd: [], pw: null, wo: null, asia: [], ny: [], open18: [], marks: [], ko: [], po3: [], eighths: null, gold: null }
+      if (!n) { chLitCache = { key, v }; return v }
+      const lastT = bars[n - 1].t, lastKey = chDayKey(lastT), minKey = lastKey - (S.litDays || 3)
+      // per-session extremes with the bar index that made them
+      const days = new Map()
+      for (let i = 0; i < n; i++) { const b = bars[i], k = chDayKey(b.t); let d = days.get(k); if (!d) { d = { k, i0: i, h: b.h, hi: i, l: b.l, li: i, open: b.o }; days.set(k, d) } d.i1 = i; if (b.h > d.h) { d.h = b.h; d.hi = i } if (b.l < d.l) { d.l = b.l; d.li = i } }
+      const dayList = [...days.values()].sort((a, b) => a.k - b.k)
+      // PDH / PDL: the prior session's extremes, drawn through the next session until swept
+      for (let di = 1; di < dayList.length; di++) {
+        const prev = dayList[di - 1], cur = dayList[di]
+        if (cur.k < minKey) continue
+        let hEnd = cur.i1, lEnd = cur.i1, hSwept = false, lSwept = false
+        for (let i = cur.i0; i <= cur.i1; i++) { if (!hSwept && bars[i].h >= prev.h) { hEnd = i; hSwept = true } if (!lSwept && bars[i].l <= prev.l) { lEnd = i; lSwept = true } if (hSwept && lSwept) break }
+        v.pd.push({ p: prev.h, i0: prev.hi, i1: hEnd, label: 'PDH', swept: hSwept }, { p: prev.l, i0: prev.li, i1: lEnd, label: 'PDL', swept: lSwept })
+      }
+      // weeks: prior week's extremes, this week's open, eighths of the prior week
+      const weeks = new Map()
+      for (let i = 0; i < n; i++) { const b = bars[i], k = chWeekKey(b.t); let w = weeks.get(k); if (!w) { w = { k, i0: i, h: b.h, hi: i, l: b.l, li: i, open: b.o }; weeks.set(k, w) } w.i1 = i; if (b.h > w.h) { w.h = b.h; w.hi = i } if (b.l < w.l) { w.l = b.l; w.li = i } }
+      const weekList = [...weeks.values()].sort((a, b) => a.k - b.k)
+      if (weekList.length >= 2) {
+        const pw = weekList[weekList.length - 2], cw = weekList[weekList.length - 1]
+        let hEnd = n - 1, lEnd = n - 1, hSwept = false, lSwept = false
+        for (let i = cw.i0; i < n; i++) { if (!hSwept && bars[i].h >= pw.h) { hEnd = i; hSwept = true } if (!lSwept && bars[i].l <= pw.l) { lEnd = i; lSwept = true } if (hSwept && lSwept) break }
+        v.pw = { h: pw.h, hi: pw.hi, hEnd, l: pw.l, li: pw.li, lEnd }
+        if (pw.h > pw.l) v.eighths = { step: (pw.h - pw.l) / 8, base: pw.l, i0: cw.i0 }
+      }
+      if (weekList.length) { const cw = weekList[weekList.length - 1]; v.wo = { p: cw.open, i0: cw.i0 } }
+      // sessions inside the lookback: Asia 18:00 to 01:00 with EQ, NYT 08:00 to 09:00, the 18:00 open until 11:00, the vertical markers
+      let asia = null, ny = null, o18 = null
+      const marks = [[60, 'FF'], [180, 'LO'], [210, 'MM1'], [330, 'MM2'], [660, 'LC']]
+      for (let i = 0; i < n; i++) {
+        const b = bars[i], m = chMin(b.t), k = chDayKey(b.t)
+        if (k < minKey) continue
+        const inAsia = m >= 1080 || m < 60, inNy = m >= 480 && m < 540
+        if (tf <= 3600) {
+          if (inAsia) { if (!asia || asia.k !== k) { asia = { k, i0: i, i1: i, h: b.h, l: b.l }; v.asia.push(asia) } else { asia.i1 = i; if (b.h > asia.h) asia.h = b.h; if (b.l < asia.l) asia.l = b.l } }
+          if (inNy) { if (!ny || ny.k !== k) { ny = { k, i0: i, i1: i, h: b.h, l: b.l }; v.ny.push(ny) } else { ny.i1 = i; if (b.h > ny.h) ny.h = b.h; if (b.l < ny.l) ny.l = b.l } }
+        }
+        const contains = (target) => m <= target && target < m + tf / 60
+        if (contains(1080) && chEtDate(b.t).getUTCDay() !== 0) { o18 = { p: b.o, i0: i, i1: i }; v.open18.push(o18) }
+        else if (o18 && (m >= 1080 || m < 660)) o18.i1 = i
+        if (tf <= 3600) for (const [mm, label] of marks) if (contains(mm)) v.marks.push({ i, label })
+      }
+      // key opens for the last calendar day, shown while that day's regular session is on screen
+      const lastEt = chEtDate(lastT), lastMin = chMin(lastT)
+      if (tf <= 3600 && lastMin >= 570 && lastMin <= 960) {
+        const dayStart = Math.floor((lastT + chEtOff(lastT)) / 86400)
+        for (const [mm, label] of [[510, '[08:30 Open]'], [570, '[09:30 Open]'], [600, '[10:00 Open]']]) {
+          for (let i = n - 1; i >= 0; i--) { const b = bars[i]; if (Math.floor((b.t + chEtOff(b.t)) / 86400) !== dayStart) break; const m = chMin(b.t); if (m <= mm && mm < m + tf / 60) { v.ko.push({ p: b.o, i0: i, label }); break } }
+        }
+      }
+      // PO3 candles: the live 30m, 4H and D1 (NY midnight) candles, drawn to the right of price
+      const po3 = (secs, anchorMidnight, offset, width, label, fits) => {
+        if (!fits) return
+        let o = null, h = -Infinity, l = Infinity
+        const lastKeyOf = (t) => anchorMidnight ? Math.floor((t + chEtOff(t)) / 86400) : Math.floor((t + chEtOff(t)) / secs)
+        const k = lastKeyOf(lastT)
+        for (let i = n - 1; i >= 0; i--) { const b = bars[i]; if (lastKeyOf(b.t) !== k) break; o = b.o; if (b.h > h) h = b.h; if (b.l < l) l = b.l }
+        if (o != null) v.po3.push({ o, h, l, c: bars[n - 1].c, offset, width, label })
+      }
+      po3(1800, false, 20, 4, '30m PO3', tf <= 1800); po3(14400, false, 35, 6, '4H PO3', tf <= 14400); po3(86400, true, 50, 6, 'D1 PO3', tf <= 86400)
+      // golden Tue 01:00 to Wed 23:00 window: the highest high, floated 0.05% up, from the window start
+      { let best = null; for (let i = 0; i < n; i++) { const b = bars[i], d = chEtDate(b.t), dow = d.getUTCDay(), hr = d.getUTCHours(); const inWin = (dow === 2 && hr >= 1) || (dow === 3 && hr <= 23); if (!inWin) continue; const wk = chWeekKey(b.t); if (!best || best.wk !== wk) best = { wk, i0: i, h: b.h }; else if (b.h > best.h) best.h = b.h } if (best) v.gold = best }
+      chLitCache = { key, v }; return v
+    }
+    let chVecCache = { key: '', v: null }
+    function chLitVectors() {   // volume >= 1.2 x SMA20 and body >= 1.5 x SMA20 body, per the Pine
+      const bars = chVisible(), n = bars.length, key = `${CH.tf}|${n}|${bars[n - 1]?.c}`
+      if (chVecCache.key === key) return chVecCache.v
+      const v = new Array(n).fill(false); let sv = 0, sb = 0
+      for (let i = 0; i < n; i++) {
+        const b = bars[i], body = Math.abs(b.c - b.o); sv += b.v; sb += body
+        if (i >= 20) { sv -= bars[i - 20].v; sb -= Math.abs(bars[i - 20].c - bars[i - 20].o) }
+        if (i >= 19) { const av = sv / 20, ab = sb / 20; v[i] = av > 0 && b.v >= av * 1.2 && ab > 0 && body >= ab * 1.5 }
+      }
+      chVecCache = { key, v }; return v
+    }
+    function chPaintLit(ctx, L, T, R) {
+      const S = CH.s, lit = chLit(), { n, i0, i1, light } = R
+      if (!n) return
+      const X = (i) => chX(i, L), Y = (p) => chY(p, L)
+      const grey = light ? 'rgba(90,90,90,0.55)' : 'rgba(160,160,160,0.55)', dark = light ? '#1a1815' : '#e9e3d8'
+      const tag = (text, x, y, color, align = 'left', size = 10) => { ctx.font = `600 ${size}px ${GEX_FONT}`; ctx.textAlign = align; ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.font = `11px ${GEX_FONT}` }
+      const hline = (p, xa, xb, color, dash, width = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1 }
+      const visible = (a, b) => b >= i0 - 1 && a <= i1 + 1
+      // Asia and NYT boxes
+      if (S.litAsia) for (const a of lit.asia) { if (!visible(a.i0, a.i1 + 7 * 3600 / CH.tfSec)) continue; const x0 = X(a.i0) - CH.barW / 2, x1 = X(a.i1) + CH.barW / 2, xe = X(a.i1 + 7 * 3600 / CH.tfSec); ctx.fillStyle = 'rgba(171,71,188,0.15)'; ctx.fillRect(x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); ctx.strokeStyle = 'rgba(171,71,188,0.5)'; ctx.strokeRect(Math.round(x0) + 0.5, Math.round(Y(a.h)) + 0.5, Math.round(x1 - x0), Math.round(Y(a.l) - Y(a.h))); hline(a.h, x1, xe, 'rgba(171,71,188,0.5)'); hline(a.l, x1, xe, 'rgba(171,71,188,0.5)'); hline((a.h + a.l) / 2, x0, xe, 'rgba(171,71,188,0.7)', [5, 4]) }
+      if (S.litNy) for (const a of lit.ny) { if (!visible(a.i0, a.i1)) continue; const x0 = X(a.i0) - CH.barW / 2, x1 = X(a.i1) + CH.barW / 2; ctx.fillStyle = 'rgba(66,133,244,0.1)'; ctx.fillRect(x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); ctx.strokeStyle = light ? 'rgba(2,4,5,0.4)' : 'rgba(180,200,255,0.4)'; ctx.strokeRect(Math.round(x0) + 0.5, Math.round(Y(a.h)) + 0.5, Math.round(x1 - x0), Math.round(Y(a.l) - Y(a.h))); tag('NYT', (x0 + x1) / 2, Y(a.h) - 7, light ? '#1a1815' : '#cfd8ff', 'center') }
+      // vertical markers
+      if (S.litMarks) for (const m of lit.marks) { if (m.i < i0 - 1 || m.i > i1 + 1) continue; const x = Math.round(X(m.i)) + 0.5; ctx.strokeStyle = light ? 'rgba(8,5,2,0.45)' : 'rgba(233,227,216,0.35)'; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.mainH + L.volH); ctx.stroke(); ctx.setLineDash([]); tag(m.label, x, 12, light ? '#1a1815' : '#e9e3d8', 'center') }
+      // 18:00 open, weekly open
+      if (S.litOpen) for (const o of lit.open18) { if (!visible(o.i0, o.i1)) continue; hline(o.p, X(o.i0), X(o.i1), light ? 'rgba(12,10,7,0.7)' : 'rgba(233,227,216,0.6)'); tag('[18:00 OPEN]', X(o.i1) + 6, Y(o.p), light ? '#1a1815' : '#e9e3d8') }
+      if (S.litWo && lit.wo && visible(lit.wo.i0, n + 30)) { hline(lit.wo.p, X(lit.wo.i0), L.plotW, light ? 'rgba(8,2,2,0.8)' : 'rgba(233,227,216,0.75)', [], 2); tag('[WEEKLY OPEN]', Math.min(L.plotW - 90, X(n - 1) + 8), Y(lit.wo.p), light ? '#1a1815' : '#e9e3d8') }
+      // PDH / PDL and PWH / PWL
+      if (S.litPd) for (const p of lit.pd) { if (!visible(p.i0, p.i1)) continue; hline(p.p, X(p.i0), X(p.i1), grey); tag(p.label, Math.min(X(p.i1), L.plotW - 6) - 4, Y(p.p) + (p.label === 'PDH' ? -7 : 11), grey, 'right') }
+      if (S.litPw && lit.pw) { const w = lit.pw; if (visible(w.hi, w.hEnd)) { hline(w.h, X(w.hi), X(w.hEnd), grey, [6, 4]); tag('PWH', Math.min(X(w.hEnd), L.plotW - 6) - 4, Y(w.h) - 7, grey, 'right') } if (visible(w.li, w.lEnd)) { hline(w.l, X(w.li), X(w.lEnd), grey, [6, 4]); tag('PWL', Math.min(X(w.lEnd), L.plotW - 6) - 4, Y(w.l) + 11, grey, 'right') } }
+      // weekly eighths
+      if (S.litEighths && lit.eighths && CH.tfSec <= 86400) { const e = lit.eighths; for (let k = 1; k <= 7; k++) { const p = e.base + e.step * k; const c = k === 4 ? 'rgba(212,175,55,0.5)' : (light ? 'rgba(90,90,90,0.3)' : 'rgba(160,160,160,0.3)'); hline(p, X(e.i0), X(n - 1 + 20), c, [2, 4]); tag(`${k}/8`, Math.min(X(n - 1 + 20), L.plotW - 4), Y(p) - 6, c, 'right', 9) } }
+      // key opens
+      if (S.litKo) for (const k of lit.ko) { hline(k.p, X(k.i0), X(n - 1 + 20), light ? 'rgba(0,0,0,0.5)' : 'rgba(233,227,216,0.5)', [2, 4]); tag(k.label, Math.min(X(n - 1 + 22), L.plotW - 70), Y(k.p), light ? '#1a1815' : '#e9e3d8', 'left', 9.5) }
+      // golden window
+      if (S.litGold && lit.gold) { const p = lit.gold.h * 1.0005; hline(p, X(lit.gold.i0), L.plotW, 'rgba(212,175,55,0.8)'); tag('Golden Tue/Wed', Math.min(X(n - 1) + 8, L.plotW - 90), Y(p) - 7, 'rgba(212,175,55,0.9)') }
+      // PO3 candles to the right of price
+      if (S.litPo3) for (const c of lit.po3) { const x0 = X(n - 1 + c.offset), w = c.width * CH.barW, mid = x0 + w / 2; if (x0 > L.plotW) continue; const up = c.c >= c.o; ctx.strokeStyle = light ? '#000' : '#e9e3d8'; ctx.beginPath(); ctx.moveTo(Math.round(mid) + 0.5, Y(c.h)); ctx.lineTo(Math.round(mid) + 0.5, Y(c.l)); ctx.stroke(); ctx.fillStyle = up ? '#4caf50' : (light ? '#000' : '#e9e3d8'); ctx.fillRect(x0, Math.min(Y(c.o), Y(c.c)), Math.min(w, L.plotW - x0), Math.max(1, Math.abs(Y(c.c) - Y(c.o)))); ctx.strokeStyle = light ? '#000' : 'rgba(0,0,0,0.6)'; ctx.strokeRect(Math.round(x0) + 0.5, Math.round(Math.min(Y(c.o), Y(c.c))) + 0.5, Math.round(Math.min(w, L.plotW - x0)), Math.max(1, Math.round(Math.abs(Y(c.c) - Y(c.o))))); tag(c.label, mid, Y(c.h) - 7, T.faint, 'center', 9.5) }
+    }
+
+    /* ── D1 GEX: the day's levels from the worker, per session, from the 9:30 print ── */
+    CH.gexPrints = {}
+    async function chGexWarm() {
+      if (!GEX.live) loadGex().catch(() => {})
+      if (!GEX.days.length) await loadGexHistory().catch(() => {})
+      chDraw()
+    }
+    function chGexPrint(day) {   // YYYY-MM-DD -> print (cached), fetching the morning print once
+      const p = CH.gexPrints[day]; if (p !== undefined) return p
+      const entry = GEX.days.find((d) => d.date === day)
+      if (!entry || !entry.times?.length) { CH.gexPrints[day] = null; return null }
+      const t = entry.times.find((x) => x >= '0930') || entry.times[entry.times.length - 1]
+      CH.gexPrints[day] = null
+      fetch(`${GEX_URL}/gex.json?day=${day}&t=${t}`, { cache: 'force-cache' }).then((r) => r.ok ? r.json() : null).then((j) => { CH.gexPrints[day] = j; chDraw() }).catch(() => {})
+      return null
+    }
+    function chPaintGex(ctx, L, T, R) {
+      if (!(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return
+      const { bars, n, i0, i1 } = R; if (!n) return
+      const X = (i) => chX(i, L), Y = (p) => chY(p, L)
+      // group visible bars by session day
+      const spans = new Map()
+      for (let i = Math.max(0, i0); i <= Math.min(n - 1, i1); i++) { const k = chSessionKey(bars[i].t); let sp = spans.get(k); if (!sp) { sp = { k, i0: i, i1: i, t: bars[i].t }; spans.set(k, sp) } sp.i1 = i }
+      const todayKey = chSessionKey(Date.now() / 1000), liveDay = GEX.live ? GEX.live.generatedAt.slice(0, 10) : null
+      const dayStr = (t) => { const d = new Date((t + chEtOff(t) + 6 * 3600) * 1000); return d.toISOString().slice(0, 10) }
+      for (const sp of spans.values()) {
+        const day = dayStr(sp.t)
+        const g = (sp.k === todayKey || day === liveDay) ? GEX.live : chGexPrint(day)
+        if (!g) continue
+        const z = g.zdte || {}
+        const levels = [
+          ['Gamma Flip', z.flip?.nq ?? (z.flip?.qqq != null && g.conversion ? Math.round(z.flip.qqq * g.conversion.divisor + g.conversion.basis) : null), '#ff9800', []],
+          ['Call Wall', z.callWall?.nq, '#ef5350', []], ['Put Wall', z.putWall?.nq, '#26a69a', []],
+          ['Major Wall', g.majorWall?.nq, '#c9a24a', [6, 4]],
+          ...(g.rLevels || []).slice(0, 3).map((r, k) => [`GEX ${k + 1}`, r.nq, 'rgba(160,160,160,0.6)', [2, 3]]),
+        ]
+        const x0 = X(sp.i0) - CH.barW / 2, x1 = sp.k === todayKey ? L.plotW : X(sp.i1) + CH.barW / 2
+        if (g.gtbr?.upperNQ && g.gtbr?.lowerNQ) { ctx.fillStyle = 'rgba(201,162,74,0.06)'; ctx.fillRect(Math.max(0, x0), Y(g.gtbr.upperNQ), Math.min(L.plotW, x1) - Math.max(0, x0), Y(g.gtbr.lowerNQ) - Y(g.gtbr.upperNQ)) }
+        for (const [name, px, color, dash] of levels) {
+          if (px == null || isNaN(px)) continue
+          const y = Math.round(Y(px)) + 0.5; if (y < -10 || y > L.mainH + 10) continue
+          ctx.strokeStyle = color; ctx.lineWidth = name === 'Major Wall' ? 1.5 : 1; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(Math.max(0, x0), y); ctx.lineTo(Math.min(L.plotW, x1), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1
+          ctx.font = `600 9.5px ${GEX_FONT}`; ctx.textAlign = 'right'; ctx.fillStyle = color; ctx.fillText(`${name} ${Math.round(px).toLocaleString()}`, Math.min(L.plotW, x1) - 4, y - 6); ctx.font = `11px ${GEX_FONT}`
+        }
+      }
+    }
+
     /* ── drawing ── */
     function chDraw() { cancelAnimationFrame(CH.raf); CH.raf = requestAnimationFrame(chPaint) }
     function chPaint() {
@@ -10028,29 +10210,50 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const ticks = []
       for (let p = Math.ceil(CH.pMin / step) * step; p < CH.pMax; p += step) ticks.push(p)
       if (S.grid) { ctx.strokeStyle = alpha(T.line, 0.9); ctx.lineWidth = 1; for (const p of ticks) { const y = Math.round(chY(p, L)) + 0.5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke() } }
-      // time labels: a label every ~90px, snapped to round times
-      const labelEvery = Math.max(1, Math.round(90 / CH.barW))
+      // time labels, the way a charting platform lays them out: round times at a
+      // spacing that fits the zoom, the date in bold where the day turns (the month
+      // where it turns on a daily chart), carried on into the empty right margin
       const tlabels = []
-      let lastDay = null
-      for (let i = Math.max(0, i0 - 1); i <= i1; i++) {
-        const b = bars[i], w = chWall(b.t), day = Math.floor(w / 86400), m = Math.floor((w % 86400 + 86400) % 86400 / 60)
-        const newDay = lastDay != null && day !== lastDay; lastDay = day
-        let want = newDay
-        if (!want) {
-          const secsPerLabel = labelEvery * CH.tfSec
-          const snap = [60, 300, 900, 1800, 3600, 7200, 14400, 43200, 86400].find((x) => x >= secsPerLabel) || 86400
-          want = CH.tfSec >= 86400 ? (i === 0 || new Date(bars[i - 1].t * 1000).getUTCMonth() !== new Date(b.t * 1000).getUTCMonth()) : (w % snap === 0)
+      {
+        const secsPerLabel = Math.max(1, Math.round(80 / CH.barW)) * CH.tfSec
+        const snap = [60, 120, 300, 600, 900, 1800, 3600, 7200, 14400, 21600, 43200, 86400].find((x) => x >= secsPerLabel) || 86400
+        const iEnd = Math.ceil(chI(L.plotW, L))
+        let prev = null, lastX = -1e9
+        for (let i = Math.max(0, i0 - 1); i <= iEnd; i++) {
+          const t = i < n ? bars[i].t : bars[n - 1].t + (i - (n - 1)) * CH.tfSec
+          const p = chWallParts(t), w = chWall(t)
+          const dayKey = p.y * 400 + p.mo * 32 + p.d, monKey = p.y * 12 + p.mo
+          const dayTurn = prev != null && dayKey !== prev.dayKey, monTurn = prev != null && monKey !== prev.monKey, yearTurn = prev != null && p.y !== prev.y
+          let text = null, strong = false
+          if (CH.tfSec >= 86400) { if (yearTurn) { text = String(p.y); strong = true } else if (monTurn) { text = CH_MON[p.mo]; strong = true } else if (snap < 86400 * 7 && p.d % (CH.barW > 18 ? 1 : CH.barW > 9 ? 5 : 10) === 0 && CH.barW > 6) text = String(p.d) }
+          else if (dayTurn) { text = yearTurn ? String(p.y) : monTurn ? CH_MON[p.mo] : chFmtAxisDay(t); strong = true }
+          else if (w % snap === 0) text = chFmtTime(t)
+          prev = { dayKey, monKey, y: p.y }
+          if (text == null) continue
+          const x = chX(i, L)
+          if (x - lastX < 46 && !strong) continue
+          if (strong && tlabels.length && x - lastX < 46) tlabels.pop()
+          tlabels.push({ x, text, strong, future: i >= n })
+          lastX = x
         }
-        if (want) tlabels.push({ x: chX(i, L), text: CH.tfSec >= 86400 ? chFmtDate(b.t) : newDay ? chFmtDate(b.t) : chFmtTime(b.t), strong: newDay })
       }
-      if (S.grid) { ctx.strokeStyle = alpha(T.line, 0.6); for (const t of tlabels) { const x = Math.round(t.x) + 0.5; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.mainH + L.volH); ctx.stroke() } }
-      // volume
+      if (S.grid) { ctx.strokeStyle = alpha(T.line, 0.6); for (const t of tlabels) { if (t.future) continue; const x = Math.round(t.x) + 0.5; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.mainH + L.volH); ctx.stroke() } }
+      // volume, with its own legend and an × to close the pane
+      CH.volX = null
       if (S.volume && L.volH) {
+        ctx.strokeStyle = T.line; ctx.beginPath(); ctx.moveTo(0, L.volTop + 0.5); ctx.lineTo(L.plotW, L.volTop + 0.5); ctx.stroke()
+        const hb = CH.hover && CH.hover.x <= L.plotW ? bars[Math.max(0, Math.min(n - 1, Math.round(chI(CH.hover.x, L))))] : bars[n - 1]
+        ctx.font = `10.5px ${GEX_FONT}`; ctx.textAlign = 'left'; ctx.fillStyle = T.faint
+        const vt = `Volume  ${hb ? hb.v.toLocaleString() : ''}`; ctx.fillText(vt, 10, L.volTop + 11)
+        const vw = ctx.measureText(vt).width
+        ctx.fillStyle = T.faint; ctx.font = `12px ${GEX_FONT}`; ctx.fillText('×', 16 + vw, L.volTop + 11)
+        CH.volX = { x0: 8 + vw, x1: 40 + vw, y0: L.volTop + 1, y1: L.volTop + 21 }
+        ctx.font = `11px ${GEX_FONT}`
         let vmax = 0; for (let i = i0; i <= i1; i++) if (bars[i].v > vmax) vmax = bars[i].v
         for (let i = i0; i <= i1; i++) { const b = bars[i]; const h = vmax ? (b.v / vmax) * (L.volH - 6) : 0; const x = chX(i, L); ctx.fillStyle = alpha(b.c >= b.o ? C.up : C.down, 0.35); ctx.fillRect(Math.round(x - Math.max(1, CH.barW * 0.7) / 2), L.H - L.tx - h, Math.max(1, CH.barW * 0.7), h) }
       }
-      // previous day and gamma levels
-      const lv = [...chPrevDay(), ...chGexLevels()]
+      // previous day (the plain version, when LIT is off)
+      const lv = S.lit ? [] : [...chPrevDay(), ...(S.gex ? [] : chGexLevels())]
       for (const l of lv) { if (l.px < CH.pMin || l.px > CH.pMax) continue; const y = Math.round(chY(l.px, L)) + 0.5; ctx.strokeStyle = alpha(col(l.color), 0.7); ctx.setLineDash(l.color === 'faint' ? [1, 3] : [4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = alpha(col(l.color), 0.9); ctx.textAlign = 'right'; ctx.font = `10px ${GEX_FONT}`; ctx.fillText(l.name, L.plotW - 6, y - 7); ctx.font = `11px ${GEX_FONT}` }
       // price
       const bw = Math.max(1, Math.min(CH.barW * 0.72, 40))
@@ -10061,9 +10264,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (S.type === 'area') { ctx.save(); ctx.strokeStyle = T.gold; ctx.lineWidth = 1.6; ctx.stroke(); ctx.lineTo(chX(i1, L), L.mainH); ctx.lineTo(chX(i0, L), L.mainH); ctx.closePath(); const gr = ctx.createLinearGradient(0, 0, 0, L.mainH); gr.addColorStop(0, alpha(T.gold, 0.28)); gr.addColorStop(1, alpha(T.gold, 0)); ctx.fillStyle = gr; ctx.fill(); ctx.restore() }
         else { ctx.strokeStyle = T.gold; ctx.lineWidth = 1.6; ctx.stroke(); ctx.lineWidth = 1 }
       } else {
+        const vec = S.lit && S.litVector ? chLitVectors() : null
         for (let i = i0; i <= i1; i++) {
           const b = bars[i], up = b.c >= b.o, x = Math.round(chX(i, L)) + 0.5
           const yo = chY(b.o, L), yc = chY(b.c, L), yh = chY(b.h, L), yl = chY(b.l, L)
+          if (vec && vec[i]) { const vc = up ? (light ? '#1e222d' : '#e9e3d8') : '#f23645'; ctx.strokeStyle = vc; ctx.beginPath(); ctx.moveTo(x, yh); ctx.lineTo(x, yl); ctx.stroke(); const top = Math.min(yo, yc), hgt = Math.max(1, Math.abs(yc - yo)); ctx.fillStyle = alpha(vc, 0.85); ctx.fillRect(Math.round(x - bw / 2), Math.round(top), Math.round(bw), Math.max(1, Math.round(hgt))); continue }
           if (S.type === 'bars') {
             ctx.strokeStyle = up ? C.up : C.down; ctx.beginPath(); ctx.moveTo(x, yh); ctx.lineTo(x, yl); ctx.moveTo(x - bw / 2, yo); ctx.lineTo(x, yo); ctx.moveTo(x, yc); ctx.lineTo(x + bw / 2, yc); ctx.stroke()
             continue
@@ -10075,6 +10280,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           else { ctx.fillStyle = up ? C.up : C.down; ctx.fillRect(Math.round(x - bw / 2), Math.round(top), Math.round(bw), Math.max(1, Math.round(hgt))); if (S.border && bw >= 4) { ctx.strokeStyle = alpha(light ? '#000000' : '#000000', 0.25); ctx.strokeRect(Math.round(x - bw / 2) + 0.5, Math.round(top) + 0.5, Math.round(bw) - 1, Math.max(1, Math.round(hgt) - 1)) } }
         }
       }
+      // D1 LIT and D1 GEX
+      if (S.lit) chPaintLit(ctx, L, T, { bars, n, i0, i1, light })
+      if (S.gex) chPaintGex(ctx, L, T, { bars, n, i0, i1, light })
       // EMA and VWAP
       if (S.emaOn) for (const e of chEmas()) { ctx.strokeStyle = e.color; ctx.lineWidth = 1.2; ctx.beginPath(); let started = false; for (let i = i0; i <= i1; i++) { const v = e.v[i]; if (v == null) continue; const x = chX(i, L), y = chY(v, L); if (!started) { ctx.moveTo(x, y); started = true } else ctx.lineTo(x, y) } ctx.stroke() }
       if (S.vwap) { const v = chVwap(); ctx.strokeStyle = alpha(T.ink, 0.7); ctx.lineWidth = 1.2; ctx.setLineDash([5, 3]); ctx.beginPath(); let prevDay = null; for (let i = i0; i <= i1; i++) { if (v[i] == null) continue; const d = chSessionKey(bars[i].t); const x = chX(i, L), y = chY(v[i], L); if (d !== prevDay) { ctx.moveTo(x, y); prevDay = d } else ctx.lineTo(x, y) } ctx.stroke(); ctx.setLineDash([]) }
@@ -10095,10 +10303,29 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       for (const p of ticks) ctx.fillText(chPx(p, step < 1 ? 2 : 0), L.plotW + 7, chY(p, L))
       if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.fillStyle = up ? C.up : C.down; ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = light ? '#fff' : '#0b0a09'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
       chPaintDrawings(ctx, L, T, true)
-      // time axis
-      ctx.fillStyle = T.faint; ctx.textAlign = 'center'
-      for (const t of tlabels) { if (t.x < 10 || t.x > L.plotW - 10) continue; ctx.fillStyle = t.strong ? T.muted : T.faint; ctx.font = `${t.strong ? 600 : 400} 10.5px ${GEX_FONT}`; ctx.fillText(t.text, t.x, L.H - L.tx / 2) }
+      // time axis: a tick and a label; the corner carries the timezone switch
+      ctx.textAlign = 'center'
+      for (const t of tlabels) {
+        if (t.x < 8 || t.x > L.plotW - 8) continue
+        const x = Math.round(t.x) + 0.5
+        ctx.strokeStyle = T.line; ctx.beginPath(); ctx.moveTo(x, L.H - L.tx + 1); ctx.lineTo(x, L.H - L.tx + 5); ctx.stroke()
+        ctx.fillStyle = t.strong ? T.ink : (t.future ? alpha(T.faint, 0.6) : T.faint); ctx.font = `${t.strong ? 600 : 400} 10.5px ${GEX_FONT}`; ctx.fillText(t.text, t.x, L.H - L.tx / 2 + 1)
+      }
       ctx.font = `11px ${GEX_FONT}`
+      // the bar-close countdown under the last price, like the platform does
+      if (S.lastLine && lastBar && !CH.replay.on && CH.tfSec < 86400 * 7) {
+        const y = chY(lastBar.c, L)
+        if (y >= 0 && y <= L.mainH - 18) {
+          const nowS = Date.now() / 1000, wallNow = chWall(nowS) - (CH.s.tz === 'local' ? 0 : 0)
+          const bucket = CH.tfSec >= 86400 ? null : Math.floor((nowS + chEtOff(nowS)) / CH.tfSec) * CH.tfSec + CH.tfSec - (nowS + chEtOff(nowS))
+          let left = bucket == null ? null : Math.max(0, Math.floor(bucket))
+          if (left != null) {
+            const txt = left >= 3600 ? `${Math.floor(left / 3600)}:${String(Math.floor(left % 3600 / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}` : `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`
+            ctx.fillStyle = T.panel2; ctx.fillRect(L.plotW + 2, y + 9, L.ax - 4, 15)
+            ctx.fillStyle = T.muted; ctx.textAlign = 'left'; ctx.font = `10.5px ${GEX_FONT}`; ctx.fillText(txt, L.plotW + 7, y + 17); ctx.font = `11px ${GEX_FONT}`
+          }
+        }
+      }
       // replay cut marker
       if (CH.replay.on && CH.replay.cut != null && lastBar) { const x = Math.round(chX(n - 1, L) + CH.barW / 2) + 0.5; ctx.strokeStyle = alpha(T.gold, 0.8); ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.mainH + L.volH); ctx.stroke(); ctx.setLineDash([]) }
       // crosshair
@@ -10108,7 +10335,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const x = Math.round(chX(i >= 0 && i < n ? i : chI(hv.x, L), L)) + 0.5, y = Math.round(hv.y) + 0.5
         ctx.strokeStyle = alpha(T.ink, 0.45); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.H - L.tx); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([])
         if (hv.y <= L.mainH) { ctx.fillStyle = T.panel2; ctx.fillRect(L.plotW + 2, y - 8, L.ax - 4, 16); ctx.fillStyle = T.ink; ctx.textAlign = 'left'; ctx.fillText(chPx(chP(hv.y, L)), L.plotW + 7, y) }
-        const tt = b ? b.t : chTofI(chI(hv.x, L)); const text = CH.tfSec >= 86400 ? chFmtDate(tt, true) : `${chFmtDate(tt)} ${chFmtTime(tt)}`
+        const tt = b ? b.t : chTofI(chI(hv.x, L)); const text = chFmtFull(tt)
         ctx.font = `600 10.5px ${GEX_FONT}`; const tw = ctx.measureText(text).width + 12; const tx0 = Math.min(Math.max(0, x - tw / 2), L.W - tw)
         ctx.fillStyle = T.panel2; ctx.fillRect(tx0, L.H - L.tx + 2, tw, L.tx - 4); ctx.fillStyle = T.ink; ctx.textAlign = 'center'; ctx.fillText(text, tx0 + tw / 2, L.H - L.tx / 2); ctx.font = `11px ${GEX_FONT}`
         chLegend(b || lastBar, b ? i : n - 1)
@@ -10124,7 +10351,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!b) { lg.textContent = ''; return }
       const bars = chVisible(); const prev = bars[i - 1]; const d = b.c - b.o; const chg = prev ? b.c - prev.c : d
       const up = d >= 0
-      lg.innerHTML = `<b>NQ</b><span class="tf">${CH.tf}</span><span>O <i>${chPx(b.o)}</i></span><span>H <i>${chPx(b.h)}</i></span><span>L <i>${chPx(b.l)}</i></span><span>C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)} (${(d / b.o * 100).toFixed(2)}%)</span>${CH.s.volume ? `<span>V <i>${b.v.toLocaleString()}</i></span>` : ''}${CH.s.emaOn ? chEmas().map((e) => `<span style="color:${e.color}">EMA ${e.n} <i>${e.v[i] != null ? chPx(e.v[i]) : '–'}</i></span>`).join('') : ''}${CH.s.vwap ? `<span>VWAP <i>${chVwap()[i] != null ? chPx(chVwap()[i]) : '–'}</i></span>` : ''}`
+      const inds = `${CH.s.lit ? '<span class="ind">D1 LIT</span>' : ''}${CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin) ? '<span class="ind">D1 GEX</span>' : ''}`
+      if (window.innerWidth < 520 && !CH.hover) { lg.innerHTML = `<b>NQ</b><span class="tf">${CH.tf}</span><span>C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)} (${(d / b.o * 100).toFixed(2)}%)</span>${inds}`; return }
+      if (window.innerWidth < 520) { lg.innerHTML = `<b>NQ</b><span class="tf">${CH.tf}</span><span>O <i>${chPx(b.o)}</i></span><span>H <i>${chPx(b.h)}</i></span><span>L <i>${chPx(b.l)}</i></span><span>C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)}</span>${CH.s.volume ? `<span>V <i>${b.v.toLocaleString()}</i></span>` : ''}`; return }
+      lg.innerHTML = `<b>NQ</b><span class="tf">${CH.tf}</span><span>O <i>${chPx(b.o)}</i></span><span>H <i>${chPx(b.h)}</i></span><span>L <i>${chPx(b.l)}</i></span><span>C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)} (${(d / b.o * 100).toFixed(2)}%)</span>${CH.s.volume ? `<span>V <i>${b.v.toLocaleString()}</i></span>` : ''}${CH.s.emaOn ? chEmas().map((e) => `<span style="color:${e.color}">EMA ${e.n} <i>${e.v[i] != null ? chPx(e.v[i]) : '–'}</i></span>`).join('') : ''}${CH.s.vwap ? `<span>VWAP <i>${chVwap()[i] != null ? chPx(chVwap()[i]) : '–'}</i></span>` : ''}${CH.s.lit ? '<span class="ind">D1 LIT</span>' : ''}${CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin) ? '<span class="ind">D1 GEX</span>' : ''}`
     }
 
     /* ── drawings: horizontal, trendline, ray, rectangle, measure ── */
@@ -10187,6 +10417,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         CH.pointers.set(e.pointerId, p)
         if (CH.pointers.size === 2) { const [a, b] = [...CH.pointers.values()]; CH.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), barW: CH.barW, mid: (a.x + b.x) / 2, i: chI((a.x + b.x) / 2, L) }; CH.drag = null; return }
         const zone = p.x > L.plotW ? 'price' : p.y > L.H - L.tx ? 'time' : 'plot'
+        if (CH.volX && p.x >= CH.volX.x0 && p.x <= CH.volX.x1 && p.y >= CH.volX.y0 && p.y <= CH.volX.y1) { CH.s.volume = false; chSave(); CH.drag = null; chDraw(); return }
         CH.drag = { x0: p.x, y0: p.y, x: p.x, y: p.y, offset: CH.offset, barW: CH.barW, pMin: CH.pMin, pMax: CH.pMax, zone, moved: false, t0: Date.now() }
         if (zone !== 'plot') return
         if (CH.replay.arm) { const i = Math.round(chI(p.x, L)); const b = CH.bars[Math.max(0, Math.min(CH.bars.length - 1, i))]; if (b) { CH.replay.arm = false; CH.replay.on = true; CH.replay.cut = b.t; chSetVis(); chReplayUi(); CH.offset = 6; CH.auto = true; chDraw() } CH.drag = null; return }
@@ -10278,6 +10509,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-selcolor').addEventListener('input', () => { if (CH.sel) { CH.sel.color = el('ch-selcolor').value; chSave(); chDraw() } })
       el('ch-seldel').addEventListener('click', chDeleteSel)
       el('ch-latest').addEventListener('click', () => { CH.offset = 6; CH.auto = true; chDraw() })
+      el('ch-tz').addEventListener('click', () => { CH.s.tz = CH.s.tz === 'local' ? 'ET' : 'local'; chSave(); chTzLabel(); chDraw() })
       el('ch-type-btn').addEventListener('click', () => chMenu('type'))
       el('ch-ind-btn').addEventListener('click', () => chMenu('ind'))
       el('ch-settings-btn').addEventListener('click', () => chMenu('settings'))
@@ -10326,9 +10558,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         S.ema.forEach((n, k) => { const i = document.createElement('input'); i.type = 'number'; i.min = 1; i.max = 500; i.value = n; i.className = 'inp'; i.addEventListener('change', () => { S.ema[k] = Math.max(1, Math.min(500, +i.value || 1)); chSave(); chDraw() }); lens.appendChild(i) })
         row('Lengths', lens)
         toggle('vwap', 'VWAP', 'Volume-weighted average, resets at 6:00 PM ET')
-        toggle('prevDay', 'Prior day high and low', 'PDH and PDL from the last regular session')
-        if (state.owned.has('d1-gex') || state.isMod || state.isAdmin) toggle('gex', 'Gamma levels', 'Walls, flip, major wall and the GTBR band from the live board', () => { if (S.gex && !GEX.live) loadGex().catch(() => {}) })
+        const h1 = document.createElement('div'); h1.className = 'ch-h'; h1.textContent = 'D1 indicators'; body.appendChild(h1)
+        toggle('lit', 'D1 LIT', 'Levels and timing: PDH/PDL, PWH/PWL, weekly open, Asia box, NYT box, 18:00 open, FF/LO/MM markers, key opens, PO3 candles, weekly eighths, the golden window, vector candles')
+        const parts = document.createElement('div'); parts.className = 'ch-parts'
+        for (const [k, t] of [['litPd', 'PDH / PDL'], ['litPw', 'PWH / PWL'], ['litWo', 'Weekly open'], ['litAsia', 'Asia box'], ['litNy', 'NYT box'], ['litOpen', '18:00 open'], ['litMarks', 'FF LO MM1 MM2 LC'], ['litKo', 'Key opens'], ['litPo3', 'PO3 candles'], ['litEighths', 'Weekly eighths'], ['litGold', 'Golden Tue/Wed'], ['litVector', 'Vector candles']]) {
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'ch-part' + (S[k] ? ' on' : ''); b.textContent = t
+          b.addEventListener('click', () => { S[k] = !S[k]; b.classList.toggle('on', S[k]); chSave(); chDraw() }); parts.appendChild(b)
+        }
+        body.appendChild(parts)
+        if (state.owned.has('d1-gex') || state.isMod || state.isAdmin) toggle('gex', 'D1 GEX', 'Gamma flip, call and put walls, major wall, top gamma strikes and the GTBR band, per session from the 9:30 print', () => { if (S.gex) chGexWarm() })
+        else { const r = document.createElement('div'); r.className = 'ch-row'; r.innerHTML = '<div class="ch-row-t">D1 GEX<small>Part of the D1 GEX indicator</small></div>'; const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn'; b.textContent = 'Unlock'; b.addEventListener('click', () => { chMenu(null); showView('indicators') }); r.appendChild(b); body.appendChild(r) }
+        const h2 = document.createElement('div'); h2.className = 'ch-h'; h2.textContent = 'Overlays'; body.appendChild(h2)
+        toggle('prevDay', 'Prior day high and low', 'The plain pair, when D1 LIT is off')
         toggle('sessions', 'Sessions', 'Shade the hours outside 9:30 to 4:00 ET')
+        toggle('volume', 'Volume', 'The pane under the price; its × closes it too')
       } else {
         const h0 = document.createElement('div'); h0.className = 'ch-h'; h0.textContent = 'Chart type'; body.appendChild(h0)
         const typeRow = document.createElement('div'); typeRow.className = 'ch-row ch-row-wide'; typeRow.appendChild(seg('type', [['candles', 'Candles'], ['hollow', 'Hollow'], ['bars', 'Bars'], ['line', 'Line'], ['area', 'Area']])); body.appendChild(typeRow)
@@ -10337,7 +10580,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const h2 = document.createElement('div'); h2.className = 'ch-h'; h2.textContent = 'Show'; body.appendChild(h2)
         toggle('border', 'Candle borders'); toggle('grid', 'Grid'); toggle('volume', 'Volume'); toggle('sessions', 'Sessions'); toggle('lastLine', 'Last price line'); toggle('legend', 'OHLC legend', '', () => chDraw())
         const h3 = document.createElement('div'); h3.className = 'ch-h'; h3.textContent = 'Time'; body.appendChild(h3)
-        row('Timezone', seg('tz', [['ET', 'New York'], ['local', 'Your clock']]))
+        row('Timezone', seg('tz', [['ET', 'New York'], ['local', 'Your clock']], chTzLabel))
         const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'rowbtn'; reset.textContent = 'Reset everything to the defaults'; reset.style.marginTop = '14px'
         reset.addEventListener('click', () => { CH.s = { ...CH_DEFAULTS, ema: [20, 50, 200] }; chSave(); chDraw(); chMenu('settings') }); body.appendChild(reset)
       }
@@ -10367,8 +10610,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       w.style.height = Math.max(380, window.innerHeight - top - pad - bnav) + 'px'
     }
     window.addEventListener('resize', () => { if (CH.on) { chFit(); chDraw() } })
+    function chTzLabel() {
+      const b = el('ch-tz'); if (!b) return
+      const now = Date.now() / 1000
+      const off = CH.s.tz === 'local' ? -new Date().getTimezoneOffset() / 60 : chEtOff(now) / 3600
+      const sign = off >= 0 ? '+' : '−'
+      b.textContent = `${CH.s.tz === 'local' ? 'Local' : 'NY'} UTC${sign}${Math.abs(off)}`
+      b.title = CH.s.tz === 'local' ? 'Showing your clock. Click for New York time.' : 'Showing New York time. Click for your clock.'
+    }
     async function chartShown() {
-      CH.on = true; chWire(); chFit()
+      CH.on = true; chWire(); chFit(); chTzLabel()
+      if (CH.s.gex) chGexWarm()
+      clearInterval(CH.clock); CH.clock = setInterval(() => { if (CH.on && !document.hidden) chDraw() }, 1000)
       el('ch-tf').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tf === CH.tf))
       chSetTool(CH.tool); chReplayUi()
       chDraw()
@@ -10376,7 +10629,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       else chTail(true)
       chSchedule()
     }
-    function chartHidden() { CH.on = false; clearTimeout(CH.timer); CH.timer = null; chMenu(null) }
+    function chartHidden() { CH.on = false; clearTimeout(CH.timer); CH.timer = null; clearInterval(CH.clock); CH.clock = null; chMenu(null) }
     // where the clock is in the futures week, for the poll cadence and the pill
     function chSession() {
       const p = {}; for (const x of new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date())) p[x.type] = x.value
@@ -10387,7 +10640,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (min >= 17 * 60 && min < 18 * 60) return { key: 'closed', label: 'Closed' }
       return { key: min < 570 && min >= 240 ? 'pre' : 'globex', label: min < 570 && min >= 240 ? 'Pre-market' : 'Globex' }
     }
-    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const lag = trading && CH.feedAt ? Math.floor((Date.now() / 1000 - CH.feedAt) / 60) : 0; sp.textContent = lag >= 3 ? `${st.label} · feed ${lag}m behind` : st.label; sp.className = 'ch-sess' + (lag >= 3 ? ' lag' : st.key === 'open' ? ' open' : ''); sp.title = lag >= 3 ? 'Yahoo\x27s feed has stalled; it backfills when it catches up.' : '' } const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const ms = trading ? 3000 : 60 * 1000; CH.timer = setTimeout(chTick, ms) }
+    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const lag = trading && CH.feedAt ? Math.floor((Date.now() / 1000 - CH.feedAt) / 60) : 0; sp.textContent = lag >= 3 ? (window.innerWidth < 520 ? `${lag}m behind` : `${st.label} · feed ${lag}m behind`) : st.label; sp.className = 'ch-sess' + (lag >= 3 ? ' lag' : st.key === 'open' ? ' open' : ''); sp.title = lag >= 3 ? 'Yahoo\x27s feed has stalled; it backfills when it catches up.' : '' } const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const ms = trading ? 3000 : 60 * 1000; CH.timer = setTimeout(chTick, ms) }
     async function chTick() { if (!CH.on) return; if (document.hidden) { chSchedule(); return } await chTail(Date.now() - (CH.fullAt || 0) > 5 * 60 * 1000); chSchedule() }
 
     function renderGex() {
