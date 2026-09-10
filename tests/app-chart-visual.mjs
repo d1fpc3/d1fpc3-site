@@ -51,12 +51,13 @@ async function run(vpName) {
   const ctx = await browser.newContext(VP[vpName]);
   await ctx.addInitScript(([k, v, t]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", t); localStorage.removeItem("echelon-chart-drawings"); localStorage.setItem("echelon-chart-tf", "5m"); }, [`sb-${REF}-auth-token`, JSON.stringify(session), theme]);
   const page = await ctx.newPage();
-  page.on("pageerror", (e) => fails.push(`${vpName} pageerror: ${e.message}`));
+  page.on("pageerror", (e) => { note("PAGEERROR " + e.message); fails.push(`${vpName} pageerror: ${e.message}`) });
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#ov-hi", { timeout: 30000 });
   await page.waitForTimeout(1500);
   await page.evaluate(() => document.querySelector('.tab[data-view="chart"]').click());
   await page.evaluate(() => { const sc = document.getElementById("scrim"); if (sc && getComputedStyle(sc).opacity !== "0") sc.click(); });
+  await page.evaluate(() => { const o = document.getElementById("onb"); if (o && !o.hidden) { o.hidden = true; document.body.classList.remove("onb-open") } });   // the first-entry questionnaire, if the member row says so
   await page.waitForFunction(() => /O\s/.test(document.getElementById("ch-legend").textContent), null, { timeout: 30000 }).catch(() => {});
   await page.waitForTimeout(4000);   // the month of minutes lands in the background
   let st = await state(page);
@@ -95,7 +96,7 @@ async function run(vpName) {
     await page.click('#ch-tools button[data-tool="trend"]');
     await page.mouse.click(box.x + box.width * 0.3, cy + 60); await page.mouse.move(box.x + box.width * 0.6, cy - 40, { steps: 6 }); await page.mouse.click(box.x + box.width * 0.6, cy - 40);
     await page.waitForTimeout(200);
-    await page.click('#ch-tools button[data-tool="hline"]'); await page.mouse.click(cx, cy + 20); await page.waitForTimeout(200);
+    await page.evaluate((t) => window.__CH.$.setTool(t), "hline"); await page.mouse.click(cx, cy + 20); await page.waitForTimeout(200);
     await page.click('#ch-tools button[data-tool="rect"]'); await page.mouse.move(box.x + box.width * 0.65, cy + 30); await page.mouse.down(); await page.mouse.move(box.x + box.width * 0.8, cy + 110, { steps: 8 }); await page.mouse.up(); await page.waitForTimeout(200);
     st = await state(page);
     check(st.drawings === 3 && st.sel, `three drawings saved, last one selected (${st.drawings})`);
@@ -117,12 +118,12 @@ async function run(vpName) {
     await page.click("#ch-magnet"); await page.click("#ch-magnet"); await page.waitForTimeout(100);
     const magnet = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")).magnet);
     check(magnet === "strong", `magnet cycles to strong (${magnet})`);
-    await page.click('#ch-tools button[data-tool="hline"]'); await page.mouse.move(cx - 80, cy + 33); await page.mouse.click(cx - 80, cy + 33); await page.waitForTimeout(150);
+    await page.evaluate((t) => window.__CH.$.setTool(t), "hline"); await page.mouse.move(cx - 80, cy + 33); await page.mouse.click(cx - 80, cy + 33); await page.waitForTimeout(150);
     const snapped = await page.evaluate(() => { const CH = window.__CH; const d = CH.drawings[CH.drawings.length - 1]; const b = (CH.vis || CH.bars).find((x) => x.t === d.p[0].t); return b ? [b.o, b.h, b.l, b.c].includes(d.p[0].p) : "no bar at " + d.p[0].t; });
     check(snapped === true, `strong magnet snapped the line onto an O H L C (${snapped})`);
     await page.click("#ch-magnet");   // back to off
     // a vertical line, a fib, a long position, a text note
-    await page.click('#ch-tools button[data-tool="vline"]'); await page.mouse.click(box.x + box.width * 0.42, cy); await page.waitForTimeout(120);
+    await page.evaluate((t) => window.__CH.$.setTool(t), "vline"); await page.mouse.click(box.x + box.width * 0.42, cy); await page.waitForTimeout(120);
     await page.click('#ch-tools button[data-tool="fib"]'); await page.mouse.move(box.x + box.width * 0.2, cy + 90); await page.mouse.down(); await page.mouse.move(box.x + box.width * 0.4, cy - 90, { steps: 8 }); await page.mouse.up(); await page.waitForTimeout(150);
     await page.click('#ch-tools button[data-tool="long"]'); await page.mouse.click(box.x + box.width * 0.55, cy + 50); await page.waitForTimeout(150);
     const pos = await page.evaluate(() => { const d = window.__CH.sel; return d && { type: d.type, stop: d.stop, target: d.target, entry: d.p[0].p }; });
@@ -154,6 +155,54 @@ async function run(vpName) {
       check(undone === "#2962ff 1 solid", `undo stepped the style back: ${undone}`);
       await page.click("#ch-eye"); await page.waitForTimeout(120); const hidden = await page.evaluate(() => window.__CH.hideDr); await page.click("#ch-eye");
       check(hidden === true, "eye hides the drawings");
+      await page.keyboard.press("Escape");
+    }
+    {
+      // the rail: the lines group opens a flyout, picking a tool swaps the group button
+      await page.click('.ch-tg[data-group="lines"] .ch-tgc', { force: true }); await page.waitForTimeout(150);
+      const fly = await page.evaluate(() => ({ open: !document.getElementById("ch-fly").hidden, n: document.querySelectorAll("#ch-fly button").length }));
+      await page.click('#ch-fly button[data-tool="hray"]'); await page.waitForTimeout(150);
+      const main = await page.evaluate(() => document.querySelector('.ch-tg[data-group="lines"] button[data-tool]').dataset.tool);
+      check(fly.open && fly.n === 7 && main === "hray", `lines flyout lists 7 tools, picking one swaps the group button (${main})`);
+      await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-flyout.png` });
+      note("debug before click: tool " + await page.evaluate(() => window.__CH.tool + " pending " + !!window.__CH.pending + " editing " + !!window.__CH.editing + " types " + window.__CH.drawings.map((d) => d.type).join(",")));
+      await page.mouse.click(box.x + box.width * 0.25, cy - 30); await page.waitForTimeout(150);   // a horizontal ray
+      note("debug after click: tool " + await page.evaluate(() => window.__CH.tool + " types " + window.__CH.drawings.map((d) => d.type).join(",") + " sel " + (window.__CH.sel && window.__CH.sel.type)));
+      // copy and paste
+      await page.keyboard.press("Control+c"); await page.mouse.move(box.x + box.width * 0.5, cy + 60); await page.keyboard.press("Control+v"); await page.waitForTimeout(150);
+      st = await state(page);
+      check(st.drawings === 9, `horizontal ray drawn, copied and pasted (${st.drawings} drawings)`);
+      // right-click on a drawing: the context menu; Settings opens the properties panel
+      const hl = await page.evaluate(() => { const CH = window.__CH; const d = CH.drawings.find((x) => x.type === "hline"); return CH.$.pt(d.p[0].t, d.p[0].p); });
+      await page.mouse.click(box.x + box.width * 0.15, box.y + hl.y, { button: "right" }); await page.waitForTimeout(150);
+      const ctx = await page.evaluate(() => ({ open: !document.getElementById("ch-ctx").hidden, items: [...document.querySelectorAll("#ch-ctx .it .lb")].map((x) => x.textContent) }));
+      check(ctx.open && ctx.items.includes("Clone") && ctx.items.some((x) => /Add alert/.test(x)), `context menu on a drawing: ${ctx.items.slice(0, 5).join(" · ")}`);
+      await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-ctx.png` });
+      await page.evaluate(() => [...document.querySelectorAll("#ch-ctx .it")].find((b) => /Settings/.test(b.textContent)).click()); await page.waitForTimeout(200);
+      st = await state(page);
+      check(st.menu && st.menuTitle === "Horizontal line", `properties panel opens from the menu (${st.menuTitle})`);
+      // coordinates: type a price, the line moves
+      await page.evaluate(() => { const i = [...document.querySelectorAll("#ch-menu-body .ch-row")].find((r) => /Point price/.test(r.textContent)).querySelector("input"); i.value = "29000"; i.dispatchEvent(new Event("change", { bubbles: true })); });
+      await page.waitForTimeout(150);
+      const moved = await page.evaluate(() => window.__CH.sel?.p[0].p);
+      check(moved === 29000, `typed coordinate moved the line to ${moved}`);
+      await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-props.png` });
+      await page.click("#ch-menu-close");
+      // alerts: one at the last price fires on the next check; the axis shows a bell
+      const last = await page.evaluate(() => window.__CH.bars[window.__CH.bars.length - 1].c);
+      await page.evaluate((p) => window.__CH.$.alert(p), last); await page.waitForTimeout(150);
+      const n1 = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-alerts")).length);
+      await page.evaluate(() => window.__CH.$.check()); await page.waitForTimeout(200);
+      const fired = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-alerts")).filter((a) => a.fired).length);
+      check(n1 === 1 && fired === 1, `alert at the last price is stored and fires on the check (${n1} set, ${fired} fired)`);
+      await page.click("#ch-alerts-btn"); await page.waitForTimeout(200);
+      st = await state(page); check(st.menuTitle === "Alerts" && /Fired/.test(await page.evaluate(() => document.getElementById("ch-menu-body").textContent)), "alerts panel lists the fired alert");
+      await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-alerts.png` });
+      await page.click("#ch-menu-close");
+      // the quick range buttons switch timeframe and fit the span
+      await page.click('#ch-axl button[data-range="5D"]'); await page.waitForTimeout(1800);
+      st = await state(page); check(st.tf === "5m", `5D range picks 5m (${st.tf})`);
+      await page.evaluate(() => document.querySelector('#ch-tf button[data-tf="5m"]').click()); await page.waitForTimeout(400);
       await page.keyboard.press("Escape");
     }
     // replay: arm, click a bar, step, play
@@ -212,7 +261,20 @@ async function run(vpName) {
   await page.evaluate(() => { const rows = [...document.querySelectorAll("#ch-menu-body .ch-row")]; for (const r of rows) if (/^D1 GEX/.test(r.textContent.trim())) { const i = r.querySelector("input[type=checkbox]"); if (i && !i.checked) i.click(); } });
   await page.waitForTimeout(2500);
   st = await state(page);
-  if (vpName === "desk") { check(/D1 LIT/.test(st.legend), "D1 LIT tag in the legend"); if (email === "d1fpc3@gmail.com") check(/D1 GEX/.test(st.legend), "D1 GEX tag in the legend (holder)"); }
+  if (vpName === "desk") {
+    check(/D1 LIT/.test(st.legend), "D1 LIT tag in the legend"); if (email === "d1fpc3@gmail.com") check(/D1 GEX/.test(st.legend), "D1 GEX tag in the legend (holder)");
+    // legend rows: hovering the averages row reveals its icons; the eye turns the study off
+    await page.click("#ch-menu-close"); await page.waitForTimeout(100);
+    const rows = await page.evaluate(() => document.querySelectorAll("#ch-legend .ln").length);
+    await page.hover('#ch-legend .ln[data-ind="ma"]'); await page.waitForTimeout(150);
+    const icOpacity = await page.evaluate(() => getComputedStyle(document.querySelector('#ch-legend .ln[data-ind="ma"] .ic')).opacity);
+    await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-legend-rows.png` });
+    await page.click('#ch-legend .ln[data-ind="ma"] button[data-act="eye"]'); await page.waitForTimeout(200);
+    const emaOff = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")).emaOn === false);
+    check(rows >= 4 && icOpacity === "1" && emaOff, `legend rows (${rows}) show icons on hover, the eye hides the averages`);
+    await page.evaluate(() => { const s2 = JSON.parse(localStorage.getItem("echelon-chart-settings")); s2.emaOn = true; localStorage.setItem("echelon-chart-settings", JSON.stringify(s2)); window.__CH.s.emaOn = true; });
+    await page.click("#ch-ind-btn"); await page.waitForTimeout(150);
+  }
   else { const sv = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}")); check(sv.lit !== false && (email !== "d1fpc3@gmail.com" || sv.gex), `D1 LIT / D1 GEX on (phone, from settings): lit ${sv.lit !== false} gex ${sv.gex}`); }
   await page.click("#ch-menu-close");
   await page.evaluate(() => document.querySelector('#ch-tf button[data-tf="5m"]').click()); await page.waitForTimeout(600);
