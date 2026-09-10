@@ -170,7 +170,8 @@ Deno.serve(async (req) => {
 
   /* ── the live tape ── */
   const range = p.get("range") === "5d" ? "5d" : "1d";
-  const tailN = Math.min(60, Math.max(1, +(p.get("tail") ?? 0) || 0));
+  const tailRaw = p.get("tail");   // absent = the whole range; a number = the last N minutes
+  const tailN = tailRaw == null ? 0 : Math.min(60, Math.max(1, +tailRaw || 1));
   const slim = (body: string) => { if (!tailN) return body; const j = JSON.parse(body); j.bars = j.bars.slice(-tailN); return JSON.stringify(j); };
   const hit = cache.get(range);
   const now = Date.now();

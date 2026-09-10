@@ -222,7 +222,7 @@ for (const firm of data.firms) {
     log(`manual ${firm.slug}: ${MANUAL[firm.slug]}`)
   } else log(`skip ${firm.slug}: no probe`)
 }
-// write only when a price moved or went stale: date stamps alone must not make the nightly job commit and redeploy
-if (!DRY && (changes || stale)) { data.checked = today; data.refreshed = today; writeFileSync(FILE, JSON.stringify(data, null, 1) + String.fromCharCode(10)) }
+// the checked stamp moves every run so the sheet says today; refreshed moves only when a price did
+if (!DRY) { data.checked = today; if (changes || stale) data.refreshed = today; writeFileSync(FILE, JSON.stringify(data, null, 1) + String.fromCharCode(10)) }
 log(`${changes} change(s), ${stale} stale, ${failures} probe failure(s)${DRY ? ' (dry run)' : ''}`)
 process.exit(failures || stale ? 2 : 0)

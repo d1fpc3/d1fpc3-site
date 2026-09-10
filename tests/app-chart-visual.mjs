@@ -192,6 +192,8 @@ async function run(vpName) {
       const last = await page.evaluate(() => window.__CH.bars[window.__CH.bars.length - 1].c);
       await page.evaluate((p) => window.__CH.$.alert(p), last); await page.waitForTimeout(150);
       const n1 = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-alerts")).length);
+      // the live tape moves while the test runs: pin the alert just under the last print so the crossing is certain
+      await page.evaluate(() => { const CH = window.__CH; const a = CH.alerts[CH.alerts.length - 1]; a.above = true; a.price = +(CH.bars[CH.bars.length - 1].c - 1).toFixed(2); });
       await page.evaluate(() => window.__CH.$.check()); await page.waitForTimeout(200);
       const fired = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-alerts")).filter((a) => a.fired).length);
       check(n1 === 1 && fired === 1, `alert at the last price is stored and fires on the check (${n1} set, ${fired} fired)`);
