@@ -9990,9 +9990,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     if (!['off', 'weak', 'strong'].includes(CH.s.magnet)) CH.s.magnet = 'off'
     if (!['cross', 'dot', 'arrow'].includes(CH.s.cursor)) CH.s.cursor = 'cross'
     { const saved = localStorage.getItem('echelon-chart-tf'); for (const label of CH.s.customTfs || []) { const m = /^(\d+)([mhDW])$/.exec(label); if (m && !CH_TF[label]) { const mins = m[2] === 'h' ? +m[1] * 60 : m[2] === 'D' ? +m[1] * 1440 : m[2] === 'W' ? +m[1] * 10080 : +m[1]; CH_TF[label] = [mins >= 1440 ? '1d' : mins % 60 === 0 ? '60m' : mins % 5 === 0 ? '5m' : '1m', mins] } } if (saved && CH_TF[saved]) CH.tf = saved }
-    const chSave = () => { try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)); localStorage.setItem('echelon-chart-drawings', JSON.stringify(CH.drawings, (k, v) => k === '_box' ? undefined : v)) } catch {} }
+    const chSave = () => { try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)); localStorage.setItem('echelon-chart-drawings', JSON.stringify(CH.drawings, (k, v) => k.startsWith('_') ? undefined : v)) } catch {} }
     window.__CH = CH   // read-only peek for the console and the harness
-    CH.$ = { pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck() }
+    CH.$ = { pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck() }
     // undo and redo keep whole snapshots of the drawings; cheap at this size
     const chSnapshot = () => JSON.stringify(CH.drawings)
     function chPush() { CH.hist.push(chSnapshot()); if (CH.hist.length > 60) CH.hist.shift(); CH.redo = []; chHistUi() }
@@ -10569,7 +10569,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (lastBar.c >= CH.pMin && lastBar.c <= CH.pMax) { ctx.strokeStyle = alpha(S.lastC || (up ? C.up : C.down), 0.9); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([]) }
       }
       // drawings, clipped to the plot; their axis tags come after the axis paints
-      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.plotH); ctx.clip(); chPaintDrawings(ctx, L, T, false); ctx.restore()
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip(); chPaintDrawings(ctx, L, T, false); ctx.restore()
       // clip line for the axes
       ctx.fillStyle = BG; ctx.fillRect(L.plotW, 0, L.ax, L.H); ctx.fillRect(0, L.H - L.tx, L.W, L.tx)
       ctx.strokeStyle = T.line; ctx.beginPath(); ctx.moveTo(L.plotW + 0.5, 0); ctx.lineTo(L.plotW + 0.5, L.H); ctx.moveTo(0, L.H - L.tx + 0.5); ctx.lineTo(L.W, L.H - L.tx + 0.5); ctx.stroke()
@@ -10689,9 +10689,23 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       brush: { name: 'Brush', key: '', icon: '<path d="M4 20c3-1 3-4 5-6s4-2 6-4 3-5 3-5l1 1s-2 1-3 3-2 4-4 6-4 3-8 5z"/>' },
       hilite: { name: 'Highlighter', key: '', icon: '<path d="M4 17l9-9 3 3-9 9H4z" fill="currentColor" opacity=".35"/><path d="M4 17l9-9 3 3-9 9H4z"/><path d="M13 8l3 3"/>' },
       avwap: { name: 'Anchored VWAP', key: '', icon: '<path d="M4 18c4-1 5-6 8-7s5 2 8 0"/><circle cx="4" cy="18" r="2" fill="currentColor"/>' },
+      xline: { name: 'Extended line', key: '', icon: '<path d="M2 20L22 4"/><circle cx="8" cy="15.2" r="1.8" fill="currentColor"/><circle cx="16" cy="8.8" r="1.8" fill="currentColor"/>' },
+      regression: { name: 'Regression trend', key: '', icon: '<path d="M3 17L21 9"/><path d="M3 12L21 4" opacity=".5"/><path d="M3 22l18-8" opacity=".5"/>' },
+      pitchfork: { name: 'Pitchfork', key: '', icon: '<path d="M4 12h6"/><path d="M10 12L21 5"/><path d="M10 12l11 0" opacity=".6"/><path d="M10 12l11 7" opacity=".6"/><circle cx="4" cy="12" r="1.8" fill="currentColor"/>' },
+      triangle: { name: 'Triangle', key: '', icon: '<path d="M12 4l9 16H3z"/>' },
+      path: { name: 'Path', key: '', icon: '<path d="M3 18l5-8 5 5 8-11"/><circle cx="3" cy="18" r="1.6" fill="currentColor"/><circle cx="8" cy="10" r="1.6" fill="currentColor"/><circle cx="13" cy="15" r="1.6" fill="currentColor"/><circle cx="21" cy="4" r="1.6" fill="currentColor"/>' },
+      xabcd: { name: 'XABCD pattern', key: '', icon: '<path d="M2 18l5-13 5 9 5-10 5 14"/><path d="M2 18l10-4 10 0" opacity=".45"/>' },
+      callout: { name: 'Callout', key: '', icon: '<rect x="8" y="4" width="13" height="9" rx="2"/><path d="M8 9L3 19l8-6"/>' },
+      flag: { name: 'Flag', key: '', icon: '<path d="M5 21V4"/><path d="M5 4h13l-3 4 3 4H5"/>' },
+      markup: { name: 'Arrow up marker', key: '', icon: '<path d="M12 20V6"/><path d="M6 12l6-6 6 6"/>' },
+      markdown: { name: 'Arrow down marker', key: '', icon: '<path d="M12 4v14"/><path d="M6 12l6 6 6-6"/>' },
+      daterange: { name: 'Date range', key: '', icon: '<path d="M4 12h16"/><path d="M4 8v8M20 8v8"/><path d="M8 12l-4 0M16 12l4 0" opacity=".4"/>' },
+      vprofile: { name: 'Fixed range volume profile', key: '', icon: '<path d="M4 4v16"/><path d="M4 7h9M4 10h14M4 13h11M4 16h6" stroke-width="2.4"/>' },
       measure: { name: 'Measure', key: 'Alt+M', icon: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M8 12l2 2M11 9l2 2M14 6l2 2"/>' },
     }
-    const CH_GROUPS = [['cursor', ['cross', 'dot', 'arrow', 'eraser']], ['lines', ['trend', 'ray', 'arrowline', 'hline', 'hray', 'vline', 'xcross', 'channel']], ['fib', ['fib', 'fibext']], ['shapes', ['rect', 'ellipse', 'brush', 'hilite']], ['pos', ['long', 'short', 'range', 'avwap']], ['text', ['text', 'plabel']], ['measure', ['measure']]]
+    const CH_GROUPS = [['cursor', ['cross', 'dot', 'arrow', 'eraser']], ['lines', ['trend', 'ray', 'xline', 'hline', 'hray', 'vline', 'xcross', 'channel', 'regression', 'pitchfork']], ['fib', ['fib', 'fibext']], ['patterns', ['xabcd', 'triangle']], ['pos', ['long', 'short', 'range', 'daterange', 'avwap', 'vprofile']], ['shapes', ['rect', 'ellipse', 'path', 'arrowline', 'brush', 'hilite']], ['text', ['text', 'callout', 'plabel', 'flag', 'markup', 'markdown']], ['measure', ['measure']]]
+    const CH_BOXES = ['rect', 'ellipse', 'range']   // two opposite corners; eight handles when selected
+    const CH_MULTI = { path: Infinity, xabcd: 5, triangle: 3, pitchfork: 3, channel: 3, fibext: 3 }
     const CH_TOOL_NAMES = Object.fromEntries(Object.entries(CH_TOOLS).map(([k, v]) => [k, v.name]))
     const chGroupOf = (t) => (CH_GROUPS.find(([, ts]) => ts.includes(t)) || [])[0]
     function chRailBuild() {
@@ -10823,6 +10837,96 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           lv.forEach((l, k) => { const lc = d.color || CH_FIB_C[l] || CH_FIB_C[1.618], y = Math.round(ys[k]) + 0.5; if (y < -10 || y > L.mainH + 10) return; ctx.strokeStyle = lc; ctx.beginPath(); ctx.moveTo(xs, y); ctx.lineTo(xb, y); ctx.stroke(); ctx.font = `600 10px ${GEX_FONT}`; ctx.textAlign = 'left'; ctx.fillStyle = lc; ctx.fillText(`${l}  ${chPx(Cc.p + (B.p - A.p) * l)}`, Math.max(4, xs) + 4, y - 7) })
           ctx.setLineDash([])
         }
+        else if (d.type === 'regression') {
+          if (P.length < 2) continue
+          const r = chRegression(d); if (!r) continue
+          const xa = chX(r.i0, L), xb = chX(r.i1, L), ya = chY(r.a, L), yb = chY(r.a + r.k * (r.i1 - r.i0), L), sdPx = chY(r.a, L) - chY(r.a + r.sd * 2, L)
+          ctx.fillStyle = alpha(c, d.fill ?? 0.08); ctx.beginPath(); ctx.moveTo(xa, ya - sdPx); ctx.lineTo(xb, yb - sdPx); ctx.lineTo(xb, yb + sdPx); ctx.lineTo(xa, ya + sdPx); ctx.closePath(); ctx.fill()
+          ctx.beginPath(); ctx.moveTo(xa, ya); ctx.lineTo(xb, yb); ctx.stroke()
+          ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.strokeStyle = alpha(c, 0.7); ctx.beginPath(); ctx.moveTo(xa, ya - sdPx); ctx.lineTo(xb, yb - sdPx); ctx.moveTo(xa, ya + sdPx); ctx.lineTo(xb, yb + sdPx); ctx.stroke(); ctx.setLineDash([]); ctx.strokeStyle = c
+          if (sel || hov) label(`slope ${chPts(r.k)}/bar · σ ${r.sd.toFixed(2)}`, xb + 8, yb, c, 'left', 10)
+          d._ends = [{ x: xa, y: ya }, { x: xb, y: yb }]
+        }
+        else if (d.type === 'pitchfork') {
+          if (P.length < 3) continue
+          const [A, B, Cc] = P, M = { x: (B.x + Cc.x) / 2, y: (B.y + Cc.y) / 2 }, dx = M.x - A.x, dy = M.y - A.y
+          if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) continue
+          const far = (from) => { const k = dx !== 0 ? (L.plotW + 40 - from.x) / dx : 60; const kk = Math.max(1, k); return { x: from.x + dx * kk, y: from.y + dy * kk } }
+          const mE = far(A), bE = far(B), cE = far(Cc)
+          ctx.fillStyle = alpha(c, d.fill ?? 0.06); ctx.beginPath(); ctx.moveTo(B.x, B.y); ctx.lineTo(bE.x, bE.y); ctx.lineTo(cE.x, cE.y); ctx.lineTo(Cc.x, Cc.y); ctx.closePath(); ctx.fill()
+          ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(mE.x, mE.y); ctx.stroke()
+          ctx.beginPath(); ctx.moveTo(B.x, B.y); ctx.lineTo(bE.x, bE.y); ctx.moveTo(Cc.x, Cc.y); ctx.lineTo(cE.x, cE.y); ctx.stroke()
+          ctx.setLineDash([3, 4]); ctx.lineWidth = 1; ctx.strokeStyle = alpha(c, 0.6); ctx.beginPath(); ctx.moveTo(B.x, B.y); ctx.lineTo(Cc.x, Cc.y); ctx.stroke(); ctx.setLineDash([]); ctx.strokeStyle = c
+          d._ends = [A, mE, B, bE, Cc, cE]
+        }
+        else if (d.type === 'triangle') {
+          if (P.length < 3) continue
+          ctx.fillStyle = alpha(c, d.fill ?? 0.1); ctx.beginPath(); ctx.moveTo(P[0].x, P[0].y); ctx.lineTo(P[1].x, P[1].y); ctx.lineTo(P[2].x, P[2].y); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.setLineDash([])
+          label(d.text, (P[0].x + P[1].x + P[2].x) / 3, (P[0].y + P[1].y + P[2].y) / 3, c, 'center')
+        }
+        else if (d.type === 'path') {
+          if (P.length < 2) continue
+          ctx.save(); ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(P[0].x, P[0].y); for (let k = 1; k < P.length; k++) ctx.lineTo(P[k].x, P[k].y); ctx.stroke(); ctx.restore(); ctx.setLineDash([])
+          if (d.arrow !== false) { const a = P[P.length - 2], b = P[P.length - 1], ang = Math.atan2(b.y - a.y, b.x - a.x), hs = 6 + chLineW(d, false) * 2; ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x - hs * Math.cos(ang - 0.45), b.y - hs * Math.sin(ang - 0.45)); ctx.lineTo(b.x - hs * Math.cos(ang + 0.45), b.y - hs * Math.sin(ang + 0.45)); ctx.closePath(); ctx.fill() }
+          if (d.text) label(d.text, P[P.length - 1].x + 8, P[P.length - 1].y - 10, c)
+        }
+        else if (d.type === 'xabcd') {
+          if (P.length < 2) continue
+          const names = ['X', 'A', 'B', 'C', 'D']
+          if (P.length >= 3) { ctx.fillStyle = alpha(c, d.fill ?? 0.1); ctx.beginPath(); ctx.moveTo(P[0].x, P[0].y); ctx.lineTo(P[1].x, P[1].y); ctx.lineTo(P[2].x, P[2].y); ctx.closePath(); ctx.fill() }
+          if (P.length >= 5) { ctx.fillStyle = alpha(c, d.fill ?? 0.1); ctx.beginPath(); ctx.moveTo(P[2].x, P[2].y); ctx.lineTo(P[3].x, P[3].y); ctx.lineTo(P[4].x, P[4].y); ctx.closePath(); ctx.fill() }
+          ctx.beginPath(); ctx.moveTo(P[0].x, P[0].y); for (let k = 1; k < P.length; k++) ctx.lineTo(P[k].x, P[k].y); ctx.stroke(); ctx.setLineDash([])
+          ctx.setLineDash([3, 4]); ctx.lineWidth = 1; ctx.strokeStyle = alpha(c, 0.6); ctx.beginPath(); if (P.length >= 3) { ctx.moveTo(P[0].x, P[0].y); ctx.lineTo(P[2].x, P[2].y) } if (P.length >= 4) { ctx.moveTo(P[1].x, P[1].y); ctx.lineTo(P[3].x, P[3].y) } if (P.length >= 5) { ctx.moveTo(P[2].x, P[2].y); ctx.lineTo(P[4].x, P[4].y); ctx.moveTo(P[0].x, P[0].y); ctx.lineTo(P[4].x, P[4].y) } ctx.stroke(); ctx.setLineDash([]); ctx.strokeStyle = c
+          P.forEach((q, k) => { const nb = [d.p[k - 1], d.p[k + 1]].filter(Boolean); const avg = nb.reduce((s, z) => s + z.p, 0) / (nb.length || 1); label(names[k], q.x, q.y + (d.p[k].p >= avg ? -14 : 14), c, 'center', 11) })
+          const ratio = (i, j, k, l) => { const a = Math.abs(d.p[j].p - d.p[i].p), b = Math.abs(d.p[l].p - d.p[k].p); return a ? (b / a).toFixed(3) : '' }
+          if (P.length >= 3) label(ratio(0, 1, 1, 2), (P[0].x + P[2].x) / 2, (P[0].y + P[2].y) / 2, alpha(c, 0.9), 'center', 10)
+          if (P.length >= 4) label(ratio(1, 2, 2, 3), (P[1].x + P[3].x) / 2, (P[1].y + P[3].y) / 2, alpha(c, 0.9), 'center', 10)
+          if (P.length >= 5) { label(ratio(2, 3, 3, 4), (P[2].x + P[4].x) / 2, (P[2].y + P[4].y) / 2, alpha(c, 0.9), 'center', 10); label(ratio(0, 1, 1, 4), (P[0].x + P[4].x) / 2, (P[0].y + P[4].y) / 2, alpha(c, 0.9), 'center', 10) }
+        }
+        else if (d.type === 'callout') {
+          if (P.length < 2) continue
+          const size = d.size || 13; ctx.font = `600 ${size}px ${GEX_FONT}`; const lines = String(d.text || '').split('\n'); const w = Math.max(...lines.map((s) => ctx.measureText(s).width), 30) + 16, h = lines.length * (size + 4) + 10
+          const bx = P[1].x - w / 2, by = P[1].y - h / 2
+          ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(P[0].x, P[0].y); ctx.lineTo(Math.max(bx, Math.min(bx + w, P[0].x)), P[0].y < by ? by : P[0].y > by + h ? by + h : P[0].y); ctx.stroke()
+          ctx.fillStyle = alpha(BG.length === 7 ? BG : '#0b0a09', 0.92); ctx.fillRect(bx, by, w, h); ctx.strokeRect(Math.round(bx) + 0.5, Math.round(by) + 0.5, Math.round(w), Math.round(h))
+          ctx.fillStyle = c; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; lines.forEach((s, k) => ctx.fillText(s, bx + 8, by + 5 + k * (size + 4))); ctx.textBaseline = 'middle'
+          d._box = { x: bx, y: by, w, h }
+          ctx.fillStyle = c; ctx.beginPath(); ctx.arc(P[0].x, P[0].y, 2.5, 0, Math.PI * 2); ctx.fill()
+        }
+        else if (d.type === 'flag') {
+          const x = Math.round(P[0].x) + 0.5, y = P[0].y, s = 12 + (d.w || 1) * 2
+          ctx.setLineDash([]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - s * 1.6); ctx.stroke()
+          ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x, y - s * 1.6); ctx.lineTo(x + s, y - s * 1.25); ctx.lineTo(x, y - s * 0.9); ctx.closePath(); ctx.fill()
+          d._box = { x: x - 5, y: y - s * 1.7, w: s + 8, h: s * 1.8 }
+          if (d.text) label(d.text, x + s + 6, y - s * 1.25, c, 'left', 10.5)
+        }
+        else if (d.type === 'markup' || d.type === 'markdown') {
+          const up = d.type === 'markup', x = P[0].x, y = P[0].y, s = 7 + (d.w || 1) * 2, dir = up ? -1 : 1, base = y + dir * 6
+          ctx.setLineDash([]); ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x, base); ctx.lineTo(x - s, base + dir * s); ctx.lineTo(x - s * 0.45, base + dir * s); ctx.lineTo(x - s * 0.45, base + dir * s * 1.9); ctx.lineTo(x + s * 0.45, base + dir * s * 1.9); ctx.lineTo(x + s * 0.45, base + dir * s); ctx.lineTo(x + s, base + dir * s); ctx.closePath(); ctx.fill()
+          d._box = { x: x - s - 2, y: up ? base - s * 1.9 - 4 : base - 4, w: s * 2 + 4, h: s * 1.9 + 8 }
+          if (d.text) label(d.text, x, base + dir * (s * 1.9 + 11), c, 'center', 10.5)
+        }
+        else if (d.type === 'daterange') {
+          if (P.length < 2) continue
+          const y = Math.round(P[0].y) + 0.5, xa = Math.min(P[0].x, P[1].x), xb = Math.max(P[0].x, P[1].x)
+          ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, y); ctx.moveTo(Math.round(xa) + 0.5, y - 10); ctx.lineTo(Math.round(xa) + 0.5, y + 10); ctx.moveTo(Math.round(xb) + 0.5, y - 10); ctx.lineTo(Math.round(xb) + 0.5, y + 10); ctx.stroke()
+          ctx.fillStyle = alpha(c, d.fill ?? 0.06); ctx.fillRect(xa, 0, xb - xa, L.mainH)
+          const bars = Math.round(Math.abs(chIofT(d.p[1].t) - chIofT(d.p[0].t))), secs = Math.abs(d.p[1].t - d.p[0].t)
+          label(`${bars} bars · ${chDur(secs)}${d.text ? ' · ' + d.text : ''}`, (xa + xb) / 2, y - 14, c, 'center', 10.5)
+          d._ends = [{ x: xa, y: P[0].y }, { x: xb, y: P[0].y }]
+        }
+        else if (d.type === 'vprofile') {
+          if (P.length < 2) continue
+          const v = chVolProfile(d); if (!v) continue
+          const xa = Math.min(P[0].x, P[1].x), xb = Math.max(P[0].x, P[1].x), wMax = Math.max(40, (xb - xa) * (d.width || 0.35)), yTop = chY(v.hi, L), yBot = chY(v.lo, L)
+          ctx.setLineDash([]); ctx.fillStyle = alpha(c, 0.05); ctx.fillRect(xa, yTop, xb - xa, yBot - yTop); ctx.strokeStyle = alpha(c, 0.5); ctx.lineWidth = 1; ctx.strokeRect(Math.round(xa) + 0.5, Math.round(yTop) + 0.5, Math.round(xb - xa), Math.round(yBot - yTop))
+          for (let k = 0; k < v.bins.length; k++) { const y0 = chY(v.lo + (k + 1) * v.step, L), y1 = chY(v.lo + k * v.step, L), w = v.max ? v.bins[k] / v.max * wMax : 0; const inVa = k >= v.va0 && k <= v.va1; ctx.fillStyle = k === v.poc ? alpha(d.pocC || '#ff9800', 0.9) : alpha(c, inVa ? 0.55 : 0.28); ctx.fillRect(xa, y0 + 0.5, w, Math.max(1, y1 - y0 - 1)) }
+          const pocY = Math.round(chY(v.lo + (v.poc + 0.5) * v.step, L)) + 0.5; ctx.strokeStyle = d.pocC || '#ff9800'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(xa, pocY); ctx.lineTo(xb, pocY); ctx.stroke(); ctx.lineWidth = 1
+          ctx.font = `600 9.5px ${GEX_FONT}`; ctx.textAlign = 'right'; ctx.fillStyle = d.pocC || '#ff9800'; ctx.fillText(`POC ${chPx(v.lo + (v.poc + 0.5) * v.step)}`, xb - 4, pocY - 7)
+          ctx.fillStyle = alpha(c, 0.9); ctx.fillText(`VAH ${chPx(v.lo + (v.va1 + 1) * v.step)}`, xb - 4, chY(v.lo + (v.va1 + 1) * v.step, L) - 7); ctx.fillText(`VAL ${chPx(v.lo + v.va0 * v.step)}`, xb - 4, chY(v.lo + v.va0 * v.step, L) + 9)
+          ctx.font = `11px ${GEX_FONT}`; ctx.strokeStyle = c
+          d._ends = [{ x: xa, y: yTop }, { x: xb, y: yTop }]; d._box = { x: xa, y: yTop, w: xb - xa, h: yBot - yTop }
+        }
         else if (d.type === 'plabel') {
           const text = d.text || chPx(d.p[0].p); ctx.font = `600 11px ${GEX_FONT}`; const w = ctx.measureText(text).width + 14, h = 20
           const x0 = P[0].x + 8, y0 = P[0].y - h / 2
@@ -10884,8 +10988,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           ctx.textBaseline = 'middle'
         }
         ctx.setLineDash([])
-        if ((sel || hov || d === CH.pending) && d.type !== 'text' && d.type !== 'long' && d.type !== 'short' && d.type !== 'plabel' && d.type !== 'brush' && d.type !== 'hilite') for (const q of P) { ctx.fillStyle = BG; ctx.strokeStyle = c; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(q.x, q.y, hov && !sel ? 3 : 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke() }
-        if ((sel || hov) && (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') && P.length === 2 && d.stats !== false) { const dp = d.p[1].p - d.p[0].p, bars = Math.round(Math.abs(chIofT(d.p[1].t) - chIofT(d.p[0].t))), secs = Math.abs(d.p[1].t - d.p[0].t); label(`${chPts(dp)} (${(dp / d.p[0].p * 100).toFixed(2)}%) · ${bars} bars · ${chDur(secs)}`, P[1].x + (P[1].x >= P[0].x ? 10 : -10), P[1].y + 14, c, P[1].x >= P[0].x ? 'left' : 'right', 10) }
+        if ((sel || hov || d === CH.pending) && CH_BOXES.includes(d.type) && P.length === 2 && d !== CH.pending) { for (const h of chBoxHandles(d, L)) { ctx.fillStyle = BG; ctx.strokeStyle = c; ctx.lineWidth = 1.2; ctx.beginPath(); if (h.side) ctx.rect(h.x - 3, h.y - 3, 6, 6); else ctx.arc(h.x, h.y, hov && !sel ? 3 : 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke() } }
+        else if ((sel || hov || d === CH.pending) && (d.type === 'regression' || d.type === 'daterange' || d.type === 'vprofile') && d._ends) { for (const q of d._ends.slice(0, 2)) { ctx.fillStyle = BG; ctx.strokeStyle = c; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(q.x, q.y, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke() } }
+        else if ((sel || hov || d === CH.pending) && !['text', 'long', 'short', 'plabel', 'brush', 'hilite', 'flag', 'markup', 'markdown'].includes(d.type)) for (const q of P) { ctx.fillStyle = BG; ctx.strokeStyle = c; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(q.x, q.y, hov && !sel ? 3 : 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke() }
+        if ((sel || hov) && (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') && P.length === 2 && d.stats !== false) { const dp = d.p[1].p - d.p[0].p, bars = Math.round(Math.abs(chIofT(d.p[1].t) - chIofT(d.p[0].t))), secs = Math.abs(d.p[1].t - d.p[0].t); label(`${chPts(dp)} (${(dp / d.p[0].p * 100).toFixed(2)}%) · ${bars} bars · ${chDur(secs)} · ${Math.round(-Math.atan2(P[1].y - P[0].y, P[1].x - P[0].x) * 180 / Math.PI)}°`, P[1].x + (P[1].x >= P[0].x ? 10 : -10), P[1].y + 14, c, P[1].x >= P[0].x ? 'left' : 'right', 10) }
         if (sel && d.lock) { ctx.font = `11px ${GEX_FONT}`; ctx.fillStyle = c; ctx.textAlign = 'left'; ctx.fillText('🔒', (P[0].x + (P[1]?.x ?? P[0].x)) / 2 + 8, (P[0].y + (P[1]?.y ?? P[0].y)) / 2 - 12) }
       }
       ctx.lineWidth = 1; ctx.font = `11px ${GEX_FONT}`; ctx.textBaseline = 'middle'
@@ -10908,6 +11014,46 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ctx.fillStyle = c; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(lines[0], bx + 8, by + 12); ctx.fillStyle = T.muted; ctx.font = `11px ${GEX_FONT}`; ctx.fillText(lines[1], bx + 8, by + 27)
     }
     function chPaintMeasure(ctx, L, T) { const m = CH.measure; if (!m || !m.b) return; chPaintRange(ctx, L, T, m.a, m.b, null) }
+    // a box in time and price: the corners the user dragged, normalised
+    const chBoxOf = (d) => ({ t0: Math.min(d.p[0].t, d.p[1].t), t1: Math.max(d.p[0].t, d.p[1].t), pHi: Math.max(d.p[0].p, d.p[1].p), pLo: Math.min(d.p[0].p, d.p[1].p) })
+    function chBoxHandles(d, L) {
+      const b = chBoxOf(d), x0 = chX(chIofT(b.t0), L), x1 = chX(chIofT(b.t1), L), y0 = chY(b.pHi, L), y1 = chY(b.pLo, L), mx = (x0 + x1) / 2, my = (y0 + y1) / 2
+      return [{ x: x0, y: y0, id: 0, cur: 'nwse-resize' }, { x: x1, y: y0, id: 1, cur: 'nesw-resize' }, { x: x1, y: y1, id: 2, cur: 'nwse-resize' }, { x: x0, y: y1, id: 3, cur: 'nesw-resize' }, { x: mx, y: y0, id: 4, cur: 'ns-resize', side: true }, { x: x1, y: my, id: 5, cur: 'ew-resize', side: true }, { x: mx, y: y1, id: 6, cur: 'ns-resize', side: true }, { x: x0, y: my, id: 7, cur: 'ew-resize', side: true }]
+    }
+    function chBoxApply(d, box0, id, now) {   // drag one of the eight handles: corners move two sides, side handles one
+      const b = { ...box0 }
+      if (id === 0) { b.t0 = now.t; b.pHi = now.p } else if (id === 1) { b.t1 = now.t; b.pHi = now.p } else if (id === 2) { b.t1 = now.t; b.pLo = now.p } else if (id === 3) { b.t0 = now.t; b.pLo = now.p }
+      else if (id === 4) b.pHi = now.p; else if (id === 5) b.t1 = now.t; else if (id === 6) b.pLo = now.p; else if (id === 7) b.t0 = now.t
+      d.p = [{ t: b.t0, p: b.pHi }, { t: b.t1, p: b.pLo }]
+    }
+    // linear regression of the closes between two bars, with the standard deviation of the residuals
+    function chRegression(d) {
+      const bars = chVisible(), n = bars.length; if (!n) return null
+      const ta = Math.min(d.p[0].t, d.p[1].t), tb = Math.max(d.p[0].t, d.p[1].t)
+      let i0 = bars.findIndex((b) => b.t >= ta); if (i0 < 0) i0 = n - 1; let i1 = bars.findIndex((b) => b.t > tb); i1 = i1 < 0 ? n - 1 : Math.max(i0, i1 - 1)
+      const m = i1 - i0 + 1; if (m < 2) return { i0, i1, a: bars[i0].c, k: 0, sd: 0 }
+      let sx = 0, sy = 0, sxx = 0, sxy = 0
+      for (let i = i0; i <= i1; i++) { const x = i - i0, y = bars[i].c; sx += x; sy += y; sxx += x * x; sxy += x * y }
+      const k = (m * sxy - sx * sy) / (m * sxx - sx * sx || 1), a = (sy - k * sx) / m
+      let ss = 0; for (let i = i0; i <= i1; i++) { const r = bars[i].c - (a + k * (i - i0)); ss += r * r }
+      return { i0, i1, a, k, sd: Math.sqrt(ss / m) }
+    }
+    // volume by price over a range of bars: bins, the point of control and the value area
+    const chVpCache = new Map()
+    function chVolProfile(d) {
+      const bars = chVisible(), n = bars.length; if (!n) return null
+      const ta = Math.min(d.p[0].t, d.p[1].t), tb = Math.max(d.p[0].t, d.p[1].t), key = `${CH.tf}|${n}|${bars[n - 1].c}|${ta}|${tb}|${d.bins || 24}`
+      const hit = chVpCache.get(d.id); if (hit && hit.key === key) return hit.v
+      let i0 = bars.findIndex((b) => b.t >= ta); if (i0 < 0) return null; let i1 = bars.findIndex((b) => b.t > tb); i1 = i1 < 0 ? n - 1 : Math.max(i0, i1 - 1)
+      let lo = Infinity, hi = -Infinity; for (let i = i0; i <= i1; i++) { if (bars[i].l < lo) lo = bars[i].l; if (bars[i].h > hi) hi = bars[i].h }
+      if (!isFinite(lo) || hi <= lo) return null
+      const N = Math.max(6, Math.min(80, Math.round(d.bins || 24))), step = (hi - lo) / N, bins = new Array(N).fill(0); let total = 0
+      for (let i = i0; i <= i1; i++) { const b = bars[i], span = Math.max(b.h - b.l, step / 4); const bStart = Math.max(0, Math.floor((b.l - lo) / step)), bEnd = Math.min(N - 1, Math.floor((b.h - lo) / step)); for (let k = bStart; k <= bEnd; k++) { const a = Math.max(b.l, lo + k * step), z = Math.min(b.h, lo + (k + 1) * step); bins[k] += b.v * Math.max(0, z - a) / span } total += b.v }
+      let poc = 0; for (let k = 1; k < N; k++) if (bins[k] > bins[poc]) poc = k
+      // value area: grow from the point of control until 70 percent of the volume is inside
+      let va0 = poc, va1 = poc, acc = bins[poc]; while (acc < total * 0.7 && (va0 > 0 || va1 < N - 1)) { const up = va1 < N - 1 ? bins[va1 + 1] : -1, dn = va0 > 0 ? bins[va0 - 1] : -1; if (up >= dn) { va1++; acc += up } else { va0--; acc += dn } }
+      const v = { i0, i1, lo, hi, step, bins, max: bins[poc], poc, va0, va1, total }; chVpCache.set(d.id, { key, v }); return v
+    }
     const chDist = (px, py, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay; const t = dx || dy ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy))) : 0; return Math.hypot(px - (ax + t * dx), py - (ay + t * dy)) }
     // what is under the pointer: the drawing and which handle (-1 = the body). Handles first, then bodies, newest on top.
     function chHit(x, y, L) {
@@ -10916,7 +11062,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const d = CH.drawings[k]; const P = d.p.map((q) => ({ x: chX(chIofT(q.t), L), y: chY(q.p, L) }))
         if (d.type === 'long' || d.type === 'short') { if (P.length < 2) continue; const g = chPosGeo(d, L), mid = (g.x0 + g.x1) / 2; if (Math.hypot(mid - x, g.yt - y) < 8) return { d, handle: 2 }; if (Math.hypot(mid - x, g.ys - y) < 8) return { d, handle: 3 }; if (Math.hypot(g.x1 - x, g.ye - y) < 8) return { d, handle: 1 }; if (Math.hypot(g.x0 - x, g.ye - y) < 8) return { d, handle: 0 }; continue }
         if (d.hidden || (d.vis && d.vis[chVisGroup()] === false)) continue
-        if (d.type !== 'text' && d.type !== 'plabel' && d.type !== 'brush' && d.type !== 'hilite') for (let h = 0; h < P.length; h++) if (Math.hypot(P[h].x - x, P[h].y - y) < 8) return { d, handle: h }
+        if (CH_BOXES.includes(d.type) && P.length === 2) { for (const h of chBoxHandles(d, L)) if (Math.hypot(h.x - x, h.y - y) < 8) return { d, handle: 10 + h.id, cur: h.cur }; continue }
+        if ((d.type === 'regression' || d.type === 'daterange' || d.type === 'vprofile') && d._ends) { for (let h = 0; h < 2; h++) if (Math.hypot(d._ends[h].x - x, d._ends[h].y - y) < 8) return { d, handle: h }; continue }
+        if (!['text', 'plabel', 'brush', 'hilite', 'flag', 'markup', 'markdown', 'callout'].includes(d.type)) for (let h = 0; h < P.length; h++) if (Math.hypot(P[h].x - x, P[h].y - y) < 8) return { d, handle: h }
+        if (d.type === 'callout' && P.length === 2 && Math.hypot(P[0].x - x, P[0].y - y) < 8) return { d, handle: 0 }
       }
       for (let k = CH.drawings.length - 1; k >= 0; k--) {
         const d = CH.drawings[k]; const P = d.p.map((q) => ({ x: chX(chIofT(q.t), L), y: chY(q.p, L) }))
@@ -10928,6 +11077,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (d.type === 'range' && P.length === 2) { const x0 = Math.min(P[0].x, P[1].x), x1 = Math.max(P[0].x, P[1].x), y0 = Math.min(P[0].y, P[1].y), y1 = Math.max(P[0].y, P[1].y); if (x >= x0 - 6 && x <= x1 + 6 && y >= y0 - 6 && y <= y1 + 6) return { d, handle: -1 } }
         if (d.type === 'plabel' && d._box && x >= d._box.x - 6 && x <= d._box.x + d._box.w && y >= d._box.y && y <= d._box.y + d._box.h) return { d, handle: -1 }
         if (d.type === 'xcross' && (Math.abs(P[0].y - y) < 6 || Math.abs(P[0].x - x) < 6)) return { d, handle: -1 }
+        if (d.type === 'regression' && d._ends && d._ends.length === 2) { const [a, b] = d._ends; if (chDist(x, y, a.x, a.y, b.x, b.y) < 8) return { d, handle: -1 } }
+        if (d.type === 'pitchfork' && d._ends && d._ends.length === 6) { const E = d._ends; for (let k = 0; k < 6; k += 2) if (chDist(x, y, E[k].x, E[k].y, E[k + 1].x, E[k + 1].y) < 6) return { d, handle: -1 } }
+        if (d.type === 'triangle' && P.length === 3) { const s1 = (P[1].x - P[0].x) * (y - P[0].y) - (P[1].y - P[0].y) * (x - P[0].x), s2 = (P[2].x - P[1].x) * (y - P[1].y) - (P[2].y - P[1].y) * (x - P[1].x), s3 = (P[0].x - P[2].x) * (y - P[2].y) - (P[0].y - P[2].y) * (x - P[2].x); if ((s1 >= 0 && s2 >= 0 && s3 >= 0) || (s1 <= 0 && s2 <= 0 && s3 <= 0)) return { d, handle: -1 } }
+        if ((d.type === 'path' || d.type === 'xabcd') && P.length >= 2) { for (let k = 1; k < P.length; k++) if (chDist(x, y, P[k - 1].x, P[k - 1].y, P[k].x, P[k].y) < 6) return { d, handle: -1 } }
+        if (d.type === 'callout' && d._box && x >= d._box.x && x <= d._box.x + d._box.w && y >= d._box.y && y <= d._box.y + d._box.h) return { d, handle: -1 }
+        if ((d.type === 'flag' || d.type === 'markup' || d.type === 'markdown') && d._box && x >= d._box.x && x <= d._box.x + d._box.w && y >= d._box.y && y <= d._box.y + d._box.h) return { d, handle: -1 }
+        if (d.type === 'daterange' && P.length === 2 && Math.abs(P[0].y - y) < 8 && x >= Math.min(P[0].x, P[1].x) - 6 && x <= Math.max(P[0].x, P[1].x) + 6) return { d, handle: -1 }
+        if (d.type === 'vprofile' && d._box && x >= d._box.x && x <= d._box.x + d._box.w && y >= d._box.y && y <= d._box.y + d._box.h) return { d, handle: -1 }
         if (d.type === 'ellipse' && P.length === 2) { const cx = (P[0].x + P[1].x) / 2, cy = (P[0].y + P[1].y) / 2, rx = Math.max(1, Math.abs(P[1].x - P[0].x) / 2), ry = Math.max(1, Math.abs(P[1].y - P[0].y) / 2); const r = Math.hypot((x - cx) / rx, (y - cy) / ry); if (r <= 1.06) return { d, handle: -1 } }
         if ((d.type === 'brush' || d.type === 'hilite') && P.length >= 2) { const tol = d.type === 'hilite' ? 9 + (d.w || 1) * 2 : 6; for (let k = 1; k < P.length; k++) if (chDist(x, y, P[k - 1].x, P[k - 1].y, P[k].x, P[k].y) < tol) return { d, handle: -1 } }
         if (d.type === 'avwap') { const v = chAvwap(d); if (v) { const i = Math.round(chI(x, L)); if (i >= v.i0 && i < v.v.length && v.v[i] != null && Math.abs(chY(v.v[i], L) - y) < 6) return { d, handle: -1 } } }
@@ -10986,7 +11143,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const bar = el('ch-selbar'); if (!bar) return
       const d = CH.sel; bar.hidden = !d; if (!d) { bar.textContent = ''; return }
       const nSel = chSelAll().length
-      const c = chDrawColor(d), isLine = d.type === 'trend' || d.type === 'ray' || d.type === 'channel' || d.type === 'fibext', isBox = d.type === 'rect' || d.type === 'fib' || d.type === 'fibext' || d.type === 'long' || d.type === 'short' || d.type === 'channel' || d.type === 'range' || d.type === 'ellipse' || d.type === 'hilite'
+      const c = chDrawColor(d), isLine = d.type === 'trend' || d.type === 'ray' || d.type === 'channel' || d.type === 'fibext', isBox = ['rect', 'fib', 'fibext', 'long', 'short', 'channel', 'range', 'ellipse', 'hilite', 'triangle', 'xabcd', 'regression', 'pitchfork', 'daterange'].includes(d.type)
       const sw = CH_SWATCHES.map((s) => `<button type="button" class="sw${s === d.color ? ' on' : ''}" data-c="${s}" style="--c:${s}" title="${s}"></button>`).join('')
       const fibPal = d.type === 'fib' ? `<button type="button" class="sw pal${!d.color ? ' on' : ''}" data-c="" title="Level colours"></button>` : ''
       const widths = [1, 2, 3, 4].map((w) => `<button type="button" class="wb${(d.w || 1) === w ? ' on' : ''}" data-w="${w}" title="Width ${w}"><i style="height:${w}px"></i></button>`).join('')
@@ -10994,14 +11151,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const ext = (isLine || d.type === 'rect' || d.type === 'fib') ? `<span class="ch-sep"></span><button type="button" class="ib${d.ext?.l ? ' on' : ''}" data-ext="l" title="Extend left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12H6M10 8l-4 4 4 4"/></svg></button><button type="button" class="ib${(d.type === 'fib' ? d.ext?.r !== false : d.ext?.r) ? ' on' : ''}" data-ext="r" title="Extend right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h14M14 8l4 4-4 4"/></svg></button>` : ''
       const fill = isBox ? `<span class="ch-sep"></span><span class="fill" title="Fill"><input type="range" min="0" max="40" value="${Math.round((d.fill ?? (d.type === 'fib' ? 0.06 : d.type === 'rect' ? 0.1 : 0.14)) * 100)}" aria-label="Fill"></span>` : ''
       const fibx = d.type === 'fib' ? `<button type="button" class="tb${d.fibExt ? ' on' : ''}" data-fibext="1" title="Extension levels 1.272 to 2.618">1.618</button>` : d.type === 'channel' ? `<button type="button" class="tb${d.mid !== false ? ' on' : ''}" data-mid="1" title="Middle line">mid</button>` : (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') ? `<button type="button" class="tb${d.stats !== false ? ' on' : ''}" data-stats="1" title="Show change, bars and time when selected">stats</button>` : ''
-      const size = d.type === 'text' ? `<span class="ch-sep"></span><span class="seg tiny">${[11, 13, 16, 20].map((s) => `<button type="button" data-size="${s}"${(d.size || 13) === s ? ' class="on"' : ''}>${s}</button>`).join('')}</span>` : ''
-      const text = d.type === 'text' ? `<button type="button" class="ib" data-edit="1" title="Edit text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>` : `<input type="text" class="lbl" value="${(d.text || '').replace(/"/g, '&quot;')}" placeholder="Label" maxlength="40" aria-label="Label">`
+      const size = d.type === 'text' || d.type === 'callout' ? `<span class="ch-sep"></span><span class="seg tiny">${[11, 13, 16, 20].map((s) => `<button type="button" data-size="${s}"${(d.size || 13) === s ? ' class="on"' : ''}>${s}</button>`).join('')}</span>` : ''
+      const text = d.type === 'text' || d.type === 'callout' ? `<button type="button" class="ib" data-edit="1" title="Edit text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>` : `<input type="text" class="lbl" value="${(d.text || '').replace(/"/g, '&quot;')}" placeholder="Label" maxlength="40" aria-label="Label">`
       bar.innerHTML = `<span class="ch-selname">${nSel > 1 ? nSel + ' drawings' : (CH_TOOL_NAMES[d.type] || d.type)}</span><span class="ch-sep"></span><span class="sws">${fibPal}${sw}<label class="swc" title="Custom colour" style="--c:${c}"><input type="color" value="${/^#[0-9a-f]{6}$/i.test(c) ? c : '#c9a24a'}" aria-label="Drawing colour"></label></span><span class="ch-sep"></span><span class="wbs">${widths}</span><span class="ch-sep"></span><span class="dbs">${dashes}</span>${ext}${fill}${fibx}${size}<span class="ch-sep"></span>${text}<span class="ch-sep"></span><button type="button" class="ib${d.lock ? ' on' : ''}" data-lock="1" title="${d.lock ? 'Unlock' : 'Lock in place'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button><button type="button" class="ib" data-dup="1" title="Duplicate (Ctrl+D)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button><button type="button" class="ib" data-props="1" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button><button type="button" class="ib" data-def="1" title="Save as the default style for this tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg></button><button type="button" class="ib danger" data-del="1" title="Delete (Del)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button>`
     }
     // the inline editor for text notes
     function chTextEdit(d) {
       const box = el('ch-textin'), ta = box.querySelector('textarea'), L = chLayout()
-      const x = chX(chIofT(d.p[0].t), L), y = chY(d.p[0].p, L)
+      const anchor = d.type === 'callout' && d.p[1] ? d.p[1] : d.p[0], x = chX(chIofT(anchor.t), L) - (d.type === 'callout' ? 80 : 0), y = chY(anchor.p, L) - (d.type === 'callout' ? 16 : 0)
       box.hidden = false; box.style.left = Math.max(4, Math.min(L.plotW - 200, x)) + 'px'; box.style.top = Math.max(4, Math.min(L.mainH - 60, y)) + 'px'; box.style.setProperty('--c', chDrawColor(d))
       ta.value = d.text || ''; ta.style.fontSize = (d.size || 13) + 'px'; CH.editing = d; ta.focus(); ta.select()
     }
@@ -11228,7 +11385,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (CH.replay.arm) { const i = Math.round(chI(p.x, L)); const b = CH.bars[Math.max(0, Math.min(CH.bars.length - 1, i))]; if (b) { CH.replay.arm = false; CH.replay.on = true; CH.replay.cut = b.t; chSetVis(); chReplayUi(); CH.offset = 6; CH.auto = true; chDraw() } CH.drag = null; return }
         if (CH.measure && !CH.measure.live) CH.measure = null
         if (CH.editing) chTextDone(true)
-        if (CH.tool === 'cross' && e.shiftKey && e.button === 0) { CH.sel = null; chSelBar(); CH.measure = { a: chPoint(p.x, p.y, L), b: null, live: true }; CH.drag.measure = true; chDraw(); return }
+        if (CH.tool === 'cross' && e.shiftKey && e.button === 0 && !chHit(p.x, p.y, L)) { CH.sel = null; chSelBar(); CH.measure = { a: chPoint(p.x, p.y, L), b: null, live: true }; CH.drag.measure = true; chDraw(); return }
         if (CH.tool === 'cross') {
           const hit = chHit(p.x, p.y, L), add = e.ctrlKey || e.metaKey
           if (hit && add) { if (CH.multi.has(hit.d) || hit.d === CH.sel) { CH.multi.delete(hit.d); if (CH.sel === hit.d) CH.sel = CH.multi.size ? [...CH.multi][0] : null } else { if (CH.sel) CH.multi.add(CH.sel); CH.multi.add(hit.d); CH.sel = hit.d } chSelBar(); chDraw(); return }
@@ -11236,13 +11393,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             if (!chIsSel(hit.d)) { CH.multi.clear() }
             CH.sel = hit.d; CH.handle = hit.handle
             const group = chSelAll().filter((d) => !d.lock)
-            if (!hit.d.lock) CH.drag.move = { d: hit.d, handle: group.length > 1 ? -1 : hit.handle, p0: hit.d.p.map((q) => ({ ...q })), stop0: hit.d.stop, target0: hit.d.target, pt: { t: Math.round(chTofI(chI(p.x, L))), p: +chP(p.y, L).toFixed(2) }, pushed: false, group: group.length > 1 ? group.map((d) => ({ d, p0: d.p.map((q) => ({ ...q })), stop0: d.stop, target0: d.target })) : null }
+            if (!hit.d.lock) CH.drag.move = { d: hit.d, handle: group.length > 1 ? -1 : hit.handle, p0: hit.d.p.map((q) => ({ ...q })), box0: CH_BOXES.includes(hit.d.type) && hit.d.p.length === 2 ? chBoxOf(hit.d) : null, stop0: hit.d.stop, target0: hit.d.target, pt: { t: Math.round(chTofI(chI(p.x, L))), p: +chP(p.y, L).toFixed(2) }, pushed: false, group: group.length > 1 ? group.map((d) => ({ d, p0: d.p.map((q) => ({ ...q })), stop0: d.stop, target0: d.target })) : null }
           } else { CH.sel = null; CH.multi.clear() }
           chSelBar(); chDraw(); return
         }
         if (CH.tool === 'eraser') { const hit = chHit(p.x, p.y, L); if (hit) { chPush(); CH.drawings = CH.drawings.filter((d) => d !== hit.d); if (CH.sel === hit.d) CH.sel = null; chSave(); chSelBar(); chDraw() } CH.drag = null; return }
         const fresh = (type, pts, extra) => ({ id: chId(), type, p: pts, color: type === 'fib' || type === 'long' || type === 'short' ? '' : chGold(), ...(CH.s.toolDef?.[type] ? JSON.parse(JSON.stringify(CH.s.toolDef[type])) : {}), ...extra })
-        if (CH.tool === 'hline' || CH.tool === 'vline' || CH.tool === 'hray' || CH.tool === 'plabel' || CH.tool === 'xcross' || CH.tool === 'avwap') { chPush(); const d = fresh(CH.tool, [chPoint(p.x, p.y, L)]); CH.drawings.push(d); chSave(); chAfterDraw(); CH.sel = d; chSelBar(); chDraw(); return }
+        if (CH.tool === 'hline' || CH.tool === 'vline' || CH.tool === 'hray' || CH.tool === 'plabel' || CH.tool === 'xcross' || CH.tool === 'avwap' || CH.tool === 'flag' || CH.tool === 'markup' || CH.tool === 'markdown') { chPush(); const d = fresh(CH.tool, [chPoint(p.x, p.y, L)]); CH.drawings.push(d); chSave(); chAfterDraw(); CH.sel = d; chSelBar(); chDraw(); return }
         if (CH.tool === 'brush' || CH.tool === 'hilite') { const pt = chPoint(p.x, p.y, L); CH.pending = fresh(CH.tool, [pt], CH.tool === 'hilite' ? { color: CH.s.toolDef?.hilite?.color || '#f5d90a' } : {}); CH.pending.free = true; CH.drag.brush = true; chDraw(); return }
         if (CH.tool === 'long' || CH.tool === 'short') {
           const e = chPoint(p.x, p.y, L), span = Math.max(CH.pMax - CH.pMin, 1), tick = (v) => Math.round(v * 4) / 4
@@ -11251,13 +11408,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           CH.drawings.push(d); chSave(); chAfterDraw(); CH.sel = d; chSelBar(); chDraw(); return
         }
         if (CH.tool === 'text') { e.preventDefault(); const d = fresh('text', [chPoint(p.x, p.y, L)], { text: '', size: 13 }); CH.sel = d; chAfterDraw(); chDraw(); setTimeout(() => chTextEdit(d), 0); return }
+        if (CH.tool === 'callout') { e.preventDefault(); const a = chPoint(p.x, p.y, L); const d = fresh('callout', [a, { t: a.t + CH.tfSec * Math.max(6, Math.round(L.plotW / CH.barW * 0.1)), p: +(a.p + (CH.pMax - CH.pMin) * 0.12).toFixed(2) }], { text: '', size: 13 }); CH.sel = d; chAfterDraw(); chDraw(); setTimeout(() => chTextEdit(d), 0); return }
         if (CH.tool === 'measure') {
           if (CH.measure?.live && CH.measure.b) { CH.measure.live = false; chSetTool('cross', true) }
           else { CH.measure = { a: chPoint(p.x, p.y, L), b: null, live: true }; CH.drag.measure = true }
           chDraw(); return
         }
         const pt = chPoint(p.x, p.y, L)
-        if (!CH.pending) { CH.pending = fresh(CH.tool, [pt, { ...pt }], CH.tool === 'fib' || CH.tool === 'fibext' ? { ext: { r: true } } : {}); CH.pending.need = CH.tool === 'channel' || CH.tool === 'fibext' ? 3 : 2; CH.drag.pend = true }
+        if (!CH.pending) { const type = CH.tool === 'xline' ? 'trend' : CH.tool; CH.pending = fresh(type, [pt, { ...pt }], CH.tool === 'fib' || CH.tool === 'fibext' ? { ext: { r: true } } : CH.tool === 'xline' ? { ext: { l: true, r: true } } : {}); CH.pending.need = CH_MULTI[CH.tool] || 2; CH.drag.pend = true }
         else chPendingAdvance(pt)
       })
       cv.addEventListener('pointermove', (e) => {
@@ -11278,7 +11436,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             const { d, handle, p0, pt } = dg.move; if (!dg.move.pushed && dg.moved) { dg.move.pushed = true; chPush() }
             // a handle lands exactly where the pointer (or the magnet) says; a body moves by the pointer's delta
             const raw = { t: Math.round(chTofI(chI(p.x, L))), p: +chP(p.y, L).toFixed(2) }, now = handle === -1 && d.type !== 'hline' && d.type !== 'vline' ? (CH.snap = null, raw) : chPoint(p.x, p.y, L)
-            const dt = raw.t - pt.t, dp = raw.p - pt.p
+            let dt = raw.t - pt.t, dp = raw.p - pt.p
+            if (e.shiftKey && handle === -1) { if (Math.abs(p.x - dg.x0) >= Math.abs(p.y - dg.y0)) dp = 0; else dt = 0 }   // Shift locks a move to one axis
             if (dg.move.group) { for (const g of dg.move.group) { g.d.p = g.p0.map((q) => ({ t: q.t + dt, p: +(q.p + dp).toFixed(2) })); if (g.stop0 != null) g.d.stop = +(g.stop0 + dp).toFixed(2); if (g.target0 != null) g.d.target = +(g.target0 + dp).toFixed(2) } chDraw(); return }
             if (d.type === 'long' || d.type === 'short') {
               if (handle === 2) d.target = now.p
@@ -11288,6 +11447,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             }
             else if (d.type === 'hline') d.p = [{ t: p0[0].t, p: now.p }]
             else if (d.type === 'vline') d.p = [{ t: now.t, p: p0[0].p }]
+            else if (handle >= 10 && dg.move.box0) chBoxApply(d, dg.move.box0, handle - 10, now)
+            else if ((d.type === 'regression' || d.type === 'daterange' || d.type === 'vprofile') && handle >= 0) { const left = p0[0].t <= p0[1].t ? 0 : 1, k = handle === 0 ? left : 1 - left; d.p = p0.map((q, i) => i === k ? { t: now.t, p: d.type === 'daterange' ? p0[0].p : q.p } : q) }
             else if (handle >= 0) d.p = p0.map((q, k) => k === handle ? { t: now.t, p: now.p } : q)
             else d.p = p0.map((q) => ({ t: q.t + dt, p: +(q.p + dp).toFixed(2) }))
             chDraw(); return
@@ -11302,7 +11463,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (CH.tool !== 'cross' && CH.tool !== 'measure') chPoint(p.x, p.y, L)   // keeps the snap ring live under a drawing tool
         else CH.snap = null
         if (CH.tool === 'cross' && !dg && e.pointerType !== 'touch' && p.x <= L.plotW && chSepAt(p.y, L)) { cv.style.cursor = 'row-resize'; CH.hoverDr = null; chDraw(); return }
-        if ((CH.tool === 'cross' || CH.tool === 'eraser') && !dg && e.pointerType !== 'touch') { const hit = p.x <= L.plotW && p.y <= L.plotH ? chHit(p.x, p.y, L) : null; const hd = hit ? hit.d : null; if (hd !== CH.hoverDr) { CH.hoverDr = hd } cv.style.cursor = CH.tool === 'eraser' ? (hit ? 'pointer' : 'cell') : hit ? (hit.handle >= 0 ? 'move' : hit.d.lock ? 'default' : 'pointer') : (CH.replay.arm ? 'col-resize' : 'crosshair') }
+        if ((CH.tool === 'cross' || CH.tool === 'eraser') && !dg && e.pointerType !== 'touch') { const hit = p.x <= L.plotW && p.y <= L.plotH ? chHit(p.x, p.y, L) : null; const hd = hit ? hit.d : null; if (hd !== CH.hoverDr) { CH.hoverDr = hd } cv.style.cursor = CH.tool === 'eraser' ? (hit ? 'pointer' : 'cell') : hit ? (hit.cur || (hit.handle >= 0 ? 'move' : hit.d.lock ? 'default' : 'pointer')) : (CH.replay.arm ? 'col-resize' : 'crosshair') }
         chDraw()
       })
       const up = (e) => {
@@ -11334,10 +11495,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         requestAnimationFrame(step)
       }
       function chSepAt(y, L) { if (L.volH && Math.abs(y - L.volTop) <= 4) return 'vol'; for (const pn of L.panes) if (Math.abs(y - pn.top) <= 4) return pn.key; return null }
-      function chPendingAdvance(pt) { const d = CH.pending; if (!d) return; d.p[d.p.length - 1] = pt; if (d.p.length < (d.need || 2)) { d.p.push({ ...pt }); chDraw(); return } delete d.need; chPush(); CH.drawings.push(d); CH.sel = d; CH.pending = null; chSave(); chAfterDraw(); chSelBar(); chDraw() }
+      function chPendingAdvance(pt) { const d = CH.pending; if (!d) return; d.p[d.p.length - 1] = pt; if (d.p.length < (d.need || 2)) { d.p.push({ ...pt }); chDraw(); return } chPendingCommit() }
+      function chPendingCommit() { const d = CH.pending; if (!d) return; delete d.need; CH.pending = null; if (d.p.length >= 2) { chPush(); CH.drawings.push(d); CH.sel = d; chSave() } chAfterDraw(); chSelBar(); chDraw() }
       cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up)
       cv.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') { CH.hover = null; CH.hoverDr = null; CH.snap = null; chDraw() } })
-      cv.addEventListener('dblclick', (e) => { const p = pos(e), L = chLayout(); if (p.x > L.plotW) { CH.auto = true; chDraw(); return } const hit = CH.tool === 'cross' ? chHit(p.x, p.y, L) : null; if (!hit) return; CH.sel = hit.d; chSelBar(); if (hit.d.type === 'text') chTextEdit(hit.d); else chMenu('draw') })
+      cv.addEventListener('dblclick', (e) => { const p = pos(e), L = chLayout(); if (CH.pending && CH.pending.type === 'path') { CH.pending.p.pop(); if (CH.pending.p.length > 1 && Math.hypot(chX(chIofT(CH.pending.p[CH.pending.p.length - 1].t), L) - chX(chIofT(CH.pending.p[CH.pending.p.length - 2].t), L), chY(CH.pending.p[CH.pending.p.length - 1].p, L) - chY(CH.pending.p[CH.pending.p.length - 2].p, L)) < 4) CH.pending.p.pop(); chPendingCommit(); return } if (p.x > L.plotW) { CH.auto = true; chDraw(); return } const hit = CH.tool === 'cross' ? chHit(p.x, p.y, L) : null; if (!hit) return; CH.sel = hit.d; chSelBar(); if (hit.d.type === 'text' || hit.d.type === 'callout') chTextEdit(hit.d); else chMenu('draw') })
       cv.addEventListener('contextmenu', (e) => { e.preventDefault(); const p = pos(e), L = chLayout(); if (CH.pending || CH.tool !== 'cross') { CH.pending = null; chSetTool('cross'); return } chCtx(chCtxFor(p, L, e), p.x, p.y) })
       cv.addEventListener('wheel', () => { CH.kin = null }, { passive: true })
       cv.addEventListener('wheel', (e) => {
@@ -11375,6 +11537,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (e.key === '-' || e.key === '_') { CH.barW = Math.max(1.5, CH.barW / 1.2); chDraw() }
         else if (e.key === 'Home') { CH.offset = 6; chDraw() }
         else if (e.key === 'Escape') { CH.pending = null; CH.measure = null; CH.sel = null; CH.multi.clear(); CH.replay.arm = false; CH.toolLock = false; chSetTool('cross'); chMenu(null); chSelBar(); chReplayUi() }
+        else if (e.key === 'Enter' && CH.pending && CH.pending.type === 'path') { CH.pending.p.pop(); chPendingCommit() }
         else if (e.key === 'Delete' || e.key === 'Backspace') { chDeleteSel() }
         else if (e.key === ' ' && CH.replay.on) { e.preventDefault(); chReplayPlay(!CH.replay.playing) }
         else if (e.key === '.' && CH.replay.on) chReplayStep(1)
@@ -11623,11 +11786,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const cc = document.createElement('label'); cc.className = 'swc'; cc.style.setProperty('--c', chDrawColor(d)); const ci = document.createElement('input'); ci.type = 'color'; ci.value = hex(chDrawColor(d)); ci.addEventListener('input', () => { d.color = ci.value; cc.style.setProperty('--c', d.color); chSave(); chSelBar(); chDraw() }); ci.addEventListener('change', () => chPush()); cc.appendChild(ci); sw.appendChild(cc)
         if (d.type === 'fib') { const b = document.createElement('button'); b.type = 'button'; b.className = 'sw pal' + (!d.color ? ' on' : ''); b.title = 'Level colours'; b.addEventListener('click', () => { mut(() => { d.color = '' }); chMenu('draw') }); sw.prepend(b) }
         row('Colour', sw)
-        const isLine = ['trend', 'ray', 'arrowline', 'hline', 'hray', 'vline', 'xcross', 'channel', 'fib', 'fibext', 'rect', 'ellipse', 'avwap'].includes(d.type)
+        const isLine = ['trend', 'ray', 'arrowline', 'hline', 'hray', 'vline', 'xcross', 'channel', 'fib', 'fibext', 'rect', 'ellipse', 'avwap', 'regression', 'pitchfork', 'triangle', 'path', 'xabcd', 'daterange'].includes(d.type)
         if (d.type !== 'text' && d.type !== 'plabel') { const w = document.createElement('span'); w.className = 'ch-wsel'; [1, 2, 3, 4].forEach((wv) => { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `<i style="height:${wv}px"></i>`; b.classList.toggle('on', (d.w || 1) === wv); b.addEventListener('click', () => { mut(() => { d.w = wv }); w.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)) }); w.appendChild(b) }); row('Width', w) }
         if (isLine) { const s = document.createElement('span'); s.className = 'seg'; [['solid', 'Solid'], ['dash', 'Dashed'], ['dot', 'Dotted']].forEach(([v, t]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.classList.toggle('on', (d.dash || 'solid') === v); b.addEventListener('click', () => { mut(() => { d.dash = v }); s.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)) }); s.appendChild(b) }); row('Line', s) }
         if (['trend', 'ray', 'channel', 'rect', 'fib', 'fibext'].includes(d.type)) { const wrap = document.createElement('div'); wrap.className = 'ctl'; const mk = (side, label) => { const l = document.createElement('label'); l.className = 'ch-chk'; const i = document.createElement('input'); i.type = 'checkbox'; i.checked = d.type === 'fib' && side === 'r' ? d.ext?.r !== false : !!d.ext?.[side]; i.addEventListener('change', () => mut(() => { d.ext = d.ext || {}; d.ext[side] = i.checked })); l.append(i, document.createTextNode(' ' + label)); return l }; wrap.append(mk('l', 'Left'), mk('r', 'Right')); row('Extend', wrap) }
-        if (['rect', 'fib', 'fibext', 'long', 'short', 'channel', 'range', 'ellipse', 'hilite'].includes(d.type)) { const r = document.createElement('input'); r.type = 'range'; r.className = 'ch-range'; r.min = 0; r.max = 40; r.value = Math.round((d.fill ?? (d.type === 'fib' ? 0.06 : d.type === 'channel' ? 0.08 : d.type === 'rect' ? 0.1 : 0.14)) * 100); r.addEventListener('input', () => { d.fill = +r.value / 100; chSave(); chDraw() }); r.addEventListener('change', () => chPush()); row('Fill', r) }
+        if (d.type === 'vprofile') { row('Rows', numEl('bins', 6, 80, 24)); row('Width', (() => { const r = document.createElement('input'); r.type = 'range'; r.className = 'ch-range'; r.min = 10; r.max = 100; r.value = Math.round((d.width || 0.35) * 100); r.addEventListener('input', () => { d.width = +r.value / 100; chSave(); chDraw() }); r.addEventListener('change', () => chPush()); return r })()); const pc = document.createElement('input'); pc.type = 'color'; pc.value = hex(d.pocC || '#ff9800'); pc.addEventListener('input', () => { d.pocC = pc.value; chSave(); chDraw() }); const pw = document.createElement('div'); pw.className = 'ch-color sm'; pw.appendChild(pc); row('Point of control', pw) }
+        if (d.type === 'path') toggleD(d, 'arrow', 'Arrow head', '', mut, true)
+        if (['rect', 'fib', 'fibext', 'long', 'short', 'channel', 'range', 'ellipse', 'hilite', 'triangle', 'xabcd', 'regression', 'pitchfork', 'daterange'].includes(d.type)) { const r = document.createElement('input'); r.type = 'range'; r.className = 'ch-range'; r.min = 0; r.max = 40; r.value = Math.round((d.fill ?? (d.type === 'fib' ? 0.06 : d.type === 'channel' ? 0.08 : d.type === 'rect' ? 0.1 : 0.14)) * 100); r.addEventListener('input', () => { d.fill = +r.value / 100; chSave(); chDraw() }); r.addEventListener('change', () => chPush()); row('Fill', r) }
         if (d.type === 'fib') toggleD(d, 'fibExt', 'Extension levels', '1.272, 1.618, 2, 2.618', mut)
         if (d.type === 'channel') toggleD(d, 'mid', 'Middle line', '', mut, true)
         if (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') toggleD(d, 'stats', 'Show stats', 'Change, bars and time when selected', mut, true)
@@ -11637,7 +11802,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const pad = (n) => String(n).padStart(2, '0'), toLocal = (t) => { const x = new Date(t * 1000); return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}T${pad(x.getHours())}:${pad(x.getMinutes())}` }
         const priceIn = (get, set) => { const i = document.createElement('input'); i.type = 'number'; i.className = 'inp'; i.step = 0.25; i.value = get(); i.style.width = '104px'; i.style.padding = '5px 7px'; i.style.fontSize = '12px'; i.addEventListener('change', () => { const v = +i.value; if (isFinite(v) && v > 0) mut(() => set(+v.toFixed(2))) }); return i }
         const timeIn = (get, set) => { const i = document.createElement('input'); i.type = 'datetime-local'; i.className = 'inp'; i.value = toLocal(get()); i.style.padding = '5px 7px'; i.style.fontSize = '12px'; i.addEventListener('change', () => { const t = new Date(i.value).getTime() / 1000; if (isFinite(t)) mut(() => set(Math.round(t))) }); return i }
-        const named = { long: ['Entry', 'End'], short: ['Entry', 'End'], channel: ['Point 1', 'Point 2', 'Offset'], fib: ['Start (1)', 'End (0)'], fibext: ['A', 'B', 'C'], avwap: ['Anchor'] }[d.type]
+        const named = { long: ['Entry', 'End'], short: ['Entry', 'End'], channel: ['Point 1', 'Point 2', 'Offset'], fib: ['Start (1)', 'End (0)'], fibext: ['A', 'B', 'C'], avwap: ['Anchor'], pitchfork: ['A', 'B', 'C'], xabcd: ['X', 'A', 'B', 'C', 'D'], callout: ['Anchor', 'Box'], regression: ['From', 'To'], daterange: ['From', 'To'], vprofile: ['From', 'To'] }[d.type]
         if (d.type === 'brush' || d.type === 'hilite') hint(`${d.p.length} points from ${chFmtFull(d.p[0].t)}.`)
         else d.p.forEach((q, k) => {
           const label = named ? named[k] : d.p.length === 1 ? 'Point' : `Point ${k + 1}`

@@ -163,7 +163,7 @@ async function run(vpName) {
       const fly = await page.evaluate(() => ({ open: !document.getElementById("ch-fly").hidden, n: document.querySelectorAll("#ch-fly button").length }));
       await page.click('#ch-fly button[data-tool="hray"]'); await page.waitForTimeout(150);
       const main = await page.evaluate(() => document.querySelector('.ch-tg[data-group="lines"] button[data-tool]').dataset.tool);
-      check(fly.open && fly.n === 8 && main === "hray", `lines flyout lists 8 tools, picking one swaps the group button (${main})`);
+      check(fly.open && fly.n === 10 && main === "hray", `lines flyout lists 10 tools, picking one swaps the group button (${main})`);
       await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-flyout.png` });
       note("debug before click: tool " + await page.evaluate(() => window.__CH.tool + " pending " + !!window.__CH.pending + " editing " + !!window.__CH.editing + " types " + window.__CH.drawings.map((d) => d.type).join(",")));
       await page.mouse.click(box.x + box.width * 0.25, cy - 30); await page.waitForTimeout(150);   // a horizontal ray
@@ -204,6 +204,33 @@ async function run(vpName) {
       st = await state(page); check(st.tf === "5m", `5D range picks 5m (${st.tf})`);
       await page.evaluate(() => document.querySelector('#ch-tf button[data-tf="5m"]').click()); await page.waitForTimeout(400);
       await page.keyboard.press("Escape");
+      // a rectangle's side handle stretches it sideways without touching its height; Shift locks a body drag to one axis
+      {
+        await page.keyboard.press("Alt+r"); await page.waitForTimeout(200);   // the 5D range left the bars tiny; back to the default zoom
+        const r0 = await page.evaluate(() => { const CH = window.__CH; const d = CH.drawings.find((x) => x.type === "rect"); CH.sel = d; CH.multi.clear(); const b = { t0: Math.min(d.p[0].t, d.p[1].t), t1: Math.max(d.p[0].t, d.p[1].t), pHi: Math.max(d.p[0].p, d.p[1].p), pLo: Math.min(d.p[0].p, d.p[1].p) }; const R = CH.$.pt(b.t1, (b.pHi + b.pLo) / 2); return { ...b, x: R.x, y: R.y }; });
+        await page.evaluate(() => window.dispatchEvent(new Event("resize"))); await page.waitForTimeout(150);
+        await page.mouse.move(box.x + r0.x, box.y + r0.y); await page.waitForTimeout(80);
+        const cur = await page.evaluate(() => document.getElementById("ch-canvas").style.cursor);
+        await page.mouse.down(); await page.mouse.move(box.x + r0.x + 90, box.y + r0.y + 40, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(150);
+        const r1 = await page.evaluate(() => { const d = window.__CH.drawings.find((x) => x.type === "rect"); return { t0: Math.min(d.p[0].t, d.p[1].t), t1: Math.max(d.p[0].t, d.p[1].t), pHi: Math.max(d.p[0].p, d.p[1].p), pLo: Math.min(d.p[0].p, d.p[1].p) }; });
+        check(cur === "ew-resize" && r1.t1 > r0.t1 && r1.t0 === r0.t0 && r1.pHi === r0.pHi && r1.pLo === r0.pLo, `right side handle stretched the rectangle in time only (cursor ${cur}; ${r0.t1} -> ${r1.t1}, height kept)`);
+        // Shift + body drag: pure horizontal move
+        const mid = await page.evaluate(() => { const CH = window.__CH; const d = CH.drawings.find((x) => x.type === "rect"); return CH.$.pt((d.p[0].t + d.p[1].t) / 2, (d.p[0].p + d.p[1].p) / 2); });
+        await page.mouse.move(box.x + mid.x, box.y + mid.y); await page.keyboard.down("Shift"); await page.mouse.down(); await page.mouse.move(box.x + mid.x + 60, box.y + mid.y + 50, { steps: 6 }); await page.mouse.up(); await page.keyboard.up("Shift"); await page.waitForTimeout(150);
+        const r2 = await page.evaluate(() => { const d = window.__CH.drawings.find((x) => x.type === "rect"); return { t0: Math.min(d.p[0].t, d.p[1].t), pHi: Math.max(d.p[0].p, d.p[1].p) }; });
+        check(r2.t0 > r1.t0 && r2.pHi === r1.pHi, `Shift-drag moved the rectangle sideways only (${r1.t0} -> ${r2.t0}, price kept)`);
+        await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-rect-handles.png` });
+        // a path: three clicks and a double-click; a volume profile by drag
+        await page.evaluate(() => window.__CH.$.setTool("path"));
+        await page.mouse.click(box.x + box.width * 0.2, cy + 120); await page.mouse.click(box.x + box.width * 0.3, cy + 60); await page.mouse.click(box.x + box.width * 0.4, cy + 100); await page.mouse.dblclick(box.x + box.width * 0.5, cy + 40); await page.waitForTimeout(200);
+        const pathPts = await page.evaluate(() => { const d = window.__CH.drawings.find((x) => x.type === "path"); return d ? d.p.length : 0; });
+        await page.evaluate(() => window.__CH.$.setTool("vprofile"));
+        await page.mouse.move(box.x + box.width * 0.55, cy); await page.mouse.down(); await page.mouse.move(box.x + box.width * 0.75, cy, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(200);
+        const vp = await page.evaluate(() => { const d = window.__CH.drawings.find((x) => x.type === "vprofile"); return d ? d.p.length : 0; });
+        check(pathPts >= 4 && vp === 2, `path committed with ${pathPts} points, volume profile drawn (${vp} points)`);
+        await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-tools3.png` });
+        await page.keyboard.press("Escape");
+      }
       // typing digits picks an interval: 10 Enter = 10m, a custom pill joins the bar
       await page.keyboard.type("10"); await page.waitForTimeout(150);
       const intOpen = await page.evaluate(() => !document.getElementById("ch-int").hidden && document.querySelector("#ch-int input").value);
@@ -214,10 +241,11 @@ async function run(vpName) {
       await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-interval.png` });
       await page.evaluate(() => document.querySelector('#ch-tf button[data-tf="5m"]').click()); await page.waitForTimeout(400);
       // Ctrl+click builds a multi-selection; Delete removes the whole group
-      const before = (await state(page)).drawings;
-      const pts = await page.evaluate(() => { const CH = window.__CH; const a = CH.drawings.find((x) => x.type === "hray"), b = CH.drawings.find((x) => x.type === "vline"); return { a: CH.$.pt(a.p[0].t, a.p[0].p), b: CH.$.pt(b.p[0].t, b.p[0].p) }; });
-      await page.mouse.click(box.x + Math.min(box.width - 120, pts.a.x + 120), box.y + pts.a.y); await page.waitForTimeout(100);
-      await page.keyboard.down("Control"); await page.mouse.click(box.x + pts.b.x, box.y + box.height * 0.3); await page.keyboard.up("Control"); await page.waitForTimeout(150);
+      const before = (await state(page)).drawings + 2;
+      const pts = await page.evaluate(() => { const CH = window.__CH; const span = CH.pMax - CH.pMin, mk = (p) => ({ id: Math.random().toString(36).slice(2, 9), type: "hline", p: [{ t: CH.bars[CH.bars.length - 1].t, p: +p.toFixed(2) }], color: "#26a69a" }); const a = mk(CH.pMin + span * 0.35), b = mk(CH.pMin + span * 0.65); CH.drawings.push(a, b); CH.sel = null; CH.multi.clear(); window.dispatchEvent(new Event("resize")); return { a: CH.$.pt(a.p[0].t, a.p[0].p), b: CH.$.pt(b.p[0].t, b.p[0].p) }; });
+      await page.waitForTimeout(150);
+      await page.mouse.click(box.x + box.width * 0.3, box.y + pts.a.y); await page.waitForTimeout(100);
+      await page.keyboard.down("Control"); await page.mouse.click(box.x + box.width * 0.3, box.y + pts.b.y); await page.keyboard.up("Control"); await page.waitForTimeout(150);
       const nSel = await page.evaluate(() => (window.__CH.multi.size || 0) + (window.__CH.sel && !window.__CH.multi.has(window.__CH.sel) ? 1 : 0));
       const stripName = await page.evaluate(() => document.querySelector("#ch-selbar .ch-selname")?.textContent);
       await page.keyboard.press("Delete"); await page.waitForTimeout(150);
