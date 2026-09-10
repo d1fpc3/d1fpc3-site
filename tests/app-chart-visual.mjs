@@ -239,6 +239,16 @@ async function run(vpName) {
       const cursorMode = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")).cursor + "/" + window.__CH.tool);
       check(cursorMode === "dot/cross", `dot cursor is the cross tool with another look (${cursorMode})`);
       await page.evaluate(() => window.__CH.$.setTool("cross"));
+      // oscillator panes: RSI and MACD open under the price, each with a legend and an ×
+      await page.evaluate(() => { const CH = window.__CH; CH.s.p_rsi = true; CH.s.p_macd = true; CH.$.menu(null); });
+      await page.waitForTimeout(400);
+      const panes = await page.evaluate(() => Object.keys(window.__CH.paneScale || {}).join(","));
+      await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-panes.png` });
+      const px = await page.evaluate(() => window.__CH.paneX.macd);
+      await page.mouse.click(box.x + (px.x0 + px.x1) / 2, box.y + (px.y0 + px.y1) / 2); await page.waitForTimeout(300);
+      const panes2 = await page.evaluate(() => Object.keys(window.__CH.paneScale || {}).join(","));
+      check(panes === "rsi,macd" && panes2 === "rsi", `panes: ${panes}; the × closed MACD (${panes2})`);
+      await page.evaluate(() => { window.__CH.s.p_rsi = false; });
       // snapshot menu
       await page.click("#ch-snap-btn"); await page.waitForTimeout(120);
       const snapItems = await page.evaluate(() => [...document.querySelectorAll("#ch-ctx .it .lb")].map((x) => x.textContent).join(","));
