@@ -9,6 +9,7 @@
 // years. The nq_bars table keeps whatever this function stores, for good.
 //
 // GET ?range=1d|5d                       live tape (JWT: members)
+// GET ?tail=N                            the last N minutes only, for the live poll (JWT: members)
 // GET ?interval=1m|5m|60m|1d&from=&to=   the archive, ISO dates (JWT: members)
 // GET ?day=YYYY-MM-DD                    one session from the archive, 18:00 ET the
 //                                        evening before to 17:00 ET (JWT: members)
@@ -19,7 +20,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SYMBOL = "NQ=F";
-const TTL: Record<string, number> = { "1d": 15_000, "5d": 300_000 };
+const TTL: Record<string, number> = { "1d": 2_000, "5d": 300_000 };
 const cache = new Map<string, { at: number; body: string }>();
 const INTERVALS = new Set(["1m", "5m", "60m", "1d"]);
 
@@ -52,6 +53,14 @@ async function yahoo(params: string) {
     const o = q.open?.[i], h = q.high?.[i], l = q.low?.[i], c = q.close?.[i];
     if (o == null || h == null || l == null || c == null) continue;
     bars.push([ts[i], o, h, l, c, q.volume?.[i] ?? 0]);
+  }
+  if (bars.length && params.includes("interval=1m")) {
+    const last = bars[bars.length - 1], aligned = Math.floor(last[0] / 60) * 60;
+    if (aligned !== last[0]) {
+      const prev = bars.length > 1 ? bars[bars.length - 2] : null;
+      if (prev && prev[0] === aligned) { prev[2] = Math.max(prev[2], last[2]); prev[3] = Math.min(prev[3], last[3]); prev[4] = last[4]; prev[5] += last[5]; bars.pop(); }
+      else last[0] = aligned;
+    }
   }
   return { meta: res.meta ?? {}, bars };
 }
@@ -161,15 +170,17 @@ Deno.serve(async (req) => {
 
   /* ── the live tape ── */
   const range = p.get("range") === "5d" ? "5d" : "1d";
+  const tailN = Math.min(60, Math.max(1, +(p.get("tail") ?? 0) || 0));
+  const slim = (body: string) => { if (!tailN) return body; const j = JSON.parse(body); j.bars = j.bars.slice(-tailN); return JSON.stringify(j); };
   const hit = cache.get(range);
   const now = Date.now();
-  if (hit && now - hit.at < TTL[range]) return json(200, hit.body, { "Cache-Control": "public, max-age=15", "X-Tape-Cache": "hit" });
+  if (hit && now - hit.at < TTL[range]) return json(200, slim(hit.body), { "Cache-Control": "no-store", "X-Tape-Cache": "hit" });
   try {
     const body = JSON.stringify(await fetchTape(range));
     cache.set(range, { at: now, body });
-    return json(200, body, { "Cache-Control": "public, max-age=15", "X-Tape-Cache": "miss" });
+    return json(200, slim(body), { "Cache-Control": "no-store", "X-Tape-Cache": "miss" });
   } catch (err) {
-    if (hit) return json(200, hit.body, { "Cache-Control": "no-store", "X-Tape-Cache": "stale" });
+    if (hit) return json(200, slim(hit.body), { "Cache-Control": "no-store", "X-Tape-Cache": "stale" });
     return json(502, { error: String((err as Error)?.message ?? err) });
   }
 });

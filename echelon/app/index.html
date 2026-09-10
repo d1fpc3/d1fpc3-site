@@ -9840,6 +9840,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       for (const b of add) map.set(b[0], b)
       return [...map.values()].sort((a, b) => a[0] - b[0])
     }
+    // the tail is the newest few minutes: replace the bars it touches, append the rest
+    function chMergeTail(into, add) {
+      if (!add?.length) return into
+      const out = into
+      for (const b of add) {
+        let lo = 0, hi = out.length - 1, found = -1
+        while (lo <= hi) { const mid = (lo + hi) >> 1; if (out[mid][0] === b[0]) { found = mid; break } if (out[mid][0] < b[0]) lo = mid + 1; else hi = mid - 1 }
+        if (found >= 0) out[found] = b
+        else if (!out.length || b[0] > out[out.length - 1][0]) out.push(b)
+        else out.splice(lo, 0, b)
+      }
+      return out
+    }
     function chBusy(d) { CH.busy = Math.max(0, CH.busy + d); const b = el('ch-busy'); if (b) b.hidden = !CH.busy }
     async function chLoad(src) {
       if (CH.have[src]) return
@@ -9851,12 +9864,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       } catch (err) { CH.have[src] = null; CH.err = err.message }
       finally { chBusy(-1); chBuild(); chDraw() }
     }
-    async function chTail() {   // the live minutes, merged over the archive
+    async function chTail(full = false) {   // the live minutes, merged over the archive
+      if (CH.polling) return
+      CH.polling = true
       try {
-        const j = await chFetch('range=1d')
-        CH.base['1m'] = chMerge(CH.base['1m'], j.bars); CH.err = null
-        CH.last = j.last; CH.prevClose = j.prevClose ?? CH.prevClose
+        const j = await chFetch(full ? 'range=1d' : 'tail=4')
+        if (full) CH.base['1m'] = chMerge(CH.base['1m'], j.bars); else CH.base['1m'] = chMergeTail(CH.base['1m'], j.bars)
+        CH.err = null; CH.last = j.last; CH.prevClose = j.prevClose ?? CH.prevClose; CH.tailAt = Date.now(); if (full) CH.fullAt = Date.now()
       } catch (err) { CH.err = err.message }
+      finally { CH.polling = false }
       chBuild(); chDraw()
     }
     // bars of the current timeframe: the fine archive where it reaches, the coarse one before that
@@ -10340,8 +10356,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-tf').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tf === CH.tf))
       chSetTool(CH.tool); chReplayUi()
       chDraw()
-      if (!CH.have['1m']) { await chTail(); chLoad('1m').then(() => { const [src] = CH_TF[CH.tf]; if (src !== '1m') chLoad(src) }) }
-      else chTail()
+      if (!CH.have['1m']) { await chTail(true); chLoad('1m').then(() => { const [src] = CH_TF[CH.tf]; if (src !== '1m') chLoad(src) }) }
+      else chTail(true)
       chSchedule()
     }
     function chartHidden() { CH.on = false; clearTimeout(CH.timer); CH.timer = null; chMenu(null) }
@@ -10355,8 +10371,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (min >= 17 * 60 && min < 18 * 60) return { key: 'closed', label: 'Closed' }
       return { key: min < 570 && min >= 240 ? 'pre' : 'globex', label: min < 570 && min >= 240 ? 'Pre-market' : 'Globex' }
     }
-    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { sp.textContent = st.label; sp.className = 'ch-sess' + (st.key === 'open' ? ' open' : '') } const ms = st.key === 'open' ? 15000 : (st.key === 'pre' || st.key === 'globex') ? 45000 : 5 * 60 * 1000; CH.timer = setTimeout(chTick, ms) }
-    async function chTick() { if (!CH.on) return; await chTail(); chSchedule() }
+    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { sp.textContent = st.label; sp.className = 'ch-sess' + (st.key === 'open' ? ' open' : '') } const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const ms = trading ? 3000 : 60 * 1000; CH.timer = setTimeout(chTick, ms) }
+    async function chTick() { if (!CH.on) return; if (document.hidden) { chSchedule(); return } await chTail(Date.now() - (CH.fullAt || 0) > 5 * 60 * 1000); chSchedule() }
 
     function renderGex() {
       const d = GEX.data
