@@ -1562,7 +1562,7 @@
     .j-c-day.on { background: var(--gold); color: #1a1207; font-weight: 600; }
     .j-c-day.on.today { box-shadow: none; }
     .j-c-day.on::after { background: #1a1207; }
-    .j-page { display: flex; flex-direction: column; max-width: 880px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; box-shadow: 0 24px 60px -42px rgba(0,0,0,0.55); min-height: calc(100vh - 150px); }
+    .j-page { display: flex; flex-direction: column; max-width: 1180px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; box-shadow: 0 24px 60px -42px rgba(0,0,0,0.55); min-height: calc(100vh - 150px); }
     .j-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: clamp(26px, 5vw, 50px) clamp(26px, 7vw, 84px) 0; }
     .j-head h3 { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; color: var(--faint); }
     #j-status { margin: 0; }
@@ -1575,7 +1575,12 @@
     #j-body:focus { outline: none; }
     #j-body:empty::before { content: attr(data-placeholder); color: var(--faint); pointer-events: none; }
     #j-body img { border-radius: 10px; border: 1px solid var(--line); display: block; margin: 14px 0; height: auto; }
-    #j-body img:not([width]) { max-width: min(100%, 640px); }
+    #j-body img:not([width]) { max-width: 100%; }
+    #j-body img { cursor: zoom-in; }
+    #j-body img.j-sel { cursor: default; }
+    #j-open { position: fixed; z-index: 60; display: inline-flex; align-items: center; gap: 6px; background: rgba(12,10,8,0.82); color: #f4f2ee; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px; padding: 6px 11px 6px 9px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; backdrop-filter: blur(6px); box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+    #j-open svg { width: 14px; height: 14px; }
+    #j-open:hover { border-color: var(--gold); color: var(--gold); }
     #j-body img[width] { max-width: 100%; }
     #j-body img.j-sel { outline: 2px solid var(--gold); outline-offset: 2px; }
     #j-grip { position: fixed; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); border: 2px solid var(--panel); cursor: nwse-resize; z-index: 60; touch-action: none; }
@@ -6919,24 +6924,31 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     let jSelImg = null, jRs = null
     const jGrip = document.createElement('div'); jGrip.id = 'j-grip'; jGrip.hidden = true
     document.body.appendChild(jGrip)
+    const jOpenBtn = document.createElement('button'); jOpenBtn.id = 'j-open'; jOpenBtn.type = 'button'; jOpenBtn.hidden = true; jOpenBtn.title = 'Open full size (or double-click the image)'
+    jOpenBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>Open'
+    jOpenBtn.addEventListener('click', (e) => { e.stopPropagation(); if (jSelImg) openImage(jSelImg.src, 'Journal') })
+    document.body.appendChild(jOpenBtn)
     try { document.execCommand('enableObjectResizing', false, false) } catch {}
     function jGripPlace() {
       if (!jSelImg || jGrip.hidden) return
       const r = jSelImg.getBoundingClientRect()
       jGrip.style.left = `${r.right - 9}px`
       jGrip.style.top = `${r.bottom - 9}px`
+      jOpenBtn.style.left = `${Math.max(8, r.right - jOpenBtn.offsetWidth - 10)}px`
+      jOpenBtn.style.top = `${Math.max(8, r.top + 10)}px`
     }
     function jSelectImg(img) {
       if (jSelImg) jSelImg.classList.remove('j-sel')
       jSelImg = img
-      if (img) { img.classList.add('j-sel'); jGrip.hidden = false; jGripPlace() }
-      else jGrip.hidden = true
+      if (img) { img.classList.add('j-sel'); jGrip.hidden = false; jOpenBtn.hidden = false; jGripPlace() }
+      else { jGrip.hidden = true; jOpenBtn.hidden = true }
     }
     el('j-body').addEventListener('click', (e) => {
       if (e.target.nodeName === 'IMG') { e.preventDefault(); jSelectImg(e.target) }
       else jSelectImg(null)
     })
-    document.addEventListener('click', (e) => { if (jSelImg && !el('j-body').contains(e.target) && e.target !== jGrip) jSelectImg(null) })
+    document.addEventListener('click', (e) => { if (jSelImg && !el('j-body').contains(e.target) && e.target !== jGrip && !jOpenBtn.contains(e.target)) jSelectImg(null) })
+    el('j-body').addEventListener('dblclick', (e) => { if (e.target.nodeName === 'IMG') { e.preventDefault(); openImage(e.target.src, 'Journal') } })
     document.addEventListener('scroll', jGripPlace, true)
     window.addEventListener('resize', jGripPlace)
     jGrip.addEventListener('pointerdown', (e) => {
