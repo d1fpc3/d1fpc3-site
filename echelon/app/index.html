@@ -750,7 +750,10 @@
     .ch-obj .t { flex: 1; min-width: 0; } .ch-obj .t b { display: block; font-size: 12.5px; font-weight: 600; } .ch-obj .t small { display: block; font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ch-obj .acts { display: flex; gap: 1px; } .ch-obj .acts button { background: none; border: 0; color: var(--faint); width: 24px; height: 22px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
     .ch-obj .acts button svg { width: 13px; height: 13px; } .ch-obj .acts button:hover { color: var(--ink); background: var(--panel-2); } .ch-obj .acts button.on { color: var(--gold); } .ch-obj .acts button.danger:hover { color: var(--bad); }
-    .ch-links { display: flex; gap: 6px; padding: 10px 0 2px; } .ch-links button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-family: inherit; font-size: 11.5px; padding: 4px 10px; cursor: pointer; } .ch-links button:hover { color: var(--gold); border-color: rgba(201,162,74,0.5); }
+    .ch-key { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+    .ch-key kbd { font-family: inherit; font-size: 11px; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-bright); border-radius: 5px; padding: 2px 7px; white-space: nowrap; min-width: 92px; text-align: center; }
+    .ch-key span { color: var(--muted); }
+    .ch-links { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 2px; } .ch-links button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-family: inherit; font-size: 11.5px; padding: 4px 10px; cursor: pointer; } .ch-links button:hover { color: var(--gold); border-color: rgba(201,162,74,0.5); }
     .ch-ib:disabled { opacity: 0.35; cursor: default; } .ch-ib:disabled:hover { background: none; color: var(--muted); }
     .ch-tools button { position: relative; transition: color 0.12s ease, background 0.12s ease; }
     .ch-tools button.lock::after, #ch-magnet.strong::after { content: ''; position: absolute; right: 4px; bottom: 4px; width: 4px; height: 4px; border-radius: 50%; background: var(--gold); }
@@ -9955,7 +9958,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       bb: false, bbN: 20, bbK: 2, bbC: '', bbMidC: '', bbF: 0.06, bbW: 1,
       p_rsi: false, rsiN: 14, rsiC: '', rsiHi: 70, rsiLo: 30, rsiFill: true, p_macd: false, macdF: 12, macdS: 26, macdSig: 9, macdC: '', macdSigC: '', p_atr: false, atrN: 14, atrC: '',
       litPdC: '', litPdW: 1, litPwC: '', litPwW: 1, litWoC: '', litWoW: 2, litAsiaC: '', litAsiaF: 0.15, litNyC: '', litNyF: 0.1, litOpenC: '', litOpenW: 1, litMarksC: '', litKoC: '', litPo3Up: '', litPo3Dn: '', litEighthsC: '', litGoldC: '', litGoldW: 1, litVecUp: '', litVecDn: '', litLabels: true,
-      axisInd: true, stay: false, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true }
+      axisInd: true, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true }
     const CH_MA_DEFAULT = () => [{ t: 'ema', n: 20, c: '#c9a24a', w: 1.2, on: true }, { t: 'ema', n: 50, c: '#7aa2d9', w: 1.2, on: true }, { t: 'ema', n: 200, c: '#d97ab0', w: 1.2, on: true }]
     const CH_MA_COLORS = ['#c9a24a', '#7aa2d9', '#d97ab0', '#5fc39a', '#e08a4b']
     // chart presets: a look in one click; every key not named falls back to the theme
@@ -10097,6 +10100,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const older = coarse.filter((b) => b.k < firstFine)
         bars = older.concat(bars)
       }
+      if (CH.s.eth === false && CH.tfSec < 86400) bars = bars.filter((b) => { const mm = chMin(b.t); return mm >= 570 && mm < 960 })
       CH.bars = bars
       chSetVis()
     }
@@ -10107,8 +10111,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chLayout() {
       const cv = el('ch-canvas'); const W = cv.clientWidth, H = cv.clientHeight
       const ax = W < 520 ? 60 : 78, tx = 24, plotH = H - tx
-      const keys = chPaneKeys(), paneH = keys.length ? Math.round(plotH * (W < 520 ? 0.13 : 0.15)) : 0
-      const volH = CH.s.volume ? Math.round(plotH * ({ small: 0.1, normal: 0.16, tall: 0.24 }[CH.s.volSize] || 0.16)) : 0
+      const keys = chPaneKeys(), paneH = keys.length ? Math.round(plotH * (CH.s.paneFrac || (W < 520 ? 0.13 : 0.15))) : 0
+      const volH = CH.s.volume ? Math.round(plotH * (CH.s.volFrac || { small: 0.1, normal: 0.16, tall: 0.24 }[CH.s.volSize] || 0.16)) : 0
       const mainH = plotH - volH - keys.length * paneH
       const panes = keys.map((key, k) => ({ key, top: mainH + volH + k * paneH, h: paneH }))
       return { W, H, ax, plotW: W - ax, tx, plotH, volH, mainH, volTop: mainH, panes, paneH }
@@ -10950,6 +10954,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       return { t, p, x: sx, y: sy, snapped }
     }
     function chPoint(x, y, L) { const s = chSnapPt(x, y, L); CH.snap = s.snapped ? { x: s.x, y: s.y } : null; return { t: s.t, p: s.p } }
+    function chSnapAngle(d, p, L) {   // the second point snaps to the nearest 45 degrees from the first, in pixels
+      const a = { x: chX(chIofT(d.p[0].t), L), y: chY(d.p[0].p, L) }, dx = p.x - a.x, dy = p.y - a.y, r = Math.hypot(dx, dy)
+      const ang = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4), x = a.x + r * Math.cos(ang), y = a.y + r * Math.sin(ang)
+      CH.snap = null; return { t: Math.round(chTofI(chI(x, L))), p: +chP(y, L).toFixed(2) }
+    }
     function chSetTool(t, keepMeasure = false) {
       if (!CH_TOOLS[t]) t = 'cross'
       const shown = t   // what the rail shows; dot and arrow are the cross tool with another cursor
@@ -11214,6 +11223,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (zone === 'price') { const a = chAlertHitAxis(p.y); if (a) { CH.drag = null; chMenu('alerts'); return } }
         if (zone === 'plot' && CH.tool === 'cross' && !CH.replay.arm && !chHit(p.x, p.y, L)) { const a = chAlertHitPlot(p.y, L); if (a) { CH.drag = { x0: p.x, y0: p.y, zone, moved: false, alert: a, t0: Date.now() }; return } }
         CH.drag = { x0: p.x, y0: p.y, x: p.x, y: p.y, offset: CH.offset, barW: CH.barW, pMin: CH.pMin, pMax: CH.pMax, zone, moved: false, t0: Date.now() }
+        if (zone === 'plot' && CH.tool === 'cross') { const sep = chSepAt(p.y, L); if (sep) { CH.drag.sep = sep; CH.drag.frac0 = sep === 'vol' ? (CH.s.volFrac || { small: 0.1, normal: 0.16, tall: 0.24 }[CH.s.volSize] || 0.16) : (CH.s.paneFrac || (L.W < 520 ? 0.13 : 0.15)); CH.drag.plotH = L.plotH; return } }
         if (zone !== 'plot') return
         if (CH.replay.arm) { const i = Math.round(chI(p.x, L)); const b = CH.bars[Math.max(0, Math.min(CH.bars.length - 1, i))]; if (b) { CH.replay.arm = false; CH.replay.on = true; CH.replay.cut = b.t; chSetVis(); chReplayUi(); CH.offset = 6; CH.auto = true; chDraw() } CH.drag = null; return }
         if (CH.measure && !CH.measure.live) CH.measure = null
@@ -11261,6 +11271,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (Math.abs(dx) > 3 || Math.abs(dy) > 3) { dg.moved = true; clearTimeout(CH.pressT) }
           if (dg.alert) { dg.alert.price = +chP(p.y, L).toFixed(2); dg.alert.above = (chLastClose() ?? 0) <= dg.alert.price; cv.style.cursor = 'ns-resize'; chDraw(); return }
           if (dg.zone === 'plot' && CH.tool === 'cross') { dg.samples = dg.samples || []; dg.samples.push({ t: performance.now(), x: p.x }); if (dg.samples.length > 6) dg.samples.shift() }
+          if (dg.sep) { const dir = dg.sep === 'vol' ? -1 : -1; const frac = Math.max(0.06, Math.min(0.45, dg.frac0 + dir * dy / dg.plotH)); if (dg.sep === 'vol') CH.s.volFrac = frac; else CH.s.paneFrac = frac; cv.style.cursor = 'row-resize'; chDraw(); return }
           if (dg.zone === 'price') { if (!CH.auto && !dg.manual) {} CH.auto = false; dg.manual = true; const c = (dg.pMin + dg.pMax) / 2, r = (dg.pMax - dg.pMin) / 2 * Math.exp(dy * 0.006); CH.pMin = c - r; CH.pMax = c + r; chDraw(); return }
           if (dg.zone === 'time') { CH.barW = Math.max(1.5, Math.min(60, dg.barW * Math.exp(-dx * 0.005))); chDraw(); return }
           if (dg.move) {
@@ -11283,13 +11294,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           }
           if (dg.measure && CH.measure?.live) { CH.measure.b = chPoint(p.x, p.y, L); chDraw(); return }
           if (dg.brush && CH.pending) { const q = CH.pending.p[CH.pending.p.length - 1], qx = chX(chIofT(q.t), L), qy = chY(q.p, L); if (Math.hypot(p.x - qx, p.y - qy) >= 3) CH.pending.p.push({ t: chTofI(chI(p.x, L)), p: +chP(p.y, L).toFixed(2) }); chDraw(); return }
-          if (dg.pend && CH.pending) { CH.pending.p[CH.pending.p.length - 1] = chPoint(p.x, p.y, L); chDraw(); return }
+          if (dg.pend && CH.pending) { CH.pending.p[CH.pending.p.length - 1] = e.shiftKey ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L); chDraw(); return }
           if (CH.tool === 'cross' && !CH.replay.arm) { CH.offset = dg.offset - dx / CH.barW; chClampOffset(L); if (!CH.auto) { const shift = dy / L.mainH * (dg.pMax - dg.pMin); CH.pMin = dg.pMin + shift; CH.pMax = dg.pMax + shift } cv.style.cursor = 'grabbing'; chDraw(); return }
         }
-        if (CH.pending && !CH.pending.free) CH.pending.p[CH.pending.p.length - 1] = chPoint(p.x, p.y, L)
+        if (CH.pending && !CH.pending.free) CH.pending.p[CH.pending.p.length - 1] = e.shiftKey && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)
         else if (CH.measure?.live) CH.measure.b = chPoint(p.x, p.y, L)
         else if (CH.tool !== 'cross' && CH.tool !== 'measure') chPoint(p.x, p.y, L)   // keeps the snap ring live under a drawing tool
         else CH.snap = null
+        if (CH.tool === 'cross' && !dg && e.pointerType !== 'touch' && p.x <= L.plotW && chSepAt(p.y, L)) { cv.style.cursor = 'row-resize'; CH.hoverDr = null; chDraw(); return }
         if ((CH.tool === 'cross' || CH.tool === 'eraser') && !dg && e.pointerType !== 'touch') { const hit = p.x <= L.plotW && p.y <= L.plotH ? chHit(p.x, p.y, L) : null; const hd = hit ? hit.d : null; if (hd !== CH.hoverDr) { CH.hoverDr = hd } cv.style.cursor = CH.tool === 'eraser' ? (hit ? 'pointer' : 'cell') : hit ? (hit.handle >= 0 ? 'move' : hit.d.lock ? 'default' : 'pointer') : (CH.replay.arm ? 'col-resize' : 'crosshair') }
         chDraw()
       })
@@ -11298,6 +11310,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (CH.pointers.size < 2) CH.pinch = null
         const dg = CH.drag; CH.drag = null; clearTimeout(CH.pressT)
         if (dg?.alert) { chSaveAlerts(); chAlertsUi(); chDraw(); return }
+        if (dg?.sep) { chSave(); chDraw(); return }
         if (dg?.move) { chSave(); CH.snap = null }
         // let go while panning: the chart keeps gliding
         if (dg && dg.zone === 'plot' && CH.tool === 'cross' && dg.moved && !dg.move && !dg.measure && !dg.pend && dg.samples && dg.samples.length >= 3 && e.pointerType !== 'touch' || (dg && dg.samples && dg.samples.length >= 3 && e.pointerType === 'touch' && dg.moved && !dg.move)) {
@@ -11320,6 +11333,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const step = () => { const k = CH.kin; if (!k) return; const now = performance.now(), dt = Math.min(48, now - k.t); k.t = now; const L = chLayout(); const before = CH.offset; CH.offset -= k.v * dt / CH.barW; chClampOffset(L); k.v *= Math.pow(0.35, dt / 1000 * 4); if (Math.abs(k.v) < 0.02 || CH.offset === before) { CH.kin = null; chDraw(); return } chDraw(); requestAnimationFrame(step) }
         requestAnimationFrame(step)
       }
+      function chSepAt(y, L) { if (L.volH && Math.abs(y - L.volTop) <= 4) return 'vol'; for (const pn of L.panes) if (Math.abs(y - pn.top) <= 4) return pn.key; return null }
       function chPendingAdvance(pt) { const d = CH.pending; if (!d) return; d.p[d.p.length - 1] = pt; if (d.p.length < (d.need || 2)) { d.p.push({ ...pt }); chDraw(); return } delete d.need; chPush(); CH.drawings.push(d); CH.sel = d; CH.pending = null; chSave(); chAfterDraw(); chSelBar(); chDraw() }
       cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up)
       cv.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') { CH.hover = null; CH.hoverDr = null; CH.snap = null; chDraw() } })
@@ -11459,7 +11473,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const body = el('ch-menu-body'); body.textContent = ''
       const [root, sub] = which.split(':')
       const S = CH.s, T = gexTokens(), light = document.documentElement.getAttribute('data-theme') === 'light'
-      const titles = { type: 'Chart type', ind: 'Indicators', settings: 'Settings', 'ind:ma': 'Moving averages', 'ind:vwap': 'VWAP', 'ind:bb': 'Bollinger Bands', 'ind:rsi': 'RSI', 'ind:macd': 'MACD', 'ind:atr': 'ATR', 'ind:lit': 'D1 LIT', 'ind:gex': 'D1 GEX', 'ind:prev': 'Prior day', 'ind:sess': 'Sessions', 'ind:vol': 'Volume', alerts: 'Alerts', objects: 'Objects', draw: CH.sel ? (CH_TOOL_NAMES[CH.sel.type] || 'Drawing') : 'Drawing' }
+      const titles = { type: 'Chart type', ind: 'Indicators', settings: 'Settings', 'ind:ma': 'Moving averages', 'ind:vwap': 'VWAP', 'ind:bb': 'Bollinger Bands', 'ind:rsi': 'RSI', 'ind:macd': 'MACD', 'ind:atr': 'ATR', keys: 'Keyboard shortcuts', 'ind:lit': 'D1 LIT', 'ind:gex': 'D1 GEX', 'ind:prev': 'Prior day', 'ind:sess': 'Sessions', 'ind:vol': 'Volume', alerts: 'Alerts', objects: 'Objects', draw: CH.sel ? (CH_TOOL_NAMES[CH.sel.type] || 'Drawing') : 'Drawing' }
       if (which === 'draw' && !CH.sel) { m.hidden = true; CH.menu = null; return }
       el('ch-menu-title').textContent = titles[which] || 'Settings'
       const back = el('ch-menu-back'); back.hidden = !sub; back.onclick = () => chMenu(root)
@@ -11485,7 +11499,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const button = (text, fn, top = 14) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn'; b.textContent = text; b.style.marginTop = top + 'px'; b.addEventListener('click', fn); body.appendChild(b); return b }
       const hasGex = state.owned.has('d1-gex') || state.isMod || state.isAdmin
       // shared sections
-      const sessionsUi = () => { toggle('sessions', 'Shade off-hours', 'Everything outside 9:30 to 4:00 ET'); color('sessC', 'Shade colour'); toggle('sessLines', 'Hairline at each open') }
+      const sessionsUi = () => { toggle('eth', 'Extended hours', 'Globex and the pre-market; off shows 9:30 to 4:00 ET only', () => { chBuild(); CH.offset = 6; CH.auto = true }); toggle('sessions', 'Shade off-hours', 'Everything outside 9:30 to 4:00 ET'); color('sessC', 'Shade colour'); toggle('sessLines', 'Hairline at each open') }
       const volumeUi = () => { toggle('volume', 'Volume pane', 'Its × closes it too'); color('volUp', 'Up bars'); color('volDown', 'Down bars'); row('Opacity', rangeEl('volA', 0.1, 1, 0.05, 0.35)); row('Height', segEl('volSize', [['small', 'Small'], ['normal', 'Normal'], ['tall', 'Tall']])); toggle('volMa', 'Volume average', 'A simple average over the pane'); row('Length', numEl('volMaN', 2, 500, 20)); color('volMaC', 'Average colour') }
       if (which === 'type') {
         for (const [v, t, d] of [['candles', 'Candles', 'Body and wick, coloured by close against open'], ['hollow', 'Hollow candles', 'Up bars hollow, down bars filled'], ['heikin', 'Heikin Ashi', 'Averaged candles that smooth the noise'], ['bars', 'Bars', 'OHLC ticks'], ['line', 'Line', 'Closes joined'], ['area', 'Area', 'Line with a fade beneath']]) {
@@ -11583,6 +11597,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const rowA = (a) => { const r = document.createElement('div'); r.className = 'ch-row'; const t = document.createElement('div'); t.className = 'ch-row-t'; t.innerHTML = `<b class="${a.fired ? '' : 'gold'}">${chPx(a.price)}</b> <span class="dir">${a.above ? '▲ crossing up' : '▼ crossing down'}</span>${a.note ? ` <span class="dir">· ${a.note}</span>` : ''}`; const s = document.createElement('small'); s.textContent = a.fired ? `Fired ${new Date(a.fired).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : `Set ${new Date(a.created).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`; t.appendChild(s); const x = document.createElement('button'); x.type = 'button'; x.className = 'ch-gear'; x.title = 'Remove'; x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>'; x.addEventListener('click', () => { CH.alerts = CH.alerts.filter((y) => y !== a); chSaveAlerts(); chAlertsUi(); chDraw(); chMenu('alerts') }); r.append(t, x); body.appendChild(r) }
         live.sort((a, b) => b.price - a.price).forEach(rowA)
         if (done.length) { header(`Fired (${done.length})`); done.sort((a, b) => b.fired - a.fired).forEach(rowA); button('Clear fired alerts', () => { CH.alerts = CH.alerts.filter((a) => !a.fired); chSaveAlerts(); chAlertsUi(); chDraw(); chMenu('alerts') }) }
+      } else if (which === 'keys') {
+        const groups = [['Chart', [['← →', 'Scroll, Shift for more'], ['+ −', 'Zoom in and out'], ['Home', 'Back to the latest bar'], ['Alt+R', 'Reset the view'], ['Alt+G', 'Go to a date'], ['digits then Enter', 'Change the interval (15, 2h, 1D)'], ['Scroll wheel', 'Zoom at the cursor'], ['Shift+wheel', 'Scroll'], ['Drag the price scale', 'Scale the price, double-click resets'], ['Drag a pane edge', 'Resize the pane']]],
+          ['Drawing', [['Alt+T', 'Trend line'], ['Alt+H', 'Horizontal line'], ['Alt+V', 'Vertical line'], ['Alt+F', 'Fib retracement'], ['Alt+R', 'Rectangle'], ['Alt+N', 'Text'], ['Alt+L', 'Long position'], ['Alt+M', 'Measure'], ['Shift+drag', 'Measure'], ['Shift while drawing', 'Snap a line to 45°'], ['Ctrl held', 'Strong magnet'], ['Ctrl+click', 'Add to the selection'], ['Double-click a tool', 'Keep it after each drawing'], ['Double-click a drawing', 'Properties'], ['Right-click', 'Menu']]],
+          ['Selection', [['Delete', 'Remove'], ['Ctrl+D', 'Clone'], ['Ctrl+C / Ctrl+V', 'Copy and paste at the cursor'], ['Ctrl+Z / Ctrl+Shift+Z', 'Undo and redo'], ['Esc', 'Deselect, cancel, close']]],
+          ['Other', [['Alt+A', 'Alert at the cursor'], ['Alt+S', 'Save an image'], ['Alt+O', 'Objects'], ['Space', 'Play or pause replay'], ['. and ,', 'Step replay']]]]
+        for (const [g, items] of groups) { header(g); for (const [k, t] of items) { const r = document.createElement('div'); r.className = 'ch-key'; r.innerHTML = `<kbd>${k}</kbd><span>${t}</span>`; body.appendChild(r) } }
       } else if (which === 'objects') {
         hint('Every drawing on this chart, newest first. Click one to select it; the eye hides it, the lock pins it.')
         if (!CH.drawings.length) hint('No drawings yet.')
@@ -11634,7 +11654,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       else {
         const links = document.createElement('div'); links.className = 'ch-links'
-        for (const [t, w] of [['Objects', 'objects'], ['Alerts', 'alerts'], ['Indicators', 'ind']]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', () => chMenu(w)); links.appendChild(b) }
+        for (const [t, w] of [['Objects', 'objects'], ['Alerts', 'alerts'], ['Indicators', 'ind'], ['Shortcuts', 'keys']]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', () => chMenu(w)); links.appendChild(b) }
         body.appendChild(links)
         header('Presets')
         const pr = document.createElement('div'); pr.className = 'ch-presets'

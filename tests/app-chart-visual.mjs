@@ -240,7 +240,7 @@ async function run(vpName) {
       check(cursorMode === "dot/cross", `dot cursor is the cross tool with another look (${cursorMode})`);
       await page.evaluate(() => window.__CH.$.setTool("cross"));
       // oscillator panes: RSI and MACD open under the price, each with a legend and an ×
-      await page.evaluate(() => { const CH = window.__CH; CH.s.p_rsi = true; CH.s.p_macd = true; CH.$.menu(null); });
+      await page.evaluate(() => { const CH = window.__CH; CH.s.p_rsi = true; CH.s.p_macd = true; CH.$.menu(null); window.dispatchEvent(new Event("resize")); });
       await page.waitForTimeout(400);
       const panes = await page.evaluate(() => Object.keys(window.__CH.paneScale || {}).join(","));
       await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-panes.png` });
@@ -248,7 +248,24 @@ async function run(vpName) {
       await page.mouse.click(box.x + (px.x0 + px.x1) / 2, box.y + (px.y0 + px.y1) / 2); await page.waitForTimeout(300);
       const panes2 = await page.evaluate(() => Object.keys(window.__CH.paneScale || {}).join(","));
       check(panes === "rsi,macd" && panes2 === "rsi", `panes: ${panes}; the × closed MACD (${panes2})`);
-      await page.evaluate(() => { window.__CH.s.p_rsi = false; });
+      // dragging the volume pane edge resizes it; RTH-only drops the Globex bars
+      {
+        const vt = await page.evaluate(() => { const cv = document.getElementById("ch-canvas"); const H = cv.clientHeight, plotH = H - 24; const s = JSON.parse(localStorage.getItem("echelon-chart-settings")); const panes = ["rsi", "macd", "atr"].filter((k) => s["p_" + k]).length; const paneH = panes ? Math.round(plotH * (s.paneFrac || 0.15)) : 0; const volH = Math.round(plotH * (s.volFrac || 0.16)); return plotH - volH - panes * paneH; });
+        await page.mouse.move(box.x + box.width * 0.5, box.y + vt); await page.mouse.down(); await page.mouse.move(box.x + box.width * 0.5, box.y + vt - 60, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(200);
+        const volFrac = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")).volFrac);
+        check(volFrac > 0.2, `dragging the volume edge up grew the pane (volFrac ${volFrac && volFrac.toFixed(2)})`);
+        await page.evaluate(() => { window.__CH.s.volFrac = 0.16; window.__CH.s.p_rsi = false; });
+        const nAll = await page.evaluate(() => window.__CH.bars.length);
+        await page.evaluate(() => { const CH = window.__CH; CH.s.eth = false; CH.$.menu("settings"); });
+        await page.waitForTimeout(200);
+        await page.evaluate(() => { const r = [...document.querySelectorAll("#ch-menu-body .ch-row")].find((x) => /Extended hours/.test(x.textContent)); const i = r.querySelector("input[type=checkbox]"); i.checked = false; i.dispatchEvent(new Event("change", { bubbles: true })); });
+        await page.waitForTimeout(300);
+        const nRth = await page.evaluate(() => window.__CH.bars.length);
+        check(nRth > 0 && nRth < nAll * 0.5, `RTH only keeps the session bars (${nAll} -> ${nRth})`);
+        await page.evaluate(() => { const r = [...document.querySelectorAll("#ch-menu-body .ch-row")].find((x) => /Extended hours/.test(x.textContent)); const i = r.querySelector("input[type=checkbox]"); i.checked = true; i.dispatchEvent(new Event("change", { bubbles: true })); });
+        await page.waitForTimeout(200);
+        await page.click("#ch-menu-close");
+      }
       // snapshot menu
       await page.click("#ch-snap-btn"); await page.waitForTimeout(120);
       const snapItems = await page.evaluate(() => [...document.querySelectorAll("#ch-ctx .it .lb")].map((x) => x.textContent).join(","));
