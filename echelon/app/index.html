@@ -9993,7 +9993,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        EMA and VWAP, drawings, bar-by-bar replay, and a settings drawer for
        every colour and toggle. One canvas, redrawn on demand. */
     const CH_TF = { '1m': ['1m', 1], '3m': ['1m', 3], '5m': ['5m', 5], '15m': ['5m', 15], '30m': ['5m', 30], '1h': ['60m', 60], '4h': ['60m', 240], 'D': ['1d', 1440] }
-    const CH_SPAN = { '1m': 32, '5m': 62, '60m': 740, '1d': 9800 }   // days each source reaches back, at most
+    const CH_SPAN = { '1m': 32, '5m': 200, '60m': 2800, '1d': 9800 }   // days each source reaches back, at most (the archive holds Databento history from 2019; the read keeps the newest 60k bars)
     const CH_DEFAULTS = { type: 'candles', up: '', down: '', wickUp: '', wickDown: '', border: true, grid: true, volume: true, sessions: true, lastLine: true, legend: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
       lit: true, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: true, litKo: true, litPo3: true, litEighths: true, litGold: true, litVector: true, litDays: 3,
       // chart style (empty colour = the theme token)
@@ -10103,7 +10103,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.have[src]) return
       CH.have[src] = 'loading'; chBusy(1)
       try {
-        const from = new Date(Date.now() - CH_SPAN[src] * 864e5).toISOString().slice(0, 10), to = new Date(Date.now() + 864e5).toISOString().slice(0, 10)
+        const from = new Date(Date.now() - CH_SPAN[src] * (window.innerWidth < 520 && src !== '1d' ? 0.5 : 1) * 864e5).toISOString().slice(0, 10), to = new Date(Date.now() + 864e5).toISOString().slice(0, 10)   // phones pull half the span
         const j = await chFetch(`interval=${src}&from=${from}&to=${to}`)
         CH.base[src] = chMerge(CH.base[src], j.bars); CH.have[src] = true; CH.err = null
       } catch (err) { CH.have[src] = null; CH.err = err.message }
@@ -10477,19 +10477,28 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     /* ── drawing ── */
     function chDraw() { cancelAnimationFrame(CH.raf); CH.raf = requestAnimationFrame(chPaint) }
+    // relative luminance of a hex colour; a background above 0.2 reads as light and wants dark ink
+    const chLum = (hex) => { if (!/^#[0-9a-f]{6}$/i.test(hex)) return null; const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * b }
+    const chBgLight = (bg, themeLight) => { const l = chLum(bg); return l == null ? themeLight : l > 0.2 }
+    function chAdaptTokens(T, light) {
+      if (light) { T.ink = '#141311'; T.muted = '#2b2925'; T.faint = '#45413b'; T.line = 'rgba(0,0,0,0.16)'; T.lineB = 'rgba(0,0,0,0.3)'; T.panel = '#f8f6f2'; T.panel2 = '#ffffff'; T.good = '#3f7a38'; T.bad = '#b4543c'; T.gold = '#8a6a1e' }
+      else { T.ink = '#f4f2ee'; T.muted = '#9d978c'; T.faint = '#8f887c'; T.line = 'rgba(255,255,255,0.12)'; T.lineB = 'rgba(255,255,255,0.22)'; T.panel = '#131211'; T.panel2 = '#1a1817'; T.good = '#86b57f'; T.bad = '#d98b7a'; T.gold = '#c9a24a' }
+    }
     function chPaint() {
       const cv = el('ch-canvas'); if (!cv || !CH.on) return
       const L = chLayout(); if (!L.W || !L.H) return
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       if (cv.width !== Math.round(L.W * dpr) || cv.height !== Math.round(L.H * dpr)) { cv.width = Math.round(L.W * dpr); cv.height = Math.round(L.H * dpr) }
       const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      const T = gexTokens(), S = CH.s, light = document.documentElement.getAttribute('data-theme') === 'light'
+      const T = gexTokens(), S = CH.s, themeLight = document.documentElement.getAttribute('data-theme') === 'light'
+      const BG = S.bg || cssVar('--bg') || (themeLight ? '#f6f4f0' : '#0b0a09'); CH.bgNow = BG
+      const light = chBgLight(BG, themeLight); CH.lightBg = light
+      if (light !== themeLight) chAdaptTokens(T, light)   // a custom background on the other side of the theme
       if (S.textC) { T.faint = S.textC; T.muted = S.textC }
       if (S.gridC) T.line = S.gridC
       const C = { up: S.up || T.good, down: S.down || T.bad, wickUp: S.wickUp || S.up || T.good, wickDown: S.wickDown || S.down || T.bad, line: S.lineC || T.gold, cross: S.crossC || T.ink }
       C.borderUp = S.borderUp || ''; C.borderDown = S.borderDown || ''; C.volUp = S.volUp || C.up; C.volDown = S.volDown || C.down
       const col = (c) => ({ good: T.good, bad: T.bad, gold: T.gold, faint: T.faint, muted: T.muted, ink: T.ink })[c] || c
-      const BG = S.bg || cssVar('--bg') || (light ? '#f6f4f0' : '#0b0a09'); CH.bgNow = BG
       if (S.bg2) { const gr = ctx.createLinearGradient(0, 0, 0, L.H); gr.addColorStop(0, BG); gr.addColorStop(1, S.bg2); ctx.fillStyle = gr } else ctx.fillStyle = BG
       ctx.fillRect(0, 0, L.W, L.H)
       const { bars, n, i0, i1 } = chRange(L)
@@ -10634,7 +10643,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // the auto chip on the scale, shown while the scale is set by hand
       CH.autoChip = null
       if (!CH.auto) { const cx0 = L.plotW + 4, cy0 = L.mainH - 20; ctx.fillStyle = alpha(T.gold, 0.18); ctx.fillRect(cx0, cy0, 34, 15); ctx.strokeStyle = alpha(T.gold, 0.5); ctx.strokeRect(cx0 + 0.5, cy0 + 0.5, 33, 14); ctx.fillStyle = T.gold; ctx.font = `600 9.5px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.fillText('AUTO', cx0 + 17, cy0 + 8); ctx.font = `11px ${GEX_FONT}`; CH.autoChip = { x0: cx0, x1: cx0 + 34, y0: cy0, y1: cy0 + 15 } }
-      if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.fillStyle = S.lastC || (up ? C.up : C.down); ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = light ? '#fff' : '#0b0a09'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
+      if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.fillStyle = S.lastC || (up ? C.up : C.down); ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = (chLum(S.lastC || (up ? C.up : C.down)) ?? 0.3) > 0.35 ? '#0b0a09' : '#ffffff'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
       chPaintDrawings(ctx, L, T, true)
       // time axis: a tick and a label; the corner carries the timezone switch
       ctx.textAlign = 'center'
@@ -10861,7 +10870,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chPaintDrawings(ctx, L, T, tagsOnly) {
       if (CH.hideDr) return
       const vg = chVisGroup(), all = (CH.pending ? [...CH.drawings, CH.pending] : CH.drawings).filter((d) => !d.hidden && (!d.vis || d.vis[vg] !== false))
-      const light = document.documentElement.getAttribute('data-theme') === 'light', BG = CH.bgNow || cssVar('--bg') || '#0b0a09'
+      const light = CH.lightBg ?? (document.documentElement.getAttribute('data-theme') === 'light'), BG = CH.bgNow || cssVar('--bg') || '#0b0a09'
       const inkOn = (c) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(String(c).slice(i, i + 2), 16)); return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#0b0a09' : '#ffffff' }
       const tag = (text, y, c) => { if (y < 0 || y > L.mainH) return; const yy = Math.round(y) + 0.5; ctx.fillStyle = c; ctx.fillRect(L.plotW + 2, yy - 8, L.ax - 4, 16); ctx.fillStyle = inkOn(c); ctx.textAlign = 'left'; ctx.font = `600 10.5px ${GEX_FONT}`; ctx.fillText(text, L.plotW + 6, yy) }
       const label = (text, x, y, c, align = 'left', size = 10.5) => { if (!text) return; ctx.font = `600 ${size}px ${GEX_FONT}`; ctx.textAlign = align; ctx.textBaseline = 'middle'; const w = ctx.measureText(text).width; const x0 = align === 'left' ? x : align === 'right' ? x - w : x - w / 2; ctx.fillStyle = alpha(BG.length === 7 ? BG : '#0b0a09', 0.75); ctx.fillRect(x0 - 4, y - 8, w + 8, 16); ctx.fillStyle = c; ctx.fillText(text, x, y) }
