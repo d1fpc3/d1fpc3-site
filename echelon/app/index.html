@@ -623,6 +623,7 @@
     .ch-sym b { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
     .ch-sess { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
     .ch-sess.open { color: var(--good); }
+    .ch-sess.lag { color: var(--gold); }
     .ch-tfs { flex-shrink: 0; }
     .ch-tfs button { padding: 5px 7px 4px; font-size: 12px; }
     .ch-sp { flex: 1; min-width: 8px; }
@@ -9868,9 +9869,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.polling) return
       CH.polling = true
       try {
-        const j = await chFetch(full ? 'range=1d' : 'tail=4')
-        if (full) CH.base['1m'] = chMerge(CH.base['1m'], j.bars); else CH.base['1m'] = chMergeTail(CH.base['1m'], j.bars)
+        const j = await chFetch(full ? 'range=1d' : 'tail=30')
+        const base = CH.base['1m']
+        // Yahoo's feed stalls for minutes at a time and backfills later: a tail that
+        // starts past the newest bar we hold means a hole, so pull the whole day now
+        if (!full && base.length && j.bars.length && j.bars[0][0] > base[base.length - 1][0] + 60) { CH.polling = false; return chTail(true) }
+        if (full) CH.base['1m'] = chMerge(base, j.bars); else CH.base['1m'] = chMergeTail(base, j.bars)
         CH.err = null; CH.last = j.last; CH.prevClose = j.prevClose ?? CH.prevClose; CH.tailAt = Date.now(); if (full) CH.fullAt = Date.now()
+        CH.feedAt = j.bars.length ? j.bars[j.bars.length - 1][0] : CH.feedAt
       } catch (err) { CH.err = err.message }
       finally { CH.polling = false }
       chBuild(); chDraw()
@@ -10276,7 +10282,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-ind-btn').addEventListener('click', () => chMenu('ind'))
       el('ch-settings-btn').addEventListener('click', () => chMenu('settings'))
       el('ch-replay-btn').addEventListener('click', () => { if (CH.replay.on) chReplayExit(); else { CH.replay.arm = !CH.replay.arm; chReplayUi(); toast(CH.replay.arm ? 'Click the bar to start replaying from.' : 'Replay cancelled.', 2500) } })
-      el('ch-full').addEventListener('click', () => { el('v-chart').classList.toggle('ch-fullscreen'); setTimeout(chDraw, 50) })
+      el('ch-full').addEventListener('click', () => { el('v-chart').classList.toggle('ch-fullscreen'); chFit(); setTimeout(chDraw, 50) })
       el('ch-menu-close').addEventListener('click', () => chMenu(null))
       el('ch-rp-play').addEventListener('click', () => chReplayPlay(!CH.replay.playing))
       el('ch-rp-back').addEventListener('click', () => chReplayStep(-1))
@@ -10351,8 +10357,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chReplayExit() { chReplayPlay(false); CH.replay.on = false; CH.replay.cut = null; CH.replay.arm = false; chSetVis(); CH.offset = 6; CH.auto = true; chReplayUi(); chDraw() }
 
     /* ── life cycle ── */
+    // the chart fills the window below the top bar, whatever the padding is
+    function chFit() {
+      const w = el('v-chart')?.querySelector('.ch-wrap'); if (!w || !CH.on) return
+      if (el('v-chart').classList.contains('ch-fullscreen')) { w.style.height = ''; return }
+      const pane = document.querySelector('.pane'); const pad = pane ? parseFloat(getComputedStyle(pane).paddingBottom) || 20 : 20
+      const top = w.getBoundingClientRect().top + window.scrollY
+      const bnav = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bnav')) || 0
+      w.style.height = Math.max(380, window.innerHeight - top - pad - bnav) + 'px'
+    }
+    window.addEventListener('resize', () => { if (CH.on) { chFit(); chDraw() } })
     async function chartShown() {
-      CH.on = true; chWire()
+      CH.on = true; chWire(); chFit()
       el('ch-tf').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tf === CH.tf))
       chSetTool(CH.tool); chReplayUi()
       chDraw()
@@ -10371,7 +10387,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (min >= 17 * 60 && min < 18 * 60) return { key: 'closed', label: 'Closed' }
       return { key: min < 570 && min >= 240 ? 'pre' : 'globex', label: min < 570 && min >= 240 ? 'Pre-market' : 'Globex' }
     }
-    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { sp.textContent = st.label; sp.className = 'ch-sess' + (st.key === 'open' ? ' open' : '') } const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const ms = trading ? 3000 : 60 * 1000; CH.timer = setTimeout(chTick, ms) }
+    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const lag = trading && CH.feedAt ? Math.floor((Date.now() / 1000 - CH.feedAt) / 60) : 0; sp.textContent = lag >= 3 ? `${st.label} · feed ${lag}m behind` : st.label; sp.className = 'ch-sess' + (lag >= 3 ? ' lag' : st.key === 'open' ? ' open' : ''); sp.title = lag >= 3 ? 'Yahoo\x27s feed has stalled; it backfills when it catches up.' : '' } const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const ms = trading ? 3000 : 60 * 1000; CH.timer = setTimeout(chTick, ms) }
     async function chTick() { if (!CH.on) return; if (document.hidden) { chSchedule(); return } await chTail(Date.now() - (CH.fullAt || 0) > 5 * 60 * 1000); chSchedule() }
 
     function renderGex() {
