@@ -113,6 +113,49 @@ async function run(vpName) {
     await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-measure.png` });
     check(true, "measure box drawn (see screenshot)");
     await page.mouse.click(cx, cy);
+    // magnet: strong mode lands a horizontal line on the bar's O H L C
+    await page.click("#ch-magnet"); await page.click("#ch-magnet"); await page.waitForTimeout(100);
+    const magnet = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")).magnet);
+    check(magnet === "strong", `magnet cycles to strong (${magnet})`);
+    await page.click('#ch-tools button[data-tool="hline"]'); await page.mouse.move(cx - 80, cy + 33); await page.mouse.click(cx - 80, cy + 33); await page.waitForTimeout(150);
+    const snapped = await page.evaluate(() => { const CH = window.__CH; const d = CH.drawings[CH.drawings.length - 1]; const b = (CH.vis || CH.bars).find((x) => x.t === d.p[0].t); return b ? [b.o, b.h, b.l, b.c].includes(d.p[0].p) : "no bar at " + d.p[0].t; });
+    check(snapped === true, `strong magnet snapped the line onto an O H L C (${snapped})`);
+    await page.click("#ch-magnet");   // back to off
+    // a vertical line, a fib, a long position, a text note
+    await page.click('#ch-tools button[data-tool="vline"]'); await page.mouse.click(box.x + box.width * 0.42, cy); await page.waitForTimeout(120);
+    await page.click('#ch-tools button[data-tool="fib"]'); await page.mouse.move(box.x + box.width * 0.2, cy + 90); await page.mouse.down(); await page.mouse.move(box.x + box.width * 0.4, cy - 90, { steps: 8 }); await page.mouse.up(); await page.waitForTimeout(150);
+    await page.click('#ch-tools button[data-tool="long"]'); await page.mouse.click(box.x + box.width * 0.55, cy + 50); await page.waitForTimeout(150);
+    const pos = await page.evaluate(() => { const d = window.__CH.sel; return d && { type: d.type, stop: d.stop, target: d.target, entry: d.p[0].p }; });
+    check(pos && pos.type === "long" && pos.target > pos.entry && pos.stop < pos.entry, `long position placed: entry ${pos?.entry} stop ${pos?.stop} target ${pos?.target}`);
+    {
+      const h = await page.evaluate(() => { const CH = window.__CH, d = CH.sel; const a = CH.$.pt(d.p[0].t, d.target), b = CH.$.pt(d.p[1].t, d.target); return { x: (a.x + b.x) / 2, y: a.y, target: d.target }; });
+      await page.mouse.move(box.x + h.x, box.y + h.y); await page.mouse.down(); await page.mouse.move(box.x + h.x, box.y + h.y - 40, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(120);
+      const t2 = await page.evaluate(() => window.__CH.sel?.target);
+      check(t2 > h.target, `target handle dragged up: ${h.target} -> ${t2}`);
+    }
+    await page.click('#ch-tools button[data-tool="text"]'); await page.mouse.click(box.x + box.width * 0.7, cy - 100); await page.waitForTimeout(150);
+    await page.keyboard.type("Sweep then reclaim"); await page.keyboard.press("Enter"); await page.waitForTimeout(150);
+    st = await state(page);
+    const textOk = await page.evaluate(() => { const d = window.__CH.drawings.find((x) => x.type === "text"); return d && d.text; });
+    check(textOk === "Sweep then reclaim" && st.drawings === 7, `text note committed (${st.drawings} drawings)`);
+    await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-drawings2.png` });
+    {
+      // the selection strip restyles a line: a swatch, width 3, dashed; undo steps back; the eye hides everything
+      const h = await page.evaluate(() => { const CH = window.__CH; const d = CH.drawings.find((x) => x.type === "hline"); return CH.$.pt(d.p[0].t, d.p[0].p); });
+      await page.keyboard.press("Escape");
+      await page.mouse.click(box.x + box.width * 0.15, box.y + h.y); await page.waitForTimeout(150);
+      st = await state(page); check(st.sel, "clicking the horizontal line selects it");
+      await page.click('#ch-selbar .sw[data-c="#2962ff"]'); await page.click('#ch-selbar .wb[data-w="3"]'); await page.click('#ch-selbar .db[data-d="dash"]'); await page.waitForTimeout(150);
+      const styled = await page.evaluate(() => { const d = window.__CH.sel; return d && `${d.color} ${d.w} ${d.dash}`; });
+      check(styled === "#2962ff 3 dash", `selection strip restyled the line: ${styled}`);
+      await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-selbar.png` });
+      await page.keyboard.press("Control+z"); await page.keyboard.press("Control+z"); await page.waitForTimeout(150);
+      const undone = await page.evaluate(() => { const d = window.__CH.drawings.find((x) => x.type === "hline"); return `${d.color} ${d.w || 1} ${d.dash || "solid"}`; });
+      check(undone === "#2962ff 1 solid", `undo stepped the style back: ${undone}`);
+      await page.click("#ch-eye"); await page.waitForTimeout(120); const hidden = await page.evaluate(() => window.__CH.hideDr); await page.click("#ch-eye");
+      check(hidden === true, "eye hides the drawings");
+      await page.keyboard.press("Escape");
+    }
     // replay: arm, click a bar, step, play
     await page.click("#ch-replay-btn"); await page.waitForTimeout(200);
     await page.mouse.click(box.x + box.width * 0.5, cy); await page.waitForTimeout(300);
@@ -145,6 +188,26 @@ async function run(vpName) {
   st = await state(page);
   if (vpName === "phone") { const sv = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}")); check(sv.emaOn && sv.vwap, `indicators on (phone, from settings): ema ${sv.emaOn} vwap ${sv.vwap}`); }
   else check(/EMA 20/.test(st.legend) && /VWAP/.test(st.legend), `indicators on: ${st.legend.slice(-80)}`);
+  // the gear opens a sub-panel: add an average, flip the first to SMA, back
+  await page.evaluate(() => [...document.querySelectorAll("#ch-menu-body .ch-row")].find((r) => /Moving averages/.test(r.textContent)).querySelector(".ch-gear").click()); await page.waitForTimeout(200);
+  st = await state(page); check(st.menuTitle === "Moving averages" && !(await page.$eval("#ch-menu-back", (b) => b.hidden)), "gear opens the moving averages panel with a back arrow");
+  await page.click("#ch-menu-body .ch-ma-add"); await page.waitForTimeout(200);
+  const maN = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")).ma.length);
+  check(maN === 4, `added an average (${maN} in the list)`);
+  await page.evaluate(() => { const r = [...document.querySelectorAll("#ch-menu-body .ch-ma")][0]; r.querySelector(".seg button:nth-child(2)").click(); });
+  await page.waitForTimeout(200);
+  if (vpName === "desk") { st = await state(page); check(/SMA 20/.test(st.legend), `first average now SMA: ${st.legend.slice(-120)}`); }
+  await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-ma-panel.png` });
+  await page.click("#ch-menu-back"); await page.waitForTimeout(150);
+  st = await state(page); check(st.menuTitle === "Indicators", "back returns to the indicators list");
+  // D1 LIT style panel: a part colour persists
+  await page.evaluate(() => [...document.querySelectorAll("#ch-menu-body .ch-row")].find((r) => /^D1 LIT/.test(r.textContent.trim())).querySelector(".ch-gear").click()); await page.waitForTimeout(200);
+  await page.evaluate(() => { const r = [...document.querySelectorAll("#ch-menu-body .ch-prow")].find((x) => /PDH/.test(x.textContent)); const i = r.querySelector("input[type=color]"); i.value = "#ff00aa"; i.dispatchEvent(new Event("input", { bubbles: true })); });
+  await page.waitForTimeout(200);
+  const litC = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")).litPdC);
+  check(litC === "#ff00aa", `LIT part colour persisted (${litC})`);
+  await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-lit-panel.png` });
+  await page.click("#ch-menu-back"); await page.waitForTimeout(150);
   // D1 GEX on (holders), D1 LIT is on by default: both show in the legend
   await page.evaluate(() => { const rows = [...document.querySelectorAll("#ch-menu-body .ch-row")]; for (const r of rows) if (/^D1 GEX/.test(r.textContent.trim())) { const i = r.querySelector("input[type=checkbox]"); if (i && !i.checked) i.click(); } });
   await page.waitForTimeout(2500);
@@ -165,8 +228,8 @@ async function run(vpName) {
   // the volume pane closes from its own ×
   {
     const b2 = await (await page.$("#ch-canvas")).boundingBox();
-    const H = b2.height, volH = Math.round((H - 24) * 0.16), volTop = H - 24 - volH;
-    await page.mouse.click(b2.x + 88, b2.y + volTop + 11);
+    const vx = await page.evaluate(() => window.__CH.volX);   // the × hit zone the paint left behind
+    await page.mouse.click(b2.x + (vx.x0 + vx.x1) / 2, b2.y + (vx.y0 + vx.y1) / 2);
     await page.waitForTimeout(300);
     const vol = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}").volume);
     check(vol === false, "volume × closes the pane");
@@ -174,6 +237,12 @@ async function run(vpName) {
   }
   await page.click("#ch-settings-btn"); await page.waitForTimeout(200);
   st = await state(page); check(st.menu && st.menuTitle === "Settings", "settings drawer opens");
+  await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-settings-top.png` });
+  await page.click("#ch-menu-body .ch-preset:nth-child(2)"); await page.waitForTimeout(300);
+  const pre = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")));
+  check(pre.up === "#26a69a" && pre.bg === "#131722", `preset Classic applied: up ${pre.up} bg ${pre.bg}`);
+  await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-preset-classic.png` });
+  await page.click("#ch-menu-body .ch-preset:nth-child(1)"); await page.waitForTimeout(200);
   await page.evaluate(() => { const s = [...document.querySelectorAll("#ch-menu-body .seg")][0]; s.querySelector("button")?.click(); const up = document.querySelector("#ch-menu-body input[type=color]"); up.value = "#2ec4b6"; up.dispatchEvent(new Event("input", { bubbles: true })); });
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-settings.png` });
