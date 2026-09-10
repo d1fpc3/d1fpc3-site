@@ -204,6 +204,46 @@ async function run(vpName) {
       st = await state(page); check(st.tf === "5m", `5D range picks 5m (${st.tf})`);
       await page.evaluate(() => document.querySelector('#ch-tf button[data-tf="5m"]').click()); await page.waitForTimeout(400);
       await page.keyboard.press("Escape");
+      // typing digits picks an interval: 10 Enter = 10m, a custom pill joins the bar
+      await page.keyboard.type("10"); await page.waitForTimeout(150);
+      const intOpen = await page.evaluate(() => !document.getElementById("ch-int").hidden && document.querySelector("#ch-int input").value);
+      await page.keyboard.press("Enter"); await page.waitForTimeout(900);
+      st = await state(page);
+      const pill = await page.evaluate(() => !!document.querySelector('#ch-tf button.custom[data-tf="10m"]'));
+      check(intOpen === "10" && st.tf === "10m" && pill && /C\s/.test(st.legend), `typed interval: box showed "${intOpen}", timeframe ${st.tf}, custom pill ${pill}`);
+      await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-interval.png` });
+      await page.evaluate(() => document.querySelector('#ch-tf button[data-tf="5m"]').click()); await page.waitForTimeout(400);
+      // Ctrl+click builds a multi-selection; Delete removes the whole group
+      const before = (await state(page)).drawings;
+      const pts = await page.evaluate(() => { const CH = window.__CH; const a = CH.drawings.find((x) => x.type === "hray"), b = CH.drawings.find((x) => x.type === "vline"); return { a: CH.$.pt(a.p[0].t, a.p[0].p), b: CH.$.pt(b.p[0].t, b.p[0].p) }; });
+      await page.mouse.click(box.x + Math.min(box.width - 120, pts.a.x + 120), box.y + pts.a.y); await page.waitForTimeout(100);
+      await page.keyboard.down("Control"); await page.mouse.click(box.x + pts.b.x, box.y + box.height * 0.3); await page.keyboard.up("Control"); await page.waitForTimeout(150);
+      const nSel = await page.evaluate(() => (window.__CH.multi.size || 0) + (window.__CH.sel && !window.__CH.multi.has(window.__CH.sel) ? 1 : 0));
+      const stripName = await page.evaluate(() => document.querySelector("#ch-selbar .ch-selname")?.textContent);
+      await page.keyboard.press("Delete"); await page.waitForTimeout(150);
+      st = await state(page);
+      check(nSel === 2 && stripName === "2 drawings" && st.drawings === before - 2, `Ctrl+click selected ${nSel} (strip: ${stripName}), Delete removed both (${before} -> ${st.drawings})`);
+      // the objects panel lists what is left
+      await page.keyboard.press("Alt+o"); await page.waitForTimeout(200);
+      st = await state(page);
+      const objRows = await page.evaluate(() => document.querySelectorAll("#ch-menu-body .ch-obj").length);
+      check(st.menuTitle === "Objects" && objRows === st.drawings, `objects panel lists ${objRows} drawings`);
+      await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-objects.png` });
+      await page.evaluate(() => document.querySelector('#ch-menu-body .ch-obj button[data-a="eye"]').click()); await page.waitForTimeout(150);
+      const hiddenN = await page.evaluate(() => window.__CH.drawings.filter((d) => d.hidden).length);
+      check(hiddenN === 1, "the eye in the objects panel hides a drawing");
+      await page.click("#ch-menu-close");
+      // the cursor group: dot cursor paints no crosshair lines
+      await page.click('.ch-tg[data-group="cursor"] .ch-tgc', { force: true }); await page.waitForTimeout(120);
+      await page.click('#ch-fly button[data-tool="dot"]'); await page.waitForTimeout(120);
+      const cursorMode = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")).cursor + "/" + window.__CH.tool);
+      check(cursorMode === "dot/cross", `dot cursor is the cross tool with another look (${cursorMode})`);
+      await page.evaluate(() => window.__CH.$.setTool("cross"));
+      // snapshot menu
+      await page.click("#ch-snap-btn"); await page.waitForTimeout(120);
+      const snapItems = await page.evaluate(() => [...document.querySelectorAll("#ch-ctx .it .lb")].map((x) => x.textContent).join(","));
+      check(snapItems === "Save image,Copy image", `snapshot menu: ${snapItems}`);
+      await page.keyboard.press("Escape");
     }
     // replay: arm, click a bar, step, play
     await page.click("#ch-replay-btn"); await page.waitForTimeout(200);
