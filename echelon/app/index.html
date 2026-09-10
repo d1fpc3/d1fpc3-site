@@ -9952,6 +9952,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       volUp: '', volDown: '', volA: 0.35, volSize: 'normal', volMa: false, volMaN: 20, volMaC: '',
       // indicators: moving averages are a list, VWAP has bands, LIT and GEX carry a colour and a width per part
       ma: null, vwapC: '', vwapW: 1.2, vwapStyle: 'dash', vwapBands: false, vwapBandC: '', vwapBandA: 0.08, prevDayC: '',
+      bb: false, bbN: 20, bbK: 2, bbC: '', bbMidC: '', bbF: 0.06, bbW: 1,
       litPdC: '', litPdW: 1, litPwC: '', litPwW: 1, litWoC: '', litWoW: 2, litAsiaC: '', litAsiaF: 0.15, litNyC: '', litNyF: 0.1, litOpenC: '', litOpenW: 1, litMarksC: '', litKoC: '', litPo3Up: '', litPo3Dn: '', litEighthsC: '', litGoldC: '', litGoldW: 1, litVecUp: '', litVecDn: '', litLabels: true,
       axisInd: true, stay: false, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true }
     const CH_MA_DEFAULT = () => [{ t: 'ema', n: 20, c: '#c9a24a', w: 1.2, on: true }, { t: 'ema', n: 50, c: '#7aa2d9', w: 1.2, on: true }, { t: 'ema', n: 200, c: '#d97ab0', w: 1.2, on: true }]
@@ -10488,6 +10489,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (S.lit) chPaintLit(ctx, L, T, { bars, n, i0, i1, light })
       if (S.gex) chPaintGex(ctx, L, T, { bars, n, i0, i1, light })
       // EMA and VWAP
+      if (S.bb) {
+        const bb = chBands(), bc = S.bbC || '#2962ff', mc = S.bbMidC || '#ff9800'
+        const path = (arr) => { ctx.beginPath(); let started = false; for (let i = i0; i <= i1; i++) { if (arr[i] == null) continue; const x = chX(i, L), y = chY(arr[i], L); if (!started) { ctx.moveTo(x, y); started = true } else ctx.lineTo(x, y) } }
+        ctx.beginPath(); let st = false; for (let i = i0; i <= i1; i++) { if (bb.up[i] == null) continue; const x = chX(i, L); if (!st) { ctx.moveTo(x, chY(bb.up[i], L)); st = true } else ctx.lineTo(x, chY(bb.up[i], L)) } for (let i = i1; i >= i0; i--) { if (bb.lo[i] == null) continue; ctx.lineTo(chX(i, L), chY(bb.lo[i], L)) } ctx.closePath(); ctx.fillStyle = alpha(bc, S.bbF ?? 0.06); ctx.fill()
+        ctx.lineWidth = +S.bbW || 1; ctx.strokeStyle = bc; path(bb.up); ctx.stroke(); path(bb.lo); ctx.stroke(); ctx.strokeStyle = mc; path(bb.mid); ctx.stroke(); ctx.lineWidth = 1
+      }
       if (S.emaOn) for (const e of chEmas()) { if (!e.on) continue; ctx.strokeStyle = e.color; ctx.lineWidth = e.w || 1.2; ctx.beginPath(); let started = false; for (let i = i0; i <= i1; i++) { const v = e.v[i]; if (v == null) continue; const x = chX(i, L), y = chY(v, L); if (!started) { ctx.moveTo(x, y); started = true } else ctx.lineTo(x, y) } ctx.stroke() }
       if (S.vwap) {
         const v = chVwap(), vc = S.vwapC || (T.ink.length === 7 ? alpha(T.ink, 0.7) : T.ink), vdash = S.vwapStyle === 'solid' ? [] : S.vwapStyle === 'dot' ? [2, 3] : [5, 3]
@@ -10515,6 +10522,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const lastY = S.lastLine ? chY(lastBar.c, L) : -99, tagAt = (v, color) => { if (v == null) return; const y = chY(v, L); if (y < 0 || y > L.mainH || Math.abs(y - lastY) < 10) return; ctx.fillStyle = color; ctx.fillRect(L.plotW + 2, y - 7, L.ax - 4, 14); ctx.fillStyle = '#0b0a09'; ctx.font = `600 9.5px ${GEX_FONT}`; ctx.textAlign = 'left'; ctx.fillText(chPx(v), L.plotW + 6, y); ctx.font = `11px ${GEX_FONT}` }
         if (S.emaOn) for (const e of chEmas()) if (e.on) tagAt(e.v[n - 1], e.color)
         if (S.vwap) { const v = chVwap(); tagAt(v[n - 1], S.vwapC || (light ? '#5f5a51' : '#9d978c')) }
+        if (S.bb) { const bb = chBands(); tagAt(bb.up[n - 1], S.bbC || '#2962ff'); tagAt(bb.lo[n - 1], S.bbC || '#2962ff') }
       }
       chPaintAlerts(ctx, L, T, light)
       if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.fillStyle = S.lastC || (up ? C.up : C.down); ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = light ? '#fff' : '#0b0a09'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
@@ -10575,6 +10583,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const ic = (key, menu) => `<span class="ic"><button type="button" data-act="eye" data-key="${key}" title="Hide">${eye}</button><button type="button" data-act="gear" data-menu="${menu}" title="Settings">${gearI}</button></span>`
       const rows = [`<div class="ln hd"><b>NQ</b><span class="tf">${CH.tf}</span><span>O <i>${chPx(b.o)}</i></span><span>H <i>${chPx(b.h)}</i></span><span>L <i>${chPx(b.l)}</i></span><span>C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)} (${(d / b.o * 100).toFixed(2)}%)</span>${CH.s.volume ? `<span>V <i>${b.v.toLocaleString()}</i></span>` : ''}</div>`]
       if (CH.s.emaOn) rows.push(`<div class="ln" data-ind="ma">${chEmas().filter((e) => e.on).map((e) => `<span style="color:${e.color}">${e.t} ${e.n} <i>${e.v[i] != null ? chPx(e.v[i]) : '–'}</i></span>`).join('') || '<span class="nm">Moving averages</span>'}${ic('emaOn', 'ind:ma')}</div>`)
+      if (CH.s.bb) { const bb = chBands(); rows.push(`<div class="ln" data-ind="bb"><span class="nm">BB ${CH.s.bbN || 20} ${CH.s.bbK || 2}</span><span>${bb.up[i] != null ? `<i>${chPx(bb.up[i])}</i> <i>${chPx(bb.mid[i])}</i> <i>${chPx(bb.lo[i])}</i>` : '–'}</span>${ic('bb', 'ind:bb')}</div>`) }
       if (CH.s.vwap) { const v = chVwap(); rows.push(`<div class="ln" data-ind="vwap"><span class="nm">VWAP</span><i>${v[i] != null ? chPx(v[i]) : '–'}</i>${CH.s.vwapBands && v.sd && v.sd[i] != null ? `<span>+1σ <i>${chPx(v[i] + v.sd[i])}</i></span><span>−1σ <i>${chPx(v[i] - v.sd[i])}</i></span>` : ''}${ic('vwap', 'ind:vwap')}</div>`) }
       if (CH.s.lit) rows.push(`<div class="ln" data-ind="lit"><span class="ind">D1 LIT</span><span>${CH.s.litDays || 3} sessions</span>${ic('lit', 'ind:lit')}</div>`)
       if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = CH.gexLive || GEX.live, z = g?.zdte || {}; rows.push(`<div class="ln" data-ind="gex"><span class="ind">D1 GEX</span>${z.flip?.nq ? `<span>Flip <i>${Math.round(z.flip.nq).toLocaleString()}</i></span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${ic('gex', 'ind:gex')}</div>`) }
@@ -10610,9 +10619,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       short: { name: 'Short position', key: 'Alt+S', icon: '<path d="M4 11h16"/><path d="M12 11v8"/><path d="M8.5 15.5L12 19l3.5-3.5"/><path d="M4 5h16" opacity=".45"/>' },
       text: { name: 'Text', key: 'Alt+N', icon: '<path d="M5 7V4h14v3"/><path d="M12 4v16"/><path d="M9 20h6"/>' },
       plabel: { name: 'Price label', key: '', icon: '<path d="M4 8h12l4 4-4 4H4z"/><path d="M4 12h12" opacity=".45"/>' },
+      xcross: { name: 'Cross line', key: '', icon: '<path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/>' },
+      fibext: { name: 'Fib extension', key: '', icon: '<path d="M4 18L10 8l4 6"/><path d="M14 14h6M14 10h6M14 6h6" opacity=".7"/>' },
+      ellipse: { name: 'Ellipse', key: '', icon: '<ellipse cx="12" cy="12" rx="8" ry="5.5"/>' },
+      brush: { name: 'Brush', key: '', icon: '<path d="M4 20c3-1 3-4 5-6s4-2 6-4 3-5 3-5l1 1s-2 1-3 3-2 4-4 6-4 3-8 5z"/>' },
+      hilite: { name: 'Highlighter', key: '', icon: '<path d="M4 17l9-9 3 3-9 9H4z" fill="currentColor" opacity=".35"/><path d="M4 17l9-9 3 3-9 9H4z"/><path d="M13 8l3 3"/>' },
+      avwap: { name: 'Anchored VWAP', key: '', icon: '<path d="M4 18c4-1 5-6 8-7s5 2 8 0"/><circle cx="4" cy="18" r="2" fill="currentColor"/>' },
       measure: { name: 'Measure', key: 'Alt+M', icon: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M8 12l2 2M11 9l2 2M14 6l2 2"/>' },
     }
-    const CH_GROUPS = [['cursor', ['cross', 'dot', 'arrow', 'eraser']], ['lines', ['trend', 'ray', 'arrowline', 'hline', 'hray', 'vline', 'channel']], ['fib', ['fib']], ['shapes', ['rect', 'range']], ['pos', ['long', 'short']], ['text', ['text', 'plabel']], ['measure', ['measure']]]
+    const CH_GROUPS = [['cursor', ['cross', 'dot', 'arrow', 'eraser']], ['lines', ['trend', 'ray', 'arrowline', 'hline', 'hray', 'vline', 'xcross', 'channel']], ['fib', ['fib', 'fibext']], ['shapes', ['rect', 'ellipse', 'brush', 'hilite']], ['pos', ['long', 'short', 'range', 'avwap']], ['text', ['text', 'plabel']], ['measure', ['measure']]]
     const CH_TOOL_NAMES = Object.fromEntries(Object.entries(CH_TOOLS).map(([k, v]) => [k, v.name]))
     const chGroupOf = (t) => (CH_GROUPS.find(([, ts]) => ts.includes(t)) || [])[0]
     function chRailBuild() {
@@ -10685,6 +10700,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const P = d.p.map((q) => ({ x: chX(chIofT(q.t), L), y: chY(q.p, L) }))
         if (tagsOnly) {
           if (d.type === 'hline') tag(chPx(d.p[0].p), P[0].y, c)
+          else if (d.type === 'xcross') { tag(chPx(d.p[0].p), P[0].y, c); if (P[0].x >= 0 && P[0].x <= L.plotW) { const text = chFmtFull(d.p[0].t); ctx.font = `600 10.5px ${GEX_FONT}`; const tw = ctx.measureText(text).width + 12; const tx0 = Math.min(Math.max(0, P[0].x - tw / 2), L.W - tw); ctx.fillStyle = c; ctx.fillRect(tx0, L.H - L.tx + 2, tw, L.tx - 4); ctx.fillStyle = inkOn(c); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, tx0 + tw / 2, L.H - L.tx / 2) } }
           else if (d.type === 'vline' && P[0].x >= 0 && P[0].x <= L.plotW) { const text = chFmtFull(d.p[0].t); ctx.font = `600 10.5px ${GEX_FONT}`; const tw = ctx.measureText(text).width + 12; const tx0 = Math.min(Math.max(0, P[0].x - tw / 2), L.W - tw); ctx.fillStyle = c; ctx.fillRect(tx0, L.H - L.tx + 2, tw, L.tx - 4); ctx.fillStyle = inkOn(c); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, tx0 + tw / 2, L.H - L.tx / 2) }
           else if ((d.type === 'long' || d.type === 'short') && sel && d.p.length === 2) { const g = chPosGeo(d, L); tag(chPx(d.p[0].p), g.ye, light ? '#1e222d' : '#e9e3d8'); tag(chPx(d.target), g.yt, '#26a69a'); tag(chPx(d.stop), g.ys, '#ef5350') }
           else if (d.type === 'fib' && sel && d.p.length === 2) for (const lvl of chFibLevels(d)) tag(chPx(chFibPrice(d, lvl)), chY(chFibPrice(d, lvl), L), d.color || CH_FIB_C[lvl] || c)
@@ -10712,6 +10728,37 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (d.text) label(d.text, (P[0].x + P[1].x) / 2, (P[0].y + P[1].y) / 2 - 11, c, 'center')
         }
         else if (d.type === 'range') { if (P.length < 2) continue; chPaintRange(ctx, L, T, d.p[0], d.p[1], d.color || null, d.fill) }
+        else if (d.type === 'xcross') { const x = Math.round(P[0].x) + 0.5, y = Math.round(P[0].y) + 0.5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.moveTo(x, 0); ctx.lineTo(x, L.mainH + L.volH); ctx.stroke(); ctx.setLineDash([]); label(d.text, x + 8, y - 10, c) }
+        else if (d.type === 'ellipse') {
+          if (P.length < 2) continue
+          const cx = (P[0].x + P[1].x) / 2, cy = (P[0].y + P[1].y) / 2, rx = Math.max(1, Math.abs(P[1].x - P[0].x) / 2), ry = Math.max(1, Math.abs(P[1].y - P[0].y) / 2)
+          ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.fillStyle = alpha(c, d.fill ?? 0.1); ctx.fill(); ctx.stroke(); ctx.setLineDash([])
+          label(d.text, cx, cy - ry - 12, c, 'center')
+        }
+        else if (d.type === 'brush' || d.type === 'hilite') {
+          if (P.length < 2) continue
+          ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.setLineDash([])
+          if (d.type === 'hilite') { ctx.strokeStyle = alpha(c, d.fill ?? 0.35); ctx.lineWidth = 14 + (d.w || 1) * 4 } else ctx.lineWidth = chLineW(d, sel || hov) + 0.6
+          ctx.beginPath(); ctx.moveTo(P[0].x, P[0].y)
+          for (let k = 1; k < P.length - 1; k++) { const mx = (P[k].x + P[k + 1].x) / 2, my = (P[k].y + P[k + 1].y) / 2; ctx.quadraticCurveTo(P[k].x, P[k].y, mx, my) }
+          ctx.lineTo(P[P.length - 1].x, P[P.length - 1].y); ctx.stroke(); ctx.restore()
+        }
+        else if (d.type === 'avwap') {
+          const v = chAvwap(d); if (!v) continue
+          ctx.setLineDash(chDashOf(d)); ctx.beginPath(); let started = false
+          for (let i = v.i0; i < v.v.length; i++) { const x = chX(i, L), y = chY(v.v[i], L); if (!started) { ctx.moveTo(x, y); started = true } else ctx.lineTo(x, y) }
+          ctx.stroke(); ctx.setLineDash([])
+          const lastV = v.v[v.v.length - 1]; if (lastV != null) label(`AVWAP ${chPx(lastV)}${d.text ? ' · ' + d.text : ''}`, Math.min(chX(v.v.length - 1, L) + 8, L.plotW - 90), chY(lastV, L), c, 'left', 10)
+        }
+        else if (d.type === 'fibext') {
+          if (P.length < 3) continue
+          const [A, B, Cc] = d.p, xs = d.ext?.l ? 0 : P[2].x; let xb = Math.max(P[0].x, P[1].x, P[2].x); if (d.ext?.r !== false) xb = L.plotW
+          ctx.strokeStyle = alpha(c, 0.5); ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(P[0].x, P[0].y); ctx.lineTo(P[1].x, P[1].y); ctx.lineTo(P[2].x, P[2].y); ctx.stroke(); ctx.setLineDash(chDashOf(d)); ctx.lineWidth = chLineW(d, sel || hov)
+          const lv = [0, 0.382, 0.618, 1, 1.272, 1.618, 2, 2.618], ys = lv.map((l) => chY(Cc.p + (B.p - A.p) * l, L))
+          for (let k = 1; k < lv.length; k++) { const lc = d.color || CH_FIB_C[lv[k]] || CH_FIB_C[1.618]; ctx.fillStyle = alpha(lc, d.fill ?? 0.05); ctx.fillRect(xs, Math.min(ys[k - 1], ys[k]), xb - xs, Math.abs(ys[k] - ys[k - 1])) }
+          lv.forEach((l, k) => { const lc = d.color || CH_FIB_C[l] || CH_FIB_C[1.618], y = Math.round(ys[k]) + 0.5; if (y < -10 || y > L.mainH + 10) return; ctx.strokeStyle = lc; ctx.beginPath(); ctx.moveTo(xs, y); ctx.lineTo(xb, y); ctx.stroke(); ctx.font = `600 10px ${GEX_FONT}`; ctx.textAlign = 'left'; ctx.fillStyle = lc; ctx.fillText(`${l}  ${chPx(Cc.p + (B.p - A.p) * l)}`, Math.max(4, xs) + 4, y - 7) })
+          ctx.setLineDash([])
+        }
         else if (d.type === 'plabel') {
           const text = d.text || chPx(d.p[0].p); ctx.font = `600 11px ${GEX_FONT}`; const w = ctx.measureText(text).width + 14, h = 20
           const x0 = P[0].x + 8, y0 = P[0].y - h / 2
@@ -10773,7 +10820,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           ctx.textBaseline = 'middle'
         }
         ctx.setLineDash([])
-        if ((sel || hov || d === CH.pending) && d.type !== 'text' && d.type !== 'long' && d.type !== 'short' && d.type !== 'plabel') for (const q of P) { ctx.fillStyle = BG; ctx.strokeStyle = c; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(q.x, q.y, hov && !sel ? 3 : 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke() }
+        if ((sel || hov || d === CH.pending) && d.type !== 'text' && d.type !== 'long' && d.type !== 'short' && d.type !== 'plabel' && d.type !== 'brush' && d.type !== 'hilite') for (const q of P) { ctx.fillStyle = BG; ctx.strokeStyle = c; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(q.x, q.y, hov && !sel ? 3 : 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke() }
         if ((sel || hov) && (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') && P.length === 2 && d.stats !== false) { const dp = d.p[1].p - d.p[0].p, bars = Math.round(Math.abs(chIofT(d.p[1].t) - chIofT(d.p[0].t))), secs = Math.abs(d.p[1].t - d.p[0].t); label(`${chPts(dp)} (${(dp / d.p[0].p * 100).toFixed(2)}%) · ${bars} bars · ${chDur(secs)}`, P[1].x + (P[1].x >= P[0].x ? 10 : -10), P[1].y + 14, c, P[1].x >= P[0].x ? 'left' : 'right', 10) }
         if (sel && d.lock) { ctx.font = `11px ${GEX_FONT}`; ctx.fillStyle = c; ctx.textAlign = 'left'; ctx.fillText('🔒', (P[0].x + (P[1]?.x ?? P[0].x)) / 2 + 8, (P[0].y + (P[1]?.y ?? P[0].y)) / 2 - 12) }
       }
@@ -10805,7 +10852,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const d = CH.drawings[k]; const P = d.p.map((q) => ({ x: chX(chIofT(q.t), L), y: chY(q.p, L) }))
         if (d.type === 'long' || d.type === 'short') { if (P.length < 2) continue; const g = chPosGeo(d, L), mid = (g.x0 + g.x1) / 2; if (Math.hypot(mid - x, g.yt - y) < 8) return { d, handle: 2 }; if (Math.hypot(mid - x, g.ys - y) < 8) return { d, handle: 3 }; if (Math.hypot(g.x1 - x, g.ye - y) < 8) return { d, handle: 1 }; if (Math.hypot(g.x0 - x, g.ye - y) < 8) return { d, handle: 0 }; continue }
         if (d.hidden || (d.vis && d.vis[chVisGroup()] === false)) continue
-        if (d.type !== 'text' && d.type !== 'plabel') for (let h = 0; h < P.length; h++) if (Math.hypot(P[h].x - x, P[h].y - y) < 8) return { d, handle: h }
+        if (d.type !== 'text' && d.type !== 'plabel' && d.type !== 'brush' && d.type !== 'hilite') for (let h = 0; h < P.length; h++) if (Math.hypot(P[h].x - x, P[h].y - y) < 8) return { d, handle: h }
       }
       for (let k = CH.drawings.length - 1; k >= 0; k--) {
         const d = CH.drawings[k]; const P = d.p.map((q) => ({ x: chX(chIofT(q.t), L), y: chY(q.p, L) }))
@@ -10816,6 +10863,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (d.type === 'channel' && P.length >= 2) { const [A, B] = chLineEnds(d, P.slice(0, 2), L), off = chChannelOff(P); const A2 = { x: A.x + off.x, y: A.y + off.y }, B2 = { x: B.x + off.x, y: B.y + off.y }; if (chDist(x, y, A.x, A.y, B.x, B.y) < 6 || chDist(x, y, A2.x, A2.y, B2.x, B2.y) < 6) return { d, handle: -1 }; const inside = (px, py) => { const s1 = (B.x - A.x) * (py - A.y) - (B.y - A.y) * (px - A.x), s2 = (B2.x - A2.x) * (py - A2.y) - (B2.y - A2.y) * (px - A2.x); return s1 * s2 <= 0 && px >= Math.min(A.x, B.x) - 2 && px <= Math.max(A.x, B.x) + 2 }; if (inside(x, y)) return { d, handle: -1 } }
         if (d.type === 'range' && P.length === 2) { const x0 = Math.min(P[0].x, P[1].x), x1 = Math.max(P[0].x, P[1].x), y0 = Math.min(P[0].y, P[1].y), y1 = Math.max(P[0].y, P[1].y); if (x >= x0 - 6 && x <= x1 + 6 && y >= y0 - 6 && y <= y1 + 6) return { d, handle: -1 } }
         if (d.type === 'plabel' && d._box && x >= d._box.x - 6 && x <= d._box.x + d._box.w && y >= d._box.y && y <= d._box.y + d._box.h) return { d, handle: -1 }
+        if (d.type === 'xcross' && (Math.abs(P[0].y - y) < 6 || Math.abs(P[0].x - x) < 6)) return { d, handle: -1 }
+        if (d.type === 'ellipse' && P.length === 2) { const cx = (P[0].x + P[1].x) / 2, cy = (P[0].y + P[1].y) / 2, rx = Math.max(1, Math.abs(P[1].x - P[0].x) / 2), ry = Math.max(1, Math.abs(P[1].y - P[0].y) / 2); const r = Math.hypot((x - cx) / rx, (y - cy) / ry); if (r <= 1.06) return { d, handle: -1 } }
+        if ((d.type === 'brush' || d.type === 'hilite') && P.length >= 2) { const tol = d.type === 'hilite' ? 9 + (d.w || 1) * 2 : 6; for (let k = 1; k < P.length; k++) if (chDist(x, y, P[k - 1].x, P[k - 1].y, P[k].x, P[k].y) < tol) return { d, handle: -1 } }
+        if (d.type === 'avwap') { const v = chAvwap(d); if (v) { const i = Math.round(chI(x, L)); if (i >= v.i0 && i < v.v.length && v.v[i] != null && Math.abs(chY(v.v[i], L) - y) < 6) return { d, handle: -1 } } }
+        if (d.type === 'fibext' && P.length === 3) { const [A, B, Cc] = d.p, xs = d.ext?.l ? 0 : P[2].x, xb = d.ext?.r === false ? Math.max(P[0].x, P[1].x, P[2].x) : L.plotW; if (x >= xs - 6 && x <= xb + 6) for (const l of [0, 0.382, 0.618, 1, 1.272, 1.618, 2, 2.618]) if (Math.abs(chY(Cc.p + (B.p - A.p) * l, L) - y) < 6) return { d, handle: -1 } }
         if (d.type === 'vline' && Math.abs(P[0].x - x) < 6) return { d, handle: -1 }
         if ((d.type === 'trend' || d.type === 'ray') && P.length === 2) { const [a, b] = chLineEnds(d, P, L); if (chDist(x, y, a.x, a.y, b.x, b.y) < 6) return { d, handle: -1 } }
         if (d.type === 'rect' && P.length === 2) { let x0 = Math.min(P[0].x, P[1].x), x1 = Math.max(P[0].x, P[1].x); const y0 = Math.min(P[0].y, P[1].y), y1 = Math.max(P[0].y, P[1].y); if (d.ext?.l) x0 = 0; if (d.ext?.r) x1 = L.plotW; if (x >= x0 - 6 && x <= x1 + 6 && y >= y0 - 6 && y <= y1 + 6) return { d, handle: -1 } }
@@ -10865,7 +10917,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const bar = el('ch-selbar'); if (!bar) return
       const d = CH.sel; bar.hidden = !d; if (!d) { bar.textContent = ''; return }
       const nSel = chSelAll().length
-      const c = chDrawColor(d), isLine = d.type === 'trend' || d.type === 'ray' || d.type === 'channel', isBox = d.type === 'rect' || d.type === 'fib' || d.type === 'long' || d.type === 'short' || d.type === 'channel' || d.type === 'range'
+      const c = chDrawColor(d), isLine = d.type === 'trend' || d.type === 'ray' || d.type === 'channel' || d.type === 'fibext', isBox = d.type === 'rect' || d.type === 'fib' || d.type === 'fibext' || d.type === 'long' || d.type === 'short' || d.type === 'channel' || d.type === 'range' || d.type === 'ellipse' || d.type === 'hilite'
       const sw = CH_SWATCHES.map((s) => `<button type="button" class="sw${s === d.color ? ' on' : ''}" data-c="${s}" style="--c:${s}" title="${s}"></button>`).join('')
       const fibPal = d.type === 'fib' ? `<button type="button" class="sw pal${!d.color ? ' on' : ''}" data-c="" title="Level colours"></button>` : ''
       const widths = [1, 2, 3, 4].map((w) => `<button type="button" class="wb${(d.w || 1) === w ? ' on' : ''}" data-w="${w}" title="Width ${w}"><i style="height:${w}px"></i></button>`).join('')
@@ -10885,6 +10937,24 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ta.value = d.text || ''; ta.style.fontSize = (d.size || 13) + 'px'; CH.editing = d; ta.focus(); ta.select()
     }
     const chVisGroup = () => CH.tfSec < 3600 ? 'm' : CH.tfSec < 86400 ? 'h' : 'd'
+    const chAvwapCache = new Map()
+    function chAvwap(d) {   // cumulative VWAP from the anchor bar to the last bar, cached per drawing and tape
+      const bars = chVisible(), n = bars.length; if (!n) return null
+      const t0 = d.p[0].t, key = `${CH.tf}|${n}|${bars[n - 1].c}|${t0}`
+      const hit = chAvwapCache.get(d.id); if (hit && hit.key === key) return hit.v
+      let i0 = bars.findIndex((b) => b.t >= t0); if (i0 < 0) return null
+      const v = new Array(n); let pv = 0, vol = 0
+      for (let i = i0; i < n; i++) { const b = bars[i], tp = (b.h + b.l + b.c) / 3; pv += tp * b.v; vol += b.v; v[i] = vol ? pv / vol : null }
+      const out = { i0, v }; chAvwapCache.set(d.id, { key, v: out }); return out
+    }
+    let chBbCache = { key: '', v: null }
+    function chBands() {   // Bollinger: SMA of the close and k standard deviations
+      const bars = chVisible(), n = bars.length, N = Math.max(2, Math.round(CH.s.bbN || 20)), K = +CH.s.bbK || 2, key = `${CH.tf}|${n}|${bars[n - 1]?.c}|${N}|${K}`
+      if (chBbCache.key === key) return chBbCache.v
+      const mid = new Array(n), up = new Array(n), lo = new Array(n); let s = 0, s2 = 0
+      for (let i = 0; i < n; i++) { const c = bars[i].c; s += c; s2 += c * c; if (i >= N) { const o = bars[i - N].c; s -= o; s2 -= o * o } if (i >= N - 1) { const m = s / N, sd = Math.sqrt(Math.max(0, s2 / N - m * m)); mid[i] = m; up[i] = m + K * sd; lo[i] = m - K * sd } else mid[i] = up[i] = lo[i] = null }
+      chBbCache = { key, v: { mid, up, lo } }; return chBbCache.v
+    }
     /* snapshot: the canvas with a caption, saved or copied */
     async function chShot(how) {
       const cv = el('ch-canvas'); if (!cv) return
@@ -11098,7 +11168,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
         if (CH.tool === 'eraser') { const hit = chHit(p.x, p.y, L); if (hit) { chPush(); CH.drawings = CH.drawings.filter((d) => d !== hit.d); if (CH.sel === hit.d) CH.sel = null; chSave(); chSelBar(); chDraw() } CH.drag = null; return }
         const fresh = (type, pts, extra) => ({ id: chId(), type, p: pts, color: type === 'fib' || type === 'long' || type === 'short' ? '' : chGold(), ...(CH.s.toolDef?.[type] ? JSON.parse(JSON.stringify(CH.s.toolDef[type])) : {}), ...extra })
-        if (CH.tool === 'hline' || CH.tool === 'vline' || CH.tool === 'hray' || CH.tool === 'plabel') { chPush(); const d = fresh(CH.tool, [chPoint(p.x, p.y, L)]); CH.drawings.push(d); chSave(); chAfterDraw(); CH.sel = d; chSelBar(); chDraw(); return }
+        if (CH.tool === 'hline' || CH.tool === 'vline' || CH.tool === 'hray' || CH.tool === 'plabel' || CH.tool === 'xcross' || CH.tool === 'avwap') { chPush(); const d = fresh(CH.tool, [chPoint(p.x, p.y, L)]); CH.drawings.push(d); chSave(); chAfterDraw(); CH.sel = d; chSelBar(); chDraw(); return }
+        if (CH.tool === 'brush' || CH.tool === 'hilite') { const pt = chPoint(p.x, p.y, L); CH.pending = fresh(CH.tool, [pt], CH.tool === 'hilite' ? { color: CH.s.toolDef?.hilite?.color || '#f5d90a' } : {}); CH.pending.free = true; CH.drag.brush = true; chDraw(); return }
         if (CH.tool === 'long' || CH.tool === 'short') {
           const e = chPoint(p.x, p.y, L), span = Math.max(CH.pMax - CH.pMin, 1), tick = (v) => Math.round(v * 4) / 4
           const risk = Math.max(0.25, tick(span * 0.08)), sign = CH.tool === 'long' ? 1 : -1
@@ -11112,7 +11183,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           chDraw(); return
         }
         const pt = chPoint(p.x, p.y, L)
-        if (!CH.pending) { CH.pending = fresh(CH.tool, [pt, { ...pt }], CH.tool === 'fib' ? { ext: { r: true } } : {}); CH.pending.need = CH.tool === 'channel' ? 3 : 2; CH.drag.pend = true }
+        if (!CH.pending) { CH.pending = fresh(CH.tool, [pt, { ...pt }], CH.tool === 'fib' || CH.tool === 'fibext' ? { ext: { r: true } } : {}); CH.pending.need = CH.tool === 'channel' || CH.tool === 'fibext' ? 3 : 2; CH.drag.pend = true }
         else chPendingAdvance(pt)
       })
       cv.addEventListener('pointermove', (e) => {
@@ -11147,10 +11218,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             chDraw(); return
           }
           if (dg.measure && CH.measure?.live) { CH.measure.b = chPoint(p.x, p.y, L); chDraw(); return }
+          if (dg.brush && CH.pending) { const q = CH.pending.p[CH.pending.p.length - 1], qx = chX(chIofT(q.t), L), qy = chY(q.p, L); if (Math.hypot(p.x - qx, p.y - qy) >= 3) CH.pending.p.push({ t: chTofI(chI(p.x, L)), p: +chP(p.y, L).toFixed(2) }); chDraw(); return }
           if (dg.pend && CH.pending) { CH.pending.p[CH.pending.p.length - 1] = chPoint(p.x, p.y, L); chDraw(); return }
-          if (CH.tool === 'cross' && !CH.replay.arm) { CH.offset = dg.offset - dx / CH.barW; chClampOffset(L); cv.style.cursor = 'grabbing'; chDraw(); return }
+          if (CH.tool === 'cross' && !CH.replay.arm) { CH.offset = dg.offset - dx / CH.barW; chClampOffset(L); if (!CH.auto) { const shift = dy / L.mainH * (dg.pMax - dg.pMin); CH.pMin = dg.pMin + shift; CH.pMax = dg.pMax + shift } cv.style.cursor = 'grabbing'; chDraw(); return }
         }
-        if (CH.pending) CH.pending.p[CH.pending.p.length - 1] = chPoint(p.x, p.y, L)
+        if (CH.pending && !CH.pending.free) CH.pending.p[CH.pending.p.length - 1] = chPoint(p.x, p.y, L)
         else if (CH.measure?.live) CH.measure.b = chPoint(p.x, p.y, L)
         else if (CH.tool !== 'cross' && CH.tool !== 'measure') chPoint(p.x, p.y, L)   // keeps the snap ring live under a drawing tool
         else CH.snap = null
@@ -11169,6 +11241,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (dt > 0 && dt < 160) { const v = (s1.x - s0.x) / dt; if (Math.abs(v) > 0.25) chKinetic(v) }
         }
         if (dg?.pend && CH.pending && dg.moved) chPendingAdvance(chPoint(dg.x, dg.y, chLayout()))
+        if (dg?.brush && CH.pending) { const d = CH.pending; CH.pending = null; if (d.p.length >= 2) { delete d.free; chPush(); CH.drawings.push(d); CH.sel = d; chSave(); chSelBar() } chAfterDraw(); chDraw() }
         if (dg?.measure && dg.moved && CH.measure?.b) { CH.measure.live = false; chSetTool('cross', true) }
         // a tap without movement on a phone: park the crosshair there
         if (e.pointerType === 'touch' && dg && !dg.moved && dg.zone === 'plot') { CH.hover = { x: dg.x0, y: dg.y0 } }
@@ -11322,7 +11395,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const body = el('ch-menu-body'); body.textContent = ''
       const [root, sub] = which.split(':')
       const S = CH.s, T = gexTokens(), light = document.documentElement.getAttribute('data-theme') === 'light'
-      const titles = { type: 'Chart type', ind: 'Indicators', settings: 'Settings', 'ind:ma': 'Moving averages', 'ind:vwap': 'VWAP', 'ind:lit': 'D1 LIT', 'ind:gex': 'D1 GEX', 'ind:prev': 'Prior day', 'ind:sess': 'Sessions', 'ind:vol': 'Volume', alerts: 'Alerts', objects: 'Objects', draw: CH.sel ? (CH_TOOL_NAMES[CH.sel.type] || 'Drawing') : 'Drawing' }
+      const titles = { type: 'Chart type', ind: 'Indicators', settings: 'Settings', 'ind:ma': 'Moving averages', 'ind:vwap': 'VWAP', 'ind:bb': 'Bollinger Bands', 'ind:lit': 'D1 LIT', 'ind:gex': 'D1 GEX', 'ind:prev': 'Prior day', 'ind:sess': 'Sessions', 'ind:vol': 'Volume', alerts: 'Alerts', objects: 'Objects', draw: CH.sel ? (CH_TOOL_NAMES[CH.sel.type] || 'Drawing') : 'Drawing' }
       if (which === 'draw' && !CH.sel) { m.hidden = true; CH.menu = null; return }
       el('ch-menu-title').textContent = titles[which] || 'Settings'
       const back = el('ch-menu-back'); back.hidden = !sub; back.onclick = () => chMenu(root)
@@ -11359,6 +11432,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const mas = (S.ma || []).filter((x) => x.on !== false).map((x) => `${x.t === 'sma' ? 'SMA' : 'EMA'} ${x.n}`).join(' · ') || 'None yet'
         gearRow('emaOn', 'Moving averages', mas, 'ind:ma')
         gearRow('vwap', 'VWAP', `Session anchored${S.vwapBands ? ', ±1σ and ±2σ bands' : ''}`, 'ind:vwap')
+        gearRow('bb', 'Bollinger Bands', `${S.bbN || 20} bars, ${S.bbK || 2} standard deviations`, 'ind:bb')
         header('D1 indicators')
         gearRow('lit', 'D1 LIT', 'Levels and timing: PDH/PDL, PWH/PWL, weekly open, Asia box, NYT box, 18:00 open, FF/LO/MM markers, key opens, PO3 candles, weekly eighths, the golden window, vector candles', 'ind:lit')
         if (hasGex) gearRow('gex', 'D1 GEX', 'Gamma flip, call and put walls, major wall, top gamma strikes and the GTBR band, per session from the 9:30 print', 'ind:gex', () => { if (S.gex) chGexWarm() })
@@ -11388,6 +11462,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (S.ma.length < 5) { const add = document.createElement('button'); add.type = 'button'; add.className = 'rowbtn ch-ma-add'; add.textContent = 'Add an average'; add.style.marginTop = '10px'; add.addEventListener('click', () => { S.ma.push({ t: 'ema', n: [9, 21, 34, 100, 200].find((x) => !S.ma.some((y) => y.n === x)) || 10, c: CH_MA_COLORS[S.ma.length % 5], w: 1.2, on: true }); chSave(); chDraw(); list() }); body.appendChild(add) }
         }
         list()
+      } else if (which === 'ind:bb') {
+        toggle('bb', 'Show Bollinger Bands', 'A moving average with a band each side')
+        header('Inputs'); row('Length', numEl('bbN', 2, 500, 20)); row('Deviations', numEl('bbK', 0.5, 5, 2))
+        header('Style'); color('bbC', 'Band colour'); color('bbMidC', 'Basis colour'); row('Width', wselEl('bbW', 1)); row('Fill', rangeEl('bbF', 0, 0.4, 0.01, 0.06))
       } else if (which === 'ind:vwap') {
         toggle('vwap', 'Show VWAP', 'Volume-weighted average, resets at 6:00 PM ET')
         header('Style'); color('vwapC', 'Colour'); row('Width', wselEl('vwapW', 1)); row('Line', segEl('vwapStyle', [['solid', 'Solid'], ['dash', 'Dashed'], ['dot', 'Dotted']]))
@@ -11445,11 +11523,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const cc = document.createElement('label'); cc.className = 'swc'; cc.style.setProperty('--c', chDrawColor(d)); const ci = document.createElement('input'); ci.type = 'color'; ci.value = hex(chDrawColor(d)); ci.addEventListener('input', () => { d.color = ci.value; cc.style.setProperty('--c', d.color); chSave(); chSelBar(); chDraw() }); ci.addEventListener('change', () => chPush()); cc.appendChild(ci); sw.appendChild(cc)
         if (d.type === 'fib') { const b = document.createElement('button'); b.type = 'button'; b.className = 'sw pal' + (!d.color ? ' on' : ''); b.title = 'Level colours'; b.addEventListener('click', () => { mut(() => { d.color = '' }); chMenu('draw') }); sw.prepend(b) }
         row('Colour', sw)
-        const isLine = ['trend', 'ray', 'arrowline', 'hline', 'hray', 'vline', 'channel', 'fib', 'rect'].includes(d.type)
+        const isLine = ['trend', 'ray', 'arrowline', 'hline', 'hray', 'vline', 'xcross', 'channel', 'fib', 'fibext', 'rect', 'ellipse', 'avwap'].includes(d.type)
         if (d.type !== 'text' && d.type !== 'plabel') { const w = document.createElement('span'); w.className = 'ch-wsel'; [1, 2, 3, 4].forEach((wv) => { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `<i style="height:${wv}px"></i>`; b.classList.toggle('on', (d.w || 1) === wv); b.addEventListener('click', () => { mut(() => { d.w = wv }); w.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)) }); w.appendChild(b) }); row('Width', w) }
         if (isLine) { const s = document.createElement('span'); s.className = 'seg'; [['solid', 'Solid'], ['dash', 'Dashed'], ['dot', 'Dotted']].forEach(([v, t]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.classList.toggle('on', (d.dash || 'solid') === v); b.addEventListener('click', () => { mut(() => { d.dash = v }); s.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)) }); s.appendChild(b) }); row('Line', s) }
-        if (['trend', 'ray', 'channel', 'rect', 'fib'].includes(d.type)) { const wrap = document.createElement('div'); wrap.className = 'ctl'; const mk = (side, label) => { const l = document.createElement('label'); l.className = 'ch-chk'; const i = document.createElement('input'); i.type = 'checkbox'; i.checked = d.type === 'fib' && side === 'r' ? d.ext?.r !== false : !!d.ext?.[side]; i.addEventListener('change', () => mut(() => { d.ext = d.ext || {}; d.ext[side] = i.checked })); l.append(i, document.createTextNode(' ' + label)); return l }; wrap.append(mk('l', 'Left'), mk('r', 'Right')); row('Extend', wrap) }
-        if (['rect', 'fib', 'long', 'short', 'channel', 'range'].includes(d.type)) { const r = document.createElement('input'); r.type = 'range'; r.className = 'ch-range'; r.min = 0; r.max = 40; r.value = Math.round((d.fill ?? (d.type === 'fib' ? 0.06 : d.type === 'channel' ? 0.08 : d.type === 'rect' ? 0.1 : 0.14)) * 100); r.addEventListener('input', () => { d.fill = +r.value / 100; chSave(); chDraw() }); r.addEventListener('change', () => chPush()); row('Fill', r) }
+        if (['trend', 'ray', 'channel', 'rect', 'fib', 'fibext'].includes(d.type)) { const wrap = document.createElement('div'); wrap.className = 'ctl'; const mk = (side, label) => { const l = document.createElement('label'); l.className = 'ch-chk'; const i = document.createElement('input'); i.type = 'checkbox'; i.checked = d.type === 'fib' && side === 'r' ? d.ext?.r !== false : !!d.ext?.[side]; i.addEventListener('change', () => mut(() => { d.ext = d.ext || {}; d.ext[side] = i.checked })); l.append(i, document.createTextNode(' ' + label)); return l }; wrap.append(mk('l', 'Left'), mk('r', 'Right')); row('Extend', wrap) }
+        if (['rect', 'fib', 'fibext', 'long', 'short', 'channel', 'range', 'ellipse', 'hilite'].includes(d.type)) { const r = document.createElement('input'); r.type = 'range'; r.className = 'ch-range'; r.min = 0; r.max = 40; r.value = Math.round((d.fill ?? (d.type === 'fib' ? 0.06 : d.type === 'channel' ? 0.08 : d.type === 'rect' ? 0.1 : 0.14)) * 100); r.addEventListener('input', () => { d.fill = +r.value / 100; chSave(); chDraw() }); r.addEventListener('change', () => chPush()); row('Fill', r) }
         if (d.type === 'fib') toggleD(d, 'fibExt', 'Extension levels', '1.272, 1.618, 2, 2.618', mut)
         if (d.type === 'channel') toggleD(d, 'mid', 'Middle line', '', mut, true)
         if (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') toggleD(d, 'stats', 'Show stats', 'Change, bars and time when selected', mut, true)
@@ -11459,8 +11537,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const pad = (n) => String(n).padStart(2, '0'), toLocal = (t) => { const x = new Date(t * 1000); return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}T${pad(x.getHours())}:${pad(x.getMinutes())}` }
         const priceIn = (get, set) => { const i = document.createElement('input'); i.type = 'number'; i.className = 'inp'; i.step = 0.25; i.value = get(); i.style.width = '104px'; i.style.padding = '5px 7px'; i.style.fontSize = '12px'; i.addEventListener('change', () => { const v = +i.value; if (isFinite(v) && v > 0) mut(() => set(+v.toFixed(2))) }); return i }
         const timeIn = (get, set) => { const i = document.createElement('input'); i.type = 'datetime-local'; i.className = 'inp'; i.value = toLocal(get()); i.style.padding = '5px 7px'; i.style.fontSize = '12px'; i.addEventListener('change', () => { const t = new Date(i.value).getTime() / 1000; if (isFinite(t)) mut(() => set(Math.round(t))) }); return i }
-        const named = { long: ['Entry', 'End'], short: ['Entry', 'End'], channel: ['Point 1', 'Point 2', 'Offset'], fib: ['Start (1)', 'End (0)'] }[d.type]
-        d.p.forEach((q, k) => {
+        const named = { long: ['Entry', 'End'], short: ['Entry', 'End'], channel: ['Point 1', 'Point 2', 'Offset'], fib: ['Start (1)', 'End (0)'], fibext: ['A', 'B', 'C'], avwap: ['Anchor'] }[d.type]
+        if (d.type === 'brush' || d.type === 'hilite') hint(`${d.p.length} points from ${chFmtFull(d.p[0].t)}.`)
+        else d.p.forEach((q, k) => {
           const label = named ? named[k] : d.p.length === 1 ? 'Point' : `Point ${k + 1}`
           if (d.type !== 'vline' && !((d.type === 'long' || d.type === 'short') && k === 1)) row(`${label} price`, priceIn(() => q.p, (v) => { q.p = v; if ((d.type === 'long' || d.type === 'short') && k === 0) d.p[1].p = v }))
           if (d.type !== 'hline' && d.type !== 'hray') row(`${label} time`, timeIn(() => q.t, (v) => { q.t = v }))

@@ -163,7 +163,7 @@ async function run(vpName) {
       const fly = await page.evaluate(() => ({ open: !document.getElementById("ch-fly").hidden, n: document.querySelectorAll("#ch-fly button").length }));
       await page.click('#ch-fly button[data-tool="hray"]'); await page.waitForTimeout(150);
       const main = await page.evaluate(() => document.querySelector('.ch-tg[data-group="lines"] button[data-tool]').dataset.tool);
-      check(fly.open && fly.n === 7 && main === "hray", `lines flyout lists 7 tools, picking one swaps the group button (${main})`);
+      check(fly.open && fly.n === 8 && main === "hray", `lines flyout lists 8 tools, picking one swaps the group button (${main})`);
       await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-flyout.png` });
       note("debug before click: tool " + await page.evaluate(() => window.__CH.tool + " pending " + !!window.__CH.pending + " editing " + !!window.__CH.editing + " types " + window.__CH.drawings.map((d) => d.type).join(",")));
       await page.mouse.click(box.x + box.width * 0.25, cy - 30); await page.waitForTimeout(150);   // a horizontal ray
