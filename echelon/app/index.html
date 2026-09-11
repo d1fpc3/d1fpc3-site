@@ -10038,7 +10038,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     { const saved = localStorage.getItem('echelon-chart-tf'); for (const label of CH.s.customTfs || []) { const m = /^(\d+)([mhDW])$/.exec(label); if (m && !CH_TF[label]) { const mins = m[2] === 'h' ? +m[1] * 60 : m[2] === 'D' ? +m[1] * 1440 : m[2] === 'W' ? +m[1] * 10080 : +m[1]; CH_TF[label] = [mins >= 1440 ? '1d' : mins % 60 === 0 ? '60m' : mins % 5 === 0 ? '5m' : '1m', mins] } } if (saved && CH_TF[saved]) CH.tf = saved }
     const chSave = () => { try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)); localStorage.setItem('echelon-chart-drawings', JSON.stringify(CH.drawings, (k, v) => k.startsWith('_') ? undefined : v)) } catch {} }
     window.__CH = CH   // read-only peek for the console and the harness
-    CH.$ = { pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck() }
+    CH.$ = { build: () => chBuild(), paint: () => chPaint(), pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck() }
     // undo and redo keep whole snapshots of the drawings; cheap at this size
     const chSnapshot = () => JSON.stringify(CH.drawings)
     function chPush() { CH.hist.push(chSnapshot()); if (CH.hist.length > 60) CH.hist.shift(); CH.redo = []; chHistUi() }
@@ -10058,7 +10058,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       return v
     }
-    const chWall = (t) => CH.s.tz === 'local' ? t - new Date(t * 1000).getTimezoneOffset() * 60 : t + chEtOff(t)
+    const CH_ZONES = [['ET', 'New York', 'NY'], ['America/Chicago', 'Chicago', 'CHI'], ['America/Los_Angeles', 'Los Angeles', 'LA'], ['UTC', 'UTC', 'UTC'], ['Europe/London', 'London', 'LON'], ['Europe/Berlin', 'Berlin', 'BER'], ['Asia/Dubai', 'Dubai', 'DXB'], ['Asia/Kolkata', 'Mumbai', 'BOM'], ['Asia/Singapore', 'Singapore', 'SIN'], ['Asia/Tokyo', 'Tokyo', 'TYO'], ['Australia/Sydney', 'Sydney', 'SYD'], ['local', 'Your clock', 'Local']]
+    const chZoneCache = new Map()
+    function chZoneOff(t) {   // seconds to add to a UTC epoch to land on the chosen display clock
+      const tz = CH.s.tz || 'ET'
+      if (tz === 'ET') return chEtOff(t)
+      if (tz === 'local') return -new Date(t * 1000).getTimezoneOffset() * 60
+      const k = tz + '|' + Math.floor(t / 86400); let v = chZoneCache.get(k)
+      if (v == null) { try { const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'longOffset' }).formatToParts(new Date(t * 1000)); const s = parts.find((p) => p.type === 'timeZoneName')?.value || 'GMT+00:00'; const m = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(s); v = m ? (m[1] === '-' ? -1 : 1) * ((+m[2]) * 3600 + (+(m[3] || 0)) * 60) : 0 } catch { v = 0 } chZoneCache.set(k, v) }
+      return v
+    }
+    const chZoneIana = () => CH.s.tz === 'ET' ? 'America/New_York' : CH.s.tz === 'local' ? undefined : CH.s.tz
+    const chWall = (t) => t + chZoneOff(t)
     const chMin = (t) => Math.floor(((t + chEtOff(t)) % 86400 + 86400) % 86400 / 60)   // ET minute of day
     const chSessionKey = (t) => Math.floor((t + chEtOff(t) + 6 * 3600) / 86400)          // 18:00 ET rolls to the next day
     const chFmtTime = (t) => { const w = chWall(t), m = Math.floor((w % 86400 + 86400) % 86400 / 60); const h = Math.floor(m / 60), mm = m % 60; return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}` }
@@ -10066,7 +10077,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const chWallParts = (t) => { const d = new Date(chWall(t) * 1000); return { y: d.getUTCFullYear(), mo: d.getUTCMonth(), d: d.getUTCDate(), wd: d.getUTCDay() } }
     const chFmtAxisDay = (t) => { const p = chWallParts(t); return `${p.d} ${CH_MON[p.mo]}` }
     const chFmtFull = (t) => { const p = chWallParts(t); return `${CH_WD[p.wd]} ${String(p.d).padStart(2, '0')} ${CH_MON[p.mo]} '${String(p.y).slice(2)}${CH.tfSec >= 86400 ? '' : '  ' + chFmtTime(t)}` }
-    const chFmtDate = (t, long = false) => new Date(t * 1000).toLocaleDateString('en-US', { timeZone: CH.s.tz === 'local' ? undefined : 'America/New_York', month: 'short', day: 'numeric', ...(long ? { weekday: 'short', year: 'numeric' } : {}) })
+    const chFmtDate = (t, long = false) => new Date(t * 1000).toLocaleDateString('en-US', { timeZone: chZoneIana(), month: 'short', day: 'numeric', ...(long ? { weekday: 'short', year: 'numeric' } : {}) })
     const chPx = (v, d = 2) => v == null || isNaN(v) ? '' : Number(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
     const chPts = (v) => (v < 0 ? '−' : '+') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 })
 
@@ -10502,6 +10513,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (S.bg2) { const gr = ctx.createLinearGradient(0, 0, 0, L.H); gr.addColorStop(0, BG); gr.addColorStop(1, S.bg2); ctx.fillStyle = gr } else ctx.fillStyle = BG
       ctx.fillRect(0, 0, L.W, L.H)
       const { bars, n, i0, i1 } = chRange(L)
+      if (n && i0 < 400) chMoreHistory(L)   // near the left edge: page older bars in, whatever moved the view
       chAutoScale(L)
       ctx.font = `11px ${GEX_FONT}`; ctx.textBaseline = 'middle'
       if (!n) { ctx.fillStyle = T.faint; ctx.textAlign = 'center'; ctx.fillText(CH.err ? `The tape is not answering: ${CH.err}` : 'Loading the archive…', L.plotW / 2, L.mainH / 2); return }
@@ -10538,7 +10550,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const dayKey = p.y * 400 + p.mo * 32 + p.d, monKey = p.y * 12 + p.mo
           const dayTurn = prev != null && dayKey !== prev.dayKey, monTurn = prev != null && monKey !== prev.monKey, yearTurn = prev != null && p.y !== prev.y
           let text = null, strong = false
-          if (CH.tfSec >= 86400) { if (yearTurn) { text = String(p.y); strong = true } else if (monTurn) { text = CH_MON[p.mo]; strong = true } else if (snap < 86400 * 7 && p.d % (CH.barW > 18 ? 1 : CH.barW > 9 ? 5 : 10) === 0 && CH.barW > 6) text = String(p.d) }
+          const dpl = secsPerLabel / 86400
+          if (CH.tfSec < 86400 && dpl >= 1) {
+            if (yearTurn) { text = String(p.y); strong = true }
+            else if (monTurn) { text = CH_MON[p.mo]; strong = true }
+            else if (dpl < 25 && dayTurn) { const step = dpl >= 10 ? 10 : dpl >= 4 ? 5 : dpl >= 2 ? 2 : 1; if (p.d % step === 0 && p.d !== 30) text = String(p.d) }
+          }
+          else if (CH.tfSec >= 86400) { if (yearTurn) { text = String(p.y); strong = true } else if (monTurn) { text = CH_MON[p.mo]; strong = true } else if (snap < 86400 * 7 && p.d % (CH.barW > 18 ? 1 : CH.barW > 9 ? 5 : 10) === 0 && CH.barW > 6) text = String(p.d) }
           else if (dayTurn) { text = yearTurn ? String(p.y) : monTurn ? CH_MON[p.mo] : chFmtAxisDay(t); strong = true }
           else if (w % snap === 0) text = chFmtTime(t)
           prev = { dayKey, monKey, y: p.y }
@@ -11336,9 +11354,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     /* ── alerts: a price, a direction, one shot; checked on every tail ── */
     const chLastClose = () => { const b = CH.bars[CH.bars.length - 1]; return b ? b.c : null }
-    function chAlertAdd(price, note = '') {
+    // a line's price at the last bar: horizontal lines are flat, sloped lines are read where the newest bar sits
+    function chLinePrice(d) {
+      if (!d || d.hidden) return null
+      if (d.type === 'hline' || d.type === 'hray' || d.type === 'plabel' || d.type === 'xcross') return d.p[0].p
+      if ((d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') && d.p.length === 2) { const i0 = chIofT(d.p[0].t), i1 = chIofT(d.p[1].t), n = chVisible().length; if (i1 === i0) return d.p[1].p; const k = (d.p[1].p - d.p[0].p) / (i1 - i0); return +(d.p[0].p + k * (n - 1 - i0)).toFixed(2) }
+      if (d.type === 'long' || d.type === 'short') return d.p[0].p
+      return null
+    }
+    function chAlertAdd(price, note = '', drawingId = null) {
       const last = chLastClose(); if (last == null || !(price > 0)) return
-      const a = { id: chId(), price: +(+price).toFixed(2), above: last <= price, created: Date.now(), fired: null, note }
+      const a = { id: chId(), price: +(+price).toFixed(2), above: last <= price, created: Date.now(), fired: null, note, drawingId }
       CH.alerts.push(a); chSaveAlerts(); chAlertsUi(); chDraw()
       toast(`Alert set: NQ crossing ${a.above ? 'up through' : 'down through'} ${chPx(a.price)}.`, 3000)
       if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {})
@@ -11346,7 +11372,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chAlertsCheck() {
       const last = chLastClose(); if (last == null) return
       let hit = false
-      for (const a of CH.alerts) { if (a.fired) continue; if ((a.above && last >= a.price) || (!a.above && last <= a.price)) { a.fired = Date.now(); hit = true; chAlertFire(a, last) } }
+      for (const a of CH.alerts) {
+        if (a.fired) continue
+        if (a.drawingId) { const d = CH.drawings.find((x) => x.id === a.drawingId); const p = chLinePrice(d); if (p == null) { a.fired = Date.now(); a.note = (a.note ? a.note + ' · ' : '') + 'line removed'; hit = true; continue } if (p !== a.price) { a.price = p; hit = true } }
+        if ((a.above && last >= a.price) || (!a.above && last <= a.price)) { a.fired = Date.now(); hit = true; chAlertFire(a, last) }
+      }
       if (hit) { chSaveAlerts(); chAlertsUi() }
     }
     function chAlertFire(a, last) {
@@ -11359,6 +11389,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chPaintAlerts(ctx, L, T, light) {
       CH.alertTags = []
       for (const a of CH.alerts) {
+        if (a.drawingId && !a.fired) { const p = chLinePrice(CH.drawings.find((x) => x.id === a.drawingId)); if (p != null) a.price = p }
         const y = chY(a.price, L); if (y < 0 || y > L.mainH) continue
         const c = a.fired ? (light ? '#8a847a' : '#6b665e') : T.gold, yy = Math.round(y) + 0.5
         ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip(); ctx.strokeStyle = alpha(c, a.fired ? 0.35 : 0.6); ctx.setLineDash([2, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(L.plotW, yy); ctx.stroke(); ctx.setLineDash([]); ctx.restore()
@@ -11396,17 +11427,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           { label: 'Reset price scale', fn: () => { CH.auto = true; chDraw() } }, { label: 'Auto scale (fits data)', check: CH.auto, fn: () => { CH.auto = !CH.auto; chDraw() } }, { sep: true },
           { label: 'Indicator labels', check: CH.s.axisInd !== false, fn: () => { CH.s.axisInd = CH.s.axisInd === false; chSave(); chDraw() } }, { label: 'Bar countdown', check: CH.s.countdown !== false, fn: () => { CH.s.countdown = CH.s.countdown === false; chSave(); chDraw() } }, { label: 'Last price line', check: !!CH.s.lastLine, fn: () => { CH.s.lastLine = !CH.s.lastLine; chSave(); chDraw() } }]
       }
-      if (zone === 'time') return [{ label: 'Reset time scale', fn: () => { CH.barW = 9; CH.offset = 6; chDraw() } }, { label: 'Go to date…', kbd: 'Alt+G', fn: chGotoOpen }, { sep: true }, { label: 'New York time', check: CH.s.tz !== 'local', fn: () => { CH.s.tz = 'ET'; chSave(); chTzLabel(); chDraw() } }, { label: 'Your clock', check: CH.s.tz === 'local', fn: () => { CH.s.tz = 'local'; chSave(); chTzLabel(); chDraw() } }]
+      if (zone === 'time') return [{ label: 'Reset time scale', fn: () => { CH.barW = 9; CH.offset = 6; chDraw() } }, { label: 'Go to date…', kbd: 'Alt+G', fn: chGotoOpen }, { sep: true }, { label: 'Timezone…', fn: chTzMenu }]
       const hit = CH.hideDr ? null : chHit(p.x, p.y, L)
       if (hit) {
         const d = hit.d; CH.sel = d; chSelBar(); chDraw()
-        const lvl = (d.type === 'hline' || d.type === 'hray' || d.type === 'plabel') ? d.p[0].p : (d.type === 'long' || d.type === 'short') ? d.p[0].p : price
+        const lineP = chLinePrice(d), lvl = lineP != null ? lineP : price
         return [{ label: 'Settings…', fn: () => chMenu('draw') }, { sep: true },
           { label: 'Clone', kbd: 'Ctrl+D', fn: chDuplicateSel }, { label: 'Copy', kbd: 'Ctrl+C', fn: chCopySel }, { sep: true },
           { label: d.lock ? 'Unlock' : 'Lock', fn: () => { chPush(); d.lock = !d.lock; chSave(); chSelBar(); chLockAllUi(); chDraw() } },
           { label: 'Hide', fn: () => { chPush(); d.hidden = true; CH.sel = null; chSave(); chSelBar(); chDraw() } },
           { label: 'Bring to front', fn: () => chZ(d, 1) }, { label: 'Send to back', fn: () => chZ(d, -1) }, { sep: true },
-          { label: `Add alert at ${chPx(lvl)}`, fn: () => chAlertAdd(lvl, CH_TOOL_NAMES[d.type]) }, { sep: true },
+          lineP != null ? { label: `Alert when price crosses this ${(CH_TOOL_NAMES[d.type] || 'line').toLowerCase()}`, fn: () => chAlertAdd(lineP, CH_TOOL_NAMES[d.type], d.id) } : { label: `Add alert at ${chPx(lvl)}`, fn: () => chAlertAdd(lvl, CH_TOOL_NAMES[d.type]) }, { sep: true },
           { label: 'Remove', kbd: 'Del', danger: true, fn: chDeleteSel }]
       }
       const al = chAlertHitPlot(p.y, L), hiddenN = CH.drawings.filter((d) => d.hidden).length, allLocked = CH.drawings.length > 0 && CH.drawings.every((d) => d.lock)
@@ -11524,7 +11555,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const p = pos(e); const L = chLayout()
         CH.ctrl = e.ctrlKey || e.metaKey; CH.shift = !!e.shiftKey
         if (CH.pointers.has(e.pointerId)) CH.pointers.set(e.pointerId, p)
-        if (CH.pinch && CH.pointers.size === 2) { const [a, b] = [...CH.pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); const bw = Math.max(1.5, Math.min(60, CH.pinch.barW * d / Math.max(CH.pinch.d, 1))); const mid = (a.x + b.x) / 2; CH.barW = bw; const n = chVisible().length; CH.offset = CH.pinch.i - (n - 1) + (L.plotW - mid) / bw - 0.5; chDraw(); return }
+        if (CH.pinch && CH.pointers.size === 2) { const [a, b] = [...CH.pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); const bw = Math.max(CH_MIN_BW, Math.min(60, CH.pinch.barW * d / Math.max(CH.pinch.d, 1))); const mid = (a.x + b.x) / 2; CH.barW = bw; const n = chVisible().length; CH.offset = CH.pinch.i - (n - 1) + (L.plotW - mid) / bw - 0.5; chDraw(); return }
         CH.hover = p
         const dg = CH.drag
         if (dg) {
@@ -11534,7 +11565,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (dg.zone === 'plot' && CH.tool === 'cross') { dg.samples = dg.samples || []; dg.samples.push({ t: performance.now(), x: p.x }); if (dg.samples.length > 6) dg.samples.shift() }
           if (dg.sep) { const dir = dg.sep === 'vol' ? -1 : -1; const frac = Math.max(0.06, Math.min(0.45, dg.frac0 + dir * dy / dg.plotH)); if (dg.sep === 'vol') CH.s.volFrac = frac; else CH.s.paneFrac = frac; cv.style.cursor = 'row-resize'; chDraw(); return }
           if (dg.zone === 'price') { if (!CH.auto && !dg.manual) {} CH.auto = false; dg.manual = true; const c = (dg.pMin + dg.pMax) / 2, r = (dg.pMax - dg.pMin) / 2 * Math.exp(dy * 0.006); CH.pMin = c - r; CH.pMax = c + r; chDraw(); return }
-          if (dg.zone === 'time') { CH.barW = Math.max(1.5, Math.min(60, dg.barW * Math.exp(-dx * 0.005))); chDraw(); return }
+          if (dg.zone === 'time') { CH.barW = Math.max(CH_MIN_BW, Math.min(60, dg.barW * Math.exp(-dx * 0.005))); chClampOffset(L); chDraw(); return }
           if (dg.move) {
             const { d, handle, p0, pt } = dg.move; if (!dg.move.pushed && dg.moved) { dg.move.pushed = true; chPush() }
             // a handle lands exactly where the pointer (or the magnet) says; a body moves by the pointer's delta
@@ -11610,7 +11641,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         e.preventDefault(); const p = pos(e), L = chLayout()
         if (p.x > L.plotW) { CH.auto = false; const c = (CH.pMin + CH.pMax) / 2, r = (CH.pMax - CH.pMin) / 2 * Math.exp(e.deltaY * 0.0015); CH.pMin = c - r; CH.pMax = c + r; chDraw(); return }
         if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) { CH.offset -= (e.deltaX || e.deltaY) / CH.barW; chClampOffset(L); chDraw(); return }
-        const i = chI(p.x, L); const bw = Math.max(1.5, Math.min(60, CH.barW * Math.exp(-e.deltaY * 0.0015)))
+        const i = chI(p.x, L); const bw = Math.max(CH_MIN_BW, Math.min(60, CH.barW * Math.exp(-e.deltaY * 0.0015)))
         CH.barW = bw; const n = chVisible().length; CH.offset = i - (n - 1) + (L.plotW - p.x) / bw - 0.5; chClampOffset(L); chDraw()
       }, { passive: false })
       new ResizeObserver(() => chDraw()).observe(stage)
@@ -11649,7 +11680,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (e.key === 'ArrowLeft') { CH.offset += e.shiftKey ? 20 : 5; chClampOffset(L); chDraw() }
         else if (e.key === 'ArrowRight') { CH.offset -= e.shiftKey ? 20 : 5; chClampOffset(L); chDraw() }
         else if (e.key === '+' || e.key === '=') { CH.barW = Math.min(60, CH.barW * 1.2); chDraw() }
-        else if (e.key === '-' || e.key === '_') { CH.barW = Math.max(1.5, CH.barW / 1.2); chDraw() }
+        else if (e.key === '-' || e.key === '_') { CH.barW = Math.max(CH_MIN_BW, CH.barW / 1.2); chClampOffset(L); chDraw() }
         else if (e.key === 'Home') { CH.offset = 6; chDraw() }
         else if (e.key === 'Escape') { CH.pending = null; CH.measure = null; CH.sel = null; CH.multi.clear(); CH.replay.arm = false; CH.toolLock = false; chSetTool('cross'); chMenu(null); chSelBar(); chReplayUi() }
         else if (e.key === 'Enter' && CH.pending && CH.pending.type === 'path') { CH.pending.p.pop(); chPendingCommit() }
@@ -11703,7 +11734,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chTextDone(true) } else if (e.key === 'Escape') { e.preventDefault(); chTextDone(false) } e.stopPropagation() })
       ta.addEventListener('blur', () => { if (CH.editing) chTextDone(true) })
       el('ch-latest').addEventListener('click', () => { CH.offset = 6; CH.auto = true; chDraw() })
-      el('ch-tz').addEventListener('click', () => { CH.s.tz = CH.s.tz === 'local' ? 'ET' : 'local'; chSave(); chTzLabel(); chDraw() })
+      el('ch-tz').addEventListener('click', (e) => { e.stopPropagation(); chTzMenu() })
       el('ch-goto').addEventListener('click', (e) => { e.stopPropagation(); if (el('ch-goto-pop').hidden) chGotoOpen(); else el('ch-goto-pop').hidden = true })
       el('ch-goto-go').addEventListener('click', () => { const v = el('ch-goto-in').value; if (!v) return; el('ch-goto-pop').hidden = true; chGoTo(new Date(v).getTime() / 1000) })
       el('ch-goto-in').addEventListener('keydown', (e) => { if (e.key === 'Enter') el('ch-goto-go').click(); if (e.key === 'Escape') el('ch-goto-pop').hidden = true; e.stopPropagation() })
@@ -11733,7 +11764,24 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       document.addEventListener('click', (e) => { if (!CH.menu) return; const path = e.composedPath(); if (path.some((n) => ['ch-menu', 'ch-ctx', 'ch-selbar', 'ch-textin', 'ch-legend', 'ch-fly', 'ch-goto-pop'].includes(n.id) || (n.classList && n.classList.contains('ch-bar')))) return; chMenu(null) })
       document.addEventListener('visibilitychange', () => { if (!document.hidden && CH.on) chTick() })
     }
-    function chClampOffset(L) { const n = chVisible().length; const vis = L.plotW / CH.barW; CH.offset = Math.max(-(n - 1) + Math.min(5, n - 1), Math.min(vis - 3, CH.offset)) }
+    const CH_MIN_BW = 0.35
+    function chClampOffset(L) { const n = chVisible().length; const vis = L.plotW / CH.barW; CH.offset = Math.max(-(n - 1) + Math.min(5, n - 1), Math.min(vis - 3, CH.offset)); chMoreHistory(L) }
+    // the platform loads older bars as you reach the left edge; the fine sources page back through the archive
+    async function chMoreHistory(L) {
+      const [src] = CH_TF[CH.tf]; if (src === '60m' || src === '1d') return
+      const base = CH.base[src]; if (!base?.length || CH.have[src] !== true || CH.reach?.[src] === 'end' || CH.moreBusy) return
+      const n = chVisible().length, i0 = Math.floor(chI(0, L))
+      if (i0 > 400) return
+      CH.moreBusy = true; chBusy(1)
+      try {
+        const first = base[0][0], days = CH_SPAN[src] * (window.innerWidth < 520 ? 0.5 : 1)
+        const from = new Date((first - days * 86400) * 1000).toISOString().slice(0, 10), to = new Date(first * 1000).toISOString().slice(0, 10)
+        const j = await chFetch(`interval=${src}&from=${from}&to=${to}`)
+        const older = (j.bars || []).filter((b) => b[0] < first)
+        if (!older.length) { CH.reach = CH.reach || {}; CH.reach[src] = 'end' }
+        else { CH.base[src] = chMerge(base, older); chBuild(); chDraw() }
+      } catch {} finally { chBusy(-1); CH.moreBusy = false }
+    }
     function chSetTf(tf) {
       if (!CH_TF[tf]) return
       // keep the time under the right edge where it is
@@ -11972,7 +12020,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         header('Drawing')
         row('Magnet', segEl('magnet', [['off', 'Off'], ['weak', 'Weak'], ['strong', 'Strong']], chMagnetUi), 'Snap points to O H L C. Hold Ctrl for strong.')
         header('Time')
-        row('Timezone', seg('tz', [['ET', 'New York'], ['local', 'Your clock']], chTzLabel))
+        { const sel = document.createElement('select'); sel.className = 'inp'; sel.style.padding = '6px 8px'; sel.style.fontSize = '12.5px'; for (const [k, name] of CH_ZONES) { const o = document.createElement('option'); o.value = k; o.textContent = name; o.selected = S.tz === k; sel.appendChild(o) } sel.addEventListener('change', () => { S.tz = sel.value; chZoneCache.clear(); chSave(); chTzLabel(); chDraw() }); row('Timezone', sel, 'The clock on the time scale; sessions still bucket on New York') }
         button('Reset everything to the defaults', () => { const keep = { tz: S.tz }; CH.s = { ...CH_DEFAULTS, ...keep, ma: CH_MA_DEFAULT() }; chSave(); chMagnetUi(); chDraw(); chMenu('settings') })
       }
       m.hidden = false; body.scrollTop = 0
@@ -12003,11 +12051,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     window.addEventListener('resize', () => { if (CH.on) { chFit(); chDraw() } })
     function chTzLabel() {
       const b = el('ch-tz'); if (!b) return
-      const now = Date.now() / 1000
-      const off = CH.s.tz === 'local' ? -new Date().getTimezoneOffset() / 60 : chEtOff(now) / 3600
-      const sign = off >= 0 ? '+' : '−'
-      b.textContent = `${CH.s.tz === 'local' ? 'Local' : 'NY'} UTC${sign}${Math.abs(off)}`
-      b.title = CH.s.tz === 'local' ? 'Showing your clock. Click for New York time.' : 'Showing New York time. Click for your clock.'
+      if (!CH_ZONES.some((z) => z[0] === CH.s.tz)) CH.s.tz = 'ET'
+      const now = Date.now() / 1000, off = chZoneOff(now) / 3600, sign = off >= 0 ? '+' : '−'
+      const z = CH_ZONES.find((x) => x[0] === CH.s.tz)
+      b.textContent = `${z[2]} UTC${sign}${Math.abs(off) % 1 ? Math.abs(off).toFixed(1) : Math.abs(off)}`
+      b.title = `Clock: ${z[1]}. Click to pick a timezone.`
+    }
+    function chTzMenu() {
+      const st = el('ch-stage').getBoundingClientRect(), b = el('ch-tz').getBoundingClientRect()
+      chCtx(CH_ZONES.map(([k, name]) => ({ label: name, check: CH.s.tz === k, fn: () => { CH.s.tz = k; chZoneCache.clear(); chSave(); chTzLabel(); chDraw(); if (CH.menu === 'settings') chMenu('settings') } })), b.left - st.left - 150, b.top - st.top - 12 * CH_ZONES.length - 60)
     }
     async function chartShown() {
       CH.on = true; chWire(); chFit(); chTzLabel()

@@ -177,7 +177,7 @@ async function run(vpName) {
       const hl = await page.evaluate(() => { const CH = window.__CH; const d = CH.drawings.find((x) => x.type === "hline"); return CH.$.pt(d.p[0].t, d.p[0].p); });
       await page.mouse.click(box.x + box.width * 0.15, box.y + hl.y, { button: "right" }); await page.waitForTimeout(150);
       const ctx = await page.evaluate(() => ({ open: !document.getElementById("ch-ctx").hidden, items: [...document.querySelectorAll("#ch-ctx .it .lb")].map((x) => x.textContent) }));
-      check(ctx.open && ctx.items.includes("Clone") && ctx.items.some((x) => /Add alert/.test(x)), `context menu on a drawing: ${ctx.items.slice(0, 5).join(" · ")}`);
+      check(ctx.open && ctx.items.includes("Clone") && ctx.items.some((x) => /alert/i.test(x)), `context menu on a drawing: ${ctx.items.slice(0, 5).join(" · ")}`);
       await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-ctx.png` });
       await page.evaluate(() => [...document.querySelectorAll("#ch-ctx .it")].find((b) => /Settings/.test(b.textContent)).click()); await page.waitForTimeout(200);
       st = await state(page);
@@ -383,7 +383,7 @@ async function run(vpName) {
     // legend rows: hovering the averages row reveals its icons; the eye turns the study off
     await page.click("#ch-menu-close"); await page.waitForTimeout(100);
     const rows = await page.evaluate(() => document.querySelectorAll("#ch-legend .ln").length);
-    await page.hover('#ch-legend .ln[data-ind="ma"]'); await page.waitForTimeout(150);
+    await page.hover('#ch-legend .ln[data-ind="ma"]'); await page.waitForTimeout(200); await page.hover('#ch-legend .ln[data-ind="ma"] .nm, #ch-legend .ln[data-ind="ma"] span'); await page.waitForTimeout(200);   // the live tape re-renders the row; hover again before reading
     const icOpacity = await page.evaluate(() => getComputedStyle(document.querySelector('#ch-legend .ln[data-ind="ma"] .ic')).opacity);
     await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-legend-rows.png` });
     await page.click('#ch-legend .ln[data-ind="ma"] button[data-act="eye"]'); await page.waitForTimeout(200);
@@ -400,10 +400,11 @@ async function run(vpName) {
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-indicators.png` });
   // timezone corner flips the clock
   const tz0 = await page.evaluate(() => document.getElementById("ch-tz").textContent);
-  await page.click("#ch-tz"); await page.waitForTimeout(200);
+  await page.click("#ch-tz"); await page.waitForTimeout(200);   // the corner opens the timezone list
+  await page.evaluate(() => [...document.querySelectorAll("#ch-ctx .it")].find((x) => /London/.test(x.textContent)).click()); await page.waitForTimeout(200);
   const tz1 = await page.evaluate(() => document.getElementById("ch-tz").textContent);
-  check(tz0 !== tz1 && /UTC/.test(tz1), `timezone corner: "${tz0}" -> "${tz1}"`);
-  await page.click("#ch-tz");
+  check(tz0 !== tz1 && /LON/.test(tz1), `timezone corner: "${tz0}" -> "${tz1}"`);
+  await page.click("#ch-tz"); await page.waitForTimeout(150); await page.evaluate(() => [...document.querySelectorAll("#ch-ctx .it")].find((x) => /New York/.test(x.textContent)).click()); await page.waitForTimeout(150);
   // the volume pane closes from its own ×
   {
     const b2 = await (await page.$("#ch-canvas")).boundingBox();
