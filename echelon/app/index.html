@@ -297,7 +297,17 @@
     @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
     @keyframes viewin { from { opacity: 0; transform: translateY(10px); } }
     @keyframes pagein { from { opacity: 0; transform: translateX(20px); } }
-    @media (prefers-reduced-motion: reduce) { .view.on, .view.setpage.on { animation: none; } }
+    @keyframes pageback { from { opacity: 0; transform: translateX(-18px); } }
+    .view.on.back { animation: pageback 0.3s cubic-bezier(0.22, 0.7, 0.2, 1); }
+    /* edge-swipe back on a sub-page: the page follows the finger (no transition),
+       then either pops off to the right or settles back on a spring-ish ease */
+    .view.setpage.dragging { transition: none; }
+    .view.setpage.popping { transition: transform 0.24s cubic-bezier(0.4, 0, 0.6, 1), opacity 0.24s ease; }
+    .view.setpage.settle { transition: transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    /* overlays that used to snap in: scrim fades, the sheet grows from 0.96 */
+    @keyframes scrim-in { from { opacity: 0; } }
+    @keyframes sheet-in { from { opacity: 0; transform: scale(0.96) translateY(10px); } }
+    @media (prefers-reduced-motion: reduce) { .view.on, .view.setpage.on, .view.on.back { animation: none; } }
 
     .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
     @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } }
@@ -391,7 +401,8 @@
     #gex-whatis { background: none; border: 0; outline: none; color: var(--muted); font-family: inherit; font-size: 12.5px; cursor: pointer; padding: 0; }
     #gex-whatis:hover { color: var(--ink); text-decoration: underline; }
     .ga-scrim{position:fixed;inset:0;z-index:190;background:rgba(6,5,4,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
-    .ga-scrim.on{display:flex}
+    .ga-scrim.on{display:flex;animation:scrim-in .22s ease}
+    .ga-scrim.on .gex-about{animation:sheet-in .32s cubic-bezier(.2,.8,.2,1)}
     .ga-scrim .gex-about{position:relative;margin:0;width:100%;max-width:720px;max-height:84vh;overflow:auto;background:var(--panel);border:1px solid var(--line-bright);border-radius:16px}
     .gex-about { margin-top: 26px; }
     .ga-rows { padding: 0 18px 6px; }
@@ -418,9 +429,11 @@
     .rowbtn {
       background: var(--panel-2); border: 1px solid var(--line-bright); border-radius: 7px;
       color: var(--muted); font-family: inherit; font-size: 12px; padding: 6px 12px; cursor: pointer;
-      transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+      transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, transform 0.3s cubic-bezier(.2,.8,.2,1);
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
-    .rowbtn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+    @media (hover: hover) { .rowbtn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); } }
+    .rowbtn:active:not(:disabled) { transform: scale(0.97); transition-duration: 0.06s; }
     .rowbtn:disabled { opacity: 0.4; cursor: default; }
 
     .empty { padding: 34px 18px; text-align: center; color: var(--faint); font-size: 13.5px; }
@@ -430,10 +443,11 @@
       padding: 10px 18px; background: linear-gradient(135deg, var(--gold), var(--gold-deep));
       color: #1a1207; border: 0; border-radius: 9px;
       font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
-      transition: filter 0.18s ease, transform 0.15s ease;
-      text-decoration: none;
+      transition: filter 0.18s ease, transform 0.3s cubic-bezier(.2,.8,.2,1);
+      text-decoration: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
-    .btn:hover:not(:disabled) { filter: brightness(1.07); transform: translateY(-1px); }
+    @media (hover: hover) { .btn:hover:not(:disabled) { filter: brightness(1.07); transform: translateY(-1px); } }
+    .btn:active:not(:disabled) { transform: scale(0.97); filter: brightness(0.94); transition-duration: 0.06s; }
     .btn:disabled { opacity: 0.5; cursor: default; }
 
     /* ── course: toc rail + lesson pane ──────────────────────── */
@@ -1679,7 +1693,12 @@
     body.in-chart .pm-stack { display: none; }
     .nextup { transition: opacity 0.2s ease; }
     body.ptr-pulling .nextup, body.ptr-busy .nextup { opacity: 0; pointer-events: none; }   /* the pull disc rests where it sits */
-    .nu-pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line-bright); background: var(--panel); color: var(--ink); font: inherit; font-size: 12.5px; cursor: pointer; box-shadow: 0 8px 26px -10px rgba(0,0,0,0.4); -webkit-tap-highlight-color: transparent; }
+    .nu-pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line-bright); background: var(--panel); color: var(--ink); font: inherit; font-size: 12.5px; cursor: pointer; box-shadow: 0 8px 26px -10px rgba(0,0,0,0.4); -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: transform 0.3s cubic-bezier(.2,.8,.2,1); }
+    .nu-pill:active { transform: scale(0.96); transition-duration: 0.06s; }
+    @media (max-width: 840px) {
+      /* phones: the pill sits just above the tab bar instead of over the page title; the panel opens upward */
+      .nextup { top: auto; bottom: calc(var(--bnav, 0px) + 12px); flex-direction: column-reverse; }
+    }
     .nu-pill b { font-weight: 650; }
     .nu-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
     .nu-count { color: var(--faint); font-size: 11.5px; }
@@ -2561,7 +2580,8 @@
     @media (min-width: 841px) { body.in-chat .pm-stack { bottom: 96px; } }
     /* phones: three little chips in one row above the bottom nav, never a wall of cards */
     @media (max-width: 640px) {
-      .pm-stack { left: 10px; right: 10px; width: auto; flex-direction: row; gap: 6px; bottom: calc(8px + var(--bnav, 0px)); }
+      /* docked in the Overview flow (JS moves the node there), never floating over a lesson or a chat */
+      .pm-stack { position: static; width: auto; flex-direction: row; gap: 6px; margin: 22px 0 2px; pointer-events: auto; }
       .pm-card { flex: 1 1 auto; min-width: 0; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); transform: translateY(calc(100% + 24px)); }
       .pm-card.on { transform: none; }
       .pm-card.off { transform: translateY(calc(100% + 24px)); }
@@ -3711,7 +3731,8 @@
 
   <style>
     .co-scrim{position:fixed;inset:0;z-index:200;background:rgba(6,5,4,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
-    .co-scrim.on{display:flex}
+    .co-scrim.on{display:flex;animation:scrim-in .22s ease}
+    .co-scrim.on .co-panel{animation:sheet-in .32s cubic-bezier(.2,.8,.2,1)}
     .co-panel{position:relative;width:100%;max-width:480px;background:#fff;border-radius:16px;box-shadow:0 30px 80px -20px rgba(0,0,0,.6);overflow:hidden}
     .co-top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#0b0a09;color:#f2ede3}
     .co-top b{font-size:13px;letter-spacing: 0.02em;font-weight:650}
@@ -3931,6 +3952,17 @@
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
     const el = (id) => document.getElementById(id)
+    /* ── haptics: the shell ships @capacitor/haptics; on the web this is a no-op.
+       light = a tap landed, medium = a state flipped, success/warning/error = outcome. */
+    const HAP = globalThis.Capacitor?.isNativePlatform?.() ? (globalThis.Capacitor?.Plugins?.Haptics ?? null) : null
+    const hap = (kind = 'light') => {
+      if (!HAP) return
+      try {
+        if (kind === 'success' || kind === 'warning' || kind === 'error') HAP.notification?.({ type: kind.toUpperCase() })
+        else HAP.impact?.({ style: kind.toUpperCase() })
+      } catch {}
+    }
+    document.addEventListener('change', (e) => { if (e.target?.matches?.('.tgl input')) hap('medium') })
 
     /* ── theme: system by default, sticky once toggled ── */
     const THEME_KEY = 'echelon-theme'
@@ -4282,8 +4314,13 @@
         if (s.view && s.view !== curView() && document.querySelector(`.tab[data-view="${s.view}"]`)) showView(s.view)
       } finally { navSilent = false }
     })
+    const VIEW_SCROLL = {}   // where you left each view; apps keep your place, websites reset
     function showView(view) {
-      if (!navSilent && view !== curView()) navPush({ view })
+      const prev = curView()
+      if (prev !== view) VIEW_SCROLL[prev] = window.scrollY
+      if (!navSilent && view !== prev) navPush({ view })
+      // settings pops back from a sub-page (slides in from the left); everything else pushes
+      el('v-settings')?.classList.toggle('back', view === 'settings' && !!el(`v-${prev}`)?.classList.contains('setpage'))
       tabs.forEach((t) => t.classList.toggle('on', t.dataset.view === view))
       document.querySelectorAll('.view').forEach((v) => v.classList.toggle('on', v.id === `v-${view}`))
       // a view left behind must not keep narrating in the background
@@ -4296,7 +4333,8 @@
       document.body.classList.toggle('in-feed', view === 'feed')
       document.body.classList.toggle('in-chart', view === 'chart')
       syncBnav(view)
-      window.scrollTo({ top: 0 })
+      // sub-pages always open at the top (a push); top-level views resume where you were
+      window.scrollTo({ top: (prev !== view && !el(`v-${view}`)?.classList.contains('setpage')) ? (VIEW_SCROLL[view] ?? 0) : 0 })
       if (view === 'chat' && !chat.loaded) loadChat()
       if (view === 'library') { if (!LIB.loaded) loadLibrary(); markRead('recaps') }
       if (view === 'gex') gexShown()
@@ -4340,7 +4378,7 @@
           if (v === 'chat') { const d = document.createElement('i'); d.className = 'bcount'; d.hidden = true; b.appendChild(d) }
           if (v === 'library') { const d = document.createElement('i'); d.className = 'bdot'; d.hidden = true; b.appendChild(d) }
         }
-        b.addEventListener('click', () => showView(v))
+        b.addEventListener('click', () => { hap('light'); showView(v) })
         nav.appendChild(b)
       }
       // unread dots mirror the sidebar's
@@ -4407,9 +4445,9 @@
         if (!raf) { last = performance.now(); raf = requestAnimationFrame(step) }
       }
       const open = () => go(1), close = () => go(0), toggle = () => go(target ? 0 : 1)
-      el('menu-btn').addEventListener('click', toggle)
+      el('menu-btn').addEventListener('click', () => { hap('light'); toggle() })
       scrim.addEventListener('click', close)
-      document.querySelectorAll('.side-nav .tab').forEach((t) => t.addEventListener('click', close))
+      document.querySelectorAll('.side-nav .tab').forEach((t) => t.addEventListener('click', () => { hap('light'); close() }))
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && target) close() })
       // drag: the panel (or the scrim) follows a horizontal swipe; vertical
       // movement inside the list is left to the scroller. Touch events, not
@@ -4443,7 +4481,9 @@
         if (!d.live) return
         v = (d.vx * 1000) / d.w                          // progress units per second
         const fling = 520 / d.w                          // ~520px/s reads as a flick, slower is a drag
-        go(v < -fling || (x < 0.5 && v < fling) ? 0 : 1)
+        const to = v < -fling || (x < 0.5 && v < fling) ? 0 : 1
+        if (to === 0) hap('light')
+        go(to)
       }
       for (const n of [side, scrim]) {
         n.addEventListener('touchstart', down, { passive: true })
@@ -4457,6 +4497,101 @@
         if (phone.matches) paint()
       })
       if (phone.matches) paint()
+    }
+
+    /* ── phone gestures ──
+       An edge swipe pops a settings sub-page and a pull on a bottom sheet
+       (comments, the post editor) dismisses it. Both follow the finger and
+       commit on distance or velocity, on the same touch-event footing as the
+       drawer (touchmove + preventDefault once the direction is known). */
+    {
+      const phone = matchMedia('(max-width: 840px)')
+      const still = matchMedia('(prefers-reduced-motion: reduce)')
+      const scrollerOf = (node, stop) => {
+        for (let n = node; n && n !== stop; n = n.parentElement) {
+          if (/(auto|scroll)/.test(getComputedStyle(n).overflowY) && n.scrollHeight > n.clientHeight + 1) return n
+        }
+        return null
+      }
+      // edge swipe: from the left 28px on an open sub-page, no overlay up
+      let eg = null
+      const goBack = (page) => { hap('light'); const b = page.querySelector('.set-back, .fol-back, #notifs-back'); if (b) b.click(); else showView('settings') }
+      document.addEventListener('touchstart', (e) => {
+        eg = null
+        if (!phone.matches || e.touches.length !== 1 || document.body.style.overflow === 'hidden') return
+        const t = e.touches[0]; if (t.clientX > 28) return
+        const page = document.querySelector('.view.setpage.on'); if (!page) return
+        eg = { page, x0: t.clientX, y0: t.clientY, cx: t.clientX, t: e.timeStamp, vx: 0, dx: 0, live: false, w: innerWidth }
+      }, { passive: true })
+      document.addEventListener('touchmove', (e) => {
+        if (!eg) return
+        const t = e.touches[0], dx = t.clientX - eg.x0, dy = t.clientY - eg.y0
+        if (!eg.live) {
+          if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+          if (dx < 0 || Math.abs(dy) > Math.abs(dx)) { eg = null; return }
+          eg.live = true; eg.page.classList.add('dragging'); eg.page.classList.remove('settle', 'popping')
+        }
+        e.preventDefault()
+        const dt = Math.max(1, e.timeStamp - eg.t); eg.vx = 0.6 * eg.vx + 0.4 * ((t.clientX - eg.cx) / dt); eg.cx = t.clientX; eg.t = e.timeStamp
+        eg.dx = Math.max(0, dx)
+        eg.page.style.transform = `translateX(${eg.dx}px)`
+      }, { passive: false })
+      const egEnd = () => {
+        if (!eg) return
+        const g = eg; eg = null
+        if (!g.live) return
+        g.page.classList.remove('dragging')
+        const pop = g.dx > g.w * 0.35 || g.vx > 0.5
+        if (pop && !still.matches) {
+          g.page.classList.add('popping'); g.page.style.transform = `translateX(${g.w}px)`; g.page.style.opacity = '0.4'
+          setTimeout(() => { g.page.classList.remove('popping'); g.page.style.transform = ''; g.page.style.opacity = ''; goBack(g.page) }, 230)
+        } else if (pop) { g.page.style.transform = ''; goBack(g.page) }
+        else { g.page.classList.add('settle'); g.page.style.transform = ''; setTimeout(() => g.page.classList.remove('settle'), 360) }
+      }
+      document.addEventListener('touchend', egEnd); document.addEventListener('touchcancel', egEnd)
+
+      // pull-down on a sheet: only when its list is already at the top
+      let sg = null
+      document.addEventListener('touchstart', (e) => {
+        sg = null
+        if (!phone.matches || e.touches.length !== 1) return
+        const sheet = e.target.closest?.('.cm-box, .pedit-sheet'); if (!sheet) return
+        if (e.target.closest('textarea, input, select, [contenteditable="true"]')) return
+        const t = e.touches[0]
+        sg = { sheet, host: sheet.closest('#cmsheet, #pedit'), scroller: scrollerOf(e.target, sheet), close: sheet.matches('.cm-box') ? () => closeComments() : () => closePostEditor(),
+               x0: t.clientX, y0: t.clientY, cy: t.clientY, t: e.timeStamp, vy: 0, dy: 0, live: false }
+      }, { passive: true })
+      document.addEventListener('touchmove', (e) => {
+        if (!sg) return
+        const t = e.touches[0], dx = t.clientX - sg.x0, dy = t.clientY - sg.y0
+        if (!sg.live) {
+          if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+          if (dy < 0 || Math.abs(dx) > Math.abs(dy) || (sg.scroller && sg.scroller.scrollTop > 0)) { sg = null; return }
+          sg.live = true; sg.sheet.style.transition = 'none'
+        }
+        e.preventDefault()
+        const dt = Math.max(1, e.timeStamp - sg.t); sg.vy = 0.6 * sg.vy + 0.4 * ((t.clientY - sg.cy) / dt); sg.cy = t.clientY; sg.t = e.timeStamp
+        sg.dy = Math.max(0, dy)
+        sg.sheet.style.transform = `translate3d(0, ${sg.dy}px, 0)`
+        if (sg.host) sg.host.style.opacity = String(Math.max(0.35, 1 - (sg.dy / (sg.sheet.offsetHeight || 600)) * 0.8))
+      }, { passive: false })
+      const sgEnd = () => {
+        if (!sg) return
+        const g = sg; sg = null
+        if (!g.live) return
+        const h = g.sheet.offsetHeight || 600
+        if (g.host) { g.host.style.transition = 'opacity 0.3s ease'; g.host.style.opacity = '' }
+        if (g.dy > h * 0.3 || g.vy > 0.6) {
+          // animOut carries on from the current transform, so the last stretch is one motion
+          g.sheet.style.transition = ''
+          hap('light'); g.close()
+        } else {
+          g.sheet.style.transition = 'transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1)'; g.sheet.style.transform = ''
+          setTimeout(() => { g.sheet.style.transition = '' }, 380)
+        }
+        setTimeout(() => { if (g.host) g.host.style.transition = '' }, 340)
+      }
+      document.addEventListener('touchend', sgEnd); document.addEventListener('touchcancel', sgEnd)
     }
 
     /* ── hover sidebar (desktop) ──
@@ -7576,6 +7711,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function toggleLike(r) {
       const cur = statOf(r) ?? { like_count: 0, comment_count: 0, liked: false }
       const next = !cur.liked
+      hap(next ? 'medium' : 'light')
       setStat(r, { liked: next, like_count: Math.max(0, cur.like_count + (next ? 1 : -1)) })
       document.querySelectorAll(`.rv-post[data-id="${r.id}"]`).forEach((post) => {
         post.querySelector('.rv-act .like')?.replaceWith(rvLikeBtn(r))
@@ -7798,6 +7934,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       host.hidden = false
     }
     el('nu-pill')?.addEventListener('click', () => {
+      hap('light')
       const p = el('nu-panel')
       p.hidden = !p.hidden
       if (!p.hidden) nextUpCompute()
@@ -9382,6 +9519,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const c = promoCard(id); if (!c) continue
       c.querySelector('[data-promo-x]')?.addEventListener('click', () => promoClose(id, 3))
       c.querySelector('.pm-row')?.addEventListener('click', () => setTimeout(() => promoClose(id, 30), 150))
+    }
+    // phones: the three tabs live at the foot of the Overview instead of
+    // floating over whatever you are reading (they crowd the tab bar there)
+    {
+      const st = el('promostack'), home = el('v-overview'), ph = matchMedia('(max-width: 640px)')
+      const home0 = st?.parentNode, next0 = st?.nextSibling
+      const place = () => {
+        if (!st || !home) return
+        if (ph.matches) { if (st.parentNode !== home) home.appendChild(st) }
+        else if (st.parentNode !== home0) home0.insertBefore(st, next0)
+      }
+      place(); ph.addEventListener('change', place)
     }
 
     // ── settings: affiliate partner portal (approved view) ──
@@ -13860,6 +14009,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (uploadPromise) { el('cc-lbl').textContent = 'Uploading…'; await uploadPromise }
       if ((!body && !pendingImage) || !chat.cur) return
       input.value = ''; input.style.height = 'auto'
+      hap('light')
       const img = pendingImage; clearPending()
       const col = chat.cur.type === 'channel' ? 'channel_id' : 'dm_id'
       const { data, error } = await supabase.from('messages')
@@ -14515,7 +14665,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const fire = s.claimed && s.armed
         reset()
         if (!fire || REFRESH.busy) return
-        REFRESH.busy = true
+        REFRESH.busy = true; hap('medium')
         buzz([8, 40, 12])
         document.body.classList.add('ptr-busy')
         pageTo(54, true)
