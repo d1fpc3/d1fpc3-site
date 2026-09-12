@@ -182,9 +182,9 @@
       background: none; border: 0; width: 100%; text-align: left;
       font-family: inherit; font-size: 13.5px; font-weight: 500; color: var(--muted);
       cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
-      text-decoration: none;
+      text-decoration: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
-    .tab:hover { background: var(--panel-2); color: var(--ink); }
+    @media (hover: hover) { .tab:hover { background: var(--panel-2); color: var(--ink); } }
     .tab.on { background: var(--panel-2); color: var(--ink); }
     .tab.on .ic { color: var(--gold); }
     .tab .ic { width: 17px; height: 17px; color: var(--faint); flex-shrink: 0; transition: color 0.15s ease; }
@@ -1209,9 +1209,11 @@
     .set-row {
       display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
       background: none; border: 0; cursor: pointer; color: var(--ink); font: inherit;
-      padding: 13px 6px; border-radius: 10px; transition: background 0.12s ease;
+      padding: 13px 6px; border-radius: 10px; transition: background 0.28s cubic-bezier(.2,.8,.2,1);
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
-    .set-row:hover { background: var(--panel-2); }
+    @media (hover: hover) { .set-row:hover { background: var(--panel-2); } }
+    .set-row:active { background: var(--panel-2); transition-duration: 0.04s; }
     .set-row .ico { width: 21px; height: 21px; flex: none; color: var(--ink); display: flex; align-items: center; justify-content: center; }
     .set-row .ico svg { width: 19px; height: 19px; }
     .set-row .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -1744,44 +1746,76 @@
     .gi-body p b { color: var(--ink); }
     .gi-body .btn { justify-content: center; margin-top: 4px; }
 
-    /* ── mobile: the sidebar becomes a drawer ────────────────── */
+    /* ── mobile: the sidebar becomes a drawer ──────────────────
+       A spring in JS drives the panel (see "phone drawer" below): it follows
+       the finger, can be grabbed mid-flight, and settles with the swipe's
+       velocity. CSS only paints the resting closed state and the surface. */
 
     .menu-btn {
       display: none; background: none; border: 0;
-      color: var(--ink); padding: 6px 4px; cursor: pointer; flex-shrink: 0;
+      color: var(--ink); padding: 8px 6px; margin-left: -6px; border-radius: 10px; cursor: pointer; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      transition: background 0.3s cubic-bezier(.2,.8,.2,1), transform 0.3s cubic-bezier(.2,.8,.2,1);
     }
     .menu-btn svg { width: 22px; height: 22px; display: block; }
+    .menu-btn:active { background: var(--panel-2); transform: scale(0.9); transition-duration: 0.06s; }
+    .tb-bell, .tb-gear {
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      transition: color 0.2s ease, background 0.3s cubic-bezier(.2,.8,.2,1), transform 0.3s cubic-bezier(.2,.8,.2,1);
+    }
+    .tb-bell:active, .tb-gear:active { transform: scale(0.88); transition-duration: 0.06s; }
     .tb-title { margin-right: auto; min-width: 0; }
     .scrim {
-      position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,0.5);
-      opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+      position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,0.56);
+      opacity: 0; pointer-events: none; touch-action: none;
     }
+    :root[data-theme="light"] .scrim { background: rgba(22,18,12,0.34); }
 
     @media (max-width: 840px) {
       .app.on { display: block; }
       .menu-btn { display: flex; }
       .side, .side.open {
-        position: fixed; top: 0; bottom: 0; left: 0; width: min(300px, 84vw); z-index: 60;
-        transform: translateX(-100%); transition: transform 0.25s ease;
-        box-shadow: none;
+        position: fixed; top: 0; bottom: 0; left: 0; width: min(312px, 84vw); z-index: 60;
+        transform: translateX(-100%); transition: none; will-change: transform;
+        border-right: 1px solid var(--line-bright); border-radius: 0 24px 24px 0;
+        box-shadow: none; touch-action: pan-y; overscroll-behavior: contain;
+        padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
       }
-      /* Shadow only while open — otherwise the closed drawer's 60px blur bleeds
+      /* a vertical swipe on the drawer must never scroll the page underneath it */
+      .side .side-nav { overscroll-behavior: contain; }
+      /* Shadow only while open, otherwise the closed drawer's blur bleeds
          onto the screen from the left edge (very visible in light mode). */
-      .nav-open .side { transform: translateX(0); box-shadow: 0 0 60px rgba(0,0,0,0.55); }
-      .nav-open .scrim { opacity: 1; pointer-events: auto; }
+      .nav-open .side { box-shadow: 24px 0 64px rgba(0,0,0,0.5); }
+      :root[data-theme="light"] .nav-open .side { box-shadow: 24px 0 64px rgba(0,0,0,0.16); }
       .block-head { flex-wrap: wrap; }
       /* the drawer always shows full labels, whatever the desktop rail is doing */
-      .side:not(.open) .side-brand { padding: 20px 20px 18px; justify-content: flex-start; }
-      .side:not(.open) .side-brand .brand-mark { display: none; }
+      .side:not(.open) .side-brand, .side-brand { padding: 22px 22px 12px; justify-content: flex-start; gap: 11px; font-size: 19px; }
+      .side:not(.open) .side-brand .brand-mark, .side-brand .brand-mark { display: block; width: 28px; height: 28px; }
       .side:not(.open) .brand-name, .side:not(.open) .side-brand small { display: inline-block; }
       .side:not(.open) .side-cap { display: block; }
-      .side:not(.open) .side-nav { padding: 8px 12px; }
-      .side:not(.open) .tab { font-size: 13.5px; gap: 11px; justify-content: flex-start; padding: 9px 12px; }
+      .side:not(.open) .side-nav, .side-nav { padding: 6px 12px; gap: 3px; }
+      /* rows at iOS scale: 46px tall, 15px type, press = dip + fill, release springs back */
+      .side:not(.open) .tab, .side .tab {
+        position: relative; font-size: 15px; gap: 13px; justify-content: flex-start;
+        padding: 12px 14px; min-height: 46px; border-radius: 13px;
+        transition: background 0.32s cubic-bezier(.2,.8,.2,1), transform 0.32s cubic-bezier(.2,.8,.2,1), color 0.2s ease;
+      }
+      .side .tab .ic { width: 20px; height: 20px; }
+      .side .tab:active { background: var(--panel-2); transform: scale(0.975); transition-duration: 0.05s; }
+      .side .tab.on::before {
+        content: ""; position: absolute; left: 0; top: 50%; width: 3px; height: 18px; border-radius: 3px;
+        background: var(--gold); transform: translateY(-50%);
+      }
       .side:not(.open) .tab .count { display: inline-block; }
-      .side:not(.open) .side-user { flex-direction: row; padding: 12px; gap: 11px; }
+      .side .tab .count { font-size: 12px; padding: 2px 9px; }
+      .side:not(.open) .side-user, .side-user { flex-direction: row; padding: 14px 16px; gap: 12px; }
       .side:not(.open) .side-user .u-meta { display: block; }
+      .side-user .avatar { width: 38px; height: 38px; border-radius: 11px; }
+      .side-user .u-name { font-size: 14px; }
+      .u-signout { padding: 9px; -webkit-tap-highlight-color: transparent; }
+      .u-signout:active { background: var(--panel-2); color: var(--bad); }
     }
-    @media (prefers-reduced-motion: reduce) { .side, .scrim { transition: none; } }
+    @media (prefers-reduced-motion: reduce) { .side, .scrim, .menu-btn, .tb-bell, .tb-gear, .bnav, .bnav .bnav-ind, .bnav button .ic, .bnav button .av { transition: none; } }
 
     /* ── phone bottom nav: Overview left, Profile right, the rest between ── */
     :root { --bnav: 0px; }
@@ -1799,32 +1833,45 @@
     }
     .bnav { display: none; }
     @media (max-width: 840px) {
-      :root { --bnav: calc(48px + env(safe-area-inset-bottom)); }
+      :root { --bnav: calc(70px + env(safe-area-inset-bottom)); }
+      /* floating capsule (iOS 26 lineage): content scrolls under it, a soft
+         pill slides behind the active slot, icons dip on press and spring back */
       .bnav {
-        position: fixed; left: 0; right: 0; bottom: 0; z-index: 55;
+        position: fixed; left: 14px; right: 14px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 55;
         display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
-        height: var(--bnav); padding-bottom: env(safe-area-inset-bottom);
-        background: rgba(19,18,17,0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-        border-top: 1px solid var(--line);
-        transition: transform 0.25s ease;
+        height: 60px; padding: 0 6px; border-radius: 30px;
+        background: color-mix(in srgb, var(--panel) 76%, transparent);
+        -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6);
+        border: 1px solid color-mix(in srgb, var(--ink) 9%, transparent);
+        box-shadow: 0 14px 34px -10px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05);
+        transition: transform 0.42s cubic-bezier(.32,.72,0,1);
       }
-      :root[data-theme="light"] .bnav { background: rgba(255,255,255,0.86); }
+      :root[data-theme="light"] .bnav { box-shadow: 0 14px 34px -12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.7); }
+      .bnav .bnav-ind {
+        position: absolute; top: 6px; left: 0; height: 46px; width: 60px; border-radius: 23px;
+        background: color-mix(in srgb, var(--ink) 9%, transparent);
+        transform: translateX(var(--x, 0px)); opacity: 0; pointer-events: none;
+        transition: transform 0.46s cubic-bezier(.34,1.22,.64,1), width 0.3s cubic-bezier(.2,.8,.2,1), opacity 0.2s ease;
+      }
+      .bnav .bnav-ind.live { opacity: 1; }
       .bnav button {
-        position: relative; background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
+        position: relative; z-index: 1; background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
         display: flex; align-items: center; justify-content: center; color: var(--faint);
-        -webkit-tap-highlight-color: transparent; transition: color 0.15s ease;
+        -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: color 0.2s ease;
       }
-      .bnav button .ic { width: 22px; height: 22px; }
+      .bnav button .ic, .bnav button .av { transition: transform 0.38s cubic-bezier(.34,1.56,.64,1); }
+      .bnav button:active .ic, .bnav button:active .av { transform: scale(0.84); transition-duration: 0.07s; }
+      .bnav button .ic { width: 23px; height: 23px; }
       .bnav button.on { color: var(--ink); }
       .bnav button .av {
-        width: 24px; height: 24px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center;
+        width: 25px; height: 25px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center;
         background: var(--panel-2); border: 1.5px solid transparent; font-size: 10px; font-weight: 700; color: var(--muted);
       }
       .bnav button .av img { width: 100%; height: 100%; object-fit: cover; display: block; }
       .bnav button.on .av { border-color: var(--ink); }
-      .bnav button .bdot { position: absolute; top: 9px; right: calc(50% - 15px); width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+      .bnav button .bdot { position: absolute; top: 15px; right: calc(50% - 15px); width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
       .bnav button .bcount {
-        position: absolute; top: 5px; left: calc(50% + 4px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+        position: absolute; top: 11px; left: calc(50% + 4px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
         background: var(--gold); color: #1a1207; font-size: 10px; font-weight: 700; line-height: 1;
         display: flex; align-items: center; justify-content: center;
       }
@@ -1832,7 +1879,7 @@
       .pane { padding-bottom: calc(28px + var(--bnav)) !important; }
       .chat { height: calc(100dvh - 118px - var(--bnav)); }
       /* inside a conversation the composer takes the bottom, like a DM thread */
-      body:has(.chat.open-convo) .bnav { transform: translateY(110%); }
+      body:has(.chat.open-convo) .bnav { transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom))); }
       body:has(.chat.open-convo) .chat { height: calc(100dvh - 118px); }
       .viewas-float { bottom: calc(18px + var(--bnav)); }
     }
@@ -4276,6 +4323,7 @@
     function buildBnav() {
       const nav = el('bnav'); if (!nav) return
       nav.textContent = ''
+      const ind = document.createElement('i'); ind.className = 'bnav-ind'; ind.setAttribute('aria-hidden', 'true'); nav.appendChild(ind)
       for (const v of BNAV) {
         const b = document.createElement('button'); b.type = 'button'; b.dataset.view = v
         const tab = document.querySelector(`.tab[data-view="${v}"]`)
@@ -4316,14 +4364,100 @@
       })
       const av = el('bnav-av'), side = el('u-avatar')
       if (av && side) { av.textContent = ''; const img = side.querySelector('img'); if (img) av.appendChild(img.cloneNode(true)); else av.textContent = side.textContent.trim() || '·' }
+      // the pill slides under whichever slot is lit (first placement is silent)
+      const ind = nav.querySelector('.bnav-ind'), lit = nav.querySelector('button.on:not([hidden])')
+      if (ind && lit && lit.offsetWidth) {
+        ind.style.width = (lit.offsetWidth - 10) + 'px'
+        ind.style.setProperty('--x', (lit.offsetLeft + 5) + 'px')
+        if (!ind.classList.contains('live')) requestAnimationFrame(() => requestAnimationFrame(() => ind.classList.add('live')))
+      }
     }
     buildBnav()
+    window.addEventListener('resize', () => syncBnav())
 
-    /* ── mobile drawer ── */
-    el('menu-btn').addEventListener('click', () => el('app').classList.toggle('nav-open'))
-    el('scrim').addEventListener('click', () => el('app').classList.remove('nav-open'))
-    document.querySelectorAll('.side-nav .tab').forEach((t) =>
-      t.addEventListener('click', () => el('app').classList.remove('nav-open')))
+    /* ── phone drawer ──
+       A spring drives the panel instead of a CSS transition, so an open can
+       be grabbed and dragged shut mid-flight and a swipe carries its velocity
+       into the settle (nothing snaps, nothing waits). Progress 0..1 paints
+       the panel transform and the scrim opacity every frame. Desktop never
+       runs this: the hover rail below owns .side there. */
+    {
+      const app = el('app'), side = document.querySelector('.side'), scrim = el('scrim')
+      const phone = matchMedia('(max-width: 840px)')
+      const still = matchMedia('(prefers-reduced-motion: reduce)')
+      const K = 420, C = 36            // stiffness, damping: settles in ~350ms, no bounce
+      let x = 0, v = 0, target = 0, raf = 0, last = 0
+      const paint = () => {
+        side.style.transform = `translateX(${((x - 1) * 100).toFixed(3)}%)`
+        scrim.style.opacity = x.toFixed(3)
+        scrim.style.pointerEvents = x > 0.02 ? 'auto' : 'none'
+        app.classList.toggle('nav-open', x > 0.02)
+      }
+      const step = (now) => {
+        const dt = Math.min(0.032, (now - last) / 1000 || 0.016); last = now
+        for (let n = Math.ceil(dt / 0.004), h = dt / n; n > 0; n--) { v += (-K * (x - target) - C * v) * h; x += v * h }
+        if (Math.abs(x - target) < 0.0015 && Math.abs(v) < 0.02) { x = target; v = 0; raf = 0; paint(); return }
+        x = Math.max(-0.05, Math.min(1.05, x))
+        paint(); raf = requestAnimationFrame(step)
+      }
+      const go = (to) => {
+        if (!phone.matches) return
+        target = to
+        if (still.matches) { x = to; v = 0; if (raf) { cancelAnimationFrame(raf); raf = 0 } paint(); return }
+        if (!raf) { last = performance.now(); raf = requestAnimationFrame(step) }
+      }
+      const open = () => go(1), close = () => go(0), toggle = () => go(target ? 0 : 1)
+      el('menu-btn').addEventListener('click', toggle)
+      scrim.addEventListener('click', close)
+      document.querySelectorAll('.side-nav .tab').forEach((t) => t.addEventListener('click', close))
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && target) close() })
+      // drag: the panel (or the scrim) follows a horizontal swipe; vertical
+      // movement inside the list is left to the scroller. Touch events, not
+      // pointer events: Chromium fires pointercancel a few pixels into a
+      // horizontal drag over a scroll container, touchmove keeps delivering
+      // as long as we preventDefault it.
+      let drag = null
+      const down = (e) => {
+        if (!phone.matches || target !== 1 || e.touches.length !== 1) return
+        const t = e.touches[0]
+        drag = { x0: t.clientX, y0: t.clientY, from: x, w: side.getBoundingClientRect().width || 300, vx: 0, t: e.timeStamp, cx: t.clientX, live: false }
+      }
+      const move = (e) => {
+        if (!drag || e.touches.length !== 1) return
+        const t = e.touches[0], dx = t.clientX - drag.x0, dy = t.clientY - drag.y0
+        if (!drag.live) {
+          if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return
+          if (Math.abs(dy) > Math.abs(dx)) { drag = null; return }   // the list is scrolling, not us
+          drag.live = true
+          if (raf) { cancelAnimationFrame(raf); raf = 0 }
+        }
+        e.preventDefault()                                // keep the browser from panning under us
+        const dt = Math.max(1, e.timeStamp - drag.t)
+        drag.vx = 0.6 * drag.vx + 0.4 * ((t.clientX - drag.cx) / dt)   // px per ms, smoothed
+        drag.cx = t.clientX; drag.t = e.timeStamp
+        x = Math.max(0, Math.min(1, drag.from + dx / drag.w)); v = 0; paint()
+      }
+      const up = () => {
+        if (!drag) return
+        const d = drag; drag = null
+        if (!d.live) return
+        v = (d.vx * 1000) / d.w                          // progress units per second
+        const fling = 520 / d.w                          // ~520px/s reads as a flick, slower is a drag
+        go(v < -fling || (x < 0.5 && v < fling) ? 0 : 1)
+      }
+      for (const n of [side, scrim]) {
+        n.addEventListener('touchstart', down, { passive: true })
+        n.addEventListener('touchmove', move, { passive: false })
+        n.addEventListener('touchend', up); n.addEventListener('touchcancel', up)
+      }
+      // leaving the phone breakpoint: hand .side back to the desktop rail
+      phone.addEventListener('change', () => {
+        x = 0; v = 0; target = 0; if (raf) { cancelAnimationFrame(raf); raf = 0 }
+        side.style.transform = ''; scrim.style.opacity = ''; scrim.style.pointerEvents = ''; app.classList.remove('nav-open')
+        if (phone.matches) paint()
+      })
+      if (phone.matches) paint()
+    }
 
     /* ── hover sidebar (desktop) ──
        Rests as an icon rail; opens while the pointer is over it or a control
