@@ -10729,7 +10729,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        every colour and toggle. One canvas, redrawn on demand. */
     const CH_TF = { '1m': ['1m', 1], '3m': ['1m', 3], '5m': ['5m', 5], '15m': ['5m', 15], '30m': ['5m', 30], '1h': ['60m', 60], '4h': ['60m', 240], 'D': ['1d', 1440] }
     const CH_SPAN = { '1m': 32, '5m': 200, '60m': 2800, '1d': 9800 }   // days each source reaches back, at most (the archive holds Databento history from 2019; the read keeps the newest 60k bars)
-    const CH_DEFAULTS = { type: 'candles', up: '', down: '', wickUp: '', wickDown: '', border: true, grid: true, volume: true, sessions: true, lastLine: true, legend: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
+    const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: '', down: '', wickUp: '', wickDown: '', border: true, grid: true, volume: true, sessions: true, lastLine: true, legend: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
       lit: true, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: true, litKo: true, litPo3: true, litEighths: true, litGold: true, litVector: true, litDays: 3,
       // chart style (empty colour = the theme token)
       magnet: 'off', borderUp: '', borderDown: '', wicks: true, bodyW: 'normal', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: true, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
@@ -11629,6 +11629,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       return { P, x0, x1, ye: chY(d.p[0].p, L), yt: chY(d.target, L), ys: chY(d.stop, L) }
     }
     const chPosStats = (d) => { const e = d.p[0].p, risk = Math.abs(e - d.stop), reward = Math.abs(d.target - e); return { risk, reward, rr: risk ? reward / risk : 0 } }
+    // a position's colours and money: per drawing first, then the chart settings, then the platform greens and reds
+    const chPosColors = (d) => ({ up: d.upC || CH.s.posUp || '#26a69a', dn: d.dnC || CH.s.posDn || '#ef5350' })
+    const chPosMoney = (d) => {
+      const qty = Math.max(0, +(d.qty ?? CH.s.posQty ?? 1) || 0), pv = Math.max(0, +(d.pv ?? CH.s.posPv ?? 20) || 0), acct = Math.max(0, +CH.s.posAcct || 0)
+      const { risk, reward } = chPosStats(d), riskUsd = risk * qty * pv, rewardUsd = reward * qty * pv
+      return { qty, pv, acct, riskUsd, rewardUsd, riskPct: acct ? (riskUsd / acct) * 100 : 0 }
+    }
+    const chUsd = (v) => (v < 0 ? '−' : '+') + '$' + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: Math.abs(v) < 100 ? 2 : 0 })
     function chPaintDrawings(ctx, L, T, tagsOnly) {
       if (CH.hideDr) return
       const vg = chVisGroup(), all = (CH.pending ? [...CH.drawings, CH.pending] : CH.drawings).filter((d) => !d.hidden && (!d.vis || d.vis[vg] !== false))
@@ -11643,7 +11651,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (d.type === 'hline') tag(chPx(d.p[0].p), P[0].y, c)
           else if (d.type === 'xcross') { tag(chPx(d.p[0].p), P[0].y, c); if (P[0].x >= 0 && P[0].x <= L.plotW) { const text = chFmtFull(d.p[0].t); ctx.font = `600 10.5px ${GEX_FONT}`; const tw = ctx.measureText(text).width + 12; const tx0 = Math.min(Math.max(0, P[0].x - tw / 2), L.W - tw); ctx.fillStyle = c; ctx.fillRect(tx0, L.H - L.tx + 2, tw, L.tx - 4); ctx.fillStyle = inkOn(c); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, tx0 + tw / 2, L.H - L.tx / 2) } }
           else if (d.type === 'vline' && P[0].x >= 0 && P[0].x <= L.plotW) { const text = chFmtFull(d.p[0].t); ctx.font = `600 10.5px ${GEX_FONT}`; const tw = ctx.measureText(text).width + 12; const tx0 = Math.min(Math.max(0, P[0].x - tw / 2), L.W - tw); ctx.fillStyle = c; ctx.fillRect(tx0, L.H - L.tx + 2, tw, L.tx - 4); ctx.fillStyle = inkOn(c); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, tx0 + tw / 2, L.H - L.tx / 2) }
-          else if ((d.type === 'long' || d.type === 'short') && sel && d.p.length === 2) { const g = chPosGeo(d, L); tag(chPx(d.p[0].p), g.ye, light ? '#1e222d' : '#e9e3d8'); tag(chPx(d.target), g.yt, '#26a69a'); tag(chPx(d.stop), g.ys, '#ef5350') }
+          else if ((d.type === 'long' || d.type === 'short') && sel && d.p.length === 2) { const g = chPosGeo(d, L); tag(chPx(d.p[0].p), g.ye, light ? '#1e222d' : '#e9e3d8'); const pc = chPosColors(d); tag(chPx(d.target), g.yt, pc.up); tag(chPx(d.stop), g.ys, pc.dn) }
           else if (d.type === 'fib' && sel && d.p.length === 2) for (const lvl of chFibLevels(d)) tag(chPx(chFibPrice(d, lvl)), chY(chFibPrice(d, lvl), L), d.color || CH_FIB_C[lvl] || c)
           continue
         }
@@ -11826,20 +11834,43 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (d.type === 'long' || d.type === 'short') {
           if (P.length < 2 || d.stop == null || d.target == null) continue
           const g = chPosGeo(d, L), w = Math.max(1, g.x1 - g.x0), { risk, reward, rr } = chPosStats(d), e = d.p[0].p
-          const good = '#26a69a', bad = '#ef5350', ink = light ? '#1e222d' : '#e9e3d8'
+          const { up: good, dn: bad } = chPosColors(d), ink = light ? '#1e222d' : '#e9e3d8', money = chPosMoney(d)
+          const fillA = d.fill ?? 0.16, isLong = d.type === 'long'
+          const yT0 = Math.min(g.ye, g.yt), hT = Math.abs(g.yt - g.ye), yS0 = Math.min(g.ye, g.ys), hS = Math.abs(g.ys - g.ye)
+          const X0 = Math.round(g.x0) + 0.5, X1 = Math.round(g.x1) + 0.5, W = Math.max(1, X1 - X0)
           ctx.setLineDash([])
-          ctx.fillStyle = alpha(good, d.fill ?? 0.14); ctx.fillRect(g.x0, Math.min(g.ye, g.yt), w, Math.abs(g.yt - g.ye))
-          ctx.fillStyle = alpha(bad, d.fill ?? 0.14); ctx.fillRect(g.x0, Math.min(g.ye, g.ys), w, Math.abs(g.ys - g.ye))
-          ctx.lineWidth = sel || hov ? 1.6 : 1
-          ctx.strokeStyle = good; ctx.strokeRect(Math.round(g.x0) + 0.5, Math.round(Math.min(g.ye, g.yt)) + 0.5, Math.round(w), Math.round(Math.abs(g.yt - g.ye)))
-          ctx.strokeStyle = bad; ctx.strokeRect(Math.round(g.x0) + 0.5, Math.round(Math.min(g.ye, g.ys)) + 0.5, Math.round(w), Math.round(Math.abs(g.ys - g.ye)))
-          ctx.strokeStyle = d.color || ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(g.x0, Math.round(g.ye) + 0.5); ctx.lineTo(g.x1, Math.round(g.ye) + 0.5); ctx.stroke()
-          const mid = (g.x0 + g.x1) / 2, pct = (v) => (v / e * 100).toFixed(2) + '%'
-          const boxLabel = (text, y0, y1, color) => { const h = Math.abs(y1 - y0), cy = (y0 + y1) / 2; if (h >= 18 && w > 90) label(text, mid, cy, color, 'center', 10.5); else label(text, g.x1 + 6, cy, color, 'left', 10) }
-          boxLabel(`Target ${chPx(d.target)}  ${chPts(reward)} (${pct(reward)})  R ${rr.toFixed(2)}`, g.ye, g.yt, good)
-          boxLabel(`Stop ${chPx(d.stop)}  ${chPts(-risk)} (${pct(risk)})`, g.ye, g.ys, bad)
-          label(`${d.type === 'long' ? 'Long' : 'Short'} ${chPx(e)}${d.text ? '  ' + d.text : ''}`, g.x0 - 6, g.ye, ink, 'right', 10.5)
-          if (sel || d === CH.pending) { const hs = [[mid, g.yt, good], [mid, g.ys, bad], [g.x1, g.ye, ink]]; for (const [hx, hy, hc] of hs) { ctx.fillStyle = BG; ctx.strokeStyle = hc; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(hx, hy, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke() } }
+          // the zones: a flat wash, nothing boxed
+          ctx.fillStyle = alpha(good, fillA); ctx.fillRect(X0, yT0, W, hT)
+          ctx.fillStyle = alpha(bad, fillA); ctx.fillRect(X0, yS0, W, hS)
+          // three lines: target, stop, entry
+          const hline = (y, col, lw) => { const yy = Math.round(y) + 0.5; ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(X0, yy); ctx.lineTo(X1, yy); ctx.stroke() }
+          hline(g.yt, good, sel || hov ? 2 : 1.5); hline(g.ys, bad, sel || hov ? 2 : 1.5); hline(g.ye, d.color || ink, sel || hov ? 2 : 1.5)
+          if (sel || hov) { ctx.setLineDash([3, 3]); ctx.strokeStyle = alpha(ink, 0.45); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X0, Math.min(yT0, yS0)); ctx.lineTo(X0, Math.max(yT0 + hT, yS0 + hS)); ctx.moveTo(X1, Math.min(yT0, yS0)); ctx.lineTo(X1, Math.max(yT0 + hT, yS0 + hS)); ctx.stroke(); ctx.setLineDash([]) }
+          // labels as pills: target and stop sit just inside their zone on the line that matters, the entry pill on the entry line
+          if (d.labels !== false && CH.s.posLabels !== false) {
+            const pill = (text, cx, cy, bg, fg, anchor = 'center') => {
+              ctx.font = `600 10.5px ${GEX_FONT}`; const tw = ctx.measureText(text).width, pw = Math.round(tw + 16), ph = 20
+              let px = anchor === 'center' ? cx - pw / 2 : anchor === 'right' ? cx - pw : cx
+              px = Math.max(2, Math.min(L.plotW - pw - 2, px)); const py = Math.round(cy - ph / 2)
+              if (py + ph < 0 || py > L.mainH) return
+              const rx = Math.round(px), r = 5
+              ctx.fillStyle = bg; ctx.beginPath(); ctx.moveTo(rx + r, py); ctx.lineTo(rx + pw - r, py); ctx.arcTo(rx + pw, py, rx + pw, py + r, r); ctx.lineTo(rx + pw, py + ph - r); ctx.arcTo(rx + pw, py + ph, rx + pw - r, py + ph, r); ctx.lineTo(rx + r, py + ph); ctx.arcTo(rx, py + ph, rx, py + ph - r, r); ctx.lineTo(rx, py + r); ctx.arcTo(rx, py, rx + r, py, r); ctx.closePath(); ctx.fill()
+              ctx.fillStyle = fg; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(text, Math.round(px) + 8, py + ph / 2 + 0.5)
+            }
+            const mid = (X0 + X1) / 2, narrow = W < 150, PAD = 13
+            const tText = `Target ${chPx(d.target)}  ${chPts(reward)}` + (money.rewardUsd ? `  ${chUsd(money.rewardUsd)}` : '')
+            const sText = `Stop ${chPx(d.stop)}  ${chPts(-risk)}` + (money.riskUsd ? `  ${chUsd(-money.riskUsd)}` : '') + (money.riskPct ? `  ${money.riskPct.toFixed(1)}% of account` : '')
+            const eText = `${isLong ? 'Long' : 'Short'} ${chPx(e)}  R ${rr.toFixed(2)}` + (money.qty !== 1 ? `  ${money.qty}×` : '') + (d.text ? `  ${d.text}` : '')
+            // inside the zone when it is tall enough, otherwise just outside it, always on the line's side of the entry
+            const tY = hT >= 30 ? g.yt + (isLong ? PAD : -PAD) : g.yt + (isLong ? -PAD : PAD)
+            const sY = hS >= 30 ? g.ys + (isLong ? -PAD : PAD) : g.ys + (isLong ? PAD : -PAD)
+            if (narrow) { pill(tText, X1 + 6, g.yt, good, '#ffffff', 'left'); pill(sText, X1 + 6, g.ys, bad, '#ffffff', 'left'); pill(eText, X1 + 6, g.ye, ink, BG, 'left') }
+            else { pill(tText, mid, tY, good, '#ffffff'); pill(sText, mid, sY, bad, '#ffffff'); pill(eText, X0 + 6, g.ye, ink, BG, 'left') }
+          }
+          if (sel || d === CH.pending) {
+            const mid = (X0 + X1) / 2
+            for (const [hx, hy, hc] of [[mid, g.yt, good], [mid, g.ys, bad], [X1, g.ye, d.color || ink]]) { ctx.fillStyle = BG; ctx.strokeStyle = hc; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(hx, hy, 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke() }
+          }
           ctx.strokeStyle = c
         }
         else if (d.type === 'text') {
@@ -12205,7 +12236,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chPush(); CH.drawings.push(d); CH.sel = d; chSave(); chSelBar(); chDraw()
     }
     function chResetView() { CH.barW = 9; CH.offset = 6; CH.auto = true; chDraw() }
-    function chSaveDefault(d) { CH.s.toolDef = CH.s.toolDef || {}; const def = {}; for (const k of ['color', 'w', 'dash', 'ext', 'fill', 'size', 'fibExt', 'mid', 'stats', 'box']) if (d[k] !== undefined) def[k] = JSON.parse(JSON.stringify(d[k])); CH.s.toolDef[d.type] = def; chSave(); toast(`Saved as the default style for ${CH_TOOL_NAMES[d.type] || d.type}.`, 2200) }
+    function chSaveDefault(d) { CH.s.toolDef = CH.s.toolDef || {}; const def = {}; for (const k of ['color', 'w', 'dash', 'ext', 'fill', 'size', 'fibExt', 'mid', 'stats', 'box', 'upC', 'dnC', 'labels', 'qty', 'pv']) if (d[k] !== undefined) def[k] = JSON.parse(JSON.stringify(d[k])); CH.s.toolDef[d.type] = def; chSave(); toast(`Saved as the default style for ${CH_TOOL_NAMES[d.type] || d.type}.`, 2200) }
     /* ── go to a date, quick ranges ── */
     function chGotoOpen() {
       const pop = el('ch-goto-pop'), inp = el('ch-goto-in'); if (!pop) return
@@ -12705,6 +12736,27 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (d.type === 'vprofile') { row('Rows', numEl('bins', 6, 80, 24)); row('Width', (() => { const r = document.createElement('input'); r.type = 'range'; r.className = 'ch-range'; r.min = 10; r.max = 100; r.value = Math.round((d.width || 0.35) * 100); r.addEventListener('input', () => { d.width = +r.value / 100; chSave(); chDraw() }); r.addEventListener('change', () => chPush()); return r })()); const pc = document.createElement('input'); pc.type = 'color'; pc.value = hex(d.pocC || '#ff9800'); pc.addEventListener('input', () => { d.pocC = pc.value; chSave(); chDraw() }); const pw = document.createElement('div'); pw.className = 'ch-color sm'; pw.appendChild(pc); row('Point of control', pw) }
         if (d.type === 'path') toggleD(d, 'arrow', 'Arrow head', '', mut, true)
         if (['rect', 'fib', 'fibext', 'long', 'short', 'channel', 'range', 'ellipse', 'hilite', 'triangle', 'xabcd', 'regression', 'pitchfork', 'daterange'].includes(d.type)) { const r = document.createElement('input'); r.type = 'range'; r.className = 'ch-range'; r.min = 0; r.max = 40; r.value = Math.round((d.fill ?? (d.type === 'fib' ? 0.06 : d.type === 'channel' ? 0.08 : d.type === 'rect' ? 0.1 : 0.14)) * 100); r.addEventListener('input', () => { d.fill = +r.value / 100; chSave(); chDraw() }); r.addEventListener('change', () => chPush()); row('Fill', r) }
+        if (d.type === 'long' || d.type === 'short') {
+          // colours for the two zones, labels, then the money that turns points into dollars
+          const swRow = (get, set) => {
+            const wrap = document.createElement('div'); wrap.className = 'ch-swrow'
+            CH_SWATCHES.list.forEach((cv) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'sw' + (get() === cv ? ' on' : ''); b.style.setProperty('--c', cv); b.title = cv; b.addEventListener('click', () => { mut(() => set(cv)); chMenu('draw') }); wrap.appendChild(b) })
+            const cc = document.createElement('label'); cc.className = 'swc'; cc.style.setProperty('--c', get()); const ci = document.createElement('input'); ci.type = 'color'; ci.value = hex(get()); ci.addEventListener('input', () => { mut(() => set(ci.value)); cc.style.setProperty('--c', ci.value) }); cc.appendChild(ci); wrap.appendChild(cc)
+            return wrap
+          }
+          const pc = chPosColors(d)
+          row('Profit zone', swRow(() => pc.up, (v) => { d.upC = v }))
+          row('Stop zone', swRow(() => pc.dn, (v) => { d.dnC = v }))
+          toggleD(d, 'labels', 'Labels', 'Target, stop, R and the money', mut, true)
+          header('Size and money')
+          const numD = (get, set, min, max, step, width = 84) => { const i = document.createElement('input'); i.type = 'number'; i.className = 'inp'; i.min = min; i.max = max; i.step = step; i.value = get(); i.style.width = width + 'px'; i.style.padding = '5px 7px'; i.style.fontSize = '12px'; i.addEventListener('change', () => { const v = +i.value; if (!isNaN(v)) mut(() => set(v)) }); return i }
+          row('Contracts', numD(() => d.qty ?? S.posQty ?? 1, (v) => { d.qty = Math.max(0, v) }, 0, 500, 1), 'This position')
+          const pvSeg = document.createElement('span'); pvSeg.className = 'seg'
+          for (const [v, t] of [[20, 'NQ $20'], [2, 'MNQ $2']]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.classList.toggle('on', +(d.pv ?? S.posPv ?? 20) === v); b.addEventListener('click', () => { mut(() => { d.pv = v; S.posPv = v }); chMenu('draw') }); pvSeg.appendChild(b) }
+          row('Point value', ctl(pvSeg, numD(() => d.pv ?? S.posPv ?? 20, (v) => { d.pv = v; S.posPv = v }, 0.01, 1000, 0.01, 64)), 'Dollars per point, one contract')
+          row('Account', numD(() => S.posAcct || 0, (v) => { S.posAcct = Math.max(0, v) }, 0, 1e9, 100, 96), 'Shows the stop as a percent of it')
+          hint('Contracts and colours travel with this position. The star in the toolbar keeps them as the default for new ones; point value and account apply to every position.')
+        }
         if (d.type === 'fib') toggleD(d, 'fibExt', 'Extension levels', '1.272, 1.618, 2, 2.618', mut)
         if (d.type === 'channel') toggleD(d, 'mid', 'Middle line', '', mut, true)
         if (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') toggleD(d, 'stats', 'Show stats', 'Change, bars and time when selected', mut, true)
