@@ -64,6 +64,20 @@ async function run(vpName) {
   const legendOk = (t) => vpName === "phone" ? /C\s/.test(t) : /O\s.*H\s.*L\s.*C\s/.test(t);   // phones show a compact legend until a tap parks the crosshair
   check(await painted(page) > 200 && legendOk(st.legend), `painted with a legend: ${st.legend.slice(0, 90)} · session ${st.sess}`);
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart.png` });
+  if (vpName === "phone") {
+    const layout = await page.evaluate(() => {
+      const r = document.querySelector('.ch-wrap').getBoundingClientRect();
+      const buttons = ['ch-back', 'ch-tf-btn', 'ch-full', 'ch-tools-btn', 'ch-alerts-btn', 'ch-type-btn', 'ch-ind-btn', 'ch-replay-btn', 'ch-settings-btn'].map(id => document.getElementById(id).getBoundingClientRect());
+      return { full: r.x === 0 && r.y === 0 && Math.abs(r.height - innerHeight) < 2 && r.width === innerWidth, touch: buttons.every(b => b.width >= 44 && b.height >= 44 && b.right <= innerWidth), nav: getComputedStyle(document.getElementById('bnav')).display, overflow: document.documentElement.scrollWidth > innerWidth };
+    });
+    check(layout.full && layout.touch && layout.nav === 'none' && !layout.overflow, `phone edge-to-edge workspace and 44px controls: ${JSON.stringify(layout)}`);
+    await page.click('#ch-tf-btn');
+    check(await page.locator('#ch-sheet').isVisible(), 'phone interval sheet opens');
+    await page.click('#ch-sheet-close');
+    await page.click('#ch-tools-btn');
+    check(await page.locator('#ch-sheet').isVisible(), 'phone drawing sheet opens');
+    await page.click('#ch-sheet-close');
+  }
   const cv = await page.$("#ch-canvas"); const box = await cv.boundingBox();
   const cx = box.x + box.width * 0.5, cy = box.y + box.height * 0.45;
   // timeframes
@@ -436,7 +450,17 @@ async function run(vpName) {
   check(st.full && fb.width > VP[vpName].viewport.width * 0.85, `fullscreen fills the viewport (${Math.round(fb.width)}x${Math.round(fb.height)})`);
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-full.png` });
   await page.click("#ch-full");
-  await page.evaluate(() => document.querySelector('.tab[data-view="overview"]').click());
+  if (vpName === "phone") {
+    for (const size of [{width: 320, height: 568}, {width: 844, height: 390}]) {
+      await page.setViewportSize(size); await page.waitForTimeout(350);
+      const fit = await page.evaluate(() => { const r = document.querySelector('.ch-wrap').getBoundingClientRect(); return r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1 && document.documentElement.scrollWidth <= innerWidth; });
+      check(fit, `chart fits resized viewport ${size.width}x${size.height}`);
+      await page.screenshot({path: `${OUT}/phone-${theme}-${size.width}.png`});
+    }
+    await page.setViewportSize(VP.phone.viewport); await page.waitForTimeout(200);
+    await page.click('#ch-back');
+    check(await page.evaluate(() => !document.body.classList.contains('in-chart') && getComputedStyle(document.getElementById('bnav')).display !== 'none'), 'back restores the app navigation');
+  } else await page.evaluate(() => document.querySelector('.tab[data-view="overview"]').click());
   await ctx.close();
 }
 for (const vp of (process.env.VIEWPORTS || "desk,phone").split(",")) await run(vp);

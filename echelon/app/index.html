@@ -639,8 +639,12 @@
     /* ── chart: NQ, a charting platform inside the app ─────────
        The stage fills the pane. Tools on a rail (a row on phones), the
        settings drawer slides over the stage, everything else is canvas. */
-    .ch-wrap { display: flex; flex-direction: column; height: calc(100dvh - 128px); min-height: 440px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg); }
-    #v-chart.ch-fullscreen .ch-wrap { position: fixed; inset: 0; z-index: 300; height: auto; border: 0; border-radius: 0; }
+    #v-chart { --bg: #131722; --panel: #171c28; --panel-2: #222938; --line: #282e3b; --line-bright: #3b4354; --ink: #dce1eb; --muted: #a1aabd; --faint: #788397; --good: #26a69a; --bad: #ef5350; }
+    :root[data-theme="light"] #v-chart { --bg: #ffffff; --panel: #f8f9fc; --panel-2: #edf0f5; --line: #e5e8ef; --line-bright: #cbd1dd; --ink: #202735; --muted: #596579; --faint: #7b8595; --good: #089981; --bad: #f23645; }
+    #ch-back { display: none; }
+    .ch-ib:focus-visible, .ch-tfbtn:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+    .ch-wrap { display: flex; flex-direction: column; height: calc(100dvh - 128px); min-height: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+    #v-chart.ch-fullscreen .ch-wrap { position: fixed; inset: 0; z-index: 300; height: 100dvh; box-sizing: border-box; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); border: 0; border-radius: 0; }
     .ch-bar { display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--panel); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
     .ch-bar::-webkit-scrollbar { display: none; }
     .ch-sym { display: flex; align-items: baseline; gap: 8px; padding-right: 10px; margin-right: 4px; border-right: 1px solid var(--line); flex-shrink: 0; }
@@ -866,9 +870,27 @@
     .ch-part:hover { color: var(--ink); }
     .ch-part.on { color: var(--gold); border-color: rgba(201,162,74,0.45); background: rgba(201,162,74,0.07); }
     .tgl.sm { width: 40px; height: 24px; } .tgl.sm .track::before { width: 20px; height: 20px; } .tgl.sm input:checked + .track::before { transform: translateX(16px); }
-    @media (max-width: 840px) {
-      .ch-wrap { height: calc(100dvh - 66px - 20px - var(--bnav, 0px)); min-height: 380px; border-radius: 10px; }
-      /* one row like the mobile app: symbol, the interval pill, then the icons; the tools live in a sheet */
+    @media (max-width: 840px), (max-width: 1000px) and (max-height: 500px) {
+      body.in-chart #v-chart { animation: none; }
+      body.in-chart { overflow: hidden; overscroll-behavior: none; }
+      body.in-chart .bnav, body.in-chart .topbar { display: none !important; }
+      body.in-chart #v-chart .ch-wrap { position: fixed; inset: 0; z-index: 100; width: 100%; height: 100dvh; min-height: 0; border: 0; border-radius: 0; box-sizing: border-box; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+      body.in-chart #v-chart.ch-fullscreen .ch-wrap { z-index: 300; }
+      #v-chart .ch-bar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; padding: 0 6px 4px; }
+      #v-chart .ch-bar > .ch-ib { min-width: 0; width: 100%; min-height: 44px; align-items: center; justify-content: center; }
+      #v-chart .ch-bar > .ch-ib svg { width: 20px; height: 20px; }
+      #v-chart #ch-back { display: inline-flex; grid-column: 1; grid-row: 1; }
+      #v-chart .ch-sym { grid-column: 2 / 5; grid-row: 1; border: 0; gap: 8px; padding: 0; }
+      #v-chart .ch-sym b { font-size: 16px; }
+      #v-chart #ch-tf-btn { grid-column: 5; grid-row: 1; min-height: 44px; justify-content: center; margin: 0; }
+      #v-chart #ch-full { grid-column: 6; grid-row: 1; }
+      #v-chart .ch-sp { display: none; }
+      #v-chart .ch-bar > #ch-tools-btn, #v-chart .ch-bar > #ch-alerts-btn, #v-chart .ch-bar > #ch-type-btn, #v-chart .ch-bar > #ch-ind-btn, #v-chart .ch-bar > #ch-replay-btn, #v-chart .ch-bar > #ch-settings-btn { grid-row: 2; border-top: 1px solid var(--line); border-radius: 0; }
+      #v-chart.ch-fullscreen .ch-bar > #ch-tools-btn, #v-chart.ch-fullscreen .ch-bar > #ch-alerts-btn, #v-chart.ch-fullscreen .ch-bar > #ch-type-btn, #v-chart.ch-fullscreen .ch-bar > #ch-ind-btn, #v-chart.ch-fullscreen .ch-bar > #ch-replay-btn, #v-chart.ch-fullscreen .ch-bar > #ch-settings-btn { display: none; }
+      #v-chart .ch-menu { width: min(360px, 100%); }
+      #v-chart .ch-sheet-body { padding-bottom: 12px; }
+
+      /* Market header above a touch toolbar; drawing groups open in a sheet. */
       .ch-bar { flex-wrap: nowrap; padding: 6px 8px; overflow: visible; gap: 2px; }
       .ch-tfs, .ch-tools { display: none !important; }
       .ch-tfbtn { display: inline-flex; margin-left: 4px; }
@@ -3198,6 +3220,7 @@
         <section class="view" id="v-chart">
           <div class="ch-wrap">
             <div class="ch-bar">
+              <button class="ch-ib" id="ch-back" type="button" title="Back to overview" aria-label="Back to overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
               <div class="ch-sym"><b>NQ</b><span class="ch-sess" id="ch-sess"></span></div>
               <span class="seg ch-tfs" id="ch-tf" role="group" aria-label="Timeframe"><button type="button" data-tf="1m">1m</button><button type="button" data-tf="3m">3m</button><button type="button" data-tf="5m">5m</button><button type="button" data-tf="15m">15m</button><button type="button" data-tf="30m">30m</button><button type="button" data-tf="1h">1h</button><button type="button" data-tf="4h">4h</button><button type="button" data-tf="D">D</button></span>
               <button class="ch-tfbtn" id="ch-tf-btn" type="button" aria-label="Interval">5m<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -10778,6 +10801,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (light) { T.ink = '#141311'; T.muted = '#2b2925'; T.faint = '#45413b'; T.line = 'rgba(0,0,0,0.16)'; T.lineB = 'rgba(0,0,0,0.3)'; T.panel = '#f8f6f2'; T.panel2 = '#ffffff'; T.good = '#3f7a38'; T.bad = '#b4543c'; T.gold = '#8a6a1e' }
       else { T.ink = '#f4f2ee'; T.muted = '#9d978c'; T.faint = '#8f887c'; T.line = 'rgba(255,255,255,0.12)'; T.lineB = 'rgba(255,255,255,0.22)'; T.panel = '#131211'; T.panel2 = '#1a1817'; T.good = '#86b57f'; T.bad = '#d98b7a'; T.gold = '#c9a24a' }
     }
+    function chSurfaceTokens(T, light) {
+      T.line = light ? '#e5e8ef' : '#252b38'; T.faint = light ? '#7b8595' : '#788397'; T.muted = light ? '#596579' : '#a1aabd'; T.good = light ? '#089981' : '#26a69a'; T.bad = light ? '#f23645' : '#ef5350'
+      T.panel = light ? '#f8f9fc' : '#171c28'; T.panel2 = light ? '#edf0f5' : '#222938'; T.ink = light ? '#202735' : '#dce1eb'
+    }
     function chPaint() {
       const cv = el('ch-canvas'); if (!cv || !CH.on) return
       const L = chLayout(); if (!L.W || !L.H) return
@@ -10785,9 +10812,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (cv.width !== Math.round(L.W * dpr) || cv.height !== Math.round(L.H * dpr)) { cv.width = Math.round(L.W * dpr); cv.height = Math.round(L.H * dpr) }
       const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       const T = gexTokens(), S = CH.s, themeLight = document.documentElement.getAttribute('data-theme') === 'light'
-      const BG = S.bg || cssVar('--bg') || (themeLight ? '#f6f4f0' : '#0b0a09'); CH.bgNow = BG
+      const BG = S.bg || (themeLight ? '#ffffff' : '#131722'); CH.bgNow = BG
       const light = chBgLight(BG, themeLight); CH.lightBg = light
       if (light !== themeLight) chAdaptTokens(T, light)   // a custom background on the other side of the theme
+      chSurfaceTokens(T, light)
       if (S.textC) { T.faint = S.textC; T.muted = S.textC }
       if (S.gridC) T.line = S.gridC
       const C = { up: S.up || T.good, down: S.down || T.bad, wickUp: S.wickUp || S.up || T.good, wickDown: S.wickDown || S.down || T.bad, line: S.lineC || T.gold, cross: S.crossC || T.ink }
@@ -10946,10 +10974,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!CH.auto) { const cx0 = L.plotW + 4, cy0 = L.mainH - 20; ctx.fillStyle = alpha(T.gold, 0.18); ctx.fillRect(cx0, cy0, 34, 15); ctx.strokeStyle = alpha(T.gold, 0.5); ctx.strokeRect(cx0 + 0.5, cy0 + 0.5, 33, 14); ctx.fillStyle = T.gold; ctx.font = `600 9.5px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.fillText('AUTO', cx0 + 17, cy0 + 8); ctx.font = `11px ${GEX_FONT}`; CH.autoChip = { x0: cx0, x1: cx0 + 34, y0: cy0, y1: cy0 + 15 } }
       if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.fillStyle = S.lastC || (up ? C.up : C.down); ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = (chLum(S.lastC || (up ? C.up : C.down)) ?? 0.3) > 0.35 ? '#0b0a09' : '#ffffff'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
       chPaintDrawings(ctx, L, T, true)
-      // time axis: a tick and a label; the corner carries the timezone switch
+      // Keep time labels clear of the date controls and timezone corner.
+      el('ch-tz').style.width = L.ax + 'px'; el('ch-tz').style.backgroundColor = BG
+      const axisLeft = el('ch-axl').offsetWidth
       ctx.textAlign = 'center'
       for (const t of tlabels) {
-        if (t.x < (L.W < 520 ? 8 : 190) || t.x > L.plotW - 8) continue
+        ctx.font = `${t.strong ? 600 : 400} 10.5px ${GEX_FONT}`
+        const half = ctx.measureText(t.text).width / 2
+        if (t.x - half < axisLeft + 6 || t.x + half > L.plotW - 6) continue
         const x = Math.round(t.x) + 0.5
         ctx.strokeStyle = T.line; ctx.beginPath(); ctx.moveTo(x, L.H - L.tx + 1); ctx.lineTo(x, L.H - L.tx + 5); ctx.stroke()
         ctx.fillStyle = t.strong ? T.ink : (t.future ? alpha(T.faint, 0.6) : T.faint); ctx.font = `${t.strong ? 600 : 400} 10.5px ${GEX_FONT}`; ctx.fillText(t.text, t.x, L.H - L.tx / 2 + 1)
@@ -12037,7 +12069,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-ind-btn').addEventListener('click', () => chMenu('ind'))
       el('ch-settings-btn').addEventListener('click', () => chMenu('settings'))
       el('ch-replay-btn').addEventListener('click', () => { if (CH.replay.on) chReplayExit(); else { CH.replay.arm = !CH.replay.arm; chReplayUi(); toast(CH.replay.arm ? 'Click the bar to start replaying from.' : 'Replay cancelled.', 2500) } })
-      el('ch-full').addEventListener('click', () => { el('v-chart').classList.toggle('ch-fullscreen'); chFit(); setTimeout(chDraw, 50) })
+      el('ch-back').addEventListener('click', () => { if (el('v-chart').classList.contains('ch-fullscreen')) el('ch-full').click(); document.querySelector('.tab[data-view="overview"]').click() })
+      el('ch-full').addEventListener('click', () => { const full = el('v-chart').classList.toggle('ch-fullscreen'); el('ch-full').setAttribute('aria-pressed', String(full)); el('ch-full').setAttribute('aria-label', full ? 'Exit fullscreen' : 'Fullscreen'); chFit(); setTimeout(chDraw, 50) })
       el('ch-menu-close').addEventListener('click', () => chMenu(null))
       el('ch-rp-play').addEventListener('click', () => chReplayPlay(!CH.replay.playing))
       el('ch-rp-back').addEventListener('click', () => chReplayStep(-1))
@@ -12085,12 +12118,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const body = el('ch-menu-body'); body.textContent = ''
       const [root, sub] = which.split(':')
       const S = CH.s, T = gexTokens(), light = document.documentElement.getAttribute('data-theme') === 'light'
+      chSurfaceTokens(T, chBgLight(S.bg || (light ? '#ffffff' : '#131722'), light))
       const titles = { type: 'Chart type', ind: 'Indicators', settings: 'Settings', 'ind:ma': 'Moving averages', 'ind:vwap': 'VWAP', 'ind:bb': 'Bollinger Bands', 'ind:rsi': 'RSI', 'ind:macd': 'MACD', 'ind:atr': 'ATR', keys: 'Keyboard shortcuts', 'ind:lit': 'D1 LIT', 'ind:gex': 'D1 GEX', 'ind:prev': 'Prior day', 'ind:sess': 'Sessions', 'ind:vol': 'Volume', alerts: 'Alerts', objects: 'Objects', draw: CH.sel ? (CH_TOOL_NAMES[CH.sel.type] || 'Drawing') : 'Drawing' }
       if (which === 'draw' && !CH.sel) { m.hidden = true; CH.menu = null; return }
       el('ch-menu-title').textContent = titles[which] || 'Settings'
       const back = el('ch-menu-back'); back.hidden = !sub; back.onclick = () => chMenu(root)
       const hex = (c) => /^#[0-9a-f]{6}$/i.test(c) ? c : '#c9a24a'
-      const defC = (key) => ({ bg: cssVar('--bg') || '#0b0a09', bg2: S.bg || cssVar('--bg') || '#0b0a09', up: T.good, down: T.bad, wickUp: S.up || T.good, wickDown: S.down || T.bad, borderUp: S.up || T.good, borderDown: S.down || T.bad, lineC: T.gold, gridC: T.line, crossC: T.ink, sessC: T.ink, textC: T.faint, lastC: T.good, volUp: S.up || T.good, volDown: S.down || T.bad, volMaC: T.gold, vwapC: T.ink, vwapBandC: T.gold, prevDayC: T.faint, bbC: '#2962ff', bbMidC: '#ff9800', rsiC: '#7e57c2', macdC: '#2962ff', macdSigC: '#ff6d00', atrC: '#26a69a', ...CH_LIT_DEF(light), ...CH_GEX_DEF })[key] || T.gold
+      const defC = (key) => ({ bg: light ? '#ffffff' : '#131722', bg2: S.bg || (light ? '#ffffff' : '#131722'), up: T.good, down: T.bad, wickUp: S.up || T.good, wickDown: S.down || T.bad, borderUp: S.up || T.good, borderDown: S.down || T.bad, lineC: T.gold, gridC: T.line, crossC: T.ink, sessC: T.ink, textC: T.faint, lastC: T.good, volUp: S.up || T.good, volDown: S.down || T.bad, volMaC: T.gold, vwapC: T.ink, vwapBandC: T.gold, prevDayC: T.faint, bbC: '#2962ff', bbMidC: '#ff9800', rsiC: '#7e57c2', macdC: '#2962ff', macdSigC: '#ff6d00', atrC: '#26a69a', ...CH_LIT_DEF(light), ...CH_GEX_DEF })[key] || T.gold
       const row = (label, control, hint) => { const r = document.createElement('div'); r.className = 'ch-row'; const t = document.createElement('div'); t.className = 'ch-row-t'; t.textContent = label; if (hint) { const h = document.createElement('small'); h.textContent = hint; t.appendChild(h) } r.append(t, control); body.appendChild(r); return r }
       const header = (text) => { const h = document.createElement('div'); h.className = 'ch-h'; h.textContent = text; body.appendChild(h) }
       const hint = (text) => { const h = document.createElement('div'); h.className = 'ch-hint'; h.textContent = text; body.appendChild(h) }
@@ -12325,11 +12359,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // the chart fills the window below the top bar, whatever the padding is
     function chFit() {
       const w = el('v-chart')?.querySelector('.ch-wrap'); if (!w || !CH.on) return
-      if (el('v-chart').classList.contains('ch-fullscreen')) { w.style.height = ''; return }
+      if (window.matchMedia('(max-width: 840px), (max-width: 1000px) and (max-height: 500px)').matches || el('v-chart').classList.contains('ch-fullscreen')) { w.style.height = ''; return }
       const pane = document.querySelector('.pane'); const pad = pane ? parseFloat(getComputedStyle(pane).paddingBottom) || 20 : 20
-      const top = w.getBoundingClientRect().top + window.scrollY
+      const top = w.getBoundingClientRect().top
       const bnav = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bnav')) || 0
-      w.style.height = Math.max(380, window.innerHeight - top - pad - bnav) + 'px'
+      w.style.height = Math.max(240, window.innerHeight - top - pad - bnav) + 'px'
     }
     window.addEventListener('resize', () => { if (CH.on) { chFit(); chDraw() } })
     function chTzLabel() {
@@ -14631,7 +14665,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         return false
       }
       const canStart = () =>
-        !REFRESH.busy && atTop() && el('app').classList.contains('on') &&
+        !REFRESH.busy && !document.body.classList.contains('in-chart') && atTop() && el('app').classList.contains('on') &&
         !el('app').classList.contains('nav-open') && el('onb').hidden &&
         !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')
       document.addEventListener('touchstart', (e) => {
