@@ -52,7 +52,7 @@ await page.route(/forex-factory-discord\.frankiepc3\.workers\.dev\/(weeks\.json|
 });
 
 await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-await page.waitForSelector("#ov-hi", { timeout: 25000 });
+await page.waitForSelector("#td-h1", { timeout: 25000 });
 await page.evaluate(() => document.querySelector('.tab[data-view="news"]').click());
 await page.waitForSelector("#news-list .news-row", { timeout: 20000 });
 await page.waitForTimeout(800);
@@ -68,7 +68,7 @@ await page.evaluate(async () => { const r = await fetch("https://forex-factory-d
 // re-run the app's own index load by toggling the tab (loadNews only calls it when weeks are empty); call the loader directly via a second fetch-based path:
 await page.evaluate(() => document.querySelector('.tab[data-view="overview"]').click());
 await page.reload({ waitUntil: "domcontentloaded" });
-await page.waitForSelector("#ov-hi", { timeout: 25000 });
+await page.waitForSelector("#td-h1", { timeout: 25000 });
 await page.evaluate(() => document.querySelector('.tab[data-view="news"]').click());
 await page.waitForSelector("#news-list .news-row", { timeout: 20000 });
 await page.waitForFunction(() => !document.getElementById("news-prev").disabled, null, { timeout: 8000 }).catch(() => fails.push("‹ never enabled with an older week available"));

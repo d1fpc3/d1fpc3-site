@@ -112,7 +112,7 @@ await sql(`update member_onboarding o set completed_at = null, answers = '{}'::j
 
   // the hard-refresh check: it must not come back
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#ov-hi", { timeout: 20000 });
+  await page.waitForSelector("#td-h1", { timeout: 20000 });
   await page.waitForTimeout(2000);
   if (!(await page.locator("#onb").isHidden())) fails.push("onboarding came back after reload");
   await ctx.close();
@@ -124,7 +124,7 @@ await sql(`update member_onboarding o set flags = flags - 'gex_tour' from auth.u
 {
   const { ctx, page } = await context(await mint(owner));
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#ov-hi", { timeout: 20000 });
+  await page.waitForSelector("#td-h1", { timeout: 20000 });
   await page.evaluate(() => document.querySelector('.tab[data-view="gex"]').click());
   await page.waitForSelector(".tour-card", { timeout: 15000 });
   await page.waitForTimeout(400);
@@ -145,7 +145,7 @@ await sql(`update member_onboarding o set flags = flags - 'gex_tour' from auth.u
   // fresh context = empty localStorage, like a hard refresh in the desktop shell
   const again = await context(await mint(owner));
   await again.page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-  await again.page.waitForSelector("#ov-hi", { timeout: 20000 });
+  await again.page.waitForSelector("#td-h1", { timeout: 20000 });
   await again.page.evaluate(() => document.querySelector('.tab[data-view="gex"]').click());
   await again.page.waitForTimeout(2500);
   if (await again.page.locator(".tour-card").count()) fails.push("GEX tour replayed with empty localStorage");

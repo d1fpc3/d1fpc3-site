@@ -54,7 +54,7 @@ for (const vpName of VIEWPORTS) {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#ov-hi", { timeout: 30000 }).catch(() => findings.push(`${vpName}: app never came on`));
+  await page.waitForSelector("#td-h1", { timeout: 30000 }).catch(() => findings.push(`${vpName}: app never came on`));
   await page.waitForTimeout(3000);
   const views = await page.evaluate(() => [...document.querySelectorAll(".side-nav .tab[data-view]")].map((t) => ({ view: t.dataset.view, title: t.dataset.title, hidden: t.hidden })));
   report[vpName] = {};

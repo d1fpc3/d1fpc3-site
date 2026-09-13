@@ -44,7 +44,7 @@ const browser = await chromium.launch();
 
 async function openStats(page) {
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#ov-hi", { timeout: 25000 });
+  await page.waitForSelector("#td-h1", { timeout: 25000 });
   await page.waitForTimeout(1200);
   await page.evaluate(() => document.querySelector('.tab[data-view="settings"]').click());
   await page.waitForTimeout(400);

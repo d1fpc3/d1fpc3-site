@@ -42,7 +42,7 @@ const page = await ctx.newPage();
 page.on("pageerror", (e) => fails.push("pageerror: " + e.message));
 page.on("response", (r) => { if (r.status() === 401 || r.status() >= 500) fails.push(`${r.status()} ${r.url()}`); });
 await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-await page.waitForSelector("#ov-hi", { timeout: 25000 });
+await page.waitForSelector("#td-h1", { timeout: 25000 });
 await page.waitForTimeout(1200);
 const shot = (n) => page.screenshot({ path: `${OUT}/${n}.png` });
 const view = async (v) => { await page.evaluate((v) => document.querySelector(`.tab[data-view="${v}"]`).click(), v); await page.waitForTimeout(500); };

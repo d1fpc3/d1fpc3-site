@@ -113,7 +113,7 @@ const browser = await chromium.launch();
     const page = await ctx.newPage();
     page.on("pageerror", (e) => fails.push("app pageerror: " + e.message));
     await page.goto(`${BASE}/echelon/app/`, { waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#ov-hi", { timeout: 25000 });
+    await page.waitForSelector("#td-h1", { timeout: 25000 });
     await page.waitForTimeout(800);
     await page.evaluate(() => document.querySelector('.tab[data-view="propfirms"]').click());
     await page.waitForTimeout(600);

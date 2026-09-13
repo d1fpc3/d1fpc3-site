@@ -46,7 +46,7 @@ await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); sessionStorage
 const page = await ctx.newPage();
 page.on("pageerror", (e) => fails.push("pageerror: " + e.message));
 await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-await page.waitForSelector("#ov-hi", { timeout: 25000 });
+await page.waitForSelector("#td-h1", { timeout: 25000 });
 await page.waitForTimeout(1500);
 
 // password change: the UI demands the emailed code before anything saves

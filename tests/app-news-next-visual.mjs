@@ -84,7 +84,7 @@ async function open(clockAt, current = CURRENT, live = LIVE) {
   if (clockAt) { await page.clock.install({ time: clockAt }); await page.clock.setFixedTime(clockAt); }
   await stubWorker(page, current, live);
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#ov-hi", { timeout: 25000 });
+  await page.waitForSelector("#td-h1", { timeout: 25000 });
   await page.evaluate(() => document.querySelector('.tab[data-view="news"]').click());
   await page.waitForSelector("#news-list .news-row", { timeout: 20000 });
   await page.waitForTimeout(900);

@@ -56,7 +56,7 @@ await page.route(/gex-worker\.frankiepc3\.workers\.dev\/(history\.json|gex\.json
   return route.fulfill(json({ error: "no archived print for that day" }, 404));
 });
 await page.goto(APP_URL + "?start=gex", { waitUntil: "domcontentloaded" });
-await page.waitForSelector("#ov-hi", { timeout: 25000 });
+await page.waitForSelector("#td-h1", { timeout: 25000 });
 await page.evaluate(() => { localStorage.setItem("echelon-gex-tour", "1"); document.querySelector('.tab[data-view="gex"]').click(); });
 await page.waitForFunction(() => document.querySelectorAll("#gex-read .v").length >= 4 && !document.getElementById("gex-prev").disabled, null, { timeout: 30000 }).catch(() => fails.push("live board or day index never came up"));
 const state = () => page.evaluate(() => ({

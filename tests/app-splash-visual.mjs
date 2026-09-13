@@ -96,7 +96,7 @@ async function open(phone, { hold, sameDay }) {
   await page.waitForTimeout(120);
   await page.screenshot({ path: `${OUT}/desk-6-exit-mid.png` });
   await page.waitForFunction(() => !document.getElementById("splash"), null, { timeout: 5000 }).catch(() => fails.push("desktop: splash node not removed"));
-  await page.waitForSelector("#ov-hi", { timeout: 25000 });
+  await page.waitForSelector("#td-h1", { timeout: 25000 });
   await ctx.close();
 }
 

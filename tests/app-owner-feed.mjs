@@ -28,7 +28,7 @@ const browser = await chromium.launch();
 const ctx = await browser.newContext({ ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-gex-tour", "1"); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
 const page = await ctx.newPage(); page.on("pageerror", (e) => fails.push("pageerror: " + e.message));
-await page.goto(APP_URL, { waitUntil: "domcontentloaded" }); await page.waitForSelector("#ov-hi", { timeout: 25000 }); await page.waitForTimeout(1200);
+await page.goto(APP_URL, { waitUntil: "domcontentloaded" }); await page.waitForSelector("#td-h1", { timeout: 25000 }); await page.waitForTimeout(1200);
 await page.click('#bnav button[data-view="set-profile"]'); await page.waitForTimeout(700);
 const tiles = await page.locator("#pro-grid .pro-tile").count();
 if (!tiles) { console.log("owner has no trades; skipping"); await browser.close(); process.exit(0); }

@@ -63,7 +63,7 @@ await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); sessionStorage
 const page = await ctx.newPage();
 page.on("pageerror", (e) => fails.push("pageerror: " + e.message));
 await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-await page.waitForSelector("#ov-hi", { timeout: 25000 });
+await page.waitForSelector("#td-h1", { timeout: 25000 });
 await page.waitForTimeout(1500);
 
 // settings back button: underline, no pill
@@ -129,7 +129,7 @@ const c2 = await browser2.newContext({ ...devices["iPhone 13"], viewport: { widt
 await c2.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-native", "1"); sessionStorage.setItem("echelon-review-dismissed", "1"); localStorage.setItem("echelon-quotes-off", "1"); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
 const p2 = await c2.newPage();
 await p2.goto(APP_URL, { waitUntil: "domcontentloaded" });
-await p2.waitForSelector("#ov-hi", { timeout: 25000 });
+await p2.waitForSelector("#td-h1", { timeout: 25000 });
 await p2.waitForTimeout(800);
 await p2.evaluate(() => document.querySelector('.tab[data-view="settings"]').click());
 const rows = await p2.evaluate(() => [...document.querySelectorAll(".set-index .set-row")].filter((r) => !r.hidden && getComputedStyle(r).display !== "none").map((r) => r.querySelector("b").textContent));

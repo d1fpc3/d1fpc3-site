@@ -32,7 +32,7 @@ for (const [name, vp, theme] of [["phone-light", { ...devices["iPhone 13"], view
   const p = await ctx.newPage();
   const errs = []; p.on("pageerror", (e) => errs.push(e.message));
   await p.goto("http://127.0.0.1:8123/echelon/app/", { waitUntil: "domcontentloaded" });
-  await p.waitForSelector("#ov-hi", { timeout: 25000 });
+  await p.waitForSelector("#td-h1", { timeout: 25000 });
   await p.waitForFunction(() => document.querySelectorAll(".pm-card.on").length === 3, null, { timeout: 12000 }).catch(() => fails.push(name + ": three tabs never opened"));
   await p.waitForTimeout(400);
   await p.screenshot({ path: `${OUT}/${name}.png` });
@@ -48,14 +48,14 @@ for (const [name, vp, theme] of [["phone-light", { ...devices["iPhone 13"], view
   if (st.open.join() !== "ig,bt" || st.rested.join() !== "dc" || st.stackHidden) fails.push(name + ": X on Discord did not close just that one " + JSON.stringify(st));
   await p.screenshot({ path: `${OUT}/${name}-one-dismissed.png` });
   // reload: the two survive, the dismissed one stays away
-  await p.reload({ waitUntil: "domcontentloaded" }); await p.waitForSelector("#ov-hi", { timeout: 25000 }); await p.waitForTimeout(6500);
+  await p.reload({ waitUntil: "domcontentloaded" }); await p.waitForSelector("#td-h1", { timeout: 25000 }); await p.waitForTimeout(6500);
   st = await p.evaluate(state);
   if (st.open.join() !== "ig,bt") fails.push(name + ": after reload expected ig,bt open, got " + st.open.join());
   // dismiss the rest: the stack goes away
   await p.click('.pm-card[data-promo="ig"] [data-promo-x]'); await p.click('.pm-card[data-promo="bt"] [data-promo-x]'); await p.waitForTimeout(450);
   st = await p.evaluate(state);
   if (st.open.length || !st.stackHidden || st.rested.length !== 3) fails.push(name + ": dismissing all did not hide the stack " + JSON.stringify(st));
-  await p.reload({ waitUntil: "domcontentloaded" }); await p.waitForSelector("#ov-hi", { timeout: 25000 }); await p.waitForTimeout(6500);
+  await p.reload({ waitUntil: "domcontentloaded" }); await p.waitForSelector("#td-h1", { timeout: 25000 }); await p.waitForTimeout(6500);
   if (await p.evaluate(() => !document.getElementById("promostack").hidden)) fails.push(name + ": came back after dismissing all");
   await ctx.close();
 }

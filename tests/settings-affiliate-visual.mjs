@@ -39,7 +39,7 @@ const page = await ctx.newPage();
 page.on("response", async (r) => { if (r.url().includes("supabase.co") && (r.status() >= 400 || r.url().includes("affiliate"))) console.log("HTTP", r.status(), r.request().method(), r.url().slice(60, 140), (await r.text().catch(() => "")).slice(0, 160)); });
 page.on("pageerror", (e) => fails.push("pageerror: " + e.message));
 await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-await page.waitForSelector("#ov-hi", { timeout: 25000 });
+await page.waitForSelector("#td-h1", { timeout: 25000 });
 await page.waitForTimeout(1200);
 
 await page.evaluate(() => document.querySelector('.tab[data-view="settings"]').click());

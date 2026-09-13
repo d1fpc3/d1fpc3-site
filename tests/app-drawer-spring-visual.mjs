@@ -49,7 +49,7 @@ async function ctxFor(phone, theme = "dark") {
   const page = await ctx.newPage();
   page.on("pageerror", (e) => fails.push("pageerror: " + e.message));
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#ov-hi", { timeout: 25000 });
+  await page.waitForSelector("#td-h1", { timeout: 25000 });
   await page.waitForTimeout(1500);
   // hide toasts / tour pill so shots are clean
   await page.addStyleTag({ content: ".toast, #toast, .nu-pill, .nextup { display: none !important }" });

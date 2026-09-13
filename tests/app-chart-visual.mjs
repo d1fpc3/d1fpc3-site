@@ -53,7 +53,7 @@ async function run(vpName) {
   const page = await ctx.newPage();
   page.on("pageerror", (e) => { note("PAGEERROR " + e.message); fails.push(`${vpName} pageerror: ${e.message}`) });
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#ov-hi", { timeout: 30000 });
+  await page.waitForSelector("#td-h1", { timeout: 30000 });
   await page.waitForTimeout(1500);
   await page.evaluate(() => document.querySelector('.tab[data-view="chart"]').click());
   await page.evaluate(() => { const sc = document.getElementById("scrim"); if (sc && getComputedStyle(sc).opacity !== "0") sc.click(); });
