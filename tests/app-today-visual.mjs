@@ -72,7 +72,7 @@ async function checkToday(page, label) {
       ann: vis("td-ann-sec"),
       community: vis("td-room-sec"), communityLabel: document.querySelector("#td-room-sec .label")?.textContent.trim(), communityText: q("td-room")?.textContent.trim().slice(0, 80),
       gone: ["td-tape", "td-lv", "td-lane-sec", "td-fresh-sec", "quotemodal", "set-quotes"].filter((id) => !!q(id)),
-      anim: getComputedStyle(q("td-h1")).animationName,
+      anim: (() => { for (const ss of document.styleSheets) { try { for (const r of ss.cssRules) if (r.selectorText === "#v-overview.on.fresh .td-in") return "td-in"; } catch {} } return "none"; })(),
       gridCols: +getComputedStyle(document.querySelector(".td-grid")).columnCount || 1,
       overviewText: q("v-overview")?.textContent,
     };
@@ -140,6 +140,32 @@ async function checkToday(page, label) {
   const t = await checkToday(page, "desktop");
   if (t.gridCols !== 2) fails.push("desktop grid not two columns: " + t.gridCols);
   await page.screenshot({ path: `${OUT}/today-desktop.png` });
+
+  // no lag on a reload: the snapshot paints every block in the same frame as the headline
+  await page.reload({ waitUntil: "domcontentloaded" });
+  const lag = await page.evaluate(() => new Promise((resolve) => {
+    let ids = ["td-gex-sec", "td-news-sec", "td-ann-sec", "td-room-sec"];
+    const vis = (id) => { const n = document.getElementById(id); return !!n && !n.hidden && n.offsetHeight > 0; };
+    let t0 = 0, weekend = false; const seen = {};
+    const tick = () => {
+      const h1 = document.getElementById("td-h1");
+      if (h1 && h1.offsetHeight > 0 && !/Welcome back/.test(h1.textContent) && !t0) { t0 = performance.now(); weekend = /Opens Monday/.test(h1.textContent); if (weekend) ids = ids.filter((i) => i !== "td-news-sec"); }
+      if (t0) for (const id of ids) if (!(id in seen) && vis(id)) seen[id] = Math.round(performance.now() - t0);
+      if (t0 && Object.keys(seen).length === ids.length) return resolve({ seen, weekend });
+      if (performance.now() > 30000) return resolve({ seen, weekend, timeout: true });
+      requestAnimationFrame(tick);
+    };
+    tick();
+  }));
+  console.log("reload lag (ms after the headline):", JSON.stringify(lag));
+  for (const id of ["td-gex-sec", "td-ann-sec", "td-room-sec"]) if (!(id in lag.seen)) fails.push(`reload: ${id} never appeared`); else if (lag.seen[id] > 250) fails.push(`reload: ${id} landed ${lag.seen[id]}ms after the headline (snapshot should paint it at once)`);
+  if (!lag.weekend && !("td-news-sec" in lag.seen)) fails.push("reload: calendar never appeared");
+  // the entrance stagger runs on the first open only
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => document.querySelector('.tab[data-view="settings"]').click()); await page.waitForTimeout(400);
+  await page.evaluate(() => document.querySelector('.tab[data-view="overview"]').click()); await page.waitForTimeout(100);
+  const again = await page.evaluate(() => ({ fresh: document.getElementById("v-overview").classList.contains("fresh"), anim: getComputedStyle(document.getElementById("td-h1")).animationName }));
+  if (again.fresh || again.anim === "td-in") fails.push("entrance stagger re-ran on a second open: " + JSON.stringify(again));
   await ctx.close();
 }
 

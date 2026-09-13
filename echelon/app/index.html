@@ -924,19 +924,22 @@
        another when the view opens (.td-in), the price pulses on a tick. */
     @keyframes td-in { from { opacity: 0; transform: translateY(12px); } }
     @keyframes td-ping { from { opacity: 0; transform: translateY(6px); } }
-    #v-overview.on .td-in { animation: td-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 55ms + 40ms); }
+    #v-overview.on.fresh .td-in { animation: td-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 55ms + 40ms); }
+    /* after the first open a block that lands late (no snapshot yet) only fades in, and nothing re-runs on a refresh */
+    @keyframes td-fade { from { opacity: 0; } }
+    #v-overview.on:not(.fresh) .td-sec { animation: td-fade 0.22s ease both; }
     .td-hero .td-in:nth-child(1) { --i: 0; } .td-hero .td-in:nth-child(2) { --i: 1; } .td-hero .td-in:nth-child(3) { --i: 2; }
     .td-grid .td-in:nth-child(1) { --i: 3; } .td-grid .td-in:nth-child(2) { --i: 4; } .td-grid .td-in:nth-child(3) { --i: 5; } .td-grid .td-in:nth-child(4) { --i: 6; }
-    .td-card .row { animation: td-ping 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-    .td-card .row:nth-child(2) { animation-delay: 50ms; } .td-card .row:nth-child(3) { animation-delay: 100ms; } .td-card .row:nth-child(4) { animation-delay: 150ms; } .td-card .row:nth-child(n+5) { animation-delay: 200ms; }
+    #v-overview.fresh .td-card .row { animation: td-ping 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    #v-overview.fresh .td-card .row:nth-child(2) { animation-delay: 50ms; } #v-overview.fresh .td-card .row:nth-child(3) { animation-delay: 100ms; } #v-overview.fresh .td-card .row:nth-child(4) { animation-delay: 150ms; } #v-overview.fresh .td-card .row:nth-child(n+5) { animation-delay: 200ms; }
     /* the same rise for the settings list and the drawer rows, so every screen clicks in */
-    #v-settings.on .set-row { animation: td-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    #v-settings.on.fresh .set-row { animation: td-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
     #v-settings.on .set-row:nth-child(1) { animation-delay: 30ms; } #v-settings.on .set-row:nth-child(2) { animation-delay: 70ms; } #v-settings.on .set-row:nth-child(3) { animation-delay: 110ms; } #v-settings.on .set-row:nth-child(4) { animation-delay: 150ms; } #v-settings.on .set-row:nth-child(5) { animation-delay: 190ms; } #v-settings.on .set-row:nth-child(6) { animation-delay: 230ms; } #v-settings.on .set-row:nth-child(7) { animation-delay: 270ms; } #v-settings.on .set-row:nth-child(n+8) { animation-delay: 310ms; }
     @media (max-width: 840px) {
       .nav-open .side-nav .tab { animation: td-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
       .nav-open .side-nav .tab:nth-child(2) { animation-delay: 30ms; } .nav-open .side-nav .tab:nth-child(3) { animation-delay: 55ms; } .nav-open .side-nav .tab:nth-child(4) { animation-delay: 80ms; } .nav-open .side-nav .tab:nth-child(5) { animation-delay: 105ms; } .nav-open .side-nav .tab:nth-child(6) { animation-delay: 130ms; } .nav-open .side-nav .tab:nth-child(7) { animation-delay: 155ms; } .nav-open .side-nav .tab:nth-child(8) { animation-delay: 180ms; } .nav-open .side-nav .tab:nth-child(9) { animation-delay: 205ms; } .nav-open .side-nav .tab:nth-child(10) { animation-delay: 230ms; } .nav-open .side-nav .tab:nth-child(n+11) { animation-delay: 255ms; }
     }
-    @media (prefers-reduced-motion: reduce) { #v-overview.on .td-in, .td-card .row, #v-settings.on .set-row, .nav-open .side-nav .tab { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { #v-overview.on .td-in, #v-overview.on:not(.fresh) .td-sec, .td-card .row, #v-settings.on .set-row, .nav-open .side-nav .tab { animation: none; } }
 
     .td-hero { position: relative; padding: 4px 2px 8px; }
     .td-hero .rc-btn { position: absolute; top: 0; right: 0; }
@@ -4451,6 +4454,14 @@
       } finally { navSilent = false }
     })
     const VIEW_SCROLL = {}   // where you left each view; apps keep your place, websites reset
+    // entrance motion plays once per view per page load; after that a view just appears
+    const SEEN_VIEWS = new Set()
+    function markFresh(id) {
+      if (SEEN_VIEWS.has(id)) return
+      SEEN_VIEWS.add(id)
+      const v = document.getElementById(id); if (!v) return
+      v.classList.add('fresh'); setTimeout(() => v.classList.remove('fresh'), 900)
+    }
     function showView(view) {
       const prev = curView()
       if (prev !== view) VIEW_SCROLL[prev] = window.scrollY
@@ -4459,6 +4470,7 @@
       el('v-settings')?.classList.toggle('back', view === 'settings' && !!el(`v-${prev}`)?.classList.contains('setpage'))
       tabs.forEach((t) => t.classList.toggle('on', t.dataset.view === view))
       document.querySelectorAll('.view').forEach((v) => v.classList.toggle('on', v.id === `v-${view}`))
+      markFresh(`v-${view}`)
       // a view left behind must not keep narrating in the background
       document.querySelectorAll('.view:not(.on) video').forEach((v) => v.pause())
       const tab = tabs.find((t) => t.dataset.view === view)
@@ -10004,7 +10016,23 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        announcement, the room, your lane, and the freshest trades. Each block
        renders from whatever it has and refreshes on its own cadence while
        the view is up; nothing here blocks the rest of the app. */
-    const TD = { gex: null, gexAt: 0, roomAt: 0, timer: 0, clock: 0, on: false }
+    const TD = { gex: null, gexAt: 0, roomAt: 0, timer: 0, clock: 0, on: false, painted: false, room: null, newsCache: null }
+    // the last snapshot of each block, so a reload or a cold open paints the
+    // whole home at once and the network only ever swaps in fresher data
+    const TD_CACHE = 'echelon-today-cache'
+    const tdCacheRead = () => { try { return JSON.parse(localStorage.getItem(TD_CACHE) || '{}') } catch { return {} } }
+    const tdCacheWrite = (patch) => { try { localStorage.setItem(TD_CACHE, JSON.stringify({ ...tdCacheRead(), ...patch })) } catch {} }
+    const tdSlimGex = (d) => d ? { generatedAt: d.generatedAt, regime: d.regime, nq: d.nq, zdte: { flip: d.zdte?.flip, callWall: d.zdte?.callWall, putWall: d.zdte?.putWall, netGexM: d.zdte?.netGexM } } : null
+    // the calendar the home reads: the live feed once it is in, the snapshot until then
+    const tdEvents = () => (newsEvents?.length ? newsEvents : (TD.newsCache || []))
+    function tdPaintCached() {
+      if (TD.painted) return
+      TD.painted = true
+      const c = tdCacheRead()
+      if (c.gex && !TD.gex) TD.gex = c.gex
+      if (c.news?.length && !TD.newsCache) TD.newsCache = c.news.map((e) => ({ ...e, at: new Date(e.at) }))
+      if (c.room && !TD.room) TD.room = c.room
+    }
     const ET_PARTS = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', hour: '2-digit', minute: '2-digit' })
     const ET_WEEKDAY = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'long' })
     const ET_CLOCK = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
@@ -10019,7 +10047,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const { wd, min } = etNow(now)
       const OPEN = 570, CLOSE = 960, REOPEN = 1080
       const today = ET_DAY.format(now)
-      const hol = (newsEvents || []).find((e) => e.impact === 'Holiday' && ET_DAY.format(e.at) === today)
+      const hol = tdEvents().find((e) => e.impact === 'Holiday' && ET_DAY.format(e.at) === today)
       if (hol && wd !== 'Sat' && wd !== 'Sun' && !(hol.kind === 'early' && min < 780)) return { kind: 'holiday', title: hol.title }
       if (wd === 'Sat' || (wd === 'Sun' && min < REOPEN) || (wd === 'Fri' && min >= CLOSE)) return { kind: 'weekend' }
       if (min >= OPEN && min < CLOSE) return { kind: 'live', mins: min - OPEN }
@@ -10043,12 +10071,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const bits = []
       if (ses.kind === 'pre' || ses.kind === 'live') {
         const today = ET_DAY.format(now)
-        const next = (newsEvents || []).filter((e) => e.impact === 'High' && ET_DAY.format(e.at) === today && e.at.getTime() > now.getTime()).sort((a, b) => a.at - b.at)[0]
+        const next = tdEvents().filter((e) => e.impact === 'High' && ET_DAY.format(e.at) === today && e.at.getTime() > now.getTime()).sort((a, b) => a.at - b.at)[0]
         if (next) {
           const t = next.at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
           const beforeOpen = ses.kind === 'pre' && etNow(next.at).min < 570
           bits.push(`${next.title} at ${t} ${beforeOpen ? 'sets the tone before the bell' : 'is the next red event'}.`)
-        } else if (newsEvents?.length) bits.push('No red news left today.')
+        } else if (tdEvents().length) bits.push('No red news left today.')
       }
       if (ses.kind === 'weekend') bits.push('Futures reopen Sunday 6:00 PM ET.')
       if (ses.kind === 'after') bits.push('The overnight session starts at 6:00 PM ET.')
@@ -10068,6 +10096,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       try {
         const r = await fetch(`${GEX_URL}/gex.json`, { cache: 'no-store' }); if (!r.ok) throw new Error('gex ' + r.status)
         TD.gex = await r.json(); TD.gexAt = Date.now(); tdRenderGex()
+        tdCacheWrite({ gex: tdSlimGex(TD.gex) })
       } catch { tdRenderGex() }
     }
     function tdRenderGex() {
@@ -10110,10 +10139,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function tdRenderNews() {
       const sec = el('td-news-sec'), host = el('td-news'); if (!sec) return
       const now = Date.now(), today = ET_DAY.format(new Date())
-      const rows = (newsEvents || []).filter((e) => ET_DAY.format(e.at) === today && e.impact !== 'Holiday').sort((a, b) => a.at - b.at)
+      const events = tdEvents()
+      const rows = events.filter((e) => ET_DAY.format(e.at) === today && e.impact !== 'Holiday').sort((a, b) => a.at - b.at)
       const ses = tdSession()
-      sec.hidden = !newsEvents?.length || ses.kind === 'weekend'
+      sec.hidden = !events.length || ses.kind === 'weekend'
       if (sec.hidden) return
+      if (newsEvents?.length) tdCacheWrite({ news: events.filter((e) => ET_DAY.format(e.at) === today).map((e) => ({ at: e.at.toISOString(), title: e.title, impact: e.impact, kind: e.kind })) })
+      // same rows, same past/future split: leave the DOM alone
+      const key = rows.map((e) => e.at.getTime() + '|' + e.title + '|' + e.impact + '|' + (e.at.getTime() < now ? 'p' : 'f')).join(';')
+      if (host.dataset.key === key) return
+      host.dataset.key = key
       host.textContent = ''
       if (!rows.length) { const p = document.createElement('p'); p.className = 'td-empty'; p.textContent = 'Nothing on the calendar today. Clean session.'; host.appendChild(p); return }
       const show = rows.slice(0, 5)
@@ -10155,9 +10190,41 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     // ── community: members + the last message in #general ──
     const tdAgo = (iso) => { const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000); return s < 60 ? 'now' : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d` }
+    function tdRenderRoom() {
+      const sec = el('td-room-sec'), host = el('td-room'); if (!sec) return
+      const r = TD.room
+      if (!r) { sec.hidden = true; return }
+      const key = JSON.stringify(r)
+      sec.hidden = false
+      if (host.dataset.key === key) return
+      host.dataset.key = key
+      host.textContent = ''
+      const who = document.createElement('div'); who.className = 'who'
+      const stack = document.createElement('div'); stack.className = 'td-stack'
+      for (const u of r.faces) stack.appendChild(avatarNode(u, 'av'))
+      const t = document.createElement('p'); t.className = 't'
+      const strong = (x) => { const b = document.createElement('b'); b.textContent = x; return b }
+      t.appendChild(strong(`${r.total} member${r.total === 1 ? '' : 's'}`)); t.appendChild(document.createTextNode('. '))
+      const names = r.names, rest = r.posters - names.length
+      if (names.length) {
+        t.appendChild(strong(names[0]))
+        if (names[1]) { t.appendChild(document.createTextNode(rest > 0 ? ', ' : ' and ')); t.appendChild(strong(names[1])) }
+        if (rest > 0) t.appendChild(document.createTextNode(` and ${rest} other${rest === 1 ? '' : 's'}`))
+        t.appendChild(document.createTextNode(` posted ${r.posters === 1 ? 'a trade' : 'trades'} since the last session.`))
+      } else t.appendChild(document.createTextNode('No trades posted since the last session yet.'))
+      who.append(stack, t); host.appendChild(who)
+      if (r.last) {
+        const last = document.createElement('div'); last.className = 'last'
+        const b = document.createElement('b'); b.textContent = '#' + r.last.slug
+        const sp = document.createElement('span'); sp.textContent = r.last.text
+        const sm = document.createElement('small'); sm.textContent = tdAgo(r.last.at)
+        last.append(b, sp, sm); last.addEventListener('click', () => showView('chat'))
+        host.appendChild(last)
+      }
+    }
     async function tdLoadRoom() {
       if (!state.user) return
-      const sec = el('td-room-sec'), host = el('td-room'); if (!sec) return
+      const sec = el('td-room-sec'); if (!sec) return
       try {
         // "since the last session": a day and a half covers the overnight plus the prior RTH
         const since = new Date(Date.now() - 36 * 3600 * 1000).toISOString()
@@ -10172,34 +10239,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
         TD.roomAt = Date.now()
         const posters = [...new Set((posts ?? []).map((p) => p.user_id))]
-        const total = (state.members || []).length
-        host.textContent = ''
-        const who = document.createElement('div'); who.className = 'who'
-        const stack = document.createElement('div'); stack.className = 'td-stack'
-        for (const uid of posters.slice(0, 4)) { const u = chatUser(uid); stack.appendChild(avatarNode({ username: u.username, avatar_url: u.avatar_url }, 'av')) }
-        if (!posters.length) { for (const m of (state.members || []).slice(0, 4)) stack.appendChild(avatarNode({ username: m.username, avatar_url: m.avatar_url }, 'av')) }
-        const t = document.createElement('p'); t.className = 't'
-        const names = posters.slice(0, 2).map((uid) => chatUser(uid).username).filter(Boolean)
-        const rest = posters.length - names.length
-        const strong = (x) => { const b = document.createElement('b'); b.textContent = x; return b }
-        t.appendChild(strong(`${total} member${total === 1 ? '' : 's'}`)); t.appendChild(document.createTextNode('. '))
-        if (names.length) {
-          t.appendChild(strong(names[0]))
-          if (names[1]) { t.appendChild(document.createTextNode(rest > 0 ? ', ' : ' and ')); t.appendChild(strong(names[1])) }
-          if (rest > 0) t.appendChild(document.createTextNode(` and ${rest} other${rest === 1 ? '' : 's'}`))
-          t.appendChild(document.createTextNode(` posted ${posters.length === 1 ? 'a trade' : 'trades'} since the last session.`))
-        } else t.appendChild(document.createTextNode('No trades posted since the last session yet.'))
-        who.append(stack, t); host.appendChild(who)
-        if (lastMsg) {
-          const last = document.createElement('div'); last.className = 'last'
-          const b = document.createElement('b'); b.textContent = '#' + (gen.slug || 'general')
-          const sp = document.createElement('span'); sp.textContent = lastMsg.body || (lastMsg.image_url ? 'sent a chart' : '')
-          const sm = document.createElement('small'); sm.textContent = tdAgo(lastMsg.created_at)
-          last.append(b, sp, sm); last.addEventListener('click', () => showView('chat'))
-          host.appendChild(last)
+        const faceOf = (uid) => { const u = chatUser(uid); return { username: u.username || 'member', avatar_url: u.avatar_url || null } }
+        const faces = posters.length ? posters.slice(0, 4).map(faceOf) : (state.members || []).slice(0, 4).map((m) => ({ username: m.username || 'member', avatar_url: m.avatar_url || null }))
+        TD.room = {
+          total: (state.members || []).length, posters: posters.length, faces,
+          names: posters.slice(0, 2).map((uid) => chatUser(uid).username).filter(Boolean),
+          last: lastMsg ? { slug: gen.slug || 'general', text: lastMsg.body || (lastMsg.image_url ? 'sent a chart' : ''), at: lastMsg.created_at } : null,
         }
-        sec.hidden = false
-      } catch { sec.hidden = true }
+        tdCacheWrite({ room: TD.room })
+        tdRenderRoom()
+      } catch { if (!TD.room) sec.hidden = true }
     }
 
     // renderOverview is what the course loader and boot call after data lands; the home just re-syncs
@@ -10211,14 +10260,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function tdRefresh(force) {
       if (!state.user) return
       const age = (t) => Date.now() - t
-      tdRenderHero(); tdRenderAnn()
-      if (force || age(TD.gexAt) > 60_000) tdLoadGex(); else tdRenderGex()
-      if (!newsEvents?.length) loadNews().then(() => { tdRenderNews(); tdRenderHero() }); else tdRenderNews()
+      tdPaintCached()
+      tdRenderHero(); tdRenderAnn(); tdRenderGex(); tdRenderNews(); tdRenderRoom()
+      if (force || age(TD.gexAt) > 60_000) tdLoadGex()
+      if (!newsEvents?.length) loadNews().then(() => { tdRenderNews(); tdRenderHero() })
       if (force || age(TD.roomAt) > 2 * 60_000) tdLoadRoom()
     }
     function tdShown() {
       if (!el('td-h1')) return
       TD.on = true
+      markFresh('v-overview')
       tdRefresh(false)
       clearInterval(TD.timer); clearInterval(TD.clock)
       TD.timer = setInterval(() => { if (document.visibilityState === 'visible') tdRefresh(false) }, 60_000)
