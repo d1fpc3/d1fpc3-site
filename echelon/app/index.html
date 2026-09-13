@@ -2526,15 +2526,39 @@
     .m-react:hover { color: var(--gold); border-color: var(--gold); }
     .m-name { cursor: pointer; }
     .m-name:hover { text-decoration: underline; text-underline-offset: 2px; }
-    /* reactions */
-    .m-rx { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-    .rx-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 8px;
-      border: 1px solid var(--line-bright); background: var(--panel-2); color: var(--muted); font-size: 12.5px;
-      cursor: pointer; font-family: inherit; line-height: 1.5; }
-    .rx-chip:hover { border-color: var(--gold); }
-    .rx-chip.mine { border-color: var(--gold); color: var(--ink); background: rgba(201,162,74,0.14); }
-    .rx-chip .n { font-variant-numeric: tabular-nums; font-size: 11.5px; color: var(--faint); }
+    /* reactions: pills under the message. Yours is tinted gold, a count that
+       changes pops, the trailing + opens the picker, and resting on a pill
+       (or holding it on a phone) names who reacted. */
+    .m-rx { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .rx-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px 0 8px; border-radius: 999px;
+      border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font-size: 12.5px;
+      cursor: pointer; font-family: inherit; line-height: 1; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; -webkit-user-select: none;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.3s cubic-bezier(.2,.8,.2,1); }
+    .rx-chip .e { font-size: 14px; line-height: 1; }
+    @media (hover: hover) { .rx-chip:hover { border-color: var(--line-bright); background: var(--panel); color: var(--ink); } }
+    .rx-chip:active { transform: scale(0.94); transition-duration: 0.06s; }
+    .rx-chip.mine { border-color: rgba(201,162,74,0.55); color: var(--ink); background: rgba(201,162,74,0.14); }
+    .rx-chip .n { font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; color: var(--faint); }
     .rx-chip.mine .n { color: var(--gold); }
+    .rx-chip.pop { animation: rx-pop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes rx-pop { from { transform: scale(0.7); } }
+    .rx-add { width: 30px; padding: 0; justify-content: center; color: var(--faint); border-style: dashed; }
+    .rx-add svg { width: 14px; height: 14px; }
+    .m-rx:not(:hover) .rx-add { opacity: 0.55; }
+    @media (hover: none) { .rx-add { opacity: 0.55; } }
+    /* who reacted */
+    .rx-tip { position: fixed; z-index: 212; display: flex; align-items: center; gap: 9px; max-width: min(320px, calc(100vw - 24px)); padding: 8px 12px 8px 8px;
+      background: var(--panel-2); border: 1px solid var(--line-bright); border-radius: 12px; box-shadow: 0 14px 34px -10px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+      font-size: 12.5px; line-height: 1.4; color: var(--muted); pointer-events: none;
+      animation: rx-tip-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1); transform-origin: 50% 100%; }
+    :root[data-theme="light"] .rx-tip { box-shadow: 0 14px 34px -12px rgba(0,0,0,0.25); }
+    @keyframes rx-tip-in { from { opacity: 0; transform: translateY(4px) scale(0.96); } }
+    .rx-tip .stack { display: flex; flex: none; }
+    .rx-tip .stack .av { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--panel-2); margin-left: -7px; font-size: 9px; }
+    .rx-tip .stack .av:first-child { margin-left: 0; }
+    .rx-tip .e { font-size: 16px; line-height: 1; flex: none; }
+    .rx-tip b { color: var(--ink); font-weight: 600; }
+    @media (prefers-reduced-motion: reduce) { .rx-chip.pop, .rx-tip { animation: none; } }
     .rx-pop { position: fixed; z-index: 210; display: flex; gap: 2px; padding: 5px 6px; background: var(--panel-2);
       border: 1px solid var(--line-bright); border-radius: 10px; box-shadow: 0 14px 34px rgba(0,0,0,0.5); }
     .rx-pop button { background: none; border: 0; font-size: 19px; line-height: 1; padding: 5px 6px; border-radius: 7px; cursor: pointer; }
@@ -14152,10 +14176,41 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const { data } = await supabase.from('message_reactions').select('message_id, user_id, emoji').in('message_id', ids)
       for (const r of data || []) {
         const per = chat.rx.get(r.message_id) || new Map()
-        const e = per.get(r.emoji) || { count: 0, mine: false }
-        e.count++; if (r.user_id === state.user.id) e.mine = true
+        const e = per.get(r.emoji) || { count: 0, mine: false, users: [] }
+        e.count++; e.users.push(r.user_id); if (r.user_id === state.user.id) e.mine = true
         per.set(r.emoji, e); chat.rx.set(r.message_id, per)
       }
+    }
+    // counts as last painted, so a pill that changed can pop
+    const rxSeen = new Map()
+    const rxNames = (e) => {
+      const others = e.users.filter((u) => u !== state.user.id).map((u) => chatUser(u).username || 'member')
+      const list = (e.mine ? ['You'] : []).concat(others)
+      if (list.length <= 3) return list.length === 1 ? list[0] : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1]
+      return `${list.slice(0, 2).join(', ')} and ${list.length - 2} others`
+    }
+    let rxTip = null, rxTipT = 0
+    function closeRxTip() { clearTimeout(rxTipT); rxTipT = 0; if (rxTip) { rxTip.remove(); rxTip = null } }
+    function openRxTip(chip, emoji, e) {
+      closeRxTip()
+      const tip = document.createElement('div'); tip.className = 'rx-tip'; tip.setAttribute('role', 'tooltip')
+      const stack = document.createElement('div'); stack.className = 'stack'
+      for (const u of e.users.slice(0, 3)) { const info = chatUser(u); stack.appendChild(avatarNode({ username: info.username, avatar_url: info.avatar_url }, 'av')) }
+      const txt = document.createElement('span')
+      const b = document.createElement('b'); b.textContent = rxNames(e)
+      txt.append(b, document.createTextNode(` reacted `))
+      const em = document.createElement('span'); em.className = 'e'; em.textContent = emoji
+      tip.append(stack, txt, em)
+      document.body.appendChild(tip)
+      const r = chip.getBoundingClientRect()
+      const w = tip.offsetWidth, h = tip.offsetHeight
+      let left = r.left + r.width / 2 - w / 2
+      left = Math.max(8, Math.min(window.innerWidth - w - 8, left))
+      const above = r.top - h - 8
+      tip.style.left = left + 'px'
+      tip.style.top = (above >= 8 ? above : r.bottom + 8) + 'px'
+      if (above < 8) tip.style.transformOrigin = '50% 0%'
+      rxTip = tip
     }
     function scheduleRxRefresh() { clearTimeout(_rxT); _rxT = setTimeout(async () => { await loadReactions(); renderLog() }, 400) }
     async function toggleReaction(mid, emoji) {
@@ -14169,14 +14224,28 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!per?.size) return
       const wrap = document.createElement('div'); wrap.className = 'm-rx'
       for (const [emoji, e] of per) {
-        const chip = document.createElement('button'); chip.className = 'rx-chip' + (e.mine ? ' mine' : '')
-        chip.title = e.mine ? 'Remove your reaction' : 'React'
-        const em = document.createElement('span'); em.textContent = emoji
+        const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'rx-chip' + (e.mine ? ' mine' : '')
+        chip.setAttribute('aria-label', `${emoji} ${e.count}, ${rxNames(e)} reacted`)
+        const em = document.createElement('span'); em.className = 'e'; em.textContent = emoji
         const n = document.createElement('span'); n.className = 'n'; n.textContent = String(e.count)
         chip.append(em, n)
-        chip.addEventListener('click', () => toggleReaction(m.id, emoji))
+        const key = m.id + ':' + emoji
+        if (rxSeen.has(key) && rxSeen.get(key) !== e.count) chip.classList.add('pop')
+        rxSeen.set(key, e.count)
+        let held = false   // a hold shows who reacted and must not also count as the tap that toggles
+        chip.addEventListener('click', () => { if (held) { held = false; return } hap('light'); closeRxTip(); toggleReaction(m.id, emoji) })
+        // who reacted: rest on it with a mouse, or hold it on a phone
+        chip.addEventListener('pointerenter', (ev) => { if (ev.pointerType !== 'mouse') return; clearTimeout(rxTipT); rxTipT = setTimeout(() => openRxTip(chip, emoji, e), 220) })
+        chip.addEventListener('pointerleave', closeRxTip)
+        let hold = 0
+        chip.addEventListener('touchstart', () => { held = false; clearTimeout(hold); hold = setTimeout(() => { held = true; hap('light'); openRxTip(chip, emoji, e) }, 450) }, { passive: true })
+        for (const t of ['touchend', 'touchcancel', 'touchmove']) chip.addEventListener(t, () => clearTimeout(hold), { passive: true })
         wrap.appendChild(chip)
       }
+      const add = document.createElement('button'); add.type = 'button'; add.className = 'rx-chip rx-add'; add.title = 'Add a reaction'; add.setAttribute('aria-label', 'Add a reaction')
+      add.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'
+      add.addEventListener('click', (ev) => { ev.stopPropagation(); hap('light'); openRxPicker(add, m.id) })
+      wrap.appendChild(add)
       host.appendChild(wrap)
     }
     function closeRxPicker() { if (rxPop) { rxPop.remove(); rxPop = null } }
@@ -14195,7 +14264,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       rxPop = pop
     }
     document.addEventListener('click', (e) => { if (rxPop && !rxPop.contains(e.target)) closeRxPicker() })
-    el('chat-log').addEventListener('scroll', closeRxPicker)
+    el('chat-log').addEventListener('scroll', () => { closeRxPicker(); closeRxTip() })
+    document.addEventListener('touchstart', (e) => { if (rxTip && !e.target.closest('.rx-chip')) closeRxTip() }, { passive: true })
     // phones: react/delete come up on a stationary half-second hold, like
     // Discord. Any movement, scroll, or lift cancels instantly, so the
     // gesture can never grab a scroll.
@@ -14204,7 +14274,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const closeActs = () => document.querySelectorAll('.msg.acts-open').forEach((m) => m.classList.remove('acts-open'))
       const cancel = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = 0 } }
       log.addEventListener('touchstart', (e) => {
-        const row = e.target.closest('.msg'); if (!row || e.touches.length !== 1) return
+        const row = e.target.closest('.msg'); if (!row || e.touches.length !== 1 || e.target.closest('.rx-chip')) return
         lpX = e.touches[0].clientX; lpY = e.touches[0].clientY
         cancel()
         lpTimer = setTimeout(() => { lpTimer = 0; closeActs(); row.classList.add('acts-open') }, 500)
