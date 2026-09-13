@@ -60,7 +60,6 @@
       --bad: #b4543c;
       --good: #4e7d46;
     }
-    :root[data-theme="light"] .topbar { background: rgba(246,244,240,0.85); }
     :root[data-theme="light"] tbody tr:hover td { background: rgba(0,0,0,0.02); }
     :root[data-theme="light"] .skel::after {
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
@@ -250,12 +249,25 @@
 
     .main { min-width: 0; display: flex; flex-direction: column; }
 
+    /* the bar is plain at the top of a page and turns into material (blur 20,
+       saturate 180, a hairline) once content scrolls under it, the way an iOS
+       navigation bar dissolves the edge instead of cutting it */
     .topbar {
       position: sticky; top: 0; z-index: 5;
-      background: rgba(11,10,9,0.82); backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg) 72%, transparent);
+      -webkit-backdrop-filter: blur(12px) saturate(160%); backdrop-filter: blur(12px) saturate(160%);
+      border-bottom: 1px solid transparent;
       padding: 18px clamp(20px, 3vw, 34px);
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      transition: border-color 0.25s ease, background 0.25s ease;
+    }
+    body.scrolled .topbar { border-bottom-color: var(--line); }
+    @media (max-width: 840px) {
+      .topbar { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+      body.scrolled .topbar { background: color-mix(in srgb, var(--bg) 72%, transparent); -webkit-backdrop-filter: blur(12px) saturate(160%); backdrop-filter: blur(12px) saturate(160%); }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .topbar, body.scrolled .topbar, .bnav { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
     }
     .topbar h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
     .topbar .crumb { font-size: 12.5px; color: var(--faint); margin-top: 1px; }
@@ -365,10 +377,16 @@
     .gex-readwrap { margin-bottom: 20px; }
     .gex-readwrap .gex-read { padding: 16px 18px 10px; margin-bottom: 0; }
     .gex-readwrap .gex-regime { margin: 0 18px 16px; padding-top: 12px; max-width: none; }
-    .seg { display: inline-flex; gap: 2px; align-items: center; }
+    .seg { display: inline-flex; gap: 2px; align-items: center; position: relative; }
+    /* the gold mark is one element that slides to the chosen option */
+    .seg-thumb { position: absolute; left: 0; bottom: 0; height: 1.5px; width: 0; background: var(--gold); border-radius: 2px; opacity: 0; pointer-events: none; }
+    .seg-thumb.live { transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease; }
+    .calc-tabs { position: relative; }
+    .calc-tabs .seg-thumb { bottom: -5px; height: 2px; }
+    @media (prefers-reduced-motion: reduce) { .seg-thumb.live { transition: opacity 0.2s ease; } }
     .seg button { background: none; border: 0; padding: 6px 8px 5px; cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 500; color: var(--faint); border-bottom: 1.5px solid transparent; transition: color 0.15s ease, border-color 0.15s ease; }
     .seg button:hover { color: var(--ink); }
-    .seg button.on { color: var(--ink); border-bottom-color: var(--gold); }
+    .seg button.on { color: var(--ink); }
     .seg + .seg { margin-left: 10px; padding-left: 12px; border-left: 1px solid var(--line); }
     .gex-stage { position: relative; padding: 6px 10px 2px; }
     .gex-stage canvas { display: block; width: 100%; height: auto; cursor: grab; touch-action: none; }
@@ -4487,6 +4505,7 @@
       syncBnav(view)
       // sub-pages always open at the top (a push); top-level views resume where you were
       window.scrollTo({ top: (prev !== view && !el(`v-${view}`)?.classList.contains('setpage')) ? (VIEW_SCROLL[view] ?? 0) : 0 })
+      globalThis.__syncBarEdge?.()
       if (view === 'chat' && !chat.loaded) loadChat()
       if (view === 'library') { if (!LIB.loaded) loadLibrary(); markRead('recaps') }
       if (view === 'gex') gexShown()
@@ -4745,6 +4764,36 @@
         setTimeout(() => { if (g.host) g.host.style.transition = '' }, 340)
       }
       document.addEventListener('touchend', sgEnd); document.addEventListener('touchcancel', sgEnd)
+    }
+
+    /* ── the bar's edge: plain at the top, material once content is under it ── */
+    {
+      let raf = 0
+      const sync = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; document.body.classList.toggle('scrolled', window.scrollY > 4) }) }
+      window.addEventListener('scroll', sync, { passive: true })
+      window.addEventListener('resize', sync)
+      globalThis.__syncBarEdge = sync
+      sync()
+    }
+
+    /* ── segmented controls: the gold mark slides between options ── */
+    {
+      const place = (seg) => {
+        let th = seg.querySelector(':scope > .seg-thumb')
+        if (!th) { th = document.createElement('i'); th.className = 'seg-thumb'; th.setAttribute('aria-hidden', 'true'); seg.appendChild(th) }
+        const on = seg.querySelector(':scope > button.on')
+        if (!on || !on.offsetWidth) { th.style.opacity = '0'; return }
+        th.style.opacity = '1'; th.style.width = on.offsetWidth + 'px'; th.style.transform = `translateX(${on.offsetLeft}px)`
+        if (!th.classList.contains('live')) requestAnimationFrame(() => requestAnimationFrame(() => th.classList.add('live')))
+      }
+      const all = () => document.querySelectorAll('.seg, .calc-tabs')
+      const ro = new ResizeObserver((es) => es.forEach((e) => place(e.target)))
+      all().forEach((sg) => { ro.observe(sg); place(sg) })
+      // a chosen option changes class; a hidden control coming on screen changes size
+      new MutationObserver((ms) => {
+        const seen = new Set()
+        for (const m of ms) { const sg = m.target.closest?.('.seg, .calc-tabs'); if (sg && !seen.has(sg)) { seen.add(sg); place(sg) } }
+      }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] })
     }
 
     /* ── hover sidebar (desktop) ──
@@ -10036,6 +10085,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (c.gex && !TD.gex) TD.gex = c.gex
       if (c.news?.length && !TD.newsCache) TD.newsCache = c.news.map((e) => ({ ...e, at: new Date(e.at) }))
       if (c.room && !TD.room) TD.room = c.room
+      if (typeof c.allowed === 'boolean') TD.allowedCache = c.allowed
+      if (c.ann && !TD.annCache) TD.annCache = c.ann
     }
     const ET_PARTS = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', hour: '2-digit', minute: '2-digit' })
     const ET_WEEKDAY = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'long' })
@@ -10090,7 +10141,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     // ── context: the gamma read (and the hard sell for everyone else) ──
-    const tdGexAllowed = () => !TD.forceLock && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)
+    // before the entitlements land the snapshot remembers whether this member had GEX, so the card never flashes locked for an owner
+    const tdGexAllowed = () => { const live = state.owned.has('d1-gex') || state.isMod || state.isAdmin; return !TD.forceLock && (TD.booted ? live : (TD.allowedCache ?? live)) }
     const tdGexPrice = () => {
       const p = STORE?.['d1-gex']; if (!p) return ''
       const usd = (c) => '$' + (c / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })
@@ -10100,7 +10152,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       try {
         const r = await fetch(`${GEX_URL}/gex.json`, { cache: 'no-store' }); if (!r.ok) throw new Error('gex ' + r.status)
         TD.gex = await r.json(); TD.gexAt = Date.now(); tdRenderGex()
-        tdCacheWrite({ gex: tdSlimGex(TD.gex) })
+        tdCacheWrite({ gex: tdSlimGex(TD.gex), allowed: TD.booted ? tdGexAllowed() : undefined })
       } catch { tdRenderGex() }
     }
     function tdRenderGex() {
@@ -10169,12 +10221,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // ── from d1 ──
     function tdRenderAnn() {
       const sec = el('td-ann-sec'), host = el('td-ann'); if (!sec) return
-      const m = (state.annMsgs ?? [])[0]
+      const live = (state.annMsgs ?? [])[0]
+      const liveOwner = live ? ((state.members || []).find((x) => x.is_admin) || null) : null
+      if (live) tdCacheWrite({ ann: { id: live.id, body: live.body, image_url: live.image_url, created_at: live.created_at, owner: liveOwner ? { username: liveOwner.username, avatar_url: liveOwner.avatar_url } : null } })
+      const m = live || TD.annCache
       sec.hidden = !m
       if (!m) return
       if (host.dataset.id === String(m.id)) return
       host.dataset.id = String(m.id)
-      const owner = (state.members || []).find((x) => x.is_admin) || null
+      const owner = live ? liveOwner : (m.owner || null)
       host.textContent = ''
       host.appendChild(avatarNode({ username: owner?.username || 'd1', avatar_url: owner?.avatar_url || null }, 'av'))
       const txt = document.createElement('div'); txt.className = 'txt'
@@ -10256,7 +10311,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     // renderOverview is what the course loader and boot call after data lands; the home just re-syncs
-    function renderOverview() { if (curView() === 'overview') tdShown() }
+    function renderOverview() { TD.booted = true; if (curView() === 'overview') tdShown() }
 
     // ── cadence ──
     // the gamma card is the one thing that must never read stale: it refetches
@@ -14897,6 +14952,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // renders now, and skeletons hold every seat data has not filled yet.
       el('gate').style.display = 'none'
       el('app').classList.add('on')
+      // the home paints its last snapshot the instant the shell shows; the boot queries only ever swap in fresher data
+      if (curView() === 'overview' && el('td-h1')) { tdPaintCached(); markFresh('v-overview'); tdRenderHero(); tdRenderGex(); tdRenderNews(); tdRenderRoom() }
 
       renderSidebarUser()
 
