@@ -11848,8 +11848,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (sel || hov) { ctx.setLineDash([3, 3]); ctx.strokeStyle = alpha(ink, 0.45); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X0, Math.min(yT0, yS0)); ctx.lineTo(X0, Math.max(yT0 + hT, yS0 + hS)); ctx.moveTo(X1, Math.min(yT0, yS0)); ctx.lineTo(X1, Math.max(yT0 + hT, yS0 + hS)); ctx.stroke(); ctx.setLineDash([]) }
           // labels as pills: target and stop sit just inside their zone on the line that matters, the entry pill on the entry line
           if (d.labels !== false && CH.s.posLabels !== false) {
+            const narrow = W < 150
             const pill = (text, cx, cy, bg, fg, anchor = 'center') => {
-              ctx.font = `600 10.5px ${GEX_FONT}`; const tw = ctx.measureText(text).width, pw = Math.round(tw + 16), ph = 20
+              ctx.font = `600 ${narrow ? 10 : 10.5}px ${GEX_FONT}`; const tw = ctx.measureText(text).width, pw = Math.round(tw + (narrow ? 12 : 16)), ph = narrow ? 18 : 20
               let px = anchor === 'center' ? cx - pw / 2 : anchor === 'right' ? cx - pw : cx
               px = Math.max(2, Math.min(L.plotW - pw - 2, px)); const py = Math.round(cy - ph / 2)
               if (py + ph < 0 || py > L.mainH) return
@@ -11857,10 +11858,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
               ctx.fillStyle = bg; ctx.beginPath(); ctx.moveTo(rx + r, py); ctx.lineTo(rx + pw - r, py); ctx.arcTo(rx + pw, py, rx + pw, py + r, r); ctx.lineTo(rx + pw, py + ph - r); ctx.arcTo(rx + pw, py + ph, rx + pw - r, py + ph, r); ctx.lineTo(rx + r, py + ph); ctx.arcTo(rx, py + ph, rx, py + ph - r, r); ctx.lineTo(rx, py + r); ctx.arcTo(rx, py, rx + r, py, r); ctx.closePath(); ctx.fill()
               ctx.fillStyle = fg; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(text, Math.round(px) + 8, py + ph / 2 + 0.5)
             }
-            const mid = (X0 + X1) / 2, narrow = W < 150, PAD = 13
-            const tText = `Target ${chPx(d.target)}  ${chPts(reward)}` + (money.rewardUsd ? `  ${chUsd(money.rewardUsd)}` : '')
-            const sText = `Stop ${chPx(d.stop)}  ${chPts(-risk)}` + (money.riskUsd ? `  ${chUsd(-money.riskUsd)}` : '') + (money.riskPct ? `  ${money.riskPct.toFixed(1)}% of account` : '')
-            const eText = `${isLong ? 'Long' : 'Short'} ${chPx(e)}  R ${rr.toFixed(2)}` + (money.qty !== 1 ? `  ${money.qty}×` : '') + (d.text ? `  ${d.text}` : '')
+            const mid = (X0 + X1) / 2, PAD = 13
+            // a narrow box (phones, tight zooms) gets the short form: no dollars, no percent
+            const tText = narrow ? `${chPx(d.target)}  ${chPts(reward)}` : `Target ${chPx(d.target)}  ${chPts(reward)}` + (money.rewardUsd ? `  ${chUsd(money.rewardUsd)}` : '')
+            const sText = narrow ? `${chPx(d.stop)}  ${chPts(-risk)}` : `Stop ${chPx(d.stop)}  ${chPts(-risk)}` + (money.riskUsd ? `  ${chUsd(-money.riskUsd)}` : '') + (money.riskPct ? `  ${money.riskPct.toFixed(1)}% of account` : '')
+            const eText = narrow ? `${isLong ? 'Long' : 'Short'}  R ${rr.toFixed(2)}` : `${isLong ? 'Long' : 'Short'} ${chPx(e)}  R ${rr.toFixed(2)}` + (money.qty !== 1 ? `  ${money.qty}×` : '') + (d.text ? `  ${d.text}` : '')
             // inside the zone when it is tall enough, otherwise just outside it, always on the line's side of the entry
             const tY = hT >= 30 ? g.yt + (isLong ? PAD : -PAD) : g.yt + (isLong ? -PAD : PAD)
             const sY = hS >= 30 ? g.ys + (isLong ? -PAD : PAD) : g.ys + (isLong ? PAD : -PAD)
