@@ -13616,6 +13616,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             badge.textContent = st.label
             if (p.kind === 'bundle') { const nm = document.createElement('span'); nm.className = 'hint'; nm.style.margin = '0'; nm.textContent = c === 'd1-gex' ? 'GEX' : 'LIT'; line.appendChild(nm) }
             line.appendChild(badge); card.appendChild(line)
+            // the autopilot sends a row back when TradingView has no such user
+            if (tvRow?.state === 'needs_username' && /^TradingView has no user/.test(tvRow.note ?? '')) {
+              const why = document.createElement('div'); why.className = 'hint'; why.textContent = tvRow.note; card.appendChild(why)
+            }
           }
         } else if (NATIVE) {
           card.appendChild(iapBuyBlock(p.key))
@@ -13786,12 +13790,30 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             : error.message
         return false
       }
-      msg.className = 'msg ok'; msg.textContent = 'Saved. Your access is queued.'
+      msg.className = 'msg ok'; msg.textContent = 'Saved. Adding you on TradingView…'
       state.tvAccess = state.tvAccess.map((t) => ({
-        ...t, tv_username: name, state: t.state === 'needs_username' ? 'pending_grant' : t.state,
+        ...t, tv_username: name, note: null, state: t.state === 'needs_username' ? 'pending_grant' : t.state,
       }))
       renderStore()
+      watchTvAccess(msg)
       return true
+    }
+    // tv-sync adds the username on TradingView within seconds of the save: watch the rows flip
+    let tvWatch = 0
+    async function watchTvAccess(msg) {
+      const run = ++tvWatch
+      for (let i = 0; i < 8; i++) {
+        await new Promise((r) => setTimeout(r, i ? 4000 : 2500))
+        if (run !== tvWatch) return
+        const { data } = await supabase.from('tv_access').select('product, state, tv_username, note')
+        if (!data || run !== tvWatch) return
+        state.tvAccess = data; renderStore()
+        const mine = data.filter((t) => state.owned.has(t.product))
+        if (mine.length && mine.every((t) => t.state === 'granted')) { msg.className = 'msg ok'; msg.textContent = 'Access is live. In TradingView, open Indicators, then Invite-only scripts.'; return }
+        const back = mine.find((t) => t.state === 'needs_username' && t.note)
+        if (back) { msg.className = 'msg err'; msg.textContent = back.note; return }
+      }
+      msg.className = 'msg ok'; msg.textContent = 'Saved. Your access is queued and gets added shortly.'
     }
     el('tv-save').addEventListener('click', () => saveTvUsername(el('tv-username').value, el('tv-msg'), el('tv-save')))
     el('ov-lit-go').addEventListener('click', () => { showView('indicators'); setTimeout(() => el('tv-username').focus(), 80) })
@@ -15053,7 +15075,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         supabase.from('messages').select('id, channel_id, body, image_url, created_at, channels!inner(kind, name)').eq('channels.kind', 'announcement').is('deleted_at', null).order('created_at', { ascending: false }).limit(3),
         supabase.from('course_intake').select('answers, completed_at').maybeSingle(),
         supabase.from('products').select('key, name, kind, blurb, tv_script_name, tv_script_url, bundle_of, position').eq('is_active', true).order('position'),
-        supabase.from('tv_access').select('product, state, tv_username'),
+        supabase.from('tv_access').select('product, state, tv_username, note'),
         supabase.from('product_reviews').select('product, user_id, rating, comment, created_at').order('created_at', { ascending: false }),
         // trade-of-the-day pool: everyone's R-tagged posts from the last week
         supabase.from('member_recaps').select('id, user_id, title, body, media, outcome, r, created_at').not('r', 'is', null).gte('created_at', new Date(Date.now() - 7 * 864e5).toISOString()).order('r', { ascending: false }).limit(200),

@@ -511,6 +511,24 @@
     :root:not([data-theme="light"]) input[type="date"].inp::-webkit-calendar-picker-indicator { filter: invert(1); }
     input[type="checkbox"] { accent-color: var(--gold); }
 
+    /* ── TradingView autopilot (Access tab) ─────────────── */
+    .tvauto-body { padding: 16px 18px 18px; display: grid; gap: 14px; }
+    .tvauto-status { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13.5px; color: var(--ink); }
+    .tvauto-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); box-shadow: 0 0 0 4px rgba(107,102,94,0.14); flex-shrink: 0; transition: background 0.3s ease; }
+    .tvauto-status.on .dot { background: var(--good); animation: tvpulse 2.6s ease-in-out infinite; }
+    .tvauto-status.bad .dot { background: var(--bad); box-shadow: 0 0 0 4px rgba(217,139,122,0.16); }
+    .tvauto-status .meta { color: var(--faint); font-size: 12.5px; }
+    @keyframes tvpulse { 0%, 100% { box-shadow: 0 0 0 4px rgba(134,181,127,0.16); } 50% { box-shadow: 0 0 0 7px rgba(134,181,127,0.05); } }
+    .tvauto-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 18px; }
+    .tvauto-step { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+    .tvauto-step b { color: var(--gold); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .tvauto-step code { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--gold); }
+    .tvauto-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .tvauto-form .inp { flex: 1; min-width: 200px; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; letter-spacing: 0.02em; }
+    .tvauto-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .rowbtn.gold { background: var(--gold); border-color: var(--gold); color: #1a1815; font-weight: 600; }
+    .rowbtn.gold:hover:not(:disabled) { background: var(--gold-deep); border-color: var(--gold-deep); color: #1a1815; }
+    .tv-note { font-size: 11.5px; color: var(--faint); margin-top: 3px; max-width: 340px; white-space: normal; line-height: 1.4; }
     .field-row { padding: 16px 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     .field-row .inp { flex: 1; min-width: 220px; }
     .msg { padding: 0 18px 16px; font-size: 12.5px; }
@@ -1252,13 +1270,39 @@
 
         <!-- TRADINGVIEW ACCESS -->
         <section class="view" id="v-access">
+          <div class="block" id="tvauto">
+            <div class="block-head">
+              <h3>Autopilot</h3>
+              <span class="badge b-neutral" id="tvauto-badge">Checking</span>
+            </div>
+            <div class="tvauto-body">
+              <div class="tvauto-status" id="tvauto-status"><span class="dot"></span><span id="tvauto-line">Checking the TradingView session…</span><span class="meta" id="tvauto-meta"></span></div>
+              <p class="settings-note" style="margin:0;">Queue rows are handled the moment they land: the username is invited to D1 LIT and D1 GEX on TradingView, the row flips to Active, and cancellations are removed the same way. It works as you on TradingView, so it needs your session once.</p>
+              <div class="tvauto-steps" id="tvauto-steps">
+                <div class="tvauto-step"><b>1</b><span>Open tradingview.com signed in and press F12.</span></div>
+                <div class="tvauto-step"><b>2</b><span>Application, then Cookies, then https://www.tradingview.com.</span></div>
+                <div class="tvauto-step"><b>3</b><span>Copy the values of <code>sessionid</code> and <code>sessionid_sign</code> below.</span></div>
+              </div>
+              <div class="tvauto-form" id="tvauto-form">
+                <input class="inp" id="tvauto-sid" type="password" autocomplete="off" spellcheck="false" placeholder="sessionid">
+                <input class="inp" id="tvauto-sign" type="password" autocomplete="off" spellcheck="false" placeholder="sessionid_sign">
+                <button class="rowbtn gold" id="tvauto-connect" type="button">Connect</button>
+              </div>
+              <div class="tvauto-actions" id="tvauto-actions" hidden>
+                <button class="rowbtn" id="tvauto-sync" type="button">Run now</button>
+                <button class="rowbtn" id="tvauto-swap" type="button">Replace session</button>
+                <button class="rowbtn" id="tvauto-off" type="button">Disconnect</button>
+              </div>
+              <p class="msg" id="tvauto-msg" style="padding:0;" hidden></p>
+            </div>
+          </div>
           <div class="block">
             <div class="block-head">
               <h3>To action</h3>
               <span class="label" id="access-pending-total"></span>
             </div>
             <p class="settings-note" style="margin:0 0 2px;">
-              Each row is a TradingView job. For <b>Add</b>, open the script's Manage access and invite the username, then click Mark added. For <b>Remove</b>, delete them, then Mark removed. Rows waiting on the member for a username sit in the lower table.
+              Each row is a TradingView job and the autopilot above clears them within a minute. A row that sticks carries a note saying why. Mark added and Mark removed stay as the manual override: open the script's Manage access, do it by hand, then click. Rows waiting on the member for a username sit in the lower table.
             </p>
             <div class="filters access-bulk" id="access-bulk" hidden>
               <span class="label" id="access-bulk-n"></span>
@@ -2389,7 +2433,81 @@
       revoked: { label: 'Removed', badge: 'b-revoked' },
     }
 
-    async function loadTvAccess() {
+    /* ── TradingView autopilot: the tv-sync function ── */
+    async function tvAuto(payload) {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/tv-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify(payload),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? `${res.status}`)
+      return body
+    }
+    const tvAgo = (iso) => { if (!iso) return ''; const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago` }
+    const tvRunSummary = (r) => {
+      if (r.reason === 'no_session') return 'Not connected yet.'
+      if (r.dead) return 'TradingView signed the session out. Paste fresh cookies.'
+      if (r.busy) return 'A run is already going. Check back in a minute.'
+      const n = r.added?.length ?? 0, x = r.removed?.length ?? 0, f = (r.failed?.length ?? 0) + (r.sent_back?.length ?? 0)
+      if (!n && !x && !f) return 'Nothing waiting.'
+      return [n ? `${n} added` : '', x ? `${x} removed` : '', f ? `${f} need a look, see the row notes` : ''].filter(Boolean).join(', ') + '.'
+    }
+    let tvAutoSwap = false
+    function tvAutoMsg(cls, text) { const m = el('tvauto-msg'); m.hidden = !text; m.className = 'msg' + (cls ? ' ' + cls : ''); m.textContent = text || '' }
+    function paintTvAuto(s) {
+      const st = el('tvauto-status'), badge = el('tvauto-badge')
+      st.classList.toggle('on', !!s.ok); st.classList.toggle('bad', !!s.connected && !s.ok)
+      const showForm = !s.connected || !s.ok || tvAutoSwap
+      el('tvauto-form').hidden = !showForm; el('tvauto-steps').hidden = !showForm; el('tvauto-actions').hidden = !s.connected
+      const waiting = s.pending ? `${s.pending} waiting` : 'Queue clear'
+      if (!s.connected) { badge.className = 'badge b-neutral'; badge.textContent = 'Off'; el('tvauto-line').textContent = 'Not connected. Paste your TradingView session to switch it on.'; el('tvauto-meta').textContent = waiting; return }
+      if (!s.ok) { badge.className = 'badge b-revoked'; badge.textContent = 'Signed out'; el('tvauto-line').textContent = s.last_error || 'TradingView signed the session out. Paste fresh cookies.'; el('tvauto-meta').textContent = waiting; return }
+      badge.className = 'badge b-active'; badge.textContent = 'On'
+      el('tvauto-line').textContent = `Connected${s.tv_username ? ' as ' + s.tv_username : ''}.`
+      const bits = []
+      if (s.last_sync_at) bits.push(`Last run ${tvAgo(s.last_sync_at)}`)
+      const ls = s.last_sync
+      if (ls) { const n = ls.added?.length ?? 0, x = ls.removed?.length ?? 0, f = (ls.failed?.length ?? 0) + (ls.sent_back?.length ?? 0); if (n || x || f) bits.push([n ? `${n} added` : '', x ? `${x} removed` : '', f ? `${f} need a look` : ''].filter(Boolean).join(', ')) }
+      bits.push(waiting)
+      el('tvauto-meta').textContent = bits.join(' · ')
+    }
+    async function loadTvAuto() {
+      try { paintTvAuto(await tvAuto({ action: 'status' })) }
+      catch (e) { el('tvauto-badge').className = 'badge b-neutral'; el('tvauto-badge').textContent = 'Unavailable'; el('tvauto-line').textContent = 'Could not reach the function: ' + e.message }
+    }
+    el('tvauto-connect').addEventListener('click', async () => {
+      const b = el('tvauto-connect')
+      const sessionid = el('tvauto-sid').value.trim(), sessionid_sign = el('tvauto-sign').value.trim()
+      if (!sessionid || !sessionid_sign) { tvAutoMsg('err', 'Both cookies are needed.'); return }
+      b.disabled = true; b.textContent = 'Checking with TradingView…'; tvAutoMsg('', '')
+      try {
+        const r = await tvAuto({ action: 'connect', sessionid, sessionid_sign })
+        el('tvauto-sid').value = ''; el('tvauto-sign').value = ''; tvAutoSwap = false
+        tvAutoMsg('ok', 'Connected. ' + tvRunSummary(r))
+        paintTvAuto(r.status); await loadTvAccess(false)
+      } catch (e) { tvAutoMsg('err', e.message) }
+      b.disabled = false; b.textContent = 'Connect'
+    })
+    el('tvauto-sync').addEventListener('click', async () => {
+      const b = el('tvauto-sync'); b.disabled = true; b.textContent = 'Running…'
+      try { const r = await tvAuto({ action: 'sync' }); tvAutoMsg('ok', tvRunSummary(r)); paintTvAuto(r.status); await loadTvAccess(false) }
+      catch (e) { tvAutoMsg('err', e.message) }
+      b.disabled = false; b.textContent = 'Run now'
+    })
+    el('tvauto-swap').addEventListener('click', () => {
+      tvAutoSwap = !tvAutoSwap; el('tvauto-form').hidden = !tvAutoSwap; el('tvauto-steps').hidden = !tvAutoSwap
+      el('tvauto-swap').textContent = tvAutoSwap ? 'Keep current session' : 'Replace session'
+      if (tvAutoSwap) el('tvauto-sid').focus()
+    })
+    el('tvauto-off').addEventListener('click', async () => {
+      if (!confirm('Disconnect TradingView? Queue rows will wait until you connect again.')) return
+      try { tvAutoSwap = false; paintTvAuto(await tvAuto({ action: 'disconnect' })); tvAutoMsg('', '') } catch (e) { tvAutoMsg('err', e.message) }
+    })
+
+    async function loadTvAccess(withAuto = true) {
+      if (withAuto) loadTvAuto()
       let rows = []
       try { rows = (await adminAction({ action: 'tv_list' })).rows ?? [] } catch { rows = [] }
       const toAction = rows.filter((r) => r.state === 'pending_grant' || r.state === 'pending_revoke')
@@ -2403,6 +2521,12 @@
       el('access-all-empty').hidden = rows.length > 0
 
       const nameOf = (p) => TV_PRODUCT[p]?.name ?? p
+      // username, with the autopilot's note underneath when a row needs a look
+      const tvCell = (r, cls) => {
+        const td = cell(r.tv_username ?? '–', cls)
+        if (r.note) { const n = document.createElement('div'); n.className = 'tv-note'; n.textContent = r.note; td.appendChild(n) }
+        return td
+      }
       const badge = (state) => {
         const td = document.createElement('td'); const s = TV_STATE[state] ?? { label: state, badge: 'b-neutral' }
         const b = document.createElement('span'); b.className = `badge ${s.badge}`; b.textContent = s.label
@@ -2444,7 +2568,7 @@
       table(el('access-table'), ['', 'Member', 'Indicator', 'TradingView username', 'Job', 'TradingView', 'Action'], toAction, (r) => {
         const tr = document.createElement('tr')
         tr.appendChild(checkCell(r))
-        tr.append(cell(r.email, 'ink'), cell(nameOf(r.product)), cell(r.tv_username ?? '–', 'ink'))
+        tr.append(cell(r.email, 'ink'), cell(nameOf(r.product)), tvCell(r, 'ink'))
         tr.appendChild(badge(r.state))
         tr.appendChild(manageCell(r.product))
         tr.appendChild(actionCell(r))
@@ -2477,7 +2601,7 @@
       el('access-all-table').textContent = ''
       table(el('access-all-table'), ['Member', 'Indicator', 'TradingView username', 'State', ''], rest, (r) => {
         const tr = document.createElement('tr')
-        tr.append(cell(r.email, 'ink'), cell(nameOf(r.product)), cell(r.tv_username ?? '–'))
+        tr.append(cell(r.email, 'ink'), cell(nameOf(r.product)), tvCell(r))
         tr.appendChild(badge(r.state))
         // let the owner pull a currently-active grant, or re-add a removed one
         const td = document.createElement('td')
