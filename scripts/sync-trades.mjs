@@ -7,19 +7,41 @@
 // the bottom ~3.5% (home indicator), so only the trade shows. Name a file
 // with "nocrop" in it to publish it untouched. Output is webp.
 //
-// Run from the repo root:  node scripts/sync-trades.mjs   — then commit + push.
+// Additive by default: photos already published stay even when the drop
+// folder on this machine does not hold their originals (the drop folder is
+// per machine). Pass --prune to remove published photos missing from the
+// drop folder.
+//
+// Run from the repo root:  node scripts/sync-trades.mjs [--prune]   — then commit + push.
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { createRequire } from 'node:module'
 
-// sharp lives in the gex-worker project; borrow it rather than adding a
-// node_modules to this static site.
-const requireFrom = createRequire('C:/Users/Deb/Desktop/Projects/gex-worker/package.json')
-const sharp = requireFrom('sharp')
+const PRUNE = process.argv.includes('--prune')
+const HOME = process.env.USERPROFILE ?? 'C:/Users/Deb'
 
-const SRC = path.join(process.env.USERPROFILE ?? 'C:/Users/Deb', 'Desktop', 'Echelon Trades')
+// sharp lives in other projects; borrow it rather than adding a
+// node_modules to this static site. First install that resolves wins.
+const SHARP_HOSTS = [
+  'C:/Users/Deb/Desktop/Projects/gex-worker/package.json',
+  path.join(HOME, 'OneDrive/Desktop/Projects/clients/outback-running-club/client/package.json'),
+  path.join(HOME, 'OneDrive/Desktop/Projects/tools/discord-risk-bot/package.json'),
+]
+let sharp
+for (const host of SHARP_HOSTS) {
+  try { sharp = createRequire(host)('sharp'); break } catch {}
+}
+if (!sharp) throw new Error(`sharp not found; tried ${SHARP_HOSTS.join(', ')}`)
+
+const SRC_CANDIDATES = [
+  process.env.ECHELON_TRADES,
+  path.join(HOME, 'Desktop', 'Echelon Trades'),
+  path.join(HOME, 'OneDrive', 'Desktop', 'Echelon Trades'),
+].filter(Boolean)
+const SRC = SRC_CANDIDATES.find((p) => fs.existsSync(p)) ?? SRC_CANDIDATES[0]
 const DEST = path.join(import.meta.dirname, '..', 'echelon', 'trades')
+const MANIFEST = path.join(DEST, 'trades.json')
 const OK = new Set(['.png', '.jpg', '.jpeg', '.webp'])
 
 fs.mkdirSync(DEST, { recursive: true })
@@ -29,8 +51,9 @@ const files = fs.existsSync(SRC)
 const skipped = fs.existsSync(SRC)
   ? fs.readdirSync(SRC).filter((f) => !OK.has(path.extname(f).toLowerCase()) && f !== 'README.txt')
   : []
+const previous = fs.existsSync(MANIFEST) ? JSON.parse(fs.readFileSync(MANIFEST, 'utf8')) : []
 
-const out = []
+const fresh = []
 for (const f of files.sort()) {
   const base = path.basename(f, path.extname(f)).toLowerCase().replace(/[^a-z0-9_-]+/g, '-')
   const img = sharp(path.join(SRC, f))
@@ -50,18 +73,23 @@ for (const f of files.sort()) {
   const buf = await pipeline.resize({ height: 720, withoutEnlargement: true }).webp({ quality: 86 }).toBuffer()
   const name = `${base}-${crypto.createHash('md5').update(buf).digest('hex').slice(0, 8)}.webp`
   fs.writeFileSync(path.join(DEST, name), buf)
-  out.push(name)
+  fresh.push(name)
 }
 
-// Remove previously published photos that no longer exist in the drop folder.
+// A re-rendered photo (same base, new hash) replaces its older version.
+const baseOf = (n) => n.replace(/-[0-9a-f]{8}\.webp$/, '')
+const freshBases = new Set(fresh.map(baseOf))
+const kept = PRUNE ? [] : previous.filter((n) => !freshBases.has(baseOf(n)) && fs.existsSync(path.join(DEST, n)))
+const out = [...new Set([...kept, ...fresh])].sort()
+
 for (const existing of fs.readdirSync(DEST)) {
   if (existing.endsWith('.webp') && !out.includes(existing)) {
     fs.unlinkSync(path.join(DEST, existing))
-    console.log(`${existing}: removed (no longer in the drop folder)`)
+    console.log(`${existing}: removed (${PRUNE ? 'no longer in the drop folder' : 'superseded'})`)
   }
 }
 
-fs.writeFileSync(path.join(DEST, 'trades.json'), JSON.stringify(out, null, 2) + '\n')
-console.log(`synced ${out.length} photo(s) -> echelon/trades/trades.json`)
+fs.writeFileSync(MANIFEST, JSON.stringify(out, null, 2) + '\n')
+console.log(`synced ${fresh.length} new, ${out.length} total -> echelon/trades/trades.json (source: ${SRC})`)
 if (skipped.length) console.log(`skipped (unsupported type): ${skipped.join(', ')}`)
-if (!out.length) console.log(`drop screenshots into: ${SRC}`)
+if (!fresh.length) console.log(`drop screenshots into: ${SRC}`)
