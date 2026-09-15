@@ -253,7 +253,9 @@ Deno.serve(async (req) => {
       const result = await runSync(db, only, actor.kind === "secret" ? (body.reason ?? "kick") : actor.kind);
       return json(200, actor.kind === "admin" ? { ...result, status: await status(db) } : result);
     }
-    if (actor.kind !== "admin") return json(403, { error: "admins only" });
+    // status / connect / disconnect: the admin card, or the tos-gex GitHub jobs (secret), which
+    // hand over the TradingView session they keep fresh after every run (tv-session-share.mjs).
+    if (actor.kind === "member") return json(403, { error: "admins only" });
 
     if (action === "status") return json(200, await status(db));
 
