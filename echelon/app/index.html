@@ -2258,7 +2258,7 @@
     .vp .vp-row button svg { width: 20px; height: 20px; }
     .vp .vp-time { font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.85; margin: 0 4px; white-space: nowrap; }
     .vp .vp-right { margin-left: auto; display: flex; align-items: center; gap: 2px; }
-    .vp video::cue { background: rgba(0,0,0,0.7); color: #fff; font-family: inherit; font-size: 1em; }
+    .vp video::cue { background: rgba(0,0,0,0.72); color: #fff; font-family: inherit; font-size: 0.92em; line-height: 1.4; font-weight: 500; }
     @media (max-width: 640px) { .vp .vp-row button { padding: 8px 7px; } .vp .vp-bar { padding: 22px 8px 8px; } .vp .vp-time { font-size: 11px; } }
     .lib-sum { padding: 12px 18px 16px; color: var(--muted); font-size: 13.5px; }
 
@@ -5463,6 +5463,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       video.addEventListener('loadedmetadata', () => {
         tick()
         const t = ccTrack(); cc.hidden = !t; if (t) t.mode = 'hidden'
+        // cues sit two lines up from the bottom so the control bar never covers them
+        if (t) { const lift = () => { for (const c of t.cues ?? []) { c.snapToLines = true; c.line = -3 } }; lift(); t.addEventListener('cuechange', lift, { once: true }) }
         const saved = parseFloat(localStorage.getItem('echelon-vp-rate') || '1'); if (VP_RATES.includes(saved)) setRate(saved)
       })
       document.addEventListener('fullscreenchange', () => { full.innerHTML = isFull() ? VP_ICON.unfull : VP_ICON.full })

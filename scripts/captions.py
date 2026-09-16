@@ -14,6 +14,7 @@ Env: SUPABASE_SERVICE_ROLE_KEY (required), WHISPER_MODEL (default small.en),
 CAPTIONS_BUDGET_MIN (default 300: stop taking new rows after this long).
 """
 import json
+import math
 import os
 import re
 import subprocess
@@ -27,8 +28,10 @@ KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 MODEL = os.environ.get("WHISPER_MODEL", "small.en")
 BUDGET = int(os.environ.get("CAPTIONS_BUDGET_MIN", "300")) * 60
 MAX_CHARS = 42   # two short lines on a phone, one on a desktop
-MAX_SECS = 4.0   # a cue longer than this reads as a wall of text
-MIN_SECS = 0.4   # shorter than this and the cue flickers
+MAX_SECS = 6.0   # a cue longer than this reads as a wall of text
+MIN_SECS = 0.6   # shorter than this and the cue flickers
+JOIN_GAP = 0.3   # cues closer than this butt up so the box never blinks off
+PAUSE = 1.0      # a silence this long ends a sentence even without a full stop
 # steers the model toward the words that come up in every session
 VOCAB = ("Echelon, D1, NQ, ES, MNQ, GEX, gamma, delta, VWAP, order flow, FVG, "
          "liquidity, sweep, displacement, reclaim, premarket, New York open, "
@@ -73,40 +76,72 @@ def ts(s):
     return f"{h:02d}:{m:02d}:{s % 60:06.3f}"
 
 
-def cues_from(segments):
-    """Word timestamps re-chunked into captions: at most MAX_CHARS and MAX_SECS
-    per cue, a new cue after a pause, and a sentence end closes a cue once it
-    has enough on it to be worth reading."""
-    cues, cur = [], []
+def text_of(ws):
+    return " ".join(t for _, _, t in ws)
 
-    def text(ws):
-        return " ".join(t for _, _, t in ws)
 
-    def flush():
+def pack(ws):
+    """One sentence into as few cues as fit MAX_CHARS and MAX_SECS, balanced
+    so the pieces are about the same length instead of a long line followed
+    by a two-word orphan."""
+    total = len(text_of(ws))
+    n = max(1, math.ceil(total / MAX_CHARS), math.ceil((ws[-1][1] - ws[0][0]) / MAX_SECS))
+    target = total / n
+    out, cur = [], []
+    for w in ws:
         if cur:
-            cues.append((cur[0][0], cur[-1][1], text(cur)))
-            cur.clear()
+            hard = len(text_of(cur)) + 1 + len(w[2]) > MAX_CHARS or w[1] - cur[0][0] > MAX_SECS
+            soft = len(out) < n - 1 and len(text_of(cur)) >= target
+            if hard or soft:
+                out.append(cur)
+                cur = []
+        cur.append(w)
+    if cur:
+        out.append(cur)
+    return [(c[0][0], c[-1][1], text_of(c)) for c in out]
 
-    for seg in segments:
-        for w in (seg.words or []):
-            t = w.word.strip()
-            if not t:
-                continue
-            if cur and (len(text(cur)) + 1 + len(t) > MAX_CHARS
-                        or w.end - cur[0][0] > MAX_SECS
-                        or w.start - cur[-1][1] > 1.2):
-                flush()
-            cur.append((w.start, w.end, t))
-            if re.search(r"[.!?]$", t) and len(text(cur)) > MAX_CHARS * 0.5:
-                flush()
-    flush()
+
+def cues_from(segments):
+    """Word timestamps into captions. Words are grouped into sentences first
+    (a full stop, or a pause longer than PAUSE), then each sentence is packed
+    into balanced cues, so a cue never starts mid-phrase when it can help it."""
+    words = [(w.start, w.end, w.word.strip())
+             for seg in segments for w in (seg.words or []) if w.word.strip()]
+    sentences, cur = [], []
+    for st, en, t in words:
+        if cur and st - cur[-1][1] > PAUSE:
+            sentences.append(cur)
+            cur = []
+        cur.append((st, en, t))
+        if re.search(r"[.!?]$", t):
+            sentences.append(cur)
+            cur = []
+    if cur:
+        sentences.append(cur)
+    # a pause can leave a one- or two-word tail ("... August" / "28th."):
+    # give it back to the sentence it belongs to
+    merged = []
+    for s in sentences:
+        if merged and len(s) < 3 and not re.search(r"[.!?]$", merged[-1][-1][2]):
+            merged[-1] = merged[-1] + s
+        else:
+            merged.append(s)
+    cues = []
+    for s in merged:
+        cues.extend(pack(s))
     return cues
 
 
 def vtt(cues):
     out = ["WEBVTT", ""]
     for i, (st, en, txt) in enumerate(cues, 1):
-        out += [str(i), f"{ts(st)} --> {ts(max(en, st + MIN_SECS))}", txt, ""]
+        nxt = cues[i][0] if i < len(cues) else None
+        en = max(en, st + MIN_SECS)
+        if nxt is not None:
+            if nxt - en < JOIN_GAP:   # close together: hold this cue until the next one
+                en = nxt
+            en = min(en, nxt)          # never overlap the next cue
+        out += [str(i), f"{ts(st)} --> {ts(en)}", txt, ""]
     return "\n".join(out)
 
 
