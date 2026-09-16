@@ -118,11 +118,14 @@ def cues_from(segments):
             cur = []
     if cur:
         sentences.append(cur)
-    # a pause can leave a one- or two-word tail ("... August" / "28th."):
-    # give it back to the sentence it belongs to
+    # a pause can strand one or two words: a tail ("... August" / "28th.")
+    # goes back to the sentence it belongs to, a lead-in ("Now," / "So")
+    # joins the sentence it opens
     merged = []
     for s in sentences:
         if merged and len(s) < 3 and not re.search(r"[.!?]$", merged[-1][-1][2]):
+            merged[-1] = merged[-1] + s
+        elif merged and len(merged[-1]) < 3 and not re.search(r"[.!?]$", merged[-1][-1][2]):
             merged[-1] = merged[-1] + s
         else:
             merged.append(s)
