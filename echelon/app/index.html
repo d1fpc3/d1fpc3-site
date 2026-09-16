@@ -1027,6 +1027,17 @@
     .td-from .who { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
     .td-from .who i { font-size: 10px; font-weight: 700; color: var(--gold); background: rgba(201,162,74,0.12); border: 1px solid rgba(201,162,74,0.3); border-radius: 5px; padding: 1px 5px; font-style: normal; }
     .td-from .who small { color: var(--faint); font-weight: 500; margin-left: auto; white-space: nowrap; }
+    /* new video on the home: thumb, category, title, who; the whole card opens it */
+    .td-video { display: flex; gap: 14px; align-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .td-video .vth { position: relative; flex: none; width: 128px; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: linear-gradient(140deg, #23201d, #121110 70%); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+    .td-video .vth img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .td-video .vth img.mk { position: static; width: 34px; height: 34px; border-radius: 8px; opacity: 0.9; }
+    .td-video .vth .play { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: rgba(11,10,9,0.7); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+    .td-video .vth .play svg { width: 14px; height: 14px; margin-left: 1px; }
+    .td-video .txt { flex: 1; min-width: 0; }
+    .td-video .cat { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--gold); background: rgba(201,162,74,0.12); border: 1px solid rgba(201,162,74,0.3); border-radius: 5px; padding: 1px 6px; }
+    .td-video .t { margin-top: 6px; font-size: 14px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .td-video .m { margin-top: 4px; font-size: 12px; color: var(--faint); }
     .td-from .msg { font-size: 14px; line-height: 1.5; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
     .td-from .pic { margin-top: 10px; border-radius: 10px; max-height: 180px; width: 100%; object-fit: cover; display: block; }
 
@@ -2174,11 +2185,24 @@
       letter-spacing: 0.02em; color: var(--gold);
       background: rgba(11,10,9,0.72); border-radius: 6px; padding: 3px 8px;
     }
+    .lib-thumb .new { position: absolute; right: 10px; top: 8px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; color: #1a1207; background: var(--gold); border-radius: 6px; padding: 3px 7px; }
     .lib-card .t {
       margin-top: 10px; font-size: 14px; font-weight: 600; line-height: 1.35;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .lib-card .m { margin-top: 4px; font-size: 12px; color: var(--faint); }
+    /* share: icon button in the video header; the card sheet shows the story-sized image and two actions */
+    .lib-share { margin-left: auto; margin-right: 2px; width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--line-bright); border-radius: 9px; color: var(--muted); cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease; -webkit-tap-highlight-color: transparent; }
+    .lib-share:hover { color: var(--gold); border-color: var(--gold); }
+    .lib-share svg { width: 17px; height: 17px; }
+    .lib-share + .x-close { margin-left: 0; }
+    .vcard-box { max-width: 400px; max-height: none; }
+    .vcard-prev { position: relative; margin: 0 16px; aspect-ratio: 9 / 16; max-height: 58vh; border-radius: 12px; overflow: hidden; background: linear-gradient(140deg, #23201d, #121110 70%); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+    .vcard-prev img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .vcard-prev.skel::after { z-index: 1; }
+    .vcard-acts { display: flex; gap: 10px; padding: 14px 16px 16px; }
+    .vcard-acts .btn { flex: 1; justify-content: center; }
+    .vcard-acts .btn svg { width: 16px; height: 16px; }
     /* the player popup is a theater, not a card: near full width, video first */
     .dmpick.lib-player-box { max-width: min(1160px, 96vw); max-height: 94vh; }
     .recap-pop { overflow-y: auto; padding: 4px 18px 18px; }
@@ -3050,6 +3074,10 @@
               <div class="td-cap"><span class="label">From d1</span><button class="td-more" type="button" data-go="chat">Announcements →</button></div>
               <div class="td-card td-from" id="td-ann"></div>
             </section>
+            <section class="td-sec td-in" id="td-video-sec" hidden>
+              <div class="td-cap"><span class="label">New video</span><button class="td-more" type="button" data-go="library">Library →</button></div>
+              <div class="td-card td-video" id="td-video"></div>
+            </section>
             <section class="td-sec td-in" id="td-room-sec" hidden>
               <div class="td-cap"><span class="label">Community</span><button class="td-more" type="button" data-go="chat">Open chat →</button></div>
               <div class="td-card td-room" id="td-room"></div>
@@ -3224,9 +3252,22 @@
           <div id="lib-list"></div>
           <div class="ov-empty" id="lib-empty" hidden>Nothing here yet. Videos land as d1 posts them.</div>
           <!-- player popup (portaled to body at boot) -->
+          <!-- share card for a library video: story-sized image drawn on a canvas, shared as a file -->
+          <div class="dmpick-scrim" id="vcard" hidden>
+            <div class="dmpick vcard-box">
+              <div class="block-head"><h3>Share this video</h3><button class="x-close" id="vcard-x" type="button" aria-label="Close">&times;</button></div>
+              <div class="vcard-prev" id="vcard-prev"><img id="vcard-img" alt="Share card preview" hidden></div>
+              <div class="vcard-acts">
+                <button class="btn" id="vcard-share" type="button" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg><span>Share image</span></button>
+                <button class="rowbtn" id="vcard-link" type="button">Copy link</button>
+              </div>
+            </div>
+          </div>
           <div class="dmpick-scrim" id="libmodal" hidden>
             <div class="dmpick lib-player-box">
-              <div class="block-head"><h3 id="lib-title">Video</h3><button class="x-close" id="lib-x" type="button" aria-label="Close">&times;</button></div>
+              <div class="block-head"><h3 id="lib-title">Video</h3>
+                <button class="lib-share" id="lib-share" type="button" aria-label="Share this video" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg></button>
+                <button class="x-close" id="lib-x" type="button" aria-label="Close">&times;</button></div>
               <div class="lib-player" id="lib-player"></div>
               <p class="lib-sum" id="lib-sum" hidden></p>
             </div>
@@ -10115,7 +10156,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        announcement, the room, your lane, and the freshest trades. Each block
        renders from whatever it has and refreshes on its own cadence while
        the view is up; nothing here blocks the rest of the app. */
-    const TD = { gex: null, gexAt: 0, roomAt: 0, timer: 0, clock: 0, on: false, painted: false, room: null, newsCache: null }
+    const TD = { gex: null, gexAt: 0, roomAt: 0, timer: 0, clock: 0, on: false, painted: false, room: null, newsCache: null, video: null, videoAt: 0, videoLoaded: false, videoCache: null }
     // the last snapshot of each block, so a reload or a cold open paints the
     // whole home at once and the network only ever swaps in fresher data
     const TD_CACHE = 'echelon-today-cache'
@@ -10133,6 +10174,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (c.room && !TD.room) TD.room = c.room
       if (typeof c.allowed === 'boolean') TD.allowedCache = c.allowed
       if (c.ann && !TD.annCache) TD.annCache = c.ann
+      if (c.video && !TD.videoCache) TD.videoCache = c.video
     }
     const ET_PARTS = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', hour: '2-digit', minute: '2-digit' })
     const ET_WEEKDAY = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'long' })
@@ -10293,6 +10335,43 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       host.onclick = () => showView('chat')
     }
 
+    // ── new video: the latest Library post this member has not opened yet ──
+    const NEW_VIDEO_DAYS = 14
+    const videoIsNew = (r, views) => !!r && (Date.now() - new Date(r.created_at).getTime()) < NEW_VIDEO_DAYS * 86400e3 && !(views?.has(r.id))
+    async function tdLoadVideo() {
+      TD.videoAt = Date.now()
+      const since = new Date(Date.now() - NEW_VIDEO_DAYS * 86400e3).toISOString()
+      const { data: vids } = await supabase.from('library_videos').select('id, title, summary, category, created_at, thumb_path, created_by').eq('is_published', true).gte('created_at', since).order('created_at', { ascending: false }).limit(5)
+      const rows = vids ?? []
+      let views = new Set()
+      if (rows.length) { const { data: v } = await supabase.from('library_views').select('video_id').eq('user_id', state.user.id).in('video_id', rows.map((r) => r.id)); views = new Set((v ?? []).map((x) => x.video_id)) }
+      TD.video = rows.find((r) => videoIsNew(r, views)) || null
+      TD.videoLoaded = true
+      tdCacheWrite({ video: TD.video })
+      tdRenderVideo()
+    }
+    function tdRenderVideo() {
+      const sec = el('td-video-sec'), host = el('td-video'); if (!sec) return
+      const r = TD.videoLoaded ? TD.video : TD.videoCache
+      sec.hidden = !r
+      if (!r) { host.dataset.id = ''; return }
+      if (host.dataset.id === r.id) return
+      host.dataset.id = r.id
+      host.textContent = ''
+      const th = document.createElement('div'); th.className = 'vth'
+      if (r.thumb_path) { const img = document.createElement('img'); img.src = `${SUPABASE_URL}/storage/v1/object/public/library-thumbs/${r.thumb_path}`; img.alt = ''; img.loading = 'lazy'; th.appendChild(img) }
+      else { const mk = document.createElement('img'); mk.className = 'mk'; mk.src = '/echelon/assets/logo-mark.png'; mk.alt = ''; th.appendChild(mk) }
+      const play = document.createElement('span'); play.className = 'play'; play.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'; th.appendChild(play)
+      const txt = document.createElement('div'); txt.className = 'txt'
+      const cat = document.createElement('span'); cat.className = 'cat'; cat.textContent = LIB_NAME[r.category] ?? r.category ?? 'Video'
+      const t = document.createElement('div'); t.className = 't'; t.textContent = r.title
+      const who = (state.members || []).find((m) => m.user_id === r.created_by)?.username || 'd1fpc3'
+      const m = document.createElement('div'); m.className = 'm'; m.textContent = `from ${who} · ${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+      txt.append(cat, t, m)
+      host.append(th, txt)
+      host.onclick = () => { hap('light'); showView('library'); libReady().then(() => openLibraryVideo(LIB.rows.find((x) => x.id === r.id) || r)) }
+    }
+
     // ── community: members + the last message in #general ──
     const tdAgo = (iso) => { const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000); return s < 60 ? 'now' : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d` }
     function tdRenderRoom() {
@@ -10366,7 +10445,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!state.user) return
       const age = (t) => Date.now() - t
       tdPaintCached()
-      tdRenderHero(); tdRenderAnn(); tdRenderGex(); tdRenderNews(); tdRenderRoom()
+      tdRenderHero(); tdRenderAnn(); tdRenderGex(); tdRenderNews(); tdRenderRoom(); tdRenderVideo()
+      if (force || age(TD.videoAt) > 5 * 60_000) tdLoadVideo()
       if (force || age(TD.gexAt) > 60_000) tdLoadGex()
       if (!newsEvents?.length) loadNews().then(() => { tdRenderNews(); tdRenderHero() })
       if (force || age(TD.roomAt) > 2 * 60_000) tdLoadRoom()
@@ -14695,16 +14775,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // ── video library ───────────────────────────────────────
     // Rows from library_videos (RLS: entitled members see published),
     // playback through media-url { library_id } like everything else.
-    const LIB = { loaded: false, rows: [], cat: 'all' }
+    const LIB = { loaded: false, rows: [], cat: 'all', views: new Set() }
     const LIB_CATS = [['all', 'All'], ['recap', 'Trade recaps'], ['breakdown', 'PA breakdowns'], ['concept', 'Concepts']]
     const LIB_NAME = { recap: 'Trade recap', breakdown: 'PA breakdown', concept: 'Concept' }
 
-    async function loadLibrary() {
+    // loadLibrary keeps its promise on LIB.ready so a deep link or the home card can wait for the rows
+    function loadLibrary() { LIB.ready = loadLibraryNow(); return LIB.ready }
+    const libReady = () => LIB.ready || loadLibrary()
+    async function loadLibraryNow() {
       LIB.loaded = true
       const { data } = await supabase.from('library_videos')
         .select('id, title, summary, category, created_at, is_published, thumb_path, created_by')
         .order('created_at', { ascending: false })
       LIB.rows = data ?? []
+      const { data: seen } = await supabase.from('library_views').select('video_id').eq('user_id', state.user.id)
+      LIB.views = new Set((seen ?? []).map((x) => x.video_id))
       // Uploader names for the "from @x" line on each card.
       LIB.names = {}
       const ids = [...new Set(LIB.rows.map((r) => r.created_by).filter(Boolean))]
@@ -14750,6 +14835,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
         const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = LIB_NAME[m.cat] ?? m.cat
         th.appendChild(tag)
+        if (m.kind === 'video' && videoIsNew(m.r, LIB.views)) { const nw = document.createElement('span'); nw.className = 'new'; nw.textContent = 'NEW'; th.appendChild(nw) }
         const t = document.createElement('div'); t.className = 't'; t.textContent = m.r.title
         const meta = document.createElement('div'); meta.className = 'm'
         const who = m.kind === 'doc' ? 'd1fpc3' : (LIB.names?.[m.r.created_by] ?? 'd1fpc3')
@@ -14764,7 +14850,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     }
     async function openLibraryVideo(r) {
+      LIB.current = r
       supabase.rpc('record_library_view', { p_video: r.id }).then(() => {}, () => {})
+      if (!LIB.views.has(r.id)) { LIB.views.add(r.id); renderLibrary() }
+      if (TD.video?.id === r.id || TD.videoCache?.id === r.id) { TD.video = null; TD.videoCache = null; TD.videoLoaded = true; tdCacheWrite({ video: null }); tdRenderVideo() }
       el('lib-title').textContent = r.title
       const sum = el('lib-sum')
       sum.textContent = r.summary ?? ''; sum.hidden = !r.summary
@@ -14784,6 +14873,126 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     document.body.appendChild(el('libmodal'))
     const libClose = () => { el('libmodal').hidden = true; el('lib-player').textContent = '' }
     el('lib-x').addEventListener('click', libClose)
+    el('lib-share').addEventListener('click', () => { if (LIB.current) openVideoCard(LIB.current) })
+
+    // ── share card ──
+    // A story-sized image (1080x1920) drawn on a canvas: the thumbnail, the
+    // category, the title, who posted it, the Echelon mark and the link. Shared
+    // as a file through the native sheet where there is one (Instagram takes
+    // it straight into a story), saved as a PNG everywhere else.
+    const CARD_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif'
+    const videoLink = (r) => `${location.origin}/echelon/app/?video=${r.id}`
+    function loadImg(src, cors) {
+      return new Promise((res, rej) => { const i = new Image(); if (cors) i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => rej(new Error('image')); i.src = src })
+    }
+    function rrect(x, l, t, w, h, r) { x.beginPath(); x.moveTo(l + r, t); x.arcTo(l + w, t, l + w, t + h, r); x.arcTo(l + w, t + h, l, t + h, r); x.arcTo(l, t + h, l, t, r); x.arcTo(l, t, l + w, t, r); x.closePath() }
+    function wrapLines(x, text, maxW, maxLines) {
+      const words = String(text || '').split(/\s+/).filter(Boolean); const lines = []; let cur = ''
+      for (const w of words) { const t = cur ? cur + ' ' + w : w; if (x.measureText(t).width <= maxW || !cur) cur = t; else { lines.push(cur); cur = w } }
+      if (cur) lines.push(cur)
+      if (lines.length > maxLines) { lines.length = maxLines; let last = lines[maxLines - 1]; while (last && x.measureText(last + '…').width > maxW) last = last.replace(/\s*\S+$/, ''); lines[maxLines - 1] = last + '…' }
+      return lines
+    }
+    async function renderVideoCard(r) {
+      const W = 1080, H = 1920, PAD = 112, FOOT = 300
+      const c = document.createElement('canvas'); c.width = W; c.height = H
+      const x = c.getContext('2d')
+      const glyph = await loadImg('/echelon/assets/logo-glyph.png').catch(() => null)
+      x.fillStyle = '#0b0a09'; x.fillRect(0, 0, W, H)
+      const glow = x.createRadialGradient(W * 0.18, H * 0.1, 0, W * 0.18, H * 0.1, W * 0.95)
+      glow.addColorStop(0, 'rgba(201,162,74,0.20)'); glow.addColorStop(1, 'rgba(201,162,74,0)')
+      x.fillStyle = glow; x.fillRect(0, 0, W, H)
+      x.strokeStyle = 'rgba(201,162,74,0.32)'; x.lineWidth = 2; rrect(x, 44, 44, W - 88, H - 88, 40); x.stroke()
+      // measure first so the group sits centred between the top and the footer
+      x.textBaseline = 'alphabetic'
+      const tw = W - PAD * 2, th = Math.round(tw * 9 / 16)
+      x.font = `800 74px ${CARD_FONT}`; const lines = wrapLines(x, r.title, tw, 3)
+      x.font = `400 36px ${CARD_FONT}`; const sumLines = r.summary ? wrapLines(x, r.summary, tw, 3) : []
+      const groupH = 94 + th + 56 + 58 + 112 + (lines.length - 1) * 88 + 100 + (sumLines.length ? 84 + (sumLines.length - 1) * 50 : 0) + 12
+      const top = Math.max(150, Math.round((H - FOOT - groupH) / 2) + 20)
+      // eyebrow
+      x.fillStyle = '#c9a24a'; x.font = `600 30px ${CARD_FONT}`
+      try { x.letterSpacing = '6px' } catch {}
+      x.fillText('NEW IN THE LIBRARY', PAD, top + 30)
+      try { x.letterSpacing = '0px' } catch {}
+      // thumbnail, 16:9, or the glyph as a quiet watermark
+      const tx = PAD, ty = top + 94
+      x.save(); rrect(x, tx, ty, tw, th, 30); x.clip()
+      const panel = x.createLinearGradient(tx, ty, tx + tw, ty + th); panel.addColorStop(0, '#23201d'); panel.addColorStop(0.7, '#121110')
+      x.fillStyle = panel; x.fillRect(tx, ty, tw, th)
+      let drewThumb = false
+      if (r.thumb_path) {
+        try {
+          const im = await loadImg(`${SUPABASE_URL}/storage/v1/object/public/library-thumbs/${r.thumb_path}`, true)
+          const sc = Math.max(tw / im.naturalWidth, th / im.naturalHeight), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc
+          x.drawImage(im, tx + (tw - dw) / 2, ty + (th - dh) / 2, dw, dh); drewThumb = true
+        } catch {}
+      }
+      if (!drewThumb && glyph) { const gs = 300; x.globalAlpha = 0.16; x.drawImage(glyph, tx + (tw - gs) / 2, ty + (th - gs) / 2, gs, gs); x.globalAlpha = 1 }
+      // play glyph, so the still reads as a video
+      x.fillStyle = 'rgba(11,10,9,0.62)'; x.beginPath(); x.arc(tx + tw / 2, ty + th / 2, 74, 0, Math.PI * 2); x.fill()
+      x.strokeStyle = 'rgba(255,255,255,0.18)'; x.lineWidth = 2; x.stroke()
+      x.fillStyle = '#f4f2ee'; x.beginPath(); x.moveTo(tx + tw / 2 - 22, ty + th / 2 - 34); x.lineTo(tx + tw / 2 + 36, ty + th / 2); x.lineTo(tx + tw / 2 - 22, ty + th / 2 + 34); x.closePath(); x.fill()
+      x.restore()
+      x.strokeStyle = 'rgba(255,255,255,0.12)'; x.lineWidth = 2; rrect(x, tx, ty, tw, th, 30); x.stroke()
+      // category pill
+      const cat = (LIB_NAME[r.category] ?? r.category ?? 'Video').toUpperCase()
+      x.font = `700 26px ${CARD_FONT}`; try { x.letterSpacing = '3px' } catch {}
+      const cw = x.measureText(cat).width + 52, py = ty + th + 56
+      x.fillStyle = 'rgba(201,162,74,0.14)'; rrect(x, PAD, py, cw, 58, 29); x.fill()
+      x.strokeStyle = 'rgba(201,162,74,0.45)'; x.lineWidth = 2; x.stroke()
+      x.fillStyle = '#c9a24a'; x.fillText(cat, PAD + 26, py + 40)
+      try { x.letterSpacing = '0px' } catch {}
+      // title
+      x.fillStyle = '#f4f2ee'; x.font = `800 74px ${CARD_FONT}`
+      let y = py + 58 + 112
+      for (const ln of lines) { x.fillText(ln, PAD, y); y += 88 }
+      // who and when
+      const who = LIB.names?.[r.created_by] ?? 'd1fpc3'
+      const when = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      x.fillStyle = 'rgba(244,242,238,0.55)'; x.font = `500 34px ${CARD_FONT}`
+      x.fillText(`from @${who} · ${when}`, PAD, y + 12)
+      // summary, if there is one
+      if (sumLines.length) { x.fillStyle = 'rgba(244,242,238,0.72)'; x.font = `400 36px ${CARD_FONT}`; let sy = y + 96; for (const ln of sumLines) { x.fillText(ln, PAD, sy); sy += 50 } }
+      // footer: glyph, wordmark, link
+      x.strokeStyle = 'rgba(255,255,255,0.10)'; x.lineWidth = 2; x.beginPath(); x.moveTo(PAD, H - FOOT); x.lineTo(W - PAD, H - FOOT); x.stroke()
+      if (glyph) x.drawImage(glyph, PAD - 8, H - 244, 120, 120)
+      x.fillStyle = '#f4f2ee'; x.font = `800 54px ${CARD_FONT}`; x.fillText('Echelon', PAD + 132, H - 172)
+      x.fillStyle = 'rgba(244,242,238,0.5)'; x.font = `500 30px ${CARD_FONT}`; x.fillText('d1fpc3.com/echelon', PAD + 132, H - 128)
+      x.fillStyle = '#c9a24a'; x.font = `600 28px ${CARD_FONT}`; x.textAlign = 'right'; x.fillText('Watch it in the app', W - PAD, H - 150); x.textAlign = 'left'
+      return new Promise((res, rej) => c.toBlob((b) => b ? res(b) : rej(new Error('Could not draw the card')), 'image/png'))
+    }
+    const VC = { r: null, blob: null, url: null }
+    async function openVideoCard(r) {
+      VC.r = r; VC.blob = null; if (VC.url) { URL.revokeObjectURL(VC.url); VC.url = null }
+      const prev = el('vcard-prev'), img = el('vcard-img'), share = el('vcard-share')
+      img.hidden = true; img.removeAttribute('src'); prev.classList.add('skel'); share.disabled = true
+      el('vcard').hidden = false
+      try {
+        VC.blob = await renderVideoCard(r)
+        VC.url = URL.createObjectURL(VC.blob); img.src = VC.url; img.hidden = false; share.disabled = false
+      } catch (e) { toast('Could not draw the card.') }
+      prev.classList.remove('skel')
+    }
+    const vcardClose = () => { el('vcard').hidden = true }
+    document.body.appendChild(el('vcard'))
+    el('vcard-x').addEventListener('click', vcardClose)
+    el('vcard').addEventListener('click', (e) => { if (e.target === el('vcard')) vcardClose() })
+    el('vcard-share').addEventListener('click', async () => {
+      const r = VC.r, blob = VC.blob; if (!r || !blob) return
+      const name = `echelon-${(r.title || 'video').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'video'}.png`
+      const file = new File([blob], name, { type: 'image/png' })
+      hap('light')
+      if (navigator.canShare?.({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: r.title, text: `${r.title} · new in the Echelon library` }); return } catch (e) { if (e?.name === 'AbortError') return }
+      }
+      const a = document.createElement('a'); a.href = VC.url; a.download = name; document.body.appendChild(a); a.click(); a.remove()
+      toast('Card saved.')
+    })
+    el('vcard-link').addEventListener('click', async () => {
+      const r = VC.r; if (!r) return
+      try { await navigator.clipboard.writeText(videoLink(r)); toast('Link copied.') } catch { prompt('Link to this video', videoLink(r)) }
+    })
     el('libmodal').addEventListener('click', (e) => { if (e.target === el('libmodal')) libClose() })
 
     // Staff posting from inside the app (admins and mods; RLS enforces it).
@@ -14887,18 +15096,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             .upload(thumbPath, thumb, { contentType: 'image/jpeg' })
           if (thErr) thumbPath = null
         }
-        const { error } = await supabase.from('library_videos').insert({
+        const { data: posted, error } = await supabase.from('library_videos').insert({
           title,
           summary: el('mlib-sum').value.trim() || null,
           category: el('mlib-cat').value,
           storage_path: path,
           thumb_path: thumbPath,
-        })
+        }).select('id, title, summary, category, created_at, is_published, thumb_path, created_by').single()
         if (error) throw error
         msg.className = 'msg ok'; msg.textContent = 'Posted.'
         el('mlib-title').value = ''; el('mlib-sum').value = ''
         el('mlib-file').value = ''; mlibFile = null; el('mlib-file-name').textContent = ''
-        setTimeout(() => { el('libupmodal').hidden = true; msg.textContent = '' }, 900)
+        setTimeout(() => { el('libupmodal').hidden = true; msg.textContent = ''; if (posted) openVideoCard(posted) }, 900)
         loadLibrary()
       } catch (err) {
         msg.className = 'msg err'; msg.textContent = err.message
@@ -15450,6 +15659,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         supabase.from('member_directory').select('*').ilike('username', who).maybeSingle()
           .then(({ data }) => { if (data) openMemberProfile(data); else toast('No member by that name.') })
         history.replaceState(history.state, '', location.pathname)
+      }
+      const vid = new URLSearchParams(location.search).get('video')
+      if (vid && /^[0-9a-f-]{36}$/i.test(vid)) {
+        history.replaceState(history.state, '', location.pathname)
+        const tab = document.querySelector('.tab[data-view="library"]')
+        if (tab && !tab.hidden) { showView('library'); libReady().then(() => { const r = LIB.rows.find((x) => x.id === vid); if (r) openLibraryVideo(r); else toast('That video is gone.') }) }
       }
       const start = new URLSearchParams(location.search).get('start')
       if (start) {
