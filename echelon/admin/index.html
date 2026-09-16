@@ -454,6 +454,11 @@
     .b-active { color: var(--good); background: rgba(134,181,127,0.12); }
     .b-refunded, .b-revoked { color: var(--bad); background: rgba(217,139,122,0.12); }
     .b-pending { color: var(--gold); background: rgba(201,162,74,0.12); }
+    /* captions being made: the dot breathes */
+    .b-working { color: var(--gold); background: rgba(201,162,74,0.12); }
+    .b-working::before { animation: cap-breathe 1.4s ease-in-out infinite; }
+    @keyframes cap-breathe { 0%, 100% { opacity: 0.35; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.15); } }
+    .b-none { color: var(--faint); background: none; border: 1px solid var(--line); }
     .b-neutral { color: var(--faint); background: var(--panel-2); }
 
     .rowbtn {
@@ -3946,6 +3951,43 @@
     /* ── video library: upload straight to storage, rows under RLS ── */
     let LIBV = []
     const LIB_CAT_NAME = { recap: 'Trade recap', breakdown: 'PA breakdown', concept: 'Concept' }
+    let LIB_CAP_TIMER = 0
+
+    /* Captions: made by the captions function the moment a video is posted
+       (a library_videos trigger kicks it). This cell shows where that stands;
+       the button next to it makes or redoes one by hand. */
+    const CAP_STATE = {
+      ready: ['b-active', 'Captions on'],
+      working: ['b-working', 'Transcribing'],
+      failed: ['b-revoked', 'Failed'],
+    }
+    function captionsCell(r) {
+      const td = document.createElement('td')
+      const [cls, label] = CAP_STATE[r.captions_status] ?? ['b-none', 'None']
+      const s = document.createElement('span'); s.className = `badge ${cls}`; s.textContent = label
+      td.appendChild(s)
+      if (r.captions_status === 'failed' && r.captions_error) {
+        const note = document.createElement('div'); note.className = 'tv-note'; note.textContent = r.captions_error
+        td.appendChild(note)
+      }
+      return td
+    }
+    async function capStart(r, b) {
+      b.disabled = true
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/captions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` },
+          body: JSON.stringify({ action: 'start', id: r.id }),
+        })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(body.error ?? `${res.status}`)
+      } catch (err) {
+        alert(`Captions did not start: ${err.message}`)
+      }
+      loadLibraryAdmin()
+    }
     async function loadLibraryAdmin() {
       const [{ data }, { data: views }] = await Promise.all([
         supabase.from('library_videos').select('*').order('created_at', { ascending: false }),
@@ -3963,7 +4005,10 @@
     function renderLibraryAdmin() {
       el('libadmin-total').textContent = LIBV.length ? String(LIBV.length) : ''
       el('lib-admin-empty').hidden = LIBV.length > 0
-      table(el('lib-table'), ['', 'Title', 'Category', 'Added', 'Views', 'State', ''], LIBV, (r) => {
+      // captions still cooking: look again in a bit
+      clearTimeout(LIB_CAP_TIMER)
+      if (LIBV.some((r) => r.captions_status === 'working')) LIB_CAP_TIMER = setTimeout(loadLibraryAdmin, 8000)
+      table(el('lib-table'), ['', 'Title', 'Category', 'Added', 'Views', 'State', 'Captions', ''], LIBV, (r) => {
         const tr = document.createElement('tr')
         const th = document.createElement('td')
         if (r.thumb_path) {
@@ -3983,11 +4028,15 @@
           cell(when(r.created_at), 'num'),
           cell(vc ? `${vc.people} member${vc.people === 1 ? '' : 's'} · ${vc.opens} open${vc.opens === 1 ? '' : 's'}` : '–', 'num'),
           cell(r.is_published ? 'Live' : 'Hidden'),
+          captionsCell(r),
         )
         const td = document.createElement('td'); td.className = 'num'
         const btn = (label, fn) => {
           const b = document.createElement('button'); b.className = 'rowbtn'; b.textContent = label
           b.addEventListener('click', () => fn(b)); td.appendChild(b)
+        }
+        if (r.captions_status !== 'working') {
+          btn(r.captions_status === 'ready' ? 'Redo captions' : r.captions_status === 'failed' ? 'Retry captions' : 'Captions', (b) => capStart(r, b))
         }
         btn('Thumbnail', (b) => {
           const inp = document.createElement('input')
@@ -4005,7 +4054,7 @@
           if (!confirm(`Delete "${r.title}"? Members lose it too.`)) return
           b.disabled = true
           await supabase.from('library_videos').delete().eq('id', r.id)
-          supabase.storage.from('lesson-files').remove([r.storage_path]).then(() => {}, () => {})
+          supabase.storage.from('lesson-files').remove([r.storage_path, ...(r.captions_path ? [r.captions_path] : [])]).then(() => {}, () => {})
           if (r.thumb_path) supabase.storage.from('library-thumbs').remove([r.thumb_path]).then(() => {}, () => {})
           loadLibraryAdmin()
         })
@@ -4152,7 +4201,7 @@
         })
         if (error) throw error
         bar.classList.remove('on')
-        msg.className = 'msg ok'; msg.textContent = 'Published. Members can watch it now.'
+        msg.className = 'msg ok'; msg.textContent = 'Published. Members can watch it now; captions are being made.'
         el('lib-title-in').value = ''; el('lib-sum-in').value = ''
         el('lib-file').value = ''; libFile = null; el('lib-file-name').textContent = ''
         el('lib-thumb-file').value = ''; libThumbFile = null; el('lib-thumb-name').textContent = ''
