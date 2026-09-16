@@ -49,14 +49,14 @@ try {
     console.log(name, "review line", JSON.stringify(line)); if (!/3 questions due/.test(line || "")) fails.push(name + ": review line " + line);
     await p.screenshot({ path: `${OUT}/${name}-3-line.png` });
     await p.locator("#toc-list .rv-line").click(); await p.waitForTimeout(400);
-    const rv = await p.evaluate(() => ({ on: document.getElementById("rvmodal").classList.contains("on"), pos: document.querySelector(".rv-top .pos")?.textContent }));
+    const rv = await p.evaluate(() => ({ on: document.getElementById("srvmodal").classList.contains("on"), pos: document.querySelector(".rv-top .pos")?.textContent }));
     console.log(name, "session", JSON.stringify(rv)); if (!rv.on || rv.pos !== "1 of 3") fails.push(name + ": session " + JSON.stringify(rv));
     await p.screenshot({ path: `${OUT}/${name}-4-session.png` });
     for (let i = 0; i < 3; i++) {
-      await p.locator("#rv-body .qc-opt").nth(0).click(); await p.waitForTimeout(250);
+      await p.locator("#srv-body .qc-opt").nth(0).click(); await p.waitForTimeout(250);
       if (i === 0) await p.screenshot({ path: `${OUT}/${name}-5-graded.png` });
-      const btns = await p.locator("#rv-body .rv-grade button").count();
-      await p.locator("#rv-body .rv-grade button").nth(btns > 1 ? 1 : 0).click(); await p.waitForTimeout(600);
+      const btns = await p.locator("#srv-body .rv-grade button").count();
+      await p.locator("#srv-body .rv-grade button").nth(btns > 1 ? 1 : 0).click(); await p.waitForTimeout(600);
     }
     const end = await p.evaluate(() => document.querySelector(".rv-end b")?.textContent);
     console.log(name, "end", JSON.stringify(end)); if (!end) fails.push(name + ": session did not end");

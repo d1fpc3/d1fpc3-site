@@ -1516,6 +1516,7 @@
     .feed .rv-post { padding-top: 4px; }
     .feed-foot { padding: 16px 0; }
     #v-feed .rv-post .rv-media img, #v-feed .rv-post .rv-media video { max-height: 70vh; }
+    #v-feed .rv-post { content-visibility: auto; contain-intrinsic-size: auto 640px; }
     @media (max-width: 640px) { #v-feed.on { margin: -8px -16px 0; } .feed { max-width: none; } .feed-foot { padding: 16px; } }
     /* comments sheet */
     .cm-sheet { position: fixed; inset: 0; z-index: 215; background: rgba(6,5,4,0.55); display: flex; align-items: flex-end; justify-content: center; transition: opacity 0.26s ease; }
@@ -4042,11 +4043,11 @@
     </div>
   </div>
   <!-- Study room: review session (one due question at a time) -->
-  <div class="mrt-scrim" id="rv-scrim" hidden></div>
-  <div class="mrt rv" id="rvmodal" role="dialog" aria-modal="true" aria-label="Review" hidden>
+  <div class="mrt-scrim" id="srv-scrim" hidden></div>
+  <div class="mrt rv" id="srvmodal" role="dialog" aria-modal="true" aria-label="Review" hidden>
     <div class="body">
-      <button class="mrt-x" id="rv-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
-      <div id="rv-body"></div>
+      <button class="mrt-x" id="srv-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      <div id="srv-body"></div>
     </div>
   </div>
   <!-- Study room: highlights and notes drawer (right drawer on desktop, bottom sheet on phone) -->
@@ -6063,19 +6064,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function reviewOpen() {
       RVW.queue = dueChecks().sort(() => Math.random() - 0.5); RVW.i = 0; RVW.right = 0; RVW.again = 0
       if (!RVW.queue.length) { toast('Nothing due for review.'); return }
-      const scrim = el('rv-scrim'), panel = el('rvmodal')
+      const scrim = el('srv-scrim'), panel = el('srvmodal')
       scrim.hidden = false; panel.hidden = false
       requestAnimationFrame(() => { scrim.classList.add('on'); panel.classList.add('on') })
       reviewStep()
     }
     function reviewClose() {
-      const scrim = el('rv-scrim'), panel = el('rvmodal')
+      const scrim = el('srv-scrim'), panel = el('srvmodal')
       scrim.classList.remove('on'); panel.classList.remove('on')
       setTimeout(() => { scrim.hidden = true; panel.hidden = true }, 200)
       renderIndex(); renderOverview()
     }
     function reviewStep() {
-      const body = el('rv-body'); body.textContent = ''
+      const body = el('srv-body'); body.textContent = ''
       const c = RVW.queue[RVW.i]
       if (!c) {
         const end = document.createElement('div'); end.className = 'rv-end'
@@ -6110,9 +6111,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       body.append(top, pr, wrap)
     }
     {
-      el('rv-x').addEventListener('click', reviewClose)
-      el('rv-scrim').addEventListener('click', reviewClose)
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !el('rvmodal').hidden) reviewClose() })
+      el('srv-x').addEventListener('click', reviewClose)
+      el('srv-scrim').addEventListener('click', reviewClose)
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !el('srvmodal').hidden) reviewClose() })
     }
 
     /* ── study room: highlights and notes ────────────────────
@@ -7594,7 +7595,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const media = (Array.isArray(r.media) ? r.media : []).filter((m) => m?.url)
         const first = media[0]
         if (first?.kind === 'video') { const v = document.createElement('video'); v.src = first.url; v.muted = true; v.preload = 'metadata'; v.playsInline = true; t.appendChild(v) }
-        else if (first) { const i = document.createElement('img'); i.src = first.url; i.alt = r.title || 'Trade'; i.loading = 'lazy'; t.appendChild(i) }
+        else if (first) { const i = document.createElement('img'); i.src = mediaSrc(first.url, 480); i.alt = r.title || 'Trade'; i.loading = 'lazy'; i.decoding = 'async'; i.addEventListener('error', () => { if (i.src !== first.url) i.src = first.url }, { once: true }); t.appendChild(i) }
         else { const x = document.createElement('span'); x.className = 'txt'; x.textContent = r.title || (r.body || '').slice(0, 90) || new Date(r.created_at).toLocaleDateString(); t.appendChild(x) }
         if (media.length > 1) t.insertAdjacentHTML('beforeend', '<svg class="multi" viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h13a1 1 0 0 1 1 1v13h-2V5H7V3zM4 7h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg>')
         t.addEventListener('click', () => onOpen(r, t))
@@ -8032,14 +8033,31 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (FEED.busy) return
       FEED.busy = true
       const host = el('feed')
-      if (reset) { FEED.rows = []; FEED.done = false; host.textContent = ''; el('feed-empty').hidden = true }
-      const before = FEED.rows.length ? FEED.rows[FEED.rows.length - 1].created_at : new Date().toISOString()
+      // A refresh keeps the posts on screen while the new page loads. If the
+      // page that comes back is the same list, the DOM stays (no re-decode of
+      // every image, no blank flash); only the counts repaint.
+      const before = (!reset && FEED.rows.length) ? FEED.rows[FEED.rows.length - 1].created_at : new Date().toISOString()
       const { data, error } = await supabase.rpc('feed_posts', { p_scope: FEED.scope, p_before: before, p_limit: 20 })
       FEED.busy = false
       if (error) { toast('Could not load the feed.'); return }
       const rows = data ?? []
       for (const r of rows) { POST_STATS.set(r.id, { like_count: r.like_count, comment_count: r.comment_count, liked: !!r.liked }); chat.byUser = chat.byUser || {}; chat.byUser[r.user_id] = chat.byUser[r.user_id] || { username: r.username, avatar_url: r.avatar_url } }
-      FEED.rows.push(...rows); FEED.loadedAt = Date.now()
+      FEED.loadedAt = Date.now()
+      if (reset) {
+        const same = rows.length > 0 && rows.length <= FEED.rows.length && rows.every((r, i) => r.id === FEED.rows[i].id)
+        if (same) {
+          rows.forEach((r, i) => Object.assign(FEED.rows[i], r))
+          host.querySelectorAll('.rv-post').forEach((post) => {
+            const r = FEED.rows.find((x) => x.id === post.dataset.id); if (!r) return
+            post.querySelector('.rv-act .like')?.replaceWith(rvLikeBtn(r))
+            post.querySelector('.rv-likes')?.replaceWith(rvLikesLine(r))
+            post.querySelector('.rv-more')?.replaceWith(rvMoreLine(r))
+          })
+          return
+        }
+        FEED.rows = []; FEED.done = false; host.textContent = ''
+      }
+      FEED.rows.push(...rows)
       if (rows.length < 20) FEED.done = true
       for (const r of rows) host.appendChild(rvPost(r))
       el('feed-empty').hidden = FEED.rows.length > 0
@@ -8488,6 +8506,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       paint()
     }
 
+    // Storage images come back through the image transformer at the size the
+    // screen needs. A 1284x2778 phone screenshot is ~650KB and its decode is
+    // what made the feed tab stutter on open; at 900px wide it is a quarter of
+    // the bytes and a fraction of the decode. Non-storage URLs pass through,
+    // and the <img> falls back to the original if the transform ever fails.
+    function mediaSrc(url, width) {
+      if (typeof url !== 'string' || !url.includes('/storage/v1/object/public/')) return url
+      return url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + (url.includes('?') ? '&' : '?') + 'width=' + width + '&quality=78&resize=contain'
+    }
     function rvMedia(r, editing) {
       const wrap = document.createElement('div'); wrap.className = 'rv-media'
       const media = (Array.isArray(r.media) ? r.media : []).filter((x) => x?.url)
@@ -8495,7 +8522,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const it = document.createElement('div'); it.className = 'item'
         if (x.kind === 'video') { const v = document.createElement('video'); v.src = x.url; v.controls = true; v.playsInline = true; v.preload = 'metadata'; it.appendChild(v) }
         else {
-          const i = document.createElement('img'); i.src = x.url; i.alt = r.title || 'Trade chart'; i.loading = 'lazy'; i.decoding = 'async'
+          const i = document.createElement('img'); i.src = mediaSrc(x.url, 900); i.alt = r.title || 'Trade chart'; i.loading = 'lazy'; i.decoding = 'async'; i.addEventListener('error', () => { if (i.src !== x.url) i.src = x.url }, { once: true })
           // a single tap does nothing (Instagram); a double tap is the heart
           it.appendChild(i)
         }
