@@ -4319,7 +4319,7 @@
             link.disabled = true
             const { error } = await supabase.auth.signInWithOtp({
               email,
-              options: { emailRedirectTo: 'https://d1fpc3.com/echelon/app/' },
+              options: { emailRedirectTo: 'https://d1fpc3.com/echelon/app/', shouldCreateUser: false },
             })
             link.disabled = false
             if (error) { fail(error.message); return }
@@ -4447,7 +4447,7 @@
               await redeemCode(code.i.value.trim(), email)
               await supabase.auth.signInWithOtp({
                 email,
-                options: { emailRedirectTo: 'https://d1fpc3.com/echelon/app/' },
+                options: { emailRedirectTo: 'https://d1fpc3.com/echelon/app/', shouldCreateUser: false },
               })
               gate({
                 title: 'You are in.',
@@ -5672,8 +5672,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const grid = document.createElement('div'); grid.className = 'hw-grid'
           for (const m of myHw.media) {
             if (!m?.url) continue
-            const a = document.createElement('a'); a.href = m.url; a.addEventListener('click', (e) => { e.preventDefault(); openImage(m.url, 'Markup') })
-            const i = document.createElement('img'); i.src = m.url; i.alt = ''; i.loading = 'lazy'
+            const a = document.createElement('a'); a.href = m.url; a.addEventListener('click', async (e) => { e.preventDefault(); openImage(await signedMediaUrl('homework-media', m.url), 'Markup') })
+            const i = document.createElement('img'); i.alt = ''; i.loading = 'lazy'; signedMediaUrl('homework-media', m.url).then((u) => { i.src = u; a.href = u })
             a.appendChild(i); grid.appendChild(a)
           }
           hw.appendChild(grid)
@@ -7201,8 +7201,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const grid = document.createElement('div'); grid.className = 'hw-grid'
         for (const m of s.media ?? []) {
           if (!m?.url) continue
-          const a = document.createElement('a'); a.href = m.url; a.addEventListener('click', (e) => { e.preventDefault(); openImage(m.url, 'Markup') })
-          const i = document.createElement('img'); i.src = m.url; i.alt = ''; i.loading = 'lazy'
+          const a = document.createElement('a'); a.href = m.url; a.addEventListener('click', async (e) => { e.preventDefault(); openImage(await signedMediaUrl('homework-media', m.url), 'Markup') })
+          const i = document.createElement('img'); i.alt = ''; i.loading = 'lazy'; signedMediaUrl('homework-media', m.url).then((u) => { i.src = u; a.href = u })
           a.appendChild(i); grid.appendChild(a)
         }
         row.appendChild(grid)
@@ -7300,7 +7300,23 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // cursor sits. Content round-trips through a strict whitelist (formatting
     // tags with no attributes; img only from our bucket) so nothing else can
     // ever be stored or rendered.
-    const J_IMG_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/journal-media/`
+    // Private buckets (journal-media, homework-media): a stored URL keeps its
+    // public shape as a stable key; rendering swaps in a short-lived signed URL
+    // that storage only issues when the row-level policy lets this member read it.
+    const SIGNED = new Map()
+    const publicPrefix = (bucket) => `${SUPABASE_URL}/storage/v1/object/public/${bucket}/`
+    async function signedMediaUrl(bucket, urlOrPath) {
+      const p = publicPrefix(bucket)
+      const path = urlOrPath.startsWith(p) ? urlOrPath.slice(p.length) : urlOrPath
+      const key = bucket + '/' + path
+      const hit = SIGNED.get(key); if (hit && hit.exp > Date.now()) return hit.url
+      try {
+        const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600)
+        if (data?.signedUrl) { SIGNED.set(key, { url: data.signedUrl, exp: Date.now() + 50 * 60_000 }); return data.signedUrl }
+      } catch {}
+      return urlOrPath
+    }
+    const J_IMG_PREFIX = publicPrefix('journal-media')
     const J_TAGS = { B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u', S: 's', STRIKE: 's', DEL: 's', UL: 'ul', OL: 'ol', LI: 'li', H2: 'h2', H3: 'h3' }
     const jEscape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     function jSerializeInto(node, out) {
@@ -7309,7 +7325,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (c.nodeType !== 1) continue
         else if (c.nodeName === 'BR') out.push('<br>')
         else if (c.nodeName === 'IMG') {
-          const s = c.getAttribute('src') || ''
+          const s = c.dataset.jsrc || c.getAttribute('src') || ''
           if (s.startsWith(J_IMG_PREFIX)) {
             const w = parseInt(c.getAttribute('width'), 10)
             out.push(`<img src="${s}"${w > 0 ? ` width="${w}"` : ''}>`)
@@ -7328,7 +7344,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (c.nodeName === 'IMG') {
           const s = c.getAttribute('src') || ''
           if (s.startsWith(J_IMG_PREFIX)) {
-            const i = document.createElement('img'); i.src = s
+            const i = document.createElement('img'); i.dataset.jsrc = s
+            signedMediaUrl('journal-media', s).then((u) => { i.src = u })
             const w = parseInt(c.getAttribute('width'), 10); if (w > 0) i.setAttribute('width', w)
             host.appendChild(i)
           }
@@ -7396,7 +7413,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const { error } = await supabase.storage.from('journal-media').upload(path, file, { contentType: file.type, upsert: false })
       if (error || forDate !== jDate) { ph.remove(); if (error) el('j-status').textContent = `Could not upload ${file.name}.`; return }
       const blobUrl = ph.src
-      ph.src = supabase.storage.from('journal-media').getPublicUrl(path).data.publicUrl
+      ph.dataset.jsrc = supabase.storage.from('journal-media').getPublicUrl(path).data.publicUrl
+      ph.src = await signedMediaUrl('journal-media', ph.dataset.jsrc)
       ph.style.opacity = ''
       URL.revokeObjectURL(blobUrl)
       jSave(true)
