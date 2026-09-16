@@ -1,10 +1,10 @@
 // Library captions (manual, not a node:test): python -m http.server 8123, then OUT=<dir> node tests/library-captions-visual.mjs
-// Kicks the captions function for the smallest published library video (the row's captions_kick, same
-// path the post trigger takes), waits for the row to go ready, then signs in as appreview, opens the
-// video in the app and checks the CC button is there, cues loaded, and a cue paints on screen.
-// Needs ASSEMBLYAI_API_KEY set on the project. Uses branded Chrome (Playwright's Chromium has no H.264).
+// Queues the smallest published library video (same status a post lands on), fires the Library captions
+// GitHub job, waits for the row to go ready, then signs in as appreview, opens the video in the app and
+// checks the CC button is there, cues loaded, and a cue paints on screen.
+// Uses branded Chrome (Playwright's Chromium has no H.264). Needs gh signed in for the workflow run.
 // VIDEO=<library_videos id> picks a video; SKIP_KICK=1 reuses captions that are already ready.
-import { createRequire } from "module"; import { mkdirSync, existsSync } from "fs";
+import { createRequire } from "module"; import { mkdirSync, existsSync } from "fs"; import { execSync } from "child_process";
 const pw = ["C:/Users/Deb/Desktop/Projects/outback-running-club/client/node_modules/playwright", "C:/Users/clari/OneDrive/Desktop/Projects/clients/outback-running-club/client/node_modules/playwright"].find(existsSync);
 const { chromium, devices } = createRequire(import.meta.url)(pw);
 const OUT = process.env.OUT; mkdirSync(OUT, { recursive: true });
@@ -24,9 +24,10 @@ const pick = process.env.VIDEO
 console.log("video", pick.title, pick.id);
 const fails = [];
 if (!process.env.SKIP_KICK) {
-  await sql(`select public.captions_kick('${pick.id}', 'start')`);
+  await sql(`update public.library_videos set captions_status = 'queued', captions_error = null where id = '${pick.id}'`);
+  execSync("gh workflow run captions.yml --ref main --repo d1fpc3/d1fpc3-site", { stdio: "inherit" });
   const t0 = Date.now(); let row;
-  while (Date.now() - t0 < 15 * 60 * 1000) {
+  while (Date.now() - t0 < 45 * 60 * 1000) {
     await new Promise((r) => setTimeout(r, 10000));
     row = (await sql(`select captions_status, captions_error, captions_path from public.library_videos where id = '${pick.id}'`))[0];
     process.stdout.write(`  ${Math.round((Date.now() - t0) / 1000)}s ${row.captions_status ?? "null"}${row.captions_error ? " " + row.captions_error : ""}\n`);

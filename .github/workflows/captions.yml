@@ -1,0 +1,50 @@
+name: Library captions
+
+# Every library video gets a subtitle track, with no paid API and no account.
+# A post sets captions_status to 'queued' (trigger trg_captions_queue on
+# library_videos); this job picks the queue up, runs Whisper on the runner
+# (scripts/captions.py) and drops a VTT next to the video in storage. media-url
+# signs the VTT alongside the video and the app's CC button lights up.
+# The quick check up front keeps the idle ticks to a couple of seconds.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: captions
+  cancel-in-progress: false
+
+jobs:
+  captions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Anything queued?
+        id: q
+        run: |
+          n=$(curl -sf "https://cqdignbleethroyxxvzr.supabase.co/rest/v1/library_videos?select=id&captions_status=eq.queued" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" | jq length)
+          echo "queued=$n"; echo "queued=$n" >> "$GITHUB_OUTPUT"
+      - if: steps.q.outputs.queued != '0'
+        uses: actions/checkout@v4
+      - if: steps.q.outputs.queued != '0'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/captions-requirements.txt
+      - if: steps.q.outputs.queued != '0'
+        name: Whisper model cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-small.en-ct2
+      - if: steps.q.outputs.queued != '0'
+        run: pip install -r scripts/captions-requirements.txt
+      - if: steps.q.outputs.queued != '0'
+        name: Transcribe the queue
+        run: python scripts/captions.py

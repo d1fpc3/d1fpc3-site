@@ -3953,11 +3953,13 @@
     const LIB_CAT_NAME = { recap: 'Trade recap', breakdown: 'PA breakdown', concept: 'Concept' }
     let LIB_CAP_TIMER = 0
 
-    /* Captions: made by the captions function the moment a video is posted
-       (a library_videos trigger kicks it). This cell shows where that stands;
-       the button next to it makes or redoes one by hand. */
+    /* Captions: a posted video queues itself (trigger trg_captions_queue) and
+       the Library captions GitHub job transcribes the queue every 15 minutes
+       with Whisper. This cell shows where that stands; the button next to it
+       queues one again by hand. */
     const CAP_STATE = {
       ready: ['b-active', 'Captions on'],
+      queued: ['b-pending', 'Queued'],
       working: ['b-working', 'Transcribing'],
       failed: ['b-revoked', 'Failed'],
     }
@@ -3974,18 +3976,9 @@
     }
     async function capStart(r, b) {
       b.disabled = true
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/captions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` },
-          body: JSON.stringify({ action: 'start', id: r.id }),
-        })
-        const body = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(body.error ?? `${res.status}`)
-      } catch (err) {
-        alert(`Captions did not start: ${err.message}`)
-      }
+      const { error } = await supabase.from('library_videos')
+        .update({ captions_status: 'queued', captions_error: null }).eq('id', r.id)
+      if (error) alert(`Captions did not queue: ${error.message}`)
       loadLibraryAdmin()
     }
     async function loadLibraryAdmin() {
@@ -4007,7 +4000,7 @@
       el('lib-admin-empty').hidden = LIBV.length > 0
       // captions still cooking: look again in a bit
       clearTimeout(LIB_CAP_TIMER)
-      if (LIBV.some((r) => r.captions_status === 'working')) LIB_CAP_TIMER = setTimeout(loadLibraryAdmin, 8000)
+      if (LIBV.some((r) => r.captions_status === 'working' || r.captions_status === 'queued')) LIB_CAP_TIMER = setTimeout(loadLibraryAdmin, 15000)
       table(el('lib-table'), ['', 'Title', 'Category', 'Added', 'Views', 'State', 'Captions', ''], LIBV, (r) => {
         const tr = document.createElement('tr')
         const th = document.createElement('td')
@@ -4035,7 +4028,7 @@
           const b = document.createElement('button'); b.className = 'rowbtn'; b.textContent = label
           b.addEventListener('click', () => fn(b)); td.appendChild(b)
         }
-        if (r.captions_status !== 'working') {
+        if (r.captions_status !== 'working' && r.captions_status !== 'queued') {
           btn(r.captions_status === 'ready' ? 'Redo captions' : r.captions_status === 'failed' ? 'Retry captions' : 'Captions', (b) => capStart(r, b))
         }
         btn('Thumbnail', (b) => {
@@ -4201,7 +4194,7 @@
         })
         if (error) throw error
         bar.classList.remove('on')
-        msg.className = 'msg ok'; msg.textContent = 'Published. Members can watch it now; captions are being made.'
+        msg.className = 'msg ok'; msg.textContent = 'Published. Members can watch it now; captions follow within the hour.'
         el('lib-title-in').value = ''; el('lib-sum-in').value = ''
         el('lib-file').value = ''; libFile = null; el('lib-file-name').textContent = ''
         el('lib-thumb-file').value = ''; libThumbFile = null; el('lib-thumb-name').textContent = ''
