@@ -2196,6 +2196,7 @@
     /* share: icon button in the video header; the card sheet shows the story-sized image and two actions */
     .lib-share { margin-left: auto; margin-right: 2px; width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--line-bright); border-radius: 9px; color: var(--muted); cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease; -webkit-tap-highlight-color: transparent; }
     .lib-share:hover { color: var(--gold); border-color: var(--gold); }
+    .lib-share[hidden] { display: none; }
     .lib-share svg { width: 17px; height: 17px; }
     .lib-share + .x-close { margin-left: 0; }
     .vcard-box { max-width: 400px; max-height: none; }
@@ -14865,6 +14866,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     async function openLibraryVideo(r) {
       LIB.current = r
+      el('lib-share').hidden = !state.isAdmin   // the owner shares; members watch
       supabase.rpc('record_library_view', { p_video: r.id }).then(refreshBadges, () => {})
       if (!LIB.views.has(r.id)) { LIB.views.add(r.id); renderLibrary() }
       el('lib-title').textContent = r.title
@@ -14977,6 +14979,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     const VC = { r: null, blob: null, url: null }
     async function openVideoCard(r) {
+      if (!state.isAdmin) return
       VC.r = r; VC.blob = null; if (VC.url) { URL.revokeObjectURL(VC.url); VC.url = null }
       const prev = el('vcard-prev'), img = el('vcard-img'), share = el('vcard-share')
       img.hidden = true; img.removeAttribute('src'); prev.classList.add('skel'); share.disabled = true
@@ -15120,7 +15123,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         msg.className = 'msg ok'; msg.textContent = 'Posted.'
         el('mlib-title').value = ''; el('mlib-sum').value = ''
         el('mlib-file').value = ''; mlibFile = null; el('mlib-file-name').textContent = ''
-        setTimeout(() => { el('libupmodal').hidden = true; msg.textContent = ''; if (posted) openVideoCard(posted) }, 900)
+        setTimeout(() => { el('libupmodal').hidden = true; msg.textContent = ''; if (posted && state.isAdmin) openVideoCard(posted) }, 900)
         loadLibrary()
       } catch (err) {
         msg.className = 'msg err'; msg.textContent = err.message
