@@ -1937,6 +1937,8 @@
       transition: background 0.3s cubic-bezier(.2,.8,.2,1), transform 0.3s cubic-bezier(.2,.8,.2,1);
     }
     .menu-btn svg { width: 22px; height: 22px; display: block; }
+    .menu-btn { position: relative; }
+    .menu-btn.has-new::after { content: ""; position: absolute; top: 7px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 2px var(--bg); }
     .menu-btn:active { background: var(--panel-2); transform: scale(0.9); transition-duration: 0.06s; }
     .tb-bell, .tb-gear {
       -webkit-tap-highlight-color: transparent; touch-action: manipulation;
@@ -14335,10 +14337,23 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const b = el(id); if (!b) return
       if (n > 0) { b.textContent = n > 99 ? '99+' : String(n); b.hidden = false } else { b.hidden = true }
     }
+    // unopened videos from the last two weeks: they count on the Library tab and light the menu button
+    async function libNewCount() {
+      try {
+        const since = new Date(Date.now() - NEW_VIDEO_DAYS * 86400e3).toISOString()
+        const { data: vids } = await supabase.from('library_videos').select('id').eq('is_published', true).gte('created_at', since)
+        const ids = (vids ?? []).map((v) => v.id); if (!ids.length) return 0
+        const { data: seen } = await supabase.from('library_views').select('video_id').eq('user_id', state.user.id).in('video_id', ids)
+        const s = new Set((seen ?? []).map((x) => x.video_id))
+        return ids.filter((id) => !s.has(id)).length
+      } catch { return 0 }
+    }
     async function refreshBadges() {
       try {
         const { data } = await supabase.rpc('unread_summary').single()
-        setNotif('n-chat', data?.chat || 0); setNotif('n-recaps', data?.recaps || 0)
+        const fresh = await libNewCount()
+        setNotif('n-chat', data?.chat || 0); setNotif('n-recaps', (data?.recaps || 0) + fresh)
+        el('menu-btn')?.classList.toggle('has-new', fresh > 0)
       } catch {}
     }
     function scheduleBadges() { clearTimeout(_badgeT); _badgeT = setTimeout(refreshBadges, 700) }
@@ -14848,7 +14863,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     async function openLibraryVideo(r) {
       LIB.current = r
-      supabase.rpc('record_library_view', { p_video: r.id }).then(() => {}, () => {})
+      supabase.rpc('record_library_view', { p_video: r.id }).then(refreshBadges, () => {})
       if (!LIB.views.has(r.id)) { LIB.views.add(r.id); renderLibrary() }
       el('lib-title').textContent = r.title
       const sum = el('lib-sum')
