@@ -850,7 +850,7 @@
            split alternately into two rows; the top row drifts left, the
            bottom row drifts right. Each row repeats its list COPIES times and
            wraps invisibly one period in, so wide screens never see the seam.
-           Both pause under a pointer or a touch. */
+           Neither row pauses on hover or touch. */
         var COPIES = 3, SPEED = 28; /* px per second */
         var rows = [
           { track: document.getElementById('tr-track'), files: list.filter(function (_, i) { return i % 2 === 0 }), dir: 1 },
@@ -873,16 +873,12 @@
         });
         if (rows.length < 2) { var t2 = document.getElementById('tr-track-2'); if (t2) t2.remove(); }
         wrap.hidden = false;
-        var hold = false, last = null;
-        wrap.addEventListener('pointerenter', function () { hold = true });
-        wrap.addEventListener('pointerleave', function () { hold = false });
-        wrap.addEventListener('touchstart', function () { hold = true }, { passive: true });
-        wrap.addEventListener('touchend', function () { setTimeout(function () { hold = false }, 4000) }, { passive: true });
+        var last = null;
         if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         function tick(t) {
           if (last === null) last = t;
           var dt = Math.min(100, t - last); last = t;
-          if (!hold && !document.hidden) {
+          if (!document.hidden) {
             rows.forEach(function (r) {
               var period = r.inner.scrollWidth / COPIES;
               if (!(period > 0)) return;
