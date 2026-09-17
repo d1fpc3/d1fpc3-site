@@ -1,4 +1,5 @@
-// tape: E-mini Nasdaq-100 (NQ=F) bars for the members app and the archive.
+// tape: index futures bars (NQ, MNQ, ES, MES) for the members app and the archive.
+// Every route takes ?symbol= (or "symbol" in the store body); absent means NQ.
 //
 // Yahoo Finance's chart endpoint has no CORS headers, so the browser cannot
 // read it directly. This function fetches it server-side, normalises the
@@ -19,7 +20,8 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const SYMBOL = "NQ=F";
+const SYMBOLS: Record<string, string> = { NQ: "NQ=F", MNQ: "MNQ=F", ES: "ES=F", MES: "MES=F" };
+const sym = (v: unknown) => (typeof v === "string" && SYMBOLS[v.toUpperCase()] ? v.toUpperCase() : "NQ");
 const TTL: Record<string, number> = { "1d": 2_000, "5d": 300_000 };
 const cache = new Map<string, { at: number; body: string }>();
 const INTERVALS = new Set(["1m", "5m", "60m", "1d"]);
@@ -39,8 +41,8 @@ function json(status: number, body: unknown, extra: Record<string, string> = {})
 
 type Bar = [number, number, number, number, number, number];
 
-async function yahoo(params: string) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(SYMBOL)}?${params}&includePrePost=true`;
+async function yahoo(symbol: string, params: string) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(SYMBOLS[symbol])}?${params}&includePrePost=true`;
   const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (Echelon tape)", Accept: "application/json" } });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j?.chart?.error?.description ?? `yahoo ${r.status}`);
@@ -62,13 +64,15 @@ async function yahoo(params: string) {
       else last[0] = aligned;
     }
   }
+  // coarser intervals: Yahoo stamps the bar still forming with the clock time; it is not a real bar yet, so it never reaches the archive
+  if (bars.length && !params.includes("interval=1m")) { const step = params.includes("interval=60m") ? 3600 : 300; if (bars[bars.length - 1][0] % step) bars.pop(); }
   return { meta: res.meta ?? {}, bars };
 }
 
-async function fetchTape(range: string) {
-  const { meta: m, bars } = await yahoo(`interval=1m&range=${range}`);
+async function fetchTape(symbol: string, range: string) {
+  const { meta: m, bars } = await yahoo(symbol, `interval=1m&range=${range}`);
   return {
-    symbol: m.symbol ?? SYMBOL,
+    symbol,
     last: m.regularMarketPrice ?? (bars.length ? bars[bars.length - 1][4] : null),
     prevClose: m.chartPreviousClose ?? m.previousClose ?? null,
     gmtoffset: m.gmtoffset ?? -14400,
@@ -79,9 +83,9 @@ async function fetchTape(range: string) {
 
 // one window of bars in one round trip: nq_bars_json builds the array in SQL,
 // so PostgREST's 1000-row page never applies
-async function readBars(interval: string, from: Date, to: Date, cap = 60000) {
+async function readBars(symbol: string, interval: string, from: Date, to: Date, cap = 60000) {
   const sb = admin();
-  const { data, error } = await sb.rpc("nq_bars_json", { p_interval: interval, p_from: from.toISOString(), p_to: to.toISOString(), p_cap: cap });
+  const { data, error } = await sb.rpc("nq_bars_json", { p_interval: interval, p_from: from.toISOString(), p_to: to.toISOString(), p_cap: cap, p_symbol: symbol });
   if (error) throw new Error(error.message);
   return (data ?? []) as number[][];
 }
@@ -90,13 +94,13 @@ function admin() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 }
 
-// upsert in slices; the (interval, t) key makes overlapping pulls harmless
-async function store(interval: string, bars: Bar[]) {
+// upsert in slices; the (symbol, interval, t) key makes overlapping pulls harmless
+async function store(symbol: string, interval: string, bars: Bar[]) {
   const sb = admin();
   let n = 0;
   for (let i = 0; i < bars.length; i += 1000) {
-    const rows = bars.slice(i, i + 1000).map((b) => ({ interval, t: new Date(b[0] * 1000).toISOString(), o: b[1], h: b[2], l: b[3], c: b[4], v: b[5] }));
-    const { error } = await sb.from("nq_bars").upsert(rows, { onConflict: "interval,t" });
+    const rows = bars.slice(i, i + 1000).map((b) => ({ symbol, interval, t: new Date(b[0] * 1000).toISOString(), o: b[1], h: b[2], l: b[3], c: b[4], v: b[5] }));
+    const { error } = await sb.from("nq_bars").upsert(rows, { onConflict: "symbol,interval,t" });
     if (error) throw new Error(error.message);
     n += rows.length;
   }
@@ -129,18 +133,20 @@ Deno.serve(async (req) => {
     if (!secret || req.headers.get("x-webhook-secret") !== secret) return json(401, { error: "bad secret" });
     const body = await req.json().catch(() => ({}));
     const interval = INTERVALS.has(body.interval) ? body.interval : "1m";
+    const symbol = sym(body.symbol);
     let params = `interval=${interval}&range=${body.range ?? (interval === "1m" ? "2d" : interval === "5m" ? "60d" : interval === "60m" ? "2y" : "max")}`;
     if (body.period1 && body.period2) params = `interval=${interval}&period1=${+body.period1}&period2=${+body.period2}`;
     try {
-      const { bars } = await yahoo(params);
-      const n = await store(interval, bars);
-      return json(200, { ok: true, interval, pulled: bars.length, stored: n, first: bars[0]?.[0], last: bars.at(-1)?.[0] });
+      const { bars } = await yahoo(symbol, params);
+      const n = await store(symbol, interval, bars);
+      return json(200, { ok: true, symbol, interval, pulled: bars.length, stored: n, first: bars[0]?.[0], last: bars.at(-1)?.[0] });
     } catch (err) {
       return json(502, { error: String((err as Error)?.message ?? err) });
     }
   }
 
   if (req.method !== "GET") return json(405, { error: "GET only" });
+  const symbol = sym(p.get("symbol"));
 
   /* ── the archive ── */
   if (p.get("days") === "1") {
@@ -154,8 +160,8 @@ Deno.serve(async (req) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return json(400, { error: "day=YYYY-MM-DD" });
     const { start, end } = sessionWindow(day);
     let bars: number[][];
-    try { bars = await readBars("1m", start, end, 3000); } catch (err) { return json(500, { error: String((err as Error).message) }); }
-    return json(200, { symbol: SYMBOL, day, bars, last: bars.at(-1)?.[4] ?? null, prevClose: null, gmtoffset: -14400, fetchedAt: new Date().toISOString() }, { "Cache-Control": "public, max-age=3600" });
+    try { bars = await readBars(symbol, "1m", start, end, 3000); } catch (err) { return json(500, { error: String((err as Error).message) }); }
+    return json(200, { symbol, day, bars, last: bars.at(-1)?.[4] ?? null, prevClose: null, gmtoffset: -14400, fetchedAt: new Date().toISOString() }, { "Cache-Control": "public, max-age=3600" });
   }
   if (p.get("interval")) {
     const interval = p.get("interval")!;
@@ -164,8 +170,8 @@ Deno.serve(async (req) => {
     const to = p.get("to") ? new Date(p.get("to")!) : new Date();
     if (isNaN(+from) || isNaN(+to)) return json(400, { error: "from/to must be dates" });
     let bars: number[][];
-    try { bars = await readBars(interval, from, new Date(+to + 1), 60000); } catch (err) { return json(500, { error: String((err as Error).message) }); }
-    return json(200, { symbol: SYMBOL, interval, from: from.toISOString(), to: to.toISOString(), bars, capped: bars.length >= 60000 }, { "Cache-Control": "public, max-age=300" });
+    try { bars = await readBars(symbol, interval, from, new Date(+to + 1), 60000); } catch (err) { return json(500, { error: String((err as Error).message) }); }
+    return json(200, { symbol, interval, from: from.toISOString(), to: to.toISOString(), bars, capped: bars.length >= 60000 }, { "Cache-Control": "public, max-age=300" });
   }
 
   /* ── the live tape ── */
@@ -173,12 +179,13 @@ Deno.serve(async (req) => {
   const tailRaw = p.get("tail");   // absent = the whole range; a number = the last N minutes
   const tailN = tailRaw == null ? 0 : Math.min(60, Math.max(1, +tailRaw || 1));
   const slim = (body: string) => { if (!tailN) return body; const j = JSON.parse(body); j.bars = j.bars.slice(-tailN); return JSON.stringify(j); };
-  const hit = cache.get(range);
+  const ck = `${symbol}|${range}`;
+  const hit = cache.get(ck);
   const now = Date.now();
   if (hit && now - hit.at < TTL[range]) return json(200, slim(hit.body), { "Cache-Control": "no-store", "X-Tape-Cache": "hit" });
   try {
-    const body = JSON.stringify(await fetchTape(range));
-    cache.set(range, { at: now, body });
+    const body = JSON.stringify(await fetchTape(symbol, range));
+    cache.set(ck, { at: now, body });
     return json(200, slim(body), { "Cache-Control": "no-store", "X-Tape-Cache": "miss" });
   } catch (err) {
     if (hit) return json(200, slim(hit.body), { "Cache-Control": "no-store", "X-Tape-Cache": "stale" });

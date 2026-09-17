@@ -58,10 +58,10 @@ async function run(vpName) {
   await page.evaluate(() => document.querySelector('.tab[data-view="chart"]').click());
   await page.evaluate(() => { const sc = document.getElementById("scrim"); if (sc && getComputedStyle(sc).opacity !== "0") sc.click(); });
   await page.evaluate(() => { const o = document.getElementById("onb"); if (o && !o.hidden) { o.hidden = true; document.body.classList.remove("onb-open") } });   // the first-entry questionnaire, if the member row says so
-  await page.waitForFunction(() => /O\s/.test(document.getElementById("ch-legend").textContent), null, { timeout: 30000 }).catch(() => {});
+  await page.waitForFunction(() => /O\s?[\d,]/.test(document.getElementById("ch-legend").textContent), null, { timeout: 30000 }).catch(() => {});
   await page.waitForTimeout(4000);   // the month of minutes lands in the background
   let st = await state(page);
-  const legendOk = (t) => vpName === "phone" ? /C\s/.test(t) : /O\s.*H\s.*L\s.*C\s/.test(t);   // phones show a compact legend until a tap parks the crosshair
+  const legendOk = (t) => vpName === "phone" ? /C\s?[\d,]/.test(t) : /O\s?[\d,].*H\s?[\d,].*L\s?[\d,].*C\s?[\d,]/.test(t);   // phones show a compact legend until a tap parks the crosshair
   check(await painted(page) > 200 && legendOk(st.legend), `painted with a legend: ${st.legend.slice(0, 90)} · session ${st.sess}`);
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart.png` });
   if (vpName === "phone") {
@@ -85,7 +85,7 @@ async function run(vpName) {
     await page.evaluate((t) => document.querySelector(`#ch-tf button[data-tf="${t}"]`).click(), tf);
     await page.waitForTimeout(tf === "1h" || tf === "D" ? 3500 : 800);
     st = await state(page);
-    check(st.tf === tf && /C\s/.test(st.legend) && await painted(page) > 150, `timeframe ${tf}: ${st.legend.slice(0, 70)}`);
+    check(st.tf === tf && /C\s?[\d,]/.test(st.legend) && await painted(page) > 150, `timeframe ${tf}: ${st.legend.slice(0, 70)}`);
     if (tf === "D" || tf === "1h") await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-${tf}.png` });
   }
   await page.evaluate(() => document.querySelector('#ch-tf button[data-tf="5m"]').click());
@@ -273,7 +273,7 @@ async function run(vpName) {
       await page.keyboard.press("Enter"); await page.waitForTimeout(900);
       st = await state(page);
       const pill = await page.evaluate(() => !!document.querySelector('#ch-tf button.custom[data-tf="10m"]'));
-      check(intOpen === "10" && st.tf === "10m" && pill && /C\s/.test(st.legend), `typed interval: box showed "${intOpen}", timeframe ${st.tf}, custom pill ${pill}`);
+      check(intOpen === "10" && st.tf === "10m" && pill && /C\s?[\d,]/.test(st.legend), `typed interval: box showed "${intOpen}", timeframe ${st.tf}, custom pill ${pill}`);
       await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-interval.png` });
       await page.evaluate(() => document.querySelector('#ch-tf button[data-tf="5m"]').click()); await page.waitForTimeout(400);
       // Ctrl+click builds a multi-selection; Delete removes the whole group
@@ -355,7 +355,7 @@ async function run(vpName) {
     // phone: a tap parks the crosshair, a drag pans
     await page.touchscreen.tap(cx, cy); await page.waitForTimeout(300);
     await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-tap.png` });
-    check(/O\s/.test((await state(page)).legend), "tap shows the crosshair legend");
+    check(/O\s?[\d,]/.test((await state(page)).legend), "tap shows the crosshair legend");
   }
   // menus: type, indicators, settings
   await page.click("#ch-type-btn"); await page.waitForTimeout(200);
@@ -443,6 +443,44 @@ async function run(vpName) {
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}"));
   check(saved.up === "#2ec4b6" && saved.type === "candles", `settings persisted: up ${saved.up}, type ${saved.type}`);
   await page.click("#ch-menu-close");
+  if (vpName === "desk") {
+    // the plain prior-day pair: anchored at the bar that made it, ended by the first bar that takes it
+    await page.evaluate(() => { const C = window.__CH; C.s.lit = false; C.s.prevDay = true; document.querySelector('#ch-tf button[data-tf="5m"]').click() }); await page.waitForTimeout(800);
+    const pd = await page.evaluate(() => { const C = window.__CH, bars = C.vis || C.bars, lv = C.$.prev(); return lv.map((l) => { const hi = l.name === "PDH", made = hi ? bars[l.i0].h === l.px : bars[l.i0].l === l.px; let early = false; for (let i = l.i0 + 1; i < l.i1; i++) if (i > l.i0 && (hi ? bars[i].h > l.px : bars[i].l < l.px)) early = true; const ends = l.swept ? (hi ? bars[l.i1].h >= l.px : bars[l.i1].l <= l.px) : l.i1 === bars.length - 1; return { name: l.name, made, early, ends, swept: l.swept, span: l.i1 - l.i0 } }) });
+    check(pd.length === 2 && pd.every((l) => l.made && !l.early && l.ends && l.span > 0), `prior-day lines start at their bar and stop at the sweep: ${JSON.stringify(pd)}`);
+    await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-prevday.png` });
+    await page.evaluate(() => { const C = window.__CH; C.s.prevDay = false; C.s.lit = true });
+    // symbol search: MNQ shares NQ's drawings, ES is its own price family
+    await page.click("#ch-sym-btn"); await page.waitForTimeout(300);
+    check(await page.locator(".ch-symrow").count() === 4, "symbol search lists NQ, MNQ, ES, MES");
+    await page.fill(".ch-dlg-search", "micro"); await page.waitForTimeout(150);
+    check(await page.locator(".ch-symrow").count() === 2, "symbol search filters as you type");
+    await page.click('.ch-symrow[data-sym="MNQ"]');
+    await page.waitForFunction(() => window.__CH.sym === "MNQ" && window.__CH.bars.length > 500, null, { timeout: 30000 }).catch(() => {});
+    let sy = await page.evaluate(() => ({ sym: window.__CH.sym, n: window.__CH.bars.length, last: window.__CH.bars.at(-1)?.c, legend: document.getElementById("ch-legend").textContent, btn: document.getElementById("ch-sym-name").textContent, dr: window.__CH.drawings.length }));
+    check(sy.sym === "MNQ" && sy.n > 500 && sy.last > 10000 && /Micro E-mini Nasdaq/.test(sy.legend) && sy.btn === "MNQ", `MNQ loads: ${sy.n} bars, last ${sy.last}`);
+    const nqDrawings = sy.dr;
+    await page.evaluate(() => window.__CH.$.setSym("ES"));
+    await page.waitForFunction(() => window.__CH.sym === "ES" && window.__CH.bars.length > 500, null, { timeout: 30000 }).catch(() => {});
+    sy = await page.evaluate(() => ({ n: window.__CH.bars.length, last: window.__CH.bars.at(-1)?.c, dr: window.__CH.drawings.length }));
+    check(sy.n > 500 && sy.last < 15000 && sy.dr === 0, `ES loads on its own price family: ${sy.n} bars, last ${sy.last}, ${sy.dr} drawings (NQ family had ${nqDrawings})`);
+    await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-es.png` });
+    await page.evaluate(() => window.__CH.$.setSym("NQ")); await page.waitForTimeout(1500);
+    check(await page.evaluate(() => window.__CH.drawings.length) === nqDrawings, "NQ's drawings come back");
+    // rollover: every roll found is carry-sized, and ADJ lifts the bars before it by exactly the gaps
+    const roll = await page.evaluate(async () => { const C = window.__CH; C.s.badj = true; C.$.build(); const rolls = C.$.rolls(), first = C.bars[0], adj = first.c; C.s.badj = false; C.$.build(); const raw = C.bars[0].c; C.s.badj = true; C.$.build(); C.$.paint(); const after = rolls.filter((r) => r.t > first.t + C.tfSec); return { rolls: rolls.map((r) => ({ at: new Date(r.t * 1000).toISOString(), gap: r.gap, approx: !!r.approx, split: !!r.split })), shift: +(adj - raw).toFixed(2), want: +after.reduce((a, r) => a + r.gap, 0).toFixed(2) } });
+    check(Math.abs(roll.shift - roll.want) < 0.01, `back-adjust shifts the oldest bar by the gaps after it (${roll.shift} vs ${roll.want}); rolls ${JSON.stringify(roll.rolls)}`);
+    // SMT: the peer loads, and every divergence drawn really is one
+    await page.evaluate(() => { window.__CH.s.smt = true; window.__CH.$.menu("ind:smt") }); await page.waitForTimeout(300);
+    check(await page.locator('.ch-dlg-nav button[data-t="Style"]').isVisible(), "the SMT dialog has Inputs and Style tabs");
+    await page.evaluate(() => { window.__CH.$.menu(null); document.querySelector('#ch-tf button[data-tf="15m"]').click() });
+    await page.waitForFunction(() => (window.__CH.stores.ES?.base["1m"].length || 0) > 1000 && window.__CH.stores.ES.have["5m"] === true, null, { timeout: 40000 }).catch(() => {});
+    await page.waitForTimeout(800);
+    const smt = await page.evaluate(() => { const v = window.__CH.$.smt(); return { n: v.length, ok: v.every((d) => (d.p2 > d.p1) !== (d.b2.v > d.b1.v) && d.i2 > d.i1), highs: v.filter((d) => d.hi).length, legend: /SMT/.test(document.getElementById("ch-legend").textContent) } });
+    check(smt.n > 0 && smt.ok && smt.legend, `SMT finds ${smt.n} divergences against ES (${smt.highs} at highs), each one verified`);
+    await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-smt.png` });
+    await page.evaluate(() => { window.__CH.s.smt = false; document.querySelector('#ch-tf button[data-tf="5m"]').click() }); await page.waitForTimeout(500);
+  }
   // fullscreen
   await page.click("#ch-full"); await page.waitForTimeout(300);
   st = await state(page);
