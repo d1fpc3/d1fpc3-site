@@ -80,7 +80,7 @@ await page.locator(".cr-item", { hasText: "d1fpc3" }).last().click(); await page
 const seen = await page.evaluate(async () => "ok");
 ok(seen === "ok", "a DM opens with the Seen lookup in place");
 await go("gex"); await page.waitForTimeout(2500);
-const gx = await page.evaluate(() => { const r = document.getElementById("gex-regime"); return r && !r.hidden ? { pts: r.querySelectorAll(".gex-pts li").length, dash: r.textContent.includes("—") } : null });
+const gx = await page.evaluate(() => { const r = document.getElementById("gex-regime"); return r && !r.hidden ? { pts: r.querySelectorAll(".gex-pts li").length, dash: r.textContent.includes(String.fromCharCode(8212)) } : null });
 ok(!gx || (gx.pts >= 0 && !gx.dash), "the GEX read has no long dashes: " + JSON.stringify(gx));
 await shot(PRE + "gex");
 await browser.close();

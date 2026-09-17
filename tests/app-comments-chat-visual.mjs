@@ -77,7 +77,7 @@ await page.waitForTimeout(4500);
 ok(!(await page.locator("#chat-typing").isVisible().catch(() => false)), "and fades four seconds later");
 await go("inbox");
 ok(await page.locator(".nb-day").count() > 0, "inbox groups by day: " + (await page.locator(".nb-day").allTextContents()).join(", "));
-ok(!(await page.locator("#inbox").textContent()).includes("—"), "no long dashes in notification copy");
+ok(!(await page.locator("#inbox").textContent()).includes(String.fromCharCode(8212)), "no long dashes in notification copy");
 await shot(PRE + "inbox");
 await go("feed"); await page.locator(".rv-post .rv-user .av").first().click(); await page.waitForTimeout(1500); await shot(PRE + "profile");
 await browser.close();
