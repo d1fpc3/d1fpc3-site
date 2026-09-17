@@ -610,6 +610,10 @@
     .prose { margin-top: 22px; max-width: 62ch; color: var(--muted); font-size: 13.5px; line-height: 1.7; }
     .prose h2, .prose h3 { color: var(--ink); font-weight: 650; letter-spacing: -0.015em; margin: 22px 0 8px; font-size: 16.5px; }
     .prose h3 { font-size: 14.5px; }
+    /* a table inside a lesson: compact, numbers line up, scrolls sideways on a narrow phone */
+    .prose-tbl { margin: 14px 0 18px; border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; background: var(--panel); }
+    .prose-tbl table { min-width: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+    .prose-tbl th, .prose-tbl td { padding: 9px 12px; white-space: nowrap; }
     .prose p { margin-bottom: 12px; }
     .prose strong { color: var(--ink); font-weight: 600; }
     .prose ul, .prose ol { margin: 0 0 14px 1.2em; padding: 0; }
@@ -5286,6 +5290,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             list.appendChild(li)
           }
           host.appendChild(list)
+          continue
+        }
+        // a pipe table: header row, a |---| rule, then the rows
+        if (lines.length >= 3 && lines.every((l) => /^\|.*\|$/.test(l.trim())) && /^\|[\s:|-]+\|$/.test(lines[1].trim())) {
+          const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim())
+          const wrap = document.createElement('div'); wrap.className = 'tbl-scroll prose-tbl'
+          const table = document.createElement('table')
+          const thead = document.createElement('thead'), hr = document.createElement('tr')
+          for (const c of cells(lines[0])) { const th = document.createElement('th'); inlineText(th, c); hr.appendChild(th) }
+          thead.appendChild(hr); table.appendChild(thead)
+          const tbody = document.createElement('tbody')
+          for (const l of lines.slice(2)) { const tr = document.createElement('tr'); cells(l).forEach((c, i) => { const td = document.createElement('td'); if (i === 0) td.className = 'ink'; inlineText(td, c); tr.appendChild(td) }); tbody.appendChild(tr) }
+          table.appendChild(tbody); wrap.appendChild(table); host.appendChild(wrap)
           continue
         }
         if (lines.every((l) => /^>\s?/.test(l))) {
