@@ -13,15 +13,16 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { tmpdir, homedir } from "os";
 import { join } from "path";
 const require = createRequire(import.meta.url);
-const LOCAL_PW = "C:/Users/Deb/Desktop/Projects/outback-running-club/client/node_modules/playwright";
-const { chromium, devices } = require(existsSync(LOCAL_PW) ? LOCAL_PW : "playwright");
+const PW_PATHS = ["C:/Users/Deb/Desktop/Projects/outback-running-club/client/node_modules/playwright", "C:/Users/clari/OneDrive/Desktop/Projects/clients/outback-running-club/client/node_modules/playwright"];
+const { chromium, devices } = require(PW_PATHS.find((p) => existsSync(p)) || "playwright");
 
 const OUT = process.env.OUT || `${tmpdir()}/admin-audit`;
 mkdirSync(OUT, { recursive: true });
 const URL = process.env.ADMIN_URL || "http://127.0.0.1:8080/echelon/admin/";
 const REF = "cqdignbleethroyxxvzr";
 const SB = `https://${REF}.supabase.co`;
-const email = process.env.EMAIL || "frankiepc3@gmail.com";
+// the owner is whoever public.admins says (frankiepc3@gmail.com is NOT the admin account)
+const email = process.env.EMAIL || "d1fpc3@gmail.com";
 const mgmt = readFileSync(join(homedir(), ".supabase", "access-token"), "utf8").trim();
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
 const service = keys.find((k) => k.name === "service_role").api_key;
