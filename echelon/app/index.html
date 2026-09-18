@@ -1016,6 +1016,10 @@
     .ch-symrow .lg { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; background: #0091c2; } .ch-symrow .lg.ES { background: #d32f2f; }
     .ch-symrow b { font-weight: 600; } .ch-symrow .d { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ch-symrow .t { color: var(--faint); font-size: 12px; } .ch-symrow .x { font-size: 12px; font-weight: 600; }
+
+    .ch-symrow { grid-template-columns: 28px 78px 1fr auto auto; }
+    .ch-symrow .q { display: inline-flex; flex-direction: column; align-items: flex-end; min-width: 120px; line-height: 1.2; font-variant-numeric: tabular-nums; } .ch-symrow .q b { font-weight: 600; font-size: 13px; } .ch-symrow .q em { font-style: normal; font-size: 11px; } .ch-symrow .q em.up { color: var(--good); } .ch-symrow .q em.down { color: #f23645; }
+    .ch-symrow .q .skel { display: inline-block; width: 70px; height: 10px; border-radius: 5px; }
     /* rows: no rules between them, the checkbox leads */
     #v-chart .ch-menu[data-kind="dlg"] .ch-row { border-bottom: 0; padding: 7px 0; min-height: 34px; font-size: 14px; }
     #v-chart .ch-menu[data-kind="dlg"] .ch-row:has(> .tgl) { flex-direction: row-reverse; justify-content: flex-end; }
@@ -13420,6 +13424,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else { st.base[src] = chMerge(st.base[src], older); if (st.sym === CH.sym) { chBuild(); chDraw() } }
       } catch {} finally { chBusy(-1); CH.moreBusy = false }
     }
+    // the last price and the day's change beside each contract, from the same tape the chart reads
+    const chQuoteCache = new Map()
+    async function chSymQuotes(list) {
+      for (const cell of list.querySelectorAll('.q[data-q]')) {
+        const k = cell.dataset.q, hit = chQuoteCache.get(k)
+        const paint = (q) => { if (!cell.isConnected) return; if (!q || q.last == null) { cell.textContent = ''; return } const chg = q.prevClose ? q.last - q.prevClose : null, pct = chg != null && q.prevClose ? chg / q.prevClose * 100 : null; cell.innerHTML = `<b>${chPx(q.last)}</b>${chg != null ? `<em class="${chg >= 0 ? 'up' : 'down'}">${chPts(chg)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)</em>` : ''}` }
+        if (hit && Date.now() - hit.at < 15000) { paint(hit); continue }
+        chFetch('range=1d&tail=1', k).then((j) => { const q = { last: j.last ?? j.bars?.[j.bars.length - 1]?.[4] ?? null, prevClose: j.prevClose ?? null, at: Date.now() }; chQuoteCache.set(k, q); paint(q) }).catch(() => paint(null))
+      }
+    }
     function chSymUi() {
       const b = el('ch-sym-name'); if (b) b.textContent = CH.sym
       const cv = el('ch-canvas'); if (cv) cv.setAttribute('aria-label', CH.sym + ' chart')
@@ -13499,9 +13513,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const hits = Object.entries(CH_SYMS).filter(([k, v]) => !needle || k.includes(needle) || v.name.toUpperCase().includes(needle))
           for (const [k, v] of hits) {
             const b = document.createElement('button'); b.type = 'button'; b.className = 'ch-symrow' + (k === CH.sym ? ' on' : ''); b.dataset.sym = k
-            b.innerHTML = `<span class="lg ${v.fam}">${v.fam === 'NQ' ? '100' : '500'}</span><b>${k}1!</b><span class="d">${v.name}</span><span class="t">futures</span><span class="x">${v.ex}</span>`
+            b.innerHTML = `<span class="lg ${v.fam}">${v.fam === 'NQ' ? '100' : '500'}</span><b>${k}1!</b><span class="d">${v.name}</span><span class="q" data-q="${k}"><i class="skel"></i></span><span class="x">${v.ex}</span>`
             b.addEventListener('click', () => { chMenu(null); chSetSymbol(k) }); list.appendChild(b)
           }
+          chSymQuotes(list)
           if (!hits.length) { const e = document.createElement('div'); e.className = 'ch-dlg-empty'; e.textContent = 'No symbols match. Echelon charts NQ, MNQ, ES and MES.'; list.appendChild(e) }
         }
         q.addEventListener('input', draw); q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { list.querySelector('.ch-symrow')?.click() } e.stopPropagation() })
