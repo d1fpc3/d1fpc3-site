@@ -16,10 +16,10 @@ for (const [name, vp] of [["desk", { viewport: { width: 1440, height: 900 } }], 
   await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", "dark"); for (const id of ["ig", "dc", "bt"]) localStorage.setItem("echelon-promo-until:" + id, String(Date.now() + 864e5)); localStorage.removeItem("echelon-lesson-pos"); localStorage.removeItem("echelon-study-size"); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
   const p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(e.message));
   await p.goto("http://127.0.0.1:8123/echelon/app/?start=study", { waitUntil: "domcontentloaded" });
-  await p.waitForSelector("#toc-list .toc-group button", { state: "attached", timeout: 25000 });
+  await p.waitForSelector("#toc-list .chap-body button", { state: "attached", timeout: 25000 });
   await p.evaluate(() => document.getElementById("nextup")?.remove());
   // open the second lesson through the app's own function
-  const tocBtn = (i) => p.locator("#toc-list .toc-group button").nth(i);
+  const tocBtn = (i) => p.locator("#toc-list .chap-body button").nth(i);
   if (name === "phone") { await p.locator("#toc-toggle").click(); await p.waitForTimeout(300); }
   await tocBtn(1).click(); await p.waitForTimeout(600);
   const t = await p.evaluate(() => ({ tools: !!document.querySelector(".lesson-tools"), time: document.querySelector(".lt-time")?.textContent, gl: document.querySelectorAll(".gl").length, caps: [...document.querySelectorAll(".toc .cap-n")].map((c) => c.textContent).slice(0, 3), title: document.querySelector(".lesson-h")?.textContent }));
@@ -45,9 +45,9 @@ for (const [name, vp] of [["desk", { viewport: { width: 1440, height: 900 } }], 
   if (!(bar > 0)) fails.push(name + ": read bar did not fill (" + bar + ")");
   const curTitle = await p.evaluate(() => document.querySelector(".lesson-h")?.textContent);
   await p.waitForTimeout(400); // the scroll listener's debounce writes the position
-  const idx = await p.evaluate((t) => [...document.querySelectorAll("#toc-list .toc-group button")].findIndex((b) => b.firstChild?.textContent === t), curTitle);
+  const idx = await p.evaluate((t) => [...document.querySelectorAll("#toc-list .chap-body button")].findIndex((b) => b.firstChild?.textContent === t), curTitle);
   // click through the DOM so Playwright's scroll-into-view does not move the page first
-  const domClick = (i) => p.evaluate((i) => document.querySelectorAll("#toc-list .toc-group button")[i].click(), i);
+  const domClick = (i) => p.evaluate((i) => document.querySelectorAll("#toc-list .chap-body button")[i].click(), i);
   await domClick(idx === 0 ? 1 : 0); await p.waitForTimeout(300);
   await domClick(idx); await p.waitForTimeout(600);
   const y = await p.evaluate(() => window.scrollY);
