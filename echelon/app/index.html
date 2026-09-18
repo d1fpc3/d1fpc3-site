@@ -12947,6 +12947,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ctx.textAlign = 'right'; ctx.fillStyle = cssVar('--gold') || '#c9a24a'; ctx.fillText('Echelon · d1fpc3.com', W - 10 * dpr, H + cap / 2)
       const blob = await new Promise((r) => out.toBlob(r, 'image/png'))
       const name = `${CH.sym}-${CH.tf}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.png`
+      // straight into a trade post, or into the conversation you have open
+      if (how === 'post') { const file = new File([blob], name, { type: 'image/png' }); showView('overview'); const comp = el('mr-composer'); comp.hidden = false; comp.classList.remove('collapsed'); mrAttach(file); setTimeout(() => { comp.scrollIntoView({ block: 'center', behavior: 'smooth' }); el('mr-title').focus() }, 150); toast('Chart attached. Write it up and post.', 2600); return }
+      if (how === 'chat') { const file = new File([blob], name, { type: 'image/png' }); showView('chat'); const wait = (n = 0) => { if (chat.cur && el('chat-composer').style.display !== 'none') { attachUpload(file); el('chat-input').focus() } else if (n < 40) setTimeout(() => wait(n + 1), 100) }; wait(); toast('Chart attached. Say something and send.', 2600); return }
       if (how === 'copy' && navigator.clipboard && window.ClipboardItem) { try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); toast('Chart image copied.', 2000); return } catch {} }
       const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000)
       toast(how === 'copy' ? 'Copying is blocked here, saved the image instead.' : 'Chart image saved.', 2200)
@@ -13376,7 +13379,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-tf-btn').addEventListener('click', () => chSheet(CH.sheet === 'tf' ? null : 'tf')); chTfBtn()
       el('ch-tools-btn').addEventListener('click', () => chSheet(CH.sheet === 'tools' ? null : 'tools'))
       el('ch-sheet-close').addEventListener('click', () => chSheet(null)); el('ch-sheet-scrim').addEventListener('click', () => chSheet(null))
-      el('ch-snap-btn').addEventListener('click', (e) => { const r = el('ch-snap-btn').getBoundingClientRect(), st = el('ch-stage').getBoundingClientRect(); chCtx([{ label: 'Save image', kbd: 'Alt+S', fn: () => chShot('save') }, { label: 'Copy image', fn: () => chShot('copy') }], r.left - st.left - 120, 4) })
+      el('ch-snap-btn').addEventListener('click', (e) => { e.stopPropagation(); const r = el('ch-snap-btn').getBoundingClientRect(), st = el('ch-stage').getBoundingClientRect(); chCtx([{ label: 'Post to the feed', fn: () => chShot('post') }, { label: 'Send in chat', fn: () => chShot('chat') }, { sep: true }, { label: 'Save image', kbd: 'Alt+S', fn: () => chShot('save') }, { label: 'Copy image', fn: () => chShot('copy') }], r.left - st.left - 140, 4) })
       const ib = el('ch-int'), ibi = ib.querySelector('input')
       ibi.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { chIntervalApply(ibi.value); ib.hidden = true } else if (e.key === 'Escape') ib.hidden = true })
       ibi.addEventListener('blur', () => { ib.hidden = true })
