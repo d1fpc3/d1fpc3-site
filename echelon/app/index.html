@@ -195,7 +195,7 @@
       border: 1px solid rgba(201,162,74,0.25); border-radius: 5px; padding: 2px 6px; margin-left: auto;
     }
 
-    .side-nav { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+    .side-nav { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; flex: 1 1 auto; min-height: 0; scrollbar-width: none; } .side-nav::-webkit-scrollbar { display: none; }
 
     .side-cap { padding: 14px 8px 6px; }
 
@@ -2860,9 +2860,16 @@
     .chat {
       display: grid; grid-template-columns: 248px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr);
       height: calc(calc(100 * var(--dvh)) - 130px); min-height: 380px;
-      border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel);
+      overflow: hidden;
     }
-    .chat-rail { border-right: 1px solid var(--line); overflow-y: auto; padding: 12px 8px; background: var(--panel); }
+    /* flat on the page (2026-09-18): no box around the chat, the list and the conversation
+       are split by one hairline, and every channel and person is ruled off from the next */
+    .chat-rail { border-right: 1px solid var(--line); overflow-y: auto; padding: 4px 14px 12px 0; scrollbar-width: thin; }
+    .cr-group .cr-item + .cr-item::after, .cr-group .cr-item.rich + .cr-item.rich::after { content: ""; position: absolute; left: 10px; right: 10px; top: -1px; height: 1px; background: var(--line); pointer-events: none; }
+    .cr-group .cr-item { margin-top: 1px; }
+    .cr-group .cr-item.on::after, .cr-group .cr-item.on + .cr-item::after { opacity: 0; }
+    @media (hover: hover) { .cr-group .cr-item:hover::after, .cr-group .cr-item:hover + .cr-item::after { opacity: 0; } }
+    @media (min-width: 841px) { .chat-composer { background: none !important; padding-right: 0; } .chat-head { background: none !important; padding-left: 22px; } .chat-main { padding-left: 0; } #chat-log { padding-left: 6px; } }
     .cr-group + .cr-group { margin-top: 14px; }
     .cr-cap { display: flex; align-items: center; justify-content: space-between; padding: 4px 10px 8px; }
     .cr-new {
@@ -4282,6 +4289,10 @@
                   <span class="track"></span>
                 </label>
               </div>
+              <div class="filters" style="justify-content:space-between;">
+                <p class="label" style="margin:0;">Show when I'm online</p>
+                <label class="tgl"><input type="checkbox" id="show-online" checked><span class="track"></span></label>
+              </div>
               <div class="filters ui-size-row" id="ui-size-row" style="justify-content:space-between;" hidden>
                 <p class="label" style="margin:0;">Interface size</p>
                 <span class="seg" id="ui-size" role="group" aria-label="Interface size"><button type="button" data-z="auto">Auto</button><button type="button" data-z="1">100%</button><button type="button" data-z="1.15">115%</button><button type="button" data-z="1.3">130%</button><button type="button" data-z="1.5">150%</button></span>
@@ -5042,6 +5053,7 @@
       document.body.classList.toggle('in-chart', view === 'chart')
       requestAnimationFrame(nextupPlace)
       if (view === 'course' && prev !== 'course') studyShowMap()
+      if (view === 'set-appearance') { showOnlineInit(); showOnlineInit.paint?.() }
       syncBnav(view)
       // sub-pages always open at the top (a push); top-level views resume where you were
       window.scrollTo({ top: (prev !== view && !el(`v-${view}`)?.classList.contains('setpage')) ? (VIEW_SCROLL[view] ?? 0) : 0 })
@@ -9686,7 +9698,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function ensureProfile() {
       const { data } = await supabase.from('profiles').select('*')
         .eq('user_id', state.user.id).maybeSingle()
-      if (data) { state.profile = data; return }
+      if (data) { state.profile = data; presenceStart.announce?.(); return }
       // First visit: mint a username from the email; they can change it in
       // Settings. Retry with a suffix if it collides.
       const base = ((state.user.email ?? 'member').split('@')[0].toLowerCase()
@@ -15212,10 +15224,31 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function presenceStart() {
       if (!state.user?.id || presenceStart.on) return; presenceStart.on = true
       const ch = supabase.channel('online', { config: { presence: { key: state.user.id } } })
+      presenceStart.ch = ch
       const sync = () => { ONLINE.clear(); for (const k of Object.keys(ch.presenceState())) ONLINE.add(k); presencePaint() }
+      // a member who turned "Show when I'm online" off still sees who is around, but is never announced
+      // the profile can land after the channel joins, so the last known choice is mirrored locally
+      const hidden = () => { if (state.profile) { try { localStorage.setItem('echelon-show-online', state.profile.show_online === false ? '0' : '1') } catch {} return state.profile.show_online === false } try { return localStorage.getItem('echelon-show-online') === '0' } catch { return false } }
+      const announce = () => (hidden() ? ch.untrack() : ch.track({ at: Date.now() }))
+      window.__online = ONLINE
+      presenceStart.announce = () => Promise.resolve(announce()).catch(() => {})
       ch.on('presence', { event: 'sync' }, sync).on('presence', { event: 'join' }, sync).on('presence', { event: 'leave' }, ({ key }) => { ONLINE.delete(key); presencePaint() })
-        .subscribe(async (st) => { if (st === 'SUBSCRIBED') await ch.track({ at: Date.now() }) })
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) ch.track({ at: Date.now() }).catch(() => {}) })
+        .subscribe(async (st) => { if (st === 'SUBSCRIBED') await presenceStart.announce() })
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) presenceStart.announce() })
+    }
+    // Settings, Appearance: Show when I'm online
+    function showOnlineInit() {
+      const box = el('show-online'); if (!box || showOnlineInit.on) return; showOnlineInit.on = true
+      const paint = () => { box.checked = state.profile?.show_online !== false }
+      showOnlineInit.paint = paint; paint()
+      box.addEventListener('change', async () => {
+        if (!state.profile) { paint(); return }
+        const want = box.checked, prev = state.profile.show_online
+        state.profile.show_online = want; presenceStart.announce?.()
+        const { error } = await supabase.from('profiles').update({ show_online: want }).eq('user_id', state.user.id)
+        if (error) { state.profile.show_online = prev; paint(); presenceStart.announce?.(); toast('Could not save that.'); return }
+        toast(want ? 'Members can see when you are online.' : 'You now appear offline to everyone.', 2400)
+      })
     }
     function presencePaint() {
       document.querySelectorAll('[data-uid]').forEach((n) => n.classList.toggle('online', ONLINE.has(n.dataset.uid) && n.dataset.uid !== state.user?.id))
@@ -17139,13 +17172,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // purchase row; members without the course still get the community.
       // Entitlements are now per-product (course + indicators), so read them
       // all rather than a single row.
-      const [{ data: ents }, { data: isAdmin }, { data: modRow }, { data: onbRow }] = await Promise.all([
+      const [{ data: ents }, { data: isAdmin }, { data: modRow }, { data: onbRow, error: onbErr }] = await Promise.all([
         supabase.from('entitlements').select('product, status, interval').eq('status', 'active'),
         supabase.rpc('is_admin'),
         supabase.from('mods').select('user_id').eq('user_id', session.user.id).maybeSingle(),
         supabase.from('member_onboarding').select('answers, completed_at, flags').eq('user_id', session.user.id).maybeSingle(),
       ])
       state.onboarding = onbRow ?? null
+      state.onboardingUnknown = !!onbErr   // a failed lookup is not the same as never onboarded
 
       state.isAdmin = !!isAdmin
       state.isMod = !!modRow
@@ -17208,7 +17242,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       // First entry: the welcome, what's inside, five quick questions. Once
       // per member; the owner is spared unless previewing via view-as.
-      if (!state.isAdmin && !state.onboarding?.completed_at) setTimeout(startOnboarding, 700)
+      if (!state.isAdmin && !state.onboardingUnknown && !state.onboarding?.completed_at) setTimeout(startOnboarding, 700)
 
       // Deep-link from the welcome onboarding: ?start=study|recaps|chat
       const pid = new URLSearchParams(location.search).get('p')
