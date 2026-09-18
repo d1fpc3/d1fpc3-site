@@ -503,34 +503,6 @@
     }
     .toc-group + .toc-group { margin-top: 20px; }
     .toc .cap { padding: 0 0 8px 14px; }
-    /* chapters: basics to advanced, one open at a time */
-    .toc .lvl { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); padding: 0 2px; margin: 22px 0 6px; }
-    .toc .lvl:first-child, .toc .rv-line + .lvl { margin-top: 6px; }
-    .toc .lvl::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-    .toc .chap + .chap { margin-top: 2px; }
-    .toc button.chap-head { display: flex; align-items: center; gap: 12px; border-left: 0; padding: 10px 8px 10px 6px; border-radius: 10px; color: var(--ink); transition: background 0.25s cubic-bezier(.2,.8,.2,1); -webkit-tap-highlight-color: transparent; }
-    @media (hover: hover) { .toc button.chap-head:hover { background: var(--panel-2); } }
-    .toc button.chap-head:active { background: var(--panel-2); }
-    .toc button.chap-head::before { display: none; }
-    .chap-head .n { flex: none; width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); transition: color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease; }
-    .chap.open .chap-head .n, .chap.has-current .chap-head .n { color: var(--gold); box-shadow: inset 0 0 0 1px rgba(201,162,74,0.4); }
-    .chap.all-done .chap-head .n { color: #1a1207; background: var(--gold); box-shadow: none; }
-    .chap-head .tt { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; line-height: 1.3; letter-spacing: -0.005em; }
-    .chap-head .cn { flex: none; font-size: 11.5px; font-weight: 500; color: var(--faint); font-variant-numeric: tabular-nums; }
-    .chap.all-done .chap-head .cn { color: var(--gold); }
-    .chap-head .cv { flex: none; width: 14px; height: 14px; color: var(--faint); transition: transform 0.35s cubic-bezier(.2,.8,.2,1); }
-    .chap.open .chap-head .cv { transform: rotate(90deg); }
-    .toc .chip { white-space: nowrap; }
-    .chap-bar.none { visibility: hidden; height: 0; }
-    .chap-bar { height: 2px; border-radius: 2px; background: var(--line); margin: 0 8px 0 44px; overflow: hidden; }
-    .chap-bar i { display: block; height: 100%; width: var(--p, 0%); background: var(--gold); border-radius: 2px; transition: width 0.5s cubic-bezier(.2,.8,.2,1); }
-    .chap-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.4s cubic-bezier(.2,.8,.2,1); }
-    .chap.open .chap-body { grid-template-rows: 1fr; }
-    .chap-body > div { overflow: hidden; min-height: 0; }
-    .chap-body .in { padding: 8px 0 10px 18px; opacity: 0; transform: translateY(-4px); transition: opacity 0.3s ease, transform 0.4s cubic-bezier(.2,.8,.2,1); }
-    .chap.open .chap-body .in { opacity: 1; transform: none; }
-    .chap:not(.open) .chap-body { visibility: hidden; transition: grid-template-rows 0.4s cubic-bezier(.2,.8,.2,1), visibility 0s 0.4s; }
-    @media (prefers-reduced-motion: reduce) { .chap-body, .chap-body .in, .chap-head .cv, .chap-bar i { transition: none; } }
     .toc button {
       position: relative; display: block; width: 100%; text-align: left;
       padding: 7px 22px 7px 14px;
@@ -5605,84 +5577,65 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       sw.appendChild(inp); sw.appendChild(x); host.appendChild(sw); host.appendChild(list)
       refresh()
     }
-    // Study runs in chapters, basics to advanced. One chapter is open at a time: the one
-    // holding the current lesson, or whichever the member last tapped.
-    let STUDY_OPEN = null, STUDY_OPEN_FOR = null
-    const LEVELS = ['Basics', 'Intermediate', 'Advanced']
     function renderGroups(host) {
-      const cur = state.lessons.find((l) => l.id === state.currentId)
-      // a new lesson pulls its chapter open; a manual tap holds until the lesson changes
-      if (cur && STUDY_OPEN_FOR !== cur.id) { STUDY_OPEN = cur.module_id; STUDY_OPEN_FOR = cur.id }
-      const mods = state.modules.filter((m) => state.lessons.some((l) => l.module_id === m.id))
-      const levels = [...LEVELS, ...new Set(mods.map((m) => m.level).filter((v) => v && !LEVELS.includes(v)))]
-      let n = 0
-      for (const level of levels) {
-        const inLevel = mods.filter((m) => (m.level || 'Basics') === level)
-        if (!inLevel.length) continue
-        const lh = document.createElement('div'); lh.className = 'lvl'; lh.textContent = level
-        host.appendChild(lh)
-        for (const mod of inLevel) {
-          n++
-          const lessons = state.lessons.filter((l) => l.module_id === mod.id)
-          const doneN = lessons.filter((l) => state.done.has(l.id)).length
-          const chap = document.createElement('div'); chap.className = 'chap toc-chap'; chap.dataset.mod = mod.id
-          if (STUDY_OPEN === mod.id) chap.classList.add('open')
-          if (cur && cur.module_id === mod.id) chap.classList.add('has-current')
-          if (doneN === lessons.length) chap.classList.add('all-done')
-          const head = document.createElement('button'); head.type = 'button'; head.className = 'chap-head'
-          head.setAttribute('aria-expanded', String(STUDY_OPEN === mod.id))
-          const num = document.createElement('span'); num.className = 'n'; num.textContent = doneN === lessons.length ? '✓' : String(n).padStart(2, '0')
-          const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = mod.title
-          const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = `${doneN}/${lessons.length}`
-          head.append(num, tt, cn)
-          head.insertAdjacentHTML('beforeend', '<svg class="cv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>')
-          head.addEventListener('click', () => {
-            hap('light')
-            const opening = !chap.classList.contains('open')
-            host.querySelectorAll('.chap.open').forEach((c) => { c.classList.remove('open'); c.querySelector('.chap-head').setAttribute('aria-expanded', 'false') })
-            if (opening) { chap.classList.add('open'); head.setAttribute('aria-expanded', 'true') }
-            STUDY_OPEN = opening ? mod.id : null
+      for (const mod of state.modules) {
+        const lessons = state.lessons.filter((l) => l.module_id === mod.id)
+        if (!lessons.length) continue
+
+        const group = document.createElement('div')
+        group.className = 'toc-group'
+
+        const cap = document.createElement('div')
+        cap.className = 'cap label'
+        cap.textContent = mod.title
+        const doneN = lessons.filter((l) => state.done.has(l.id)).length
+        const capN = document.createElement('span'); capN.className = 'cap-n'; capN.textContent = `${doneN} of ${lessons.length}`
+        if (doneN === lessons.length) cap.classList.add('all-done')
+        cap.appendChild(capN)
+        group.appendChild(cap)
+
+        for (const lesson of lessons) {
+          const btn = document.createElement('button')
+          btn.type = 'button'
+          const current = lesson.id === state.currentId
+          if (current) {
+            btn.className = 'on'
+            btn.setAttribute('aria-current', 'true')
+          }
+          btn.textContent = lesson.title
+
+          // Adaptive chips: concepts the member flagged to review get "Start here",
+          // ones they said they know get a muted "Known" (only before completion).
+          const verdict = conceptVerdictForLesson(lesson.slug)
+          if (verdict === 'review' && !state.done.has(lesson.id)) {
+            const chip = document.createElement('span'); chip.className = 'chip rec'; chip.textContent = 'Start here'
+            btn.appendChild(chip)
+          } else if (verdict === 'known' && !state.done.has(lesson.id)) {
+            btn.classList.add('known-lesson')
+            const chip = document.createElement('span'); chip.className = 'chip known'; chip.textContent = 'Known'
+            btn.appendChild(chip)
+          }
+
+          if (state.done.has(lesson.id)) {
+            const dot = document.createElement('span')
+            dot.className = 'done'
+            dot.title = 'Completed'
+            btn.appendChild(dot)
+          }
+
+          btn.addEventListener('click', () => {
+            openLesson(lesson.id)
+            if (isPhone()) {
+              el('course-grid').classList.remove('toc-open')
+              el('toc-toggle').setAttribute('aria-expanded', 'false')
+              scrollToLesson()
+            }
           })
-          const bar = document.createElement('div'); bar.className = 'chap-bar' + (doneN ? '' : ' none')
-          const fill = document.createElement('i'); fill.style.setProperty('--p', Math.round((doneN / lessons.length) * 100) + '%'); bar.appendChild(fill)
-          const body = document.createElement('div'); body.className = 'chap-body'
-          const clip = document.createElement('div'), inner = document.createElement('div'); inner.className = 'in'
-          clip.appendChild(inner); body.appendChild(clip)
-          for (const lesson of lessons) inner.appendChild(lessonRow(lesson))
-          chap.append(head, bar, body)
-          host.appendChild(chap)
+          group.appendChild(btn)
         }
+
+        host.appendChild(group)
       }
-    }
-    function lessonRow(lesson) {
-      const btn = document.createElement('button')
-      btn.type = 'button'
-      if (lesson.id === state.currentId) { btn.className = 'on'; btn.setAttribute('aria-current', 'true') }
-      btn.textContent = lesson.title
-      // Adaptive chips: concepts the member flagged to review get "Start here",
-      // ones they said they know get a muted "Known" (only before completion).
-      const verdict = conceptVerdictForLesson(lesson.slug)
-      if (verdict === 'review' && !state.done.has(lesson.id)) {
-        const chip = document.createElement('span'); chip.className = 'chip rec'; chip.textContent = 'Start here'
-        btn.appendChild(chip)
-      } else if (verdict === 'known' && !state.done.has(lesson.id)) {
-        btn.classList.add('known-lesson')
-        const chip = document.createElement('span'); chip.className = 'chip known'; chip.textContent = 'Known'
-        btn.appendChild(chip)
-      }
-      if (state.done.has(lesson.id)) {
-        const dot = document.createElement('span'); dot.className = 'done'; dot.title = 'Completed'
-        btn.appendChild(dot)
-      }
-      btn.addEventListener('click', () => {
-        openLesson(lesson.id)
-        if (isPhone()) {
-          el('course-grid').classList.remove('toc-open')
-          el('toc-toggle').setAttribute('aria-expanded', 'false')
-          scrollToLesson()
-        }
-      })
-      return btn
     }
 
     /**
@@ -10724,14 +10677,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       skelPane(el('lesson'))
 
       const toc = el('index'); toc.textContent = ''
-      // mirrors the chapter list: a level line, then numbered chapter rows
       for (let g = 0; g < 2; g++) {
-        const lv = skel('22%', 8, g ? 22 : 6); toc.appendChild(lv)
-        for (let i = 0; i < (g ? 2 : 3); i++) {
-          const row = document.createElement('div'); row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 8px 10px 6px'
-          const tile = skel('26px', 26); tile.style.flex = 'none'; tile.style.borderRadius = '8px'
-          const line = skel([62, 48, 70][i] + '%', 11); row.append(tile, line); toc.appendChild(row)
-        }
+        const group = document.createElement('div'); group.className = 'toc-group'
+        group.appendChild(skel('46%', 9))
+        for (let i = 0; i < 4; i++) group.appendChild(skel(`${[82, 64, 74, 58][i]}%`, 10, 12))
+        toc.appendChild(group)
       }
 
       const sg = el('store-grid'); sg.textContent = ''
@@ -16730,7 +16680,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // modules query is simply empty, and trade recaps arrive published-only
       // for members. The directory shows usernames and bios, never emails.
       const [{ data: modules }, { data: lessons }, { data: progress }, { data: recaps }, { data: memberRecaps }, { data: annMsgs }, { data: intake }, { data: products }, { data: tvAccess }, { data: reviews }, { data: rrPool }, { data: journal }, { data: hw }] = await Promise.all([
-        supabase.from('modules').select('id, title, position, level').order('position'),
+        supabase.from('modules').select('id, title, position').order('position'),
         supabase.from('lessons').select('id, module_id, slug, title, summary, kind, body_md, blocks, homework, position').order('position'),
         supabase.from('progress').select('lesson_id, completed_at'),
         supabase.from('trade_recaps').select('id, title, recap_date, body_md, is_published, thumb_path').order('recap_date', { ascending: false }),

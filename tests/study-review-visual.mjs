@@ -28,7 +28,7 @@ try {
     const ctx = await b.newContext(vp);
     await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", "dark"); for (const id of ["ig", "dc", "bt"]) localStorage.setItem("echelon-promo-until:" + id, String(Date.now() + 864e5)); localStorage.removeItem("echelon-lesson-pos"); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
     const p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(e.message));
-    const open = async () => { await p.goto("http://127.0.0.1:8123/echelon/app/?start=study", { waitUntil: "domcontentloaded" }); await p.waitForSelector("#toc-list .chap-body button", { state: "attached", timeout: 25000 }); await p.evaluate(() => { document.getElementById("nextup")?.remove(); document.querySelectorAll("#toc-list .chap-body button")[1].click() }); await p.waitForTimeout(800); };
+    const open = async () => { await p.goto("http://127.0.0.1:8123/echelon/app/?start=study", { waitUntil: "domcontentloaded" }); await p.waitForSelector("#toc-list .toc-group button", { state: "attached", timeout: 25000 }); await p.evaluate(() => { document.getElementById("nextup")?.remove(); document.querySelectorAll("#toc-list .toc-group button")[1].click() }); await p.waitForTimeout(800); };
     await open();
     const qc = await p.evaluate(() => ({ qs: document.querySelectorAll(".qc-q").length, opts: document.querySelectorAll(".qc-opt").length }));
     console.log(name, "quick check", JSON.stringify(qc)); if (qc.qs !== 3) fails.push(name + ": quick check questions " + JSON.stringify(qc));
