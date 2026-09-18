@@ -502,6 +502,42 @@
       .toc button { padding: 10px 22px 10px 14px; font-size: 14px; }
     }
     .toc-group + .toc-group { margin-top: 20px; }
+    /* Study opens on a map of numbered chapters; a chapter opens to its own lessons only */
+    #v-course.map-mode #course-grid { display: none; }
+    #v-course:not(.map-mode) #study-map, #course-grid[hidden] + #study-map { display: none; }
+    .study-map { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+    .sm-card { position: relative; display: flex; flex-direction: column; height: 190px; padding: 20px 22px 20px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; overflow: hidden;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 18px; -webkit-tap-highlight-color: transparent;
+      transition: transform 0.45s cubic-bezier(.2,.8,.2,1), border-color 0.25s ease, box-shadow 0.35s ease; }
+    @media (hover: hover) { .sm-card:hover { transform: translateY(-3px); border-color: var(--line-bright); box-shadow: 0 18px 40px -24px rgba(0,0,0,0.6); } .sm-card:hover .sm-num { transform: translateX(3px); } }
+    .sm-card:active { transform: scale(0.98); transition-duration: 0.08s; }
+    .sm-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    .sm-num { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 400; font-variant-numeric: lining-nums; font-size: 62px; line-height: 1; color: var(--gold); letter-spacing: -0.01em; transition: transform 0.45s cubic-bezier(.2,.8,.2,1); }
+    .sm-card.done .sm-num { color: var(--muted); }
+    .sm-card.cur { border-color: rgba(201,162,74,0.55); background: linear-gradient(160deg, rgba(201,162,74,0.13), var(--panel) 58%); }
+    .sm-peek { position: absolute; right: 20px; top: 24px; max-width: 52%; text-align: right; color: var(--faint); font-size: 12px; line-height: 1.75; }
+    .sm-peek span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sm-meta { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; min-height: 26px; }
+    .sm-go { background: linear-gradient(135deg, #e6c878, var(--gold)); color: #1a1207; font-weight: 700; font-size: 12px; padding: 6px 13px; border-radius: 999px; }
+    .sm-bar { height: 3px; border-radius: 3px; background: var(--line); margin-top: 12px; overflow: hidden; }
+    .sm-bar i { display: block; height: 100%; width: var(--p, 0%); background: var(--gold); border-radius: 3px; transition: width 0.7s cubic-bezier(.2,.8,.2,1); }
+    #v-course.map-mode.fresh .sm-card { animation: td-in 0.5s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i) * 45ms); }
+    @media (max-width: 860px) { .study-map { grid-template-columns: 1fr 1fr; gap: 10px; } .sm-card { height: 150px; padding: 16px; border-radius: 16px; } .sm-num { font-size: 46px; } .sm-peek { display: none; } .sm-meta { font-size: 12px; } }
+    @media (prefers-reduced-motion: reduce) { .sm-card, .sm-num, .sm-bar i { transition: none; } #v-course.map-mode.fresh .sm-card { animation: none; } }
+    /* inside a chapter: back to the map, the numeral, then just these lessons */
+    .toc .ch-back { display: inline-flex; align-items: center; gap: 4px; width: auto; border-left: 0; padding: 6px 12px 6px 6px; margin: 0 0 14px -6px; border-radius: 9px; color: var(--muted); font-size: 13px; font-weight: 500; transition: background 0.25s cubic-bezier(.2,.8,.2,1), color 0.2s ease; }
+    .toc .ch-back::before { display: none; } .toc .ch-back svg { width: 16px; height: 16px; transition: transform 0.3s cubic-bezier(.2,.8,.2,1); }
+    @media (hover: hover) { .toc .ch-back:hover { background: var(--panel-2); color: var(--ink); } .toc .ch-back:hover svg { transform: translateX(-2px); } }
+    .ch-big { display: flex; align-items: baseline; gap: 12px; padding: 0 2px; margin-bottom: 14px; }
+    .ch-big .sm-num { font-size: 52px; } .ch-big span:last-child { color: var(--faint); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+    .toc .ch-list button { display: flex; align-items: center; gap: 12px; border-left: 0; padding: 10px 12px; border-radius: 11px; font-size: 13.5px; transition: background 0.25s cubic-bezier(.2,.8,.2,1), color 0.15s ease; }
+    .toc .ch-list button::before { display: none; }
+    .toc .ch-list button .ix { flex: none; width: 16px; font-size: 11px; font-weight: 600; color: var(--faint); font-variant-numeric: tabular-nums; }
+    .toc .ch-list button .tx { flex: 1; min-width: 0; }
+    @media (hover: hover) { .toc .ch-list button:hover { background: var(--panel-2); } }
+    .toc .ch-list button.on { background: var(--panel-2); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-bright); } .toc .ch-list button.on .ix { color: var(--gold); }
+    .toc .ch-list button.is-done { color: var(--faint); } .toc .ch-list button.is-done .ix { color: var(--gold); }
+    .toc .ch-list .chip { white-space: nowrap; }
     .toc .cap { padding: 0 0 8px 14px; }
     .toc button {
       position: relative; display: block; width: 100%; text-align: left;
@@ -3573,7 +3609,7 @@
           <p class="ov-empty" id="inbox-empty" hidden>Nothing yet. Likes, comments and follows land here.</p>
         </section>
 
-        <section class="view" id="v-course">
+        <section class="view map-mode" id="v-course">
           <!-- adaptive intake: shown until the member finishes the starting-point check -->
           <div class="intake" id="intake" hidden></div>
 
@@ -3590,6 +3626,7 @@
             <nav class="toc" id="index" aria-label="Lessons"></nav>
             <div class="block" id="lesson-block"><div class="read-bar" id="read-bar" aria-hidden="true"></div><main class="lesson-pane" id="lesson"></main></div>
           </div>
+          <div class="study-map" id="study-map"></div>
         </section>
 
         <!-- RECAPS -->
@@ -4921,6 +4958,7 @@
       document.body.classList.toggle('in-feed', view === 'feed')
       document.body.classList.toggle('in-chart', view === 'chart')
       requestAnimationFrame(nextupPlace)
+      if (view === 'course' && prev !== 'course') studyShowMap()
       syncBnav(view)
       // sub-pages always open at the top (a push); top-level views resume where you were
       window.scrollTo({ top: (prev !== view && !el(`v-${view}`)?.classList.contains('setpage')) ? (VIEW_SCROLL[view] ?? 0) : 0 })
@@ -5493,7 +5531,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const at = lesson ? ordered.findIndex((l) => l.id === lesson.id) : -1
       el('tt-mod').textContent = mod?.title ?? 'Lessons'
       el('tt-title').textContent = lesson?.title ?? 'Pick a lesson'
-      el('tt-pos').textContent = at >= 0 ? `${at + 1} of ${ordered.length}` : (ordered.length ? `${ordered.length} lessons` : '')
+      const inMod = lesson ? state.lessons.filter((l) => l.module_id === lesson.module_id) : []
+      el('tt-pos').textContent = lesson ? `${studyNum(lesson.module_id)} · ${inMod.findIndex((l) => l.id === lesson.id) + 1} of ${inMod.length}` : (ordered.length ? `${ordered.length} lessons` : '')
     }
     /** Bring the lesson block to the top of the viewport (under the sticky topbar). */
     function scrollToLesson(smooth = true) {
@@ -5577,65 +5616,88 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       sw.appendChild(inp); sw.appendChild(x); host.appendChild(sw); host.appendChild(list)
       refresh()
     }
-    function renderGroups(host) {
-      for (const mod of state.modules) {
+    // Study opens on a map of numbered chapters. A chapter shows its own lessons only.
+    let STUDY_MOD = null
+    const studyMods = () => state.modules.filter((m) => state.lessons.some((l) => l.module_id === m.id))
+    const studyNum = (modId) => String(studyMods().findIndex((m) => m.id === modId) + 1).padStart(2, '0')
+    const BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>'
+    function studyShowMap() {
+      studyStopListen?.()
+      el('v-course').classList.add('map-mode')
+      renderStudyMap()
+      window.scrollTo(0, 0)
+    }
+    function renderStudyMap() {
+      const host = el('study-map'); if (!host) return
+      host.textContent = ''
+      const cur = state.lessons.find((l) => l.id === state.currentId)
+      const started = state.done.size > 0
+      studyMods().forEach((mod, i) => {
         const lessons = state.lessons.filter((l) => l.module_id === mod.id)
-        if (!lessons.length) continue
-
-        const group = document.createElement('div')
-        group.className = 'toc-group'
-
-        const cap = document.createElement('div')
-        cap.className = 'cap label'
-        cap.textContent = mod.title
         const doneN = lessons.filter((l) => state.done.has(l.id)).length
-        const capN = document.createElement('span'); capN.className = 'cap-n'; capN.textContent = `${doneN} of ${lessons.length}`
-        if (doneN === lessons.length) cap.classList.add('all-done')
-        cap.appendChild(capN)
-        group.appendChild(cap)
-
-        for (const lesson of lessons) {
-          const btn = document.createElement('button')
-          btn.type = 'button'
-          const current = lesson.id === state.currentId
-          if (current) {
-            btn.className = 'on'
-            btn.setAttribute('aria-current', 'true')
-          }
-          btn.textContent = lesson.title
-
-          // Adaptive chips: concepts the member flagged to review get "Start here",
-          // ones they said they know get a muted "Known" (only before completion).
-          const verdict = conceptVerdictForLesson(lesson.slug)
-          if (verdict === 'review' && !state.done.has(lesson.id)) {
-            const chip = document.createElement('span'); chip.className = 'chip rec'; chip.textContent = 'Start here'
-            btn.appendChild(chip)
-          } else if (verdict === 'known' && !state.done.has(lesson.id)) {
-            btn.classList.add('known-lesson')
-            const chip = document.createElement('span'); chip.className = 'chip known'; chip.textContent = 'Known'
-            btn.appendChild(chip)
-          }
-
-          if (state.done.has(lesson.id)) {
-            const dot = document.createElement('span')
-            dot.className = 'done'
-            dot.title = 'Completed'
-            btn.appendChild(dot)
-          }
-
-          btn.addEventListener('click', () => {
-            openLesson(lesson.id)
-            if (isPhone()) {
-              el('course-grid').classList.remove('toc-open')
-              el('toc-toggle').setAttribute('aria-expanded', 'false')
-              scrollToLesson()
-            }
-          })
-          group.appendChild(btn)
+        const isCur = !!cur && cur.module_id === mod.id, allDone = doneN === lessons.length
+        const card = document.createElement('button'); card.type = 'button'; card.className = 'sm-card' + (isCur ? ' cur' : '') + (allDone ? ' done' : '')
+        card.style.setProperty('--i', i); card.dataset.mod = mod.id
+        card.setAttribute('aria-label', `Chapter ${i + 1}, ${doneN} of ${lessons.length} lessons done`)
+        const num = document.createElement('span'); num.className = 'sm-num'; num.textContent = String(i + 1).padStart(2, '0')
+        card.appendChild(num)
+        if (isCur) {
+          const peek = document.createElement('div'); peek.className = 'sm-peek'
+          const from = Math.max(0, lessons.findIndex((l) => l.id === cur.id))
+          for (const l of lessons.slice(from, from + 3)) { const sp = document.createElement('span'); sp.textContent = l.title; peek.appendChild(sp) }
+          card.appendChild(peek)
         }
+        const meta = document.createElement('div'); meta.className = 'sm-meta'
+        const left = document.createElement('span'); left.textContent = doneN && !allDone ? `${doneN} of ${lessons.length}` : `${lessons.length} lesson${lessons.length === 1 ? '' : 's'}`
+        const right = document.createElement('span')
+        if (isCur && !allDone) { right.className = 'sm-go'; right.textContent = started ? 'Continue' : 'Start' } else if (allDone) right.textContent = 'Done'
+        meta.append(left, right)
+        const bar = document.createElement('div'); bar.className = 'sm-bar'; const fill = document.createElement('i'); fill.style.setProperty('--p', Math.round((doneN / lessons.length) * 100) + '%'); bar.appendChild(fill)
+        card.append(meta, bar)
+        card.addEventListener('click', () => {
+          hap('light')
+          const target = isCur ? cur : (lessons.find((l) => !state.done.has(l.id)) ?? lessons[0])
+          openLesson(target.id); window.scrollTo(0, 0)
+        })
+        host.appendChild(card)
+      })
+    }
+    function renderGroups(host) {
+      const cur = state.lessons.find((l) => l.id === state.currentId)
+      if (cur) STUDY_MOD = cur.module_id
+      const mod = state.modules.find((m) => m.id === STUDY_MOD) ?? studyMods()[0]
+      if (!mod) return
+      const lessons = state.lessons.filter((l) => l.module_id === mod.id)
+      const doneN = lessons.filter((l) => state.done.has(l.id)).length
 
-        host.appendChild(group)
-      }
+      const back = document.createElement('button'); back.type = 'button'; back.className = 'ch-back'; back.id = 'study-back'
+      back.innerHTML = BACK_SVG; back.appendChild(document.createTextNode('All chapters'))
+      back.addEventListener('click', () => { hap('light'); el('course-grid').classList.remove('toc-open'); el('toc-toggle').setAttribute('aria-expanded', 'false'); studyShowMap() })
+      const big = document.createElement('div'); big.className = 'ch-big'
+      const num = document.createElement('span'); num.className = 'sm-num'; num.textContent = studyNum(mod.id)
+      const cnt = document.createElement('span'); cnt.textContent = `${doneN} of ${lessons.length}`
+      big.append(num, cnt)
+      const list = document.createElement('div'); list.className = 'ch-list toc-group'
+      lessons.forEach((lesson, i) => {
+        const btn = document.createElement('button'); btn.type = 'button'
+        const done = state.done.has(lesson.id)
+        if (lesson.id === state.currentId) { btn.className = 'on'; btn.setAttribute('aria-current', 'true') }
+        if (done) btn.classList.add('is-done')
+        const ix = document.createElement('span'); ix.className = 'ix'; ix.textContent = done ? '✓' : String(i + 1)
+        const tx = document.createElement('span'); tx.className = 'tx'; tx.textContent = lesson.title
+        btn.append(ix, tx)
+        // Adaptive chips: concepts the member flagged to review get "Start here",
+        // ones they said they know get a muted "Known" (only before completion).
+        const verdict = conceptVerdictForLesson(lesson.slug)
+        if (verdict === 'review' && !done) { const chip = document.createElement('span'); chip.className = 'chip rec'; chip.textContent = 'Start here'; btn.appendChild(chip) }
+        else if (verdict === 'known' && !done) { btn.classList.add('known-lesson'); const chip = document.createElement('span'); chip.className = 'chip known'; chip.textContent = 'Known'; btn.appendChild(chip) }
+        btn.addEventListener('click', () => {
+          openLesson(lesson.id)
+          if (isPhone()) { el('course-grid').classList.remove('toc-open'); el('toc-toggle').setAttribute('aria-expanded', 'false'); scrollToLesson() }
+        })
+        list.appendChild(btn)
+      })
+      host.append(back, big, list)
     }
 
     /**
@@ -5950,8 +6012,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       studyStopListen()
       studyRememberPos()
       state.currentId = id
+      el('v-course').classList.remove('map-mode')
       renderIndex()
       renderOverview()
+      if (el('v-course').classList.contains('on')) renderStudyMap()
 
       // Count the open, the dashboard's who-watched-what runs on this.
       supabase.rpc('record_view', { p_lesson: id }).then(() => {}, () => {})
@@ -10683,6 +10747,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         for (let i = 0; i < 4; i++) group.appendChild(skel(`${[82, 64, 74, 58][i]}%`, 10, 12))
         toc.appendChild(group)
       }
+      // Study lands on the chapter map: the skeleton is the same cards
+      const smap = el('study-map')
+      if (smap) { smap.textContent = ''; for (let i = 0; i < 7; i++) { const c = document.createElement('div'); c.className = 'sm-card'; c.style.cursor = 'default'; c.append(skel('64px', 48)); const m = skel('38%', 10); m.style.marginTop = 'auto'; c.append(m, skel('100%', 3, 12)); smap.appendChild(c) } }
 
       const sg = el('store-grid'); sg.textContent = ''
       for (let i = 0; i < 3; i++) {
@@ -16741,6 +16808,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const lesson = state.lessons.find((l) => l.id === keepLesson) ?? firstRecommendedLesson() ?? orderedLessons()[0]
       if (lesson) {
         openLesson(lesson.id)
+        el('v-course').classList.add('map-mode'); renderStudyMap()   // a load lands on the map, not mid-lesson
       } else {
         el('lesson').innerHTML = '<p class="empty">No lessons published yet.</p>'
       }
