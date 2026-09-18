@@ -3189,6 +3189,7 @@
     .mrt.cf .btn.danger { background: var(--bad); color: #1a100c; }
     .set-rate b { font-size: 14px; font-weight: 500; cursor: pointer; }
     .set-rate .stars { display: flex; gap: 0; }
+    #set-rate-row { padding: 9px 6px; gap: 14px; justify-content: flex-start; } #set-rate-row b { flex: 1; } #set-rate-row .ico { width: 21px; height: 21px; flex: none; display: flex; align-items: center; justify-content: center; } #set-rate-row .ico svg { width: 19px; height: 19px; }
     .set-rate .stars button { background: none; border: 0; padding: 4px 3px; cursor: pointer; color: var(--faint); display: inline-flex; -webkit-tap-highlight-color: transparent; }
     .set-rate .stars button svg { width: 20px; height: 20px; }
     .set-rate .stars button { transition: color 0.15s ease, transform 0.15s cubic-bezier(0.3, 1.6, 0.5, 1); } .set-rate .stars button:active { transform: scale(0.85); }
@@ -4051,6 +4052,7 @@
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
             </button>
             <div class="set-rate" id="set-rate-row">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></span>
               <b>Rate Echelon</b>
               <span class="stars" id="rate-stars"></span>
             </div>
@@ -9854,7 +9856,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function initDesktopPanel() {
       const block = el('desktop-block'); if (!block) return
-      block.hidden = NATIVE || !!window.echelonDesktop || !memberCanDownload()
+      block.hidden = NATIVE || !!window.echelonDesktop || !memberCanDownload() || !/Windows/i.test(navigator.userAgent)   // a Windows installer is no use on a phone or a Mac
       const row = el('set-desktop-row'); if (row) row.hidden = block.hidden
     }
     el('desktop-dl')?.addEventListener('click', async () => {
@@ -10827,11 +10829,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (pos) read += above ? `Dips get bought, rips get sold. The call wall at ${tdInt(call)} is the ceiling to respect.` : `Under the flip even in positive gamma: expect chop toward the put wall at ${tdInt(put)}.`
         else read += 'Let the first hour decide the regime before leaning on either wall.'
       }
+      // a level the sheet does not have (no flip on a one-sided book) gets no tile, not an empty one
+      const lvls = [['Flip', 'flip', flip], ['Call wall', 'call', call], ['Put wall', 'put', put]].filter((l) => l[2] != null && !isNaN(l[2]))
       const locked = !tdGexAllowed()
       const more = sec.querySelector('.td-more'); if (more) more.hidden = locked
       const html = `<div class="td-gx-body">
         <div class="td-gx-head"><span class="td-pill ${cls}">${label}</span><span class="t">${tagline}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
-        <div class="td-gx-levels"><div><div class="k">Flip</div><div class="v flip">${tdInt(flip)}</div></div><div><div class="k">Call wall</div><div class="v call">${tdInt(call)}</div></div><div><div class="k">Put wall</div><div class="v put">${tdInt(put)}</div></div></div>
+        ${lvls.length ? `<div class="td-gx-levels" style="grid-template-columns:repeat(${lvls.length},1fr)">${lvls.map(([k, c, v]) => `<div><div class="k">${k}</div><div class="v ${c}">${tdInt(v)}</div></div>`).join("")}</div>` : ""}
         ${read ? `<p class="td-gx-read">${read}</p>` : ''}
         ${d.generatedAt ? `<p class="td-gx-stamp">Updated ${new Date(d.generatedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}${ET_DAY.format(new Date(d.generatedAt)) === ET_DAY.format(new Date()) ? '' : ' · ' + new Date(d.generatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>` : ''}</div>
         ${locked ? `<div class="td-lock"><i class="td-lock-tag">D1 GEX</i><b>See what dealers are doing before the bell.</b><span>The regime, the flip and both walls, read for you every morning, right here and on the full board.</span><button class="btn" type="button">Unlock D1 GEX</button><small>${tdGexPrice()}</small></div>` : ''}`
@@ -16638,7 +16642,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('gate').style.display = 'none'
       el('app').classList.add('on')
       // the home paints its last snapshot the instant the shell shows; the boot queries only ever swap in fresher data
-      if (curView() === 'overview' && el('td-h1')) { tdPaintCached(); markFresh('v-overview'); tdRenderHero(); tdRenderGex(); tdRenderNews(); tdRenderRoom() }
+      if (curView() === 'overview' && el('td-h1')) { tdPaintCached(); markFresh('v-overview'); tdRenderHero(); tdRenderAnn(); tdRenderGex(); tdRenderNews(); tdRenderRoom(); tdRenderVideo() }
 
       renderSidebarUser()
 
