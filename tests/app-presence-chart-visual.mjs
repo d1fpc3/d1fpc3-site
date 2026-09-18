@@ -34,7 +34,8 @@ const fails = []; const ok = (c, w) => { console.log((c ? "ok   " : "FAIL ") + w
 const OTHER = "0250925b-7e07-479a-be65-24a818ee3fc5";
 const p2 = await (await browser.newContext()).newPage(); await p2.goto("about:blank");
 await p2.addScriptTag({ url: "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" });
-await p2.evaluate(async ([url, key, uid]) => { const c = window.supabase.createClient(url, key); const ch = c.channel("online", { config: { presence: { key: uid } } }); await new Promise((r) => ch.subscribe((s) => { if (s === "SUBSCRIBED") r() })); await ch.track({ at: Date.now() }); window._ch = ch }, [SB, anon, OTHER]);
+// presence is a private channel now: an anonymous page can no longer fake a member, so the second page signs in with a member session
+await p2.evaluate(async ([url, key, uid, token]) => { const c = window.supabase.createClient(url, key, { auth: { persistSession: false } }); await c.realtime.setAuth(token); const ch = c.channel("online", { config: { private: true, presence: { key: uid } } }); await new Promise((r) => ch.subscribe((s) => { if (s === "SUBSCRIBED") r() })); await ch.track({ at: Date.now() }); window._ch = ch }, [SB, anon, OTHER, session.access_token]);
 await go("members"); await page.waitForTimeout(2500);
 ok(await page.locator(`.mcard.online[data-uid="${OTHER}"]`).count() === 1, "a member who comes online shows a green dot");
 ok(/online/.test(await page.locator("#members-online").textContent().catch(() => "")), "the members page counts who is online: " + (await page.locator("#members-online").textContent().catch(() => "")));

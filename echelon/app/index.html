@@ -15225,7 +15225,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const ONLINE = new Set()
     function presenceStart() {
       if (!state.user?.id || presenceStart.on) return; presenceStart.on = true
-      const ch = supabase.channel('online', { config: { presence: { key: state.user.id } } })
+      const ch = supabase.channel('online', { config: { private: true, presence: { key: state.user.id } } })   // private: realtime.messages policies admit members only
       presenceStart.ch = ch
       const sync = () => { ONLINE.clear(); for (const k of Object.keys(ch.presenceState())) ONLINE.add(k); presencePaint() }
       // a member who turned "Show when I'm online" off still sees who is around, but is never announced
@@ -15476,7 +15476,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       TYPING.clear(); chatTypingPaint(); chatReplyTo(null)
       if (chat.sub) { supabase.removeChannel(chat.sub); chat.sub = null }
       const filter = (type === 'channel' ? 'channel_id' : 'dm_id') + '=eq.' + id
-      chat.sub = supabase.channel('room:' + type + ':' + id)
+      chat.sub = supabase.channel('room:' + type + ':' + id, { config: { private: true } })   // typing is members only, and a DM topic admits only its two people
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter }, (p) => {
           if (chat.msgs.some((m) => m.id === p.new.id)) return
           TYPING.delete(p.new.user_id); chatTypingPaint()

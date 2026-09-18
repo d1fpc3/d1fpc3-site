@@ -69,7 +69,7 @@ if (PHONE) { await page.locator(".cr-item", { hasText: "General" }).first().clic
 // someone else typing: a broadcast on the room's channel, sent from the server side
 const chans = await (await fetch(`${SB}/rest/v1/channels?select=id,slug`, { headers: { apikey: service, Authorization: `Bearer ${service}` } })).json();
 const general = chans.find((c) => c.slug === "general") || chans[0];
-const bc = await fetch(`${SB}/realtime/v1/api/broadcast`, { method: "POST", headers: { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ topic: `room:channel:${general.id}`, event: "typing", payload: { uid: "00000000-0000-4000-8000-000000000001", name: "Harness" } }] }) });
+const bc = await fetch(`${SB}/realtime/v1/api/broadcast`, { method: "POST", headers: { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ topic: `room:channel:${general.id}`, private: true, event: "typing", payload: { uid: "00000000-0000-4000-8000-000000000001", name: "Harness" } }] }) });
 await page.waitForTimeout(1200);
 ok(await page.locator("#chat-typing").isVisible().catch(() => false), `typing indicator appears for someone else (broadcast ${bc.status}): ` + (await page.locator("#chat-typing .t").textContent().catch(() => "")));
 await shot(PRE + "chat-typing");
