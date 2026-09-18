@@ -2536,6 +2536,18 @@
     /* share: icon button in the video header; the card sheet shows the story-sized image and two actions */
     .lib-share { margin-left: auto; margin-right: 2px; width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--line-bright); border-radius: 9px; color: var(--muted); cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease; -webkit-tap-highlight-color: transparent; }
     .lib-share:hover { color: var(--gold); border-color: var(--gold); }
+    /* like: a heart and a count in the player header, and the count on the card */
+    .lib-like { margin-left: auto; margin-right: 6px; height: 34px; min-width: 34px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: none; border: 1px solid var(--line-bright); border-radius: 9px; color: var(--muted); cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; -webkit-tap-highlight-color: transparent; transition: color 0.2s ease, border-color 0.2s ease, background 0.25s ease, transform 0.25s cubic-bezier(.2,.8,.2,1); }
+    .lib-like svg { width: 16px; height: 16px; transition: transform 0.2s ease; }
+    .lib-like span:empty { display: none; }
+    @media (hover: hover) { .lib-like:hover { color: var(--ink); border-color: var(--muted); } }
+    .lib-like:active { transform: scale(0.92); }
+    .lib-like.on { color: var(--gold); border-color: rgba(201,162,74,0.55); background: rgba(201,162,74,0.1); } .lib-like.on svg { fill: currentColor; }
+    .lib-like.pop svg { animation: cm-pop 0.34s cubic-bezier(0.3, 1.6, 0.5, 1); }
+    .lib-like + .lib-share { margin-left: 0; } .lib-like + .lib-share[hidden] + .x-close, .lib-like + .x-close { margin-left: 0; }
+    .lib-card .m .lk { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; color: var(--faint); font-variant-numeric: tabular-nums; vertical-align: -1px; }
+    .lib-card .m .lk svg { width: 12px; height: 12px; } .lib-card .m .lk.me { color: var(--gold); } .lib-card .m .lk.me svg { fill: currentColor; }
+    @media (prefers-reduced-motion: reduce) { .lib-like, .lib-like svg { transition: none; } .lib-like.pop svg { animation: none; } }
     .lib-share[hidden] { display: none; }
     .lib-share svg { width: 17px; height: 17px; }
     .lib-share + .x-close { margin-left: 0; }
@@ -3688,6 +3700,7 @@
           <div class="dmpick-scrim" id="libmodal" hidden>
             <div class="dmpick lib-player-box">
               <div class="block-head"><h3 id="lib-title">Video</h3>
+                <button class="lib-like" id="lib-like" type="button" aria-label="Like this video" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5.2 5.2 0 0 0-7.4 0L12 7l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21.8l8.8-8.8a5.2 5.2 0 0 0 0-7.4z"/></svg><span id="lib-like-n"></span></button>
                 <button class="lib-share" id="lib-share" type="button" aria-label="Share this video" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg></button>
                 <button class="x-close" id="lib-x" type="button" aria-label="Close">&times;</button></div>
               <div class="lib-player" id="lib-player"></div>
@@ -16134,6 +16147,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       LIB.rows = data ?? []
       const { data: seen } = await supabase.from('library_views').select('video_id').eq('user_id', state.user.id)
       LIB.views = new Set((seen ?? []).map((x) => x.video_id))
+      const { data: likes } = await supabase.from('library_likes').select('video_id, user_id')
+      LIB.likes = new Map()
+      for (const l of likes ?? []) { const st = LIB.likes.get(l.video_id) ?? { n: 0, me: false }; st.n++; if (l.user_id === state.user.id) st.me = true; LIB.likes.set(l.video_id, st) }
       // Uploader names for the "from @x" line on each card.
       LIB.names = {}
       const ids = [...new Set(LIB.rows.map((r) => r.created_by).filter(Boolean))]
@@ -16192,14 +16208,37 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           ? whenDay(m.r.recap_date)
           : new Date(m.r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         meta.textContent = `from ${who} · ${when}`
+        const lk = m.kind === 'video' ? LIB.likes?.get(m.r.id) : null
+        if (lk?.n) { const sp = document.createElement('span'); sp.className = 'lk' + (lk.me ? ' me' : ''); sp.innerHTML = LIB_HEART; sp.appendChild(document.createTextNode(String(lk.n))); sp.title = lk.n === 1 ? '1 like' : lk.n + ' likes'; meta.appendChild(sp) }
         b.append(th, t, meta)
         if (m.kind === 'doc') b.addEventListener('click', () => openRecap(m.r.id))
         else b.addEventListener('click', () => openLibraryVideo(m.r))
         list.appendChild(b)
       }
     }
+    const LIB_HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5.2 5.2 0 0 0-7.4 0L12 7l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21.8l8.8-8.8a5.2 5.2 0 0 0 0-7.4z"/></svg>'
+    function libLikePaint(pop) {
+      const b = el('lib-like'), r = LIB.current; if (!b || !r) return
+      const st = LIB.likes?.get(r.id) ?? { n: 0, me: false }
+      b.classList.toggle('on', st.me); b.setAttribute('aria-pressed', String(st.me)); b.setAttribute('aria-label', st.me ? 'Unlike this video' : 'Like this video')
+      el('lib-like-n').textContent = st.n ? String(st.n) : ''
+      if (pop) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop') }
+    }
+    el('lib-like')?.addEventListener('click', async () => {
+      const r = LIB.current; if (!r) return
+      if (!LIB.likes) LIB.likes = new Map()
+      const cur = LIB.likes.get(r.id) ?? { n: 0, me: false }, next = { n: Math.max(0, cur.n + (cur.me ? -1 : 1)), me: !cur.me }
+      LIB.likes.set(r.id, next); hap(next.me ? 'medium' : 'light'); libLikePaint(next.me)
+      const { error } = next.me
+        ? await supabase.from('library_likes').insert({ video_id: r.id, user_id: state.user.id })
+        : await supabase.from('library_likes').delete().eq('video_id', r.id).eq('user_id', state.user.id)
+      if (error && !/duplicate/i.test(error.message)) { LIB.likes.set(r.id, cur); libLikePaint(); toast('Could not save that like.') }
+    })
     async function openLibraryVideo(r) {
       LIB.current = r
+      libLikePaint()
+      // opened from Today before the library loaded: fetch this video's likes on their own
+      if (!LIB.likes?.has(r.id)) supabase.from('library_likes').select('user_id').eq('video_id', r.id).then(({ data }) => { if (!data || LIB.current !== r) return; if (!LIB.likes) LIB.likes = new Map(); if (!LIB.likes.has(r.id)) { LIB.likes.set(r.id, { n: data.length, me: data.some((x) => x.user_id === state.user.id) }); libLikePaint() } })
       el('lib-share').hidden = !state.isAdmin   // the owner shares; members watch
       supabase.rpc('record_library_view', { p_video: r.id }).then(refreshBadges, () => {})
       if (!LIB.views.has(r.id)) { LIB.views.add(r.id); renderLibrary() }
