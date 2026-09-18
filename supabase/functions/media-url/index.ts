@@ -138,7 +138,7 @@ Deno.serve(async (req)=>{
       }, 404);
     }
     const [{ data: ent }, { data: isAdmin }] = await Promise.all([
-      admin.from('entitlements').select('id').eq('user_id', user.id).eq('status', 'active').maybeSingle(),
+      admin.from('entitlements').select('id').eq('user_id', user.id).eq('status', 'active').limit(1).then((r) => ({ data: r.data?.[0] ?? null, error: r.error })),   // one row is enough: members usually hold several (course + indicators), and maybeSingle() errors on more than one
       admin.from('admins').select('user_id').eq('user_id', user.id).maybeSingle()
     ]);
     if (!isAdmin && !(recap.is_published && ent)) return json({
@@ -162,7 +162,12 @@ Deno.serve(async (req)=>{
     error: 'missing lesson_id'
   }, 400);
   const { data: lesson, error: lessonErr } = await admin.from('lessons').select('id, kind, video_provider, video_id, storage_path, blocks, is_preview, is_published').eq('id', lessonId).maybeSingle();
-  if (lessonErr || !lesson || !lesson.is_published) return json({
+  // An unpublished lesson is a draft: it does not exist for members, but the owner
+  // previews it in the app before publishing, images included.
+  const draftOk = lesson && !lesson.is_published
+    ? !!(await admin.from('admins').select('user_id').eq('user_id', user.id).maybeSingle()).data
+    : false;
+  if (lessonErr || !lesson || (!lesson.is_published && !draftOk)) return json({
     error: 'no such lesson'
   }, 404);
   // A preview lesson is deliberately open. Everything else needs a paid seat,
@@ -170,7 +175,7 @@ Deno.serve(async (req)=>{
   // videos, and a comp row would skew the revenue figures on the dashboard.
   if (!lesson.is_preview) {
     const [{ data: ent }, { data: isAdmin }] = await Promise.all([
-      admin.from('entitlements').select('id').eq('user_id', user.id).eq('status', 'active').maybeSingle(),
+      admin.from('entitlements').select('id').eq('user_id', user.id).eq('status', 'active').limit(1).then((r) => ({ data: r.data?.[0] ?? null, error: r.error })),   // one row is enough: members usually hold several (course + indicators), and maybeSingle() errors on more than one
       admin.from('admins').select('user_id').eq('user_id', user.id).maybeSingle()
     ]);
     if (!ent && !isAdmin) return json({
