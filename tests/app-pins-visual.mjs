@@ -18,6 +18,10 @@ const service = keys.find((k) => k.name === "service_role").api_key, anon = keys
 const link = await (await fetch(`${SB}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email: "appreview@d1fpc3.com" }) })).json();
 const session = await (await fetch(`${SB}/auth/v1/verify`, { method: "POST", headers: { apikey: anon, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: link.hashed_token }) })).json();
 if (!session.access_token) throw new Error("verify failed");
+// leftovers first: a run that crashed must never leave fake members in the real Members list
+{ const HS = { apikey: service, Authorization: `Bearer ${service}` }; const r = await (await fetch(`${SB}/auth/v1/admin/users?page=1&per_page=500`, { headers: HS })).json();
+  for (const u of r.users || []) if (/@d1fpc3.test$/.test(u.email || "") && Date.now() - new Date(u.created_at).getTime() > 5 * 60000) await fetch(`${SB}/auth/v1/admin/users/${u.id}`, { method: "DELETE", headers: HS });
+  await fetch(`${SB}/rest/v1/entitlements?email=like.*@d1fpc3.test&user_id=is.null`, { method: "DELETE", headers: HS }); }
 const browser = await chromium.launch();
 const PHONE = process.env.PHONE === "1", PRE = PHONE ? "p-" : "d-"; const ctx = await browser.newContext(PHONE ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } : { viewport: { width: Number(process.env.W || 1440), height: Number(process.env.HGT || 900) } });
 await ctx.addInitScript(([k, v, theme]) => { localStorage.setItem(k, v); if (theme) localStorage.setItem("echelon-theme", theme); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-chart-tf", "5m"); }, [`sb-${REF}-auth-token`, JSON.stringify(session), process.env.THEME || ""]);
