@@ -32,7 +32,8 @@ await page.goto(URL_, { waitUntil: "domcontentloaded" }); await page.waitForTime
 const shot = (n) => page.screenshot({ path: `${OUT}/${n}.png` });
 await shot(PRE + "hero");
 
-const copy = await page.evaluate(() => ({ text: document.body.innerText, pricing: document.querySelectorAll('a[href="/pricing/"]').length, buy: document.querySelectorAll("[data-buy]").length }));
+const document_has_gexbar = (c) => c.gexbar > 0;
+const copy = await page.evaluate(() => ({ gexbar: document.querySelectorAll('.gexbar, .gb-surface').length, text: document.body.innerText, pricing: document.querySelectorAll('a[href="/pricing/"]').length, buy: document.querySelectorAll("[data-buy]").length }));
 ok(!/\$500\b(?! to)|\$400|Join Echelon|D1 GEX/.test(copy.text.replace(/Under \$500|\$500 to \$1,000/g, "")), "no price, no Join, no D1 GEX left on the page");
 ok(copy.pricing === 0 && copy.buy === 0, "no pricing links or buy buttons: " + copy.pricing + "/" + copy.buy);
 ok(/\bGEX\b/.test(copy.text), "the band reads GEX");
