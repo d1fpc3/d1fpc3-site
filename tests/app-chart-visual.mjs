@@ -333,7 +333,7 @@ async function run(vpName) {
       // snapshot menu
       await page.click("#ch-snap-btn"); await page.waitForTimeout(120);
       const snapItems = await page.evaluate(() => [...document.querySelectorAll("#ch-ctx .it .lb")].map((x) => x.textContent).join(","));
-      check(snapItems === "Save image,Copy image", `snapshot menu: ${snapItems}`);
+      check(snapItems === "Post to the feed,Send in chat,Save image,Copy image", `snapshot menu: ${snapItems}`);
       await page.keyboard.press("Escape");
     }
     // replay: arm, click a bar, step, play
