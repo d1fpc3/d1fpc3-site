@@ -38,9 +38,19 @@ ok(copy.pricing === 0 && copy.buy === 0, "no pricing links or buy buttons: " + c
 ok(/\bGEX\b/.test(copy.text), "the band reads GEX");
 ok(!copy.text.includes(String.fromCharCode(8212)), "no long dashes");
 
-await page.locator(".hero [data-apply]").click(); await page.waitForTimeout(1300);
-ok(await page.evaluate(() => { const r = document.getElementById("apply-card").getBoundingClientRect(); return r.top >= -10 && r.top < innerHeight - 100 }), "Apply walks to the application card");
-if (!PHONE) ok(await page.evaluate(() => document.activeElement?.id === "ap-name"), "and puts the cursor in Name");
+ok(await page.locator("#apply-modal").isHidden(), "the application stays out of the page until asked for");
+await page.locator(".hero [data-apply]").click(); await page.waitForTimeout(900);
+const m1 = await page.evaluate(() => { const b = getComputedStyle(document.getElementById("ap-back")); const r = document.getElementById("apply-card").getBoundingClientRect(); return { blur: b.backdropFilter || b.webkitBackdropFilter, op: b.opacity, inView: r.top >= 0 && r.bottom <= innerHeight + 1, locked: getComputedStyle(document.body).overflow } });
+ok(/blur/.test(m1.blur) && m1.op === "1" && m1.locked === "hidden", "Apply opens a pop-up over a blurred, locked page: " + JSON.stringify(m1));
+ok(m1.inView, "the whole card fits on screen");
+if (!PHONE) ok(await page.evaluate(() => document.activeElement?.id === "ap-name"), "the cursor lands in Name");
+await page.keyboard.press("Escape"); await page.waitForTimeout(600);
+ok(await page.locator("#apply-modal").isHidden(), "Escape closes it");
+await page.locator("#access [data-apply]").click(); await page.waitForTimeout(900);
+ok(await page.locator("#apply-card").isVisible(), "the card further down the page opens it too");
+await page.mouse.click(8, 8); await page.waitForTimeout(600);
+ok(await page.locator("#apply-modal").isHidden(), "a click on the blurred page closes it");
+await page.locator(".hero [data-apply]").scrollIntoViewIfNeeded(); await page.locator(".hero [data-apply]").click(); await page.waitForTimeout(900);
 await shot(PRE + "form");
 
 await page.click("#ap-send"); await page.waitForTimeout(300);
@@ -62,7 +72,10 @@ const notes = await (await fetch(`${SB}/rest/v1/notifications?kind=eq.system&bod
 ok(notes.length >= 1 && /\$1,000 to \$2,500/.test(notes[0].body), "admins got the ping: " + (notes[0]?.body || "none"));
 
 await page.reload({ waitUntil: "domcontentloaded" }); await page.waitForTimeout(800);
+await page.locator(".hero [data-apply]").click(); await page.waitForTimeout(800);
 ok(await page.evaluate(() => document.getElementById("apply-form").hidden && !document.getElementById("ap-done").hidden), "a reload remembers the application");
+await page.goto(URL_ + "?ref=D1#access", { waitUntil: "domcontentloaded" }); await page.waitForTimeout(1600);
+ok(await page.locator("#apply-card").isVisible(), "an invite link opens the pop-up on arrival");
 ok(errors.length === 0, "no page errors: " + errors.join(" | "));
 
 // cleanup: the test application and its pings
