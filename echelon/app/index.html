@@ -2545,6 +2545,13 @@
     .lib-like.on { color: var(--gold); border-color: rgba(201,162,74,0.55); background: rgba(201,162,74,0.1); } .lib-like.on svg { fill: currentColor; }
     .lib-like.pop svg { animation: cm-pop 0.34s cubic-bezier(0.3, 1.6, 0.5, 1); }
     .lib-like + .lib-share { margin-left: 0; } .lib-like + .lib-share[hidden] + .x-close, .lib-like + .x-close { margin-left: 0; }
+    /* staff only: who watched and who liked */
+    .lib-card .m .vw { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; color: var(--faint); font-variant-numeric: tabular-nums; vertical-align: -1px; } .lib-card .m .vw svg { width: 13px; height: 13px; }
+    .lib-staff { padding: 4px 18px 18px; display: grid; gap: 12px; }
+    .lib-staff .row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: start; border-top: 1px solid var(--line); padding-top: 12px; }
+    .lib-staff .k { font-size: 12.5px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; } .lib-staff .k small { display: block; font-weight: 400; color: var(--faint); font-size: 11.5px; margin-top: 2px; }
+    .lib-staff .names { display: flex; flex-wrap: wrap; gap: 6px; } .lib-staff .names span { font-size: 12px; color: var(--ink); background: var(--panel-2); border-radius: 999px; padding: 3px 10px; } .lib-staff .names em { font-style: normal; font-size: 12px; color: var(--faint); }
+    @media (max-width: 640px) { .lib-staff .row { grid-template-columns: 1fr; gap: 6px; } }
     .lib-card .m .lk { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; color: var(--faint); font-variant-numeric: tabular-nums; vertical-align: -1px; }
     .lib-card .m .lk svg { width: 12px; height: 12px; } .lib-card .m .lk.me { color: var(--gold); } .lib-card .m .lk.me svg { fill: currentColor; }
     @media (prefers-reduced-motion: reduce) { .lib-like, .lib-like svg { transition: none; } .lib-like.pop svg { animation: none; } }
@@ -3705,6 +3712,7 @@
                 <button class="x-close" id="lib-x" type="button" aria-label="Close">&times;</button></div>
               <div class="lib-player" id="lib-player"></div>
               <p class="lib-sum" id="lib-sum" hidden></p>
+              <div class="lib-staff" id="lib-staff" hidden></div>
             </div>
           </div>
         </section>
@@ -16150,6 +16158,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const { data: likes } = await supabase.from('library_likes').select('video_id, user_id')
       LIB.likes = new Map()
       for (const l of likes ?? []) { const st = LIB.likes.get(l.video_id) ?? { n: 0, me: false }; st.n++; if (l.user_id === state.user.id) st.me = true; LIB.likes.set(l.video_id, st) }
+      LIB.stats = new Map()
+      if (state.isMod || state.isAdmin) { const { data: st } = await supabase.rpc('library_stats'); for (const r of st ?? []) LIB.stats.set(r.video_id, r) }
       // Uploader names for the "from @x" line on each card.
       LIB.names = {}
       const ids = [...new Set(LIB.rows.map((r) => r.created_by).filter(Boolean))]
@@ -16208,6 +16218,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           ? whenDay(m.r.recap_date)
           : new Date(m.r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         meta.textContent = `from ${who} · ${when}`
+        const stt = m.kind === 'video' ? LIB.stats?.get(m.r.id) : null
+        if (stt) { const vw = document.createElement('span'); vw.className = 'vw'; vw.innerHTML = LIB_EYE; vw.appendChild(document.createTextNode(String(stt.viewers))); vw.title = `${stt.viewers} watched, ${stt.plays} plays`; meta.appendChild(vw) }
         const lk = m.kind === 'video' ? LIB.likes?.get(m.r.id) : null
         if (lk?.n) { const sp = document.createElement('span'); sp.className = 'lk' + (lk.me ? ' me' : ''); sp.innerHTML = LIB_HEART; sp.appendChild(document.createTextNode(String(lk.n))); sp.title = lk.n === 1 ? '1 like' : lk.n + ' likes'; meta.appendChild(sp) }
         b.append(th, t, meta)
@@ -16215,6 +16227,25 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else b.addEventListener('click', () => openLibraryVideo(m.r))
         list.appendChild(b)
       }
+    }
+    const LIB_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>'
+    // staff strip under the player: who watched, who liked
+    function libStaffPaint() {
+      const host = el('lib-staff'), r = LIB.current; if (!host) return
+      const st = r && (state.isMod || state.isAdmin) ? LIB.stats?.get(r.id) : null
+      host.hidden = !st; host.textContent = ''
+      if (!st) return
+      const row = (label, sub, names) => {
+        const d = document.createElement('div'); d.className = 'row'
+        const k = document.createElement('div'); k.className = 'k'; k.textContent = label
+        if (sub) { const sm = document.createElement('small'); sm.textContent = sub; k.appendChild(sm) }
+        const n = document.createElement('div'); n.className = 'names'
+        if (!names.length) { const e = document.createElement('em'); e.textContent = 'Nobody yet'; n.appendChild(e) }
+        for (const name of names) { const sp = document.createElement('span'); sp.textContent = '@' + name; n.appendChild(sp) }
+        d.append(k, n); host.appendChild(d)
+      }
+      row(`${st.viewers} watched`, `${st.plays} play${st.plays === 1 ? '' : 's'}`, st.viewer_names || [])
+      row(`${st.likes} like${st.likes === 1 ? '' : 's'}`, '', st.liker_names || [])
     }
     const LIB_HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5.2 5.2 0 0 0-7.4 0L12 7l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21.8l8.8-8.8a5.2 5.2 0 0 0 0-7.4z"/></svg>'
     function libLikePaint(pop) {
@@ -16229,6 +16260,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!LIB.likes) LIB.likes = new Map()
       const cur = LIB.likes.get(r.id) ?? { n: 0, me: false }, next = { n: Math.max(0, cur.n + (cur.me ? -1 : 1)), me: !cur.me }
       LIB.likes.set(r.id, next); hap(next.me ? 'medium' : 'light'); libLikePaint(next.me)
+      { const st = LIB.stats?.get(r.id), me = state.profile?.username; if (st && me) { st.liker_names = (st.liker_names || []).filter((n) => n !== me); if (next.me) st.liker_names.unshift(me); st.likes = st.liker_names.length; libStaffPaint() } }
       const { error } = next.me
         ? await supabase.from('library_likes').insert({ video_id: r.id, user_id: state.user.id })
         : await supabase.from('library_likes').delete().eq('video_id', r.id).eq('user_id', state.user.id)
@@ -16236,7 +16268,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     })
     async function openLibraryVideo(r) {
       LIB.current = r
-      libLikePaint()
+      libLikePaint(); libStaffPaint()
       // opened from Today before the library loaded: fetch this video's likes on their own
       if (!LIB.likes?.has(r.id)) supabase.from('library_likes').select('user_id').eq('video_id', r.id).then(({ data }) => { if (!data || LIB.current !== r) return; if (!LIB.likes) LIB.likes = new Map(); if (!LIB.likes.has(r.id)) { LIB.likes.set(r.id, { n: data.length, me: data.some((x) => x.user_id === state.user.id) }); libLikePaint() } })
       el('lib-share').hidden = !state.isAdmin   // the owner shares; members watch
