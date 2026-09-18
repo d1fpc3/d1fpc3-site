@@ -1864,6 +1864,16 @@
     .nb-row.unread::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex-shrink: 0; margin-left: -2px; }
     .nb-row .th { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: #000; }
     /* bell */
+
+    /* the biometric lock (2026-09-18) */
+    .lock-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; } .lock-after { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; } .lock-after[hidden] { display: none; }
+    body.locked #app, body.locked .bnav, body.locked .pm-stack, body.locked .nextup { filter: blur(22px) saturate(0.8); pointer-events: none; user-select: none; }
+    .lockscreen { position: fixed; inset: 0; z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 24px; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); opacity: 0; transition: opacity 0.22s ease; }
+    .lockscreen.on { opacity: 1; }
+    .lk-box { width: min(340px, 100%); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; transform: translateY(8px); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); } .lockscreen.on .lk-box { transform: none; }
+    .lk-logo { width: 56px; height: 56px; border-radius: 14px; margin-bottom: 6px; } .lk-box h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin: 0; } .lk-box p { margin: 0; color: var(--muted); font-size: 14px; }
+    .lk-go { width: 100%; margin-top: 14px; padding: 13px; font-size: 15px; display: flex; align-items: center; justify-content: center; text-align: center; } .lk-err { min-height: 18px; color: var(--bad) !important; font-size: 13px !important; }
+    .lk-out { background: none; border: 0; color: var(--faint); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; margin-top: 4px; }
     .tb-bell { position: relative; margin-left: 0; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 8px; border-radius: 9px; display: inline-flex; }
 
     /* the command palette (2026-09-18) */
@@ -4226,6 +4236,14 @@
                   <input class="inp" id="pw-nonce" type="text" inputmode="numeric" maxlength="12" placeholder="Code from your email" autocomplete="one-time-code" style="flex:1;min-width:160px;">
                 </div>
                 <p class="msg" id="pass-msg"></p>
+              </div>
+              <div style="border-top:1px solid var(--line);padding-top:18px;" id="lock-block">
+                <div class="lock-row">
+                  <div><p class="label" style="margin-bottom:4px;" id="lock-name">Face ID lock</p><p class="hint" style="margin:0;" id="lock-hint">Ask for your face or fingerprint every time Echelon opens on this device.</p></div>
+                  <label class="tgl"><input type="checkbox" id="lock-on"><span class="track"></span></label>
+                </div>
+                <div class="lock-after" id="lock-after-wrap" hidden><span class="label">Lock again after</span><span class="seg" id="lock-after"><button type="button" data-m="0">Right away</button><button type="button" data-m="1">1 min</button><button type="button" data-m="5">5 min</button><button type="button" data-m="30">30 min</button></span></div>
+                <p class="msg" id="lock-msg"></p>
               </div>
               <div style="border-top:1px solid var(--line);padding-top:18px;">
                 <p class="label" style="margin-bottom:6px;color:var(--bad);">Delete account</p>
@@ -9625,7 +9643,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     function fillSettings() {
-      el('acct-email').textContent = state.user.email ?? ''
+      el('acct-email').textContent = state.user.email ?? ''; lockSettingsUi()
       el('set-username').value = state.profile?.username ?? ''
       el('set-bio').value = state.profile?.bio ?? ''
       el('bio-count').textContent = `${el('set-bio').value.length} / 200`
@@ -16491,7 +16509,81 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       location.reload()
     })
 
+    /* ── biometric lock: Face ID, Touch ID, a fingerprint or Windows Hello before the app shows ──
+       The device checks the person, not us: a platform passkey is made once on this device and
+       asked for again at every open (and after the app has been away for the chosen time). In
+       the native shells the Capacitor biometric plugin is used when it is there. The lock is
+       per device and per account; signing out and back in clears it, so nobody is ever locked
+       out of their own account. It guards an unlocked phone, it is not a second password. */
+    const LOCK_KEY = 'echelon-lock'
+    const lockB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    const lockBuf = (b64) => Uint8Array.from(atob(b64.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0))
+    function lockGet() { try { const v = JSON.parse(localStorage.getItem(LOCK_KEY) || 'null'); return v && v.uid === state.user?.id ? v : null } catch { return null } }
+    const lockNative = () => window.Capacitor?.isNativePlatform?.() && window.Capacitor?.Plugins?.NativeBiometric ? window.Capacitor.Plugins.NativeBiometric : null
+    async function lockAvailable() {
+      const nb = lockNative(); if (nb) { try { return !!(await nb.isAvailable()).isAvailable } catch { return false } }
+      try { return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()) } catch { return false }
+    }
+    const lockLabel = () => /iPhone|iPad|Macintosh/.test(navigator.userAgent) ? (/(iPhone|iPad)/.test(navigator.userAgent) ? 'Face ID' : 'Touch ID') : /Windows/.test(navigator.userAgent) ? 'Windows Hello' : /Android/.test(navigator.userAgent) ? 'Fingerprint' : 'Biometric'
+    async function lockEnroll() {
+      const nb = lockNative()
+      if (nb) { await nb.verifyIdentity({ reason: 'Turn on the Echelon lock', title: 'Echelon' }); return { native: true } }
+      const cred = await navigator.credentials.create({ publicKey: {
+        rp: { name: 'Echelon', id: location.hostname }, user: { id: new TextEncoder().encode(state.user.id), name: state.user.email || 'member', displayName: state.profile?.username || 'Echelon member' },
+        challenge: crypto.getRandomValues(new Uint8Array(32)), pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' }, timeout: 60000, attestation: 'none' } })
+      if (!cred) throw new Error('cancelled')
+      return { id: lockB64(cred.rawId) }
+    }
+    async function lockVerify() {
+      const v = lockGet(); if (!v) return true
+      const nb = lockNative()
+      if (v.native && nb) { await nb.verifyIdentity({ reason: 'Unlock Echelon', title: 'Echelon' }); return true }
+      const got = await navigator.credentials.get({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), rpId: location.hostname, allowCredentials: [{ type: 'public-key', id: lockBuf(v.id), transports: ['internal'] }], userVerification: 'required', timeout: 60000 } })
+      return !!got
+    }
+    function lockScreen(show) {
+      let m = el('lockscreen')
+      if (!show) { if (m) { m.classList.remove('on'); setTimeout(() => m.remove(), 220) } document.body.classList.remove('locked'); return }
+      if (m) return
+      m = document.createElement('div'); m.id = 'lockscreen'; m.className = 'lockscreen'
+      m.innerHTML = `<div class="lk-box"><img src="/echelon/assets/logo-mark.png" alt="" class="lk-logo"><h2>Echelon is locked</h2><p id="lk-sub">Use ${lockLabel()} to open it.</p><button type="button" class="btn lk-go" id="lk-go">Unlock with ${lockLabel()}</button><p class="lk-err" id="lk-err"></p><button type="button" class="lk-out" id="lk-out">Sign out instead</button></div>`
+      document.body.appendChild(m); document.body.classList.add('locked')
+      requestAnimationFrame(() => m.classList.add('on'))
+      const go = async () => { const b = el('lk-go'); b.disabled = true; el('lk-err').textContent = ''; try { if (await lockVerify()) { LOCK.at = Date.now(); LOCK.hiddenAt = 0; hap('medium'); lockScreen(false) } } catch (e) { el('lk-err').textContent = e?.name === 'NotAllowedError' ? 'That did not go through. Try again.' : 'This device could not check you just now.' } finally { if (el('lk-go')) el('lk-go').disabled = false } }
+      el('lk-go').addEventListener('click', go)
+      el('lk-out').addEventListener('click', async () => { try { localStorage.removeItem(LOCK_KEY) } catch {} await supabase.auth.signOut().catch(() => {}); location.reload() })
+      setTimeout(go, 350)   // most browsers allow one prompt without a tap; Safari waits for the button
+    }
+    const LOCK = { at: 0, hiddenAt: 0 }
+    function lockCheck(force) {
+      const v = lockGet(); if (!v) return
+      const idle = LOCK.hiddenAt ? (Date.now() - LOCK.hiddenAt) / 60000 : 0
+      if (force || !LOCK.at || idle >= (v.after ?? 0)) lockScreen(true)
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) LOCK.hiddenAt = Date.now(); else if (LOCK.at && lockGet()) { const v = lockGet(); if ((Date.now() - LOCK.hiddenAt) / 60000 >= (v.after ?? 0) && (v.after ?? 0) >= 0 && Date.now() - LOCK.hiddenAt > 1500) lockCheck(true) } })
+    async function lockSettingsUi() {
+      const blk = el('lock-block'); if (!blk) return
+      const ok = await lockAvailable(); blk.hidden = !ok; if (!ok) return
+      const name = lockLabel(), v = lockGet()
+      el('lock-name').textContent = name + ' lock'; el('lock-hint').textContent = `Ask for ${name === 'Biometric' ? 'your face or fingerprint' : name} every time Echelon opens on this device.`
+      el('lock-on').checked = !!v; el('lock-after-wrap').hidden = !v
+      el('lock-after').querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.m === (v?.after ?? 1)))
+    }
+    el('lock-on')?.addEventListener('change', async (e) => {
+      const msg = el('lock-msg'); msg.className = 'msg'; msg.textContent = ''
+      if (e.target.checked) {
+        try { const r = await lockEnroll(); localStorage.setItem(LOCK_KEY, JSON.stringify({ ...r, uid: state.user.id, after: 1, at: Date.now() })); LOCK.at = Date.now(); msg.className = 'msg ok'; msg.textContent = `${lockLabel()} is on for this device.`; hap('medium') }
+        catch (err) { e.target.checked = false; msg.className = 'msg err'; msg.textContent = err?.name === 'NotAllowedError' ? 'Cancelled.' : 'This device or browser would not set that up.' }
+      } else {
+        try { if (!(await lockVerify())) throw new Error('no') ; localStorage.removeItem(LOCK_KEY); msg.textContent = 'Lock removed.' } catch { e.target.checked = true; msg.className = 'msg err'; msg.textContent = `Confirm with ${lockLabel()} to turn the lock off.` }
+      }
+      lockSettingsUi()
+    })
+    el('lock-after')?.addEventListener('click', (e) => { const b = e.target.closest('button[data-m]'); const v = lockGet(); if (!b || !v) return; v.after = +b.dataset.m; localStorage.setItem(LOCK_KEY, JSON.stringify(v)); lockSettingsUi() })
+
     async function loadCourse() {
+      lockCheck(); lockSettingsUi()
       // Show the shell straight away — everything the session already knows
       // renders now, and skeletons hold every seat data has not filled yet.
       el('gate').style.display = 'none'
