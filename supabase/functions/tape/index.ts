@@ -90,6 +90,19 @@ async function readBars(symbol: string, interval: string, from: Date, to: Date, 
   return (data ?? []) as number[][];
 }
 
+const memberCache = new Map<string, { at: number; ok: boolean }>();
+async function isMember(authorization: string) {
+  if (!authorization) return false;
+  const hit = memberCache.get(authorization);
+  if (hit && Date.now() - hit.at < 300_000) return hit.ok;
+  const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false } });
+  const { data, error } = await sb.rpc("is_member");
+  const ok = !error && data === true;
+  if (memberCache.size > 2000) memberCache.clear();
+  memberCache.set(authorization, { at: Date.now(), ok });
+  return ok;
+}
+
 function admin() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 }
@@ -146,6 +159,9 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== "GET") return json(405, { error: "GET only" });
+  // members only: the platform has already verified the JWT, this asks the database whether its owner
+  // holds an entitlement (or is staff). Answers are remembered per token for five minutes.
+  if (!(await isMember(req.headers.get("authorization") ?? ""))) return json(403, { error: "members only" });
   const symbol = sym(p.get("symbol"));
 
   /* ── the archive ── */

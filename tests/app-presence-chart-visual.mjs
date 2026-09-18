@@ -36,14 +36,14 @@ const p2 = await (await browser.newContext()).newPage(); await p2.goto("about:bl
 await p2.addScriptTag({ url: "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" });
 await p2.evaluate(async ([url, key, uid]) => { const c = window.supabase.createClient(url, key); const ch = c.channel("online", { config: { presence: { key: uid } } }); await new Promise((r) => ch.subscribe((s) => { if (s === "SUBSCRIBED") r() })); await ch.track({ at: Date.now() }); window._ch = ch }, [SB, anon, OTHER]);
 await go("members"); await page.waitForTimeout(2500);
-ok(await page.locator(".mcard.online").count() >= 1, "a member who is online shows a green dot: " + (await page.locator(".mcard.online .mname span").first().textContent().catch(() => "none")));
+ok(await page.locator(`.mcard.online[data-uid="${OTHER}"]`).count() === 1, "a member who comes online shows a green dot");
 ok(/online/.test(await page.locator("#members-online").textContent().catch(() => "")), "the members page counts who is online: " + (await page.locator("#members-online").textContent().catch(() => "")));
 await shot(PRE + "members-online");
 await go("chat"); await page.waitForTimeout(1500);
 ok(await page.locator(".cr-item.online").count() >= 1, "the DM row shows the dot too");
 await shot(PRE + "chat-online");
 await p2.evaluate(() => window._ch.untrack()); await page.waitForTimeout(5000);
-ok(await page.locator(".mcard.online, .cr-item.online").count() === 0, "and it clears when they leave");
+ok(await page.locator(`.mcard.online[data-uid="${OTHER}"], .cr-item.online[data-uid="${OTHER}"]`).count() === 0, "and it clears when they leave (other members may really be online)");
 // chart: a new drawing is blue, the selection bar sits under the status line
 if (!PHONE) {
   await go("chart"); await page.waitForFunction(() => /O\s?[\d,]/.test(document.getElementById("ch-legend").textContent), null, { timeout: 30000 }).catch(() => {}); await page.waitForTimeout(2500);
