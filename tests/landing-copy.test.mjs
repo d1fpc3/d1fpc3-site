@@ -21,13 +21,18 @@ test('the feature index and phone screens stay OFF the landing (D1, 9/6)', () =>
   assert.doesNotMatch(html, /class="in-row"|id="inside"|id="screens"|screen-(overview|lesson|gex|news)\.webp/,
     'the numbered tab list and the app screenshots were cut; the who-is-d1 block and hero fine line stay');
   assert.doesNotMatch(html, /class="what"|one app for NQ/, 'the hero "one app" line stays deleted');
-  assert.match(html, /id="who"/);
-  assert.match(html, /lifetime access · no subscription · <span data-discord-count>/);
+  assert.match(html, /by application · <span data-discord-count>/);
 });
 
-test('the call to action is Join (D1, 9/6)', () => {
-  assert.doesNotMatch(html, />Get Echelon<\/button>/);
-  assert.ok((html.match(/data-buy[^>]*>Join<\/button>/g) || []).length >= 3, 'header, hero and price card buttons all say Join');
+test('the landing takes applications, it does not sell (D1, 9/18)', () => {
+  assert.doesNotMatch(html, /data-buy|Join Echelon|buy\.stripe\.com/, 'no buy buttons or checkout on the landing');
+  assert.ok((html.match(/data-apply/g) || []).length >= 2, 'header and hero both say Apply');
+  assert.match(html, /id="apply-form"/);
+  assert.match(html, /rpc\/submit_application/);
+  for (const v of ['under_500', '500_1000', '1000_2500', '2500_5000', '5000_plus']) assert.ok(html.includes(`value="${v}"`), 'range ' + v);
+  assert.doesNotMatch(html, /href="\/pricing\/"/, 'the price list is reachable by link only, not from the landing');
+  assert.doesNotMatch(html, /D1 GEX/, 'it is just GEX on the landing');
+  assert.doesNotMatch(html, /\u2014|&mdash;/, 'no long dashes');
 });
 
 test('concepts and curriculum stay OFF the landing (D1 rule, 8/24)', () => {
@@ -43,16 +48,14 @@ test('states the discretionary teaching philosophy in the lead FAQ', () => {
 });
 
 test('does not promise GEX inside the course purchase', () => {
-  assert.match(html, /The D1 GEX board sits in there too, for its subscribers\./);
+  assert.match(html, /The GEX board sits in there too, for its subscribers\./);
 });
 
 test('keeps the numbers off the landing and the terms intact', () => {
   assert.doesNotMatch(html, /\$\d+ ?(once|\/mo)/, 'prices belong on /pricing/');
-  assert.match(html, /href="\/pricing\/"/);
   assert.match(html, /href="\/echelon\/app\/"/);
-  assert.match(html, /checkoutUrl: 'https:\/\/buy\.stripe\.com\//);
   assert.match(html, /discordUrl: 'https:\/\/discord\.gg\/FAQD5Cr5p7'/);
-  assert.match(html, /No refunds\. The product is information\./);
+  assert.match(html, /No refunds\. The product is information;/);
   assert.match(html, /Trading futures involves substantial risk of loss/);
 });
 

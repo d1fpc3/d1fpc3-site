@@ -1028,7 +1028,17 @@
       #splash .sp-e, #splash .sp-slash, #splash .sp-blade, #splash .sp-l { animation: none; }
       #splash .sp-blade { opacity: 0; }
     }
-  </style>
+      /* applications */
+    .apps-sum { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 14px 18px 4px; }
+    .apps-sum > div { background: var(--panel-2); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .apps-sum b { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--gold); }
+    .apps-sum span { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .apps-sum .zero b { color: var(--faint); }
+    @media (max-width: 760px) { .apps-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .apps-mail { color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-bright); text-underline-offset: 3px; }
+    .apps-mail:hover { color: var(--gold); }
+    .tab .count.hot { background: var(--gold); color: #1a1207; }
+</style>
   <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 </head>
 <body>
@@ -1091,6 +1101,10 @@
         <button class="tab" data-view="users" data-title="Users" data-crumb="Everyone with access, one row per person">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Users <span class="count" id="c-users">–</span>
+        </button>
+        <button class="tab" data-view="applications" data-title="Applications" data-crumb="Everyone who applied from the landing page">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+          Applications <span class="count" id="c-apps">–</span>
         </button>
         <button class="tab" data-view="billing" data-title="Billing" data-crumb="Revenue and Stripe events">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
@@ -1488,6 +1502,20 @@
         </section>
 
         <!-- CODES -->
+        <section class="view" id="v-applications">
+          <div class="block">
+            <div class="block-head">
+              <h3>Applications</h3>
+              <span class="seg" id="apps-filter" role="group" aria-label="Filter by status">
+                <button type="button" class="on" data-f="open">Open</button><button type="button" data-f="accepted">Accepted</button><button type="button" data-f="passed">Passed</button><button type="button" data-f="all">All</button>
+              </span>
+            </div>
+            <div class="apps-sum" id="apps-sum"></div>
+            <div class="tbl-scroll"><table id="apps-table"></table></div>
+            <div class="empty" id="apps-empty" hidden>No applications here yet.</div>
+          </div>
+        </section>
+
         <section class="view" id="v-codes">
           <div class="block">
             <div class="block-head"><h3>Mint a code</h3></div>
@@ -4289,6 +4317,66 @@
 
     /* ── access codes ── */
 
+    /* ── Applications: the landing page form (public.applications, admin-only by RLS) ── */
+    let APPS = [], APPS_F = 'open'
+    const INVEST = { under_500: 'Under $500', '500_1000': '$500 to $1,000', '1000_2500': '$1,000 to $2,500', '2500_5000': '$2,500 to $5,000', '5000_plus': '$5,000+' }
+    const INVEST_RANK = { under_500: 0, '500_1000': 1, '1000_2500': 2, '2500_5000': 3, '5000_plus': 4 }
+    function renderApps() {
+      const fresh = APPS.filter((a) => a.status === 'new').length
+      el('c-apps').textContent = String(fresh || APPS.length)
+      el('c-apps').classList.toggle('hot', fresh > 0)
+      const rows = APPS.filter((a) => APPS_F === 'all' ? true : APPS_F === 'open' ? (a.status === 'new' || a.status === 'contacted') : a.status === APPS_F)
+      const sum = el('apps-sum'); sum.textContent = ''
+      for (const [k, label] of Object.entries(INVEST).reverse()) {
+        const n = APPS.filter((a) => a.invest === k).length
+        const d = document.createElement('div'); const b = document.createElement('b'); b.textContent = String(n); const sp = document.createElement('span'); sp.textContent = label
+        d.append(b, sp); if (!n) d.classList.add('zero'); sum.appendChild(d)
+      }
+      el('apps-empty').hidden = rows.length > 0
+      table(el('apps-table'), ['Name', 'Email', 'Willing to invest', 'Code', 'Applied', 'Status', ''], rows, (a) => {
+        const tr = document.createElement('tr')
+        const nm = cell(a.name); nm.style.fontWeight = '600'; tr.appendChild(nm)
+        const em = document.createElement('td'); const link = document.createElement('a'); link.href = 'mailto:' + a.email; link.textContent = a.email; link.className = 'apps-mail'
+        const cp = document.createElement('button'); cp.className = 'rowbtn'; cp.textContent = 'Copy'; cp.style.marginLeft = '8px'
+        cp.addEventListener('click', async () => { try { await navigator.clipboard.writeText(a.email); cp.textContent = 'Copied'; setTimeout(() => { cp.textContent = 'Copy' }, 1100) } catch {} })
+        em.append(link, cp); tr.appendChild(em)
+        const inv = document.createElement('td'); const tag = document.createElement('span'); tag.className = 'badge ' + (INVEST_RANK[a.invest] >= 2 ? 'b-active' : ''); tag.textContent = INVEST[a.invest] || a.invest; inv.appendChild(tag); tr.appendChild(inv)
+        tr.append(cell(a.ref || '–'), cell(when(a.created_at), 'num'))
+        const st = document.createElement('td'); const sel = document.createElement('select'); sel.className = 'inp'; sel.style.cssText = 'padding:6px 10px;font-size:12.5px;min-width:120px;'
+        for (const [v, l] of [['new', 'New'], ['contacted', 'Contacted'], ['accepted', 'Accepted'], ['passed', 'Passed']]) { const o = document.createElement('option'); o.value = v; o.textContent = l; sel.appendChild(o) }
+        sel.value = a.status
+        sel.addEventListener('change', async () => {
+          const prev = a.status; a.status = sel.value; sel.disabled = true
+          const { error } = await supabase.from('applications').update({ status: sel.value, updated_at: new Date().toISOString() }).eq('id', a.id)
+          sel.disabled = false
+          if (error) { a.status = prev; sel.value = prev; alert(error.message); return }
+          renderApps()
+        })
+        st.appendChild(sel); tr.appendChild(st)
+        const del = document.createElement('td'); const db = document.createElement('button'); db.className = 'rowbtn'; db.textContent = 'Delete'
+        db.addEventListener('click', async () => {
+          if (!confirm(`Delete the application from ${a.name}?`)) return
+          db.disabled = true
+          const { error } = await supabase.from('applications').delete().eq('id', a.id)
+          if (error) { db.disabled = false; alert(error.message); return }
+          APPS = APPS.filter((x) => x.id !== a.id); renderApps()
+        })
+        del.appendChild(db); tr.appendChild(del)
+        return tr
+      })
+    }
+    async function loadApps() {
+      const { data } = await supabase.from('applications').select('*').order('created_at', { ascending: false }).limit(1000)
+      APPS = data ?? []
+      renderApps()
+    }
+    el('apps-filter').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-f]'); if (!b) return
+      APPS_F = b.dataset.f
+      el('apps-filter').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b))
+      renderApps()
+    })
+
     let CODES = []
 
     function renderCodes() {
@@ -5339,7 +5427,7 @@
       recapEditor(null)
       paintSkeletons()
       await Promise.all([
-        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadReviews(), loadTvAccess(), loadCommunity(), loadPerms(), loadOnboarding(), loadHomework(),
+        loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadApps(), loadReviews(), loadTvAccess(), loadCommunity(), loadPerms(), loadOnboarding(), loadHomework(),
         // GEX is an outside feed (gex-worker); warm the readout + table, never block on it.
         loadGex().catch(() => {}),
       ])
