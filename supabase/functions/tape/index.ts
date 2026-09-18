@@ -20,7 +20,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const SYMBOLS: Record<string, string> = { NQ: "NQ=F", MNQ: "MNQ=F", ES: "ES=F", MES: "MES=F" };
+const SYMBOLS: Record<string, string> = { NQ: "NQ=F", MNQ: "MNQ=F", ES: "ES=F", MES: "MES=F", VIX: "^VIX" };   // VIX is read live only (the sigma bands), never stored
 const sym = (v: unknown) => (typeof v === "string" && SYMBOLS[v.toUpperCase()] ? v.toUpperCase() : "NQ");
 const TTL: Record<string, number> = { "1d": 2_000, "5d": 300_000 };
 const cache = new Map<string, { at: number; body: string }>();
