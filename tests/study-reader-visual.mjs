@@ -11,7 +11,7 @@ const service = keys.find((k) => k.name === "service_role").api_key, anon = keys
 const link = await (await fetch(`${SB}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email: "appreview@d1fpc3.com" }) })).json();
 const session = await (await fetch(`${SB}/auth/v1/verify`, { method: "POST", headers: { apikey: anon, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: link.hashed_token }) })).json();
 const b = await chromium.launch(); const fails = [];
-for (const [name, vp] of [["desk", { viewport: { width: 1440, height: 900 } }], ["phone", { ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }]]) {
+for (const [name, vp] of [["desk", { viewport: { width: Number(process.env.W || 1440), height: Number(process.env.HGT || 900) } }], ["phone", { ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }]]) {
   const ctx = await b.newContext(vp);
   await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", "dark"); for (const id of ["ig", "dc", "bt"]) localStorage.setItem("echelon-promo-until:" + id, String(Date.now() + 864e5)); localStorage.removeItem("echelon-lesson-pos"); localStorage.removeItem("echelon-study-size"); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
   const p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(e.message));

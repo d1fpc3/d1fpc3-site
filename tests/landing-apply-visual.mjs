@@ -26,7 +26,7 @@ const email = `harness-apply-${Date.now()}@d1fpc3.test`;
 const fails = []; const ok = (c, w) => { console.log((c ? "ok   " : "FAIL ") + w); if (!c) fails.push(w) };
 
 const browser = await chromium.launch();
-const ctx = await browser.newContext(PHONE ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } : { viewport: { width: 1440, height: 900 } });
+const ctx = await browser.newContext(PHONE ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } : { viewport: { width: Number(process.env.W || 1440), height: Number(process.env.HGT || 900) } });
 const page = await ctx.newPage(); const errors = []; page.on("pageerror", (e) => errors.push(e.message));
 await page.goto(URL_, { waitUntil: "domcontentloaded" }); await page.waitForTimeout(1500);
 const shot = (n) => page.screenshot({ path: `${OUT}/${n}.png` });

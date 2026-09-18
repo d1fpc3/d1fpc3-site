@@ -37,6 +37,8 @@ if (!session.access_token) throw new Error("verify failed: " + JSON.stringify(se
 const VIEWPORTS = (process.env.VIEWPORTS || "desk,phone").split(",");
 const VP = {
   desk: { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 },
+  wide: { viewport: { width: 2560, height: 1300 }, deviceScaleFactor: 1 },
+  full: { viewport: { width: 1920, height: 1000 }, deviceScaleFactor: 1 },
   laptop: { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 },
   phone: { ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
 };

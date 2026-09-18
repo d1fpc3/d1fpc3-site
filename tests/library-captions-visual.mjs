@@ -43,7 +43,7 @@ if (!process.env.SKIP_KICK) {
 const exe = ["C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe"].find(existsSync);
 const b = await chromium.launch({ executablePath: exe, args: ["--autoplay-policy=no-user-gesture-required"] });
 try {
-  for (const [name, vp] of [["desk", { viewport: { width: 1440, height: 900 } }], ["phone", { ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }]]) {
+  for (const [name, vp] of [["desk", { viewport: { width: Number(process.env.W || 1440), height: Number(process.env.HGT || 900) } }], ["phone", { ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }]]) {
     const ctx = await b.newContext(vp);
     await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", "dark"); for (const id of ["ig", "dc", "bt"]) localStorage.setItem("echelon-promo-until:" + id, String(Date.now() + 864e5)); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
     const p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(e.message));

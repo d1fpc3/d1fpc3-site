@@ -23,7 +23,7 @@ const clearResults = () => fetch(`${SB}/rest/v1/check_results?user_id=eq.${uid}`
 const backdate = () => fetch(`${SB}/rest/v1/check_results?user_id=eq.${uid}`, { method: "PATCH", headers: H, body: JSON.stringify({ due_at: new Date(Date.now() - 60000).toISOString() }) });
 const b = await chromium.launch(); const fails = [];
 try {
-  for (const [name, vp] of [["desk", { viewport: { width: 1440, height: 900 } }], ["phone", { ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }]]) {
+  for (const [name, vp] of [["desk", { viewport: { width: Number(process.env.W || 1440), height: Number(process.env.HGT || 900) } }], ["phone", { ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }]]) {
     await clearResults();
     const ctx = await b.newContext(vp);
     await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", "dark"); for (const id of ["ig", "dc", "bt"]) localStorage.setItem("echelon-promo-until:" + id, String(Date.now() + 864e5)); localStorage.removeItem("echelon-lesson-pos"); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);

@@ -42,7 +42,7 @@ const adminId = (await (await fetch(`${SB}/rest/v1/admins?select=user_id&limit=1
 const adminEmail = process.env.EMAIL || (await (await fetch(`${SB}/auth/v1/admin/users/${adminId}`, { headers: H })).json()).email;
 const session = await signIn(adminEmail);
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+const ctx = await browser.newContext({ viewport: { width: Number(process.env.W || 1440), height: Number(process.env.HGT || 900) } });
 await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-admin-tour", "done"); localStorage.setItem("echelon-gex-tour", "1") }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
 const page = await ctx.newPage(); const errors = []; page.on("pageerror", (e) => errors.push(e.message));
 page.on("dialog", (d) => d.accept());

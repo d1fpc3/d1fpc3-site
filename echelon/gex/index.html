@@ -33,6 +33,25 @@
     ]
   }
   </script>
+  <script>
+    /* Interface scale: on a big monitor the page is drawn larger, the way browser zoom would.
+       Chromium only, desktop only, never inside the app's own frame (the app already scales). */
+    (function () {
+      function pick() {
+        var ok = window.top === window && /Chrome\/\d+/.test(navigator.userAgent) && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+        var pref = 'auto'; try { pref = localStorage.getItem('echelon-ui-scale') || 'auto' } catch (e) {}
+        var w = window.innerWidth, z = 1;
+        if (ok && w >= 1500) z = pref === 'auto' ? Math.min(1.6, Math.max(1, Math.round(w / 1500 * 20) / 20)) : (parseFloat(pref) || 1);
+        if (ok && w / z < 1180) z = Math.max(1, Math.floor(w / 1180 * 20) / 20);
+        window.__uiz = z; document.documentElement.style.setProperty('--ui', String(z));
+      }
+      pick(); window.addEventListener('resize', pick);
+    })();
+  </script>
+  <style>
+    :root { --ui: 1; --vh: calc(1vh / var(--ui)); --dvh: calc(1dvh / var(--ui)); --vw: calc(1vw / var(--ui)); }
+    html { zoom: var(--ui); }
+  </style>
   <style>
     /* d1fpc3.com/echelon/gex — the standalone D1 GEX storefront.
        Same voice and palette as the site root; buying here needs no
@@ -57,7 +76,7 @@
     ::selection { background: rgba(201,162,74,0.25); }
     a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 
-    .col { max-width: 720px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 40px); }
+    .col { max-width: 720px; margin: 0 auto; padding: 0 clamp(20px, calc(4 * var(--vw)), 40px); }
     .label { font-size: 10.5px; letter-spacing: 0.02em; color: var(--faint); }
 
     .top { border-bottom: 1px solid var(--line); }
@@ -66,14 +85,14 @@
     .quiet { color: var(--muted); font-size: 13.5px; border-bottom: 1px solid var(--line-bright); padding-bottom: 2px; }
     .quiet:hover { color: var(--gold); border-color: var(--gold); }
 
-    main { padding: clamp(48px, 9vh, 88px) 0 0; }
-    h1 { font-size: clamp(30px, 5vw, 42px); letter-spacing: -0.03em; line-height: 1.12; margin: 10px 0 14px; }
+    main { padding: clamp(48px, calc(9 * var(--vh)), 88px) 0 0; }
+    h1 { font-size: clamp(30px, calc(5 * var(--vw)), 42px); letter-spacing: -0.03em; line-height: 1.12; margin: 10px 0 14px; }
     .sub { color: var(--muted); font-size: 16px; max-width: 56ch; }
     /* hover definitions: dotted words explain themselves (tap works too) */
     .w { position: relative; border-bottom: 1.5px dotted var(--gold); color: var(--ink); font-weight: 600; cursor: help; outline: none; }
     .w .tip {
       position: absolute; bottom: calc(100% + 10px); left: 50%; z-index: 6;
-      width: 230px; max-width: calc(100vw - 32px);
+      width: 230px; max-width: calc(calc(100 * var(--vw)) - 32px);
       background: #101014; border: 1px solid var(--line-bright); color: #e7e7ea;
       font-size: 12px; font-weight: 400; line-height: 1.55; text-align: left;
       padding: 10px 12px; border-radius: 10px;
@@ -84,6 +103,8 @@
     .w .tip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top-color: #101014; }
     .w .tip b { display: block; color: var(--gold); font-size: 10.5px; letter-spacing: 0.02em; margin-bottom: 4px; }
     .w:hover .tip, .w:focus .tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+    /* phones: a definition near the edge pushed the whole page sideways; it opens as a card pinned to the bottom instead */
+    @media (max-width: 640px) { .w .tip { position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); top: auto; width: auto; max-width: none; transform: translateY(8px); font-size: 13.5px; padding: 14px 16px; box-shadow: 0 18px 50px -12px rgba(0,0,0,0.7); } .w .tip::after { display: none; } .w:hover .tip, .w:focus .tip { transform: none; } }
 
     /* live preview: the real feed drawn small */
     .gexprev { margin-top: 30px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 12px; background: var(--panel); }
@@ -129,7 +150,7 @@
     .fine a { color: var(--muted); border-bottom: 1px solid var(--line-bright); }
     .fine a:hover { color: var(--gold); border-color: var(--gold); }
 
-    footer { margin-top: clamp(52px, 9vh, 92px); border-top: 1px solid var(--line); padding: 26px 0 40px; }
+    footer { margin-top: clamp(52px, calc(9 * var(--vh)), 92px); border-top: 1px solid var(--line); padding: 26px 0 40px; }
     .risk { color: var(--faint); font-size: 11.5px; max-width: 78ch; }
     .base { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-top: 18px; color: var(--muted); font-size: 12.5px; }
   </style>
@@ -209,7 +230,7 @@
   <style>
     .co-scrim { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,4,0.72); display: none; align-items: center; justify-content: center; padding: 18px; }
     .co-scrim.on { display: flex; }
-    .co-panel { width: 100%; max-width: 480px; max-height: 92vh; background: #fff; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+    .co-panel { width: 100%; max-width: 480px; max-height: calc(92 * var(--vh)); background: #fff; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
     .co-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; color: #1a1207; font-size: 14px; border-bottom: 1px solid #eee; }
     .co-x { background: none; border: 0; font-size: 20px; line-height: 1; cursor: pointer; color: #666; padding: 2px 6px; }
     .co-mount { overflow-y: auto; min-height: 320px; }

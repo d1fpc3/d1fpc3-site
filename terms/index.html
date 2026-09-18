@@ -9,6 +9,25 @@
   <meta name="theme-color" content="#0b0a09">
   <link rel="canonical" href="https://d1fpc3.com/terms/">
   <meta name="robots" content="noindex, follow">
+  <script>
+    /* Interface scale: on a big monitor the page is drawn larger, the way browser zoom would.
+       Chromium only, desktop only, never inside the app's own frame (the app already scales). */
+    (function () {
+      function pick() {
+        var ok = window.top === window && /Chrome\/\d+/.test(navigator.userAgent) && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+        var pref = 'auto'; try { pref = localStorage.getItem('echelon-ui-scale') || 'auto' } catch (e) {}
+        var w = window.innerWidth, z = 1;
+        if (ok && w >= 1500) z = pref === 'auto' ? Math.min(1.6, Math.max(1, Math.round(w / 1500 * 20) / 20)) : (parseFloat(pref) || 1);
+        if (ok && w / z < 1180) z = Math.max(1, Math.floor(w / 1180 * 20) / 20);
+        window.__uiz = z; document.documentElement.style.setProperty('--ui', String(z));
+      }
+      pick(); window.addEventListener('resize', pick);
+    })();
+  </script>
+  <style>
+    :root { --ui: 1; --vh: calc(1vh / var(--ui)); --dvh: calc(1dvh / var(--ui)); --vw: calc(1vw / var(--ui)); }
+    html { zoom: var(--ui); }
+  </style>
   <style>
     /* d1fpc3.com | echelon terms | same dashboard palette as the landing,
        plain typographic page, nothing to sell here. */
@@ -33,7 +52,7 @@
     ::selection { background: rgba(201,162,74,0.25); }
     a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 
-    .col { max-width: 720px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 40px); }
+    .col { max-width: 720px; margin: 0 auto; padding: 0 clamp(20px, calc(4 * var(--vw)), 40px); }
 
     .top {
       position: sticky; top: 0; z-index: 50;
@@ -55,17 +74,17 @@
     .brand { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; border: 0; }
     .top .back { font-size: 13px; color: var(--muted); }
 
-    main { padding: clamp(44px, 8vh, 72px) 0 0; }
+    main { padding: clamp(44px, calc(8 * var(--vh)), 72px) 0 0; }
     .label { font-size: 10.5px; letter-spacing: 0.02em; color: var(--faint); }
-    h1 { font-size: clamp(28px, 4.5vw, 38px); font-weight: 700; letter-spacing: -0.03em; margin-top: 10px; }
+    h1 { font-size: clamp(28px, calc(4.5 * var(--vw)), 38px); font-weight: 700; letter-spacing: -0.03em; margin-top: 10px; }
     .updated { margin-top: 8px; font-size: 12.5px; color: var(--faint); }
 
-    section { margin-top: clamp(32px, 5vh, 44px); border-top: 1px solid var(--line); padding-top: 22px; }
+    section { margin-top: clamp(32px, calc(5 * var(--vh)), 44px); border-top: 1px solid var(--line); padding-top: 22px; }
     h2 { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; }
     section p { margin-top: 10px; color: var(--muted); font-size: 14px; max-width: 64ch; }
     section p b { color: var(--ink); font-weight: 600; }
 
-    footer { margin-top: clamp(52px, 9vh, 92px); border-top: 1px solid var(--line); padding: 26px 0 40px; }
+    footer { margin-top: clamp(52px, calc(9 * var(--vh)), 92px); border-top: 1px solid var(--line); padding: 26px 0 40px; }
     .base { display: flex; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; font-size: 11px; letter-spacing: 0.02em; color: var(--faint); }
     .base a { border: 0; }
   </style>

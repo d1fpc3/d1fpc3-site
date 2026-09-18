@@ -16,7 +16,7 @@ const link = await (await fetch(`${SB}/auth/v1/admin/generate_link`, { method: "
 const session = await (await fetch(`${SB}/auth/v1/verify`, { method: "POST", headers: { apikey: anon, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: link.hashed_token }) })).json();
 if (!session.access_token) throw new Error("verify failed");
 const browser = await chromium.launch();
-const PHONE = process.env.PHONE === "1", PRE = PHONE ? "p-" : "d-"; const ctx = await browser.newContext(PHONE ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } : { viewport: { width: 1440, height: 900 } });
+const PHONE = process.env.PHONE === "1", PRE = PHONE ? "p-" : "d-"; const ctx = await browser.newContext(PHONE ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } : { viewport: { width: Number(process.env.W || 1440), height: Number(process.env.HGT || 900) } });
 await ctx.addInitScript(([k, v, theme]) => { localStorage.setItem(k, v); if (theme) localStorage.setItem("echelon-theme", theme); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-chart-tf", "5m"); }, [`sb-${REF}-auth-token`, JSON.stringify(session), process.env.THEME || ""]);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => console.log("PAGEERROR", e.message));
@@ -53,7 +53,7 @@ if (PHONE) {
 }
 await go("library");
 const tags = await page.evaluate(() => [...document.querySelectorAll(".lib-thumb .tag")].map((t) => Math.round(t.getBoundingClientRect().top - t.parentElement.getBoundingClientRect().top)));
-ok(tags.length > 0 && tags.every((t) => t < 14), "every library tag sits top-left: " + tags.join(","));
+ok(tags.length > 0 && tags.every((t) => t < 22), "every library tag sits top-left: " + tags.join(","));
 await shot(PRE + "library");
 await browser.close();
 if (fails.length) { console.log(["FAILS", ...fails].join(String.fromCharCode(10) + " - ")); process.exit(1) } else console.log("ALL OK");

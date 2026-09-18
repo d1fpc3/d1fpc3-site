@@ -6,6 +6,25 @@
   <title>Echelon · Admin</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="robots" content="noindex, nofollow">
+  <script>
+    /* Interface scale: on a big monitor the dashboard is drawn larger, the way browser zoom would.
+       Chromium only, desktop only. R()/VW()/VH() below convert measurements back to layout pixels. */
+    (function () {
+      function pick() {
+        var ok = /Chrome\/\d+/.test(navigator.userAgent) && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+        var pref = 'auto'; try { pref = localStorage.getItem('echelon-ui-scale') || 'auto' } catch (e) {}
+        var w = window.innerWidth, z = 1;
+        if (ok && w >= 1500) z = pref === 'auto' ? Math.min(1.6, Math.max(1, Math.round(w / 1500 * 20) / 20)) : (parseFloat(pref) || 1);
+        if (ok && w / z < 1180) z = Math.max(1, Math.floor(w / 1180 * 20) / 20);
+        window.__uiz = z; document.documentElement.style.setProperty('--ui', String(z));
+      }
+      pick(); window.addEventListener('resize', pick);
+    })();
+  </script>
+  <style>
+    :root { --ui: 1; --vh: calc(1vh / var(--ui)); --dvh: calc(1dvh / var(--ui)); --vw: calc(1vw / var(--ui)); }
+    html { zoom: var(--ui); }
+  </style>
   <style>
     /* ─────────────────────────────────────────────────────────
        d1fpc3.com | echelon | admin dashboard
@@ -87,7 +106,7 @@
     /* ════ LOGIN (glass card) ════════════════════════════════ */
 
     .centre {
-      min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+      min-height: calc(100 * var(--dvh)); display: flex; align-items: center; justify-content: center;
       padding: 32px 24px; position: relative; overflow: hidden;
     }
     .orb { position: absolute; border-radius: 50%; filter: blur(66px); opacity: 0.5; pointer-events: none; }
@@ -134,7 +153,7 @@
 
     /* ════ APP SHELL ═════════════════════════════════════════ */
 
-    .app { display: none; min-height: 100dvh; }
+    .app { display: none; min-height: calc(100 * var(--dvh)); }
     .app.on { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); }
 
     /* ── sidebar ─────────────────────────────────────────── */
@@ -143,7 +162,7 @@
       background: var(--panel);
       border-right: 1px solid var(--line);
       display: flex; flex-direction: column;
-      position: sticky; top: 0; height: 100dvh;
+      position: sticky; top: 0; height: calc(100 * var(--dvh));
     }
 
     .side-brand {
@@ -246,7 +265,7 @@
       position: sticky; top: 0; z-index: 5;
       background: rgba(11,10,9,0.82); backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--line);
-      padding: 18px clamp(20px, 3vw, 34px);
+      padding: 18px clamp(20px, calc(3 * var(--vw)), 34px);
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
     .topbar h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
@@ -269,7 +288,7 @@
     .tb-open:hover { border-color: var(--gold); color: var(--gold); transform: translateY(-1px); }
     .tb-open:hover svg { transform: translate(1px, -1px); }
 
-    .pane { padding: clamp(20px, 3vw, 34px); }
+    .pane { padding: clamp(20px, calc(3 * var(--vw)), 34px); }
     .view { display: none; }
     .view.on { display: block; animation: fade 0.25s ease; }
     @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
@@ -381,7 +400,7 @@
 
     /* ── page editor ─────────────────────────────────────────── */
 
-    .pe-wrap { max-width: 780px; margin: 0 auto; padding: 26px clamp(18px, 3vw, 34px) 34px; }
+    .pe-wrap { max-width: 780px; margin: 0 auto; padding: 26px clamp(18px, calc(3 * var(--vw)), 34px) 34px; }
     .pe-title {
       width: 100%; background: none; border: 0; outline: none;
       color: var(--ink); font-family: inherit;
@@ -763,7 +782,7 @@
       .app.on { display: block; }
       .menu-btn { display: flex; }
       .side {
-        position: fixed; top: 0; bottom: 0; left: 0; width: min(300px, 84vw); z-index: 60;
+        position: fixed; top: 0; bottom: 0; left: 0; width: min(300px, calc(84 * var(--vw))); z-index: 60;
         padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
         transform: translateX(-100%); transition: transform 0.25s ease;
         box-shadow: 0 0 60px rgba(0,0,0,0.55);
@@ -863,7 +882,7 @@
     }
     @keyframes tour-pulse { 0% { transform: scale(1); opacity: 0.55; } 70%, 100% { transform: scale(1.05); opacity: 0; } }
     .tour-card {
-      position: fixed; z-index: 91; width: min(400px, calc(100vw - 32px));
+      position: fixed; z-index: 91; width: min(400px, calc(calc(100 * var(--vw)) - 32px));
       background: var(--panel); border: 1px solid var(--line-bright); border-radius: 16px;
       padding: 22px 24px 20px; box-shadow: 0 16px 44px rgba(0, 0, 0, 0.55);
     }
@@ -899,7 +918,7 @@
     .pb-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 34px; align-items: start; }
     .pb-toc {
       position: sticky; top: 98px; display: flex; flex-direction: column; gap: 2px;
-      max-height: calc(100vh - 120px); overflow-y: auto; padding-right: 8px;
+      max-height: calc(calc(100 * var(--vh)) - 120px); overflow-y: auto; padding-right: 8px;
     }
     .pb-toc .label { margin-bottom: 8px; }
     .pb-toc a {
@@ -1012,7 +1031,7 @@
     /* ── the members-app intro, replayed on demand from Settings (same css +
        lockup as echelon/app; scripts/build-splash-svg.py keeps the lockup in sync) ── */
     #splash { position: fixed; inset: 0; z-index: 400; background: #0b0a08; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-    #splash .lockup { width: min(58vw, 236px); height: auto; display: block; overflow: visible; transition: transform 0.6s cubic-bezier(0.4, 0, 0.6, 1); }
+    #splash .lockup { width: min(calc(58 * var(--vw)), 236px); height: auto; display: block; overflow: visible; transition: transform 0.6s cubic-bezier(0.4, 0, 0.6, 1); }
     #splash.off { opacity: 0; pointer-events: none; }
     #splash.off .lockup { transform: scale(1.06); }
     #splash .sp-e { transform-box: fill-box; transform-origin: center; animation: sp-in 0.62s cubic-bezier(0.2, 0.7, 0.2, 1) 0.08s both; }
@@ -1794,6 +1813,10 @@
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
     const el = (id) => document.getElementById(id)
+    // interface scale: measurements come back in screen pixels, styles are written in layout pixels
+    const UIZ = () => window.__uiz || 1
+    const R = (node) => { const r = node.getBoundingClientRect(), z = UIZ(); return { left: r.left / z, top: r.top / z, right: r.right / z, bottom: r.bottom / z, width: r.width / z, height: r.height / z } }
+    const VW = () => window.innerWidth / UIZ(), VH = () => window.innerHeight / UIZ(), SY = () => window.scrollY / UIZ()
 
     /* ── the members-app intro, on demand: clone the lockup, let the css
        keyframes run (~1.6s), fade it back out. A click or Escape ends it. ── */
@@ -2041,15 +2064,15 @@
     function tourPlace() {
       if (!tour.on) return
       const t = tourTarget(); if (!t) return
-      const r = t.getBoundingClientRect(), pad = 8
+      const r = R(t), pad = 8
       Object.assign(tour.ring.style, {
         left: `${r.left - pad}px`, top: `${r.top - pad}px`,
         width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px`,
       })
       const cw = tour.card.offsetWidth || 400, ch = tour.card.offsetHeight || 200
       let top = r.bottom + pad + 16
-      if (top + ch > innerHeight - 12) top = Math.max(12, r.top - pad - ch - 16)
-      const left = Math.min(Math.max(12, r.left), Math.max(12, innerWidth - cw - 12))
+      if (top + ch > VH() - 12) top = Math.max(12, r.top - pad - ch - 16)
+      const left = Math.min(Math.max(12, r.left), Math.max(12, VW() - cw - 12))
       Object.assign(tour.card.style, { left: `${left}px`, top: `${top}px` })
     }
     function endAdminTour(markDone) {
@@ -4731,8 +4754,8 @@
       const c = el('gex-canvas'), stage = el('gex-stage')
       const w = Math.max(320, stage.clientWidth - 20)
       // fit the space left below the stage at scroll 0 (foot + pane padding reserved), within sane bounds
-      const docTop = stage.getBoundingClientRect().top + window.scrollY
-      const avail = window.innerHeight - docTop - 46 - 34
+      const docTop = R(stage).top + SY()
+      const avail = VH() - docTop - 46 - 34
       // side by side with the levels table: grow to its natural height when the viewport allows,
       // so the two blocks line up and the table needs no inner scroll
       let want = 0
@@ -5167,7 +5190,7 @@
     }
     {
       const c = el('gex-canvas')
-      const pos = (e) => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top } }
+      const pos = (e) => { const r = c.getBoundingClientRect(), z = UIZ(); return { x: (e.clientX - r.left) / z, y: (e.clientY - r.top) / z } }
       c.addEventListener('pointerdown', (e) => { if (GEX.view !== 'surface') return; GEX.drag = { x: e.clientX, y: e.clientY, moved: false }; c.setPointerCapture(e.pointerId); c.classList.add('grabbing') })
       c.addEventListener('pointermove', (e) => {
         if (GEX.drag) {

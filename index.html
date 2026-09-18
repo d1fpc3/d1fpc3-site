@@ -31,6 +31,25 @@
     "url": "https://d1fpc3.com/"
   }
   </script>
+  <script>
+    /* Interface scale: on a big monitor the page is drawn larger, the way browser zoom would.
+       Chromium only, desktop only, never inside the app's own frame (the app already scales). */
+    (function () {
+      function pick() {
+        var ok = window.top === window && /Chrome\/\d+/.test(navigator.userAgent) && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+        var pref = 'auto'; try { pref = localStorage.getItem('echelon-ui-scale') || 'auto' } catch (e) {}
+        var w = window.innerWidth, z = 1;
+        if (ok && w >= 1500) z = pref === 'auto' ? Math.min(1.6, Math.max(1, Math.round(w / 1500 * 20) / 20)) : (parseFloat(pref) || 1);
+        if (ok && w / z < 1180) z = Math.max(1, Math.floor(w / 1180 * 20) / 20);
+        window.__uiz = z; document.documentElement.style.setProperty('--ui', String(z));
+      }
+      pick(); window.addEventListener('resize', pick);
+    })();
+  </script>
+  <style>
+    :root { --ui: 1; --vh: calc(1vh / var(--ui)); --dvh: calc(1dvh / var(--ui)); --vw: calc(1vw / var(--ui)); }
+    html { zoom: var(--ui); }
+  </style>
   <style>
     /* ─────────────────────────────────────────────────────────
        d1fpc3.com | echelon (site root)
@@ -66,7 +85,7 @@
     ::selection { background: rgba(201,162,74,0.25); }
     a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 
-    .col { max-width: 1080px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 40px); }
+    .col { max-width: 1080px; margin: 0 auto; padding: 0 clamp(20px, calc(4 * var(--vw)), 40px); }
     .label { font-size: 10.5px; letter-spacing: 0.02em; color: var(--faint); }
 
     /* gold dust: fixed behind everything, panels occlude it naturally;
@@ -151,25 +170,25 @@
     @media (max-width: 560px) { .top .btn { display: none; } }
 
     /* hero: one sentence, then the product */
-    .hero { text-align: center; padding: clamp(48px, 8vh, 88px) 0 0; position: relative; }
+    .hero { text-align: center; padding: clamp(48px, calc(8 * var(--vh)), 88px) 0 0; position: relative; }
     /* the same warmth the gate orbs give the replica, up here, barely */
     .hero::before {
       content: ""; position: absolute; z-index: -1; left: 50%; top: -80px;
-      width: min(720px, 100vw); height: 400px; transform: translateX(-50%);
+      width: min(720px, calc(100 * var(--vw))); height: 400px; transform: translateX(-50%);
       background: radial-gradient(closest-side, rgba(201,162,74,0.13), transparent 70%);
       filter: blur(60px); pointer-events: none;
     }
-    .hero h1 { font-size: clamp(34px, 6vw, 58px); font-weight: 700; letter-spacing: -0.035em; line-height: 1.04; text-wrap: balance; }
+    .hero h1 { font-size: clamp(34px, calc(6 * var(--vw)), 58px); font-weight: 700; letter-spacing: -0.035em; line-height: 1.04; text-wrap: balance; }
     /* the accent word is set in the logo's own voice: gold serif, italic */
     .hero h1 em { font-style: italic; color: var(--gold); font-family: Georgia, 'Times New Roman', serif; font-weight: 600; letter-spacing: -0.015em; padding-right: 0.06em; }
     .hero .def {
       margin: 16px auto 0; max-width: 42ch;
       font-family: Georgia, 'Times New Roman', serif; font-style: italic;
-      font-size: clamp(13.5px, 1.35vw, 15.5px); line-height: 1.55; color: var(--muted); text-wrap: pretty;
+      font-size: clamp(13.5px, calc(1.35 * var(--vw)), 15.5px); line-height: 1.55; color: var(--muted); text-wrap: pretty;
     }
     .hero .def b { color: var(--ink); font-weight: 600; font-style: normal; }
     .hero .def i { color: var(--gold); margin: 0 7px 0 3px; }
-    .hero .sub { margin: 16px auto 0; max-width: 46ch; color: var(--muted); font-size: clamp(14.5px, 1.4vw, 16.5px); text-wrap: pretty; }
+    .hero .sub { margin: 16px auto 0; max-width: 46ch; color: var(--muted); font-size: clamp(14.5px, calc(1.4 * var(--vw)), 16.5px); text-wrap: pretty; }
     .hero .act { margin-top: 28px; display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; }
     .hero .fine { margin-top: 16px; font-size: 12.5px; color: var(--faint); }
     .hero .fine span { white-space: nowrap; }
@@ -184,7 +203,7 @@
     .panel p { margin-top: 8px; color: var(--muted); font-size: 13.5px; }
 
     /* buy: the glass card from the gate */
-    .buy { padding: clamp(52px, 9vh, 92px) 0 0; display: flex; justify-content: center; position: relative; }
+    .buy { padding: clamp(52px, calc(9 * var(--vh)), 92px) 0 0; display: flex; justify-content: center; position: relative; }
     .glass {
       position: relative; width: 100%; max-width: 400px; text-align: center;
       background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.14);
@@ -215,7 +234,7 @@
     .glass .fine { margin-top: 12px; font-size: 11.5px; color: var(--faint); }
 
     /* faq: one dashboard block */
-    .faq-wrap { padding: clamp(52px, 9vh, 92px) 0 0; }
+    .faq-wrap { padding: clamp(52px, calc(9 * var(--vh)), 92px) 0 0; }
     .faq-block { max-width: 760px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
     .faq-head { padding: 15px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 14px; }
     .faq-head h3 { font-size: 14.5px; font-weight: 650; }
@@ -234,20 +253,20 @@
     .faq .a { padding: 0 20px 16px; color: var(--muted); font-size: 13.5px; max-width: 64ch; }
 
     /* member trade proof: double marquee, top row drifts left, bottom row drifts right */
-    .trades-wrap { margin-top: clamp(52px, 9vh, 92px); }
+    .trades-wrap { margin-top: clamp(52px, calc(9 * var(--vh)), 92px); }
     .trades-wrap .label { display: block; margin-bottom: 16px; }
     .tr-car { position: relative; display: flex; flex-direction: column; gap: 14px; }
     .tr-track { overflow: hidden; }
     .tr-inner { display: flex; gap: 14px; will-change: transform; }
     .tr-track img {
-      height: clamp(180px, 26vw, 300px); width: auto; max-width: 86vw;
+      height: clamp(180px, calc(26 * var(--vw)), 300px); width: auto; max-width: calc(86 * var(--vw));
       object-fit: contain; background: var(--panel);
       border: 1px solid var(--line); border-radius: 14px;
       flex-shrink: 0; user-select: none;
     }
 
     /* GEX teaser: a past session's surface, baked, the shape, not the levels */
-    .gexbar-wrap { margin-top: clamp(40px, 7vh, 64px); }
+    .gexbar-wrap { margin-top: clamp(40px, calc(7 * var(--vh)), 64px); }
     .btbar { display: flex; align-items: center; gap: 13px; padding: 14px 2px 15px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
     .btbar img { border-radius: 8px; flex: none; }
     .bt-copy { font-size: 13.5px; color: var(--muted); }
@@ -273,7 +292,7 @@
     @media (max-width: 560px) { .bt-go { display: none; } }
 
     /* the free room: one wide panel above the footer */
-    .disc-wrap { padding: clamp(52px, 9vh, 92px) 0 0; }
+    .disc-wrap { padding: clamp(52px, calc(9 * var(--vh)), 92px) 0 0; }
     .disc {
       background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
       padding: 22px 24px; display: flex; align-items: center; gap: 20px 28px; flex-wrap: wrap;
@@ -291,7 +310,7 @@
 
     /* member reviews: appears only once someone said something and d1
        approved it for the landing (landing_reviews view) */
-    .rev-wrap { padding: clamp(48px, 8vh, 84px) 0 0; }
+    .rev-wrap { padding: clamp(48px, calc(8 * var(--vh)), 84px) 0 0; }
     .rev-wrap .label { display: block; text-align: center; }
     .rev-wrap .grid3 { margin-top: 16px; }
     /* rating summary: big average + animated distribution bars */
@@ -413,7 +432,7 @@
     .code-row .cn a { border-bottom: 1px solid var(--line-bright); }
     .code-row .cn a:hover { color: var(--gold); border-color: var(--gold); }
 
-    footer { margin-top: clamp(52px, 9vh, 92px); border-top: 1px solid var(--line); padding: 26px 0 40px; }
+    footer { margin-top: clamp(52px, calc(9 * var(--vh)), 92px); border-top: 1px solid var(--line); padding: 26px 0 40px; }
     .risk { color: var(--faint); font-size: 12px; line-height: 1.7; max-width: 88ch; }
     .base { margin-top: 18px; display: flex; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; font-size: 11px; letter-spacing: 0.02em; color: var(--faint); }
     .base a:hover { color: var(--gold); }
