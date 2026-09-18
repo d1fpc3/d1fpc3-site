@@ -2406,6 +2406,11 @@
       background: rgba(11,10,9,0.72); border-radius: 6px; padding: 3px 8px;
     }
     .lib-thumb .new { position: absolute; right: 10px; top: 8px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; color: #1a1207; background: var(--gold); border-radius: 6px; padding: 3px 7px; }
+
+    .lib-thumb .done { position: absolute; left: 10px; bottom: 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: #fff; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); border-radius: 6px; padding: 3px 7px 3px 5px; } .lib-thumb .done svg { width: 11px; height: 11px; color: var(--good); }
+    .lib-thumb .prog { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,0.25); } .lib-thumb .prog::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--p); background: var(--gold); }
+    .lib-thumb .resume { position: absolute; left: 10px; bottom: 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: #1a1207; background: var(--gold); border-radius: 6px; padding: 3px 7px; }
+    .lib-thumb .done ~ .tag, .lib-thumb .resume ~ .tag, .lib-thumb .tag:has(~ .done), .lib-thumb .tag:has(~ .resume) { bottom: auto; top: 8px; left: 10px; }
     .lib-card .t {
       margin-top: 10px; font-size: 14px; font-weight: 600; line-height: 1.35;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
@@ -2854,6 +2859,12 @@
     .cr-item.rich .av { width: 34px; height: 34px; border-radius: 50%; font-size: 12px; }
     .chat-typing { display: flex; align-items: center; gap: 8px; padding: 4px 18px 6px; font-size: 12px; color: var(--faint); animation: cm-in 0.2s ease; }
     .chat-typing[hidden] { display: none; }
+
+    .m-reply { background: var(--panel-2); border: 1px solid var(--line-bright); color: var(--faint); border-radius: 7px; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; } .m-reply svg { width: 14px; height: 14px; display: block; } .m-reply:hover { color: var(--ink); border-color: var(--ink); }
+    .m-quote { display: flex; gap: 8px; align-items: baseline; max-width: 520px; margin: 2px 0 4px; padding: 5px 10px; border: 0; border-left: 2px solid var(--gold); border-radius: 0 8px 8px 0; background: color-mix(in srgb, var(--ink) 5%, transparent); color: var(--muted); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+    .m-quote b { color: var(--ink); font-weight: 650; flex-shrink: 0; } .m-quote span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .m-quote i { color: var(--faint); } .m-quote:hover { background: color-mix(in srgb, var(--ink) 9%, transparent); }
+    .chat-replying { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 12px; padding: 7px 12px; font-size: 12.5px; color: var(--muted); background: var(--panel-2); border: 1px solid var(--line); border-bottom: 0; border-radius: 10px 10px 0 0; animation: cm-in 0.18s ease; }
+    .chat-replying[hidden] { display: none; } .chat-replying .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .chat-replying button { background: none; border: 0; color: var(--faint); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
 
     /* presence dots and the new-messages line (2026-09-17) */
     .msg { position: relative; } .msg.online::before { content: ''; position: absolute; left: 31px; top: 30px; width: 10px; height: 10px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 2px var(--bg); z-index: 1; }
@@ -5670,9 +5681,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       return mediaSign(path ? { lesson_id: lessonId, path } : { lesson_id: lessonId })
     }
 
-    function storageVideo(player, media) {
+    // playback position per video, on this device: resume past ten seconds in, done past ninety-five percent
+    const libPosKey = (id) => 'echelon-lib-pos:' + id
+    function libPos(id) { try { return JSON.parse(localStorage.getItem(libPosKey(id)) || 'null') } catch { return null } }
+    function storageVideo(player, media, videoId) {
       const video = mountPlayer(player, media.url, { tracks: media.tracks })
-      video.addEventListener('loadeddata', () => player.classList.remove('skel'))
+      video.addEventListener('loadeddata', () => {
+        player.classList.remove('skel')
+        const p = videoId ? libPos(videoId) : null
+        if (p && p.d && p.t > 10 && p.t / p.d < 0.95 && Math.abs(video.duration - p.d) < 2) { video.currentTime = p.t; toast(`Resumed at ${vpTime(p.t)}`) }
+      }, { once: true })
+      if (videoId) { let last = 0; video.addEventListener('timeupdate', () => { const now = Date.now(); if (now - last < 4000 || !video.duration) return; last = now; try { localStorage.setItem(libPosKey(videoId), JSON.stringify({ t: video.currentTime, d: video.duration })) } catch {} }) }
     }
 
     /* ── the player ──
@@ -14829,10 +14848,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       else el('chat-log').innerHTML = '<div class="msg-skel"><i class="skel"></i><span><b class="skel"></b><b class="skel"></b></span></div>'.repeat(5)
       subscribeRoom(type, id)
       const col = type === 'channel' ? 'channel_id' : 'dm_id'
-      const { data } = await supabase.from('messages').select('id, user_id, body, created_at, edited_at, deleted_at, image_url, poll')
+      const { data } = await supabase.from('messages').select('id, user_id, body, created_at, edited_at, deleted_at, image_url, poll, reply_to')
         .eq(col, id).is('deleted_at', null).order('created_at', { ascending: false }).limit(200)   // the NEWEST two hundred, then back into reading order
       if (chat.cur?.type !== type || chat.cur?.id !== id) return   // moved on already
       chat.msgs = (data ?? []).reverse(); chat.history = false; chatSearchClose(); chatSeenLoad()
+      // where you left off: your own read mark decides, not the badge count (which can lag the stream)
+      try { const { data: rs } = await supabase.from('read_state').select('last_read_at').eq('user_id', state.user.id).eq('scope', key).maybeSingle(); if (chat.cur?.type !== type || chat.cur?.id !== id) return; const since = rs?.last_read_at ? new Date(rs.last_read_at).getTime() : 0; chat.newFrom = chat.msgs.filter((m) => m.user_id !== state.user.id && new Date(m.created_at).getTime() > since).length } catch {}
       if (!cached) renderLog(true)
       await Promise.all([loadPollVotes(), loadReactions()])
       if (chat.cur?.type !== type || chat.cur?.id !== id) return
@@ -14841,6 +14862,23 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       markRead(key)
     }
 
+    // replies: the bar above the composer names what you answer; the message carries reply_to and shows a quote
+    function chatReplyTo(m) {
+      chat.replyTo = m || null
+      let bar = el('chat-replying')
+      if (!bar) { bar = document.createElement('div'); bar.id = 'chat-replying'; bar.className = 'chat-replying'; bar.hidden = true; bar.innerHTML = '<span class="t"></span><button type="button" aria-label="Cancel reply">&times;</button>'; bar.querySelector('button').addEventListener('click', () => chatReplyTo(null)); el('chat-composer').before(bar) }
+      bar.hidden = !m
+      if (m) { const who = chatUser(m.user_id)?.username || 'member'; bar.querySelector('.t').textContent = `Replying to ${who}: ${(m.body || (m.image_url ? 'a chart' : m.poll ? 'a poll' : '')).slice(0, 90)}`; el('chat-input').focus() }
+    }
+    const MSG_QUOTES = new Map()
+    function chatQuote(id) {
+      const q = document.createElement('button'); q.type = 'button'; q.className = 'm-quote'
+      const fill = (m) => { if (!m) { q.innerHTML = '<i>Message removed</i>'; return } const who = chatUser(m.user_id)?.username || 'member'; q.innerHTML = ''; const b = document.createElement('b'); b.textContent = who; const t = document.createElement('span'); t.textContent = m.deleted_at ? 'Message removed' : (m.body || (m.image_url ? 'Chart' : m.poll ? 'Poll' : '')); q.append(b, t); q.addEventListener('click', () => chatJumpTo(m)) }
+      const local = chat.msgs.find((x) => x.id === id) || MSG_QUOTES.get(id)
+      if (local) fill(local)
+      else { q.innerHTML = '<span class="skel" style="width:120px;height:10px;display:inline-block;border-radius:5px"></span>'; supabase.from('messages').select('id, user_id, body, created_at, deleted_at, image_url, poll').eq('id', id).maybeSingle().then(({ data }) => { MSG_QUOTES.set(id, data); fill(data) }) }
+      return q
+    }
     // typing: a broadcast on the room's own channel, nothing stored. Names fade four seconds after the last keystroke.
     const TYPING = new Map()
     function chatTypingPaint() {
@@ -14863,7 +14901,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       try { chat.sub.send({ type: 'broadcast', event: 'typing', payload: { uid: state.user.id, name: state.profile?.username, stop: !!stop } }) } catch {}
     }
     function subscribeRoom(type, id) {
-      TYPING.clear(); chatTypingPaint()
+      TYPING.clear(); chatTypingPaint(); chatReplyTo(null)
       if (chat.sub) { supabase.removeChannel(chat.sub); chat.sub = null }
       const filter = (type === 'channel' ? 'channel_id' : 'dm_id') + '=eq.' + id
       chat.sub = supabase.channel('room:' + type + ':' + id)
@@ -15401,13 +15439,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const t = new Date(m.created_at)
         const day = t.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })
         if (day !== lastDay) { const d = document.createElement('div'); d.className = 'chat-day'; d.textContent = day; log.appendChild(d); lastDay = day; lastUser = null }
-        if (chat.newFrom && !chat.history && i === chat.msgs.length - chat.newFrom && i > 0) { const nw = document.createElement('div'); nw.className = 'chat-new'; nw.innerHTML = '<span>New messages</span>'; log.appendChild(nw); lastUser = null }
+        if (chat.newFrom && !chat.history && i === chat.msgs.length - chat.newFrom) { const nw = document.createElement('div'); nw.className = 'chat-new'; nw.innerHTML = '<span>New messages</span>'; log.appendChild(nw); lastUser = null }
         const grouped = m.user_id === lastUser && (t - lastT) < 5 * 60 * 1000
         const info = chatUser(m.user_id)
         const row = document.createElement('div'); row.className = 'msg' + (grouped ? ' grouped' : ''); row.dataset.mid = m.id
         row.appendChild(grouped ? Object.assign(document.createElement('div'), { className: 'm-av' }) : avatarNode(info, 'm-av'))
         if (!grouped) { row.dataset.uid = m.user_id; if (ONLINE.has(m.user_id) && m.user_id !== state.user?.id) row.classList.add('online') }
         const bodyWrap = document.createElement('div'); bodyWrap.className = 'm-body'
+        if (m.reply_to) bodyWrap.appendChild(chatQuote(m.reply_to))
         if (!grouped) {
           const head = document.createElement('div'); head.className = 'm-head'
           const nm = document.createElement('span'); nm.className = 'm-name'; nm.textContent = info.username
@@ -15438,6 +15477,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         rbtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'
         rbtn.addEventListener('click', (e) => { e.stopPropagation(); openRxPicker(rbtn, m.id) })
         acts.appendChild(rbtn)
+        if (!m.deleted_at && el('chat-composer').style.display !== 'none') { const rp = document.createElement('button'); rp.className = 'm-reply'; rp.title = 'Reply'; rp.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>'; rp.addEventListener('click', (e) => { e.stopPropagation(); chatReplyTo(m) }); acts.appendChild(rp) }
         if (m.user_id === state.user.id || (chat.isStaff && chatPerm('delete'))) {
           const del = document.createElement('button'); del.className = 'm-del'; del.title = 'Delete'
           del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
@@ -15507,7 +15547,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (flash()) return
       // older than what is loaded: open the log around it
       const { type, id } = chat.cur, col = type === 'channel' ? 'channel_id' : 'dm_id'
-      const { data } = await supabase.from('messages').select('id, user_id, body, created_at, edited_at, deleted_at, image_url, poll').eq(col, id).is('deleted_at', null).gte('created_at', new Date(new Date(m.created_at).getTime() - 6 * 3600e3).toISOString()).order('created_at').limit(200)
+      const { data } = await supabase.from('messages').select('id, user_id, body, created_at, edited_at, deleted_at, image_url, poll, reply_to').eq(col, id).is('deleted_at', null).gte('created_at', new Date(new Date(m.created_at).getTime() - 6 * 3600e3).toISOString()).order('created_at').limit(200)
       if (chat.cur?.id !== id || !data?.length) return
       chat.msgs = data; chat.history = true
       await Promise.all([loadPollVotes(), loadReactions()]); renderLog(); flash()
@@ -15563,12 +15603,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if ((!body && !pendingImage) || !chat.cur) return
       input.value = ''; input.style.height = 'auto'
       hap('light')
+      const replied = chat.replyTo; chatReplyTo(null)
       const img = pendingImage; clearPending()
       const col = chat.cur.type === 'channel' ? 'channel_id' : 'dm_id'
       const { data, error } = await supabase.from('messages')
-        .insert({ [col]: chat.cur.id, user_id: state.user.id, body: body || null, image_url: img || null }).select().single()
+        .insert({ [col]: chat.cur.id, user_id: state.user.id, body: body || null, image_url: img || null, reply_to: replied?.id || null }).select().single()
       if (error) {
-        input.value = body
+        input.value = body; if (replied) chatReplyTo(replied)
         if (img) { pendingImage = img; el('cc-thumb').src = img; el('cc-pending').classList.add('on') }
         toast('Could not send that.', 7000, { label: 'Retry', fn: sendMessage })
         return
@@ -15580,6 +15621,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     el('chat-send').addEventListener('click', sendMessage)
     el('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } })
     el('chat-search-btn').addEventListener('click', chatSearchToggle); mentionAttach(el('chat-input'))
+    el('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Escape' && chat.replyTo) { e.stopPropagation(); chatReplyTo(null) } })
     el('chat-input').addEventListener('input', (e) => { e.target.style.height = 'auto'; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px'; if (e.target.value.trim()) chatTypingSend(false); else chatTypingSend(true) })
     el('chat-back').addEventListener('click', () => {
       if (navPopLayer('convo')) return
@@ -15679,6 +15721,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = LIB_NAME[m.cat] ?? m.cat
         th.appendChild(tag)
         if (m.kind === 'video' && videoIsNew(m.r, LIB.views)) { const nw = document.createElement('span'); nw.className = 'new'; nw.textContent = 'NEW'; th.appendChild(nw) }
+        else if (m.kind === 'video') {
+          const p = libPos(m.r.id), frac = p && p.d ? p.t / p.d : 0
+          if (frac >= 0.95 || (LIB.views.has(m.r.id) && !p)) { const dn = document.createElement('span'); dn.className = 'done'; dn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>Watched'; th.appendChild(dn) }
+          else if (frac > 0.02) { const bar = document.createElement('span'); bar.className = 'prog'; bar.style.setProperty('--p', (frac * 100).toFixed(1) + '%'); bar.title = `${vpTime(p.t)} of ${vpTime(p.d)}`; th.appendChild(bar); const rs = document.createElement('span'); rs.className = 'resume'; rs.textContent = `Resume · ${vpTime(p.d - p.t)} left`; th.appendChild(rs) }
+        }
         const t = document.createElement('div'); t.className = 't'; t.textContent = m.r.title
         const meta = document.createElement('div'); meta.className = 'm'
         const who = m.kind === 'doc' ? 'd1fpc3' : (LIB.names?.[m.r.created_by] ?? 'd1fpc3')
@@ -15697,6 +15744,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('lib-share').hidden = !state.isAdmin   // the owner shares; members watch
       supabase.rpc('record_library_view', { p_video: r.id }).then(refreshBadges, () => {})
       if (!LIB.views.has(r.id)) { LIB.views.add(r.id); renderLibrary() }
+      el('lib-x').addEventListener('click', renderLibrary, { once: true })
       el('lib-title').textContent = r.title
       const sum = el('lib-sum')
       sum.textContent = r.summary ?? ''; sum.hidden = !r.summary
@@ -15704,7 +15752,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('libmodal').hidden = false
       try {
         const media = await mediaSign({ library_id: r.id })
-        storageVideo(player, media)
+        storageVideo(player, media, r.id)
       } catch (err) {
         player.classList.remove('skel')
         const notice = document.createElement('p'); notice.className = 'notice'
