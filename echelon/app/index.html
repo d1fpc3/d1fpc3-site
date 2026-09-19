@@ -2624,7 +2624,7 @@
     .watch-title h3 { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .watch-meta { font-size: 12.5px; color: var(--faint); white-space: nowrap; flex: none; }
     .watch .lib-like { margin-left: 0; }
-    .watch-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 4px clamp(14px, calc(2.4 * var(--vw)), 34px) 28px; align-items: start; }
+    .watch-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 4px clamp(14px, calc(2.4 * var(--vw)), 34px) 28px; align-items: start; align-content: start; }
     @media (min-width: 1100px) { .watch-body { grid-template-columns: minmax(0, 1fr) 340px; } }
     .watch-main { min-width: 0; }
     /* width is whichever is smaller: the column, or what the window's height allows at 16:9 */
@@ -2712,10 +2712,10 @@
     .vp .vp-time { cursor: pointer; border-radius: 6px; padding: 4px 6px; margin: 0 -2px 0 2px; } .vp .vp-time:hover { background: rgba(255,255,255,0.1); }
     .vp .vp-end { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: rgba(0,0,0,0.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color: #fff; text-align: center; padding: 20px; animation: watch-in 0.3s ease; }
     .vp .vp-end .k { font-size: 12.5px; color: rgba(255,255,255,0.6); } .vp .vp-end .t { font-size: clamp(16px, calc(2.2 * var(--vw)), 22px); font-weight: 650; letter-spacing: -0.01em; max-width: 30ch; }
-    .vp .vp-end .acts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+    .vp .vp-end .acts { display: flex; flex-direction: row; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; margin-top: 4px; } .vp .vp-end .acts button { width: auto; flex: none; }
     .vp .vp-end button { height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25); background: none; color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background 0.2s ease, transform 0.2s ease; }
     .vp .vp-end button:hover { background: rgba(255,255,255,0.12); } .vp .vp-end button:active { transform: scale(0.96); }
-    .vp .vp-end button.go { background: linear-gradient(135deg, #e6c878, var(--gold)); color: #1a1207; border-color: transparent; }
+    .vp .vp-end button.vp-go { background: linear-gradient(135deg, #e6c878, var(--gold)); color: #1a1207; border-color: transparent; }
     .vp:fullscreen .vp-bar, .vp:-webkit-full-screen .vp-bar { padding: 40px 22px 16px; } .vp:fullscreen .vp-row button svg { width: 24px; height: 24px; }
     @media (prefers-reduced-motion: reduce) { .vp .vp-spin { animation-duration: 1.6s; } .vp .vp-menu, .vp .vp-end { animation: none; } }
     .vp video::cue { background: rgba(0,0,0,0.72); color: #fff; font-family: inherit; font-size: 0.92em; line-height: 1.4; font-weight: 500; }
@@ -6057,6 +6057,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const wrap = document.createElement('div'); wrap.className = 'vp paused'; wrap.tabIndex = 0
       const video = document.createElement('video')
       video.src = url; video.playsInline = true; video.preload = 'metadata'
+      if (opts.poster) video.poster = opts.poster
       // a caption file on another origin only loads through a CORS video
       if (opts.tracks?.length) video.crossOrigin = 'anonymous'
       for (const t of opts.tracks ?? []) {
@@ -6176,7 +6177,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         acts.appendChild(again)
         if (nx) {
           let left = 8; k.textContent = `Up next in ${left}`; t.textContent = nx.title
-          const go = document.createElement('button'); go.type = 'button'; go.className = 'go'; go.textContent = 'Play now'; go.addEventListener('click', () => { clearEnd(); nx.play() })
+          const go = document.createElement('button'); go.type = 'button'; go.className = 'vp-go'; go.textContent = 'Play now'; go.addEventListener('click', () => { clearEnd(); nx.play() })
           const stay = document.createElement('button'); stay.type = 'button'; stay.textContent = 'Cancel'; stay.addEventListener('click', () => { clearInterval(endT); k.textContent = 'Up next'; stay.remove() })
           acts.append(go, stay)
           endT = setInterval(() => { if (!end.isConnected) return clearInterval(endT); left--; if (left <= 0) { clearEnd(); nx.play() } else k.textContent = `Up next in ${left}` }, 1000)
@@ -16541,7 +16542,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       try {
         const media = await mediaSign({ library_id: r.id })
         if (LIB.current !== r) return   // they moved on while it was signing
-        storageVideo(player, media, r.id, { title: r.title, next: () => { const n = libNextOf(r); return n ? { title: n.title, play: () => openLibraryVideo(n, true) } : null } })
+        storageVideo(player, media, r.id, { title: r.title, poster: r.thumb_path ? `${SUPABASE_URL}/storage/v1/object/public/library-thumbs/${r.thumb_path}` : '', next: () => { const n = libNextOf(r); return n ? { title: n.title, play: () => openLibraryVideo(n, true) } : null } })
         const v = player.querySelector('video'), w = player.querySelector('.vp')
         w?.focus({ preventScroll: true })
         if (autoplay) v?.play().catch(() => {})

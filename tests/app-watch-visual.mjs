@@ -65,7 +65,7 @@ if (LIVE) {
   ok(!!end && /Up next in \d/.test(end.k) && end.btns.includes("Play now"), "when it ends it offers the next video with a countdown: " + JSON.stringify(end));
   await shot(PRE + "watch-end");
   const before = await page.textContent("#lib-title");
-  await page.locator("#lib-player .vp-end button.go").click(); await page.waitForTimeout(5000);
+  await page.locator("#lib-player .vp-end button.vp-go").click(); await page.waitForTimeout(5000);
   const after = await page.textContent("#lib-title");
   ok(after !== before && after === end.t, "Play now opens it: " + before + " -> " + after);
   await page.evaluate(() => { try { localStorage.setItem("echelon-vp-rate", "1") } catch {} });
