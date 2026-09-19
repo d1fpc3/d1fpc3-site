@@ -2612,6 +2612,39 @@
     .lib-player { position: relative; aspect-ratio: 16 / 9; background: #000; }
     .lib-player video { position: absolute; inset: 0; width: 100%; height: 100%; }
 
+    /* ── watch screen (2026-09-18): the video takes the window, sized to fit both ways so
+       nothing is ever cut off; the rest of the library waits in an Up next list ── */
+    .watch { position: fixed; inset: 0; z-index: 65; background: var(--bg); display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; animation: watch-in 0.32s cubic-bezier(.2,.8,.2,1); }
+    @keyframes watch-in { from { opacity: 0; transform: translateY(10px); } }
+    .watch-top { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 12px; padding: calc(12px + env(safe-area-inset-top, 0px)) clamp(14px, calc(2.4 * var(--vw)), 34px) 12px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .watch-back { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 500; padding: 8px 12px 8px 6px; margin-left: -6px; border-radius: 10px; cursor: pointer; flex: none; transition: background 0.25s cubic-bezier(.2,.8,.2,1), color 0.2s ease; -webkit-tap-highlight-color: transparent; }
+    .watch-back svg { width: 17px; height: 17px; transition: transform 0.3s cubic-bezier(.2,.8,.2,1); }
+    @media (hover: hover) { .watch-back:hover { background: var(--panel-2); color: var(--ink); } .watch-back:hover svg { transform: translateX(-2px); } }
+    .watch-title { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 12px; }
+    .watch-title h3 { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .watch-meta { font-size: 12.5px; color: var(--faint); white-space: nowrap; flex: none; }
+    .watch .lib-like { margin-left: 0; }
+    .watch-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 4px clamp(14px, calc(2.4 * var(--vw)), 34px) 28px; align-items: start; }
+    @media (min-width: 1100px) { .watch-body { grid-template-columns: minmax(0, 1fr) 340px; } }
+    .watch-main { min-width: 0; }
+    /* width is whichever is smaller: the column, or what the window's height allows at 16:9 */
+    .watch .lib-player { width: min(100%, calc((calc(100 * var(--dvh)) - 170px) * 16 / 9)); margin: 0 auto; border-radius: 14px; overflow: hidden; box-shadow: 0 30px 80px -40px rgba(0,0,0,0.9), 0 0 0 1px var(--line); }
+    .watch .lib-sum { padding: 16px 2px 0; max-width: 78ch; font-size: 14px; line-height: 1.65; }
+    .watch .lib-staff { padding: 18px 2px 0; }
+    .watch-next { min-width: 0; }
+    .watch-next .cap { font-size: 12.5px; font-weight: 600; color: var(--faint); padding: 2px 2px 10px; }
+    .wn { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; width: 100%; text-align: left; background: none; border: 0; padding: 8px; margin: 0 -8px; border-radius: 12px; color: var(--ink); font: inherit; cursor: pointer; transition: background 0.25s cubic-bezier(.2,.8,.2,1); -webkit-tap-highlight-color: transparent; }
+    @media (hover: hover) { .wn:hover { background: var(--panel-2); } } .wn:active { background: var(--panel-2); }
+    .wn .th { position: relative; aspect-ratio: 16 / 9; border-radius: 9px; overflow: hidden; background: linear-gradient(140deg, #23201d, #121110 70%); box-shadow: inset 0 0 0 1px var(--line); display: flex; align-items: center; justify-content: center; }
+    .wn .th img { width: 100%; height: 100%; object-fit: cover; } .wn .th img.logo { width: 26px; height: 26px; border-radius: 7px; opacity: 0.85; }
+    .wn .th .p { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,0.22); } .wn .th .p::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--p); background: var(--gold); }
+    .wn .t { font-size: 13px; font-weight: 600; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .wn .m { font-size: 11.5px; color: var(--faint); margin-top: 4px; } .wn .m .seen { color: var(--gold); }
+    .wn.first { background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); margin-bottom: 4px; }
+    @media (max-width: 1099px) { .watch .lib-player { width: min(100%, calc((calc(100 * var(--dvh)) - 120px) * 16 / 9)); border-radius: 0; margin: 0 calc(-1 * clamp(14px, calc(2.4 * var(--vw)), 34px)); width: calc(100% + 2 * clamp(14px, calc(2.4 * var(--vw)), 34px)); } .watch-meta { display: none; } .watch-back span { display: none; } }
+    @media (prefers-reduced-motion: reduce) { .watch { animation: none; } }
+    body.watching { overflow: hidden; } body.watching .nextup, body.watching .pm-stack { display: none !important; }
+
     /* ── video player: flat controls over the picture, gone when idle ── */
     .vp { position: absolute; inset: 0; background: #000; overflow: hidden; user-select: none; -webkit-user-select: none; outline: none; }
     .vp video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
@@ -2655,6 +2688,36 @@
     .vp .vp-row button svg { width: 20px; height: 20px; }
     .vp .vp-time { font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.85; margin: 0 4px; white-space: nowrap; }
     .vp .vp-right { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+    /* volume: the slider opens beside the speaker on hover */
+    .vp .vp-vol { display: flex; align-items: center; }
+    .vp .vp-vol input { -webkit-appearance: none; appearance: none; width: 0; opacity: 0; height: 3px; border-radius: 3px; background: linear-gradient(to right, #fff var(--v, 100%), rgba(255,255,255,0.28) var(--v, 100%)); margin: 0; cursor: pointer; transition: width 0.25s cubic-bezier(.2,.8,.2,1), opacity 0.2s ease, margin 0.25s ease; }
+    .vp .vp-vol:hover input, .vp .vp-vol input:focus-visible { width: 74px; opacity: 1; margin: 0 8px 0 2px; }
+    .vp .vp-vol input::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: #fff; border: 0; }
+    .vp .vp-vol input::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: #fff; border: 0; }
+    @media (hover: none) { .vp .vp-vol input { display: none; } }
+    /* speed menu */
+    .vp .vp-menu { position: absolute; right: 12px; bottom: 58px; min-width: 132px; padding: 6px; border-radius: 12px; background: rgba(18,17,16,0.94); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; flex-direction: column; gap: 1px; z-index: 4; animation: vp-pop 0.18s cubic-bezier(.2,.8,.2,1); transform-origin: 100% 100%; }
+    @keyframes vp-pop { from { opacity: 0; transform: scale(0.94) translateY(6px); } }
+    .vp .vp-menu button { display: flex; align-items: center; justify-content: space-between; gap: 14px; background: none; border: 0; color: #fff; font: inherit; font-size: 13px; padding: 8px 10px; border-radius: 8px; cursor: pointer; text-align: left; opacity: 0.85; }
+    .vp .vp-menu button:hover { background: rgba(255,255,255,0.1); opacity: 1; } .vp .vp-menu button.on { color: var(--gold); opacity: 1; } .vp .vp-menu button.on::after { content: "✓"; font-size: 12px; }
+    /* scrub preview, buffering, end screen */
+    .vp .vp-tip { position: absolute; bottom: 26px; transform: translateX(-50%); padding: 3px 7px; border-radius: 6px; background: rgba(0,0,0,0.85); color: #fff; font-size: 11.5px; font-variant-numeric: tabular-nums; pointer-events: none; opacity: 0; transition: opacity 0.12s ease; white-space: nowrap; }
+    .vp .vp-seek:hover .vp-tip, .vp .vp-seek.drag .vp-tip { opacity: 1; }
+    .vp .vp-seek .knob { position: absolute; top: 50%; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%; background: var(--gold); transform: scale(0); transition: transform 0.15s ease; pointer-events: none; }
+    .vp .vp-seek:hover .knob, .vp .vp-seek.drag .knob { transform: scale(1); }
+    .vp .vp-seek .track { overflow: visible; } .vp .vp-seek .buf, .vp .vp-seek .played { border-radius: 2px; }
+    .vp .vp-spin { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.18); border-top-color: #fff; animation: vp-spin 0.8s linear infinite; opacity: 0; pointer-events: none; transition: opacity 0.2s ease 0.25s; }
+    .vp.waiting .vp-spin { opacity: 1; } .vp.waiting .vp-big { opacity: 0 !important; }
+    @keyframes vp-spin { to { transform: rotate(360deg); } }
+    .vp .vp-time { cursor: pointer; border-radius: 6px; padding: 4px 6px; margin: 0 -2px 0 2px; } .vp .vp-time:hover { background: rgba(255,255,255,0.1); }
+    .vp .vp-end { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: rgba(0,0,0,0.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color: #fff; text-align: center; padding: 20px; animation: watch-in 0.3s ease; }
+    .vp .vp-end .k { font-size: 12.5px; color: rgba(255,255,255,0.6); } .vp .vp-end .t { font-size: clamp(16px, calc(2.2 * var(--vw)), 22px); font-weight: 650; letter-spacing: -0.01em; max-width: 30ch; }
+    .vp .vp-end .acts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+    .vp .vp-end button { height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25); background: none; color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background 0.2s ease, transform 0.2s ease; }
+    .vp .vp-end button:hover { background: rgba(255,255,255,0.12); } .vp .vp-end button:active { transform: scale(0.96); }
+    .vp .vp-end button.go { background: linear-gradient(135deg, #e6c878, var(--gold)); color: #1a1207; border-color: transparent; }
+    .vp:fullscreen .vp-bar, .vp:-webkit-full-screen .vp-bar { padding: 40px 22px 16px; } .vp:fullscreen .vp-row button svg { width: 24px; height: 24px; }
+    @media (prefers-reduced-motion: reduce) { .vp .vp-spin { animation-duration: 1.6s; } .vp .vp-menu, .vp .vp-end { animation: none; } }
     .vp video::cue { background: rgba(0,0,0,0.72); color: #fff; font-family: inherit; font-size: 0.92em; line-height: 1.4; font-weight: 500; }
     @media (max-width: 640px) { .vp .vp-row button { padding: 8px 7px; } .vp .vp-bar { padding: 22px 8px 8px; } .vp .vp-time { font-size: 11px; } }
     .lib-sum { padding: 12px 18px 16px; color: var(--muted); font-size: 13.5px; }
@@ -3751,15 +3814,20 @@
               </div>
             </div>
           </div>
-          <div class="dmpick-scrim" id="libmodal" hidden>
-            <div class="dmpick lib-player-box">
-              <div class="block-head"><h3 id="lib-title">Video</h3>
-                <button class="lib-like" id="lib-like" type="button" aria-label="Like this video" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5.2 5.2 0 0 0-7.4 0L12 7l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21.8l8.8-8.8a5.2 5.2 0 0 0 0-7.4z"/></svg><span id="lib-like-n"></span></button>
-                <button class="lib-share" id="lib-share" type="button" aria-label="Share this video" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg></button>
-                <button class="x-close" id="lib-x" type="button" aria-label="Close">&times;</button></div>
-              <div class="lib-player" id="lib-player"></div>
-              <p class="lib-sum" id="lib-sum" hidden></p>
-              <div class="lib-staff" id="lib-staff" hidden></div>
+          <div class="watch" id="libmodal" hidden>
+            <div class="watch-top">
+              <button class="watch-back" id="lib-x" type="button" aria-label="Back to the library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span>Library</span></button>
+              <div class="watch-title"><h3 id="lib-title">Video</h3><span class="watch-meta" id="lib-meta"></span></div>
+              <button class="lib-like" id="lib-like" type="button" aria-label="Like this video" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5.2 5.2 0 0 0-7.4 0L12 7l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21.8l8.8-8.8a5.2 5.2 0 0 0 0-7.4z"/></svg><span id="lib-like-n"></span></button>
+              <button class="lib-share" id="lib-share" type="button" aria-label="Share this video" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg></button>
+            </div>
+            <div class="watch-body">
+              <div class="watch-main">
+                <div class="lib-player" id="lib-player"></div>
+                <p class="lib-sum" id="lib-sum" hidden></p>
+                <div class="lib-staff" id="lib-staff" hidden></div>
+              </div>
+              <aside class="watch-next" id="lib-next" aria-label="Up next"></aside>
             </div>
           </div>
         </section>
@@ -5958,8 +6026,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // playback position per video, on this device: resume past ten seconds in, done past ninety-five percent
     const libPosKey = (id) => 'echelon-lib-pos:' + id
     function libPos(id) { try { return JSON.parse(localStorage.getItem(libPosKey(id)) || 'null') } catch { return null } }
-    function storageVideo(player, media, videoId) {
-      const video = mountPlayer(player, media.url, { tracks: media.tracks })
+    function storageVideo(player, media, videoId, extra = {}) {
+      const video = mountPlayer(player, media.url, { tracks: media.tracks, ...extra })
       video.addEventListener('loadeddata', () => {
         player.classList.remove('skel')
         const p = videoId ? libPos(videoId) : null
@@ -5973,7 +6041,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        scrub bar, speed (remembered), captions when the file has a track,
        picture-in-picture and fullscreen. Space/K, J/L, arrows, F, M, C and
        0-9 on the keyboard; tap to play, double-tap the sides to skip. */
-    const VP_RATES = [1, 1.25, 1.5, 2, 0.75]
+    const VP_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
     const vpTime = (s) => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0') }
     const VP_ICON = {
       play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
@@ -6012,15 +6080,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const fwd = btn('+10', 'Forward 10 seconds')
       const time = document.createElement('span'); time.className = 'vp-time'; time.textContent = '0:00 / 0:00'
       const right = document.createElement('div'); right.className = 'vp-right'
-      const rate = btn('1×', 'Playback speed')
+      const rate = btn('1×', 'Playback speed'); rate.setAttribute('aria-haspopup', 'menu')
       const cc = btn('CC', 'Captions'); cc.hidden = true
       const mute = btn('', 'Mute', VP_ICON.vol)
       const pip = btn('', 'Picture in picture', VP_ICON.pip); pip.hidden = !(document.pictureInPictureEnabled)
       const full = btn('', 'Fullscreen', VP_ICON.full)
-      right.append(rate, cc, mute, pip, full)
+      const volWrap = document.createElement('div'); volWrap.className = 'vp-vol'
+      const vol = document.createElement('input'); vol.type = 'range'; vol.min = '0'; vol.max = '1'; vol.step = '0.02'; vol.value = '1'; vol.setAttribute('aria-label', 'Volume')
+      volWrap.append(mute, vol)
+      const tip = document.createElement('div'); tip.className = 'vp-tip'; tip.textContent = '0:00'
+      const knob = document.createElement('div'); knob.className = 'knob'; track.appendChild(knob); seek.appendChild(tip)
+      const spin = document.createElement('div'); spin.className = 'vp-spin'
+      right.append(rate, cc, volWrap, pip, full)
       row.append(play, back, fwd, time, right)
       bar.append(seek, row)
-      wrap.append(video, tap, skipL, skipR, big, bar)
+      wrap.append(video, tap, skipL, skipR, big, spin, bar)
       host.appendChild(wrap)
 
       // state → chrome
@@ -6033,8 +6107,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const tick = () => {
         const d = video.duration || 0
         played.style.width = d ? (video.currentTime / d * 100) + '%' : '0'
+        knob.style.left = d ? (video.currentTime / d * 100) + '%' : '0'
         try { const b = video.buffered; if (b.length && d) buf.style.width = (b.end(b.length - 1) / d * 100) + '%' } catch {}
-        time.textContent = vpTime(video.currentTime) + ' / ' + vpTime(d)
+        time.textContent = wrap.dataset.left === '1' && d ? '-' + vpTime(d - video.currentTime) : vpTime(video.currentTime) + ' / ' + vpTime(d)
+      }
+      // volume is remembered; the slider's fill follows it
+      const setVol = (v, save = true) => { v = Math.min(1, Math.max(0, v)); video.volume = v; if (v > 0) video.muted = false; vol.value = String(video.muted ? 0 : v); vol.style.setProperty('--v', (video.muted ? 0 : v) * 100 + '%'); mute.innerHTML = video.muted || v === 0 ? VP_ICON.mute : VP_ICON.vol; mute.classList.toggle('on', video.muted || v === 0); if (save) { try { localStorage.setItem('echelon-vp-vol', String(v)) } catch {} } }
+      // speed is a menu, not a cycle
+      let menu = null
+      const closeMenu = () => { menu?.remove(); menu = null; rate.setAttribute('aria-expanded', 'false') }
+      const openMenu = () => {
+        if (menu) return closeMenu()
+        menu = document.createElement('div'); menu.className = 'vp-menu'; menu.setAttribute('role', 'menu')
+        for (const r of VP_RATES) { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitemradio'); b.textContent = r === 1 ? 'Normal' : r + '×'; if (video.playbackRate === r) b.classList.add('on'); b.addEventListener('click', (e) => { e.stopPropagation(); setRate(r); closeMenu(); wrap.focus() }); menu.appendChild(b) }
+        wrap.appendChild(menu); rate.setAttribute('aria-expanded', 'true')
       }
       const setRate = (r) => { video.playbackRate = r; rate.textContent = (r === 1 ? '1' : String(r)) + '×'; rate.classList.toggle('on', r !== 1); try { localStorage.setItem('echelon-vp-rate', String(r)) } catch {} }
       const skip = (s) => { video.currentTime = Math.min(video.duration || Infinity, Math.max(0, video.currentTime + s)); flash(s < 0 ? skipL : skipR) }
@@ -6062,14 +6148,43 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         // cues sit two lines up from the bottom so the control bar never covers them
         if (t) { const lift = () => { for (const c of t.cues ?? []) { c.snapToLines = true; c.line = -3 } }; lift(); t.addEventListener('cuechange', lift, { once: true }) }
         const saved = parseFloat(localStorage.getItem('echelon-vp-rate') || '1'); if (VP_RATES.includes(saved)) setRate(saved)
+        const sv = parseFloat(localStorage.getItem('echelon-vp-vol') ?? '1'); setVol(isNaN(sv) ? 1 : sv, false)
       })
       document.addEventListener('fullscreenchange', () => { full.innerHTML = isFull() ? VP_ICON.unfull : VP_ICON.full })
 
       play.addEventListener('click', toggle)
       back.addEventListener('click', () => skip(-10)); fwd.addEventListener('click', () => skip(10))
-      rate.addEventListener('click', () => setRate(VP_RATES[(VP_RATES.indexOf(video.playbackRate) + 1) % VP_RATES.length] ?? 1))
+      rate.addEventListener('click', (e) => { e.stopPropagation(); openMenu() })
+      wrap.addEventListener('click', (e) => { if (menu && !menu.contains(e.target) && e.target !== rate) closeMenu() })
+      time.addEventListener('click', () => { wrap.dataset.left = wrap.dataset.left === '1' ? '0' : '1'; tick() })
+      vol.addEventListener('input', () => setVol(parseFloat(vol.value)))
+      for (const ev of ['waiting', 'seeking']) video.addEventListener(ev, () => wrap.classList.add('waiting'))
+      for (const ev of ['playing', 'canplay', 'seeked', 'pause', 'ended', 'error']) video.addEventListener(ev, () => wrap.classList.remove('waiting'))
+      // scrub preview: the time under the pointer
+      seek.addEventListener('pointermove', (e) => { const r = seek.getBoundingClientRect(), f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); tip.style.left = (f * 100) + '%'; tip.textContent = vpTime(f * (video.duration || 0)) })
+      // end screen: replay, or roll into whatever the caller says is next
+      let endT = 0
+      const clearEnd = () => { clearInterval(endT); wrap.querySelector('.vp-end')?.remove() }
+      video.addEventListener('play', clearEnd); video.addEventListener('seeking', clearEnd)
+      video.addEventListener('ended', () => {
+        clearEnd(); if (isFull() && !opts.next?.()) { /* stay full for a replay */ }
+        const nx = opts.next?.() ?? null
+        const end = document.createElement('div'); end.className = 'vp-end'
+        const k = document.createElement('div'); k.className = 'k'; const t = document.createElement('div'); t.className = 't'
+        const acts = document.createElement('div'); acts.className = 'acts'
+        const again = document.createElement('button'); again.type = 'button'; again.textContent = 'Watch again'; again.addEventListener('click', () => { clearEnd(); video.currentTime = 0; video.play().catch(() => {}) })
+        acts.appendChild(again)
+        if (nx) {
+          let left = 8; k.textContent = `Up next in ${left}`; t.textContent = nx.title
+          const go = document.createElement('button'); go.type = 'button'; go.className = 'go'; go.textContent = 'Play now'; go.addEventListener('click', () => { clearEnd(); nx.play() })
+          const stay = document.createElement('button'); stay.type = 'button'; stay.textContent = 'Cancel'; stay.addEventListener('click', () => { clearInterval(endT); k.textContent = 'Up next'; stay.remove() })
+          acts.append(go, stay)
+          endT = setInterval(() => { if (!end.isConnected) return clearInterval(endT); left--; if (left <= 0) { clearEnd(); nx.play() } else k.textContent = `Up next in ${left}` }, 1000)
+        } else { k.textContent = 'Finished'; t.textContent = opts.title || '' }
+        end.append(k, t, acts); wrap.appendChild(end)
+      })
       cc.addEventListener('click', () => setCC(!cc.classList.contains('on')))
-      mute.addEventListener('click', () => { video.muted = !video.muted; mute.innerHTML = video.muted ? VP_ICON.mute : VP_ICON.vol; mute.classList.toggle('on', video.muted) })
+      mute.addEventListener('click', () => { video.muted = !video.muted; setVol(video.muted ? video.volume : (video.volume || 0.6), false); if (video.muted) { vol.value = '0'; vol.style.setProperty('--v', '0%'); mute.innerHTML = VP_ICON.mute; mute.classList.add('on') } })
       pip.addEventListener('click', async () => { try { document.pictureInPictureElement ? await document.exitPictureInPicture() : await video.requestPictureInPicture() } catch {} })
       full.addEventListener('click', toggleFull)
 
@@ -6101,6 +6216,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (k === 'l' || k === 'arrowright') { e.preventDefault(); skip(k === 'l' ? 10 : 5) }
         else if (k === 'f') { e.preventDefault(); toggleFull() }
         else if (k === 'm') { e.preventDefault(); mute.click() }
+        else if (k === 'arrowup') { e.preventDefault(); setVol((video.muted ? 0 : video.volume) + 0.1) }
+        else if (k === 'arrowdown') { e.preventDefault(); setVol((video.muted ? 0 : video.volume) - 0.1) }
+        else if (k === '>' || k === '.') { e.preventDefault(); setRate(VP_RATES[Math.min(VP_RATES.length - 1, VP_RATES.indexOf(video.playbackRate) + 1)] ?? 1) }
+        else if (k === '<' || k === ',') { e.preventDefault(); setRate(VP_RATES[Math.max(0, VP_RATES.indexOf(video.playbackRate) - 1)] ?? 1) }
+        else if (k === 'n' && opts.next?.()) { e.preventDefault(); opts.next().play() }
+        else if (k === 'escape' && menu) { e.stopPropagation(); closeMenu() }
         else if (k === 'c') { e.preventDefault(); if (!cc.hidden) cc.click() }
         else if (/^[0-9]$/.test(k) && video.duration) { e.preventDefault(); video.currentTime = video.duration * Number(k) / 10 }
         wake()
@@ -16369,8 +16490,42 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         : await supabase.from('library_likes').delete().eq('video_id', r.id).eq('user_id', state.user.id)
       if (error && !/duplicate/i.test(error.message)) { LIB.likes.set(r.id, cur); libLikePaint(); toast('Could not save that like.') }
     })
-    async function openLibraryVideo(r) {
+    // what plays after this one: the next older video in the same category, else the next older one at all
+    function libNextOf(r) {
+      const rows = (LIB.rows || []).filter((x) => x.is_published !== false), i = rows.findIndex((x) => x.id === r.id)
+      const after = rows.slice(i + 1)
+      return after.find((x) => x.category === r.category) ?? after[0] ?? rows.find((x) => x.id !== r.id && !LIB.views?.has(x.id)) ?? null
+    }
+    function libNextPaint(r) {
+      const host = el('lib-next'); if (!host) return
+      host.textContent = ''
+      const first = libNextOf(r)
+      const rest = (LIB.rows || []).filter((x) => x.id !== r.id && x.is_published !== false && x !== first)
+      const list = [first, ...rest].filter(Boolean).slice(0, 12)
+      if (!list.length) return
+      const cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = 'Up next'; host.appendChild(cap)
+      list.forEach((x, i) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'wn' + (i === 0 ? ' first' : ''); b.dataset.id = x.id
+        const th = document.createElement('div'); th.className = 'th'
+        const img = document.createElement('img'); img.alt = ''; img.loading = 'lazy'
+        if (x.thumb_path) img.src = `${SUPABASE_URL}/storage/v1/object/public/library-thumbs/${x.thumb_path}`; else { img.src = '/echelon/assets/logo-mark.png'; img.className = 'logo' }
+        th.appendChild(img)
+        const p = libPos(x.id), frac = p && p.d ? p.t / p.d : 0
+        if (frac > 0.02 && frac < 0.95) { const bar = document.createElement('span'); bar.className = 'p'; bar.style.setProperty('--p', (frac * 100).toFixed(1) + '%'); th.appendChild(bar) }
+        const tx = document.createElement('div'); const t = document.createElement('div'); t.className = 't'; t.textContent = x.title
+        const m = document.createElement('div'); m.className = 'm'
+        m.textContent = `${LIB_NAME[x.category] ?? x.category} · ${new Date(x.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+        if (frac >= 0.95 || (LIB.views?.has(x.id) && !p)) { const sn = document.createElement('span'); sn.className = 'seen'; sn.textContent = ' · Watched'; m.appendChild(sn) }
+        tx.append(t, m); b.append(th, tx)
+        b.addEventListener('click', () => openLibraryVideo(x, true))
+        host.appendChild(b)
+      })
+    }
+    async function openLibraryVideo(r, autoplay = false) {
       LIB.current = r
+      document.body.classList.add('watching')
+      const meta = el('lib-meta'); if (meta) meta.textContent = `${LIB_NAME[r.category] ?? r.category} · ${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      libNextPaint(r); el('libmodal').scrollTop = 0
       libLikePaint(); libStaffPaint()
       // opened from Today before the library loaded: fetch this video's likes on their own
       if (!LIB.likes?.has(r.id)) supabase.from('library_likes').select('user_id').eq('video_id', r.id).then(({ data }) => { if (!data || LIB.current !== r) return; if (!LIB.likes) LIB.likes = new Map(); if (!LIB.likes.has(r.id)) { LIB.likes.set(r.id, { n: data.length, me: data.some((x) => x.user_id === state.user.id) }); libLikePaint() } })
@@ -16385,7 +16540,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('libmodal').hidden = false
       try {
         const media = await mediaSign({ library_id: r.id })
-        storageVideo(player, media, r.id)
+        if (LIB.current !== r) return   // they moved on while it was signing
+        storageVideo(player, media, r.id, { title: r.title, next: () => { const n = libNextOf(r); return n ? { title: n.title, play: () => openLibraryVideo(n, true) } : null } })
+        const v = player.querySelector('video'), w = player.querySelector('.vp')
+        w?.focus({ preventScroll: true })
+        if (autoplay) v?.play().catch(() => {})
       } catch (err) {
         player.classList.remove('skel')
         const notice = document.createElement('p'); notice.className = 'notice'
@@ -16395,7 +16554,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     }
     document.body.appendChild(el('libmodal'))
-    const libClose = () => { el('libmodal').hidden = true; el('lib-player').textContent = '' }
+    const libClose = () => { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); el('libmodal').hidden = true; el('lib-player').textContent = ''; LIB.current = null; document.body.classList.remove('watching') }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !el('libmodal').hidden && !document.fullscreenElement && !document.querySelector('.vp-menu')) { e.preventDefault(); el('lib-x').click() } })
     el('lib-x').addEventListener('click', libClose)
     el('lib-share').addEventListener('click', () => { if (LIB.current) openVideoCard(LIB.current) })
 
