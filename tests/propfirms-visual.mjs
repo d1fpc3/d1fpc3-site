@@ -12,8 +12,8 @@ import { existsSync, mkdirSync, readFileSync } from "fs";
 import { tmpdir, homedir } from "os";
 import { join } from "path";
 const require = createRequire(import.meta.url);
-const LOCAL_PW = "C:/Users/Deb/Desktop/Projects/outback-running-club/client/node_modules/playwright";
-const { chromium, devices } = require(existsSync(LOCAL_PW) ? LOCAL_PW : "playwright");
+const PW_PATHS = ["C:/Users/Deb/Desktop/Projects/outback-running-club/client/node_modules/playwright", "C:/Users/clari/OneDrive/Desktop/Projects/clients/outback-running-club/client/node_modules/playwright"];
+const { chromium, devices } = require(PW_PATHS.find((p) => existsSync(p)) || "playwright");
 
 const OUT = process.env.OUT || `${tmpdir()}/propfirms-shots`;
 mkdirSync(OUT, { recursive: true });

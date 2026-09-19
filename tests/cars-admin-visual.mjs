@@ -8,8 +8,8 @@ import { createRequire } from "module";
 import { existsSync, mkdirSync } from "fs";
 import { tmpdir } from "os";
 const require = createRequire(import.meta.url);
-const LOCAL_PW = "C:/Users/Deb/Desktop/Projects/outback-running-club/client/node_modules/playwright";
-const { chromium } = require(existsSync(LOCAL_PW) ? LOCAL_PW : "playwright");
+const PW_PATHS = ["C:/Users/Deb/Desktop/Projects/outback-running-club/client/node_modules/playwright", "C:/Users/clari/OneDrive/Desktop/Projects/clients/outback-running-club/client/node_modules/playwright"];
+const { chromium } = require(PW_PATHS.find((p) => existsSync(p)) || "playwright");
 
 const OUT = process.env.OUT || `${tmpdir()}/cars-admin-shots`;
 mkdirSync(OUT, { recursive: true });
