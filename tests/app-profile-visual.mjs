@@ -49,7 +49,8 @@ const view = async (v) => { await page.evaluate((v) => document.querySelector(`.
 
 // nav
 const navBox = await page.locator("#bnav").boundingBox();
-if (!navBox || navBox.height > 50) fails.push(`nav height ${navBox?.height}`);
+// the floating tab bar is 60 tall since the 2026-09-12 phone redesign
+if (!navBox || navBox.height > 64) fails.push(`nav height ${navBox?.height}`);
 if (!(await page.locator('#bnav button[data-view="overview"] svg path[d^="M3 10.5"]').count())) fails.push("home icon missing");
 if (!(await page.locator('#bnav button[data-view="chat"] .bcount').count())) fails.push("chat count bubble slot missing");
 // fake an unread count and check the bubble mirrors it

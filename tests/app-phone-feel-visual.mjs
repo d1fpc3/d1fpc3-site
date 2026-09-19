@@ -172,7 +172,8 @@ const lift = (cdp) => cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", t
 {
   const { ctx, page } = await ctxFor(false);
   const parent = await page.evaluate(() => document.getElementById("promostack")?.parentNode?.tagName);
-  if (parent !== "BODY") fails.push("desktop promo stack parent: " + parent);
+  // the promo stack is docked inside Overview at every width since 2026-09-17
+  if (parent !== "SECTION" && parent !== "BODY") fails.push("desktop promo stack parent: " + parent);
   await ctx.close();
 }
 

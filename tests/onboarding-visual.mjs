@@ -100,7 +100,10 @@ await sql(`update member_onboarding o set completed_at = null, answers = '{}'::j
   if (Object.keys(row?.answers ?? {}).length !== 5) fails.push("answers not persisted: " + JSON.stringify(row?.answers));
   // Overview nudge for the included LIT (this account has no TV username yet)
   const nudge = await page.locator("#ov-lit").isVisible();
-  if (!nudge) fails.push("Overview LIT nudge hidden");
+  // the nudge only applies while the LIT row is waiting for a username; a revoked or granted row hides it on purpose
+  const litState = (await sql(`select state from tv_access where lower(email) = '${q(email.toLowerCase())}' and product = 'd1-lit' limit 1`))[0]?.state;
+  if (litState === "needs_username" && !nudge) fails.push("Overview LIT nudge hidden");
+  if (litState !== "needs_username" && nudge) fails.push("Overview LIT nudge showing for a " + litState + " row");
   await shot("05-overview-nudge");
   await page.evaluate(() => document.querySelector('.tab[data-view="indicators"]').click());
   await page.waitForTimeout(500);
@@ -118,40 +121,8 @@ await sql(`update member_onboarding o set completed_at = null, answers = '{}'::j
   await ctx.close();
 }
 
-// ── 2. the owner's GEX tour, remembered server-side ─────────────
-const owner = (await sql("select email from admins order by added_at limit 1"))[0].email;
-await sql(`update member_onboarding o set flags = flags - 'gex_tour' from auth.users u where o.user_id = u.id and u.email = '${q(owner)}'`);
-{
-  const { ctx, page } = await context(await mint(owner));
-  await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#td-h1", { timeout: 20000 });
-  await page.evaluate(() => document.querySelector('.tab[data-view="gex"]').click());
-  await page.waitForSelector(".tour-card", { timeout: 15000 });
-  await page.waitForTimeout(400);
-  await page.screenshot({ path: `${OUT}/${PHONE ? "phone-" : ""}07-gex-tour.png` });
-  // scroll mid-tour: the ring must stay on its target
-  await page.mouse.wheel(0, 300); await page.waitForTimeout(250);
-  const drift = await page.evaluate(() => {
-    const ring = document.querySelector(".tour-ring").getBoundingClientRect();
-    const id = ["gex-read", "gex-regime", "gex-view", "gex-set", "gex-stage"].find((i) => { const r = document.getElementById(i)?.getBoundingClientRect(); return r && Math.abs(r.top - 8 - ring.top) < 3; });
-    return id ? 0 : ring.top;
-  });
-  if (drift) fails.push(`tour ring drifted after scroll (ring top ${drift})`);
-  await page.click(".tour-card .tour-skip");
-  await page.waitForTimeout(900);
-  const flags = (await sql(`select o.flags from member_onboarding o join auth.users u on u.id = o.user_id where u.email = '${q(owner)}'`))[0]?.flags;
-  if (!flags?.gex_tour) fails.push("gex_tour flag not persisted: " + JSON.stringify(flags));
-  await ctx.close();
-  // fresh context = empty localStorage, like a hard refresh in the desktop shell
-  const again = await context(await mint(owner));
-  await again.page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-  await again.page.waitForSelector("#td-h1", { timeout: 20000 });
-  await again.page.evaluate(() => document.querySelector('.tab[data-view="gex"]').click());
-  await again.page.waitForTimeout(2500);
-  if (await again.page.locator(".tour-card").count()) fails.push("GEX tour replayed with empty localStorage");
-  await again.ctx.close();
-}
+// (Part 2 tested the GEX walkthrough. That walkthrough was retired on 2026-09-10, and the test
+// cleared a flag on the real owner account to run, so it is gone. Never edit the owner's rows here.)
 
-await browser.close();
 if (fails.length) { console.error("FAIL\n - " + fails.join("\n - ")); process.exit(1); }
 console.log(`ok · shots in ${OUT}`);

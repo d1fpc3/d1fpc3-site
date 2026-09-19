@@ -74,7 +74,8 @@ const back = await page.evaluate(() => {
   const b = document.querySelector("#v-set-account .set-back"); const cs = getComputedStyle(b);
   return { underline: cs.textDecorationLine, bg: cs.backgroundColor, radius: cs.borderRadius };
 });
-if (!/underline/.test(back.underline)) fails.push(`set-back not underlined: ${JSON.stringify(back)}`);
+// the back control is a chevron button since 2026-09-18, not an underlined link
+if (/underline/.test(back.underline)) fails.push(`set-back is underlined again: ${JSON.stringify(back)}`);
 if (back.bg !== "rgba(0, 0, 0, 0)" && back.bg !== "transparent") fails.push(`set-back has a background: ${back.bg}`);
 
 // feed: transparent bar (light theme) + glass bell + condensed meta + likers sheet
