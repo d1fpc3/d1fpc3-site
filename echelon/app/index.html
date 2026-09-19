@@ -12188,6 +12188,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       for (let i = 0; i < bars.length; i++) { s += bars[i].v; if (i >= n) s -= bars[i - n].v; v[i] = i >= n - 1 ? s / n : null }
       chVolMaCache = { key, v }; return v
     }
+    // chAdjBase lifts every bar before a contract roll by the gaps of the rolls that follow it
+    // (S.badj, on by default). Archived GEX prices are raw NQ from the day they were printed, so
+    // without the same lift a pre-roll session draws its zones ~296 points away from its own candles.
+    function chGexAdj(t) {
+      if (!CH.s.badj) return 0
+      let add = 0
+      for (const R of chRollsOf(chStoreFor(CH.sym))) if (R.t >= t) add += R.gap
+      return add
+    }
     function chGexLevels() {
       if (chFam() !== 'NQ') return []
       const g = CH.gexLive || GEX.live; if (!g || !CH.s.gex || !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return []
@@ -12599,17 +12608,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (!g) continue
         if (g.zdte?.callWall?.qqq != null && g.zdte.callWall.qqq === g.zdte?.putWall?.qqq) continue   // a degenerate print (both walls on one strike) is not drawn
         // the newest session on the chart runs into the right margin (live day, or the last one while the market is shut), so its names clear the candles
+        // this session's back-adjustment, applied to every archived price below
+        const adj = chGexAdj(bars[sp.i0].t)
+        const Ya = (p) => Y(p + adj)
         const x0 = X(sp.i0) - CH.barW / 2, x1 = sp.k === todayKey || sp.i1 === n - 1 ? L.plotW : X(sp.i1) + CH.barW / 2
         const xa = Math.max(0, x0), xb = Math.min(L.plotW, x1), wide = xb - xa; if (wide < 2) continue
-        if (S.gexGtbr !== false && g.gtbr?.upperNQ && g.gtbr?.lowerNQ) { ctx.fillStyle = alpha(cc('gexGtbrC'), S.gexGtbrF ?? 0.06); ctx.fillRect(xa, Y(g.gtbr.upperNQ), wide, Y(g.gtbr.lowerNQ) - Y(g.gtbr.upperNQ)) }
+        if (S.gexGtbr !== false && g.gtbr?.upperNQ && g.gtbr?.lowerNQ) { ctx.fillStyle = alpha(cc('gexGtbrC'), S.gexGtbrF ?? 0.06); ctx.fillRect(xa, Ya(g.gtbr.upperNQ), wide, Ya(g.gtbr.lowerNQ) - Ya(g.gtbr.upperNQ)) }
         const zones = chGexZones(g, S)
         for (const zn of zones) {
-          const base = cc(CH_GEX_KIND_C[zn.kind]), yMid = Y(zn.px); if (yMid < -20 || yMid > L.mainH + 20) { zn.off = true; continue }
+          const base = cc(CH_GEX_KIND_C[zn.kind]), yMid = Ya(zn.px); if (yMid < -20 || yMid > L.mainH + 20) { zn.off = true; continue }
           const half = zn.kind === 5 ? band / 2 : zn.kind === 4 || zn.kind === 6 ? 0 : band
           zn.top = yMid
           if (half > 0) {
             // a zone, never thinner than a few px so it survives the zoomed-out timeframes
-            let top = Y(zn.px + half), bot = Y(zn.px - half); const minH = zn.kind === 5 ? 3 : 5
+            let top = Ya(zn.px + half), bot = Ya(zn.px - half); const minH = zn.kind === 5 ? 3 : 5
             if (bot - top < minH) { top = yMid - minH / 2; bot = yMid + minH / 2 }
             zn.top = top
             ctx.fillStyle = alpha(base, zn.dim ? 0.07 : zn.kind === 5 ? 0.12 : 0.15); ctx.fillRect(xa, top, wide, bot - top)
@@ -12626,7 +12638,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           for (const zn of zones.filter((q) => !q.off).sort((p, q) => (p.dim - q.dim) || (p.kind - q.kind))) {
             const ly = zn.top - 5; if (ly < 10 || placed.some((py) => Math.abs(py - ly) < 12)) continue
             const tier = zn.tier >= 3 ? ' [+++]' : zn.tier === 2 ? ' [++]' : zn.tier === 1 ? ' [+]' : ''
-            const txt = `${zn.name}${tier}${S.gexPx ? '  ' + Math.round(zn.px).toLocaleString() : ''}`
+            const txt = `${zn.name}${tier}${S.gexPx ? '  ' + Math.round(zn.px + adj).toLocaleString() : ''}`
             const tw = ctx.measureText(txt).width; if (tw > wide - 12) continue
             // a plate in the chart's own colour keeps the name readable over candles, PO3 bars and other zones
             if (/^#[0-9a-f]{6}$/i.test(CH.bgNow || '')) { ctx.fillStyle = alpha(CH.bgNow, 0.82); ctx.fillRect(xb - 9 - tw, ly - 10, tw + 6, 13) }
