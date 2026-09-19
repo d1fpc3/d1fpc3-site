@@ -31,7 +31,7 @@ if (!session.access_token) throw new Error("verify failed");
 const fails = [];
 const note = (s) => console.log("  " + s);
 const json = (body, status = 200) => ({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
-const live = await (await fetch("https://gex-worker.frankiepc3.workers.dev/gex.json")).json();
+const live = await (await fetch("https://gex-worker.d1fpc3.workers.dev/gex.json")).json();
 const liveDay = live.generatedAt.slice(0, 10);
 const dayBefore = (d, n) => { const t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() - n); return t.toISOString().slice(0, 10); };
 const ARCH = dayBefore(liveDay, 1), TRAIL1 = dayBefore(liveDay, 2), TRAIL2 = dayBefore(liveDay, 3);
