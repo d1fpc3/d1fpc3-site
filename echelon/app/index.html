@@ -12580,12 +12580,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chGexRead(g, last) {
       const z = g?.zdte || {}, net = z.netGexM; if (net == null || last == null) return ''
       const cw = z.callWall?.nq, pw = z.putWall?.nq, flip = z.flip?.nq ?? g.swing?.flip?.nq, above = flip == null || last >= flip
-      if (cw != null && pw != null && cw > pw && last > cw) return 'Above the call wall (stretched): holding = wall turns support, back under = fade to the flip.'
-      if (cw != null && pw != null && cw > pw && last < pw) return 'Below the put wall (stretched): holding below = wall turns resistance, hedging can speed the drop.'
-      if (net >= 0 && above) return 'Dealers absorb moves: expect chop. Fade into the walls, target the flip.'
-      if (net >= 0) return 'Positive book, price under the flip: fades are weaker until the flip is reclaimed.'
-      if (!above) return 'Dealers chase moves: expect trend. Breaks run to the next level, do not fade.'
-      return 'Negative book, price above the flip: fragile calm. Losing the flip = acceleration.'
+      if (cw != null && pw != null && cw > pw && last > cw) return 'Price is above the call wall: outside the heaviest call gamma on the book.'
+      if (cw != null && pw != null && cw > pw && last < pw) return 'Price is below the put wall: outside the heaviest put gamma on the book.'
+      if (net >= 0 && above) return 'Positive book, price above the flip: modelled hedging leans against moves.'
+      if (net >= 0) return 'Positive book, price below the flip: the two disagree, treat the regime as unsettled.'
+      if (!above) return 'Negative book, price below the flip: modelled hedging leans with moves.'
+      return 'Negative book, price above the flip: the two disagree, treat the regime as unsettled.'
     }
     // the print the newest session is painted from: live while it trades, its morning print once the market is shut
     function chGexNow() { const live = CH.gexLive || GEX.live; if (!live || chSession().key === 'open') return live; return chGexPrint(live.generatedAt.slice(0, 10)) || live }
