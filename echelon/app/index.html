@@ -11117,9 +11117,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (flip != null && last != null) {
         const diff = Math.round(last - flip), above = diff >= 0
         read = `Price sits <b>${Math.abs(diff)} ${above ? 'above' : 'below'} the flip</b>. `
-        if (neg) read += above ? `Expect expansion, not mean reversion. A loss of ${tdInt(flip)} hands control to the put wall.` : `Below the flip in negative gamma: breaks run. Reclaiming ${tdInt(flip)} is the first thing bulls need.`
-        else if (pos) read += above ? `Dips get bought, rips get sold. The call wall at ${tdInt(call)} is the ceiling to respect.` : `Under the flip even in positive gamma: expect chop toward the put wall at ${tdInt(put)}.`
-        else read += 'Let the first hour decide the regime before leaning on either wall.'
+        // states where price sits in the modelled book. It does not tell anyone what to do: nothing
+        // measured supports predicting price from these levels (see the chart legend read, chGexRead).
+        if (neg) read += above ? `The book is negative, so modelled hedging leans with moves. Next level below is ${tdInt(flip)}.` : `Negative book and below the flip: modelled hedging leans with moves. ${tdInt(flip)} is the level back above.`
+        else if (pos) read += above ? `The book is positive, so modelled hedging leans against moves. Heaviest call gamma sits at ${tdInt(call)}.` : `Positive book but below the flip: the two disagree, so treat the regime as unsettled. Heaviest put gamma sits at ${tdInt(put)}.`
+        else read += 'The book is close to flat, so the modelled regime is unsettled.'
       }
       // a level the sheet does not have (no flip on a one-sided book) gets no tile, not an empty one
       const lvls = [['Flip', 'flip', flip], ['Call wall', 'call', call], ['Put wall', 'put', put]].filter((l) => l[2] != null && !isNaN(l[2]))
