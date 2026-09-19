@@ -92,6 +92,28 @@ try {
   ok(row.discord_notified_at === null && row.discord_attempts === 0 && row.discord_claimed_at === null,
     "a dry run stamps nothing", JSON.stringify(row));
 
+  // The silent killer. A webhook role ping only NOTIFIES anyone while the role
+  // itself is mentionable; with the flag off the pill still renders and
+  // mention_roles still comes back populated, so the message looks perfect and
+  // not one member is told. Turning that flag off is an invisible outage.
+  const botToken = process.env.DISCORD_BOT_TOKEN ?? (() => {
+    try {
+      return readFileSync("C:/Users/clari/OneDrive/Desktop/Projects/tools/discord-risk-bot/.dev.vars", "utf8")
+        .split(/\r?\n/).find((l) => l.startsWith("DISCORD_BOT_TOKEN="))
+        ?.split("=").slice(1).join("=").replace(/^"|"$/g, "").trim();
+    } catch { return null; }
+  })();
+  if (botToken) {
+    const r = await fetch("https://discord.com/api/v10/guilds/1337876787945930762/roles", {
+      headers: { Authorization: `Bot ${botToken}`, "User-Agent": "DiscordBot (https://d1fpc3.com, 1.0)" },
+    });
+    const role = (await r.json()).find((x) => x.id === "1526380253981966346");
+    ok(role?.mentionable === true, "the Echelon role is mentionable, so the ping actually notifies people",
+      `mentionable=${role?.mentionable}`);
+  } else {
+    console.log("SKIP  role mentionable check: no DISCORD_BOT_TOKEN. If the ping stops notifying, check that flag first.");
+  }
+
   const anon = await call(ANON, { mode: "test" });
   ok(anon.status === 401, "the anon key is turned away", `status ${anon.status}`);
   const bare = await fetch(FN, { method: "POST" });
