@@ -11811,7 +11811,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       litPdC: '', litPdW: 1, litPwC: '', litPwW: 1, litWoC: '', litWoW: 2, litAsiaC: '', litAsiaF: 0.15, litNyC: '', litNyF: 0.1, litOpenC: '', litOpenW: 1, litMarksC: '', litKoC: '', litPo3Up: '', litPo3Dn: '', litEighthsC: '', litGoldC: '', litGoldW: 1, litVecUp: '', litVecDn: '', litLabels: true,
       cmp: false, cmpSym: 'auto', cmpC: '', cmpW: 1.4, cmpLabel: true,
       badj: true, rollMarks: true, smt: false, smtPeer: 'auto', smtLen: 5, smtBack: 600, smtBearC: '', smtBullC: '', smtW: 2, smtLabels: true, smtPeerMark: true,
-      axisInd: true, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true }
+      axisInd: true, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true, gexSwing: true, gexRn: 10, gexBand: 6, gexPx: false }
     const CH_MA_DEFAULT = () => [{ t: 'ema', n: 20, c: '#c9a24a', w: 1.2, on: true }, { t: 'ema', n: 50, c: '#7aa2d9', w: 1.2, on: true }, { t: 'ema', n: 200, c: '#d97ab0', w: 1.2, on: true }]
     const CH_MA_COLORS = ['#c9a24a', '#7aa2d9', '#d97ab0', '#5fc39a', '#e08a4b']
     // chart presets: a look in one click; every key not named falls back to the theme
@@ -12531,18 +12531,60 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const p = CH.gexPrints[day]; if (p !== undefined) return p
       const entry = GEX.days.find((d) => d.date === day)
       if (!entry || !entry.times?.length) { CH.gexPrints[day] = null; return null }
-      const t = entry.times.find((x) => x >= '0930') || entry.times[entry.times.length - 1]
+      const t = entry.times.find((x) => x >= '1000') || entry.times.find((x) => x >= '0930') || entry.times[entry.times.length - 1]   // 10:00: option quotes are 15 minutes delayed and carry no gamma through the opening rotation, so earlier prints are unreliable
       CH.gexPrints[day] = null
       fetch(`${GEX_URL}/gex.json?day=${day}&t=${t}`, { cache: 'force-cache' }).then((r) => r.ok ? r.json() : null).then((j) => { CH.gexPrints[day] = j; chDraw() }).catch(() => {})
       return null
     }
-    const CH_GEX_DEF = { gexFlipC: '#ff9800', gexCallC: '#ef5350', gexPutC: '#26a69a', gexMajorC: '#c9a24a', gexRC: '#a0a0a0', gexGtbrC: '#c9a24a' }
-    const CH_GEX_PARTS = [['gexFlip', 'Gamma flip', 'gexFlipC'], ['gexCall', 'Call wall', 'gexCallC'], ['gexPut', 'Put wall', 'gexPutC'], ['gexMajor', 'Major wall', 'gexMajorC'], ['gexR', 'Top gamma strikes', 'gexRC'], ['gexGtbr', 'GTBR band', 'gexGtbrC']]
+    const CH_GEX_DEF = { gexFlipC: '#2962ff', gexCallC: '#ef5350', gexPutC: '#26a69a', gexMajorC: '#c9a24a', gexRC: '#5b8db8', gexGtbrC: '#c9a24a' }
+    const CH_GEX_PARTS = [['gexFlip', 'Gamma flip', 'gexFlipC'], ['gexCall', 'Call wall', 'gexCallC'], ['gexPut', 'Put wall', 'gexPutC'], ['gexMajor', 'Major wall', 'gexMajorC'], ['gexR', 'Ranked gamma levels (Γ)', 'gexRC'], ['gexGtbr', 'Session range (1σ)', 'gexGtbrC']]
+    const CH_GEX_KIND_C = { 1: 'gexCallC', 2: 'gexPutC', 3: 'gexFlipC', 4: 'gexMajorC', 5: 'gexRC', 6: 'gexGtbrC' }
+    // Same rules as the D1 GEX Pine. Kinds in priority order: 1 call wall, 2 put wall, 3 flip, 4 major wall,
+    // 5 ranked gamma level, 6 session ceiling / floor. Levels that land on one NQ price merge into ONE zone
+    // with a joined name (the strongest kind keeps the colour) instead of stacking names on each other.
+    function chGexZones(g, S) {
+      const out = [], z = g.zdte || {}, sw = g.swing || {}, cv = g.conversion
+      const nqOf = (l) => l == null ? null : l.nq ?? ((l.qqq ?? l.strike) != null && cv ? Math.round((l.qqq ?? l.strike) * cv.divisor + cv.basis) : null)
+      const add = (px, name, kind, tier, dim) => {
+        if (px == null || isNaN(px)) return
+        const hit = out.find((o) => Math.abs(o.px - px) < 0.5)
+        if (!hit) { out.push({ px: +px, name, kind, tier: tier || 0, dim: !!dim }); return }
+        const lead = kind < hit.kind
+        hit.name = lead ? `${name} / ${hit.name}` : `${hit.name} / ${name}`
+        if (lead) hit.kind = kind
+        hit.tier = Math.max(hit.tier, tier || 0); hit.dim = hit.dim && !!dim
+      }
+      if (S.gexCall !== false) add(nqOf(z.callWall), 'Call Wall 0DTE', 1, z.callWall?.tier)
+      if (S.gexPut !== false) add(nqOf(z.putWall), 'Put Wall 0DTE', 2, z.putWall?.tier)
+      if (S.gexFlip !== false) add(nqOf(z.flip), 'Gamma Flip 0DTE', 3, z.flip?.tier)
+      if (S.gexSwing !== false) {
+        if (S.gexCall !== false) add(nqOf(sw.callWall), 'Call Wall', 1, sw.callWall?.tier)
+        if (S.gexPut !== false) add(nqOf(sw.putWall), 'Put Wall', 2, sw.putWall?.tier)
+        if (S.gexFlip !== false) add(nqOf(sw.flip), 'Gamma Flip', 3, sw.flip?.tier, true)
+      }
+      if (S.gexMajor !== false) add(nqOf(g.majorWall), 'Major Wall', 4, 0)
+      if (S.gexR !== false) for (const r of (g.rLevels || []).slice(0, S.gexRn ?? 10)) add(nqOf(r), `Γ-${r.rank ?? '?'}`, 5, r.tier, (r.rank ?? 9) > 3)
+      if (S.gexGtbr !== false) { add(g.gtbr?.upperNQ, 'Session Ceiling', 6, 0, true); add(g.gtbr?.lowerNQ, 'Session Floor', 6, 0, true) }
+      return out
+    }
+    // one line on what the regime means for price right now: context, never a signal
+    function chGexRead(g, last) {
+      const z = g?.zdte || {}, net = z.netGexM; if (net == null || last == null) return ''
+      const cw = z.callWall?.nq, pw = z.putWall?.nq, flip = z.flip?.nq ?? g.swing?.flip?.nq, above = flip == null || last >= flip
+      if (cw != null && pw != null && cw > pw && last > cw) return 'Above the call wall (stretched): holding = wall turns support, back under = fade to the flip.'
+      if (cw != null && pw != null && cw > pw && last < pw) return 'Below the put wall (stretched): holding below = wall turns resistance, hedging can speed the drop.'
+      if (net >= 0 && above) return 'Dealers absorb moves: expect chop. Fade into the walls, target the flip.'
+      if (net >= 0) return 'Positive book, price under the flip: fades are weaker until the flip is reclaimed.'
+      if (!above) return 'Dealers chase moves: expect trend. Breaks run to the next level, do not fade.'
+      return 'Negative book, price above the flip: fragile calm. Losing the flip = acceleration.'
+    }
+    // the print the newest session is painted from: live while it trades, its morning print once the market is shut
+    function chGexNow() { const live = CH.gexLive || GEX.live; if (!live || chSession().key === 'open') return live; return chGexPrint(live.generatedAt.slice(0, 10)) || live }
     function chPaintGex(ctx, L, T, R) {
       if (chFam() !== 'NQ') return
       if (!(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return
       const { bars, n, i0, i1 } = R; if (!n) return
-      const S = CH.s, X = (i) => chX(i, L), Y = (p) => chY(p, L), cc = (k) => S[k] || CH_GEX_DEF[k], lw = +S.gexW || 1
+      const S = CH.s, X = (i) => chX(i, L), Y = (p) => chY(p, L), cc = (k) => S[k] || CH_GEX_DEF[k], lw = +S.gexW || 1, band = S.gexBand ?? 6
       // group visible bars by session day
       const spans = new Map()
       for (let i = Math.max(0, i0); i <= Math.min(n - 1, i1); i++) { const k = chSessionKey(bars[i].t); let sp = spans.get(k); if (!sp) { sp = { k, i0: i, i1: i, t: bars[i].t }; spans.set(k, sp) } sp.i1 = i }
@@ -12550,22 +12592,45 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const dayStr = (t) => { const d = new Date((t + chEtOff(t) + 6 * 3600) * 1000); return d.toISOString().slice(0, 10) }
       for (const sp of spans.values()) {
         const day = dayStr(sp.t)
-        const g = (sp.k === todayKey || day === liveDay) ? GEX.live : chGexPrint(day)
+        // The live feed paints a session only while that session trades. After the bell its morning print takes over: the late
+        // 0DTE prints collapse onto the close, and drawn back across the day they look like levels price obeyed (hindsight).
+        const isLive = sp.k === todayKey || day === liveDay
+        const g = isLive && chSession().key === 'open' ? GEX.live : (chGexPrint(day) || (isLive ? GEX.live : null))
         if (!g) continue
-        const z = g.zdte || {}
-        const levels = [
-          ...(S.gexFlip !== false ? [['Gamma Flip', z.flip?.nq ?? (z.flip?.qqq != null && g.conversion ? Math.round(z.flip.qqq * g.conversion.divisor + g.conversion.basis) : null), cc('gexFlipC'), [], lw]] : []),
-          ...(S.gexCall !== false ? [['Call Wall', z.callWall?.nq, cc('gexCallC'), [], lw]] : []), ...(S.gexPut !== false ? [['Put Wall', z.putWall?.nq, cc('gexPutC'), [], lw]] : []),
-          ...(S.gexMajor !== false ? [['Major Wall', g.majorWall?.nq, cc('gexMajorC'), [6, 4], lw + 0.5]] : []),
-          ...(S.gexR !== false ? (g.rLevels || []).slice(0, 3).map((r, k) => [`GEX ${k + 1}`, r.nq, alpha(cc('gexRC'), 0.6), [2, 3], lw]) : []),
-        ]
-        const x0 = X(sp.i0) - CH.barW / 2, x1 = sp.k === todayKey ? L.plotW : X(sp.i1) + CH.barW / 2
-        if (S.gexGtbr !== false && g.gtbr?.upperNQ && g.gtbr?.lowerNQ) { ctx.fillStyle = alpha(cc('gexGtbrC'), S.gexGtbrF ?? 0.06); ctx.fillRect(Math.max(0, x0), Y(g.gtbr.upperNQ), Math.min(L.plotW, x1) - Math.max(0, x0), Y(g.gtbr.lowerNQ) - Y(g.gtbr.upperNQ)) }
-        for (const [name, px, color, dash, width] of levels) {
-          if (px == null || isNaN(px)) continue
-          const y = Math.round(Y(px)) + 0.5; if (y < -10 || y > L.mainH + 10) continue
-          ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(Math.max(0, x0), y); ctx.lineTo(Math.min(L.plotW, x1), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1
-          if (S.gexLabels !== false) { ctx.font = `600 9.5px ${GEX_FONT}`; ctx.textAlign = 'right'; ctx.fillStyle = color; ctx.fillText(`${name} ${Math.round(px).toLocaleString()}`, Math.min(L.plotW, x1) - 4, y - 6); ctx.font = `11px ${GEX_FONT}` }
+        if (g.zdte?.callWall?.qqq != null && g.zdte.callWall.qqq === g.zdte?.putWall?.qqq) continue   // a degenerate print (both walls on one strike) is not drawn
+        // the newest session on the chart runs into the right margin (live day, or the last one while the market is shut), so its names clear the candles
+        const x0 = X(sp.i0) - CH.barW / 2, x1 = sp.k === todayKey || sp.i1 === n - 1 ? L.plotW : X(sp.i1) + CH.barW / 2
+        const xa = Math.max(0, x0), xb = Math.min(L.plotW, x1), wide = xb - xa; if (wide < 2) continue
+        if (S.gexGtbr !== false && g.gtbr?.upperNQ && g.gtbr?.lowerNQ) { ctx.fillStyle = alpha(cc('gexGtbrC'), S.gexGtbrF ?? 0.06); ctx.fillRect(xa, Y(g.gtbr.upperNQ), wide, Y(g.gtbr.lowerNQ) - Y(g.gtbr.upperNQ)) }
+        const zones = chGexZones(g, S)
+        for (const zn of zones) {
+          const base = cc(CH_GEX_KIND_C[zn.kind]), yMid = Y(zn.px); if (yMid < -20 || yMid > L.mainH + 20) { zn.off = true; continue }
+          const half = zn.kind === 5 ? band / 2 : zn.kind === 4 || zn.kind === 6 ? 0 : band
+          zn.top = yMid
+          if (half > 0) {
+            // a zone, never thinner than a few px so it survives the zoomed-out timeframes
+            let top = Y(zn.px + half), bot = Y(zn.px - half); const minH = zn.kind === 5 ? 3 : 5
+            if (bot - top < minH) { top = yMid - minH / 2; bot = yMid + minH / 2 }
+            zn.top = top
+            ctx.fillStyle = alpha(base, zn.dim ? 0.07 : zn.kind === 5 ? 0.12 : 0.15); ctx.fillRect(xa, top, wide, bot - top)
+            ctx.strokeStyle = alpha(base, zn.dim ? 0.32 : 0.6); ctx.lineWidth = lw; ctx.strokeRect(xa + 0.5, Math.round(top) + 0.5, Math.max(1, wide - 1), Math.max(1, Math.round(bot - top)))
+          } else {
+            const y = Math.round(yMid) + 0.5
+            ctx.strokeStyle = alpha(base, zn.kind === 6 ? 0.5 : 0.9); ctx.lineWidth = zn.kind === 4 ? lw + 0.5 : lw; ctx.setLineDash(zn.kind === 4 ? [6, 4] : [2, 3]); ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, y); ctx.stroke(); ctx.setLineDash([])
+          }
+          ctx.lineWidth = 1
+        }
+        // names: right-aligned on top of each zone, strongest first; a name that would sit on another is dropped
+        if (S.gexLabels !== false && wide >= 140) {
+          ctx.font = `600 10.5px ${GEX_FONT}`; ctx.textAlign = 'right'; const placed = []
+          for (const zn of zones.filter((q) => !q.off).sort((p, q) => (p.dim - q.dim) || (p.kind - q.kind))) {
+            const ly = zn.top - 5; if (ly < 10 || placed.some((py) => Math.abs(py - ly) < 12)) continue
+            const tier = zn.tier >= 3 ? ' [+++]' : zn.tier === 2 ? ' [++]' : zn.tier === 1 ? ' [+]' : ''
+            const txt = `${zn.name}${tier}${S.gexPx ? '  ' + Math.round(zn.px).toLocaleString() : ''}`
+            if (ctx.measureText(txt).width > wide - 12) continue
+            ctx.fillStyle = alpha(cc(CH_GEX_KIND_C[zn.kind]), zn.dim ? 0.6 : 1); ctx.fillText(txt, xb - 6, ly); placed.push(ly)
+          }
+          ctx.font = `11px ${GEX_FONT}`
         }
       }
     }
@@ -12827,7 +12892,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.s.cmp) { const cmp = chCompare(); const cv = cmp?.v[i]; const c0 = cmp ? [...cmp.v].slice(0, Math.max(0, i)).reverse().find((x) => x != null) : null; rows.push(`<div class="ln" data-ind="cmp"><span class="nm" style="color:${CH.s.cmpC || '#ff9800'}">${cmp?.peer || chCmpSym()}</span><i>${cv != null ? chPx(cv) : '–'}</i>${cv != null && c0 != null ? `<span class="${cv >= c0 ? 'up' : 'down'}">${chPts(cv - c0)}</span>` : ''}${ic('cmp', 'ind:cmp')}</div>`) }
       if (CH.s.smt) rows.push(`<div class="ln" data-ind="smt"><span class="nm">SMT</span><span>${chSmtPeer()} ${CH.s.smtLen || 5}</span>${ic('smt', 'ind:smt')}</div>`)
       if (CH.s.prevDay && !CH.s.lit) rows.push(`<div class="ln" data-ind="prev"><span class="nm">PDH / PDL</span>${ic('prevDay', 'ind:prev')}</div>`)
-      if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = CH.gexLive || GEX.live, z = g?.zdte || {}; rows.push(`<div class="ln" data-ind="gex"><span class="nm">D1 GEX</span>${z.flip?.nq ? `<span>Flip <i>${Math.round(z.flip.nq).toLocaleString()}</i></span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${ic('gex', 'ind:gex')}</div>`) }
+      if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(), z = g?.zdte || {}; rows.push(`<div class="ln" data-ind="gex" title="${chGexRead(g, bars[bars.length - 1]?.c)}"><span class="nm">D1 GEX</span>${z.netGexM != null ? `<span><i style="color:${z.netGexM < 0 ? '#ef5350' : '#16a34a'}">${z.netGexM < 0 ? 'Negative' : 'Positive'} gamma</i></span>` : ''}${z.flip?.nq ? `<span>Flip <i>${Math.round(z.flip.nq).toLocaleString()}</i></span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${ic('gex', 'ind:gex')}</div>`) }
       const html = rows.join(''); if (lg._html !== html) { lg._html = html; lg.innerHTML = html }
     }
 
@@ -14133,7 +14198,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         button('Reset every LIT colour', () => { for (const [, , cKey, wKey, fKey, c2Key] of CH_LIT_PARTS) { S[cKey] = ''; if (c2Key) S[c2Key] = ''; if (wKey) S[wKey] = CH_DEFAULTS[wKey]; if (fKey) S[fKey] = CH_DEFAULTS[fKey] } chSave(); chDraw(); chMenu('ind:lit') })
       } else if (which === 'ind:gex') {
         toggle('gex', 'Show D1 GEX', 'Per session from the 9:30 print', () => { if (S.gex) chGexWarm() })
-        row('Line width', wselEl('gexW', 1)); toggle('gexLabels', 'Labels', 'Name and price on each level')
+        row('Line width', wselEl('gexW', 1)); toggle('gexLabels', 'Labels', 'Name on each zone'); toggle('gexPx', 'Price in labels', 'Adds the NQ price after the name'); toggle('gexSwing', 'Swing book', 'Walls and flip from the further-out expiries'); row('Zone height', rangeEl('gexBand', 0, 15, 0.5, 6), 'NQ points each side, 0 = lines'); row('Gamma levels shown', rangeEl('gexRn', 0, 10, 1, 10), 'Γ-1 is the biggest strike')
         header('Levels')
         for (const [key, label, cKey] of CH_GEX_PARTS) { const els = [colorEl(cKey, 'default')]; if (key === 'gexGtbr') { const r = rangeEl('gexGtbrF', 0, 0.4, 0.01, 0.06); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) } partRow(label, '', els, tglEl(key)) }
         button('Reset every GEX colour', () => { for (const [key, , cKey] of CH_GEX_PARTS) { S[cKey] = ''; S[key] = true } S.gexGtbrF = 0.06; S.gexW = 1; chSave(); chDraw(); chMenu('ind:gex') })
