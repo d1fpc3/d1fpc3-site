@@ -12627,7 +12627,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             const ly = zn.top - 5; if (ly < 10 || placed.some((py) => Math.abs(py - ly) < 12)) continue
             const tier = zn.tier >= 3 ? ' [+++]' : zn.tier === 2 ? ' [++]' : zn.tier === 1 ? ' [+]' : ''
             const txt = `${zn.name}${tier}${S.gexPx ? '  ' + Math.round(zn.px).toLocaleString() : ''}`
-            if (ctx.measureText(txt).width > wide - 12) continue
+            const tw = ctx.measureText(txt).width; if (tw > wide - 12) continue
+            // a plate in the chart's own colour keeps the name readable over candles, PO3 bars and other zones
+            if (/^#[0-9a-f]{6}$/i.test(CH.bgNow || '')) { ctx.fillStyle = alpha(CH.bgNow, 0.82); ctx.fillRect(xb - 9 - tw, ly - 10, tw + 6, 13) }
             ctx.fillStyle = alpha(cc(CH_GEX_KIND_C[zn.kind]), zn.dim ? 0.6 : 1); ctx.fillText(txt, xb - 6, ly); placed.push(ly)
           }
           ctx.font = `11px ${GEX_FONT}`
