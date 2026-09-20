@@ -26,6 +26,7 @@ const tokenFile = join(homedir(), ".supabase", "access-token");
 const mgmt = process.env.SUPABASE_ACCESS_TOKEN || (existsSync(tokenFile) ? readFileSync(tokenFile, "utf8").trim() : "");
 const email = process.env.EMAIL || "appreview@d1fpc3.com";
 const theme = process.env.THEME || "dark";
+const SYM = process.env.SYM || "";   // NQ | MNQ | ES | MES; empty keeps whatever is saved
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
 const service = keys.find((k) => k.name === "service_role").api_key;
 const anon = keys.find((k) => k.name === "anon").api_key;
@@ -57,14 +58,15 @@ const openChart = async (page) => {
 async function run(vpName) {
   console.log(`\n${vpName} · ${theme} · ${email}`);
   const ctx = await browser.newContext(VP[vpName]);
-  await ctx.addInitScript(([k, v, t]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", t); if (!localStorage.getItem("echelon-chart-tf")) localStorage.setItem("echelon-chart-tf", "5m"); if (!localStorage.getItem("echelon-chart-settings")) localStorage.setItem("echelon-chart-settings", JSON.stringify({ gex: true })); }, [`sb-${REF}-auth-token`, JSON.stringify(session), theme]);
+  await ctx.addInitScript(([k, v, t, sy]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", t); if (!localStorage.getItem("echelon-chart-tf")) localStorage.setItem("echelon-chart-tf", "5m"); if (!localStorage.getItem("echelon-chart-settings")) localStorage.setItem("echelon-chart-settings", JSON.stringify({ gex: true })); if (sy) localStorage.setItem("echelon-chart-sym", sy); }, [`sb-${REF}-auth-token`, JSON.stringify(session), theme, SYM]);
   const page = await ctx.newPage();
   page.on("pageerror", (e) => { note("PAGEERROR " + e.message); fails.push(`${vpName} pageerror: ${e.message}`) });
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
   await openChart(page);
 
-  const s0 = await page.evaluate(() => ({ gex: window.__CH.s.gex, swing: window.__CH.s.gexSwing, rn: window.__CH.s.gexRn, band: window.__CH.s.gexBand }));
+  const s0 = await page.evaluate(() => ({ gex: window.__CH.s.gex, swing: window.__CH.s.gexSwing, rn: window.__CH.s.gexRn, band: window.__CH.s.gexBand, sym: window.__CH.sym, books: Object.keys(window.__CH.gexBooks || {}), es: window.__CH.gexBooks?.es?.live?.underlying ?? null }));
   check(s0.gex === true && s0.swing === true && s0.rn === 10 && s0.band === 6, `GEX on, zone defaults in place (swing ${s0.swing}, levels ${s0.rn}, zone height ${s0.band})`);
+  note(`symbol ${s0.sym} | books cached [${s0.books.join(",")}]${s0.es ? " | es book underlying " + s0.es : ""}`);
   if (vpName !== "phone") {   // phones show a compact legend (no study rows) until a tap parks the crosshair
     const row = await page.evaluate(() => { const r = document.querySelector('#ch-legend .ln[data-ind="gex"]'); return r ? { text: r.textContent, title: r.getAttribute("title") } : null; });
     check(!!row, "legend has the D1 GEX row (the account owns d1-gex)");

@@ -12200,8 +12200,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       return add
     }
     function chGexLevels() {
-      if (chFam() !== 'NQ') return []
-      const g = CH.gexLive || GEX.live; if (!g || !CH.s.gex || !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return []
+      if (!chGexBook()) return []
+      const g = chGexLiveFor(); if (!g || !CH.s.gex || !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return []
       const z = g.zdte || {}, out = []
       const put = (name, px, color) => { if (px != null && !isNaN(px)) out.push({ name, px: +px, color }) }
       put('Call wall', z.callWall?.nq, 'good'); put('Put wall', z.putWall?.nq, 'bad'); put('Flip', z.flip?.nq, 'gold'); put('Major wall', g.majorWall?.nq, 'gold')
@@ -12532,19 +12532,43 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     /* ── D1 GEX: the day's levels from the worker, per session, from the 9:30 print ── */
-    CH.gexPrints = {}
+    // Two option books: QQQ drives the NQ family, SPX drives the ES family. The chart follows
+    // the symbol, so switching NQ to ES switches the gamma with it. Everything below is keyed
+    // by book, because a bare date would collide the two books' prints for the same day.
+    const CH_GEX_BOOK = { NQ: 'nq', ES: 'es' }
+    const chGexBook = () => CH_GEX_BOOK[chFam()] || null
+    const chGexQ = (b) => (b === 'nq' ? '' : `book=${b}`)
+    CH.gexBooks = {}                 // book -> { live, days, prints }
+    const chGexStore = (b) => CH.gexBooks[b] || (CH.gexBooks[b] = { live: null, days: null, prints: {} })
     async function chGexWarm() {
-      if (!GEX.live) loadGex().catch(() => {})
-      if (!GEX.days.length) await loadGexHistory().catch(() => {})
+      const b = chGexBook(); if (!b) return
+      const st = chGexStore(b)
+      if (b === 'nq') {              // the board already loads this one; reuse it rather than refetch
+        if (!GEX.live) loadGex().catch(() => {})
+        if (!GEX.days.length) await loadGexHistory().catch(() => {})
+      } else {
+        if (!st.live) fetch(`${GEX_URL}/gex.json?${chGexQ(b)}`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((j) => { if (j && j.book === b) { st.live = j; chDraw() } }).catch(() => {})
+        if (!st.days) { st.days = []; fetch(`${GEX_URL}/history.json?${chGexQ(b)}`, { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null).then((j) => { st.days = (j?.days || []).filter((d) => d.times.length || d.summary); chDraw() }).catch(() => {}) }
+      }
       chDraw()
     }
-    function chGexPrint(day) {   // YYYY-MM-DD -> print (cached), fetching the morning print once
-      const p = CH.gexPrints[day]; if (p !== undefined) return p
-      const entry = GEX.days.find((d) => d.date === day)
-      if (!entry || !entry.times?.length) { CH.gexPrints[day] = null; return null }
+    // the live snapshot for the book this chart is on, or null when the symbol has no book
+    function chGexLiveFor() {
+      const b = chGexBook(); if (!b) return null
+      if (b === 'nq') return CH.gexLive || GEX.live
+      return chGexStore(b).live
+    }
+    const chGexDaysFor = () => { const b = chGexBook(); return !b ? [] : b === 'nq' ? (GEX.days || []) : (chGexStore(b).days || []) }
+    function chGexPrint(day) {   // YYYY-MM-DD -> print (cached per book), fetching the morning print once
+      const b = chGexBook(); if (!b) return null
+      const st = chGexStore(b)
+      const p = st.prints[day]; if (p !== undefined) return p
+      const entry = chGexDaysFor().find((d) => d.date === day)
+      if (!entry || !entry.times?.length) { st.prints[day] = null; return null }
       const t = entry.times.find((x) => x >= '1000') || entry.times.find((x) => x >= '0930') || entry.times[entry.times.length - 1]   // 10:00: option quotes are 15 minutes delayed and carry no gamma through the opening rotation, so earlier prints are unreliable
-      CH.gexPrints[day] = null
-      fetch(`${GEX_URL}/gex.json?day=${day}&t=${t}`, { cache: 'force-cache' }).then((r) => r.ok ? r.json() : null).then((j) => { CH.gexPrints[day] = j; chDraw() }).catch(() => {})
+      st.prints[day] = null
+      const q = chGexQ(b)
+      fetch(`${GEX_URL}/gex.json?day=${day}&t=${t}${q ? '&' + q : ''}`, { cache: 'force-cache' }).then((r) => r.ok ? r.json() : null).then((j) => { st.prints[day] = j; chDraw() }).catch(() => {})
       return null
     }
     const CH_GEX_DEF = { gexFlipC: '#2962ff', gexCallC: '#ef5350', gexPutC: '#26a69a', gexMajorC: '#c9a24a', gexRC: '#5b8db8', gexGtbrC: '#c9a24a' }
@@ -12590,23 +12614,31 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       return 'Negative book, price above the flip: the two disagree, treat the regime as unsettled.'
     }
     // the print the newest session is painted from: live while it trades, its morning print once the market is shut
-    function chGexNow() { const live = CH.gexLive || GEX.live; if (!live || chSession().key === 'open') return live; return chGexPrint(live.generatedAt.slice(0, 10)) || live }
+    function chGexNow() { const live = chGexLiveFor(); if (!live || chSession().key === 'open') return live; return chGexPrint(live.generatedAt.slice(0, 10)) || live }
     function chPaintGex(ctx, L, T, R) {
-      if (chFam() !== 'NQ') return
+      if (!chGexBook()) return
       if (!(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return
       const { bars, n, i0, i1 } = R; if (!n) return
       const S = CH.s, X = (i) => chX(i, L), Y = (p) => chY(p, L), cc = (k) => S[k] || CH_GEX_DEF[k], lw = +S.gexW || 1, band = S.gexBand ?? 6
       // group visible bars by session day
       const spans = new Map()
       for (let i = Math.max(0, i0); i <= Math.min(n - 1, i1); i++) { const k = chSessionKey(bars[i].t); let sp = spans.get(k); if (!sp) { sp = { k, i0: i, i1: i, t: bars[i].t }; spans.set(k, sp) } sp.i1 = i }
-      const todayKey = chSessionKey(Date.now() / 1000), liveDay = GEX.live ? GEX.live.generatedAt.slice(0, 10) : null
+      const gLive = chGexLiveFor()   // this chart's book, not whichever one the GEX board is showing
+      // generatedAt is UTC and every session key here is New York, so slicing the ISO string
+      // mismatches the whole evening. A book with no archive yet (ES, until its first session
+      // is filed) has only this to fall back on, so it has to be right.
+      const liveDay = gLive ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(gLive.generatedAt)) : null
+      const todayKey = chSessionKey(Date.now() / 1000)
       const dayStr = (t) => { const d = new Date((t + chEtOff(t) + 6 * 3600) * 1000); return d.toISOString().slice(0, 10) }
       for (const sp of spans.values()) {
         const day = dayStr(sp.t)
         // The live feed paints a session only while that session trades. After the bell its morning print takes over: the late
         // 0DTE prints collapse onto the close, and drawn back across the day they look like levels price obeyed (hindsight).
-        const isLive = sp.k === todayKey || day === liveDay
-        const g = isLive && chSession().key === 'open' ? GEX.live : (chGexPrint(day) || (isLive ? GEX.live : null))
+        // A book with no archive yet (ES, until its first session is filed) would otherwise draw
+        // nothing at all: no print to fall back on, and the newest bars need not carry today's
+        // session key out of hours. The newest span always gets the live print rather than blank.
+        const isLive = sp.k === todayKey || day === liveDay || sp.i1 === n - 1
+        const g = isLive && chSession().key === 'open' ? gLive : (chGexPrint(day) || (isLive ? gLive : null))
         if (!g) continue
         if (g.zdte?.callWall?.qqq != null && g.zdte.callWall.qqq === g.zdte?.putWall?.qqq) continue   // a degenerate print (both walls on one strike) is not drawn
         // the newest session on the chart runs into the right margin (live day, or the last one while the market is shut), so its names clear the candles
