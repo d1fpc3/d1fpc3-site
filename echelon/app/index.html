@@ -762,6 +762,48 @@
     .ch-legend i { font-style: normal; color: var(--ink); }
     .ch-legend .up, .ch-legend i.up { color: var(--good); } .ch-legend .down, .ch-legend i.down { color: var(--bad); }
     .ch-legend .ind { color: var(--gold); font-weight: 600; font-size: 10.5px; letter-spacing: 0.04em; }
+    /* chart panels: the table indicators (HTF Dashboard, News) as cards over the
+       canvas. The container is inert so it never eats a drag; each card takes its
+       own pointer events so it can be double-clicked into settings. A corner
+       stacks away from the edge it is pinned to, so panels grow inward. */
+    .ch-panels { position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: hidden; --ch-ax: 78px; }
+    .ch-pw { position: absolute; display: flex; flex-direction: column; gap: 8px; max-width: min(330px, 46%); }
+    .ch-pw[data-c="tl"] { top: 8px; left: 10px; align-items: flex-start; }
+    .ch-pw[data-c="tr"] { top: 8px; right: calc(var(--ch-ax) + 10px); align-items: flex-end; }
+    .ch-pw[data-c="bl"] { bottom: 32px; left: 10px; align-items: flex-start; flex-direction: column-reverse; }
+    .ch-pw[data-c="br"] { bottom: 32px; right: calc(var(--ch-ax) + 10px); align-items: flex-end; flex-direction: column-reverse; }
+    .ch-panel { pointer-events: auto; min-width: 0; max-width: 100%; overflow: hidden; padding: 7px 10px 8px; border: 1px solid var(--line-bright); border-radius: 10px;
+      background: color-mix(in srgb, var(--panel) 90%, transparent); backdrop-filter: blur(14px) saturate(1.1); -webkit-backdrop-filter: blur(14px) saturate(1.1);
+      box-shadow: 0 6px 22px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.05);
+      font-size: 10.5px; line-height: 1.5; color: var(--muted); font-variant-numeric: tabular-nums;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease; }
+    @media (hover: hover) { .ch-panel:hover { border-color: var(--line-bright); box-shadow: 0 10px 26px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.06); } }
+    .ch-panel .ch-ph { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid var(--line); }
+    .ch-panel .ch-ph b { color: var(--ink); font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }
+    .ch-panel .ch-ph > span:not(.bias) { color: var(--faint); font-size: 9.5px; letter-spacing: 0.04em; }
+    .ch-panel .ch-ph .bias { padding: 1.5px 7px; border-radius: 999px; font-weight: 700; font-size: 9px; letter-spacing: 0.07em; text-transform: uppercase; background: color-mix(in srgb, currentColor 16%, transparent); }
+    /* the app-wide table rule ships min-width: 480px, 13px text and a rule under
+       every cell; none of that belongs in a 300px card, so it is unset here */
+    .ch-panel table { border-collapse: collapse; width: 100%; min-width: 0; font-size: inherit; }
+    .ch-panel th { text-align: right; font-weight: 500; font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint); background: none; border-bottom: 0; padding: 0 0 3px 11px; }
+    .ch-panel th:first-child, .ch-panel td:first-child { text-align: left; padding-left: 0; color: var(--ink); font-weight: 600; }
+    .ch-panel td { text-align: right; padding: 1.5px 0 1.5px 11px; border-bottom: 0; white-space: nowrap; vertical-align: baseline; }
+    .ch-panel tr.na td, .ch-panel tr.na td:first-child { color: var(--faint); font-weight: 400; }
+    .ch-panel .up { color: var(--good); } .ch-panel .down { color: var(--bad); } .ch-panel .mix { color: var(--faint); }
+    /* --gold inside #v-chart is the TradingView blue, which reads as a link, not
+       as heat; the hot-volume cell keeps the Pine's warm accent instead */
+    .ch-panel .hot { color: #c08a1e; font-weight: 600; }
+    .ch-panel .ch-pf { margin-top: 5px; padding-top: 4px; border-top: 1px solid var(--line); color: var(--faint); font-size: 9.5px; }
+    .ch-panel ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+    .ch-panel li { display: flex; gap: 8px; align-items: baseline; padding-left: 8px; position: relative; }
+    .ch-panel li::before { content: ''; position: absolute; left: 0; top: 4px; bottom: 4px; width: 2px; border-radius: 2px; background: currentColor; }
+    .ch-panel li time { min-width: 31px; opacity: 0.85; }
+    .ch-panel li > span { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ch-panel li.hi { color: #ef5350; } .ch-panel li.med { color: #e0a030; } .ch-panel li.hol { color: var(--faint); }
+    .ch-panel li.past { opacity: 0.42; }
+    .ch-panel .ch-pn { color: var(--faint); }
+    .ch-panel .ch-pn.hi { color: #ef5350; font-weight: 600; }
+    @media (max-width: 560px) { .ch-pw { max-width: 64%; gap: 6px; } .ch-panel { font-size: 9.5px; padding: 6px 8px 7px; } .ch-panel th:nth-child(4), .ch-panel td:nth-child(4) { display: none; } }
     .ch-busy { position: absolute; top: 10px; right: 80px; width: 12px; height: 12px; border: 2px solid var(--line-bright); border-top-color: var(--gold); border-radius: 50%; animation: ch-spin 0.8s linear infinite; }
     @keyframes ch-spin { to { transform: rotate(360deg); } }
     .ch-tz { position: absolute; right: 0; bottom: 0; height: 24px; width: 78px; background: none; border: 0; border-left: 1px solid var(--line); color: var(--faint); font-family: inherit; font-size: 10px; font-weight: 600; letter-spacing: 0.01em; cursor: pointer; white-space: nowrap; padding: 0; }
@@ -3997,6 +4039,7 @@
               <div class="ch-stage" id="ch-stage">
                 <canvas id="ch-canvas" aria-label="NQ chart"></canvas>
                 <div class="ch-legend" id="ch-legend"></div>
+                <div class="ch-panels" id="ch-panels"></div>
                 <div class="ch-busy" id="ch-busy" hidden></div>
                 <div class="ch-pop" id="ch-goto-pop" hidden><label>Go to<input type="datetime-local" id="ch-goto-in"></label><button type="button" id="ch-goto-go" class="rowbtn">Go</button></div>
                 <div class="ch-ctx" id="ch-ctx" hidden></div>
@@ -11821,8 +11864,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const CH_TF = { '1m': ['1m', 1], '3m': ['1m', 3], '5m': ['5m', 5], '15m': ['5m', 15], '30m': ['5m', 30], '1h': ['60m', 60], '4h': ['60m', 240], 'D': ['1d', 1440] }
     const CH_SPAN = { '1m': 32, '5m': 200, '60m': 2800, '1d': 9800 }   // days each source reaches back, at most (the archive holds Databento history from 2019; the read keeps the newest 60k bars)
     const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: '', down: '', wickUp: '', wickDown: '', border: true, grid: true, volume: true, sessions: true, lastLine: true, legend: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
-      lit: true, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: true, litKo: true, litPo3: true, litEighths: true, litGold: true, litVector: true, litDays: 3,
-      litPm: true, litNwog: true, litDr: true, litDrBack: 3, litSig: true, litSig1: false, litSigAnc: false, litDs: true, litDsWeek: true, litOpen22: true, litLdn: true, litWm: true, litAlerts: true,
+      // LIT ships curated, not complete: the levels price reacts to are on, the ten
+      // busier parts are one toggle away in the LIT menu. litV stamps the migration.
+      lit: true, litV: 2, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: false, litKo: false, litPo3: false, litEighths: false, litGold: true, litVector: true, litDays: 3,
+      litPm: false, litNwog: false, litDr: false, litDrBack: 3, litSig: false, litSig1: false, litSigAnc: false, litDs: true, litDsWeek: true, litOpen22: false, litLdn: false, litWm: true, litAlerts: true,
       litPmC: '', litPmW: 2, litNwogC: '', litNwogF: 0.12, litDrC: '', litDrHlC: '', litDrW: 1, litSigC: '', litSigW: 1, litDsC: '', litOpen22C: '', litOpen22W: 1, litLdnC: '', litLdnF: 0.1, litWmC: '',
       // chart style (empty colour = the theme token)
       magnet: 'off', borderUp: '', borderDown: '', wicks: true, bodyW: 'normal', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: true, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
@@ -11833,6 +11878,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       p_rsi: false, rsiN: 14, rsiC: '', rsiHi: 70, rsiLo: 30, rsiFill: true, p_macd: false, macdF: 12, macdS: 26, macdSig: 9, macdC: '', macdSigC: '', p_atr: false, atrN: 14, atrC: '',
       litPdC: '', litPdW: 1, litPwC: '', litPwW: 1, litWoC: '', litWoW: 2, litAsiaC: '', litAsiaF: 0.15, litNyC: '', litNyF: 0.1, litOpenC: '', litOpenW: 1, litMarksC: '', litKoC: '', litPo3Up: '', litPo3Dn: '', litEighthsC: '', litGoldC: '', litGoldW: 1, litVecUp: '', litVecDn: '', litLabels: true,
       cmp: false, cmpSym: 'auto', cmpC: '', cmpW: 1.4, cmpLabel: true,
+      // panel indicators, both opt in
+      htf: false, htfPos: 'tr', htf5: true, htf15: true, htf60: true, htf240: true, htfD: true, htfRsiHi: 70, htfRsiLo: 30, htfVolHot: 1.5,
+      news: false, newsPos: 'br', newsHigh: true, newsMed: true, newsHol: true, newsMax: 10, newsDim: true, newsMarks: true,
       badj: true, rollMarks: true, smt: false, smtPeer: 'auto', smtLen: 5, smtBack: 600, smtBearC: '', smtBullC: '', smtW: 2, smtLabels: true, smtPeerMark: true,
       axisInd: true, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true, gexSwing: true, gexRn: 10, gexBand: 6, gexPx: false }
     const CH_MA_DEFAULT = () => [{ t: 'ema', n: 20, c: '#c9a24a', w: 1.2, on: true }, { t: 'ema', n: 50, c: '#7aa2d9', w: 1.2, on: true }, { t: 'ema', n: 200, c: '#d97ab0', w: 1.2, on: true }]
@@ -11867,6 +11915,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     for (const k of ['base', 'have', 'reach', 'fullAt', 'tailAt', 'feedAt', 'last', 'prevClose']) Object.defineProperty(CH, k, { get: () => chStoreFor(CH.sym)[k], set: (v) => { chStoreFor(CH.sym)[k] = v } })
     const chDrKey = () => 'echelon-chart-drawings' + (chFam() === 'NQ' ? '' : '-' + chFam()), chAlKey = () => 'echelon-chart-alerts' + (chFam() === 'NQ' ? '' : '-' + chFam())
     try { CH.s = { ...CH_DEFAULTS, ...JSON.parse(localStorage.getItem('echelon-chart-settings') || '{}') } } catch { CH.s = { ...CH_DEFAULTS } }
+    /* Saved settings hold every key, so a new default never reaches anyone who has
+       touched the chart once. This flips the ten busy LIT parts off a single time,
+       stamps litV, and never runs again. Colours, widths and the rest are left alone. */
+    if (CH.s.litV !== 2) { for (const k of ['litMarks', 'litKo', 'litPo3', 'litEighths', 'litPm', 'litNwog', 'litDr', 'litSig', 'litOpen22', 'litLdn']) CH.s[k] = false; CH.s.litV = 2; try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {} }
     try { CH.drawings = JSON.parse(localStorage.getItem(chDrKey()) || '[]') } catch { CH.drawings = [] }
     CH.drawings.forEach((d) => { if (!d.id) d.id = Math.random().toString(36).slice(2, 9) })   // older drawings predate ids; undo tracks selection by id
     try { CH.alerts = JSON.parse(localStorage.getItem(chAlKey()) || '[]') } catch { CH.alerts = [] }
@@ -11878,7 +11930,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     { const saved = localStorage.getItem('echelon-chart-tf'); for (const label of CH.s.customTfs || []) { const m = /^(\d+)([mhDW])$/.exec(label); if (m && !CH_TF[label]) { const mins = m[2] === 'h' ? +m[1] * 60 : m[2] === 'D' ? +m[1] * 1440 : m[2] === 'W' ? +m[1] * 10080 : +m[1]; CH_TF[label] = [mins >= 1440 ? '1d' : mins % 60 === 0 ? '60m' : mins % 5 === 0 ? '5m' : '1m', mins] } } if (saved && CH_TF[saved]) CH.tf = saved }
     const chSave = () => { try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)); localStorage.setItem(chDrKey(), JSON.stringify(CH.drawings, (k, v) => k.startsWith('_') ? undefined : v)) } catch {} }
     window.__CH = CH   // read-only peek for the console and the harness
-    CH.$ = { build: () => chBuild(), paint: () => chPaint(), pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck(), prev: () => chPrevDay(), smt: () => chSmt(), rolls: () => chRollsOf(chStoreFor(CH.sym)), setSym: (k) => chSetSymbol(k) }
+    CH.$ = { build: () => chBuild(), paint: () => chPaint(), pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck(), prev: () => chPrevDay(), smt: () => chSmt(), htfWarm: () => chHtfWarm(), rolls: () => chRollsOf(chStoreFor(CH.sym)), setSym: (k) => chSetSymbol(k) }
     // undo and redo keep whole snapshots of the drawings; cheap at this size
     const chSnapshot = () => JSON.stringify(CH.drawings)
     function chPush() { CH.hist.push(chSnapshot()); if (CH.hist.length > 60) CH.hist.shift(); CH.redo = []; chHistUi() }
@@ -12508,48 +12560,261 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const CH_LIT_DEF = (light) => ({ litPmC: light ? '#7b1fa2' : '#ce93d8', litNwogC: light ? '#7b8595' : '#9aa4b5', litDrC: light ? '#1a1815' : '#e9e3d8', litDrHlC: light ? '#5a5a5a' : '#a0a0a0', litSigC: light ? '#000000' : '#e9e3d8', litDsC: light ? '#1a1815' : '#e9e3d8', litOpen22C: light ? '#1a1815' : '#e9e3d8', litLdnC: light ? '#808080' : '#9d978c', litWmC: light ? '#1a1815' : '#e9e3d8', litPdC: light ? '#5a5a5a' : '#a0a0a0', litPwC: light ? '#5a5a5a' : '#a0a0a0', litWoC: light ? '#1a1815' : '#e9e3d8', litAsiaC: '#ab47bc', litNyC: light ? '#1e222d' : '#b4c8ff', litOpenC: light ? '#1a1815' : '#e9e3d8', litMarksC: light ? '#1a1815' : '#e9e3d8', litKoC: light ? '#1a1815' : '#e9e3d8', litPo3Up: '#4caf50', litPo3Dn: light ? '#000000' : '#e9e3d8', litEighthsC: light ? '#5a5a5a' : '#a0a0a0', litGoldC: '#d4af37', litVecUp: '#008f47', litVecDn: '#ffffff' })
     const CH_LIT_PARTS = [['litPd', 'PDH / PDL', 'litPdC', 'litPdW'], ['litPw', 'PWH / PWL', 'litPwC', 'litPwW'], ['litWo', 'Weekly open', 'litWoC', 'litWoW'], ['litAsia', 'Asia box', 'litAsiaC', null, 'litAsiaF'], ['litNy', 'NYT box', 'litNyC', null, 'litNyF'], ['litOpen', '18:00 open', 'litOpenC', 'litOpenW'], ['litMarks', 'FF LO MM1 MM2 LC', 'litMarksC'], ['litKo', 'Key opens', 'litKoC'], ['litPo3', 'PO3 candles', 'litPo3Up', null, null, 'litPo3Dn'], ['litEighths', 'Weekly eighths', 'litEighthsC'], ['litGold', 'Golden Tue/Wed', 'litGoldC', 'litGoldW'], ['litVector', 'Vector candles', 'litVecUp', null, null, 'litVecDn'],
       ['litPm', 'PMH / PML', 'litPmC', 'litPmW'], ['litNwog', 'Liquidity voids (NWOG)', 'litNwogC', null, 'litNwogF'], ['litDr', 'Daily reset levels', 'litDrC', 'litDrW', null, 'litDrHlC'], ['litSig', 'σ bands (expected move)', 'litSigC', 'litSigW'], ['litDs', 'Day separators', 'litDsC'], ['litOpen22', '22:00 open', 'litOpen22C', 'litOpen22W'], ['litLdn', 'London box', 'litLdnC', null, 'litLdnF'], ['litWm', 'Watermark tag', 'litWmC']]
+    /* ── the label lane ──
+       Twenty parts each painting their own text is what turned this chart into a
+       pile of overlapping words. Parts queue a label here instead. The lane sorts
+       by priority, lets the level that matters keep the spot it asked for, slides
+       the rest to the nearest free slot, and drops whatever still has nowhere to
+       go. A plate in the chart's own background keeps every survivor readable
+       over the candles, the same trick the GEX names use. */
+    const CH_LBL_DY = [0, -12, 12, -24, 24, -36, 36]
+    function chLabelLane(ctx) {
+      const q = []
+      return {
+        add: (text, x, y, color, align, size, prio) => q.push({ text, x, y, color, align: align || 'left', size: size || 10, prio: prio == null ? 50 : prio }),
+        flush: (L) => {
+          const placed = [], plate = /^#[0-9a-f]{6}$/i.test(CH.bgNow || '') ? CH.bgNow : null
+          for (const it of q.sort((a, b) => a.prio - b.prio)) {
+            if (!isFinite(it.x) || !isFinite(it.y)) continue
+            ctx.font = `600 ${it.size}px ${GEX_FONT}`
+            const w = ctx.measureText(it.text).width, h = it.size + 2
+            const x0 = it.align === 'right' ? it.x - w : it.align === 'center' ? it.x - w / 2 : it.x
+            if (x0 + w < 2 || x0 > L.plotW - 2) continue
+            let y = null
+            for (const dy of CH_LBL_DY) {
+              const yy = it.y + dy
+              if (yy - h < 1 || yy > L.mainH - 2) continue
+              if (placed.some((p) => x0 < p.x1 + 4 && x0 + w > p.x0 - 4 && yy - h < p.y1 && yy > p.y0)) continue
+              y = yy; break
+            }
+            if (y == null) continue
+            placed.push({ x0, x1: x0 + w, y0: y - h, y1: y })
+            if (plate) { ctx.fillStyle = alpha(plate, 0.8); ctx.fillRect(x0 - 2, y - h, w + 4, h + 2) }
+            ctx.fillStyle = it.color; ctx.textAlign = 'left'; ctx.fillText(it.text, x0, y)
+          }
+          ctx.font = `11px ${GEX_FONT}`; ctx.textAlign = 'left'
+          CH.lbl = placed                 // what actually landed, so a harness can prove nothing overlaps
+        },
+      }
+    }
+    /* Three tiers carry the hierarchy: the levels price actually reacts to read
+       solid and bright, session structure sits behind them, and the timing marks
+       are faint enough to ignore until you look for them. Priority doubles as the
+       lane's drop order, so a crowded chart loses the eighths before it loses PDH. */
     function chPaintLit(ctx, L, T, R) {
       const S = CH.s, lit = chLit(), { n, i0, i1, light } = R
       if (!n) return
       const X = (i) => chX(i, L), Y = (p) => chY(p, L), D = CH_LIT_DEF(light)
       const cc = (k) => S[k] || D[k], A = (k, a) => alpha(cc(k), a), W = (k, def) => +S[k] || def, labels = S.litLabels !== false
-      const tag = (text, x, y, color, align = 'left', size = 10) => { if (!labels) return; ctx.font = `600 ${size}px ${GEX_FONT}`; ctx.textAlign = align; ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.font = `11px ${GEX_FONT}` }
+      const LBL = chLabelLane(ctx)
+      const tag = (text, x, y, color, align, size, prio) => { if (labels) LBL.add(text, x, y, color, align, size, prio) }
       const hline = (p, xa, xb, color, dash, width = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1 }
       const visible = (a, b) => b >= i0 - 1 && a <= i1 + 1
       // Asia and NYT boxes
       if (S.litAsia) for (const a of lit.asia) { if (!visible(a.i0, a.i1 + 7 * 3600 / CH.tfSec)) continue; const x0 = X(a.i0) - CH.barW / 2, x1 = X(a.i1) + CH.barW / 2, xe = X(a.i1 + 7 * 3600 / CH.tfSec); ctx.fillStyle = A('litAsiaC', S.litAsiaF ?? 0.15); ctx.fillRect(x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); ctx.strokeStyle = A('litAsiaC', 0.5); ctx.strokeRect(Math.round(x0) + 0.5, Math.round(Y(a.h)) + 0.5, Math.round(x1 - x0), Math.round(Y(a.l) - Y(a.h))); hline(a.h, x1, xe, A('litAsiaC', 0.5)); hline(a.l, x1, xe, A('litAsiaC', 0.5)); hline((a.h + a.l) / 2, x0, xe, A('litAsiaC', 0.7), [5, 4]) }
-      if (S.litNy) for (const a of lit.ny) { if (!visible(a.i0, a.i1)) continue; const x0 = X(a.i0) - CH.barW / 2, x1 = X(a.i1) + CH.barW / 2; ctx.fillStyle = S.litNyC ? A('litNyC', S.litNyF ?? 0.1) : alpha('#4285f4', S.litNyF ?? 0.1); ctx.fillRect(x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); ctx.strokeStyle = A('litNyC', 0.4); ctx.strokeRect(Math.round(x0) + 0.5, Math.round(Y(a.h)) + 0.5, Math.round(x1 - x0), Math.round(Y(a.l) - Y(a.h))); tag('NYT', (x0 + x1) / 2, Y(a.h) - 7, S.litNyC || (light ? '#1a1815' : '#cfd8ff'), 'center') }
-      // vertical markers
-      if (S.litMarks) for (const m of lit.marks) { if (m.i < i0 - 1 || m.i > i1 + 1) continue; const x = Math.round(X(m.i)) + 0.5; ctx.strokeStyle = A('litMarksC', light ? 0.45 : 0.35); ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.plotH); ctx.stroke(); ctx.setLineDash([]); tag(m.label, x, Math.min(L.mainH - 6, (el('ch-legend')?.offsetHeight || 0) + 22), cc('litMarksC'), 'center') }
+      if (S.litNy) for (const a of lit.ny) { if (!visible(a.i0, a.i1)) continue; const x0 = X(a.i0) - CH.barW / 2, x1 = X(a.i1) + CH.barW / 2; ctx.fillStyle = S.litNyC ? A('litNyC', S.litNyF ?? 0.1) : alpha('#4285f4', S.litNyF ?? 0.1); ctx.fillRect(x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); ctx.strokeStyle = A('litNyC', 0.4); ctx.strokeRect(Math.round(x0) + 0.5, Math.round(Y(a.h)) + 0.5, Math.round(x1 - x0), Math.round(Y(a.l) - Y(a.h))); tag('NYT', (x0 + x1) / 2, Y(a.h) - 7, S.litNyC ? A('litNyC', 0.9) : (light ? '#1a1815' : '#b4c8ff'), 'center', 10, 16) }
+      // vertical markers: the faintest tier, they are a clock rather than a level
+      if (S.litMarks) for (const m of lit.marks) { if (m.i < i0 - 1 || m.i > i1 + 1) continue; const x = Math.round(X(m.i)) + 0.5; ctx.strokeStyle = A('litMarksC', light ? 0.3 : 0.24); ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.plotH); ctx.stroke(); ctx.setLineDash([]); tag(m.label, x, Math.min(L.mainH - 6, (el('ch-legend')?.offsetHeight || 0) + 22), A('litMarksC', 0.6), 'center', 9.5, 52) }
       // 18:00 open, weekly open
-      if (S.litOpen) for (const o of lit.open18) { if (!visible(o.i0, o.i1)) continue; hline(o.p, X(o.i0), X(o.i1), A('litOpenC', 0.65), [], W('litOpenW', 1)); tag('[18:00 OPEN]', X(o.i1) + 6, Y(o.p), cc('litOpenC')) }
-      if (S.litWo && lit.wo && visible(lit.wo.i0, n + 30)) { hline(lit.wo.p, X(lit.wo.i0), L.plotW, A('litWoC', 0.75), [], W('litWoW', 2)); tag('[WEEKLY OPEN]', Math.min(L.plotW - 90, X(n - 1) + 8), Y(lit.wo.p), cc('litWoC')) }
-      // PDH / PDL and PWH / PWL
-      if (S.litPd) for (const p of lit.pd) { if (!visible(p.i0, p.i1)) continue; hline(p.p, X(p.i0), X(p.i1), A('litPdC', 0.55), [], W('litPdW', 1)); tag(p.label, Math.min(X(p.i1), L.plotW - 6) - 4, Y(p.p) + (p.label === 'PDH' ? -7 : 11), A('litPdC', 0.8), 'right') }
-      if (S.litPw && lit.pw) { const w = lit.pw, c = A('litPwC', 0.55), lw = W('litPwW', 1); if (visible(w.hi, w.hEnd)) { hline(w.h, X(w.hi), X(w.hEnd), c, [6, 4], lw); tag('PWH', Math.min(X(w.hEnd), L.plotW - 6) - 4, Y(w.h) - 7, A('litPwC', 0.8), 'right') } if (visible(w.li, w.lEnd)) { hline(w.l, X(w.li), X(w.lEnd), c, [6, 4], lw); tag('PWL', Math.min(X(w.lEnd), L.plotW - 6) - 4, Y(w.l) + 11, A('litPwC', 0.8), 'right') } }
+      if (S.litOpen) for (const o of lit.open18) { if (!visible(o.i0, o.i1)) continue; hline(o.p, X(o.i0), X(o.i1), A('litOpenC', 0.6), [], W('litOpenW', 1)); tag('[18:00 OPEN]', X(o.i1) + 6, Y(o.p), A('litOpenC', 0.8), 'left', 10, 20) }
+      if (S.litWo && lit.wo && visible(lit.wo.i0, n + 30)) { hline(lit.wo.p, X(lit.wo.i0), L.plotW, A('litWoC', 0.9), [], W('litWoW', 2)); tag('[WEEKLY OPEN]', Math.min(L.plotW - 90, X(n - 1) + 8), Y(lit.wo.p), cc('litWoC'), 'left', 10, 0) }
+      // PDH / PDL and PWH / PWL: the top tier, what price is actually reaching for
+      if (S.litPd) for (const p of lit.pd) { if (!visible(p.i0, p.i1)) continue; hline(p.p, X(p.i0), X(p.i1), A('litPdC', 0.7), [], W('litPdW', 1)); tag(p.label, Math.min(X(p.i1), L.plotW - 6) - 4, Y(p.p) + (p.label === 'PDH' ? -7 : 11), A('litPdC', 0.95), 'right', 10, 8) }
+      if (S.litPw && lit.pw) { const w = lit.pw, c = A('litPwC', 0.7), lw = W('litPwW', 1); if (visible(w.hi, w.hEnd)) { hline(w.h, X(w.hi), X(w.hEnd), c, [6, 4], lw); tag('PWH', Math.min(X(w.hEnd), L.plotW - 6) - 4, Y(w.h) - 7, A('litPwC', 0.95), 'right', 10, 6) } if (visible(w.li, w.lEnd)) { hline(w.l, X(w.li), X(w.lEnd), c, [6, 4], lw); tag('PWL', Math.min(X(w.lEnd), L.plotW - 6) - 4, Y(w.l) + 11, A('litPwC', 0.95), 'right', 10, 6) } }
       // weekly eighths
-      if (S.litEighths && lit.eighths && CH.tfSec <= 86400) { const e = lit.eighths; for (let k = 1; k <= 7; k++) { const p = e.base + e.step * k; const c = k === 4 && !S.litEighthsC ? 'rgba(212,175,55,0.5)' : A('litEighthsC', k === 4 ? 0.6 : 0.3); hline(p, X(e.i0), X(n - 1 + 20), c, [2, 4]); tag(`${k}/8`, Math.min(X(n - 1 + 20), L.plotW - 4), Y(p) - 6, c, 'right', 9) } }
+      if (S.litEighths && lit.eighths && CH.tfSec <= 86400) { const e = lit.eighths; for (let k = 1; k <= 7; k++) { const p = e.base + e.step * k; const c = k === 4 && !S.litEighthsC ? 'rgba(212,175,55,0.45)' : A('litEighthsC', k === 4 ? 0.45 : 0.22); hline(p, X(e.i0), X(n - 1 + 20), c, [2, 4]); tag(`${k}/8`, Math.min(X(n - 1 + 20), L.plotW - 4), Y(p) - 6, c, 'right', 9, 48) } }
       // key opens
-      if (S.litKo) for (const k of lit.ko) { hline(k.p, X(k.i0), X(n - 1 + 20), A('litKoC', 0.5), [2, 4]); tag(k.label, Math.min(X(n - 1 + 22), L.plotW - 70), Y(k.p), cc('litKoC'), 'left', 9.5) }
+      if (S.litKo) for (const k of lit.ko) { hline(k.p, X(k.i0), X(n - 1 + 20), A('litKoC', 0.45), [2, 4]); tag(k.label, Math.min(X(n - 1 + 22), L.plotW - 70), Y(k.p), A('litKoC', 0.75), 'left', 9.5, 28) }
       // golden window
-      if (S.litGold && lit.gold) { const p = lit.gold.h * 1.0005; hline(p, X(lit.gold.i0), L.plotW, A('litGoldC', 0.8), [], W('litGoldW', 1)); tag('Golden Tue/Wed', Math.min(X(n - 1) + 8, L.plotW - 90), Y(p) - 7, A('litGoldC', 0.9)) }
+      if (S.litGold && lit.gold) { const p = lit.gold.h * 1.0005; hline(p, X(lit.gold.i0), L.plotW, A('litGoldC', 0.9), [], W('litGoldW', 1)); tag('Golden Tue/Wed', Math.min(X(n - 1) + 8, L.plotW - 90), Y(p) - 7, cc('litGoldC'), 'left', 10, 12) }
       // PMH / PML
-      if (S.litPm && lit.pm) { const m = lit.pm, c = A('litPmC', 0.7), lw = W('litPmW', 2); if (visible(m.hi, m.hEnd)) { hline(m.h, X(m.hi), m.hs ? X(m.hEnd) : L.plotW, c, [], lw); tag('PMH', Math.min(m.hs ? X(m.hEnd) : L.plotW, L.plotW - 6) - 4, Y(m.h) - 7, A('litPmC', 0.9), 'right') } if (visible(m.li, m.lEnd)) { hline(m.l, X(m.li), m.ls ? X(m.lEnd) : L.plotW, c, [], lw); tag('PML', Math.min(m.ls ? X(m.lEnd) : L.plotW, L.plotW - 6) - 4, Y(m.l) + 11, A('litPmC', 0.9), 'right') } }
+      if (S.litPm && lit.pm) { const m = lit.pm, c = A('litPmC', 0.8), lw = W('litPmW', 2); if (visible(m.hi, m.hEnd)) { hline(m.h, X(m.hi), m.hs ? X(m.hEnd) : L.plotW, c, [], lw); tag('PMH', Math.min(m.hs ? X(m.hEnd) : L.plotW, L.plotW - 6) - 4, Y(m.h) - 7, cc('litPmC'), 'right', 10, 4) } if (visible(m.li, m.lEnd)) { hline(m.l, X(m.li), m.ls ? X(m.lEnd) : L.plotW, c, [], lw); tag('PML', Math.min(m.ls ? X(m.lEnd) : L.plotW, L.plotW - 6) - 4, Y(m.l) + 11, cc('litPmC'), 'right', 10, 4) } }
       // liquidity voids
-      if (S.litNwog) for (const g of lit.nwog) { if (!visible(g.i0, n + 10)) continue; const x0 = X(g.i0) - CH.barW / 2, x1 = Math.min(L.plotW, X(n - 1 + 10)); const top = Y(g.top), bot = Y(g.bottom); ctx.fillStyle = A('litNwogC', S.litNwogF ?? 0.12); ctx.fillRect(x0, top, x1 - x0, bot - top); ctx.strokeStyle = A('litNwogC', 0.6); ctx.setLineDash([2, 3]); ctx.strokeRect(Math.round(x0) + 0.5, Math.round(top) + 0.5, Math.round(x1 - x0), Math.round(bot - top)); ctx.setLineDash([]); tag(`NWOG ${chFmtAxisDay(g.t)}`, x0 + 4, top - 4, A('litNwogC', 0.9), 'left', 9.5) }
-      // daily reset levels: across their own day, day-named at the right end
-      if (S.litDr) { const dc = A('litDrC', 0.7), hc = A('litDrHlC', 0.6), lw = W('litDrW', 1); for (const d of lit.dr) { if (!visible(d.i0, d.i1)) continue; const xa = X(d.i0), xb = X(d.i1) + CH.barW / 2; for (const [p, lab, c] of [[d.h, 'High', hc], [d.l, 'Low', hc], [d.o, 'Open', dc], [d.c, 'Close', dc]]) { hline(p, xa, xb, c, [1, 3], lw); tag(`${d.name} ${lab}`, Math.min(xb + 6, L.plotW - 60), Y(p) + 3, c, 'left', 9) } }
-        if (lit.drLive && visible(lit.drLive.i0, n)) { hline(lit.drLive.o, X(lit.drLive.i0), X(n - 1) + CH.barW / 2, dc, [1, 3], lw); tag(`${lit.drLive.name} Open`, Math.min(X(n - 1) + 8, L.plotW - 60), Y(lit.drLive.o) + 3, dc, 'left', 9) } }
+      if (S.litNwog) for (const g of lit.nwog) { if (!visible(g.i0, n + 10)) continue; const x0 = X(g.i0) - CH.barW / 2, x1 = Math.min(L.plotW, X(n - 1 + 10)); const top = Y(g.top), bot = Y(g.bottom); ctx.fillStyle = A('litNwogC', S.litNwogF ?? 0.12); ctx.fillRect(x0, top, x1 - x0, bot - top); ctx.strokeStyle = A('litNwogC', 0.55); ctx.setLineDash([2, 3]); ctx.strokeRect(Math.round(x0) + 0.5, Math.round(top) + 0.5, Math.round(x1 - x0), Math.round(bot - top)); ctx.setLineDash([]); tag(`NWOG ${chFmtAxisDay(g.t)}`, x0 + 4, top - 4, A('litNwogC', 0.85), 'left', 9.5, 36) }
+      // daily reset levels: context behind the key levels, never in front of them
+      if (S.litDr) { const dc = A('litDrC', 0.45), hc = A('litDrHlC', 0.4), lw = W('litDrW', 1); for (const d of lit.dr) { if (!visible(d.i0, d.i1)) continue; const xa = X(d.i0), xb = X(d.i1) + CH.barW / 2; for (const [p, lab, c] of [[d.h, 'High', hc], [d.l, 'Low', hc], [d.o, 'Open', dc], [d.c, 'Close', dc]]) { hline(p, xa, xb, c, [1, 3], lw); tag(`${d.name} ${lab}`, Math.min(xb + 6, L.plotW - 60), Y(p) + 3, c, 'left', 9, 44) } }
+        if (lit.drLive && visible(lit.drLive.i0, n)) { hline(lit.drLive.o, X(lit.drLive.i0), X(n - 1) + CH.barW / 2, dc, [1, 3], lw); tag(`${lit.drLive.name} Open`, Math.min(X(n - 1) + 8, L.plotW - 60), Y(lit.drLive.o) + 3, dc, 'left', 9, 44) } }
       // σ bands from the session open, projected eight bars right
-      if (S.litSig && lit.sig) { const g = lit.sig, c = A('litSigC', 0.8), lw = W('litSigW', 1), xe = Math.min(L.plotW, X(n - 1 + 8)); const band = (k, lab) => { const p = g.anchor + g.s1 * k; if (!visible(g.i0, n + 8)) return; hline(p, X(g.i0), xe, c, [], lw); tag(lab, Math.min(xe + 4, L.plotW - 40), Y(p) + 3, c, 'left', 9.5) }; for (const k of [2, -2, 2.5, -2.5]) band(k, `${k > 0 ? '+' : ''}${k}σ`); if (S.litSig1) { band(1, '+1σ'); band(-1, '-1σ') } if (S.litSigAnc) band(0, 'anchor') }
+      if (S.litSig && lit.sig) { const g = lit.sig, c = A('litSigC', 0.5), lw = W('litSigW', 1), xe = Math.min(L.plotW, X(n - 1 + 8)); const band = (k, lab) => { const p = g.anchor + g.s1 * k; if (!visible(g.i0, n + 8)) return; hline(p, X(g.i0), xe, c, [], lw); tag(lab, Math.min(xe + 4, L.plotW - 40), Y(p) + 3, A('litSigC', 0.75), 'left', 9.5, 24) }; for (const k of [2, -2, 2.5, -2.5]) band(k, `${k > 0 ? '+' : ''}${k}σ`); if (S.litSig1) { band(1, '+1σ'); band(-1, '-1σ') } if (S.litSigAnc) band(0, 'anchor') }
       // day separators
-      if (S.litDs) for (const d of lit.days) { if (d.i < i0 - 1 || d.i > i1 + 1) continue; const x = Math.round(X(d.i) - CH.barW / 2) + 0.5; ctx.strokeStyle = A('litDsC', 0.5); ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.plotH); ctx.stroke(); tag(d.name, x + 5, L.mainH - 8, A('litDsC', 0.8), 'left', 10) }
+      if (S.litDs) for (const d of lit.days) { if (d.i < i0 - 1 || d.i > i1 + 1) continue; const x = Math.round(X(d.i) - CH.barW / 2) + 0.5; ctx.strokeStyle = A('litDsC', 0.32); ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.plotH); ctx.stroke(); tag(d.name, x + 5, L.mainH - 8, A('litDsC', 0.65), 'left', 10, 56) }
       // 22:00 open, frozen at 02:00
-      if (S.litOpen22) for (const o of lit.open22) { if (!visible(o.i0, o.i1)) continue; hline(o.p, X(o.i0), X(o.i1), A('litOpen22C', 0.65), [], W('litOpen22W', 1)); tag('[22:00 Open]', X(o.i1) + 6, Y(o.p), cc('litOpen22C')) }
+      if (S.litOpen22) for (const o of lit.open22) { if (!visible(o.i0, o.i1)) continue; hline(o.p, X(o.i0), X(o.i1), A('litOpen22C', 0.5), [], W('litOpen22W', 1)); tag('[22:00 Open]', X(o.i1) + 6, Y(o.p), A('litOpen22C', 0.7), 'left', 10, 32) }
       // London box, its high and low held until touched
-      if (S.litLdn) for (const b of lit.ldn) { const e1 = b.hHit ?? b.hEnd ?? b.i1, e2 = b.lHit ?? b.lEnd ?? b.i1; if (!visible(b.i0, Math.max(e1, e2))) continue; const x0 = X(b.i0) - CH.barW / 2, x1 = X(b.i1) + CH.barW / 2; ctx.fillStyle = A('litLdnC', S.litLdnF ?? 0.1); ctx.fillRect(x0, Y(b.h), x1 - x0, Y(b.l) - Y(b.h)); hline(b.h, x0, X(e1), A('litLdnC', 0.6)); hline(b.l, x0, X(e2), A('litLdnC', 0.6)); tag('LDN', x0 + 4, Y(b.h) - 4, A('litLdnC', 0.8), 'left', 9.5) }
-      // PO3 candles to the right of price
-      if (S.litPo3) for (const c of lit.po3) { const x0 = X(n - 1 + c.offset), w = c.width * CH.barW, mid = x0 + w / 2; if (x0 > L.plotW) continue; const up = c.c >= c.o, body = up ? cc('litPo3Up') : cc('litPo3Dn'); ctx.strokeStyle = cc('litPo3Dn'); ctx.beginPath(); ctx.moveTo(Math.round(mid) + 0.5, Y(c.h)); ctx.lineTo(Math.round(mid) + 0.5, Y(c.l)); ctx.stroke(); ctx.fillStyle = body; ctx.fillRect(x0, Math.min(Y(c.o), Y(c.c)), Math.min(w, L.plotW - x0), Math.max(1, Math.abs(Y(c.c) - Y(c.o)))); ctx.strokeStyle = light ? '#000' : 'rgba(0,0,0,0.6)'; ctx.strokeRect(Math.round(x0) + 0.5, Math.round(Math.min(Y(c.o), Y(c.c))) + 0.5, Math.round(Math.min(w, L.plotW - x0)), Math.max(1, Math.round(Math.abs(Y(c.c) - Y(c.o))))); tag(c.label, mid, Y(c.h) - 7, T.faint, 'center', 9.5) }
+      if (S.litLdn) for (const b of lit.ldn) { const e1 = b.hHit ?? b.hEnd ?? b.i1, e2 = b.lHit ?? b.lEnd ?? b.i1; if (!visible(b.i0, Math.max(e1, e2))) continue; const x0 = X(b.i0) - CH.barW / 2, x1 = X(b.i1) + CH.barW / 2; ctx.fillStyle = A('litLdnC', S.litLdnF ?? 0.1); ctx.fillRect(x0, Y(b.h), x1 - x0, Y(b.l) - Y(b.h)); hline(b.h, x0, X(e1), A('litLdnC', 0.6)); hline(b.l, x0, X(e2), A('litLdnC', 0.6)); tag('LDN', x0 + 4, Y(b.h) - 4, A('litLdnC', 0.8), 'left', 9.5, 18) }
+      /* PO3 candles: one tight cluster pinned to the right edge. They used to be
+         thrown 20, 35 and 50 bars into the future, which left a lake of empty
+         chart between price and them and, since the chart sits flush right until
+         you pan, put them off screen most of the time. Pinned they are always
+         where you look; a plate behind just their own box, not the full height,
+         separates them from the newest candles without hiding any. */
+      if (S.litPo3 && lit.po3.length) {
+        const cw = Math.max(9, Math.min(20, CH.barW * 3)), gap = Math.max(10, cw * 0.7)
+        const total = lit.po3.length * cw + (lit.po3.length - 1) * gap
+        let x = L.plotW - 8 - total
+        if (x > 40) {
+          if (x < X(n - 1) + CH.barW && /^#[0-9a-f]{6}$/i.test(CH.bgNow || '')) {
+            let t = Infinity, b = -Infinity
+            for (const c of lit.po3) { t = Math.min(t, Y(c.h)); b = Math.max(b, Y(c.l)) }
+            ctx.fillStyle = alpha(CH.bgNow, 0.78); ctx.fillRect(x - 7, Math.max(0, t - 16), L.plotW - x + 7, Math.min(L.mainH, b + 5) - Math.max(0, t - 16))
+          }
+          for (const c of lit.po3) {
+            const mid = x + cw / 2, up = c.c >= c.o, body = up ? cc('litPo3Up') : cc('litPo3Dn')
+            const top = Math.min(Y(c.o), Y(c.c)), hgt = Math.max(1, Math.abs(Y(c.c) - Y(c.o)))
+            ctx.strokeStyle = cc('litPo3Dn'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Math.round(mid) + 0.5, Y(c.h)); ctx.lineTo(Math.round(mid) + 0.5, Y(c.l)); ctx.stroke()
+            ctx.fillStyle = body; ctx.fillRect(x, top, cw, hgt)
+            ctx.strokeStyle = light ? '#000' : 'rgba(0,0,0,0.6)'; ctx.strokeRect(Math.round(x) + 0.5, Math.round(top) + 0.5, Math.round(cw), Math.round(hgt))
+            tag(c.label.replace(' PO3', ''), mid, Y(c.h) - 7, T.faint, 'center', 9.5, 40)
+            x += cw + gap
+          }
+        }
+      }
+      LBL.flush(L)
+    }
+
+    /* ── the panel indicators: D1 HTF Dashboard and D1 News ──
+       Both ship as Pine tables, so both land here as DOM cards over the canvas
+       rather than text painted into it: real font rendering, real wrapping, and a
+       corner can hold two of them without either covering the other. Each corner
+       is its own flex stack; the top corners fill downward and the bottom corners
+       upward, so a panel grows away from the edge it is pinned to. */
+    const CH_CORNERS = [['tl', 'Top left'], ['tr', 'Top right'], ['bl', 'Bottom left'], ['br', 'Bottom right']]
+
+    /* D1 HTF Dashboard: the EMA20/50 stack for trend, Wilder RSI 14, Wilder ATR 14
+       and volume against its own 20-bar average, each read on its own timeframe
+       rather than the chart's. A row finer than the chart interval is dimmed to
+       n/a instead of dropped, so the table keeps its shape as you switch TF, and
+       the Bias row is a straight majority vote of the trend column. The newest bar
+       of each timeframe is still forming, so its cells are developing values. */
+    const CH_HTF_ROWS = [['5m', '5m', 5, 'htf5'], ['15m', '5m', 15, 'htf15'], ['1H', '60m', 60, 'htf60'], ['4H', '60m', 240, 'htf240'], ['D', '1d', 1440, 'htfD']]
+    let chHtfCache = { key: '', v: null }
+    function chHtfBars(st, src, m) {   // the chBuild recipe: minutes where they reach, the coarse archive before that
+      let bars = chAggregate(chAdjBase(st, '1m'), m)
+      if (src !== '1m' && st.base[src].length) {
+        const coarse = chAggregate(chAdjBase(st, src), m), first = bars.length ? bars[0].k : Infinity
+        bars = coarse.filter((b) => b.k < first).concat(bars)
+      }
+      return bars
+    }
+    function chHtf() {
+      const st = chStoreFor(CH.sym), tail = st.base['1m']
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${tail.length}|${tail[tail.length - 1]?.[4]}|${st.base['1d'].length}|${CH.tfSec}`
+      if (chHtfCache.key === key) return chHtfCache.v
+      const rows = [], mins = CH.tfSec / 60
+      for (const [name, src, m, skey] of CH_HTF_ROWS) {
+        const row = { name, m, skey, elig: mins <= m }; rows.push(row)
+        const bars = chHtfBars(st, src, m), n = bars.length
+        if (n < 51) { row.na = true; continue }
+        const c = new Array(n); for (let i = 0; i < n; i++) c[i] = bars[i].c
+        const ema = (len) => { const k = 2 / (len + 1); let e = c[0]; for (let i = 1; i < n; i++) e = c[i] * k + e * (1 - k); return e }
+        let g = 0, l = 0                                             // Wilder RSI, the smoothing ta.rsi uses
+        for (let i = 1; i <= 14; i++) { const d = c[i] - c[i - 1]; if (d > 0) g += d; else l -= d }
+        g /= 14; l /= 14
+        for (let i = 15; i < n; i++) { const d = c[i] - c[i - 1]; g = (g * 13 + (d > 0 ? d : 0)) / 14; l = (l * 13 + (d < 0 ? -d : 0)) / 14 }
+        row.rsi = l <= 0 ? 100 : 100 - 100 / (1 + g / l)
+        const tr = (i) => Math.max(bars[i].h - bars[i].l, Math.abs(bars[i].h - bars[i - 1].c), Math.abs(bars[i].l - bars[i - 1].c))
+        let atr = 0; for (let i = 1; i <= 14; i++) atr += tr(i); atr /= 14
+        for (let i = 15; i < n; i++) atr = (atr * 13 + tr(i)) / 14
+        row.atr = atr
+        let vs = 0; for (let i = n - 20; i < n; i++) vs += bars[i].v
+        row.vr = vs > 0 ? bars[n - 1].v / (vs / 20) : null
+        const e20 = ema(20), e50 = ema(50), cl = c[n - 1]
+        row.score = cl > e20 && e20 > e50 ? 1 : cl < e20 && e20 < e50 ? -1 : 0
+      }
+      let up = 0, dn = 0
+      for (const r of rows) { if (r.na || !r.elig || CH.s[r.skey] === false) continue; if (r.score === 1) up++; else if (r.score === -1) dn++ }
+      const v = { rows, up, dn, bias: up > dn ? 1 : dn > up ? -1 : 0 }
+      chHtfCache = { key, v }; return v
+    }
+    /* The chart only fetches the archive its own interval needs, so a 15m chart
+       has never seen the 60m or daily source and those rows would sit on
+       "loading" forever. Turning the panel on pulls them; chLoad rebuilds and
+       repaints when each lands. */
+    function chHtfWarm() { if (CH.s.htf) for (const src of ['5m', '60m', '1d']) if (!CH.have[src]) chLoad(src) }
+    function chHtfHtml() {
+      const S = CH.s, d = chHtf(), hi = +S.htfRsiHi || 70, lo = +S.htfRsiLo || 30, hot = +S.htfVolHot || 1.5
+      const body = d.rows.filter((r) => S[r.skey] !== false).map((r) => {
+        if (r.na || !r.elig) return `<tr class="na"><td>${r.name}</td><td colspan="4">${r.na ? 'loading' : 'n/a'}</td></tr>`
+        const tc = r.score === 1 ? 'up' : r.score === -1 ? 'down' : 'mix', rc = r.rsi >= hi ? 'down' : r.rsi <= lo ? 'up' : ''
+        return `<tr><td>${r.name}</td><td class="${tc}">${r.score === 1 ? 'Up' : r.score === -1 ? 'Down' : 'Mixed'}</td><td class="${rc}">${r.rsi.toFixed(1)}</td><td>${chPx(r.atr, r.atr >= 100 ? 0 : 1)}</td><td class="${r.vr >= hot ? 'hot' : ''}">${r.vr == null ? '–' : r.vr.toFixed(2) + '×'}</td></tr>`
+      }).join('')
+      const bc = d.bias === 1 ? 'up' : d.bias === -1 ? 'down' : 'mix', bt = d.bias === 1 ? 'Bullish' : d.bias === -1 ? 'Bearish' : 'Neutral'
+      return `<div class="ch-ph"><b>Timeframes</b><span class="bias ${bc}">${bt}</span></div><table><thead><tr><th>TF</th><th>Trend</th><th>RSI</th><th>ATR</th><th>Vol</th></tr></thead><tbody>${body}</tbody></table><div class="ch-pf">${d.up} up · ${d.dn} down</div>`
+    }
+
+    /* D1 News: the same Forex Factory feed the News tab reads, cut to the day the
+       chart's last bar sits in. The Pine had to carry a baked blob and shout when
+       it went stale; here the feed is live, so the failure to call out is an empty
+       one. An empty feed prints "News feed unavailable" in the high-impact colour
+       instead of reading as a quiet day, which is the mistake that hides a CPI. */
+    const CH_NEWS_IMP = { High: 'hi', Medium: 'med', Holiday: 'hol' }
+    const CH_NEWS_C = { hi: '#ef5350', med: '#e0a030', hol: '#8a847a' }
+    const CH_ET_HM = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false })
+    /* Which day the panel speaks for: the chart's last bar, except over a weekend
+       or a holiday, when that bar is Friday and the feed has already rolled to the
+       week ahead. Reading a day the feed does not cover as a quiet day is the
+       mistake that hides a CPI, so the panel falls forward to today and, when today
+       is genuinely empty, names the next release instead of printing nothing. */
+    function chNewsDay() {
+      const S = CH.s, bars = chVisible(), last = bars[bars.length - 1]
+      const barDay = ET_DAY.format(last ? new Date(last.t * 1000) : new Date()), today = ET_DAY.format(new Date())
+      const day = barDay < today ? today : barDay
+      const want = { hi: S.newsHigh !== false, med: S.newsMed !== false, hol: S.newsHol !== false }
+      const all = (Array.isArray(newsEvents) ? newsEvents : []).filter((e) => e.at && want[CH_NEWS_IMP[e.impact]])
+      const list = all.filter((e) => ET_DAY.format(e.at) === day)
+      const next = list.length ? null : all.find((e) => e.at.getTime() > Date.now())
+      return { day, next, list: list.slice(0, Math.max(1, +S.newsMax || 10)), fed: all.length > 0 || newsEvents?.length > 0 }
+    }
+    function chNewsHtml() {
+      const S = CH.s, d = chNewsDay(), now = Date.now()
+      const dd = new Date(d.day + 'T12:00:00Z'), p = { wd: dd.getUTCDay(), d: dd.getUTCDate(), mo: dd.getUTCMonth() }
+      const head = `<div class="ch-ph"><b>${CH_WD[p.wd]} ${p.d} ${CH_MON[p.mo]}</b><span>USD · ET</span></div>`
+      if (!d.fed) return head + '<div class="ch-pn hi">News feed unavailable</div>'
+      if (!d.list.length) {
+        if (!d.next) return head + '<div class="ch-pn">Nothing left on the feed</div>'
+        const nd = ET_DAY.format(d.next.at), n2 = new Date(nd + 'T12:00:00Z')
+        return head + `<div class="ch-pn">Clear today. Next up</div><ul><li class="${CH_NEWS_IMP[d.next.impact] || 'hol'}"><time>${CH_WD[n2.getUTCDay()]}</time><span>${CH_ET_HM.format(d.next.at)} ${escH(d.next.title)}</span></li></ul>`
+      }
+      const li = d.list.map((e) => {
+        const k = CH_NEWS_IMP[e.impact] || 'hol', past = S.newsDim !== false && e.at.getTime() < now
+        return `<li class="${k}${past ? ' past' : ''}"><time>${k === 'hol' ? '' : CH_ET_HM.format(e.at)}</time><span>${escH(e.title)}</span></li>`
+      }).join('')
+      return head + `<ul>${li}</ul>`
+    }
+    // event times as verticals on the price pane: the panel says what, this says when
+    function chPaintNews(ctx, L, T, R) {
+      if (CH.s.newsMarks === false) return
+      const { i0, i1 } = R, d = chNewsDay()
+      for (const e of d.list) {
+        const k = CH_NEWS_IMP[e.impact] || 'hol'; if (k === 'hol') continue
+        const i = chIofT(e.at.getTime() / 1000); if (i < i0 - 1 || i > i1 + 1) continue
+        const x = Math.round(chX(i, L)) + 0.5, c = CH_NEWS_C[k]
+        ctx.strokeStyle = alpha(c, 0.32); ctx.lineWidth = 1; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.mainH); ctx.stroke(); ctx.setLineDash([])
+        ctx.fillStyle = alpha(c, e.at.getTime() < Date.now() ? 0.55 : 1); ctx.beginPath(); ctx.moveTo(x, L.mainH - 11); ctx.lineTo(x + 5, L.mainH - 3); ctx.lineTo(x - 5, L.mainH - 3); ctx.closePath(); ctx.fill()
+      }
+    }
+
+    /* One DOM pass per change, not per frame: pan and zoom repaint the canvas
+       sixty times a second and none of that moves a panel, so the markup is
+       rebuilt only when the string it would produce actually differs. */
+    function chPanels(L) {
+      const host = el('ch-panels'); if (!host) return
+      const S = CH.s, want = []
+      if (CH.on && S.htf) want.push(['htf', CH_CORNERS.some((c) => c[0] === S.htfPos) ? S.htfPos : 'tr', chHtfHtml()])
+      if (CH.on && S.news) want.push(['news', CH_CORNERS.some((c) => c[0] === S.newsPos) ? S.newsPos : 'br', chNewsHtml()])
+      if (L) host.style.setProperty('--ch-ax', L.ax + 'px')
+      const sig = want.map((w) => w.join('\u0001')).join('\u0002')
+      if (sig === CH.panelSig) return
+      CH.panelSig = sig
+      host.textContent = ''
+      const wraps = {}
+      for (const [id, pos, html] of want) {
+        let w = wraps[pos]
+        if (!w) { w = wraps[pos] = document.createElement('div'); w.className = 'ch-pw'; w.dataset.c = pos; host.appendChild(w) }
+        const p = document.createElement('div'); p.className = 'ch-panel'; p.dataset.ind = id; p.innerHTML = html
+        p.addEventListener('dblclick', () => chMenu('ind:' + id))
+        w.appendChild(p)
+      }
     }
 
     /* ── D1 GEX: the day's levels from the worker, per session, from the 9:30 print ── */
@@ -12845,7 +13110,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chPaintRolls(ctx, L, T)
       if (S.smt) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip(); chPaintSmt(ctx, L, T, { bars, n, i0, i1 }); ctx.restore() }
       // D1 LIT and D1 GEX
-      if (S.lit || S.gex) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip(); if (S.lit) chPaintLit(ctx, L, T, { bars, n, i0, i1, light }); if (S.gex) chPaintGex(ctx, L, T, { bars, n, i0, i1, light }); ctx.restore() }
+      if (S.lit || S.gex || S.news) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip(); if (S.lit) chPaintLit(ctx, L, T, { bars, n, i0, i1, light }); if (S.gex) chPaintGex(ctx, L, T, { bars, n, i0, i1, light }); if (S.news) chPaintNews(ctx, L, T, { bars, n, i0, i1, light }); ctx.restore() }
+      chPanels(L)
       // EMA and VWAP
       if (S.bb) {
         const bb = chBands(), bc = S.bbC || '#2962ff', mc = S.bbMidC || '#ff9800'
@@ -12958,6 +13224,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.s.bb) { const bb = chBands(); rows.push(`<div class="ln" data-ind="bb"><span class="nm">BB ${CH.s.bbN || 20} ${CH.s.bbK || 2}</span><span>${bb.up[i] != null ? `<i>${chPx(bb.up[i])}</i> <i>${chPx(bb.mid[i])}</i> <i>${chPx(bb.lo[i])}</i>` : '–'}</span>${ic('bb', 'ind:bb')}</div>`) }
       if (CH.s.vwap) { const v = chVwap(); rows.push(`<div class="ln" data-ind="vwap"><span class="nm">VWAP</span><i>${v[i] != null ? chPx(v[i]) : '–'}</i>${CH.s.vwapBands && v.sd && v.sd[i] != null ? `<span>+1σ <i>${chPx(v[i] + v.sd[i])}</i></span><span>−1σ <i>${chPx(v[i] - v.sd[i])}</i></span>` : ''}${ic('vwap', 'ind:vwap')}</div>`) }
       if (CH.s.lit) rows.push(`<div class="ln" data-ind="lit"><span class="nm">D1 LIT</span><span>${CH.s.litDays || 3}</span>${ic('lit', 'ind:lit')}</div>`)
+      if (CH.s.htf) { const d = chHtf(); rows.push(`<div class="ln" data-ind="htf"><span class="nm">D1 HTF</span><i class="${d.bias === 1 ? 'up' : d.bias === -1 ? 'down' : ''}">${d.bias === 1 ? 'Bullish' : d.bias === -1 ? 'Bearish' : 'Neutral'}</i><span>${d.up} up · ${d.dn} down</span>${ic('htf', 'ind:htf')}</div>`) }
+      if (CH.s.news) { const d = chNewsDay(), nx = d.list.find((e) => e.at.getTime() > Date.now()) || d.next; const t = nx ? (nx.title.length > 30 ? nx.title.slice(0, 29) + '…' : nx.title) : ''
+        rows.push(`<div class="ln" data-ind="news"><span class="nm">D1 News</span><span>${!d.fed ? '<i class="down">feed unavailable</i>' : nx ? `${CH_ET_HM.format(nx.at)} ${escH(t)}` : d.list.length ? 'all out for today' : 'nothing scheduled'}</span>${ic('news', 'ind:news')}</div>`) }
       if (CH.s.cmp) { const cmp = chCompare(); const cv = cmp?.v[i]; const c0 = cmp ? [...cmp.v].slice(0, Math.max(0, i)).reverse().find((x) => x != null) : null; rows.push(`<div class="ln" data-ind="cmp"><span class="nm" style="color:${CH.s.cmpC || '#ff9800'}">${cmp?.peer || chCmpSym()}</span><i>${cv != null ? chPx(cv) : '–'}</i>${cv != null && c0 != null ? `<span class="${cv >= c0 ? 'up' : 'down'}">${chPts(cv - c0)}</span>` : ''}${ic('cmp', 'ind:cmp')}</div>`) }
       if (CH.s.smt) rows.push(`<div class="ln" data-ind="smt"><span class="nm">SMT</span><span>${chSmtPeer()} ${CH.s.smtLen || 5}</span>${ic('smt', 'ind:smt')}</div>`)
       if (CH.s.prevDay && !CH.s.lit) rows.push(`<div class="ln" data-ind="prev"><span class="nm">PDH / PDL</span>${ic('prevDay', 'ind:prev')}</div>`)
@@ -14168,7 +14437,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             const lbl = document.createElement('span'); lbl.className = 'ch-tpl-l'; lbl.textContent = 'Templates'; tpl.appendChild(lbl)
             for (const [k, t] of (S.indTemplates || []).entries()) {
               const b = document.createElement('button'); b.type = 'button'; b.className = 'ch-tpl-b'; b.innerHTML = `<span>${t.name.replace(/[<>&]/g, '')}</span><i title="Remove">&times;</i>`
-              b.addEventListener('click', (e) => { if (e.target.tagName === 'I') { S.indTemplates.splice(k, 1); chSave(); list(); return } Object.assign(S, JSON.parse(JSON.stringify(t.v))); if (!Array.isArray(S.ma) || !S.ma.length) S.ma = CH_MA_DEFAULT(); chSave(); chSmtWarm(); if (S.gex) chGexWarm(); chBuild(); chDraw(); chMenu('ind'); toast(`Template "${t.name}" applied.`, 1800) })
+              b.addEventListener('click', (e) => { if (e.target.tagName === 'I') { S.indTemplates.splice(k, 1); chSave(); list(); return } Object.assign(S, JSON.parse(JSON.stringify(t.v))); if (!Array.isArray(S.ma) || !S.ma.length) S.ma = CH_MA_DEFAULT(); chSave(); chSmtWarm(); if (S.gex) chGexWarm(); chHtfWarm(); chBuild(); chDraw(); chMenu('ind'); toast(`Template "${t.name}" applied.`, 1800) })
               tpl.appendChild(b)
             }
             const add = document.createElement('button'); add.type = 'button'; add.className = 'ch-tpl-b add'; add.textContent = (S.indTemplates || []).length ? '+ Save current' : '+ Save the current set as a template'
@@ -14194,6 +14463,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         gearRow('lit', 'D1 LIT', 'Levels and timing: PDH/PDL, PWH/PWL, weekly open, Asia box, NYT box, 18:00 open, FF/LO/MM markers, key opens, PO3 candles, weekly eighths, the golden window, vector candles', 'ind:lit')
         if (hasGex) gearRow('gex', 'D1 GEX', 'Gamma flip, call and put walls, major wall, top gamma strikes and the GTBR band, per session from the 9:30 print', 'ind:gex', () => { if (S.gex) chGexWarm() })
         else { const r = document.createElement('div'); r.className = 'ch-row'; r.innerHTML = '<div class="ch-row-t">D1 GEX<small>Part of the D1 GEX indicator</small></div>'; const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn'; b.textContent = 'Unlock'; b.addEventListener('click', () => { chMenu(null); showView('indicators') }); r.appendChild(b); body.appendChild(r) }
+        gearRow('htf', 'D1 HTF Dashboard', 'Trend, RSI, ATR and volume read on 5m, 15m, 1H, 4H and D, with a majority bias across them', 'ind:htf', () => chHtfWarm())
+        gearRow('news', 'D1 News', 'The day’s USD releases as a panel, and their times marked on the chart', 'ind:news')
         header('Overlays')
         gearRow('prevDay', 'Prior day high and low', 'The plain pair, when D1 LIT is off', 'ind:prev')
         gearRow('sessions', 'Sessions', 'Shade the hours outside 9:30 to 4:00 ET', 'ind:sess')
@@ -14271,6 +14542,24 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         header('Levels')
         for (const [key, label, cKey] of CH_GEX_PARTS) { const els = [colorEl(cKey, 'default')]; if (key === 'gexGtbr') { const r = rangeEl('gexGtbrF', 0, 0.4, 0.01, 0.06); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) } partRow(label, '', els, tglEl(key)) }
         button('Reset every GEX colour', () => { for (const [key, , cKey] of CH_GEX_PARTS) { S[cKey] = ''; S[key] = true } S.gexGtbrF = 0.06; S.gexW = 1; chSave(); chDraw(); chMenu('ind:gex') })
+      } else if (which === 'ind:htf') {
+        toggle('htf', 'Show the HTF dashboard', null, () => chHtfWarm())
+        header('Timeframes')
+        hint('A row finer than the chart interval reads n/a instead of disappearing, so the table keeps its shape as you switch. The newest cell on each row is still forming.')
+        for (const [name, , , key] of CH_HTF_ROWS) partRow(name, '', [], tglEl(key))
+        header('Signals')
+        row('RSI overbought', numEl('htfRsiHi', 50, 100, 70)); row('RSI oversold', numEl('htfRsiLo', 0, 50, 30))
+        row('Hot volume', rangeEl('htfVolHot', 1, 4, 0.1, 1.5), 'Gold when the bar trades this multiple of its own 20-bar average')
+        header('Panel'); row('Position', segEl('htfPos', CH_CORNERS))
+      } else if (which === 'ind:news') {
+        toggle('news', 'Show the news panel', 'The Forex Factory feed the News tab reads, cut to the chart’s day')
+        header('Show')
+        partRow('High impact', '', [], tglEl('newsHigh')); partRow('Medium impact', '', [], tglEl('newsMed')); partRow('Bank holidays', '', [], tglEl('newsHol'))
+        row('Most events listed', numEl('newsMax', 1, 20, 10))
+        toggle('newsDim', 'Fade what is already out')
+        toggle('newsMarks', 'Mark the times on the chart', 'A dashed vertical and a marker at each release')
+        header('Panel'); row('Position', segEl('newsPos', CH_CORNERS))
+        hint('Times are New York, which is how the calendar is published. Low impact never shows.')
       } else if (which === 'ind:prev') {
         toggle('prevDay', 'Show prior day high and low', 'The plain pair, when D1 LIT is off'); color('prevDayC', 'Colour')
       } else if (which === 'ind:sess') { sessionsUi() }
@@ -14491,6 +14780,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function chartShown() {
       CH.on = true; chWire(); chFit(); chTzLabel(); chSymUi(); if (CH.s.lit && CH.s.litSig !== false) chVixLoad()
       if (CH.s.gex) chGexWarm()
+      if (CH.s.htf) chHtfWarm()
       clearInterval(CH.clock); CH.clock = setInterval(() => { if (CH.on && !document.hidden) chDraw() }, 1000)
       if (CH.s.smt || CH.s.cmp) chSmtWarm()
       chTfCustomButtons(); el('ch-tf').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tf === CH.tf))
