@@ -1022,6 +1022,55 @@
     .mm-post-body .ln.h:first-child { margin-top: 0; }
     .mm-post-body .ln.li { padding-left: 16px; position: relative; margin: 3px 0; }
     .mm-post-body .ln.li::before { content: ''; position: absolute; left: 2px; top: 0.72em; width: 5px; height: 1px; background: var(--gold); }
+
+    /* ── scorecard: how the digest's own calls actually did ───────
+       Rows come from the memecoin_scorecard view (admin-only RLS), which
+       scores each call on the digest's rule: announcement is the entry,
+       event is the exit. scripts/memecoin-track.mjs fills it nightly. */
+    .sc-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 4px; }
+    .sc-head .mm-sec-head { flex: 1; border-bottom: 0; padding-bottom: 0; }
+    .sc-seg { position: relative; display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 10px; flex: none; }
+    .sc-seg-ink {
+      position: absolute; top: 3px; bottom: 3px; left: 0; width: 0; border-radius: 7px;
+      background: var(--gold); opacity: 0.13; pointer-events: none;
+      transform: translateX(0); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .sc-seg-btn {
+      appearance: none; background: none; border: 0; position: relative; z-index: 1; cursor: pointer;
+      padding: 6px 15px; border-radius: 7px; font: inherit; font-size: 12px; font-weight: 600;
+      color: var(--muted); transition: color 0.18s ease; white-space: nowrap;
+    }
+    .sc-seg-btn:hover:not(.on) { color: var(--ink); }
+    .sc-seg-btn.on { color: var(--gold); }
+    .sc-cols { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 0 56px; align-items: start; margin-top: 22px; }
+    .sc-tbl td { vertical-align: top; }
+    .sc-tbl .c-when { width: 96px; padding-right: 14px; white-space: nowrap; }
+    .sc-tbl .c-when .d { font-size: 13px; font-weight: 550; color: var(--ink); }
+    .sc-tbl .c-ret { width: 128px; text-align: right; padding-left: 14px; }
+    .sc-tbl .c-ret .px { font-size: 13.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .sc-tbl .c-ret .px.up { color: var(--good); }
+    .sc-tbl .c-ret .px.down { color: var(--bad); }
+    .sc-tbl .c-ret .px.none { color: var(--faint); font-weight: 450; }
+    /* magnitude bar, centred on zero so up and down read at a glance */
+    .sc-bar { position: relative; height: 3px; margin-top: 7px; background: var(--line); border-radius: 2px; overflow: hidden; }
+    .sc-bar i { position: absolute; top: 0; bottom: 0; left: 50%; border-radius: 2px; transition: width 0.3s ease, transform 0.3s ease; }
+    .sc-bar i.up { background: var(--good); }
+    .sc-bar i.down { background: var(--bad); transform: translateX(-100%); }
+    .sc-tbl .lowconf { font-size: 10px; letter-spacing: 0.04em; color: var(--bad); margin-left: 6px; font-weight: 650; }
+    .sc-rate { display: flex; align-items: center; gap: 9px; }
+    .sc-rate .track { flex: 1; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+    .sc-rate .track i { display: block; height: 100%; background: var(--gold); border-radius: 2px; transition: width 0.3s ease; }
+    .sc-note { margin-top: 26px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; line-height: 1.65; color: var(--muted); }
+    .sc-note b { color: var(--ink); font-weight: 650; }
+    .sc-empty { padding: 34px 0; font-size: 13px; color: var(--faint); }
+    @media (prefers-reduced-motion: reduce) {
+      .sc-seg-ink, .sc-bar i, .sc-rate .track i { transition: none; }
+    }
+    @media (max-width: 1100px) {
+      .sc-cols { display: flex; flex-direction: column; gap: 0; }
+      .sc-cols .mm-side { position: static; order: -1; margin-bottom: 36px; width: 100%; }
+      .sc-head { flex-direction: column; align-items: stretch; gap: 14px; }
+    }
     @media (max-width: 1100px) {
       .mm-cols { display: flex; flex-direction: column; gap: 0; }
       .mm-side { position: static; order: -1; margin-bottom: 36px; width: 100%; }
@@ -1715,7 +1764,39 @@
         <section class="view" id="v-memes">
           <div class="mm-tabs">
             <button class="mm-tab on" data-mm="desk">Desk</button>
+            <button class="mm-tab" data-mm="scorecard">Scorecard</button>
             <button class="mm-tab" data-mm="playbook">Playbook</button>
+          </div>
+          <div id="mm-scorecard" hidden>
+            <div class="mm-strip" id="sc-strip"><span class="pb-loading">Loading the scorecard…</span></div>
+            <div class="sc-head">
+              <div class="mm-sec-head">
+                <span class="label">Every ticker the digest named</span>
+                <span class="mm-upd" id="sc-upd"></span>
+              </div>
+              <div class="sc-seg" id="sc-seg">
+                <span class="sc-seg-ink" aria-hidden="true"></span>
+                <button class="sc-seg-btn on" data-h="ret_1d">1d</button>
+                <button class="sc-seg-btn" data-h="ret_7d">7d</button>
+                <button class="sc-seg-btn" data-h="ret_30d">30d</button>
+                <button class="sc-seg-btn" data-h="ret_event">To event</button>
+              </div>
+            </div>
+            <div class="sc-cols">
+              <section class="sc-main">
+                <table class="mm-tbl sc-tbl" id="sc-rows"></table>
+              </section>
+              <aside class="mm-side">
+                <div class="mm-sec-head"><span class="label">By section</span><span class="mm-upd">share that rose</span></div>
+                <table class="mm-tbl" id="sc-sections"></table>
+                <div class="sc-note" id="sc-unpriced" hidden></div>
+                <div class="sc-note">
+                  Scored on the digest's own rule: <b>announcement is the entry, event is the
+                  exit</b>. No direction is inferred, so a rise on a delisting still shows green.
+                  Read the sign yourself.
+                </div>
+              </aside>
+            </div>
           </div>
           <div id="mm-desk">
             <div class="mm-strip" id="mm-strip"><span class="pb-loading">Loading market…</span></div>
@@ -5278,16 +5359,170 @@
        and Claude sessions add notes/alerts. */
     const MM = { marketAt: 0, wireAt: 0 }
     function memesShown() {
-      if (el('mm-desk').hidden) { playbookShown('memes'); return }
-      mmLoadMarket(); mmLoadWire()
+      if (!el('mm-desk').hidden) { mmLoadMarket(); mmLoadWire(); return }
+      if (!el('mm-scorecard').hidden) { scLoad(); return }
+      playbookShown('memes')
     }
     document.querySelectorAll('.mm-tab').forEach((btn) => btn.addEventListener('click', () => {
       document.querySelectorAll('.mm-tab').forEach((b) => b.classList.toggle('on', b === btn))
       const key = btn.dataset.mm
       el('mm-desk').hidden = key !== 'desk'
+      el('mm-scorecard').hidden = key !== 'scorecard'
       el('mm-playbook').hidden = key !== 'playbook'
       memesShown()
     }))
+
+    /* ── scorecard: did the digest's own calls go anywhere? ──
+       One row per tracked call from the memecoin_scorecard view (admin-only
+       RLS), filled nightly by scripts/memecoin-track.mjs. Switching horizon
+       is local state plus a transform, so it never refetches and never
+       re-renders the page around it. */
+    const SC = { at: 0, rows: null, horizon: 'ret_1d', loading: null }
+    const SC_LABEL = { ret_1d: '1 day', ret_7d: '7 days', ret_30d: '30 days', ret_event: 'the event' }
+    const scPct = (v) => v == null ? '–' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
+    const scDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+
+    function scSegInk() {
+      const seg = el('sc-seg'); if (!seg) return
+      const on = seg.querySelector('.sc-seg-btn.on'), ink = seg.querySelector('.sc-seg-ink')
+      if (!on || !ink) return
+      ink.style.width = on.offsetWidth + 'px'
+      ink.style.transform = `translateX(${on.offsetLeft}px)`
+    }
+    el('sc-seg').addEventListener('click', (e) => {
+      const btn = e.target.closest('.sc-seg-btn'); if (!btn || btn.classList.contains('on')) return
+      el('sc-seg').querySelectorAll('.sc-seg-btn').forEach((b) => b.classList.toggle('on', b === btn))
+      SC.horizon = btn.dataset.h
+      scSegInk(); scRender()
+    })
+
+    function scStat(k, v, tone) {
+      const d = document.createElement('div'); d.className = 'mm-stat'
+      const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = k
+      const vv = document.createElement('div'); vv.className = 'v'; vv.textContent = v
+      if (tone) vv.style.color = `var(--${tone})`
+      d.append(kk, vv); return d
+    }
+
+    function scRender() {
+      const rows = SC.rows || [], h = SC.horizon
+      const tickered = rows.filter((r) => r.ticker)
+      const scored = tickered.filter((r) => r[h] != null)
+      const vals = scored.map((r) => r[h]).sort((a, b) => a - b)
+      const up = vals.filter((v) => v > 0).length
+      const med = vals.length ? vals[Math.floor(vals.length / 2)] : null
+
+      const strip = el('sc-strip'); strip.textContent = ''
+      strip.append(
+        scStat('Calls tracked', String(tickered.length)),
+        scStat(`Scored at ${SC_LABEL[h]}`, String(scored.length)),
+        scStat('Share that rose', vals.length ? Math.round((up / vals.length) * 100) + '%' : '–'),
+        scStat('Median move', scPct(med), med == null ? null : med >= 0 ? 'good' : 'bad'),
+        scStat('Broad market', String(rows.length - tickered.length)),
+      )
+      // rows come back newest first; show the span, not a second call count
+      // that would sit next to the strip's own number and read as a mismatch
+      el('sc-upd').textContent = rows.length ? `${scDate(rows[rows.length - 1].entry_at)} to ${scDate(rows[0].entry_at)}` : ''
+
+      // rows, biggest absolute move first so the tape reads itself
+      const tbl = el('sc-rows'); tbl.textContent = ''
+      const view = tickered.slice().sort((a, b) => {
+        if (a[h] == null && b[h] == null) return new Date(b.entry_at) - new Date(a.entry_at)
+        if (a[h] == null) return 1
+        if (b[h] == null) return -1
+        return Math.abs(b[h]) - Math.abs(a[h])
+      })
+      if (!view.length) {
+        const p = document.createElement('p'); p.className = 'sc-empty'
+        p.textContent = 'No calls scored yet. The tracker fills this in nightly.'
+        tbl.parentNode.appendChild(p)
+      }
+      const max = Math.max(1, ...view.map((r) => Math.abs(r[h] ?? 0)))
+      for (const r of view.slice(0, 150)) {
+        const tr = document.createElement('tr')
+
+        const when = document.createElement('td'); when.className = 'c-when'
+        const d1 = document.createElement('div'); d1.className = 'd'; d1.textContent = scDate(r.entry_at)
+        const d2 = document.createElement('div'); d2.className = 'sub'; d2.textContent = r.section
+        when.append(d1, d2)
+
+        const coin = document.createElement('td'); coin.className = 'c-coin'
+        const sym = document.createElement('span'); sym.className = 'sym'; sym.textContent = r.ticker
+        coin.appendChild(sym)
+        if (r.ticker_confidence === 'low') {
+          const w = document.createElement('span'); w.className = 'lowconf'; w.textContent = 'CHECK'
+          w.title = 'Ticker matched more than one coin; verify it is the right one.'
+          coin.appendChild(w)
+        }
+        const cat = document.createElement('div'); cat.className = 'sub'; cat.textContent = r.catalyst
+        coin.appendChild(cat)
+
+        const ret = document.createElement('td'); ret.className = 'c-ret'
+        const v = r[h]
+        const px = document.createElement('div')
+        px.className = 'px ' + (v == null ? 'none' : v >= 0 ? 'up' : 'down')
+        px.textContent = scPct(v)
+        ret.appendChild(px)
+        if (v != null) {
+          const bar = document.createElement('div'); bar.className = 'sc-bar'
+          const i = document.createElement('i')
+          i.className = v >= 0 ? 'up' : 'down'
+          i.style.width = Math.max(2, (Math.abs(v) / max) * 50) + '%'
+          bar.appendChild(i); ret.appendChild(bar)
+        }
+
+        tr.append(when, coin, ret); tbl.appendChild(tr)
+      }
+
+      // by section
+      const sec = el('sc-sections'); sec.textContent = ''
+      const by = new Map()
+      for (const r of scored) {
+        if (!by.has(r.section)) by.set(r.section, [])
+        by.get(r.section).push(r[h])
+      }
+      for (const [section, list] of [...by].sort((a, b) => b[1].length - a[1].length)) {
+        const rate = (list.filter((v) => v > 0).length / list.length) * 100
+        const avg = list.reduce((a, b) => a + b, 0) / list.length
+        const tr = document.createElement('tr')
+        const td1 = document.createElement('td')
+        const s = document.createElement('div'); s.className = 'sym'; s.style.fontSize = '12.5px'; s.textContent = section
+        const sub = document.createElement('div'); sub.className = 'sub'; sub.textContent = `n=${list.length} · avg ${scPct(avg)}`
+        td1.append(s, sub)
+        const td2 = document.createElement('td'); td2.className = 'c-px'
+        const wrap = document.createElement('div'); wrap.className = 'sc-rate'
+        const track = document.createElement('div'); track.className = 'track'
+        const fill = document.createElement('i'); fill.style.width = rate + '%'
+        track.appendChild(fill)
+        const num = document.createElement('span'); num.className = 'px'; num.textContent = Math.round(rate) + '%'
+        wrap.append(track, num); td2.appendChild(wrap)
+        tr.append(td1, td2); sec.appendChild(tr)
+      }
+
+      // anything the tracker could not price, said out loud rather than hidden
+      const unpriced = [...new Set(tickered.filter((r) => !r.coin_id).map((r) => r.ticker))]
+      const note = el('sc-unpriced')
+      note.hidden = !unpriced.length
+      if (unpriced.length) {
+        note.textContent = ''
+        const b = document.createElement('b'); b.textContent = `${unpriced.length} unpriced: `
+        note.append(b, document.createTextNode(unpriced.join(', ') + '. Counted, not scored, because the ticker did not resolve to one coin.'))
+      }
+    }
+
+    async function scLoad() {
+      if (SC.rows && Date.now() - SC.at < 5 * 60 * 1000) { scRender(); scSegInk(); return }
+      if (SC.loading) return
+      SC.loading = supabase.from('memecoin_scorecard').select('*').order('entry_at', { ascending: false })
+      try {
+        const { data, error } = await SC.loading
+        if (error) throw error
+        SC.rows = data || []; SC.at = Date.now()
+        scRender(); scSegInk()
+      } catch (e) {
+        el('sc-strip').textContent = `Could not load the scorecard (${e.message}).`
+      } finally { SC.loading = null }
+    }
     const mmPrice = (v) => v == null ? '–' : v >= 1 ? '$' + v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : v >= 1e-6 ? '$' + Number(v.toPrecision(3)).toFixed(Math.max(2, 1 - Math.floor(Math.log10(v)) + 1)) : '$' + v.toFixed(9)
     const mmPct = (v) => v == null ? '–' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
     const mmCap = (v) => v == null ? '–' : v >= 1e9 ? '$' + (v / 1e9).toFixed(2) + 'B' : '$' + Math.round(v / 1e6) + 'M'

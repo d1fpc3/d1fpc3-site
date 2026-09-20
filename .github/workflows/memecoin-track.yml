@@ -1,0 +1,45 @@
+name: Memecoin scorecard
+
+# Score the daily catalyst digest against what the coins it named actually did
+# (scripts/memecoin-track.mjs). The digest posts to memecoin_posts at 12:10 UTC,
+# so this runs an hour later, parses every ticker out of every section, prices
+# each call from CoinGecko and mails the scorecard.
+#
+# The run is a full recompute and every write is an upsert, so a missed day or
+# a half-finished price backfill heals itself on the next run. CoinGecko's
+# keyless tier is rate limited, so the first few runs fill in the history a
+# chunk at a time; setting COINGECKO_API_KEY (a free Demo key) makes it finish
+# in one go.
+
+on:
+  schedule:
+    - cron: "10 13 * * *"   # 12:10 UTC digest, scored an hour later
+  workflow_dispatch:
+
+concurrency:
+  group: memecoin-track
+  cancel-in-progress: false
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the parser still matches the digest's wording
+        run: node --test tests/memecoin-parse.test.mjs
+
+      - name: Install the mailer
+        run: npm install --no-save --no-audit --no-fund nodemailer@6
+
+      - name: Score the digest
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+          MEMECOIN_SMTP_USER: ${{ secrets.MEMECOIN_SMTP_USER }}
+          MEMECOIN_SMTP_PASS: ${{ secrets.MEMECOIN_SMTP_PASS }}
+        run: node scripts/memecoin-track.mjs
