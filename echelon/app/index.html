@@ -11878,6 +11878,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       p_rsi: false, rsiN: 14, rsiC: '', rsiHi: 70, rsiLo: 30, rsiFill: true, p_macd: false, macdF: 12, macdS: 26, macdSig: 9, macdC: '', macdSigC: '', p_atr: false, atrN: 14, atrC: '',
       litPdC: '', litPdW: 1, litPwC: '', litPwW: 1, litWoC: '', litWoW: 2, litAsiaC: '', litAsiaF: 0.15, litNyC: '', litNyF: 0.1, litOpenC: '', litOpenW: 1, litMarksC: '', litKoC: '', litPo3Up: '', litPo3Dn: '', litEighthsC: '', litGoldC: '', litGoldW: 1, litVecUp: '', litVecDn: '', litLabels: true,
       cmp: false, cmpSym: 'auto', cmpC: '', cmpW: 1.4, cmpLabel: true,
+      // D1 LIT Engine: the mechanical IDM/BoS structure engine, opt in
+      eng: false, engBack: 3000, engStruct: true, engIdm: true, engSweeps: true, engEq: true, engLabels: true,
+      engFbos: false, engIdmMode: 'reanchor', engMinPb: 0.5,
+      engOB: true, engObLookback: 60, engObBody: false, engObHide: false, engObMaxExt: 120, engObF: 0.12,
+      engEntries: true, engNeedWin: false, engNeedVec: false, engSlBuf: 0.25, engMinRR: 1, engRisk: 300, engTarget: 'idm', engRej: true,
+      engVecMult: 1.5, engEdm: true, engRsiLen: 14, engEdmPivot: 5, engEdmSpan: 60, engLet: true, engEmaLen: 21, engLetWindow: 30,
+      engDash: true, engDashPos: 'bl', engBullC: '', engBearC: '', engTrapC: '', engIdmC: '', engEqC: '',
       // price-structure indicators, all opt in; *Back caps the bar scan, like the Pine's max_bars_back
       ict: false, ictDays: 2, ictLabels: true, ictMid: true, ictPc: true, ictRth: true, ictMacro: true, ictMidC: '', ictPcC: '', ictCeC: '', ictQuadC: '', ictMacroC: '', ictMacroF: 0.07,
       sd: false, sdBase: 5, sdBasePct: 0.5, sdExpl: 1.5, sdMax: 10, sdKeep: false, sdBack: 3000, sdLabels: true, sdDemandC: '', sdSupplyC: '', sdBrokenC: '', sdFreshF: 0.16, sdTestedF: 0.07,
@@ -11935,7 +11942,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     { const saved = localStorage.getItem('echelon-chart-tf'); for (const label of CH.s.customTfs || []) { const m = /^(\d+)([mhDW])$/.exec(label); if (m && !CH_TF[label]) { const mins = m[2] === 'h' ? +m[1] * 60 : m[2] === 'D' ? +m[1] * 1440 : m[2] === 'W' ? +m[1] * 10080 : +m[1]; CH_TF[label] = [mins >= 1440 ? '1d' : mins % 60 === 0 ? '60m' : mins % 5 === 0 ? '5m' : '1m', mins] } } if (saved && CH_TF[saved]) CH.tf = saved }
     const chSave = () => { try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)); localStorage.setItem(chDrKey(), JSON.stringify(CH.drawings, (k, v) => k.startsWith('_') ? undefined : v)) } catch {} }
     window.__CH = CH   // read-only peek for the console and the harness
-    CH.$ = { build: () => chBuild(), paint: () => chPaint(), pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck(), prev: () => chPrevDay(), smt: () => chSmt(), htfWarm: () => chHtfWarm(), ict: () => chIct(), sd: () => chSd(), pend: () => chPend(), amit: () => chAmit(), rolls: () => chRollsOf(chStoreFor(CH.sym)), setSym: (k) => chSetSymbol(k) }
+    CH.$ = { build: () => chBuild(), paint: () => chPaint(), pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck(), prev: () => chPrevDay(), smt: () => chSmt(), htfWarm: () => chHtfWarm(), eng: () => chLitEng(), ict: () => chIct(), sd: () => chSd(), pend: () => chPend(), amit: () => chAmit(), rolls: () => chRollsOf(chStoreFor(CH.sym)), setSym: (k) => chSetSymbol(k) }
     // undo and redo keep whole snapshots of the drawings; cheap at this size
     const chSnapshot = () => JSON.stringify(CH.drawings)
     function chPush() { CH.hist.push(chSnapshot()); if (CH.hist.length > 60) CH.hist.shift(); CH.redo = []; chHistUi() }
@@ -12943,6 +12950,387 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     }
 
+    /* ── D1 LIT Engine: the mechanical IDM-gated structure engine ──
+       The one indicator here that holds state across bars rather than scanning
+       for shapes, so it is a single forward pass that must run in Pine's order:
+       track the candidate extreme, flip on a body close through the protected
+       level, and only confirm a break once the inducement below it has been
+       swept. Get that order wrong and the chart prints BoS on moves that never
+       took the liquidity, which is the opposite of what the engine is for.
+
+       Legs come from the mother-candle rule: an inside bar is not a leg, and a
+       swing only exists on the bar the leg flips. Order blocks are the last
+       candle that took liquidity AND has an imbalance in front of it, shifted
+       forward when it does not. A zone born with price inside it arms only once
+       price closes clear, so it cannot consume its own retest.
+
+       Not ported, and why: the reference levels (Asia high/mid/low, PDH/PDL,
+       day open) and the vector candles are already D1 LIT parts, so drawing
+       them again would double every line; the Discord oracle emits TradingView
+       alert() webhooks, which Echelon does not use. The session windows are
+       computed but not drawn, because the entry filter needs them and D1 LIT
+       and D1 ICT already mark the same hours. */
+    const CH_ENG_WIN = [['Asia', 1080, 1440], ['FO', 60, 120], ['LO', 120, 180], ['MMM1', 210, 225], ['MMM2', 330, 345], ['NYO', 480, 540], ['Macro', 590, 610], ['LC', 660, 690]]
+    const chEngWindow = (t, tfMin) => {
+      const m = chMin(t)
+      for (const [name, a, b] of CH_ENG_WIN) if (m >= a && m < b) return name
+      // the 3-minute rule: manipulation clusters on the edges of each 15m candle, and only reads on a 1 to 3 minute chart
+      if (tfMin <= 3) { const q = m % 15; if (q < 3 || q >= 12) return '3min' }
+      return null
+    }
+    let chEngCache = { key: '', v: null }
+    function chLitEng() {
+      const bars = chVisible(), n = bars.length, S = CH.s
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${S.engBack}|${S.engMinPb}|${S.engIdmMode}|${S.engFbos}|${S.engObLookback}|${S.engObBody}|${S.engObMaxExt}|${S.engVecMult}|${S.engSlBuf}|${S.engMinRR}|${S.engRisk}|${S.engTarget}|${S.engNeedWin}|${S.engNeedVec}|${S.engRsiLen}|${S.engEdmPivot}|${S.engEdmSpan}|${S.engEmaLen}|${S.engLetWindow}`
+      if (chEngCache.key === key) return chEngCache.v
+      const blank = { events: [], idms: [], obs: [], trades: [], edm: [], let: [], eq: null, trend: 0, bos: null, choch: null, idm: null, idmPend: false, cyc: 'Build Up', cycTarget: null, last: '-', win: null }
+      if (n < 60) { chEngCache = { key, v: blank }; return blank }
+
+      const from = chScanFrom(n, S.engBack || 3000), warm = Math.max(0, from - 80)
+      const atrLen = 14, vecMult = +S.engVecMult || 1.5, minPb = S.engMinPb == null ? 0.5 : +S.engMinPb
+      const reanchor = S.engIdmMode !== 'strict', fbosExtend = !!S.engFbos
+      const obLook = +S.engObLookback || 60, obBody = !!S.engObBody, obMaxExt = +S.engObMaxExt || 120
+      const slBuf = S.engSlBuf == null ? 0.25 : +S.engSlBuf, minRR = S.engMinRR == null ? 1 : +S.engMinRR
+      const riskUSD = +S.engRisk || 300, tgtIdm = S.engTarget !== 'bos', pv = CH_SYMS[CH.sym]?.pv || 20
+      const tfMin = CH.tfSec / 60
+      const tr = (i) => i ? Math.max(bars[i].h - bars[i].l, Math.abs(bars[i].h - bars[i - 1].c), Math.abs(bars[i].l - bars[i - 1].c)) : bars[i].h - bars[i].l
+      let atr = 0; for (let i = warm + 1; i <= warm + atrLen && i < n; i++) atr += tr(i); atr /= atrLen
+
+      // RSI for EDM, rolled forward with the same Wilder smoothing Pine uses
+      const rsiLen = +S.engRsiLen || 14, emaLen = +S.engEmaLen || 21
+      const rsi = new Array(n).fill(null), ema = new Array(n).fill(null)
+      { let g = 0, l = 0
+        for (let i = warm + 1; i <= warm + rsiLen && i < n; i++) { const d = bars[i].c - bars[i - 1].c; if (d > 0) g += d; else l -= d }
+        g /= rsiLen; l /= rsiLen
+        for (let i = warm + rsiLen + 1; i < n; i++) { const d = bars[i].c - bars[i - 1].c; g = (g * (rsiLen - 1) + (d > 0 ? d : 0)) / rsiLen; l = (l * (rsiLen - 1) + (d < 0 ? -d : 0)) / rsiLen; rsi[i] = l <= 0 ? 100 : 100 - 100 / (1 + g / l) }
+        const k = 2 / (emaLen + 1); let e = bars[warm].c
+        for (let i = warm + 1; i < n; i++) { e = bars[i].c * k + e * (1 - k); ema[i] = e }
+      }
+
+      const events = [], idms = [], obs = [], trades = [], edmMarks = [], letMarks = []
+      // pullback engine
+      let mHigh = bars[warm].h, mLow = bars[warm].l, legDir = 0, legHigh = bars[warm].h, legHighBar = warm, legLow = bars[warm].l, legLowBar = warm
+      // structure state
+      let trend = 0, bosLvl = null, bosBar = null, chochLvl = null, chochBar = null
+      let idmLvl = null, idmBar = null, idmPend = false
+      let candExt = null, candExtBar = null, candCloseExt = null, lastEventBar = 0
+      let bodyBreakBar = null, wickBreakBar = null, sweepVector = false
+      let lastIdmLow = null, lastIdmHigh = null
+      let seedHigh = null, seedHighBar = null, seedLow = null, seedLowBar = null
+      let cyc = 'Build Up', cycTarget = null, lastSig = '-'
+      // EDM state
+      let pPlR = null, pPlP = null, pPlB = null, pPhR = null, pPhP = null, pPhB = null, lastBullEdm = null, lastBearEdm = null
+      const edmPiv = +S.engEdmPivot || 5, edmSpan = +S.engEdmSpan || 60, letWin = +S.engLetWindow || 30
+      let open$ = null                                  // the trade currently walking forward
+
+      const findOB = (i, fromOffset, isBull) => {
+        let res = -1, fallback = -1
+        for (let j = 0; j <= fromOffset - 2; j++) {
+          const k = fromOffset - j, idx = i - k; if (idx < 1 || i - (k - 2) >= n) continue
+          if (!(isBull ? bars[idx].l < bars[idx - 1].l : bars[idx].h > bars[idx - 1].h)) continue
+          const f = i - (k - 2)
+          if (isBull ? bars[f].l > bars[idx].h : bars[f].h < bars[idx].l) { res = k; break }
+          if (fallback === -1) fallback = k
+        }
+        if (res === -1 && fallback >= 2) for (let j = 0; j <= fallback - 2; j++) {
+          const k = fallback - j, idx = i - k, f = i - (k - 2); if (idx < 0 || f >= n) continue
+          if (isBull ? bars[f].l > bars[idx].h : bars[f].h < bars[idx].l) { res = k; break }
+        }
+        return res
+      }
+      const addOB = (i, k, isBull, txt, requireClear) => {
+        if (k < 2) return
+        const idx = i - k; if (idx < 0) return
+        const zb = bars[idx], b = bars[i]
+        const zTop = obBody ? Math.max(zb.o, zb.c) : zb.h, zBot = obBody ? Math.min(zb.o, zb.c) : zb.l
+        if (requireClear && !(isBull ? b.c > zTop : b.c < zBot)) return
+        obs.push({ i0: idx, i1: i, top: zTop, bottom: zBot, bull: isBull, txt, live: true, born: i, armed: isBull ? b.c > zTop : b.c < zBot, tappedAt: null, expired: false })
+        while (obs.length > 24) obs.shift()
+      }
+
+      for (let i = warm + atrLen + 1; i < n; i++) {
+        const b = bars[i], prev = bars[i - 1]
+        atr = (atr * (atrLen - 1) + tr(i)) / atrLen
+        const isVec = Math.abs(b.c - b.o) >= vecMult * atr
+        const win = chEngWindow(b.t, tfMin)
+
+        // ── legs: inside bars are not legs, a swing exists only where one flips
+        let nsh = null, nsl = null
+        const inside = b.h <= mHigh && b.l >= mLow
+        if (!inside) {
+          const brokeHigh = b.h > mHigh, brokeLow = b.l < mLow
+          const flipDown = brokeLow && (!brokeHigh || b.c < b.o), flipUp = brokeHigh && !flipDown
+          if (legDir >= 0 && flipDown) {
+            const v = brokeHigh && b.h > legHigh ? b.h : legHigh
+            nsh = { p: v, i: v > legHigh ? i : legHighBar }; legDir = -1; legLow = b.l; legLowBar = i
+          } else if (legDir <= 0 && flipUp) {
+            const v = brokeLow && b.l < legLow ? b.l : legLow
+            nsl = { p: v, i: v < legLow ? i : legLowBar }; legDir = 1; legHigh = b.h; legHighBar = i
+          }
+          if (legDir >= 0 && b.h >= legHigh) { legHigh = b.h; legHighBar = i }
+          if (legDir <= 0 && b.l <= legLow) { legLow = b.l; legLowBar = i }
+          mHigh = b.h; mLow = b.l
+        }
+
+        // ── seed once there is one confirmed swing on each side
+        if (trend === 0) {
+          if (nsh) { seedHigh = nsh.p; seedHighBar = nsh.i }
+          if (nsl) { seedLow = nsl.p; seedLowBar = nsl.i }
+          if (seedHigh != null && seedLow != null) {
+            trend = legDir >= 0 ? 1 : -1
+            bosLvl = trend === 1 ? seedHigh : seedLow; bosBar = trend === 1 ? seedHighBar : seedLowBar
+            chochLvl = trend === 1 ? seedLow : seedHigh; chochBar = trend === 1 ? seedLowBar : seedHighBar
+            candExt = trend === 1 ? b.h : b.l; candExtBar = i; candCloseExt = b.c; lastEventBar = i
+          }
+        }
+
+        const dir = trend
+        let evIdmSweep = false, evBoS = false, evFBoS = false, evCHoCH = false, evTapBull = false, evTapBear = false
+        let tapTopBull = null, tapBotBull = null, tapTopBear = null, tapBotBear = null
+
+        if (dir !== 0) {
+          const bull = dir === 1
+          if (candExt == null || (bull ? b.h > candExt : b.l < candExt)) { candExt = bull ? b.h : b.l; candExtBar = i }
+          candCloseExt = candCloseExt == null ? b.c : (bull ? Math.max(candCloseExt, b.c) : Math.min(candCloseExt, b.c))
+          if (wickBreakBar == null && (bull ? b.h > bosLvl : b.l < bosLvl)) wickBreakBar = i
+          if (bodyBreakBar == null && (bull ? b.c > bosLvl : b.c < bosLvl)) bodyBreakBar = i
+
+          if (bull ? b.c < chochLvl : b.c > chochLvl) {
+            // ── CHoCH: a body close through the protected level flips the trend
+            evCHoCH = true; lastEventBar = i
+            events.push({ k: 'choch', i0: chochBar, i1: i, p: chochLvl, bull: !bull })
+            if (S.engOB !== false) { const k = findOB(i, Math.min(i - bosBar, obLook), !bull); if (k >= 2) addOB(i, k, !bull, 'Ext OB', false) }
+            const oldBos = bosLvl, oldBosBar = bosBar
+            trend = -dir
+            // the flip bar's own extreme becomes the reference, so the next BoS needs a
+            // genuinely better one instead of re-printing at the level just broken
+            bosLvl = bull ? b.l : b.h; bosBar = i
+            chochLvl = oldBos; chochBar = oldBosBar
+            { const d = idms[idms.length - 1]; if (d && d.open) { d.i1 = i; d.open = false } }
+            idmPend = false; idmLvl = null; bodyBreakBar = null; wickBreakBar = null
+            candExt = bull ? b.l : b.h; candExtBar = i; candCloseExt = b.c
+          } else {
+            if (bull ? b.l < chochLvl : b.h > chochLvl) {
+              events.push({ k: 'prot', i0: i, p: bull ? b.l : b.h, bull })
+              chochLvl = bull ? b.l : b.h; chochBar = i
+            }
+            const sw = bull ? nsl : nsh
+            const deep = sw && (minPb === 0 || Math.abs(candExt - sw.p) >= minPb * atr)
+            if ((reanchor || !idmPend) && sw && sw.i > lastEventBar && (bull ? sw.p > chochLvl : sw.p < chochLvl) && deep) {
+              const prevD = idms[idms.length - 1]; if (prevD && prevD.open) { prevD.i1 = i; prevD.open = false }
+              idmLvl = sw.p; idmBar = sw.i; idmPend = true
+              if (bull) lastIdmLow = idmLvl; else lastIdmHigh = idmLvl
+              idms.push({ i0: idmBar, i1: i, p: idmLvl, bull, swept: false, open: true })
+            }
+            if (idmPend && (bull ? b.l < idmLvl : b.h > idmLvl)) {
+              // ── the inducement is taken: only now can the extreme beyond it count
+              evIdmSweep = true; sweepVector = isVec || (i > 0 && Math.abs(prev.c - prev.o) >= vecMult * atr)
+              idmPend = false; lastEventBar = i
+              const cur = idms[idms.length - 1]; if (cur && cur.open) { cur.swept = true; cur.open = false; cur.i1 = i }
+              events.push({ k: 'idm', i0: i, p: idmLvl, bull })
+              if (bull ? candExt > bosLvl : candExt < bosLvl) {
+                const bodyBroke = bull ? candCloseExt > bosLvl : candCloseExt < bosLvl
+                evBoS = bodyBroke; evFBoS = !bodyBroke
+                const end = bodyBroke ? (bodyBreakBar ?? i) : (wickBreakBar ?? i)
+                events.push({ k: bodyBroke ? 'bos' : 'fbos', i0: bosBar, i1: end, p: bosLvl, bull })
+                if (bodyBroke && S.engOB !== false) {
+                  const k1 = findOB(i, Math.min(i - chochBar, obLook), bull); if (k1 >= 2) addOB(i, k1, bull, 'Ext OB', true)
+                  const k2 = findOB(i, Math.min(i - idmBar, obLook), bull); if (k2 >= 2) addOB(i, k2, bull, 'IDM OB', true)
+                }
+                if (bodyBroke || fbosExtend) { bosLvl = candExt; bosBar = candExtBar }
+                // the protected level only ratchets on a confirmed break, never on a fake one
+                if (bodyBroke) { chochLvl = bull ? Math.min(idmLvl, b.l) : Math.max(idmLvl, b.h); chochBar = i }
+              }
+              bodyBreakBar = null; wickBreakBar = null
+              candExt = bull ? b.h : b.l; candExtBar = i; candCloseExt = b.c
+            }
+          }
+        }
+
+        // ── order blocks: extend, expire, arm, tap
+        for (const o of obs) {
+          if (!o.live) continue
+          if (i - o.born > obMaxExt) { o.live = false; o.expired = true; continue }
+          o.i1 = i
+          if (i <= o.born) continue
+          const wasArmed = o.armed
+          if (!wasArmed && (o.bull ? b.c > o.top : b.c < o.bottom)) o.armed = true
+          if (wasArmed && (o.bull ? b.l <= o.top : b.h >= o.bottom)) {
+            o.live = false; o.tappedAt = i
+            if (o.bull) { evTapBull = true; if (tapTopBull == null) { tapTopBull = o.top; tapBotBull = o.bottom } }
+            else { evTapBear = true; if (tapTopBear == null) { tapTopBear = o.top; tapBotBear = o.bottom } }
+          }
+        }
+
+        // ── entries: the retap of the zone, in trend, past every filter
+        const winOK = !S.engNeedWin || !!win, vecOK = !S.engNeedVec || sweepVector
+        let entry = null, stop = null, target = null, longE = false, shortE = false, reject = null
+        if (S.engEntries !== false && evTapBull && tapTopBull != null) {
+          if (trend !== 1) reject = 'counter-trend'
+          else if (!winOK) reject = 'off-window'
+          else if (!vecOK) reject = 'no vector'
+          else {
+            entry = tapTopBull; stop = tapBotBull - slBuf * atr
+            target = tgtIdm && lastIdmHigh != null && lastIdmHigh > entry ? lastIdmHigh : bosLvl
+            longE = (target - entry) / Math.max(entry - stop, 0.25) >= minRR
+            if (!longE) reject = 'R:R < min'
+          }
+        }
+        if (S.engEntries !== false && evTapBear && tapTopBear != null && !longE) {
+          if (trend !== -1) reject = reject || 'counter-trend'
+          else if (!winOK) reject = reject || 'off-window'
+          else if (!vecOK) reject = reject || 'no vector'
+          else {
+            entry = tapBotBear; stop = tapTopBear + slBuf * atr
+            target = tgtIdm && lastIdmLow != null && lastIdmLow < entry ? lastIdmLow : bosLvl
+            shortE = (entry - target) / Math.max(stop - entry, 0.25) >= minRR
+            if (!shortE) reject = reject || 'R:R < min'
+          }
+        }
+        if ((evTapBull || evTapBear) && !longE && !shortE && reject && S.engRej !== false) events.push({ k: 'rej', i0: i, p: evTapBull ? b.l : b.h, bull: !!evTapBull, text: reject })
+
+        if (longE || shortE) {
+          const dirT = longE ? 1 : -1, stopDist = Math.abs(entry - stop), tgtDist = Math.abs(target - entry)
+          const qty = Math.max(1, Math.floor(riskUSD / Math.max(stopDist * pv, 0.25 * pv)))
+          if (open$) open$.i1 = i
+          open$ = { i0: i, i1: i, dir: dirT, entry, tp: target, sl: stop, qty, risk: qty * stopDist * pv, rew: qty * tgtDist * pv, result: null }
+          trades.push(open$)
+          lastSig = `${longE ? 'LONG' : 'SHORT'} ${qty}x @ ${chPx(entry)}`
+          cyc = 'Mitigation'
+        } else if (open$) {
+          // walk the open trade forward until it pays or stops, then freeze it
+          open$.i1 = i
+          if (open$.dir === 1 ? b.h >= open$.tp : b.l <= open$.tp) { open$.result = 'tp'; open$ = null }
+          else if (open$.dir === 1 ? b.l <= open$.sl : b.h >= open$.sl) { open$.result = 'sl'; open$ = null }
+          else if (i - open$.i0 >= 60) { open$.result = 'flat'; open$ = null }
+        }
+
+        // ── cycle
+        if (evCHoCH) { cyc = 'Build Up'; cycTarget = null }
+        if (evIdmSweep) cyc = sweepVector ? 'Inducement + vector' : 'Inducement'
+        if (evBoS) cyc = 'Expansion (BoS)'
+        if ((evTapBull && trend === 1) || (evTapBear && trend === -1)) {
+          cyc = 'Mitigation'
+          const opp = trend === 1 ? lastIdmHigh : lastIdmLow
+          cycTarget = tgtIdm && opp != null && (trend === 1 ? opp > b.c : opp < b.c) ? opp : bosLvl
+        }
+        if (cycTarget != null && (trend === 1 ? b.h >= cycTarget : b.l <= cycTarget)) { cyc = 'Complete'; cycTarget = null }
+
+        // ── EDM: RSI divergence confirmed edmPiv bars after the pivot
+        if (S.engEdm !== false && i >= warm + rsiLen + edmPiv * 2 + 2) {
+          const c = i - edmPiv
+          if (rsi[c] != null) {
+            let isLow = true, isHigh = true
+            for (let k = 1; k <= edmPiv; k++) { if (rsi[c - k] == null || rsi[c + k] == null) { isLow = isHigh = false; break } if (!(rsi[c - k] > rsi[c] && rsi[c + k] > rsi[c])) isLow = false; if (!(rsi[c - k] < rsi[c] && rsi[c + k] < rsi[c])) isHigh = false }
+            if (isLow) {
+              if (pPlR != null && rsi[c] > pPlR && bars[c].l < pPlP && c - pPlB <= edmSpan) { edmMarks.push({ i: c, bull: true, p: bars[c].l }); lastBullEdm = i }
+              pPlR = rsi[c]; pPlP = bars[c].l; pPlB = c
+            }
+            if (isHigh) {
+              if (pPhR != null && rsi[c] < pPhR && bars[c].h > pPhP && c - pPhB <= edmSpan) { edmMarks.push({ i: c, bull: false, p: bars[c].h }); lastBearEdm = i }
+              pPhR = rsi[c]; pPhP = bars[c].h; pPhB = c
+            }
+          }
+        }
+        // ── LET: the EMA rebound, only inside the window an EDM opened
+        if (S.engLet !== false && ema[i] != null && ema[i - 1] != null) {
+          if (lastBullEdm != null && i - lastBullEdm <= letWin && b.l <= ema[i] && b.c > ema[i] && prev.l > ema[i - 1]) { letMarks.push({ i, bull: true, p: b.l }); lastBullEdm = null }
+          if (lastBearEdm != null && i - lastBearEdm <= letWin && b.h >= ema[i] && b.c < ema[i] && prev.h < ema[i - 1]) { letMarks.push({ i, bull: false, p: b.h }); lastBearEdm = null }
+        }
+      }
+      for (const o of obs) if (o.live) o.i1 = n - 1
+      for (const d of idms) if (d.open) d.i1 = n - 1
+      const v = {
+        events: events.filter((e) => e.i1 == null || e.i1 >= from), idms, obs, trades, edm: edmMarks, let: letMarks,
+        eq: trend !== 0 && bosLvl != null && chochLvl != null ? { p: (bosLvl + chochLvl) / 2, i0: Math.min(bosBar ?? 0, chochBar ?? 0) } : null,
+        trend, bos: bosLvl, choch: chochLvl, idm: idmLvl, idmPend, cyc, cycTarget, last: lastSig,
+        win: chEngWindow(bars[n - 1].t, tfMin), atr,
+      }
+      chEngCache = { key, v }; return v
+    }
+    function chPaintLitEng(ctx, L, T, R) {
+      const S = CH.s, e = chLitEng(), { n, i0, i1, light } = R, LBL = R.lbl
+      const X = (i) => chX(i, L), Y = (p) => chY(p, L)
+      const cBull = S.engBullC || '#16a34a', cBear = S.engBearC || '#e05252', cTrap = S.engTrapC || '#d08a2c', cIdm = S.engIdmC || '#8e5bd0', cEq = S.engEqC || (light ? '#5a5a5a' : '#a0a0a0')
+      const vis = (a, b) => (b == null ? a : b) >= i0 - 1 && a <= i1 + 1
+      const hline = (p, xa, xb, c, dash, w = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return false; ctx.strokeStyle = c; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1; return true }
+      const mark = (x, y, c, up, sz = 4) => { ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x, up ? y + sz : y - sz); ctx.lineTo(x + sz, up ? y + sz * 2 : y - sz * 2); ctx.lineTo(x - sz, up ? y + sz * 2 : y - sz * 2); ctx.closePath(); ctx.fill() }
+      // order blocks first, so the structure lines read on top of them
+      if (S.engOB !== false) for (const o of e.obs) {
+        if (S.engObHide && o.tappedAt != null) continue
+        if (!vis(o.i0, o.i1)) continue
+        const dead = o.tappedAt != null || o.expired
+        const c = dead ? (light ? '#8a847a' : '#787b86') : o.bull ? cBull : cBear
+        const xa = X(o.i0) - CH.barW / 2, xb = X(o.i1) + CH.barW / 2, top = Y(o.top), bot = Y(o.bottom)
+        if (bot < -20 || top > L.mainH + 20) continue
+        ctx.fillStyle = alpha(c, dead ? 0.05 : (S.engObF ?? 0.12)); ctx.fillRect(xa, top, Math.max(1, xb - xa), Math.max(1, bot - top))
+        ctx.strokeStyle = alpha(c, dead ? 0.28 : 0.5); ctx.strokeRect(Math.round(xa) + 0.5, Math.round(top) + 0.5, Math.round(Math.max(1, xb - xa)), Math.round(Math.max(1, bot - top)))
+        hline((o.top + o.bottom) / 2, xa, xb, alpha(c, dead ? 0.2 : 0.4), [2, 3])
+        if (S.engLabels !== false) LBL.add(o.txt, Math.min(xb, L.plotW - 4) - 4, top - 3, alpha(c, dead ? 0.55 : 0.95), 'right', 9, dead ? 43 : 24)
+      }
+      // structure: the line runs from the level's origin to the bar that broke it
+      if (S.engStruct !== false) for (const ev of e.events) {
+        if (ev.k === 'bos' || ev.k === 'fbos' || ev.k === 'choch') {
+          if (!vis(ev.i0, ev.i1)) continue
+          const c = ev.k === 'fbos' ? cTrap : ev.k === 'choch' ? (ev.bull ? cBull : cBear) : (ev.bull ? cBull : cBear)
+          if (!hline(ev.p, X(ev.i0), X(ev.i1), alpha(c, 0.75), [], ev.k === 'choch' ? 1.5 : 2)) continue
+          if (S.engLabels !== false) {
+            const mid = ev.k === 'fbos' ? (X(ev.i0) + X(ev.i1)) / 2 : X(ev.i1)
+            LBL.add(ev.k === 'fbos' ? 'F-BoS' : ev.k === 'choch' ? 'CHoCH' : 'BoS', mid + 4, Y(ev.p) - 4, alpha(c, 1), ev.k === 'fbos' ? 'center' : 'left', 9.5, ev.k === 'choch' ? 6 : 8)
+          }
+        }
+      }
+      if (S.engIdm !== false) for (const d of e.idms) {
+        if (!vis(d.i0, d.i1)) continue
+        if (hline(d.p, X(d.i0), X(d.i1), alpha(cIdm, d.open ? 0.6 : 0.3), [2, 3]) && S.engLabels !== false && d.open) LBL.add('IDM', Math.min(X(d.i1), L.plotW - 4) - 4, Y(d.p) + (d.bull ? 11 : -3), alpha(cIdm, 0.9), 'right', 9, 18)
+      }
+      if (S.engSweeps !== false) for (const ev of e.events) {
+        if (ev.k !== 'idm' && ev.k !== 'prot') continue
+        if (ev.i0 < i0 - 1 || ev.i0 > i1 + 1) continue
+        const x = X(ev.i0), y = Y(ev.p)
+        if (y < 0 || y > L.mainH) continue
+        if (ev.k === 'idm') { ctx.strokeStyle = cTrap; ctx.lineWidth = 1.5; const s = 3.5, yy = ev.bull ? y + 9 : y - 9; ctx.beginPath(); ctx.moveTo(x - s, yy - s); ctx.lineTo(x + s, yy + s); ctx.moveTo(x + s, yy - s); ctx.lineTo(x - s, yy + s); ctx.stroke(); ctx.lineWidth = 1 }
+        else { ctx.fillStyle = alpha(cTrap, 0.6); const s = 3.5, yy = ev.bull ? y + 9 : y - 9; ctx.beginPath(); ctx.moveTo(x, yy - s); ctx.lineTo(x + s, yy); ctx.lineTo(x, yy + s); ctx.lineTo(x - s, yy); ctx.closePath(); ctx.fill() }
+      }
+      if (S.engEq !== false && e.eq && vis(e.eq.i0, n - 1)) { hline(e.eq.p, X(e.eq.i0), Math.min(L.plotW, X(n - 1 + 6)), alpha(cEq, 0.6), [6, 4]); if (S.engLabels !== false) LBL.add('EQ', Math.min(X(n - 1 + 8), L.plotW - 26), Y(e.eq.p) + 3, alpha(cEq, 0.9), 'left', 9, 20) }
+      if (S.engRej !== false && S.engLabels !== false) for (const ev of e.events) {
+        if (ev.k !== 'rej' || ev.i0 < i0 - 1 || ev.i0 > i1 + 1) continue
+        LBL.add('no trade: ' + ev.text, X(ev.i0), Y(ev.p) + (ev.bull ? 16 : -10), alpha(light ? '#6b665e' : '#9d978c', 0.85), 'center', 8.5, 50)
+      }
+      // trades: entry solid, target and stop dotted, sized in contracts
+      if (S.engEntries !== false) for (const t of e.trades) {
+        if (!vis(t.i0, t.i1)) continue
+        const c = t.dir === 1 ? cBull : cBear, xa = X(t.i0), xb = X(t.i1) + CH.barW / 2
+        const dead = t.result != null
+        hline(t.entry, xa, xb, alpha(c, dead ? 0.4 : 0.95), [], 1.5)
+        hline(t.tp, xa, xb, alpha(light ? '#5a5a5a' : '#a0a0a0', dead ? 0.3 : 0.6), [2, 3])
+        hline(t.sl, xa, xb, alpha(cBear, dead ? 0.25 : 0.5), [2, 3])
+        if (S.engLabels !== false) {
+          const done = t.result === 'tp' ? ` +$${Math.round(t.rew)}` : t.result === 'sl' ? ` -$${Math.round(t.risk)}` : ''
+          LBL.add(`${t.dir === 1 ? 'LONG' : 'SHORT'} ${t.qty}x${done || ' = $' + Math.round(t.rew)}`, xb + 5, Y(t.entry) + 3, alpha(c, dead ? 0.6 : 1), 'left', 9.5, dead ? 40 : 2)
+        }
+      }
+      if (S.engEdm !== false) for (const m of e.edm) { if (m.i < i0 - 1 || m.i > i1 + 1) continue; const y = Y(m.p); if (y < 0 || y > L.mainH) continue; mark(X(m.i), y, alpha(m.bull ? cBull : cBear, 0.8), m.bull); if (S.engLabels !== false) LBL.add('EDM', X(m.i), m.bull ? y + 24 : y - 16, alpha(m.bull ? cBull : cBear, 0.9), 'center', 8.5, 47) }
+      if (S.engLet !== false) for (const m of e.let) { if (m.i < i0 - 1 || m.i > i1 + 1) continue; const y = Y(m.p); if (y < 0 || y > L.mainH) continue; mark(X(m.i), y, alpha(cTrap, 0.85), m.bull); if (S.engLabels !== false) LBL.add('LET', X(m.i), m.bull ? y + 24 : y - 16, alpha(cTrap, 0.95), 'center', 8.5, 47) }
+    }
+    function chEngHtml() {
+      const e = chLitEng()
+      const tr = e.trend === 1 ? 'Bullish' : e.trend === -1 ? 'Bearish' : 'Seeding'
+      const tc = e.trend === 1 ? 'up' : e.trend === -1 ? 'down' : 'mix'
+      const flip = e.trend !== 0 && e.choch != null ? `${e.trend === 1 ? 'flip below ' : 'flip above '}${chPx(e.choch)}` : ''
+      const row = (k, v, cls) => `<tr><td>${k}</td><td class="${cls || ''}">${v}</td></tr>`
+      return `<div class="ch-ph"><b>LIT Engine</b><span class="bias ${tc}">${tr}</span></div><table><tbody>` +
+        (flip ? row('Invalidation', flip) : '') +
+        row('Cycle', escH(e.cyc)) +
+        row('IDM', e.idmPend && e.idm != null ? chPx(e.idm) : 'swept / none') +
+        row('BoS', e.bos == null ? '–' : chPx(e.bos)) +
+        row('CHoCH', e.choch == null ? '–' : chPx(e.choch)) +
+        row('EQ', e.eq ? chPx(e.eq.p) : '–') +
+        row('Window', e.win || 'off-session') +
+        row('Last signal', escH(e.last)) +
+        `</tbody></table><div class="ch-pf">${e.obs.filter((o) => o.live).length} live zones · ${e.trades.length} signals</div>`
+    }
+
     /* ── the panel indicators: D1 HTF Dashboard and D1 News ──
        Both ship as Pine tables, so both land here as DOM cards over the canvas
        rather than text painted into it: real font rendering, real wrapping, and a
@@ -13071,8 +13459,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chPanels(L) {
       const host = el('ch-panels'); if (!host) return
       const S = CH.s, want = []
-      if (CH.on && S.htf) want.push(['htf', CH_CORNERS.some((c) => c[0] === S.htfPos) ? S.htfPos : 'tr', chHtfHtml()])
-      if (CH.on && S.news) want.push(['news', CH_CORNERS.some((c) => c[0] === S.newsPos) ? S.newsPos : 'br', chNewsHtml()])
+      /* Two bottom corners do not fit side by side on a phone: at 64% each they
+         land on top of one another. Below that width every panel joins one stack
+         instead, which queues them the way two panels in one corner already do. */
+      const narrow = window.innerWidth < 560, corner = (pos, def) => narrow ? 'bl' : (CH_CORNERS.some((c) => c[0] === pos) ? pos : def)
+      if (CH.on && S.htf) want.push(['htf', corner(S.htfPos, 'tr'), chHtfHtml()])
+      if (CH.on && S.eng && S.engDash !== false) want.push(['eng', corner(S.engDashPos, 'bl'), chEngHtml()])
+      if (CH.on && S.news) want.push(['news', corner(S.newsPos, 'br'), chNewsHtml()])
       if (L) host.style.setProperty('--ch-ax', L.ax + 'px')
       const sig = want.map((w) => w.join('\u0001')).join('\u0002')
       if (sig === CH.panelSig) return
@@ -13384,7 +13777,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       /* One lane for every overlay that writes text, so a PDH label and a supply
          zone's name cannot land on each other either. Painters queue, the lane
          resolves once, inside the same clip the lines were drawn in. */
-      if (S.lit || S.gex || S.news || S.ict || S.sd || S.pend || S.amit) {
+      if (S.lit || S.gex || S.news || S.ict || S.sd || S.pend || S.amit || S.eng) {
         ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip()
         const lbl = chLabelLane(ctx), R = { bars, n, i0, i1, light, lbl }
         if (S.lit) chPaintLit(ctx, L, T, R)
@@ -13392,6 +13785,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (S.sd) chPaintSd(ctx, L, T, R)
         if (S.pend) chPaintPend(ctx, L, T, R)
         if (S.amit) chPaintAmit(ctx, L, T, R)
+        if (S.eng) chPaintLitEng(ctx, L, T, R)
         if (S.gex) chPaintGex(ctx, L, T, R)
         if (S.news) chPaintNews(ctx, L, T, R)
         lbl.flush(L); ctx.restore()
@@ -13509,6 +13903,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.s.bb) { const bb = chBands(); rows.push(`<div class="ln" data-ind="bb"><span class="nm">BB ${CH.s.bbN || 20} ${CH.s.bbK || 2}</span><span>${bb.up[i] != null ? `<i>${chPx(bb.up[i])}</i> <i>${chPx(bb.mid[i])}</i> <i>${chPx(bb.lo[i])}</i>` : '–'}</span>${ic('bb', 'ind:bb')}</div>`) }
       if (CH.s.vwap) { const v = chVwap(); rows.push(`<div class="ln" data-ind="vwap"><span class="nm">VWAP</span><i>${v[i] != null ? chPx(v[i]) : '–'}</i>${CH.s.vwapBands && v.sd && v.sd[i] != null ? `<span>+1σ <i>${chPx(v[i] + v.sd[i])}</i></span><span>−1σ <i>${chPx(v[i] - v.sd[i])}</i></span>` : ''}${ic('vwap', 'ind:vwap')}</div>`) }
       if (CH.s.lit) rows.push(`<div class="ln" data-ind="lit"><span class="nm">D1 LIT</span><span>${CH.s.litDays || 3}</span>${ic('lit', 'ind:lit')}</div>`)
+      if (CH.s.eng) { const e = chLitEng(); rows.push(`<div class="ln" data-ind="eng"><span class="nm">LIT Engine</span><i class="${e.trend === 1 ? 'up' : e.trend === -1 ? 'down' : ''}">${e.trend === 1 ? 'Bullish' : e.trend === -1 ? 'Bearish' : 'Seeding'}</i><span>${escH(e.cyc)}</span>${ic('eng', 'ind:eng')}</div>`) }
       if (CH.s.ict) rows.push(`<div class="ln" data-ind="ict"><span class="nm">D1 ICT</span><span>midnight · settlement · RTH · macros</span>${ic('ict', 'ind:ict')}</div>`)
       if (CH.s.sd) { const z = chSd(), live = z.filter((x) => x.state < 2); rows.push(`<div class="ln" data-ind="sd"><span class="nm">SD Zones</span><span><i class="up">${live.filter((x) => x.side === 1).length}</i> demand · <i class="down">${live.filter((x) => x.side === -1).length}</i> supply</span>${ic('sd', 'ind:sd')}</div>`) }
       if (CH.s.pend) { const l = chPend(), live = l.filter((x) => !x.swept); rows.push(`<div class="ln" data-ind="pend"><span class="nm">Pending</span><span><i>${live.length}</i> live · ${l.length - live.length} swept</span>${ic('pend', 'ind:pend')}</div>`) }
@@ -14752,6 +15147,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         gearRow('lit', 'D1 LIT', 'Levels and timing: PDH/PDL, PWH/PWL, weekly open, Asia box, NYT box, 18:00 open, FF/LO/MM markers, key opens, PO3 candles, weekly eighths, the golden window, vector candles', 'ind:lit')
         if (hasGex) gearRow('gex', 'D1 GEX', 'Gamma flip, call and put walls, major wall, top gamma strikes and the GTBR band, per session from the 9:30 print', 'ind:gex', () => { if (S.gex) chGexWarm() })
         else { const r = document.createElement('div'); r.className = 'ch-row'; r.innerHTML = '<div class="ch-row-t">D1 GEX<small>Part of the D1 GEX indicator</small></div>'; const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn'; b.textContent = 'Unlock'; b.addEventListener('click', () => { chMenu(null); showView('indicators') }); r.appendChild(b); body.appendChild(r) }
+        gearRow('eng', 'D1 LIT Engine', 'The mechanical IDM-gated structure read: BoS, F-BoS, CHoCH, inducement levels and sweeps, order blocks, and the retap entry with its stop, target and size', 'ind:eng')
         gearRow('ict', 'D1 ICT', 'Midnight open, the 16:14 settlement close, the RTH quadrants between them, and the eight macro windows. PO3 candles and the key opens live in D1 LIT', 'ind:ict')
         gearRow('sd', 'D1 SD Zones', 'Supply and demand from a base plus an explosive departure, classified RBR / DBR / DBD / RBD and scored in ATR multiples', 'ind:sd')
         gearRow('pend', 'D1 Pending Levels', 'Clustered swing highs and lows are engineered liquidity, drawn until price runs them', 'ind:pend')
@@ -14835,6 +15231,36 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         header('Levels')
         for (const [key, label, cKey] of CH_GEX_PARTS) { const els = [colorEl(cKey, 'default')]; if (key === 'gexGtbr') { const r = rangeEl('gexGtbrF', 0, 0.4, 0.01, 0.06); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) } partRow(label, '', els, tglEl(key)) }
         button('Reset every GEX colour', () => { for (const [key, , cKey] of CH_GEX_PARTS) { S[cKey] = ''; S[key] = true } S.gexGtbrF = 0.06; S.gexW = 1; chSave(); chDraw(); chMenu('ind:gex') })
+      } else if (which === 'ind:eng') {
+        toggle('eng', 'Show the LIT Engine')
+        hint('Mechanical structure, not the discretionary read. Vector candles and the Asia / PDH / PDL levels stay in D1 LIT, which already draws them.')
+        row('Bars scanned', numEl('engBack', 300, 8000, 3000))
+        header('Structure')
+        partRow('BoS / CHoCH', '', [colorEl('engBullC', 'default'), colorEl('engBearC', 'default')], tglEl('engStruct'))
+        partRow('Inducement levels', '', [colorEl('engIdmC', 'default')], tglEl('engIdm'))
+        partRow('Sweep markers', 'IDM and protected', [colorEl('engTrapC', 'default')], tglEl('engSweeps'))
+        partRow('Equilibrium', 'Half of the BoS to CHoCH leg', [colorEl('engEqC', 'default')], tglEl('engEq'))
+        row('IDM mode', segEl('engIdmMode', [['reanchor', 'Re-anchor'], ['strict', 'Strict L2']]), 'Strict keeps the first pullback as the inducement until swept, which can freeze structure in a long trend')
+        row('Min pullback depth', rangeEl('engMinPb', 0, 2, 0.25, 0.5), 'In ATR. A shallower pullback does not qualify as inducement. 0 is the pure mechanical spec')
+        toggle('engFbos', 'A fake break moves the extreme', 'Off leaves the old level as the trigger, so a later body close through it still prints BoS')
+        header('Order blocks')
+        toggle('engOB', 'Show order blocks', 'The last candle that took liquidity and has an imbalance in front of it')
+        row('Scan lookback', numEl('engObLookback', 10, 200, 60)); row('Expire after', numEl('engObMaxExt', 20, 500, 120), 'Bars without a tap before a zone stops painting')
+        toggle('engObBody', 'Body only', 'Off uses the full candle'); toggle('engObHide', 'Remove tapped zones', 'Off greys them out, since the tap is the entry')
+        row('Fill', rangeEl('engObF', 0, 0.4, 0.01, 0.12))
+        header('Entries')
+        toggle('engEntries', 'Show entry signals', 'The retap of the IDM or extreme order block, in trend')
+        row('Target', segEl('engTarget', [['idm', 'Opposing IDM'], ['bos', 'BoS level']]))
+        row('Stop buffer', rangeEl('engSlBuf', 0, 1, 0.05, 0.25), 'In ATR, beyond the zone')
+        row('Minimum R:R', rangeEl('engMinRR', 0, 5, 0.25, 1)); row('Risk per trade', numEl('engRisk', 1, 100000, 300), 'Sizes the contract count from the stop distance')
+        toggle('engNeedWin', 'Only inside a session window'); toggle('engNeedVec', 'Require a vector candle on the sweep')
+        toggle('engRej', 'Say why a tap was rejected')
+        header('Entry helpers')
+        toggle('engEdm', 'EDM', 'RSI divergence'); row('RSI length', numEl('engRsiLen', 2, 100, 14)); row('Divergence pivot', numEl('engEdmPivot', 2, 10, 5))
+        toggle('engLet', 'LET', 'The EMA rebound, only inside the window an EDM opened'); row('LET EMA', numEl('engEmaLen', 1, 400, 21))
+        header('Dashboard')
+        toggle('engDash', 'Show the cycle dashboard'); row('Position', segEl('engDashPos', CH_CORNERS))
+        toggle('engLabels', 'Labels')
       } else if (which === 'ind:ict') {
         toggle('ict', 'Show D1 ICT')
         hint('The PO3 candles and the 08:30 / 09:30 / 10:00 opens are already D1 LIT parts, so this carries only what LIT does not.')

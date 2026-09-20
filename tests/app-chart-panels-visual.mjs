@@ -75,7 +75,7 @@ const htf = await page.evaluate(() => {
   const rows = [...(tbl?.querySelectorAll("tbody tr") || [])].map((tr) => [...tr.children].map((td) => td.textContent.trim()));
   return { corner: card?.parentElement.dataset.c, rows, over: Math.round(tbl.getBoundingClientRect().right - card.getBoundingClientRect().right), legend: document.querySelector('#ch-legend .ln[data-ind="htf"]')?.textContent || "" };
 });
-ok(htf.corner === "tr", "it sits top right by default: " + htf.corner);
+ok(htf.corner === (PHONE ? "bl" : "tr"), (PHONE ? "it joins the phone stack: " : "it sits top right by default: ") + htf.corner);
 ok(htf.rows.length === 5, "five timeframe rows: " + htf.rows.length);
 // a 1h chart makes 5m and 15m finer than the interval, so those read n/a and the rest carry numbers
 const numeric = htf.rows.filter((r) => r.length === 5 && /^\d+\.\d$/.test(r[2]));
@@ -93,7 +93,7 @@ const news = await page.evaluate(() => {
   const card = document.querySelector('.ch-panel[data-ind="news"]');
   return { corner: card?.parentElement.dataset.c, head: card?.querySelector(".ch-ph b")?.textContent || "", text: card?.innerText.replace(/\n/g, " | ") || "", fed: (window.__CH.s.news && card && !/feed unavailable/i.test(card.innerText)) };
 });
-ok(news.corner === "br", "it sits bottom right by default: " + news.corner);
+ok(news.corner === (PHONE ? "bl" : "br"), (PHONE ? "it joins the phone stack: " : "it sits bottom right by default: ") + news.corner);
 ok(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) \d{1,2} \w{3}$/.test(news.head), "the header names the day it speaks for: " + news.head);
 ok(news.fed, "the live calendar answered (never reads an empty feed as a quiet day): " + news.text);
 // the panel must never claim a quiet day when it has nothing to say for that day
@@ -102,10 +102,27 @@ ok(!/No USD news today/.test(news.text) || /Next up/.test(news.text), "a clear d
 console.log(`\nboth corners at once`);
 const both = await page.evaluate(() => [...document.querySelectorAll(".ch-panel")].map((p) => p.dataset.ind + "@" + p.parentElement.dataset.c));
 ok(both.length === 2, "both panels live together: " + both.join(", "));
-await page.evaluate(() => { const C = window.__CH; C.s.htfPos = "br"; C.panelSig = null; C.$.paint() });
+// on a phone every panel already shares one stack, which the collapse check below covers
+await page.evaluate((phone) => { const C = window.__CH; C.s.htfPos = phone ? "tr" : "br"; C.panelSig = null; C.$.paint() }, PHONE);
 await page.waitForTimeout(500);
-const stacked = await page.evaluate(() => { const w = document.querySelector('.ch-pw[data-c="br"]'); return { n: w?.children.length || 0, overlap: (() => { const k = [...(w?.children || [])].map((c) => c.getBoundingClientRect()); return k.length === 2 && k[0].bottom > k[1].top && k[0].top < k[1].bottom } )() } });
+const stacked = await page.evaluate((phone) => { const w = document.querySelector(phone ? '.ch-pw[data-c="bl"]' : '.ch-pw[data-c="br"]'); return { n: w?.children.length || 0, overlap: (() => { const k = [...(w?.children || [])].map((c) => c.getBoundingClientRect()); return k.length === 2 && k[0].bottom > k[1].top && k[0].top < k[1].bottom } )() } }, PHONE);
 ok(stacked.n === 2 && !stacked.overlap, "two panels in one corner stack instead of covering each other: " + JSON.stringify(stacked));
+// Two bottom corners do not fit side by side on a phone: at 64% each they land on
+// top of one another, so below 560px every panel joins one stack instead.
+if (PHONE) {
+  const all = await page.evaluate(() => { const C = window.__CH; C.s.eng = true; C.s.htfPos = "tr"; C.s.newsPos = "br"; C.s.engDashPos = "bl"; C.panelSig = null; C.$.paint(); return null });
+  await page.waitForTimeout(700);
+  const collapsed = await page.evaluate(() => {
+    const ps = [...document.querySelectorAll(".ch-panel")];
+    const rects = ps.map((p) => p.getBoundingClientRect());
+    let overlap = 0;
+    for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) { const a = rects[i], b = rects[j]; if (a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top) overlap++ }
+    return { n: ps.length, corners: [...new Set(ps.map((p) => p.parentElement.dataset.c))], overlap };
+  });
+  ok(collapsed.n === 3 && collapsed.corners.length === 1, "three panels collapse into one corner on a phone: " + JSON.stringify(collapsed));
+  ok(collapsed.overlap === 0, "and none of them cover another: " + collapsed.overlap + " overlaps");
+  await page.evaluate(() => { const C = window.__CH; C.s.eng = false; C.panelSig = null; C.$.paint() });
+}
 await page.evaluate(() => { const C = window.__CH; C.s.htfPos = "tr"; C.panelSig = null; C.$.paint() });
 await page.waitForTimeout(400);
 await shot("panels");

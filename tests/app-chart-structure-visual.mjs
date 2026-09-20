@@ -1,9 +1,9 @@
-// D1 ICT, SD Zones, Pending Levels and Asia Mitigations (manual, not a node:test).
+// D1 ICT, SD Zones, Pending Levels, Asia Mitigations and the LIT Engine (manual, not a node:test).
 //   1. from the repo root:  python -m http.server 8123
 //   2. node tests/app-chart-structure-visual.mjs     (APP_URL / OUT / TF / W / HGT env)
 // These four are ports of Pine overlays, so the checks are about the port being faithful:
 // a zone only exists where its rule says it can, the scan window is honoured, and the
-// shared label lane still places every name without a collision once all five overlays
+// shared label lane still places every name without a collision once all six overlays
 // are on at once. Defaults matter as much as the maths here: a busy session leaves a
 // hundred swept pending levels, and drawing them buries the handful still standing.
 import { createRequire } from "module";
@@ -93,7 +93,47 @@ ok(amit.rows.every((r) => r.inAsia), "every zone formed inside the 18:00 to 01:0
 ok(amit.rows.every((r) => r.gap > 0), "every one is a real three-candle gap: " + JSON.stringify(amit.rows.map((r) => r.gap)));
 for (const b of [true, false]) ok(amit.rows.filter((r) => r.bull === b).length <= amit.cap, `${b ? "bullish" : "bearish"} zones within the cap of ${amit.cap}`);
 
-console.log(`\nfive overlays at once`);
+console.log(`\nD1 LIT Engine`);
+await page.evaluate(() => { const C = window.__CH; C.s.eng = true; C.$.paint() });
+await page.waitForTimeout(2500);
+await page.evaluate(() => window.__CH.$.paint());
+await page.waitForTimeout(500);
+const eng = await page.evaluate(() => {
+  const e = window.__CH.$.eng(), S = window.__CH.s, C = window.__CH, bars = C.vis || C.bars;
+  const kinds = {}; for (const x of e.events) kinds[x.k] = (kinds[x.k] || 0) + 1;
+  return {
+    trend: e.trend, cyc: e.cyc, bos: e.bos, choch: e.choch, idm: e.idm, idmPend: e.idmPend, kinds,
+    obs: e.obs.length, openIdm: e.idms.filter((d) => d.open).length,
+    minRR: +S.engMinRR, pv: 20,
+    trades: e.trades.map((t) => ({ dir: t.dir, entry: t.entry, sl: t.sl, tp: t.tp, qty: t.qty, risk: t.risk, rr: t.dir === 1 ? (t.tp - t.entry) / (t.entry - t.sl) : (t.entry - t.tp) / (t.sl - t.entry) })),
+    edmAtLows: e.edm.filter((m) => m.bull).every((m) => m.p === bars[m.i].l),
+    edmAtHighs: e.edm.filter((m) => !m.bull).every((m) => m.p === bars[m.i].h),
+    edm: e.edm.length, lets: e.let.length,
+    panel: document.querySelector('.ch-panel[data-ind="eng"]'),
+    panelCorner: document.querySelector('.ch-panel[data-ind="eng"]')?.parentElement.dataset.c,
+    panelText: document.querySelector('.ch-panel[data-ind="eng"]')?.innerText.replace(/\n/g, " | ") || "",
+  };
+});
+ok([1, -1, 0].includes(eng.trend), "the trend is seeded or directional: " + eng.trend);
+ok(eng.trend === 0 || (eng.bos != null && eng.choch != null), "a directional trend carries both levels");
+// the protected level is always behind price relative to the structural extreme
+ok(eng.trend === 0 || (eng.trend === 1 ? eng.bos > eng.choch : eng.bos < eng.choch), `the structural extreme sits beyond the protected level for a ${eng.trend === 1 ? "bullish" : "bearish"} trend: BoS ${eng.bos}, CHoCH ${eng.choch}`);
+ok(eng.kinds.bos > 0 && eng.kinds.choch > 0, "it found structure: " + JSON.stringify(eng.kinds));
+// the bug that put an IDM label on every row of the price scale: only the level still
+// standing runs to the right edge, every superseded one is closed where it was replaced
+ok(eng.openIdm <= 1, "at most one inducement line is left open: " + eng.openIdm);
+ok(eng.openIdm === (eng.idmPend ? 1 : 0), "the open line matches the pending state: " + eng.openIdm + " vs " + eng.idmPend);
+ok(eng.obs <= 24, "order blocks stay inside the Pine's cap of 24: " + eng.obs);
+ok(eng.trades.length > 0, "entry signals fired: " + eng.trades.length);
+ok(eng.trades.every((t) => (t.dir === 1 ? t.sl < t.entry && t.tp > t.entry : t.sl > t.entry && t.tp < t.entry)), "every trade has its stop and target on the right sides");
+ok(eng.trades.every((t) => t.rr >= eng.minRR - 1e-9), `every trade clears the ${eng.minRR} R:R floor: min ${Math.min(...eng.trades.map((t) => +t.rr.toFixed(2)))}`);
+ok(eng.trades.every((t) => t.qty >= 1 && Math.abs(t.risk - t.qty * Math.abs(t.entry - t.sl) * eng.pv) < 0.01), "contract count and dollar risk agree with the stop distance");
+ok(eng.edmAtLows && eng.edmAtHighs, "EDM marks sit on the pivot they were found at");
+ok(["Build Up", "Inducement", "Inducement + vector", "Expansion (BoS)", "Mitigation", "Complete"].includes(eng.cyc), "the cycle is a known state: " + eng.cyc);
+ok(eng.panelCorner === "bl", "the dashboard sits bottom left, clear of the legend: " + eng.panelCorner);
+ok(/LIT ENGINE/.test(eng.panelText) && /Cycle/.test(eng.panelText) && /Last signal/.test(eng.panelText), "the dashboard reads: " + eng.panelText);
+
+console.log(`\nsix overlays at once`);
 const lane = await page.evaluate(() => {
   const r = window.__CH.lbl || []; let hits = 0;
   for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) { const a = r[i], b = r[j]; if (a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0) hits++ }
@@ -102,7 +142,7 @@ const lane = await page.evaluate(() => {
 ok(lane.n > 20, "the shared lane placed labels from every overlay: " + lane.n);
 ok(lane.hits === 0, "still no two labels sharing pixels: " + lane.hits + " overlaps");
 const legend = await page.evaluate(() => document.getElementById("ch-legend").innerText.replace(/\n/g, " | "));
-ok(/D1 ICT/.test(legend) && /SD Zones/.test(legend) && /Pending/.test(legend) && /Asia MIT/.test(legend), "all four read in the legend: " + legend);
+ok(/LIT Engine/.test(legend) && /D1 ICT/.test(legend) && /SD Zones/.test(legend) && /Pending/.test(legend) && /Asia MIT/.test(legend), "all five read in the legend: " + legend);
 // a repaint must not cost a frame, or panning gets sticky
 const ms = await page.evaluate(() => { const C = window.__CH, t = performance.now(); for (let i = 0; i < 30; i++) C.$.paint(); return +((performance.now() - t) / 30).toFixed(2) });
 ok(ms < 16, `a warm repaint stays inside a frame: ${ms}ms`);
