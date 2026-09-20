@@ -4056,7 +4056,7 @@
         <!-- GEX dashboard (GEX subscribers only) -->
         <section class="view" id="v-gex">
           <div class="block gex-readwrap">
-            <div class="block-head"><h3 id="gex-read-title">Today's read</h3><span class="gex-tools"><span class="news-nav gex-nav"><button class="news-arrow" id="gex-prev" type="button" title="Earlier day" aria-label="Earlier day">&#8249;</button><span class="label" id="gex-day">today</span><button class="news-arrow" id="gex-next" type="button" title="Later day" aria-label="Later day" disabled>&#8250;</button></span><select class="gex-time" id="gex-time" aria-label="Print" hidden></select><button class="rowbtn" id="gex-refresh">Refresh</button><button id="gex-whatis" type="button">What is GEX?</button></span></div>
+            <div class="block-head"><h3 id="gex-read-title">Today's read</h3><span class="gex-tools"><span class="seg" id="gex-book" role="tablist" aria-label="Asset"><button class="on" data-b="NQ" type="button">NQ</button><button data-b="ES" type="button">ES</button></span><span class="news-nav gex-nav"><button class="news-arrow" id="gex-prev" type="button" title="Earlier day" aria-label="Earlier day">&#8249;</button><span class="label" id="gex-day">today</span><button class="news-arrow" id="gex-next" type="button" title="Later day" aria-label="Later day" disabled>&#8250;</button></span><select class="gex-time" id="gex-time" aria-label="Print" hidden></select><button class="rowbtn" id="gex-refresh">Refresh</button><button id="gex-whatis" type="button">What is GEX?</button></span></div>
             <p class="hint gex-histnote" id="gex-histnote" hidden></p>
             <div class="gex-read" id="gex-read"></div>
             <div class="gex-regime" id="gex-regime" hidden></div>
@@ -11518,14 +11518,26 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* ── GEX: QQQ gamma exposure by strike and expiry, mapped to NQ (data from the
        public gex-worker snapshot; canvas surface + profile, follows the theme). ── */
     const GEX_URL = 'https://gex-worker.d1fpc3.workers.dev'
+    // Two option books: QQQ drives the NQ family, SPX drives the ES family. Each keeps its own
+    // live snapshot, archive index and browsed day, because they are different instruments with
+    // different histories. live / hist / days / loadedAt below are accessors onto the CURRENT
+    // book, so every reader in this file keeps meaning "the book on screen".
+    const GEX_BOOKS = { NQ: { id: 'nq', und: 'QQQ', fut: 'NQ' }, ES: { id: 'es', und: 'SPX', fut: 'ES' } }
+    const GEX_STORE = {}
+    const gexStoreFor = (b) => GEX_STORE[b] || (GEX_STORE[b] = { live: null, hist: null, days: [], loadedAt: 0 })
     const GEX = {
-      data: null, loadedAt: 0, timer: null, raf: 0, pick: [], rows: [], hover: null, drag: null,
+      data: null, timer: null, raf: 0, pick: [], rows: [], hover: null, drag: null,
+      book: GEX_BOOKS[localStorage.getItem('echelon-gex-book')] ? localStorage.getItem('echelon-gex-book') : 'NQ',
       view: localStorage.getItem('echelon-gex-view') || 'surface',
       set: localStorage.getItem('echelon-gex-set') || 'zdte',
       scale: localStorage.getItem('echelon-gex-scale') || 'linear',
       yaw: -0.5, pitch: 0.66,
-      live: null, hist: null, days: [],   // back in time: archived prints from the worker
     }
+    for (const k of ['live', 'hist', 'days', 'loadedAt'])
+      Object.defineProperty(GEX, k, { get: () => gexStoreFor(GEX.book)[k], set: (v) => { gexStoreFor(GEX.book)[k] = v } })
+    const gexBookCfg = () => GEX_BOOKS[GEX.book] || GEX_BOOKS.NQ
+    const gexBookQ = (first = true) => gexBookCfg().id === 'nq' ? '' : `${first ? '?' : '&'}book=${gexBookCfg().id}`
+    window.__GEX_STORE = GEX_STORE   // read-only peek for the console and the harness
     const GEX_FONT = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
     const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
     const gexTokens = () => ({
@@ -11554,13 +11566,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const gexAtStrike = (rows, k) => { const j = GEX.data.surface.strikes.indexOf(k); return j < 0 ? null : gexAt(rows, j) }
     const niceStep = (span, target = 4) => { const raw = span / target, p = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / p; return (f >= 5 ? 5 : f >= 2 ? 2 : 1) * p }
 
-    async function loadGex(force = false) {
-      const url = force ? `${GEX_URL}/refresh` : `${GEX_URL}/gex.json`
-      const res = await fetch(url, { cache: 'no-store' })
+    async function loadGex(force = false, book = GEX.book) {
+      const cfg = GEX_BOOKS[book] || GEX_BOOKS.NQ
+      const q = cfg.id === 'nq' ? '' : `?book=${cfg.id}`
+      const res = await fetch(`${GEX_URL}/${force ? 'refresh' : 'gex.json'}${q}`, { cache: 'no-store' })
       if (!res.ok) throw new Error(`gex-worker ${res.status}`)
       const d = await res.json()
       if (!d.surface) throw new Error('snapshot has no surface yet')
-      GEX.live = d; GEX.loadedAt = Date.now()
+      // a worker that predates the second book answers ?book= with the OTHER one; refuse it
+      // rather than silently drawing SPX levels under an NQ heading
+      if (d.book && d.book !== cfg.id) throw new Error(`asked for ${cfg.id}, got ${d.book}`)
+      const st = gexStoreFor(book)
+      st.live = d; st.loadedAt = Date.now()
+      if (book !== GEX.book) return          // a background book finished; leave the screen alone
       if (GEX.hist) return   // a past day is on screen; the live board waits
       GEX.data = d
       renderGex()
@@ -11571,8 +11589,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        days, the picker walks the prints within a day. ── */
     const gexDayLabel = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
     const gexTimeLabel = (t) => { const h = +t.slice(0, 2), m = t.slice(2); return `${((h + 11) % 12) + 1}:${m} ${h < 12 ? 'AM' : 'PM'}` }
-    async function loadGexHistory() {
-      try { const r = await fetch(`${GEX_URL}/history.json`, { cache: 'no-cache' }); if (r.ok) { const j = await r.json(); GEX.days = (j.days || []).filter((d) => d.times.length || d.summary) } } catch {}
+    async function loadGexHistory(book = GEX.book) {
+      const cfg = GEX_BOOKS[book] || GEX_BOOKS.NQ
+      const q = cfg.id === 'nq' ? '' : `?book=${cfg.id}`
+      try { const r = await fetch(`${GEX_URL}/history.json${q}`, { cache: 'no-cache' }); if (r.ok) { const j = await r.json(); gexStoreFor(book).days = (j.days || []).filter((d) => d.times.length || d.summary) } } catch {}
+      if (book !== GEX.book) return
       syncGexNav()
     }
     function syncGexNav() {
@@ -14508,8 +14529,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const z = d.zdte, s = d.swing
       fig('0DTE net GEX', fmtM(z.netGexM), z.netGexM >= 0 ? 'pos' : 'neg', `${expLabel(z.expiry)} · ${z.dte} DTE · ${d.regime}`)
       fig('Swing net GEX', s ? fmtM(s.netGexM) : '–', s && s.netGexM >= 0 ? 'pos' : 'neg', s ? `${s.expiries} expiries out to 60d` : 'no swing horizon')
-      fig('QQQ spot', d.spot.toFixed(2), '', GEX.hist ? 'archived print' : d.marketOpen ? 'market open · CBOE ~15 min delayed' : 'market closed · last snapshot')
-      fig('NQ', Math.round(d.nq).toLocaleString(), '', `= QQQ × ${d.conversion.divisor} + ${d.conversion.basis} (as of ${d.conversion.asOf ?? '–'})`)
+      fig(`${d.undName ?? 'QQQ'} spot`, d.spot.toFixed(2), '', GEX.hist ? 'archived print' : d.marketOpen ? 'market open · CBOE ~15 min delayed' : 'market closed · last snapshot')
+      fig(d.futName ?? 'NQ', Math.round(d.nq).toLocaleString(), '', `= ${d.undName ?? 'QQQ'} × ${d.conversion.divisor} + ${d.conversion.basis} (as of ${d.conversion.asOf ?? '–'})`)
       renderRegime(d)
       el('gex-sheet').textContent = d.levelsText || ''
       el('gex-sheet').hidden = !d.levelsText
@@ -14518,7 +14539,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // The member is looking at this print: clear the new-levels dot.
       if (!GEX.hist && el('v-gex').classList.contains('on')) gexMarkSeen(d.generatedAt)
       // Dynamic bits of the "How GEX works" breakdown.
-      const conv = el('ga-conv'); if (conv) conv.textContent = `NQ = QQQ × ${d.conversion.divisor} + ${d.conversion.basis}`
+      const conv = el('ga-conv'); if (conv) conv.textContent = `${d.futName ?? 'NQ'} = ${d.undName ?? 'QQQ'} × ${d.conversion.divisor} + ${d.conversion.basis}`
       const gstamp = el('ga-stamp'); if (gstamp) gstamp.textContent = etStamp(d.generatedAt)
       renderGexTable()
       syncGexControls()
@@ -14554,9 +14575,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const extra = []
       if (d.gexMatrix) extra.push(`${d.gexMatrix.text.replace(/\.$/, '')} (standing book ${fmtM(d.gexMatrix.oiGexM)} vs today's flow ${fmtM(d.gexMatrix.volGexM)}).`)
       if (d.gtbr) extra.push(d.gtbr.state === 'inside'
-        ? `Price is inside the GTBR band, NQ ${d.gtbr.lowerNQ.toLocaleString()}–${d.gtbr.upperNQ.toLocaleString()} (one expected daily move off the open), forced hedging stays quiet until an edge breaks${z >= 0 ? '; a positive-gamma day that never leaves the band tends to fade its own move into the close' : ''}.`
-        : `Price is ${d.gtbr.state} the GTBR band, NQ ${d.gtbr.lowerNQ.toLocaleString()}–${d.gtbr.upperNQ.toLocaleString()}, past the daily breakeven, the hedging machine is live${d.gtbr.state === 'below' ? '; the forced-hedge push runs hardest on downside breaks' : ''}.`)
-      if (d.majorWall) extra.push(`The major wall at ${d.majorWall.strike} (NQ ${d.majorWall.nq.toLocaleString()}) sits ${d.majorWall.side} spot, the session's gravity point${d.majorWallMoved ? `, and it has moved today (${d.majorWallMoved.from} → ${d.majorWallMoved.to}), a sentiment shift` : ''}.`)
+        ? `Price is inside the GTBR band, ${d.futName ?? 'NQ'} ${d.gtbr.lowerNQ.toLocaleString()}–${d.gtbr.upperNQ.toLocaleString()} (one expected daily move off the open), forced hedging stays quiet until an edge breaks${z >= 0 ? '; a positive-gamma day that never leaves the band tends to fade its own move into the close' : ''}.`
+        : `Price is ${d.gtbr.state} the GTBR band, ${d.futName ?? 'NQ'} ${d.gtbr.lowerNQ.toLocaleString()}–${d.gtbr.upperNQ.toLocaleString()}, past the daily breakeven, the hedging machine is live${d.gtbr.state === 'below' ? '; the forced-hedge push runs hardest on downside breaks' : ''}.`)
+      if (d.majorWall) extra.push(`The major wall at ${d.majorWall.strike} (${d.futName ?? 'NQ'} ${d.majorWall.nq.toLocaleString()}) sits ${d.majorWall.side} spot, the session's gravity point${d.majorWallMoved ? `, and it has moved today (${d.majorWallMoved.from} → ${d.majorWallMoved.to}), a sentiment shift` : ''}.`)
       if (d.flipDrift) extra.push(`The flip has drifted ${d.flipDrift > 0 ? '+' : ''}${d.flipDrift} QQQ since the open, fresh 0DTE flow drags it, so re-check it into the afternoon.`)
       if (d.zdte.netChexM) extra.push(`Charm leans ${d.zdte.netChexM > 0 ? 'sell' : 'buy'}-side into the close; it runs the final 90 minutes on 0DTE.`)
       rg.innerHTML = gexTidy(msg) + (extra.length ? `<ul class="gex-pts">${extra.map((e) => `<li>${gexTidy(e)}</li>`).join('')}</ul>` : '')
@@ -14564,6 +14585,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
 
     function syncGexControls() {
+      el('gex-book').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.b === GEX.book))
       el('gex-view').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === GEX.view))
       el('gex-set').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.s === GEX.set))
       el('gex-scale').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.z === GEX.scale))
@@ -14597,7 +14619,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         push('Gamma flip', 'swing', d.swing.flip, null)
       }
       for (const r of d.rLevels ?? []) push(`Γ${r.rank}`, 'concentration', { qqq: r.strike, nq: r.nq, tier: r.tier }, r.gexM)
-      table(el('gex-table'), ['Level', 'QQQ', 'NQ', 'GEX $M', 'Conf.'], rows, (r) => {
+      table(el('gex-table'), ['Level', d.undName ?? 'QQQ', d.futName ?? 'NQ', 'GEX $M', 'Conf.'], rows, (r) => {
         const tr = document.createElement('tr')
         const n = document.createElement('td'); n.className = 'lvl-name'; n.textContent = r.name
         const sm = document.createElement('small'); sm.textContent = r.sub; n.appendChild(sm)
@@ -14765,7 +14787,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         haloText(ctx, lab, a.x + (xNear === xR ? 8 : -8), a.y + 3, i === 0 ? t.ink : t.faint, t.panel, xNear === xR ? 'left' : 'right')
       }
       const fl = P(xL, yNear, zFloor), fr = P(xR, yNear, zFloor)
-      haloText(ctx, 'QQQ strike →', (fl.x + fr.x) / 2, Math.max(fl.y, fr.y) + 30, t.faint, t.panel, 'center')
+      haloText(ctx, `${GEX.data?.undName ?? 'QQQ'} strike →`, (fl.x + fr.x) / 2, Math.max(fl.y, fr.y) + 30, t.faint, t.panel, 'center')
       const eEnd = P(xNear, wy(m - 1), zFloor)
       haloText(ctx, 'expiry', eEnd.x + (xNear === xR ? 8 : -8), eEnd.y - 12, t.faint, t.panel, xNear === xR ? 'left' : 'right')
 
@@ -14932,7 +14954,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         haloText(ctx, String(k), padL - 9, y + 3.5, t.muted, t.panel, 'right')
         haloText(ctx, gexNQ(k).toLocaleString(), padL + pw + 9, y + 3.5, t.faint, t.panel, 'left')
       }
-      haloText(ctx, 'QQQ', padL - 9, padT - 10, t.faint, t.panel, 'right')
+      haloText(ctx, GEX.data?.undName ?? 'QQQ', padL - 9, padT - 10, t.faint, t.panel, 'right')
       haloText(ctx, 'NQ', padL + pw + 9, padT - 10, t.faint, t.panel, 'left')
       haloText(ctx, '$M per 1% move', padL + pw / 2, padT + ph + 30, t.faint, t.panel, 'center')
 
@@ -15026,6 +15048,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       c.addEventListener('pointerup', endDrag); c.addEventListener('pointercancel', endDrag)
       c.addEventListener('pointerleave', () => { if (!GEX.drag) { GEX.hover = null; el('gex-tip').hidden = true; scheduleDraw() } })
       c.addEventListener('dblclick', () => { GEX.yaw = -0.5; GEX.pitch = 0.66; scheduleDraw() })
+      // Asset switch. Each book keeps its own snapshot and archive, so switching is instant once
+      // a book has loaded and only fetches the first time. The board's own day browser is reset,
+      // because a day the NQ book has archived need not exist in the ES book at all.
+      el('gex-book').addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b || b.dataset.b === GEX.book) return
+        GEX.book = b.dataset.b; localStorage.setItem('echelon-gex-book', GEX.book)
+        GEX.hover = null; el('gex-tip').hidden = true
+        syncGexControls(); syncGexNav()
+        const st = gexStoreFor(GEX.book)
+        if (st.live) { GEX.data = st.hist?.data || st.live; renderGex() }
+        else { el('gex-empty').hidden = false; el('gex-empty').textContent = `Loading the ${gexBookCfg().und} book...` }
+        if (!st.live) loadGex().catch((err) => { const x = el('gex-empty'); x.hidden = false; x.textContent = `Could not load the ${gexBookCfg().und} book: ${err.message}` })
+        if (!st.days.length) loadGexHistory()
+      })
       el('gex-view').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; GEX.view = b.dataset.v; localStorage.setItem('echelon-gex-view', GEX.view); GEX.hover = null; el('gex-tip').hidden = true; syncGexControls(); drawGex() })
       el('gex-set').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; GEX.set = b.dataset.s; localStorage.setItem('echelon-gex-set', GEX.set); GEX.hover = null; syncGexControls(); drawGex() })
       el('gex-scale').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; GEX.scale = b.dataset.z; localStorage.setItem('echelon-gex-scale', GEX.scale); syncGexControls(); drawGex() })
