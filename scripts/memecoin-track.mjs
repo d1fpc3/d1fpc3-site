@@ -163,19 +163,24 @@ async function resolveTickers(tickers, existing) {
 // unusable here: it answers 451 to US addresses, including Actions runners.
 // A coin is priced from one venue only, recorded in memecoin_prices.src, so a
 // series is never stitched together from two conventions.
+// where the digest's ticker is not Coinbase's product symbol
+const CB_ALIAS = { SPX6900: 'SPX' }
+
 async function coinbaseSeries(ticker, fromMs) {
   if (!ticker) return null
   const gran = 21600 // 6h candles; 300 of them is 75 days, more than we need
   const start = new Date(Math.max(fromMs, Date.now() - 295 * gran * 1000)).toISOString()
   const end = new Date().toISOString()
-  const url = `https://api.exchange.coinbase.com/products/${encodeURIComponent(ticker)}-USD/candles?granularity=${gran}&start=${start}&end=${end}`
-  const r = await fetch(url, { headers: { 'User-Agent': 'd1-memecoin-tracker', accept: 'application/json' } })
-  if (r.status === 404) return null // not listed on Coinbase
-  if (!r.ok) return null
-  const rows = await r.json()
-  if (!Array.isArray(rows) || !rows.length) return null
-  // [ time, low, high, open, close, volume ], time in seconds
-  return rows.map((k) => [k[0] * 1000, k[4]]).filter((p) => p[1] > 0).sort((a, b) => a[0] - b[0])
+  for (const sym of [...new Set([CB_ALIAS[ticker], ticker].filter(Boolean))]) {
+    const url = `https://api.exchange.coinbase.com/products/${encodeURIComponent(sym)}-USD/candles?granularity=${gran}&start=${start}&end=${end}`
+    const r = await fetch(url, { headers: { 'User-Agent': 'd1-memecoin-tracker', accept: 'application/json' } })
+    if (!r.ok) continue // 404 just means it is not listed there
+    const rows = await r.json()
+    if (!Array.isArray(rows) || !rows.length) continue
+    // [ time, low, high, open, close, volume ], time in seconds
+    return rows.map((k) => [k[0] * 1000, k[4]]).filter((p) => p[1] > 0).sort((a, b) => a[0] - b[0])
+  }
+  return null
 }
 
 async function priceSeries(coinId, fromMs) {
