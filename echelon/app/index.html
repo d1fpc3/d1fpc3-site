@@ -11878,6 +11878,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       p_rsi: false, rsiN: 14, rsiC: '', rsiHi: 70, rsiLo: 30, rsiFill: true, p_macd: false, macdF: 12, macdS: 26, macdSig: 9, macdC: '', macdSigC: '', p_atr: false, atrN: 14, atrC: '',
       litPdC: '', litPdW: 1, litPwC: '', litPwW: 1, litWoC: '', litWoW: 2, litAsiaC: '', litAsiaF: 0.15, litNyC: '', litNyF: 0.1, litOpenC: '', litOpenW: 1, litMarksC: '', litKoC: '', litPo3Up: '', litPo3Dn: '', litEighthsC: '', litGoldC: '', litGoldW: 1, litVecUp: '', litVecDn: '', litLabels: true,
       cmp: false, cmpSym: 'auto', cmpC: '', cmpW: 1.4, cmpLabel: true,
+      // price-structure indicators, all opt in; *Back caps the bar scan, like the Pine's max_bars_back
+      ict: false, ictDays: 2, ictLabels: true, ictMid: true, ictPc: true, ictRth: true, ictMacro: true, ictMidC: '', ictPcC: '', ictCeC: '', ictQuadC: '', ictMacroC: '', ictMacroF: 0.07,
+      sd: false, sdBase: 5, sdBasePct: 0.5, sdExpl: 1.5, sdMax: 10, sdKeep: false, sdBack: 3000, sdLabels: true, sdDemandC: '', sdSupplyC: '', sdBrokenC: '', sdFreshF: 0.16, sdTestedF: 0.07,
+      pend: false, pendLen: 5, pendTol: 5, pendMax: 12, pendClose: false, pendKeep: false, pendBack: 3000, pendHi: true, pendLo: true, pendLabels: true, pendHiC: '', pendLoC: '', pendSweptC: '', pendF: 0.14,
+      amit: false, amitMax: 5, amitBack: 3000, amitBull: true, amitBear: true, amitExtend: true, amitLabels: true, amitBullC: '', amitBearC: '', amitF: 0.18,
       // panel indicators, both opt in
       htf: false, htfPos: 'tr', htf5: true, htf15: true, htf60: true, htf240: true, htfD: true, htfRsiHi: 70, htfRsiLo: 30, htfVolHot: 1.5,
       news: false, newsPos: 'br', newsHigh: true, newsMed: true, newsHol: true, newsMax: 10, newsDim: true, newsMarks: true,
@@ -11930,7 +11935,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     { const saved = localStorage.getItem('echelon-chart-tf'); for (const label of CH.s.customTfs || []) { const m = /^(\d+)([mhDW])$/.exec(label); if (m && !CH_TF[label]) { const mins = m[2] === 'h' ? +m[1] * 60 : m[2] === 'D' ? +m[1] * 1440 : m[2] === 'W' ? +m[1] * 10080 : +m[1]; CH_TF[label] = [mins >= 1440 ? '1d' : mins % 60 === 0 ? '60m' : mins % 5 === 0 ? '5m' : '1m', mins] } } if (saved && CH_TF[saved]) CH.tf = saved }
     const chSave = () => { try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)); localStorage.setItem(chDrKey(), JSON.stringify(CH.drawings, (k, v) => k.startsWith('_') ? undefined : v)) } catch {} }
     window.__CH = CH   // read-only peek for the console and the harness
-    CH.$ = { build: () => chBuild(), paint: () => chPaint(), pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck(), prev: () => chPrevDay(), smt: () => chSmt(), htfWarm: () => chHtfWarm(), rolls: () => chRollsOf(chStoreFor(CH.sym)), setSym: (k) => chSetSymbol(k) }
+    CH.$ = { build: () => chBuild(), paint: () => chPaint(), pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck(), prev: () => chPrevDay(), smt: () => chSmt(), htfWarm: () => chHtfWarm(), ict: () => chIct(), sd: () => chSd(), pend: () => chPend(), amit: () => chAmit(), rolls: () => chRollsOf(chStoreFor(CH.sym)), setSym: (k) => chSetSymbol(k) }
     // undo and redo keep whole snapshots of the drawings; cheap at this size
     const chSnapshot = () => JSON.stringify(CH.drawings)
     function chPush() { CH.hist.push(chSnapshot()); if (CH.hist.length > 60) CH.hist.shift(); CH.redo = []; chHistUi() }
@@ -12588,7 +12593,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
               y = yy; break
             }
             if (y == null) continue
-            placed.push({ x0, x1: x0 + w, y0: y - h, y1: y })
+            placed.push({ x0, x1: x0 + w, y0: y - h, y1: y, text: it.text })
             if (plate) { ctx.fillStyle = alpha(plate, 0.8); ctx.fillRect(x0 - 2, y - h, w + 4, h + 2) }
             ctx.fillStyle = it.color; ctx.textAlign = 'left'; ctx.fillText(it.text, x0, y)
           }
@@ -12606,7 +12611,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!n) return
       const X = (i) => chX(i, L), Y = (p) => chY(p, L), D = CH_LIT_DEF(light)
       const cc = (k) => S[k] || D[k], A = (k, a) => alpha(cc(k), a), W = (k, def) => +S[k] || def, labels = S.litLabels !== false
-      const LBL = chLabelLane(ctx)
+      const LBL = R.lbl
       const tag = (text, x, y, color, align, size, prio) => { if (labels) LBL.add(text, x, y, color, align, size, prio) }
       const hline = (p, xa, xb, color, dash, width = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1 }
       const visible = (a, b) => b >= i0 - 1 && a <= i1 + 1
@@ -12669,7 +12674,273 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           }
         }
       }
-      LBL.flush(L)
+    }
+
+    /* ── the price-structure indicators ──
+       Four Pine overlays from tools\indicators, on our bars. Each computes once
+       per bar set behind its own cache and paints in bar coordinates, and each
+       queues its text through the shared label lane so no name lands on another.
+
+       All three zone finders walk the bars once, forward, retiring a zone in the
+       same pass that mints one. That ordering is the whole game: Pine runs its
+       lifecycle every bar, so a swept level stops counting against the per-side
+       cap and leaves room for the next. Sweeping afterwards instead caps on dead
+       zones and starves the recent ones, which is why these read empty until the
+       pass was turned the right way round. Each bounds its scan too, since the
+       Pine files cap at max_bars_back while the chart can hold 25k bars. */
+    const chCalDay = (t) => Math.floor((t + chEtOff(t)) / 86400)     // NY calendar day, not the futures session
+    const chScanFrom = (n, back) => Math.max(0, n - Math.max(200, back | 0))
+
+    /* D1 ICT: only the parts D1 LIT does not already carry. LIT owns the PO3
+       candles and the 08:30 / 09:30 / 10:00 opens, so porting those again would
+       paint two of everything. What is left is the midnight open, the 16:14
+       settlement close, the RTH quadrants measured between them, and the eight
+       macro windows. */
+    const CH_MACROS = [[170, '02:50'], [530, '08:50'], [590, '09:50'], [650, '10:50'], [710, '11:50'], [830, '13:50'], [890, '14:50'], [950, '15:50']]
+    let chIctCache = { key: '', v: null }
+    function chIct() {
+      const bars = chVisible(), n = bars.length, S = CH.s, tf = CH.tfSec
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${S.ictDays}`
+      if (chIctCache.key === key) return chIctCache.v
+      const v = { mid: null, pc: null, rth: null, macros: [] }
+      if (!n || tf > 3600) { chIctCache = { key, v }; return v }
+      const lastDay = chCalDay(bars[n - 1].t), minDay = lastDay - Math.max(0, (S.ictDays ?? 2) - 1)
+      let o930 = null, pcForRth = null
+      for (let i = 0; i < n; i++) {
+        const b = bars[i], d = chCalDay(b.t); if (d < minDay) continue
+        const m = chMin(b.t), holds = (target) => m <= target && target < m + tf / 60
+        if (holds(0)) v.mid = { p: b.o, i0: i, day: d }
+        if (holds(974)) v.pc = { p: b.c, i0: i, day: d }          // 16:14 ET, the settlement print
+        // the band is yesterday's settlement against today's open, so the session
+        // takes the settlement standing when it opened, not the latest one on the chart
+        if (holds(570)) { o930 = { p: b.o, i0: i, day: d }; pcForRth = v.pc }
+        for (const [mm, name] of CH_MACROS) {
+          if (!holds(mm)) continue
+          const win = { i0: i, i1: i, name, h: b.h }
+          for (let j = i; j < n && chMin(bars[j].t) >= mm && chMin(bars[j].t) < mm + 20; j++) { win.i1 = j; if (bars[j].h > win.h) win.h = bars[j].h }
+          v.macros.push(win)
+        }
+      }
+      // the RTH band is the prior settlement against this session's 09:30 open; the
+      // quadrants inside it are where ICT expects the session to turn
+      if (pcForRth && o930) {
+        const top = Math.max(pcForRth.p, o930.p), bot = Math.min(pcForRth.p, o930.p)
+        v.rth = { i0: o930.i0, ce: bot + (top - bot) / 2, q25: bot + (top - bot) * 0.25, q75: bot + (top - bot) * 0.75 }
+      }
+      chIctCache = { key, v }; return v
+    }
+    function chPaintIct(ctx, L, T, R) {
+      const S = CH.s, v = chIct(), { n, i0, i1, light } = R, LBL = R.lbl
+      const X = (i) => chX(i, L), Y = (p) => chY(p, L)
+      const ink = light ? '#1a1815' : '#e9e3d8'
+      const C = (k, d) => S[k] || d
+      const hline = (p, xa, xb, color, dash, w = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return false; ctx.strokeStyle = color; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1; return true }
+      const tag = (t, x, y, c, al, sz, pr) => { if (S.ictLabels !== false) LBL.add(t, x, y, c, al, sz, pr) }
+      const xe = Math.min(L.plotW, X(n - 1 + 10))
+      if (S.ictMid !== false && v.mid && hline(v.mid.p, X(v.mid.i0), xe, alpha(C('ictMidC', ink), 0.6), [1, 3])) tag('Midnight Open', Math.min(xe + 5, L.plotW - 80), Y(v.mid.p), alpha(C('ictMidC', ink), 0.85), 'left', 9.5, 14)
+      if (S.ictPc !== false && v.pc && hline(v.pc.p, X(v.pc.i0), xe, alpha(C('ictPcC', '#e05252'), 0.7), [6, 4])) tag('Prev Close', Math.min(xe + 5, L.plotW - 70), Y(v.pc.p), alpha(C('ictPcC', '#e05252'), 0.95), 'left', 9.5, 10)
+      if (S.ictRth !== false && v.rth) {
+        const r = v.rth, ce = C('ictCeC', '#8e5bd0'), q = C('ictQuadC', light ? '#6b665e' : '#9d978c')
+        if (hline(r.ce, X(r.i0), xe, alpha(ce, 0.75), [6, 4])) tag('RTH CE', Math.min(xe + 5, L.plotW - 55), Y(r.ce), alpha(ce, 0.95), 'left', 9.5, 22)
+        if (hline(r.q75, X(r.i0), xe, alpha(q, 0.45), [2, 4])) tag('RTH 75%', Math.min(xe + 5, L.plotW - 58), Y(r.q75), alpha(q, 0.7), 'left', 9, 34)
+        if (hline(r.q25, X(r.i0), xe, alpha(q, 0.45), [2, 4])) tag('RTH 25%', Math.min(xe + 5, L.plotW - 58), Y(r.q25), alpha(q, 0.7), 'left', 9, 34)
+      }
+      // macros: a faint band over the twenty minutes, and the high it printed
+      if (S.ictMacro !== false) for (const w of v.macros) {
+        if (w.i1 < i0 - 1 || w.i0 > i1 + 1) continue
+        const xa = X(w.i0) - CH.barW / 2, xb = X(w.i1) + CH.barW / 2, c = C('ictMacroC', light ? '#3b5bdb' : '#8ea6ff')
+        ctx.fillStyle = alpha(c, S.ictMacroF ?? 0.07); ctx.fillRect(xa, 0, Math.max(1, xb - xa), L.mainH)
+        const y = Math.round(Y(w.h)) - 3.5
+        if (y > 0 && y < L.mainH) { ctx.strokeStyle = alpha(c, 0.55); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, y); ctx.stroke(); ctx.lineWidth = 1 }
+        tag(w.name, (xa + xb) / 2, Math.max(11, y - 5), alpha(c, 0.8), 'center', 9, 46)
+      }
+    }
+
+    /* D1 SD Zones (Seiden lineage, not ICT order blocks): a run of small-bodied
+       base candles then an extended-range departure mints a zone across the base,
+       classified RBR / DBR / DBD / RBD by the approach, scored in ATR multiples.
+       Fresh dims on the first touch and dies when price closes through the far
+       edge. An explosive candle is never a base bar, so a long-wick spring
+       reaches the departure branch instead of being absorbed into the base. */
+    let chSdCache = { key: '', v: null }
+    function chSd() {
+      const bars = chVisible(), n = bars.length, S = CH.s
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${S.sdBase}|${S.sdBasePct}|${S.sdExpl}|${S.sdMax}|${S.sdKeep}|${S.sdBack}`
+      if (chSdCache.key === key) return chSdCache.v
+      if (n < 40) { chSdCache = { key, v: [] }; return [] }
+      const maxBase = +S.sdBase || 5, basePct = +S.sdBasePct || 0.5, expl = +S.sdExpl || 1.5, perSide = +S.sdMax || 10, legLen = 3
+      const from = chScanFrom(n, S.sdBack || 3000), warm = Math.max(0, from - 60)
+      // Wilder ATR 14, warmed well before the scan window so the first zone is judged on a real average
+      const tr = (i) => i ? Math.max(bars[i].h - bars[i].l, Math.abs(bars[i].h - bars[i - 1].c), Math.abs(bars[i].l - bars[i - 1].c)) : bars[i].h - bars[i].l
+      let atr = 0; for (let i = warm + 1; i <= warm + 14 && i < n; i++) atr += tr(i); atr /= 14
+      const live = [], done = []
+      let baseCount = 0, baseHigh = null, baseLow = null
+      for (let i = warm + 15; i < n; i++) {
+        atr = (atr * 13 + tr(i)) / 14
+        const b = bars[i]
+        // retire first: a zone broken on this bar frees its slot for the one this bar may mint
+        for (let k = live.length - 1; k >= 0; k--) {
+          const z = live[k]; if (z.born >= i) continue
+          if (z.side === 1 ? b.c < z.dist : b.c > z.dist) { z.state = 2; z.i1 = i; live.splice(k, 1); if (S.sdKeep) done.push(z); continue }
+          if (z.state === 0 && (z.side === 1 ? b.l <= z.prox : b.h >= z.prox)) z.state = 1
+        }
+        const body = Math.abs(b.c - b.o), rng = b.h - b.l
+        if (atr > 0 && body <= basePct * atr && rng < expl * atr) {
+          baseCount++; baseHigh = baseHigh == null ? b.h : Math.max(baseHigh, b.h); baseLow = baseLow == null ? b.l : Math.min(baseLow, b.l); continue
+        }
+        const up = atr > 0 && rng >= expl * atr && b.c > b.o && b.c >= b.h - rng / 3
+        const dn = atr > 0 && rng >= expl * atr && b.c < b.o && b.c <= b.l + rng / 3
+        const valid = baseCount >= 1 && baseCount <= maxBase && baseHigh != null
+        const side = valid && up ? 1 : valid && dn ? -1 : 0
+        if (side && i >= from) {
+          const prox = side === 1 ? baseHigh : baseLow, dist = side === 1 ? baseLow : baseHigh, mid = (baseHigh + baseLow) / 2
+          const pre = i - baseCount - 1, leg = pre - legLen
+          const cls = side === 1 ? (leg >= 0 && bars[pre].c > bars[leg].c ? 'RBR' : 'DBR') : (leg >= 0 && bars[pre].c > bars[leg].c ? 'RBD' : 'DBD')
+          const mine = live.filter((z) => z.side === side)
+          if (!mine.some((z) => mid >= Math.min(z.prox, z.dist) && mid <= Math.max(z.prox, z.dist))) {
+            while (mine.length >= perSide) { const old = mine.shift(); live.splice(live.indexOf(old), 1) }
+            live.push({ i0: i - baseCount, i1: n - 1, top: baseHigh, bottom: baseLow, side, prox, dist, state: 0, born: i, cls, score: rng / atr })
+          }
+        }
+        baseCount = 0; baseHigh = null; baseLow = null
+      }
+      for (const z of live) z.i1 = n - 1
+      const v = [...done, ...live]
+      chSdCache = { key, v }; return v
+    }
+    function chPaintSd(ctx, L, T, R) {
+      const S = CH.s, zones = chSd(), { n, i0, i1, light } = R, LBL = R.lbl
+      const X = (i) => chX(i, L), Y = (p) => chY(p, L)
+      const cD = S.sdDemandC || '#3fa45b', cS = S.sdSupplyC || '#e05252', cB = S.sdBrokenC || (light ? '#8a847a' : '#787b86')
+      for (const z of zones) {
+        if (z.i1 < i0 - 1 || z.i0 > i1 + 1) continue
+        const c = z.state === 2 ? cB : z.side === 1 ? cD : cS
+        const xa = X(z.i0) - CH.barW / 2, xb = z.state === 2 ? X(z.i1) : Math.min(L.plotW, X(n - 1 + 8))
+        const top = Y(z.top), bot = Y(z.bottom); if (bot < -20 || top > L.mainH + 20) continue
+        ctx.fillStyle = alpha(c, z.state === 2 ? 0.05 : z.state === 1 ? (S.sdTestedF ?? 0.07) : (S.sdFreshF ?? 0.16))
+        ctx.fillRect(xa, top, Math.max(1, xb - xa), Math.max(1, bot - top))
+        ctx.strokeStyle = alpha(c, z.state === 2 ? 0.3 : z.state === 1 ? 0.35 : 0.65); ctx.setLineDash(z.state === 1 ? [3, 3] : [])
+        ctx.strokeRect(Math.round(xa) + 0.5, Math.round(top) + 0.5, Math.round(Math.max(1, xb - xa)), Math.round(Math.max(1, bot - top))); ctx.setLineDash([])
+        if (S.sdLabels !== false) LBL.add(`${z.cls} ${z.score.toFixed(1)}×`, Math.max(2, xa) + 4, z.side === 1 ? top - 3 : bot + 11, alpha(c, z.state ? 0.65 : 0.95), 'left', 9, z.state ? 42 : 26)
+      }
+    }
+
+    /* D1 Pending Levels (Mr Witness): two or more swing points inside a tolerance
+       are engineered liquidity, so the zone runs right until price takes it. The
+       count on the label is how many swings built it, which is the whole read: a
+       level three highs deep is a bigger magnet than a pair. A pivot is only known
+       `len` bars after it prints, so it is registered on the bar that confirms it
+       and can never be swept by the move that made it. */
+    let chPendCache = { key: '', v: null }
+    function chPend() {
+      const bars = chVisible(), n = bars.length, S = CH.s
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${S.pendLen}|${S.pendTol}|${S.pendMax}|${S.pendClose}|${S.pendKeep}|${S.pendBack}|${S.pendHi}|${S.pendLo}`
+      if (chPendCache.key === key) return chPendCache.v
+      if (n < 30) { chPendCache = { key, v: [] }; return [] }
+      const len = Math.max(1, +S.pendLen || 5), tol = Math.max(0, S.pendTol == null ? 5 : +S.pendTol), cap = +S.pendMax || 12
+      const from = chScanFrom(n, S.pendBack || 3000)
+      const side = (isHigh) => {
+        const live = [], done = [], lone = []
+        for (let i = Math.max(len, from); i < n; i++) {
+          const b = bars[i]
+          for (let k = live.length - 1; k >= 0; k--) {          // run first, so a taken level stops holding a slot
+            const l = live[k]
+            const ran = isHigh ? (S.pendClose ? b.c > l.top : b.h > l.top) : (S.pendClose ? b.c < l.bottom : b.l < l.bottom)
+            if (ran) { l.swept = true; l.i1 = i; live.splice(k, 1); done.push(l) }
+          }
+          const pi = i - len; if (pi < len) continue             // the pivot this bar confirms
+          const p = isHigh ? bars[pi].h : bars[pi].l
+          let piv = true
+          for (let k = 1; k <= len && piv; k++) piv = isHigh ? (bars[pi - k].h <= p && bars[pi + k].h <= p) : (bars[pi - k].l >= p && bars[pi + k].l >= p)
+          if (!piv) continue
+          const hit = live.find((l) => p >= l.bottom - tol && p <= l.top + tol)
+          if (hit) { hit.top = Math.max(hit.top, p); hit.bottom = Math.min(hit.bottom, p); hit.count++; continue }
+          const qi = lone.findIndex((q) => Math.abs(p - q.p) <= tol)
+          if (qi >= 0) {
+            const q = lone.splice(qi, 1)[0]
+            live.push({ i0: Math.min(pi, q.i), i1: n - 1, top: Math.max(p, q.p), bottom: Math.min(p, q.p), count: 2, isHigh, swept: false })
+            if (live.length > cap) live.shift()
+            continue
+          }
+          lone.push({ p, i: pi }); if (lone.length > 40) lone.shift()
+        }
+        for (const l of live) l.i1 = n - 1
+        return [...done, ...live]
+      }
+      const v = [...(S.pendHi !== false ? side(true) : []), ...(S.pendLo !== false ? side(false) : [])]
+      chPendCache = { key, v }; return v
+    }
+    function chPaintPend(ctx, L, T, R) {
+      const S = CH.s, levels = chPend(), { n, i0, i1, light } = R, LBL = R.lbl
+      const X = (i) => chX(i, L), Y = (p) => chY(p, L)
+      const cH = S.pendHiC || '#3fa45b', cL = S.pendLoC || '#e05252', cSw = S.pendSweptC || (light ? '#8a847a' : '#787b86')
+      for (const l of levels) {
+        if (l.swept && S.pendKeep !== true) continue      // counted in the legend, drawn only when asked for
+        if (l.i1 < i0 - 1 || l.i0 > i1 + 1) continue
+        const c = l.swept ? cSw : l.isHigh ? cH : cL
+        const xa = X(l.i0) - CH.barW / 2, xb = l.swept ? X(l.i1) : Math.min(L.plotW, X(n - 1 + 8))
+        let top = Y(l.top), bot = Y(l.bottom); if (bot - top < 2) { const m = (top + bot) / 2; top = m - 1; bot = m + 1 }
+        if (bot < -20 || top > L.mainH + 20) continue
+        ctx.fillStyle = alpha(c, l.swept ? 0.05 : (S.pendF ?? 0.14)); ctx.fillRect(xa, top, Math.max(1, xb - xa), bot - top)
+        ctx.strokeStyle = alpha(c, l.swept ? 0.3 : 0.6); ctx.strokeRect(Math.round(xa) + 0.5, Math.round(top) + 0.5, Math.round(Math.max(1, xb - xa)), Math.round(bot - top))
+        if (S.pendLabels !== false) LBL.add(`${l.count}×${l.swept ? ' swept' : ''}`, Math.min(xb, L.plotW - 4) - 4, l.isHigh ? top - 3 : bot + 11, alpha(c, l.swept ? 0.6 : 0.95), 'right', 9, l.swept ? 45 : 30)
+      }
+    }
+
+    /* Asia Mitigations: three-candle fair value gaps formed inside the Asia
+       session. The zone is the candle before the impulse, which is the one price
+       comes back to. First wick touch mitigates it and it stays drawn, dimmed,
+       because that is the record; a wick past the far side invalidates it and it
+       goes, freeing its slot the same bar. */
+    let chAmitCache = { key: '', v: null }
+    function chAmit() {
+      const bars = chVisible(), n = bars.length, S = CH.s, tf = CH.tfSec
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${S.amitMax}|${S.amitBack}`
+      if (chAmitCache.key === key) return chAmitCache.v
+      if (n < 10 || tf > 3600) { chAmitCache = { key, v: [] }; return [] }
+      const cap = +S.amitMax || 5, from = chScanFrom(n, S.amitBack || 3000)
+      const inAsia = (t) => { const m = chMin(t); return m >= 1080 || m < 60 }
+      const bull = [], bear = []
+      for (let i = Math.max(2, from); i < n; i++) {
+        const b = bars[i]
+        for (const list of [bull, bear]) for (let k = list.length - 1; k >= 0; k--) {
+          const z = list[k]; if (i <= z.i0 + 2) continue
+          if (z.bull ? b.l < z.bottom : b.h > z.top) { list.splice(k, 1); continue }   // through the far side: invalidated, gone
+          if (!z.mit && (z.bull ? b.l <= z.top : b.h >= z.bottom)) { z.mit = true; z.mitAt = i }
+        }
+        if (!inAsia(b.t) || !inAsia(bars[i - 1].t) || !inAsia(bars[i - 2].t)) continue
+        const a = bars[i - 2], isBull = b.l > a.h, isBear = b.h < a.l
+        if (!isBull && !isBear) continue
+        const list = isBull ? bull : bear, top = a.h, bottom = a.l
+        // overlapping zones on one side collapse to the one that reaches furthest
+        let keep = true, best = isBull ? bottom : top
+        for (let k = list.length - 1; k >= 0; k--) {
+          const z = list[k]; if (!(top >= z.bottom && bottom <= z.top)) continue
+          if (isBull ? z.bottom <= best : z.top >= best) { keep = false; best = isBull ? z.bottom : z.top } else list.splice(k, 1)
+        }
+        if (!keep) continue
+        list.push({ i0: i - 2, i1: n - 1, top, bottom, bull: isBull, mit: false })
+        while (list.length > cap) list.shift()
+      }
+      const v = [...bull, ...bear]
+      for (const z of v) z.i1 = n - 1
+      chAmitCache = { key, v }; return v
+    }
+    function chPaintAmit(ctx, L, T, R) {
+      const S = CH.s, zones = chAmit(), { n, i0, i1 } = R, LBL = R.lbl
+      const X = (i) => chX(i, L), Y = (p) => chY(p, L)
+      const cB = S.amitBullC || '#26a69a', cS = S.amitBearC || '#ef5350'
+      for (const z of zones) {
+        if (!(S.amitBull !== false && z.bull) && !(S.amitBear !== false && !z.bull)) continue
+        if (z.i1 < i0 - 1 || z.i0 > i1 + 1) continue
+        const c = z.bull ? cB : cS
+        const xa = X(z.i0) - CH.barW / 2, xb = S.amitExtend === false ? X(z.i0 + 1) : Math.min(L.plotW, X(n - 1 + 4))
+        const top = Y(z.top), bot = Y(z.bottom); if (bot < -20 || top > L.mainH + 20) continue
+        ctx.fillStyle = alpha(c, z.mit ? 0.07 : (S.amitF ?? 0.18)); ctx.fillRect(xa, top, Math.max(1, xb - xa), Math.max(1, bot - top))
+        ctx.strokeStyle = alpha(c, z.mit ? 0.35 : 0.7); ctx.setLineDash(z.mit ? [3, 3] : [])
+        ctx.strokeRect(Math.round(xa) + 0.5, Math.round(top) + 0.5, Math.round(Math.max(1, xb - xa)), Math.round(Math.max(1, bot - top))); ctx.setLineDash([])
+        if (S.amitLabels !== false) LBL.add(z.bull ? 'Bull MIT' : 'Bear MIT', Math.max(2, xa) + 4, z.bull ? bot + 11 : top - 3, alpha(c, z.mit ? 0.6 : 0.95), 'left', 9, z.mit ? 44 : 28)
+      }
     }
 
     /* ── the panel indicators: D1 HTF Dashboard and D1 News ──
@@ -13110,7 +13381,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chPaintRolls(ctx, L, T)
       if (S.smt) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip(); chPaintSmt(ctx, L, T, { bars, n, i0, i1 }); ctx.restore() }
       // D1 LIT and D1 GEX
-      if (S.lit || S.gex || S.news) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip(); if (S.lit) chPaintLit(ctx, L, T, { bars, n, i0, i1, light }); if (S.gex) chPaintGex(ctx, L, T, { bars, n, i0, i1, light }); if (S.news) chPaintNews(ctx, L, T, { bars, n, i0, i1, light }); ctx.restore() }
+      /* One lane for every overlay that writes text, so a PDH label and a supply
+         zone's name cannot land on each other either. Painters queue, the lane
+         resolves once, inside the same clip the lines were drawn in. */
+      if (S.lit || S.gex || S.news || S.ict || S.sd || S.pend || S.amit) {
+        ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip()
+        const lbl = chLabelLane(ctx), R = { bars, n, i0, i1, light, lbl }
+        if (S.lit) chPaintLit(ctx, L, T, R)
+        if (S.ict) chPaintIct(ctx, L, T, R)
+        if (S.sd) chPaintSd(ctx, L, T, R)
+        if (S.pend) chPaintPend(ctx, L, T, R)
+        if (S.amit) chPaintAmit(ctx, L, T, R)
+        if (S.gex) chPaintGex(ctx, L, T, R)
+        if (S.news) chPaintNews(ctx, L, T, R)
+        lbl.flush(L); ctx.restore()
+      }
       chPanels(L)
       // EMA and VWAP
       if (S.bb) {
@@ -13224,6 +13509,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.s.bb) { const bb = chBands(); rows.push(`<div class="ln" data-ind="bb"><span class="nm">BB ${CH.s.bbN || 20} ${CH.s.bbK || 2}</span><span>${bb.up[i] != null ? `<i>${chPx(bb.up[i])}</i> <i>${chPx(bb.mid[i])}</i> <i>${chPx(bb.lo[i])}</i>` : '–'}</span>${ic('bb', 'ind:bb')}</div>`) }
       if (CH.s.vwap) { const v = chVwap(); rows.push(`<div class="ln" data-ind="vwap"><span class="nm">VWAP</span><i>${v[i] != null ? chPx(v[i]) : '–'}</i>${CH.s.vwapBands && v.sd && v.sd[i] != null ? `<span>+1σ <i>${chPx(v[i] + v.sd[i])}</i></span><span>−1σ <i>${chPx(v[i] - v.sd[i])}</i></span>` : ''}${ic('vwap', 'ind:vwap')}</div>`) }
       if (CH.s.lit) rows.push(`<div class="ln" data-ind="lit"><span class="nm">D1 LIT</span><span>${CH.s.litDays || 3}</span>${ic('lit', 'ind:lit')}</div>`)
+      if (CH.s.ict) rows.push(`<div class="ln" data-ind="ict"><span class="nm">D1 ICT</span><span>midnight · settlement · RTH · macros</span>${ic('ict', 'ind:ict')}</div>`)
+      if (CH.s.sd) { const z = chSd(), live = z.filter((x) => x.state < 2); rows.push(`<div class="ln" data-ind="sd"><span class="nm">SD Zones</span><span><i class="up">${live.filter((x) => x.side === 1).length}</i> demand · <i class="down">${live.filter((x) => x.side === -1).length}</i> supply</span>${ic('sd', 'ind:sd')}</div>`) }
+      if (CH.s.pend) { const l = chPend(), live = l.filter((x) => !x.swept); rows.push(`<div class="ln" data-ind="pend"><span class="nm">Pending</span><span><i>${live.length}</i> live · ${l.length - live.length} swept</span>${ic('pend', 'ind:pend')}</div>`) }
+      if (CH.s.amit) { const z = chAmit(), fresh = z.filter((x) => !x.mit); rows.push(`<div class="ln" data-ind="amit"><span class="nm">Asia MIT</span><span><i>${fresh.length}</i> unmitigated of ${z.length}</span>${ic('amit', 'ind:amit')}</div>`) }
       if (CH.s.htf) { const d = chHtf(); rows.push(`<div class="ln" data-ind="htf"><span class="nm">D1 HTF</span><i class="${d.bias === 1 ? 'up' : d.bias === -1 ? 'down' : ''}">${d.bias === 1 ? 'Bullish' : d.bias === -1 ? 'Bearish' : 'Neutral'}</i><span>${d.up} up · ${d.dn} down</span>${ic('htf', 'ind:htf')}</div>`) }
       if (CH.s.news) { const d = chNewsDay(), nx = d.list.find((e) => e.at.getTime() > Date.now()) || d.next; const t = nx ? (nx.title.length > 30 ? nx.title.slice(0, 29) + '…' : nx.title) : ''
         rows.push(`<div class="ln" data-ind="news"><span class="nm">D1 News</span><span>${!d.fed ? '<i class="down">feed unavailable</i>' : nx ? `${CH_ET_HM.format(nx.at)} ${escH(t)}` : d.list.length ? 'all out for today' : 'nothing scheduled'}</span>${ic('news', 'ind:news')}</div>`) }
@@ -14463,6 +14752,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         gearRow('lit', 'D1 LIT', 'Levels and timing: PDH/PDL, PWH/PWL, weekly open, Asia box, NYT box, 18:00 open, FF/LO/MM markers, key opens, PO3 candles, weekly eighths, the golden window, vector candles', 'ind:lit')
         if (hasGex) gearRow('gex', 'D1 GEX', 'Gamma flip, call and put walls, major wall, top gamma strikes and the GTBR band, per session from the 9:30 print', 'ind:gex', () => { if (S.gex) chGexWarm() })
         else { const r = document.createElement('div'); r.className = 'ch-row'; r.innerHTML = '<div class="ch-row-t">D1 GEX<small>Part of the D1 GEX indicator</small></div>'; const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn'; b.textContent = 'Unlock'; b.addEventListener('click', () => { chMenu(null); showView('indicators') }); r.appendChild(b); body.appendChild(r) }
+        gearRow('ict', 'D1 ICT', 'Midnight open, the 16:14 settlement close, the RTH quadrants between them, and the eight macro windows. PO3 candles and the key opens live in D1 LIT', 'ind:ict')
+        gearRow('sd', 'D1 SD Zones', 'Supply and demand from a base plus an explosive departure, classified RBR / DBR / DBD / RBD and scored in ATR multiples', 'ind:sd')
+        gearRow('pend', 'D1 Pending Levels', 'Clustered swing highs and lows are engineered liquidity, drawn until price runs them', 'ind:pend')
+        gearRow('amit', 'Asia Mitigations', 'Fair value gaps formed inside the Asia session, held until mitigated or invalidated', 'ind:amit')
         gearRow('htf', 'D1 HTF Dashboard', 'Trend, RSI, ATR and volume read on 5m, 15m, 1H, 4H and D, with a majority bias across them', 'ind:htf', () => chHtfWarm())
         gearRow('news', 'D1 News', 'The day’s USD releases as a panel, and their times marked on the chart', 'ind:news')
         header('Overlays')
@@ -14542,6 +14835,53 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         header('Levels')
         for (const [key, label, cKey] of CH_GEX_PARTS) { const els = [colorEl(cKey, 'default')]; if (key === 'gexGtbr') { const r = rangeEl('gexGtbrF', 0, 0.4, 0.01, 0.06); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) } partRow(label, '', els, tglEl(key)) }
         button('Reset every GEX colour', () => { for (const [key, , cKey] of CH_GEX_PARTS) { S[cKey] = ''; S[key] = true } S.gexGtbrF = 0.06; S.gexW = 1; chSave(); chDraw(); chMenu('ind:gex') })
+      } else if (which === 'ind:ict') {
+        toggle('ict', 'Show D1 ICT')
+        hint('The PO3 candles and the 08:30 / 09:30 / 10:00 opens are already D1 LIT parts, so this carries only what LIT does not.')
+        row('Days back', numEl('ictDays', 1, 10, 2), 'How many calendar days keep their levels')
+        toggle('ictLabels', 'Labels')
+        header('Parts')
+        partRow('Midnight open', '00:00 New York', [colorEl('ictMidC', 'default')], tglEl('ictMid'))
+        partRow('Prev close', 'The 16:14 settlement print', [colorEl('ictPcC', 'default')], tglEl('ictPc'))
+        partRow('RTH quadrants', 'CE, 25% and 75% between the settlement and the 09:30 open', [colorEl('ictCeC', 'default'), colorEl('ictQuadC', 'default')], tglEl('ictRth'))
+        const mf = rangeEl('ictMacroF', 0, 0.3, 0.01, 0.07); mf.title = 'Fill'; const mfl = document.createElement('span'); mfl.className = 'fl'; mfl.textContent = 'Fill'
+        partRow('Macro windows', 'The eight :50 to :10 windows', [colorEl('ictMacroC', 'default'), mfl, mf], tglEl('ictMacro'))
+      } else if (which === 'ind:sd') {
+        toggle('sd', 'Show SD zones', 'Seiden-lineage supply and demand, not ICT order blocks')
+        header('Detection')
+        row('Max base candles', numEl('sdBase', 1, 20, 5), 'A base is one to this many small-bodied candles in a row')
+        row('Base body (× ATR)', rangeEl('sdBasePct', 0.05, 2, 0.05, 0.5), 'A candle body at most this many ATRs counts as base')
+        row('Departure (× ATR)', rangeEl('sdExpl', 0.5, 5, 0.1, 1.5), 'The candle leaving the base must span this and close in its directional third')
+        row('Max zones per side', numEl('sdMax', 1, 50, 10)); row('Bars scanned', numEl('sdBack', 200, 8000, 3000))
+        toggle('sdKeep', 'Keep broken zones', 'Off removes a zone once price closes through its far edge')
+        toggle('sdLabels', 'Labels', 'The class and the departure score')
+        header('Style')
+        color('sdDemandC', 'Demand'); color('sdSupplyC', 'Supply'); color('sdBrokenC', 'Broken')
+        row('Fresh fill', rangeEl('sdFreshF', 0, 0.5, 0.01, 0.16)); row('Tested fill', rangeEl('sdTestedF', 0, 0.5, 0.01, 0.07))
+      } else if (which === 'ind:pend') {
+        toggle('pend', 'Show pending levels', 'Two or more swings inside the tolerance are engineered liquidity')
+        header('Detection')
+        row('Pivot strength', numEl('pendLen', 1, 30, 5), 'Bars each side that confirm a swing')
+        row('Cluster tolerance', numEl('pendTol', 0, 200, 5), 'Points within which two swings count as one level')
+        row('Max levels per side', numEl('pendMax', 1, 50, 12)); row('Bars scanned', numEl('pendBack', 200, 8000, 3000))
+        toggle('pendClose', 'Sweep needs a close', 'Off counts any trade through the level as the run')
+        toggle('pendKeep', 'Draw swept levels too', 'Off by default: a busy session leaves a hundred of them, which buries the handful still standing. The legend counts them either way')
+        toggle('pendLabels', 'Labels', 'How many swings built the level')
+        header('Sides and style')
+        partRow('Buy-side (highs)', '', [colorEl('pendHiC', 'default')], tglEl('pendHi'))
+        partRow('Sell-side (lows)', '', [colorEl('pendLoC', 'default')], tglEl('pendLo'))
+        color('pendSweptC', 'Swept colour'); row('Fill', rangeEl('pendF', 0, 0.5, 0.01, 0.14))
+      } else if (which === 'ind:amit') {
+        toggle('amit', 'Show Asia mitigations', 'Fair value gaps formed between 18:00 and 01:00 New York')
+        header('Detection')
+        row('Max zones per side', numEl('amitMax', 1, 20, 5)); row('Bars scanned', numEl('amitBack', 200, 8000, 3000))
+        toggle('amitExtend', 'Extend to the last bar', 'Off draws the zone only where it formed')
+        toggle('amitLabels', 'Labels')
+        header('Sides and style')
+        partRow('Bullish', '', [colorEl('amitBullC', 'default')], tglEl('amitBull'))
+        partRow('Bearish', '', [colorEl('amitBearC', 'default')], tglEl('amitBear'))
+        row('Fill', rangeEl('amitF', 0, 0.5, 0.01, 0.18))
+        hint('A mitigated zone stays drawn, dimmed and dashed: it is the record of where price came back. A zone wicked through on the far side is invalidated and removed.')
       } else if (which === 'ind:htf') {
         toggle('htf', 'Show the HTF dashboard', null, () => chHtfWarm())
         header('Timeframes')
