@@ -3237,6 +3237,23 @@
     .dmpick { width: 100%; max-width: 420px; max-height: calc(70 * var(--vh)); background: var(--panel); border: 1px solid var(--line-bright); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
     .dmpick .setgrid { overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
     .dmpick-list { overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+    /* who can watch, in the upload popup */
+    .mlib-aud { display: flex; flex-direction: column; gap: 8px; }
+    .mlib-aud-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .mlib-aud .seg button.on { border-bottom-color: var(--gold); }
+    .mlib-pp { position: relative; display: flex; flex-direction: column; gap: 8px; }
+    .mlib-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .mlib-chips:empty { display: none; }
+    .mlib-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--ink); background: var(--panel-2); border-radius: 7px; padding: 5px 6px 5px 6px; }
+    .mlib-chip img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
+    .mlib-chip button { appearance: none; border: 0; background: none; color: var(--faint); cursor: pointer; font: inherit; font-size: 15px; line-height: 1; padding: 0 3px; }
+    .mlib-chip button:hover { color: var(--bad); }
+    .mlib-list { position: absolute; top: 100%; left: 0; right: 0; z-index: 3; margin-top: 6px; max-height: 220px; overflow: auto; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 12px; box-shadow: 0 16px 40px -20px rgba(0,0,0,0.7); padding: 4px; }
+    .mlib-list button { display: flex; width: 100%; align-items: center; gap: 10px; appearance: none; border: 0; background: none; font: inherit; font-size: 13px; color: var(--ink); padding: 8px 10px; border-radius: 8px; cursor: pointer; text-align: left; }
+    .mlib-list button:hover { background: var(--panel-2); }
+    .mlib-list button img, .mlib-list button .av { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; background: var(--panel-2); flex: none; }
+    .mlib-list button small { margin-left: auto; color: var(--faint); font-size: 11px; }
+    .mlib-list .none { padding: 8px 10px; font-size: 12.5px; color: var(--faint); }
 
     @media (max-width: 860px) {
       .chat { grid-template-columns: 1fr; height: calc(calc(100 * var(--dvh)) - 118px - var(--bnav, 0px)); }
@@ -3821,6 +3838,14 @@
                   <option value="concept">Concept</option>
                 </select>
                 <input class="inp" id="mlib-sum" maxlength="200" placeholder="One line on what it covers (optional)">
+                <div class="mlib-aud">
+                  <div class="mlib-aud-head"><span class="label">Who can watch</span><span class="seg" id="mlib-aud"><button type="button" class="on" data-a="members">Everyone</button><button type="button" data-a="mods">Mods only</button><button type="button" data-a="people">Chosen people</button></span></div>
+                  <div class="mlib-pp" id="mlib-pp" hidden>
+                    <div class="mlib-chips" id="mlib-chips"></div>
+                    <input class="inp" id="mlib-q" type="text" placeholder="Add a member by name" autocomplete="off">
+                    <div class="mlib-list" id="mlib-list" hidden></div>
+                  </div>
+                </div>
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                   <button class="rowbtn" id="mlib-pick" type="button">Choose video</button>
                   <span class="label" id="mlib-file-name"></span>
@@ -17975,11 +18000,58 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       mlibFile = el('mlib-file').files[0] ?? null
       el('mlib-file-name').textContent = mlibFile ? mlibFile.name : ''
     })
+    /* who can watch: the row carries the audience, the chosen people go to library_video_access
+       (the uploader may manage the list on their own video) */
+    let mlibAud = 'members'
+    const mlibPeople = new Map()   // user_id -> { username, avatar_url }
+    function mlibChips() {
+      const host = el('mlib-chips'); host.textContent = ''
+      for (const [id, p] of mlibPeople) {
+        const c = document.createElement('span'); c.className = 'mlib-chip'
+        if (p.avatar_url) { const im = document.createElement('img'); im.src = p.avatar_url; im.alt = ''; c.appendChild(im) }
+        c.appendChild(document.createTextNode('@' + p.username))
+        const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove')
+        x.addEventListener('click', () => { mlibPeople.delete(id); mlibChips() })
+        c.appendChild(x); host.appendChild(c)
+      }
+    }
+    let mlibSearchSeq = 0
+    async function mlibSuggest() {
+      const q = el('mlib-q').value.trim().replace(/^@/, ''), list = el('mlib-list'), seq = ++mlibSearchSeq
+      let query = supabase.from('member_directory').select('user_id, username, avatar_url, is_mod, is_admin').order('username').limit(8)
+      if (q) query = query.ilike('username', `%${q}%`)
+      const { data } = await query
+      if (seq !== mlibSearchSeq) return
+      list.textContent = ''
+      const rows = (data ?? []).filter((d) => !mlibPeople.has(d.user_id) && d.user_id !== state.user.id)
+      if (!rows.length) { const e = document.createElement('div'); e.className = 'none'; e.textContent = q ? 'No member by that name.' : 'Type a name.'; list.appendChild(e) }
+      for (const d of rows) {
+        const b = document.createElement('button'); b.type = 'button'
+        if (d.avatar_url) { const im = document.createElement('img'); im.src = d.avatar_url; im.alt = ''; b.appendChild(im) } else { const av = document.createElement('span'); av.className = 'av'; b.appendChild(av) }
+        b.appendChild(document.createTextNode('@' + d.username))
+        const sm = document.createElement('small'); sm.textContent = d.is_admin ? 'admin' : d.is_mod ? 'mod' : 'member'; b.appendChild(sm)
+        b.addEventListener('mousedown', (e) => { e.preventDefault(); mlibPeople.set(d.user_id, d); el('mlib-q').value = ''; mlibChips(); mlibSuggest(); hap('light') })
+        list.appendChild(b)
+      }
+      list.hidden = false
+    }
+    el('mlib-aud').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return
+      mlibAud = b.dataset.a
+      el('mlib-aud').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b))
+      el('mlib-pp').hidden = mlibAud !== 'people'
+      if (mlibAud === 'people') el('mlib-q').focus()
+    })
+    el('mlib-q').addEventListener('focus', mlibSuggest)
+    el('mlib-q').addEventListener('input', mlibSuggest)
+    el('mlib-q').addEventListener('blur', () => setTimeout(() => { el('mlib-list').hidden = true }, 150))
+    el('mlib-q').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); el('mlib-list').hidden = true; el('mlib-q').blur() } })
     el('mlib-save').addEventListener('click', async () => {
       const msg = el('mlib-msg')
       const title = el('mlib-title').value.trim()
       if (!title) { msg.className = 'msg err'; msg.textContent = 'A title, at least.'; return }
       if (!mlibFile) { msg.className = 'msg err'; msg.textContent = 'Choose the video file.'; return }
+      if (mlibAud === 'people' && !mlibPeople.size) { msg.className = 'msg err'; msg.textContent = 'Pick at least one person to share it with.'; return }
       el('mlib-save').disabled = true
       msg.className = 'msg'; msg.textContent = ''
       const bar = el('mlib-bar'), fill = el('mlib-fill'), pct = el('mlib-pct')
@@ -18003,9 +18075,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           category: el('mlib-cat').value,
           storage_path: path,
           thumb_path: thumbPath,
+          audience: mlibAud,
         }).select('id, title, summary, category, created_at, is_published, thumb_path, created_by, audience').single()
         if (error) throw error
-        msg.className = 'msg ok'; msg.textContent = 'Posted.'
+        if (mlibAud === 'people' && mlibPeople.size) {
+          const { error: aErr } = await supabase.from('library_video_access').insert([...mlibPeople.keys()].map((user_id) => ({ video_id: posted.id, user_id })))
+          if (aErr) throw aErr
+        }
+        msg.className = 'msg ok'; msg.textContent = mlibAud === 'mods' ? 'Posted, for mods only.' : mlibAud === 'people' ? `Posted, for ${mlibPeople.size} chosen ${mlibPeople.size === 1 ? 'person' : 'people'}.` : 'Posted.'
+        mlibPeople.clear(); mlibChips(); mlibAud = 'members'
+        el('mlib-aud').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.a === 'members')); el('mlib-pp').hidden = true
         el('mlib-title').value = ''; el('mlib-sum').value = ''
         el('mlib-file').value = ''; mlibFile = null; el('mlib-file-name').textContent = ''
         setTimeout(() => { el('libupmodal').hidden = true; msg.textContent = ''; if (posted && state.isAdmin) openVideoCard(posted) }, 900)

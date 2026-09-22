@@ -33,6 +33,20 @@ create policy library_access_own on public.library_video_access
   for select to authenticated using (user_id = (select auth.uid()));
 create policy members_only on public.library_video_access
   as restrictive for all to authenticated using ((select is_member()));
+-- the uploader (a mod posting from the app) manages the list on their own videos.
+-- Through a SECURITY DEFINER helper on purpose: library_read on library_videos looks
+-- at this table, so a policy here that read library_videos under RLS would recurse
+-- ("infinite recursion detected in policy") and break every library read.
+create or replace function public.library_video_owner(v_id uuid)
+ returns boolean language sql stable security definer set search_path to 'public'
+as $$ select exists (select 1 from public.library_videos v where v.id = v_id and v.created_by = auth.uid()); $$;
+revoke all on function public.library_video_owner(uuid) from public, anon;
+grant execute on function public.library_video_owner(uuid) to authenticated, service_role;
+drop policy if exists library_access_owner on public.library_video_access;
+create policy library_access_owner on public.library_video_access
+  for all to authenticated
+  using (public.library_video_owner(video_id))
+  with check (public.library_video_owner(video_id));
 
 revoke all on public.library_video_access from anon;
 grant select, insert, delete on public.library_video_access to authenticated;

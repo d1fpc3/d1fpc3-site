@@ -82,6 +82,15 @@ ok(!(await lists(C.H)), 'C (mod, not chosen) cannot list it')
 { const r = await fetch(`${SB}/rest/v1/library_video_access`, { method: 'POST', headers: { ...A.H, Prefer: 'return=minimal' }, body: JSON.stringify({ video_id: videoId, user_id: A.id }) }); ok(r.status >= 400, `A cannot add themselves to the list (${r.status})`) }
 ok(!(await lists(A.H)), 'A still cannot list it after trying')
 
+console.log('\n== the uploader manages their own list ==')
+{ const r = await fetch(`${SB}/rest/v1/library_videos?id=eq.${videoId}`, { method: 'PATCH', headers: S, body: JSON.stringify({ created_by: C.id }) }); if (!r.ok) throw new Error('created_by not set') }
+{ const r = await fetch(`${SB}/rest/v1/library_video_access`, { method: 'POST', headers: { ...C.H, Prefer: 'return=minimal' }, body: JSON.stringify({ video_id: videoId, user_id: A.id }) }); ok(r.status < 300, `C (uploader) can add A to the list (${r.status})`) }
+ok(await lists(A.H), 'A (now chosen by the uploader) lists it')
+{ const r = await fetch(`${SB}/rest/v1/library_video_access?video_id=eq.${videoId}&user_id=eq.${A.id}`, { method: 'DELETE', headers: { ...C.H, Prefer: 'return=minimal' } }); ok(r.status < 300, `C (uploader) can remove A again (${r.status})`) }
+ok(!(await lists(A.H)), 'A is out again')
+{ const r = await fetch(`${SB}/rest/v1/library_video_access`, { method: 'POST', headers: { ...B.H, Prefer: 'return=minimal' }, body: JSON.stringify({ video_id: videoId, user_id: A.id }) }); ok(r.status >= 400, `B (chosen, not the uploader) cannot add anyone (${r.status})`) }
+{ const r = await fetch(`${SB}/rest/v1/library_videos?id=eq.${videoId}`, { method: 'PATCH', headers: S, body: JSON.stringify({ created_by: null }) }); if (!r.ok) throw new Error('created_by not reset') }
+
 console.log('\n== audience: members ==')
 await setAud('members')
 ok(await lists(A.H), 'A (member) lists it again')
