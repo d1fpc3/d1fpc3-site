@@ -65,7 +65,7 @@
       --bad: #d98b7a;
       --good: #86b57f;
       --sidebar: 244px;
-      --rail: 68px;
+      --rail: 72px;
     }
 
     /* light theme: same bones, paper palette. The sign-in gate stays dark
@@ -232,6 +232,71 @@
     .side:not(.open) .side-user { flex-direction: column; padding: 10px 6px; gap: 8px; }
     .side:not(.open) .side-user .u-meta { display: none; }
     .tab { white-space: nowrap; }
+
+    /* ── sections ──
+       The rail holds five sections (Today, Trade, Learn, Community, You) and
+       a Tools footer. Resting: icon over a small label, a gold bar slides to
+       the lit one. Open (hover): each section is a parent row with its pages
+       indented beneath, the whole map. The page buttons (.tab) stay in the
+       DOM in every state: showView, the palette and the dock read them. */
+    .side-nav { position: relative; -webkit-mask-image: none; mask-image: none; padding-bottom: 8px; }
+    .grp { display: flex; flex-direction: column; }
+    .grp[hidden] { display: none; }
+    .grp-tools { margin-top: auto; padding-top: 8px; }
+    .side.open .grp-tools { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 10px; }
+    .sec {
+      display: flex; align-items: center; gap: 11px; width: 100%; position: relative;
+      padding: 9px 12px; border: 0; border-radius: 10px; background: none;
+      font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); text-align: left;
+      cursor: pointer; text-decoration: none; white-space: nowrap;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .sec[hidden] { display: none; }
+    .sec .ic { width: 18px; height: 18px; color: var(--faint); flex-shrink: 0; transition: color 0.15s ease; }
+    .sec .av {
+      width: 22px; height: 22px; border-radius: 7px; overflow: hidden; flex-shrink: 0;
+      background: linear-gradient(140deg, var(--gold), var(--gold-deep)); color: #1a1207;
+      font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+      transition: box-shadow 0.15s ease;
+    }
+    .sec .av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    @media (hover: hover) { .sec:hover { background: var(--panel-2); color: var(--ink); } }
+    .sec.on { color: var(--ink); background: var(--panel-2); }
+    .sec.on .ic { color: var(--gold); }
+    .sec.on .av { box-shadow: 0 0 0 2px var(--gold); }
+    .sec .bdot { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); top: 9px; right: 10px; }
+    .sec .bcount {
+      position: absolute; top: 5px; right: 8px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+      background: var(--gold); color: #1a1207; font-size: 10px; font-weight: 700; line-height: 1;
+      display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums;
+    }
+    .sec .bdot[hidden], .sec .bcount[hidden] { display: none; }
+    .side-ind {
+      position: absolute; left: 0; top: 0; width: 3px; height: 22px; border-radius: 0 3px 3px 0;
+      background: var(--gold); opacity: 0; pointer-events: none;
+    }
+    .side-ind.live { opacity: 1; transition: transform 0.36s cubic-bezier(.32,.72,0,1), opacity 0.2s ease; }
+    /* resting rail */
+    .side:not(.open) .side-nav { padding: 6px 6px 10px; gap: 4px; }
+    .side:not(.open) .grp-pages { display: none; }
+    .side:not(.open) .sec { flex-direction: column; gap: 5px; padding: 10px 2px 8px; font-size: 10px; font-weight: 600; letter-spacing: 0.01em; justify-content: center; }
+    .side:not(.open) .sec .ic { width: 21px; height: 21px; }
+    .side:not(.open) .sec .av { width: 24px; height: 24px; }
+    .side:not(.open) .sec .bdot { top: 8px; right: 12px; }
+    .side:not(.open) .sec .bcount { top: 4px; right: 8px; }
+    /* open rail: the map */
+    .side.open .grp-pages { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 6px 21px; padding-left: 10px; border-left: 1px solid var(--line); }
+    .side.open .grp[data-sec="today"] .grp-pages { display: none; }   /* one page: the section row is the page */
+    .side.open .grp-pages .tab { padding: 6px 10px; font-size: 13px; font-weight: 500; border-radius: 7px; }
+    .side.open .grp-pages .tab .ic { display: none; }
+    .side.open .grp-pages .tab.on { background: none; color: var(--gold); }
+    .side.open .grp-pages .tab .count { font-size: 10.5px; }
+    .side.open .sec .bdot, .side.open .sec .bcount { display: none; }
+    .side.open .grp-tools .sec { font-weight: 500; }
+    /* desktop: You owns the avatar and sign out lives in Settings, so the
+       old footer block stays in the DOM (code reads it) but never paints */
+    .side .side-user { display: none; }
 
     /* theme switch (lives in Settings) */
     .tgl { position: relative; display: inline-block; width: 54px; height: 31px; }
@@ -1999,6 +2064,17 @@
     .pal-it mark { background: color-mix(in srgb, var(--gold) 35%, transparent); color: var(--ink); border-radius: 3px; padding: 0 1px; }
     .pal-empty { padding: 30px; text-align: center; color: var(--faint); font-size: 13.5px; }
     .pal-foot { display: flex; gap: 16px; padding: 8px 16px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--faint); } .pal-foot span { display: inline-flex; align-items: center; gap: 4px; }
+    /* the shortcut sheet (?) */
+    .keys { position: fixed; inset: 0; z-index: 320; background: rgba(6,5,4,0.5); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; transition: opacity 0.14s ease; }
+    .keys.on { opacity: 1; } .keys[hidden] { display: none; }
+    .keys-box { width: min(560px, 100%); background: var(--panel); border: 1px solid var(--line-bright); border-radius: 16px; box-shadow: 0 30px 90px rgba(0,0,0,0.5); padding: 18px 20px 20px; transform: translateY(6px) scale(0.985); transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .keys.on .keys-box { transform: none; }
+    .keys-h { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; margin-bottom: 10px; }
+    .keys-x { background: none; border: 0; color: var(--faint); font: inherit; font-size: 20px; line-height: 1; cursor: pointer; padding: 2px 7px; border-radius: 6px; } .keys-x:hover { color: var(--ink); background: var(--panel-2); }
+    .keys-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
+    .keys-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+    .keys-k { display: inline-flex; gap: 4px; flex-shrink: 0; } .keys-k kbd { font: inherit; font-size: 11px; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-bright); border-bottom-width: 2px; border-radius: 6px; padding: 2px 7px; min-width: 24px; text-align: center; }
+    @media (max-width: 640px) { .keys-grid { grid-template-columns: 1fr; } }
     @media (max-width: 640px) { .pal { padding: 12px; align-items: flex-start; } .pal-box { max-height: calc(calc(100 * var(--dvh)) - 24px); } .pal-foot { display: none; } }
     .tb-bell svg { width: 21px; height: 21px; }
     .tb-bell:hover { color: var(--ink); background: var(--panel-2); }
@@ -2366,7 +2442,6 @@
 
     @media (max-width: 840px) {
       .app.on { display: block; }
-      .menu-btn { display: flex; }
       .side, .side.open {
         position: fixed; top: 0; bottom: 0; left: 0; width: min(312px, calc(84 * var(--vw))); z-index: 60;
         transform: translateX(-100%); transition: none; will-change: transform;
@@ -2410,7 +2485,56 @@
     }
     @media (prefers-reduced-motion: reduce) { .side, .scrim, .menu-btn, .tb-bell, .tb-gear, .bnav, .bnav .bnav-ind, .bnav button .ic, .bnav button .av { transition: none; } }
 
-    /* ── phone bottom nav: Overview left, Profile right, the rest between ── */
+    /* ── segmented control: the section's pages, in the top bar ──
+       A pill slides under the lit page. Phones put it on its own row under
+       the title as a glass capsule that scrolls sideways; over the feed it
+       floats on the posts. */
+    .tb-title { margin-right: 0; }
+    .tbseg-row { display: contents; }
+    .tbseg-row[hidden] { display: none; }
+    .tbseg { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); flex-shrink: 0; margin-left: 6px; }
+    .tbseg button {
+      position: relative; z-index: 1; height: 30px; padding: 0 13px; border: 0; border-radius: 999px; background: none;
+      color: var(--muted); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: color 0.18s ease, transform 0.3s cubic-bezier(.2,.8,.2,1);
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    }
+    @media (hover: hover) { .tbseg button:hover { color: var(--ink); } }
+    .tbseg button.on { color: var(--ink); }
+    .tbseg button:active { transform: scale(0.95); transition-duration: 0.06s; }
+    .tbseg .tbseg-ind {
+      position: absolute; top: 3px; left: 0; height: 30px; width: 0; border-radius: 999px; opacity: 0;
+      background: var(--panel-2);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 7%, transparent), 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .tbseg .tbseg-ind.live { opacity: 1; transition: transform 0.34s cubic-bezier(.32,.72,0,1), width 0.34s cubic-bezier(.32,.72,0,1), opacity 0.15s ease; }
+    .tbseg button .bdot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+    .tbseg button .bcount {
+      min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--gold); color: #1a1207;
+      font-size: 10px; font-weight: 700; line-height: 1; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums;
+    }
+    .tbseg button .bdot[hidden], .tbseg button .bcount[hidden] { display: none; }
+    @media (max-width: 840px) {
+      .topbar { flex-wrap: wrap; row-gap: 10px; }
+      .tbseg-row { display: flex; flex: 1 1 100%; order: 10; min-width: 0; pointer-events: none; }
+      .tbseg-row[hidden] { display: none; }
+      .tbseg {
+        pointer-events: auto; margin-left: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none;
+        background: color-mix(in srgb, var(--panel) 76%, transparent);
+        -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6);
+        border-color: color-mix(in srgb, var(--ink) 9%, transparent);
+        box-shadow: 0 10px 28px -12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05);
+      }
+      :root[data-theme="light"] .tbseg { box-shadow: 0 10px 28px -14px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.7); }
+      .tbseg::-webkit-scrollbar { display: none; }
+      .tbseg button { height: 32px; padding: 0 14px; font-size: 13.5px; }
+      .tbseg .tbseg-ind { height: 32px; }
+      body.has-seg { --segrow: 50px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .tbseg .tbseg-ind.live, .side-ind.live { transition: none; } }
+
+    /* ── phone bottom nav: one slot per section ── */
     :root { --bnav: 0px; }
     /* feed on the small shell: no bar, just the bell in a circle */
     @media (max-width: 840px) {
@@ -3268,7 +3392,7 @@
     }
     @media (max-width: 640px) {
       #v-chat.on { margin: -16px; }   /* let chat go edge-to-edge inside the padded pane */
-      .chat { border-radius: 0; border-left: 0; border-right: 0; height: calc(calc(100 * var(--dvh)) - 108px - var(--bnav, 0px)); }
+      .chat { border-radius: 0; border-left: 0; border-right: 0; height: calc(calc(100 * var(--dvh)) - 108px - var(--bnav, 0px) - var(--segrow, 0px)); }
       /* in chat, only the messages scroll: the page itself is pinned */
       body.in-chat { overflow: hidden; height: calc(100 * var(--dvh)); }
       body.in-chat .main { height: calc(100 * var(--dvh)); overflow: hidden; }
@@ -3537,39 +3661,27 @@
       </div>
 
       <nav class="side-nav" id="tabs" aria-label="Sections">
+        <i class="side-ind" aria-hidden="true"></i>
+        <div class="grp" data-sec="today">
+          <button class="sec" type="button" data-sec="today" data-title="Today"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><span class="sec-l">Today</span></button>
+          <div class="grp-pages">
         <button class="tab on" data-view="overview" data-title="Today" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
           Today
         </button>
+          </div>
+        </div>
+        <div class="grp" data-sec="trade">
+          <button class="sec" type="button" data-sec="trade" data-title="Trade"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5v3"/><rect x="6" y="8" width="4" height="8" rx="1"/><path d="M8 16v3"/><path d="M16 3v4"/><rect x="14" y="7" width="4" height="7" rx="1"/><path d="M16 14v4"/></svg><span class="sec-l">Trade</span></button>
+          <div class="grp-pages">
         <button class="tab" data-view="chart" data-title="Chart" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5v3"/><rect x="6" y="8" width="4" height="8" rx="1"/><path d="M8 16v3"/><path d="M16 3v4"/><rect x="14" y="7" width="4" height="7" rx="1"/><path d="M16 14v4"/></svg>
           Chart
         </button>
-        <button class="tab" data-view="feed" data-title="Feed" data-crumb="">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3.5"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor"/></svg>
-          Feed
-        </button>
-        <button class="tab" data-view="journal" data-title="Journal" data-crumb="">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          Journal
-        </button>
-        <button class="tab" data-view="course" data-title="Study" data-crumb="">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          Study <span class="count" id="c-lessons">–</span>
-        </button>
-        <button class="tab" data-view="chat" data-title="Chat" data-crumb="">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-          Chat <span class="count" id="c-chat" hidden></span>
-          <span class="notif" id="n-chat" hidden></span>
-        </button>
-        <button class="tab" data-view="library" data-title="Video library" data-crumb="">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/></svg>
-          Video library
-          <span class="notif" id="n-recaps" hidden></span>
-        </button>
-        <button class="tab" id="hw-tab" data-view="homework" data-title="Homework" data-crumb="" hidden>
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          Homework <span class="count" id="c-hw" hidden></span>
+        <button class="tab" id="gex-tab" data-view="gex" data-title="GEX" data-crumb="" hidden>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+          GEX
+          <span class="notif" id="n-gex" hidden></span>
         </button>
         <button class="tab" data-view="news" data-title="News" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -3579,24 +3691,79 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
           Prop firms
         </button>
+          </div>
+        </div>
+        <div class="grp" data-sec="learn">
+          <button class="sec" type="button" data-sec="learn" data-title="Learn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span class="sec-l">Learn</span></button>
+          <div class="grp-pages">
+        <button class="tab" data-view="course" data-title="Study" data-crumb="">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Study <span class="count" id="c-lessons">–</span>
+        </button>
+        <button class="tab" id="hw-tab" data-view="homework" data-title="Homework" data-crumb="" hidden>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Homework <span class="count" id="c-hw" hidden></span>
+        </button>
+        <button class="tab" data-view="library" data-title="Video library" data-crumb="">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/></svg>
+          Video library
+          <span class="notif" id="n-recaps" hidden></span>
+        </button>
         <button class="tab" data-view="indicators" data-title="Indicators" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           Indicators
         </button>
-        <button class="tab" id="gex-tab" data-view="gex" data-title="GEX" data-crumb="" hidden>
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
-          GEX
-          <span class="notif" id="n-gex" hidden></span>
+          </div>
+        </div>
+        <div class="grp" data-sec="community">
+          <button class="sec" type="button" data-sec="community" data-title="Community"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="sec-l">Community</span></button>
+          <div class="grp-pages">
+        <button class="tab" data-view="feed" data-title="Feed" data-crumb="">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3.5"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor"/></svg>
+          Feed
         </button>
-        <button class="tab" data-view="inbox" data-title="Notifications" data-crumb="" hidden></button>
+        <button class="tab" data-view="chat" data-title="Chat" data-crumb="">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          Chat <span class="count" id="c-chat" hidden></span>
+          <span class="notif" id="n-chat" hidden></span>
+        </button>
         <button class="tab" data-view="members" data-title="Members" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Members <span class="count" id="c-members">–</span>
         </button>
-        <!-- No sidebar entry: the Notifications page is reached from Settings.
-             The hidden tab only feeds showView its title and crumb. -->
+          </div>
+        </div>
+        <div class="grp" data-sec="you">
+          <button class="sec" type="button" data-sec="you" data-title="You"><span class="av" id="sec-av">·</span><span class="sec-l">You</span></button>
+          <div class="grp-pages">
+        <button class="tab" data-view="journal" data-title="Journal" data-crumb="">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Journal
+        </button>
+        <button class="tab" data-view="set-profile" data-title="Profile" data-crumb="">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          Profile
+        </button>
+        <button class="tab" data-view="settings" data-title="Settings" data-crumb="">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </button>
+          </div>
+        </div>
+        <div class="grp grp-tools">
+        <a class="sec" id="discord-link" href="#" target="_blank" rel="noopener" hidden>
+          <svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.056c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029ZM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.096 2.157 2.42 0 1.332-.955 2.418-2.157 2.418Zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.096 2.157 2.42 0 1.332-.946 2.418-2.157 2.418Z"/></svg><span class="sec-l">Discord</span>
+        </a>
+        <a class="sec" id="admin-link" href="/echelon/admin/" hidden>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="sec-l">Admin</span>
+        </a>
+        </div>
+        <!-- pages with no row of their own: the bell's inbox, the settings
+             sub-pages, followers, rate. Each hidden tab only feeds showView
+             its title and crumb. -->
+        <div class="grp" hidden>
+        <button class="tab" data-view="inbox" data-title="Notifications" data-crumb="" hidden></button>
         <button class="tab" data-view="notifs" data-title="Notifications" data-crumb="" hidden></button>
-        <button class="tab" data-view="set-profile" data-title="Profile" data-crumb="" hidden></button>
         <button class="tab" data-view="set-account" data-title="Account" data-crumb="" hidden></button>
         <button class="tab" data-view="set-appearance" data-title="Appearance" data-crumb="" hidden></button>
         <button class="tab" data-view="set-discord" data-title="Discord" data-crumb="" hidden></button>
@@ -3607,18 +3774,7 @@
         <button class="tab" data-view="follows" data-title="Followers" data-crumb="" hidden></button>
         <button class="tab" data-view="rate" data-title="Rate Echelon" data-crumb="" hidden></button>
         <button class="tab" data-view="set-stats" data-title="Statistics" data-crumb="" hidden></button>
-        <button class="tab" data-view="settings" data-title="Settings" data-crumb="">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Settings
-        </button>
-        <a class="tab" id="discord-link" href="#" target="_blank" rel="noopener" hidden>
-          <svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.056c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029ZM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.096 2.157 2.42 0 1.332-.955 2.418-2.157 2.418Zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.096 2.157 2.42 0 1.332-.946 2.418-2.157 2.418Z"/></svg>
-          Discord
-        </a>
-        <a class="tab" id="admin-link" href="/echelon/admin/" hidden>
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Admin
-        </a>
+        </div>
       </nav>
 
       <div class="side-user">
@@ -3649,6 +3805,7 @@
           <h2 id="pane-title">Today</h2>
           <div class="crumb" id="pane-crumb"></div>
         </div>
+        <div class="tbseg-row" id="tb-seg-row" hidden><nav class="tbseg" id="tb-seg" aria-label="Pages"><i class="tbseg-ind" aria-hidden="true"></i></nav></div>
         <button class="tb-search" id="tb-search" type="button" title="Search (Ctrl+K)" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Search</span><kbd>Ctrl K</kbd></button>
         <button class="tb-bell" id="tb-bell" type="button" title="Notifications" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><i class="bcount" id="bell-n" hidden></i></button>
         <button class="tb-gear" id="pro-settings" type="button" title="Settings" aria-label="Settings" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
@@ -4043,7 +4200,7 @@
         <section class="view" id="v-chart">
           <div class="ch-wrap">
             <div class="ch-bar">
-              <button class="ch-ib" id="ch-back" type="button" title="Back to overview" aria-label="Back to overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+              <button class="ch-ib" id="ch-back" type="button" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
               <div class="ch-sym"><button type="button" class="ch-symbtn" id="ch-sym-btn" title="Symbol search" aria-label="Symbol search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><b id="ch-sym-name">NQ</b></button><span class="ch-sess" id="ch-sess"></span></div>
               <span class="seg ch-tfs" id="ch-tf" role="group" aria-label="Timeframe"><button type="button" data-tf="1m">1m</button><button type="button" data-tf="3m">3m</button><button type="button" data-tf="5m">5m</button><button type="button" data-tf="15m">15m</button><button type="button" data-tf="30m">30m</button><button type="button" data-tf="1h">1h</button><button type="button" data-tf="4h">4h</button><button type="button" data-tf="D">D</button></span>
               <button class="ch-tfbtn" id="ch-tf-btn" type="button" aria-label="Interval">5m<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -4287,6 +4444,11 @@
             <button class="set-row" type="button" data-go="set-modtools" id="set-modtools-row" hidden>
               <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
               <span class="txt"><b>Mod tools</b></span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+            <button class="set-row" type="button" id="set-admin-row" hidden>
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+              <span class="txt"><b>Admin</b></span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
             </button>
             <button class="set-row" type="button" data-go="set-affiliate">
@@ -5190,8 +5352,12 @@
       // a view left behind must not keep narrating in the background
       document.querySelectorAll('.view:not(.on) video').forEach((v) => v.pause())
       const tab = tabs.find((t) => t.dataset.view === view)
-      el('pane-title').textContent = tab.dataset.title
-      el('pane-crumb').textContent = tab.dataset.crumb
+      // a section page is titled by its section (the segment names the page);
+      // a page beneath one keeps its own title and a "Section / Page" crumb
+      { const id = secOf(view), x = id && SEC_BY[id], primary = !!x && x.pages.includes(view)
+        el('pane-title').textContent = primary ? x.title : tab.dataset.title
+        el('pane-crumb').textContent = primary ? tab.dataset.crumb : (x ? x.title + (LIT_AS[view] ? ' / ' + (tabOf(LIT_AS[view])?.dataset.title ?? '') : '') : tab.dataset.crumb)
+        if (primary) SEC_LAST[id] = view }
       document.body.classList.toggle('journal-full', view === 'journal')
       document.body.classList.toggle('in-chat', view === 'chat')
       document.body.classList.toggle('in-feed', view === 'feed')
@@ -5199,13 +5365,14 @@
       requestAnimationFrame(nextupPlace)
       if (view === 'course' && prev !== 'course') studyShowMap()
       if (view === 'set-appearance') { showOnlineInit(); showOnlineInit.paint?.() }
-      syncBnav(view)
+      syncBnav(view); segRender(view); syncRail(view); recentPush(view)
       // sub-pages always open at the top (a push); top-level views resume where you were
       window.scrollTo({ top: (prev !== view && !el(`v-${view}`)?.classList.contains('setpage')) ? (VIEW_SCROLL[view] ?? 0) : 0 })
       globalThis.__syncBarEdge?.()
       if (view === 'chat' && !chat.loaded) loadChat()
       if (view === 'library') { if (!LIB.loaded) loadLibrary(); markRead('recaps') }
       if (view === 'gex') gexShown()
+      if (view === 'chart' && prev !== 'chart') CH_FROM = prev
       if (view === 'chart') chartShown(); else chartHidden()
       if (view === 'feed') feedShown()
       if (view === 'overview') tdShown(); else tdHidden()
@@ -5219,61 +5386,159 @@
       if (view === 'set-affiliate') renderAffiliatePage()
       if (view === 'set-modtools') renderModTools()
       if (view === 'set-desktop') desktopInfo()
-      el('pro-settings').hidden = view !== 'set-profile'
+      el('pro-settings').hidden = true   // Settings sits in the You segment now
       if (view !== 'gex') endGexTour(false)
     }
     tabs.forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)))
 
-    /* ── phone bottom nav: built from the sidebar so the two never disagree ── */
-    const BNAV = ['overview', 'feed', 'course', 'chat', 'set-profile']
-    const BNAV_PROFILE_VIEWS = new Set(['set-profile', 'settings', 'set-account', 'set-appearance', 'set-discord', 'set-desktop', 'set-invite', 'set-stats', 'set-affiliate', 'set-modtools', 'follows', 'rate', 'notifs', 'inbox'])
+    /* ── sections ──
+       Five sections own every page. The rail and the phone dock switch
+       sections; the segmented control in the top bar switches pages within
+       one. A section remembers the page you left it on. */
+    const SECS = [
+      { id: 'today', title: 'Today', pages: ['overview'] },
+      // land: where a fresh tap on the section goes. The chart takes the whole
+      // phone screen (no dock, no segment), so phones land on the board or the
+      // calendar and reach the chart from the segment; desktops land on the chart.
+      { id: 'trade', title: 'Trade', pages: ['chart', 'gex', 'news', 'propfirms'], land: () => matchMedia('(max-width: 840px)').matches ? (pageVisible('gex') ? 'gex' : 'news') : 'chart' },
+      { id: 'learn', title: 'Learn', pages: ['course', 'homework', 'library', 'indicators'] },
+      { id: 'community', title: 'Community', pages: ['feed', 'chat', 'members'] },
+      // the journal hides the top bar on desktop (full-height writing), so You lands on the profile
+      { id: 'you', title: 'You', pages: ['journal', 'set-profile', 'settings'], land: 'set-profile' },
+    ]
+    const SEC_BY = Object.fromEntries(SECS.map((x) => [x.id, x]))
+    const SEC_OF = {}; for (const x of SECS) for (const p of x.pages) SEC_OF[p] = x.id
+    // pages that light a segment without being one
+    const LIT_AS = { 'set-account': 'settings', 'set-appearance': 'settings', 'set-discord': 'settings', 'set-desktop': 'settings', 'set-invite': 'settings', 'set-affiliate': 'settings', 'set-modtools': 'settings', 'set-stats': 'settings', notifs: 'settings', rate: 'settings', follows: 'set-profile' }
+    const SEG_LABEL = { course: 'Study', library: 'Library', 'set-profile': 'Profile', gex: 'GEX' }
+    // unread marks: [source badge id, mark class]
+    const SEC_BADGE = { trade: [['n-gex', 'bdot']], learn: [['n-recaps', 'bdot']], community: [['n-chat', 'bcount']] }
+    const SEG_BADGE = { gex: ['n-gex', 'bdot'], library: ['n-recaps', 'bdot'], homework: ['c-hw', 'bcount'], chat: ['n-chat', 'bcount'] }
+    const SEC_ICON = {
+      today: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>',
+      trade: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5v3"/><rect x="6" y="8" width="4" height="8" rx="1"/><path d="M8 16v3"/><path d="M16 3v4"/><rect x="14" y="7" width="4" height="7" rx="1"/><path d="M16 14v4"/></svg>',
+      learn: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+      community: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    }
+    const SEC_LAST = {}
+    let CH_FROM = null   // the view the chart was opened from; its back button returns there
+    const secOf = (view) => SEC_OF[view] ?? SEC_OF[LIT_AS[view]] ?? null
+    const litOf = (view) => SEC_OF[view] ? view : (LIT_AS[view] ?? null)
+    const tabOf = (view) => tabs.find((t) => t.dataset.view === view)
+    const pageVisible = (view) => { const t = tabOf(view); return !!t && !t.hidden }
+    function secGo(id) {
+      const x = SEC_BY[id]; if (!x) return
+      const cur = curView()
+      if (secOf(cur) === id && x.pages.includes(cur)) { window.scrollTo({ top: 0, behavior: 'smooth' }); return }
+      const want = SEC_LAST[id], land = typeof x.land === 'function' ? x.land() : x.land
+      showView(want && pageVisible(want) ? want : (land && pageVisible(land) ? land : (x.pages.find(pageVisible) ?? x.pages[0])))
+    }
+    // a mark (dot or count) follows a source badge: hidden together, same number
+    function mirrorBadge(srcId, mark) {
+      const src = el(srcId); if (!src || !mark) return
+      const sync = () => { mark.hidden = src.hidden; if (mark.classList.contains('bcount')) mark.textContent = src.textContent }
+      new MutationObserver(sync).observe(src, { attributes: true, attributeFilter: ['hidden'], childList: true, characterData: true, subtree: true })
+      sync()
+    }
+    // the rail's You and the dock's You show the member's avatar
+    function mirrorAvatar() {
+      const src = el('u-avatar'); if (!src) return
+      for (const id of ['sec-av', 'bnav-av']) {
+        const av = el(id); if (!av) continue
+        av.textContent = ''; const img = src.querySelector('img')
+        if (img) av.appendChild(img.cloneNode(true)); else av.textContent = src.textContent.trim() || '·'
+      }
+    }
+    /* rail: light the section, slide the bar */
+    function syncRail(view) {
+      const id = secOf(view ?? curView())
+      const nav = el('tabs'); if (!nav) return
+      nav.querySelectorAll('.sec[data-sec]').forEach((b) => b.classList.toggle('on', b.dataset.sec === id))
+      const ind = nav.querySelector('.side-ind'), on = nav.querySelector('.sec.on')
+      if (!ind) return
+      if (!on) { ind.classList.remove('live'); return }
+      ind.style.transform = `translateY(${Math.round(on.offsetTop + (on.offsetHeight - 22) / 2)}px)`
+      if (!ind.classList.contains('live')) requestAnimationFrame(() => requestAnimationFrame(() => ind.classList.add('live')))
+    }
+    /* top bar: the section's pages as a segmented control */
+    function segRender(view) {
+      const row = el('tb-seg-row'), seg = el('tb-seg'); if (!row || !seg) return
+      const v = view ?? curView(), id = secOf(v), x = id && SEC_BY[id]
+      const pages = x ? x.pages.filter(pageVisible) : []
+      const show = pages.length > 1
+      row.hidden = !show
+      document.body.classList.toggle('has-seg', show)
+      if (!show) { seg.dataset.sec = ''; return }
+      const key = id + ':' + pages.join(',')
+      const ind = seg.querySelector('.tbseg-ind')
+      if (seg.dataset.sec !== key) {
+        seg.dataset.sec = key
+        ind.classList.remove('live')
+        seg.querySelectorAll('button').forEach((b) => b.remove())
+        for (const p of pages) {
+          const t = tabOf(p)
+          const b = document.createElement('button'); b.type = 'button'; b.dataset.view = p
+          b.textContent = SEG_LABEL[p] ?? t.dataset.title
+          const badge = SEG_BADGE[p]
+          if (badge) { const i = document.createElement('i'); i.className = badge[1]; i.hidden = true; b.appendChild(i); mirrorBadge(badge[0], i) }
+          b.addEventListener('click', () => { hap('light'); showView(p) })
+          seg.appendChild(b)
+        }
+      }
+      const lit = litOf(v)
+      seg.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.view === lit))
+      segInd()
+    }
+    function segInd() {
+      const seg = el('tb-seg'); if (!seg || el('tb-seg-row')?.hidden) return
+      const ind = seg.querySelector('.tbseg-ind'), on = seg.querySelector('button.on')
+      if (!ind) return
+      if (!on) { ind.classList.remove('live'); return }
+      ind.style.width = on.offsetWidth + 'px'
+      ind.style.transform = `translateX(${on.offsetLeft}px)`
+      // a lit page off the right edge of a scrolling capsule slides into view
+      const need = on.offsetLeft + on.offsetWidth - seg.clientWidth + 6
+      if (need > seg.scrollLeft) seg.scrollTo({ left: need, behavior: 'smooth' }); else if (on.offsetLeft - 6 < seg.scrollLeft) seg.scrollTo({ left: Math.max(0, on.offsetLeft - 6), behavior: 'smooth' })
+      if (!ind.classList.contains('live')) requestAnimationFrame(() => requestAnimationFrame(() => ind.classList.add('live')))
+    }
+    /* rail wiring: section clicks, unread marks, avatar, a page appearing or
+       disappearing (GEX, Homework) re-cuts the segment */
+    {
+      const nav = el('tabs')
+      nav.querySelectorAll('.sec[data-sec]').forEach((b) => {
+        b.addEventListener('click', () => { hap('light'); secGo(b.dataset.sec) })
+        for (const [src, cls] of SEC_BADGE[b.dataset.sec] || []) { const i = document.createElement('i'); i.className = cls; i.hidden = true; b.appendChild(i); mirrorBadge(src, i) }
+      })
+      new MutationObserver(() => { segRender(); syncBnav() }).observe(nav, { attributes: true, attributeFilter: ['hidden'], subtree: true })
+      const ua = el('u-avatar'); if (ua) new MutationObserver(mirrorAvatar).observe(ua, { childList: true, characterData: true, subtree: true })
+      const side = document.querySelector('.side'); if (side && 'ResizeObserver' in window) new ResizeObserver(() => syncRail()).observe(side)
+      el('set-admin-row')?.addEventListener('click', () => { location.href = '/echelon/admin/' })
+    }
+
+    /* ── phone dock: one slot per section ── */
     function buildBnav() {
       const nav = el('bnav'); if (!nav) return
       nav.textContent = ''
       const ind = document.createElement('i'); ind.className = 'bnav-ind'; ind.setAttribute('aria-hidden', 'true'); nav.appendChild(ind)
-      for (const v of BNAV) {
-        const b = document.createElement('button'); b.type = 'button'; b.dataset.view = v
-        const tab = document.querySelector(`.tab[data-view="${v}"]`)
-        b.title = tab?.dataset.title ?? v; b.setAttribute('aria-label', b.title)
-        if (v === 'set-profile') {
-          const av = document.createElement('span'); av.className = 'av'; av.id = 'bnav-av'; av.textContent = '·'
-          b.appendChild(av)
-        } else if (v === 'overview') {
-          b.innerHTML = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>'
-        } else {
-          const ic = tab?.querySelector('.ic')?.cloneNode(true)
-          if (ic) b.appendChild(ic)
-          // chat: how many conversations are unread, in a gold bubble; library: a quiet dot
-          if (v === 'chat') { const d = document.createElement('i'); d.className = 'bcount'; d.hidden = true; b.appendChild(d) }
-          if (v === 'library') { const d = document.createElement('i'); d.className = 'bdot'; d.hidden = true; b.appendChild(d) }
-        }
-        b.addEventListener('click', () => { hap('light'); showView(v) })
+      for (const x of SECS) {
+        const b = document.createElement('button'); b.type = 'button'; b.dataset.sec = x.id
+        b.title = x.title; b.setAttribute('aria-label', x.title)
+        if (x.id === 'you') { const av = document.createElement('span'); av.className = 'av'; av.id = 'bnav-av'; av.textContent = '·'; b.appendChild(av) }
+        else b.innerHTML = SEC_ICON[x.id]
+        for (const [src, cls] of SEC_BADGE[x.id] || []) { const i = document.createElement('i'); i.className = cls; i.hidden = true; b.appendChild(i); mirrorBadge(src, i) }
+        b.addEventListener('click', () => { hap('light'); secGo(x.id) })
         nav.appendChild(b)
       }
-      // unread dots mirror the sidebar's
-      const mirror = (from, to) => {
-        const src = el(from); if (!src) return
-        const dot = nav.querySelector(`button[data-view="${to}"] .bdot, button[data-view="${to}"] .bcount`)
-        const sync = () => { if (!dot) return; dot.hidden = src.hidden; if (dot.classList.contains('bcount')) dot.textContent = src.textContent }
-        new MutationObserver(sync).observe(src, { attributes: true, attributeFilter: ['hidden'], childList: true, characterData: true, subtree: true })
-        sync()
-      }
-      mirror('n-chat', 'chat'); mirror('n-recaps', 'library')
+      mirrorAvatar()
       syncBnav()
     }
     function syncBnav(view) {
       const nav = el('bnav'); if (!nav) return
-      const cur = view ?? document.querySelector('.view.on')?.id.replace(/^v-/, '')
-      nav.querySelectorAll('button').forEach((b) => {
-        const tab = document.querySelector(`.tab[data-view="${b.dataset.view}"]`)
-        b.hidden = !!tab?.hidden && b.dataset.view !== 'set-profile'
-        b.classList.toggle('on', b.dataset.view === cur || (b.dataset.view === 'set-profile' && BNAV_PROFILE_VIEWS.has(cur)))
-      })
-      const av = el('bnav-av'), side = el('u-avatar')
-      if (av && side) { av.textContent = ''; const img = side.querySelector('img'); if (img) av.appendChild(img.cloneNode(true)); else av.textContent = side.textContent.trim() || '·' }
+      const id = secOf(view ?? curView())
+      nav.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.sec === id))
       // the pill slides under whichever slot is lit (first placement is silent)
-      const ind = nav.querySelector('.bnav-ind'), lit = nav.querySelector('button.on:not([hidden])')
-      if (ind) ind.style.opacity = lit ? '' : '0'   // on a page outside the five tabs (News, GEX, Library…) nothing is lit, so the pill fades instead of pointing at the last tab
+      const ind = nav.querySelector('.bnav-ind'), lit = nav.querySelector('button.on')
+      if (ind) ind.style.opacity = lit ? '' : '0'
       if (ind && lit && lit.offsetWidth) {
         ind.style.width = (lit.offsetWidth - 10) + 'px'
         ind.style.setProperty('--x', (lit.offsetLeft + 5) + 'px')
@@ -5281,7 +5546,8 @@
       }
     }
     buildBnav()
-    window.addEventListener('resize', () => syncBnav())
+    syncRail(); segRender()
+    window.addEventListener('resize', () => { syncBnav(); segInd(); syncRail() })
 
     /* ── phone drawer ──
        A spring drives the panel instead of a CSS transition, so an open can
@@ -5517,7 +5783,7 @@
       // "keyboard user, hold open", so blur it, then fold as soon as the
       // pointer is gone. Keyboard activation (Enter) keeps focus behavior via
       // focusin/focusout alone.
-      side.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
+      side.querySelectorAll('.tab, .sec').forEach((t) => t.addEventListener('click', () => {
         t.blur()
         if (!hovered) close()
       }))
@@ -11808,12 +12074,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       lesson: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>',
       video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>',
       msg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.5-4.5A8 8 0 1 1 21 12z"/></svg>',
+      recent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
     }
-    const PAL_PLACES = [['overview', 'Today', 'the morning briefing'], ['chart', 'Chart', 'NQ, MNQ, ES, MES'], ['feed', 'Feed', 'trades from members'], ['journal', 'Journal', 'your session notes'], ['course', 'Study', 'the lessons'], ['chat', 'Chat', 'channels and messages'], ['library', 'Video library', 'recaps and breakdowns'], ['news', 'News', 'the USD calendar'], ['gex', 'D1 GEX', 'the gamma board'], ['propfirms', 'Prop firms', 'the comparison sheet'], ['indicators', 'Indicators', 'the store'], ['members', 'Members', 'everyone here'], ['inbox', 'Notifications', ''], ['settings', 'Settings', '']]
+    const PAL_PLACES = [['overview', 'Today', 'the morning briefing'], ['chart', 'Chart', 'NQ, MNQ, ES, MES'], ['feed', 'Feed', 'trades from members'], ['journal', 'Journal', 'your session notes'], ['course', 'Study', 'the lessons'], ['chat', 'Chat', 'channels and messages'], ['library', 'Video library', 'recaps and breakdowns'], ['news', 'News', 'the USD calendar'], ['gex', 'D1 GEX', 'the gamma board'], ['propfirms', 'Prop firms', 'the comparison sheet'], ['indicators', 'Indicators', 'the store'], ['members', 'Members', 'everyone here'], ['set-profile', 'Profile', 'your page'], ['inbox', 'Notifications', ''], ['settings', 'Settings', '']]
     function palEl() {
       let m = el('palette'); if (m) return m
       m = document.createElement('div'); m.className = 'pal'; m.id = 'palette'; m.hidden = true
-      m.innerHTML = '<div class="pal-box" role="dialog" aria-label="Search"><div class="pal-in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input type="text" id="pal-q" placeholder="Search messages, people, lessons, videos, or jump anywhere" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div><div class="pal-list" id="pal-list" role="listbox"></div><div class="pal-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span></div></div>'
+      m.innerHTML = '<div class="pal-box" role="dialog" aria-label="Search"><div class="pal-in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input type="text" id="pal-q" placeholder="Search messages, people, lessons, videos, or jump anywhere" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div><div class="pal-list" id="pal-list" role="listbox"></div><div class="pal-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>?</kbd> shortcuts</span></div></div>'
       document.body.appendChild(m)
       m.addEventListener('click', (e) => { if (e.target === m) palClose() })
       const q = el('pal-q')
@@ -11833,14 +12100,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function palLocal(q) {
       const out = []
       const ql = palNorm(q).trim()
-      for (const [v, name, hint] of PAL_PLACES) if (!ql || palHas(name + ' ' + hint, ql)) out.push({ k: 'go', t: name, d: hint, icon: 'go', run: () => showView(v) })
+      const secHint = (v, hint) => [SEC_BY[secOf(v)]?.title, hint].filter(Boolean).join(' · ')
+      const rec = ql ? [] : recentList().filter((v) => v !== curView())
+      for (const v of rec) { const p = PAL_PLACES.find((x) => x[0] === v); if (p) out.push({ k: 'recent', t: p[1], d: secHint(v, p[2]), icon: 'recent', run: () => showView(v) }) }
+      for (const [v, name, hint] of PAL_PLACES) if ((!ql || palHas(name + ' ' + hint, ql)) && !rec.includes(v)) out.push({ k: 'go', t: name, d: secHint(v, hint), icon: 'go', run: () => showView(v) })
       for (const c of chat.channels || []) if (!ql || palHas(c.name, ql)) out.push({ k: 'chan', t: '#' + c.name, d: c.topic || 'channel', icon: 'chan', run: () => { showView('chat'); openConversation('channel', c.id) } })
       if (ql) {
         for (const u of (state.members || []).filter((u) => u.username && palHas(u.username + ' ' + (u.bio || ''), ql)).slice(0, 6)) out.push({ k: 'user', t: '@' + u.username, d: u.bio || (u.is_admin ? 'Admin' : u.is_mod ? 'Mod' : 'member'), icon: 'user', av: u, run: () => openChatProfile(u.user_id) })
         for (const l of (state.lessons || []).filter((l) => l.is_published !== false && palHas(l.title + ' ' + (l.summary || ''), ql)).slice(0, 6)) out.push({ k: 'lesson', t: l.title, d: (state.modules || []).find((m) => m.id === l.module_id)?.title || 'Lesson', icon: 'lesson', run: () => { showView('course'); openLesson(l.id) } })
         for (const r of ((typeof LIB !== 'undefined' && LIB.rows) || []).filter((r) => palHas(r.title + ' ' + (r.summary || ''), ql)).slice(0, 6)) out.push({ k: 'video', t: r.title, d: 'Video · ' + new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), icon: 'video', run: () => { showView('library'); openLibraryVideo(r) } })
       }
-      return out.slice(0, ql ? 40 : 14)
+      return out.slice(0, ql ? 40 : 22)
     }
     async function palRemote() {
       const q = PAL.q.trim(); if (q.length < 2) { PAL.remote = []; palRender(); return }
@@ -11855,7 +12125,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const local = palLocal(PAL.q), remote = PAL.q.trim().length >= 2 ? (PAL.remote || []) : []
       PAL.items = [...local, ...remote]; PAL.idx = Math.min(PAL.idx, Math.max(0, PAL.items.length - 1))
       const list = el('pal-list'); list.textContent = ''
-      const groups = [['go', 'Go to'], ['chan', 'Channels'], ['user', 'People'], ['lesson', 'Lessons'], ['video', 'Videos'], ['msg', 'Messages']]
+      const groups = [['recent', 'Recent'], ['go', 'Go to'], ['chan', 'Channels'], ['user', 'People'], ['lesson', 'Lessons'], ['video', 'Videos'], ['msg', 'Messages']]
       let i = 0
       for (const [k, label] of groups) {
         const rows = PAL.items.filter((x) => x.k === k); if (!rows.length) continue
@@ -11880,6 +12150,56 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') { e.preventDefault(); if (PAL.open) palClose(); else palOpen() }
     })
     el('tb-search')?.addEventListener('click', () => palOpen())
+
+    /* ── recents and jump keys ──
+       The palette opens on what you used last. g then a letter jumps without
+       the mouse (g g is the board); ? shows the sheet. Typing anywhere, the
+       chart (it owns its keys) and an open palette are left alone. */
+    const RECENT_MAX = 6
+    function recentList() { try { return JSON.parse(localStorage.getItem('echelon-recent-views') || '[]').filter((v) => PAL_PLACES.some((p) => p[0] === v)) } catch { return [] } }
+    function recentPush(view) {
+      try {
+        if (view === 'overview' || !PAL_PLACES.some((p) => p[0] === view)) return
+        localStorage.setItem('echelon-recent-views', JSON.stringify([view, ...recentList().filter((v) => v !== view)].slice(0, RECENT_MAX)))
+      } catch {}
+    }
+    const JUMP = { t: 'overview', c: 'chart', g: 'gex', n: 'news', s: 'course', l: 'library', f: 'feed', h: 'chat', m: 'members', j: 'journal', p: 'set-profile', ',': 'settings' }
+    const JUMP_LABEL = { t: 'Today', c: 'Chart', g: 'GEX', n: 'News', s: 'Study', l: 'Library', f: 'Feed', h: 'Chat', m: 'Members', j: 'Journal', p: 'Profile', ',': 'Settings' }
+    let jumpAt = 0
+    const keysTyping = (e) => { const t = e.target; return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')) }
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || keysTyping(e) || PAL.open || document.body.classList.contains('in-chart')) return
+      const k = e.key
+      if (jumpAt && performance.now() - jumpAt < 1500) {
+        jumpAt = 0
+        const v = JUMP[k.toLowerCase()]
+        if (v && (v !== 'gex' || pageVisible('gex'))) { e.preventDefault(); hap('light'); showView(v) }
+        return
+      }
+      if (k === 'g' || k === 'G') { jumpAt = performance.now(); return }
+      if (k === '?') { e.preventDefault(); keysToggle() }
+    })
+    function keysToggle() {
+      let m = el('keys')
+      if (!m) {
+        m = document.createElement('div'); m.className = 'keys'; m.id = 'keys'; m.hidden = true
+        m.innerHTML = '<div class="keys-box" role="dialog" aria-label="Keyboard shortcuts"><div class="keys-h"><span>Shortcuts</span><button type="button" class="keys-x" aria-label="Close">×</button></div><div class="keys-grid"></div></div>'
+        const g = m.querySelector('.keys-grid')
+        const rows = [['Ctrl', 'K', 'Search, jump anywhere'], ['?', '', 'This sheet'], ['Esc', '', 'Close'], ...Object.keys(JUMP).map((k) => ['g', k, JUMP_LABEL[k]])]
+        for (const [a, b, label] of rows) {
+          const r = document.createElement('div'); r.className = 'keys-row'
+          const ks = document.createElement('span'); ks.className = 'keys-k'
+          const k1 = document.createElement('kbd'); k1.textContent = a; ks.appendChild(k1)
+          if (b) { const k2 = document.createElement('kbd'); k2.textContent = b; ks.appendChild(k2) }
+          const l = document.createElement('span'); l.textContent = label
+          r.append(l, ks); g.appendChild(r)
+        }
+        m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('.keys-x')) keysToggle() })
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !m.hidden) keysToggle() })
+        document.body.appendChild(m)
+      }
+      if (m.hidden) { m.hidden = false; requestAnimationFrame(() => m.classList.add('on')) } else { m.classList.remove('on'); setTimeout(() => { m.hidden = true }, 140) }
+    }
 
     /* ══ Chart: NQ, the way a charting platform does it ═══════════════════
        The archive (nq_bars through the tape function) plus the live
@@ -15008,7 +15328,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-ind-btn').addEventListener('click', () => chMenu('ind'))
       el('ch-settings-btn').addEventListener('click', () => chMenu('settings'))
       el('ch-replay-btn').addEventListener('click', () => { if (CH.replay.on) chReplayExit(); else { CH.replay.arm = !CH.replay.arm; chReplayUi(); toast(CH.replay.arm ? 'Click the bar to start replaying from.' : 'Replay cancelled.', 2500) } })
-      el('ch-back').addEventListener('click', () => { if (el('v-chart').classList.contains('ch-fullscreen')) el('ch-full').click(); document.querySelector('.tab[data-view="overview"]').click() })
+      el('ch-back').addEventListener('click', () => { if (el('v-chart').classList.contains('ch-fullscreen')) el('ch-full').click(); showView(CH_FROM && CH_FROM !== 'chart' && tabOf(CH_FROM) ? CH_FROM : 'overview') })
       el('ch-full').addEventListener('click', () => { const full = el('v-chart').classList.toggle('ch-fullscreen'); el('ch-full').setAttribute('aria-pressed', String(full)); el('ch-full').setAttribute('aria-label', full ? 'Exit fullscreen' : 'Fullscreen'); chFit(); setTimeout(chDraw, 50) })
       el('ch-menu-close').addEventListener('click', () => chMenu(null)); chDlgWire()
       el('ch-rp-play').addEventListener('click', () => chReplayPlay(!CH.replay.playing))
@@ -18342,7 +18662,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       renderSidebarUser()
 
-      el('admin-link').hidden = !state.isAdmin
+      el('admin-link').hidden = !state.isAdmin; const sar = el('set-admin-row'); if (sar) sar.hidden = !state.isAdmin
       el('gex-tab').hidden = !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)
       if (!el('gex-tab').hidden) watchGexNews()
       if (DISCORD_INVITE) {
