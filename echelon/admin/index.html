@@ -1036,7 +1036,8 @@
     .wire-step .cur small { display: block; font-size: 11px; font-weight: 500; color: var(--faint); margin-top: 1px; }
 
     .wire-post { padding: 22px 0 6px; }
-    .wire-post.enter { animation: wire-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    /* a landed digest arrives top to bottom: title first, then each section 45ms apart */
+    .wire-post.enter .wire-title, .wire-post.enter .wire-sec, .wire-post.enter .wire-foot { animation: wire-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 45ms); }
     @keyframes wire-in { from { opacity: 0; transform: translateY(6px); } }
     .wire-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .wire-title h4 { font-size: 17px; font-weight: 650; letter-spacing: -0.015em; color: var(--ink); margin: 0; }
@@ -1141,6 +1142,43 @@
     .sc-sec-row:hover .sym { color: var(--gold); }
     .sc-sec-row.on .sym { color: var(--gold); }
 
+    /* ── next up: every dated event still ahead, from every digest, merged ── */
+    .nx { margin-bottom: 36px; }
+    .nx .wire-row { cursor: pointer; }
+    .nx .wire-row:hover .wire-text { color: var(--ink); }
+    .nx .wire-row .wire-text { transition: color 0.15s ease; }
+    .nx-more { appearance: none; background: none; border: 0; font: inherit; font-size: 12px; font-weight: 600; color: var(--faint); padding: 12px 0 0; cursor: pointer; transition: color 0.15s ease; }
+    .nx-more:hover { color: var(--gold); }
+    .nx-empty { padding: 16px 0 0; font-size: 12.5px; color: var(--faint); }
+
+    /* the board's sort, three quiet words */
+    .board-sort { display: inline-flex; gap: 2px; }
+    .board-sort button { appearance: none; background: none; border: 0; font: inherit; font-size: 11px; font-weight: 600; color: var(--faint); padding: 2px 7px; border-radius: 5px; cursor: pointer; transition: color 0.15s ease, background 0.15s ease; }
+    .board-sort button:hover { color: var(--ink); }
+    .board-sort button.on { color: var(--gold); background: rgba(201,162,74,0.12); }
+    .board-upd { text-align: right; margin-top: 10px; }
+    /* coins the wire named this week, with the move since that morning */
+    .mm-watch { margin-top: 36px; }
+    .board-row .since { font-size: 11.5px; margin-top: 2px; color: var(--faint); }
+    .board-row .since b { font-weight: 600; }
+    .board-row .since b.up { color: var(--good); } .board-row .since b.down { color: var(--bad); }
+    /* a tape stat that opens its coin */
+    .mm-stat.link { cursor: pointer; }
+    .mm-stat.link .v { transition: color 0.15s ease; }
+    .mm-stat.link:hover .v { color: var(--gold); }
+
+    /* profile: where the price sits in its 30-day range */
+    .cp-range { margin-top: 16px; }
+    .cp-range .bar { position: relative; height: 3px; background: var(--line); border-radius: 2px; }
+    .cp-range .bar i { position: absolute; top: -3.5px; left: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--gold); transform: translateX(-50%); box-shadow: 0 0 0 3px var(--panel); transition: left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .cp-range .ends { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+    .cp-range .ends b { color: var(--muted); font-weight: 600; }
+
+    /* scorecard: the tickers the digest keeps naming */
+    .sc-aside-gap { margin-top: 36px; }
+    .sc-tk-row { cursor: pointer; }
+    .sc-tk-row:hover .tk { background: rgba(201,162,74,0.2); }
+
     /* ── coin profile: a drawer from the right, full sheet on phones ── */
     .cp-scrim { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,0.45); opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
     .cp {
@@ -1222,7 +1260,7 @@
 
     @media (prefers-reduced-motion: reduce) {
       .sc-seg-ink, .sc-bar i, .sc-rate .track i, .mm-meter i { transition: none; }
-      .wire-post.enter { animation: none; }
+      .wire-post.enter .wire-title, .wire-post.enter .wire-sec, .wire-post.enter .wire-foot { animation: none; }
       .cp { transition: opacity 0.2s ease; transform: none; opacity: 0; pointer-events: none; }
       .cp-open .cp { opacity: 1; pointer-events: auto; }
     }
@@ -1926,6 +1964,10 @@
               <aside class="mm-side">
                 <div class="mm-sec-head"><span class="label">By section</span><span class="mm-upd">share that rose, tap to filter</span></div>
                 <table class="mm-tbl" id="sc-sections"></table>
+                <div class="sc-aside-gap">
+                  <div class="mm-sec-head"><span class="label">By ticker</span><span class="mm-upd">most named first, tap to open</span></div>
+                  <table class="mm-tbl" id="sc-tickers"></table>
+                </div>
                 <div class="sc-note" id="sc-unpriced" hidden></div>
                 <div class="sc-note">
                   Scored on the digest's own rule: <b>announcement is the entry, event is the
@@ -1939,6 +1981,10 @@
             <div class="mm-strip" id="mm-strip"></div>
             <div class="mm-cols">
               <section class="mm-main">
+                <section class="nx" id="nx">
+                  <div class="mm-sec-head"><span class="label">Next up</span><span class="mm-upd" id="nx-upd">dated events still ahead, from every digest</span></div>
+                  <div id="nx-rows"></div>
+                </section>
                 <div class="wire-head">
                   <span class="label">The wire</span>
                   <div class="wire-step" id="wire-step">
@@ -1950,8 +1996,13 @@
                 <div id="mm-wire"><p class="wire-empty">Loading the wire…</p></div>
               </section>
               <aside class="mm-side">
-                <div class="mm-sec-head"><span class="label">The board</span><span class="mm-upd" id="mm-upd"></span></div>
+                <div class="mm-sec-head"><span class="label">The board</span><span class="board-sort" id="board-sort"><button type="button" class="on" data-s="cap">Cap</button><button type="button" data-s="d24">24h</button><button type="button" data-s="d7">7d</button></span></div>
                 <table class="mm-tbl" id="mm-chips"></table>
+                <div class="mm-upd board-upd" id="mm-upd"></div>
+                <div class="mm-watch" id="mm-watch" hidden>
+                  <div class="mm-sec-head"><span class="label">Named this week</span><span class="mm-upd">since the morning it was named</span></div>
+                  <table class="mm-tbl" id="mm-watch-rows"></table>
+                </div>
               </aside>
             </div>
           </div>
@@ -2184,7 +2235,7 @@
       community: 'The community itself. Channels are created and ordered here (announcements are staff-post-only). The free signup page lets people straight in now. The list below is the record of who joined and what they wrote, with Deny as your kick switch. Mods moderate chat and get the indicators free while they hold the role.',
       perms: 'What each role may do in chat, enforced by the database rather than hidden buttons. Tap On or Off and it saves on the spot; the app updates AND the server refuses the write. Per channel, posting can be everyone, mods only, or just you.',
       gex: 'Your gamma board, the same one GEX subscribers see in their app plus the admin extras. Copy pineData is the manual feed for the TradingView script; the daily job normally republishes it on its own.',
-      memes: 'The memecoin desk: the tape and the board on the right, the wire stepped by day on the left, the scorecard and the playbook behind the sub-tabs. Tap any ticker anywhere to open the coin. For you; nothing here is member-facing.',
+      memes: 'The memecoin desk. The tape, then Next up (every dated event still ahead, from every digest, merged), then the wire one digest per day (arrow keys step it). On the right the board, sortable, and the coins the wire named this week with their move since that morning. Scorecard and playbook behind the sub-tabs. Tap any ticker anywhere to open the coin. For you; nothing here is member-facing.',
       settings: 'Which integrations are wired, as booleans only. This page can see that a secret exists, never what it is.',
     }
     for (const [view, text] of Object.entries(PAGE_HELP)) {
@@ -5486,7 +5537,10 @@
        (admin-only RLS): the daily catalyst routine inserts a digest row every
        morning and Claude sessions add notes/alerts. The scorecard view scores
        those digests; the coin profile drawer joins all of it per coin. */
-    const MM = { marketAt: 0, wireAt: 0, market: null, fng: null, coins: new Map(), posts: [], idx: 0, loadingWire: null }
+    const MM = { marketAt: 0, wireAt: 0, market: null, watch: null, sort: 'cap', coins: new Map(), posts: [], idx: 0, loadingWire: null, nxOpen: false }
+    const BLUE = ['solana', 'dogecoin', 'shiba-inu', 'pepe', 'dogwifcoin', 'bonk', 'fartcoin', 'pudgy-penguins', 'pump-fun', 'spx6900', 'official-trump']
+    // majors and stables are named in passing; they are not a memecoin watch
+    const WATCH_SKIP = new Set(['bitcoin', 'ethereum', 'solana', 'binancecoin', 'tether', 'usd-coin', 'paypal-usd', 'jpycoin', 'dai', 'ethena-usde', 'first-digital-usd', 'usd1-wlfi', 'ripple', 'tron'])
     // ticker -> coingecko id, learned from the board, the scorecard and a seed
     // that matches scripts/memecoin-track.mjs so the two surfaces never disagree
     const KNOWN = new Map(Object.entries({
@@ -5499,7 +5553,7 @@
     const TK_STOP = new Set(['USD', 'USDT', 'USDC', 'KRW', 'EUR', 'ETF', 'ETFS', 'SEC', 'US', 'ET', 'AM', 'PM', 'IP', 'ATH', 'NFT', 'NFTS', 'IPO', 'AI', 'CEO', 'DEX', 'CEX', 'TVL', 'APY', 'APR', 'TGE', 'FDV', 'OTC', 'KOL', 'KOLS', 'OG', 'TV', 'ID', 'UTC', 'GMT'])
 
     function memesShown() {
-      if (!el('mm-desk').hidden) { mmLoadMarket(); mmLoadWire(); scLoad({ quiet: true }); return }
+      if (!el('mm-desk').hidden) { mmLoadMarket(); mmLoadWire(); scLoad({ quiet: true }); nxRender(); return }
       if (!el('mm-scorecard').hidden) { scLoad(); return }
       playbookShown('memes')
     }
@@ -5709,6 +5763,26 @@
         tr.append(td1, td2); sec.appendChild(tr)
       }
 
+      // by ticker: the coins the digest keeps naming, at this horizon
+      const tkl = el('sc-tickers'); tkl.textContent = ''
+      const byT = new Map()
+      for (const r of scored) { if (!byT.has(r.ticker)) byT.set(r.ticker, []); byT.get(r.ticker).push(r[h]) }
+      for (const [ticker, list] of [...byT].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0])).slice(0, 10)) {
+        const rate = (list.filter((v) => v > 0).length / list.length) * 100
+        const avg = list.reduce((a, b) => a + b, 0) / list.length
+        const tr = document.createElement('tr'); tr.className = 'sc-tk-row'
+        tr.addEventListener('click', () => openCoin({ ticker }))
+        const td1 = document.createElement('td'); td1.className = 'c-coin'
+        td1.appendChild(tkChip(ticker, { logo: true }))
+        const sub = document.createElement('div'); sub.className = 'sub'; sub.textContent = `${list.length} call${list.length === 1 ? '' : 's'} · ${Math.round(rate)}% rose`
+        td1.appendChild(sub)
+        const td2 = document.createElement('td'); td2.className = 'c-px'
+        const px = document.createElement('div'); px.className = 'px'; px.style.color = avg >= 0 ? 'var(--good)' : 'var(--bad)'; px.textContent = scPct(avg)
+        const s2 = document.createElement('div'); s2.className = 'sub'; s2.textContent = 'avg at ' + SC_LABEL[h]
+        td2.append(px, s2)
+        tr.append(td1, td2); tkl.appendChild(tr)
+      }
+
       // anything the tracker could not price, said out loud rather than hidden
       const unpriced = [...new Set(tickered.filter((r) => !r.coin_id).map((r) => r.ticker))]
       const note = el('sc-unpriced')
@@ -5733,7 +5807,7 @@
           for (const r of SC.rows) if (r.ticker && !KNOWN.has(r.ticker)) KNOWN.set(r.ticker, r.coin_id || null)
           if (isVisible('mm-scorecard')) { scRender(); segInk(el('sc-seg')) }
           // chips in the wire and the record line on the board depend on these rows
-          if (isVisible('mm-desk')) { wireRender(false); boardRender() }
+          if (isVisible('mm-desk')) { wireRender(false); boardRender(); nxRender() }
         } catch (e) {
           if (!opts.quiet) { el('sc-strip').textContent = ''; el('sc-strip').appendChild(stripNote(`Could not load the scorecard (${e.message}).`, () => scLoad())) }
         } finally { SC.loading = null }
@@ -5763,12 +5837,14 @@
       return s
     }
     async function mmLoadMarket(force = false) {
-      if (!force && Date.now() - MM.marketAt < 5 * 60 * 1000) { boardRender(); return }
+      if (!force && Date.now() - MM.marketAt < 5 * 60 * 1000) { boardRender(); watchRender(); return }
       MM.marketAt = Date.now()
       const strip = el('mm-strip')
       if (!MM.market) { scStripSkel(strip); skelRows(el('mm-chips'), 3, 6) }
       try {
-        const ids = 'solana,dogecoin,shiba-inu,pepe,dogwifcoin,bonk,fartcoin,pudgy-penguins,pump-fun,spx6900,official-trump'
+        await scLoad({ quiet: true }).catch(() => {})
+        const picks = watchPicks()
+        const ids = [...BLUE, ...picks.map((w) => w.coin_id)].join(',')
         const [mkts, glob, cats, fees, fng] = await Promise.all([
           fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=true&price_change_percentage=24h,7d,30d`).then((r) => r.json()),
           fetch('https://api.coingecko.com/api/v3/global').then((r) => r.json()).catch(() => null),
@@ -5777,20 +5853,25 @@
           fetch('https://api.alternative.me/fng/?limit=1').then((r) => r.json()).catch(() => null),
         ])
         if (!Array.isArray(mkts)) throw new Error('rate limited')
-        MM.market = mkts
+        MM.market = mkts.filter((m) => BLUE.includes(m.id))
+        MM.watch = picks.map((w) => ({ ...w, m: mkts.find((x) => x.id === w.coin_id) })).filter((w) => w.m)
         for (const m of mkts) { MM.coins.set(m.id, m); const t = (m.symbol || '').toUpperCase(); if (t && !KNOWN.get(t)) KNOWN.set(t, m.id) }
         const sol = mkts.find((m) => m.id === 'solana')
         const meme = Array.isArray(cats) ? cats.find((c) => c.id === 'meme-token') : null
         const btcDom = glob?.data?.market_cap_percentage?.btc
         const f = fng?.data?.[0]
         strip.textContent = ''
-        if (sol) strip.appendChild(mmStat('SOL', mmPrice(sol.current_price), { pct: sol.price_change_percentage_24h, spark: mmSpark(sol.sparkline_in_7d?.price, (sol.price_change_percentage_7d_in_currency ?? 0) >= 0 ? 'up' : 'down', 84, 30) }))
+        if (sol) {
+          const st = mmStat('SOL', mmPrice(sol.current_price), { pct: sol.price_change_percentage_24h, spark: mmSpark(sol.sparkline_in_7d?.price, (sol.price_change_percentage_7d_in_currency ?? 0) >= 0 ? 'up' : 'down', 84, 30) })
+          st.classList.add('link'); st.title = 'Open SOL'; st.addEventListener('click', () => openCoin({ id: 'solana' }))
+          strip.appendChild(st)
+        }
         if (btcDom != null) strip.appendChild(mmStat('BTC dominance', btcDom.toFixed(1) + '%'))
         if (meme) strip.appendChild(mmStat('Meme sector', mmCap(meme.market_cap), { pct: meme.market_cap_change_24h }))
         if (fees?.total24h != null) strip.appendChild(mmStat('pump.fun fees 24h', mmCap(fees.total24h)))
         if (f?.value) strip.appendChild(mmStat('Fear & greed', String(f.value), { sub: (f.value_classification || '').toLowerCase(), meter: Number(f.value) }))
         el('mm-upd').textContent = `updated ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
-        boardRender()
+        boardRender(); watchRender()
         if (MM.posts.length) wireRender(false)
       } catch (err) {
         MM.marketAt = 0
@@ -5815,7 +5896,8 @@
       if (!MM.market) return
       const chips = el('mm-chips'); chips.textContent = ''
       const tbody = document.createElement('tbody')
-      for (const m of MM.market.filter((x) => x.id !== 'solana')) {
+      const key = { cap: (m) => m.market_cap ?? 0, d24: (m) => m.price_change_percentage_24h_in_currency ?? -Infinity, d7: (m) => m.price_change_percentage_7d_in_currency ?? -Infinity }[MM.sort]
+      for (const m of MM.market.filter((x) => x.id !== 'solana').sort((a, b) => key(b) - key(a))) {
         const d24 = m.price_change_percentage_24h_in_currency, d7 = m.price_change_percentage_7d_in_currency
         const tr = document.createElement('tr'); tr.className = 'board-row'; tr.tabIndex = 0
         tr.addEventListener('click', () => openCoin({ id: m.id }))
@@ -5844,10 +5926,165 @@
       chips.appendChild(tbody)
     }
 
+    el('board-sort').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b || b.dataset.s === MM.sort) return
+      MM.sort = b.dataset.s
+      el('board-sort').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b))
+      boardRender()
+    })
+    // coins the wire named in the last 7 days that the board does not already carry;
+    // the entry is the first morning it was named this week
+    function watchPicks() {
+      const cut = Date.now() - 7 * 864e5
+      const by = new Map()
+      for (const r of SC.rows || []) {
+        if (!r.coin_id || !r.ticker || BLUE.includes(r.coin_id) || WATCH_SKIP.has(r.coin_id) || TK_STOP.has(r.ticker)) continue
+        const t = new Date(r.entry_at).getTime(); if (t < cut) continue
+        const cur = by.get(r.coin_id)
+        if (!cur) by.set(r.coin_id, { coin_id: r.coin_id, ticker: r.ticker, t, entry_usd: r.entry_usd, section: r.section, n: 1 })
+        else { cur.n++; if (t < cur.t) { cur.t = t; cur.entry_usd = r.entry_usd; cur.section = r.section } }
+      }
+      return [...by.values()].sort((a, b) => b.t - a.t).slice(0, 10)
+    }
+    function watchRender() {
+      const wrap = el('mm-watch'), tbl = el('mm-watch-rows')
+      if (!MM.watch || !MM.watch.length) { wrap.hidden = true; return }
+      wrap.hidden = false; tbl.textContent = ''
+      const tbody = document.createElement('tbody')
+      for (const w of MM.watch) {
+        const m = w.m
+        const since = w.entry_usd && m.current_price ? ((m.current_price / w.entry_usd) - 1) * 100 : null
+        const tr = document.createElement('tr'); tr.className = 'board-row'; tr.tabIndex = 0
+        tr.addEventListener('click', () => openCoin({ id: m.id }))
+        tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCoin({ id: m.id }) } })
+        const cCoin = document.createElement('td'); cCoin.className = 'c-coin'
+        const ident = document.createElement('div'); ident.className = 'ident'
+        if (m.image) { const im = document.createElement('img'); im.className = 'logo'; im.src = m.image; im.alt = ''; im.loading = 'lazy'; ident.appendChild(im) }
+        const txt = document.createElement('div')
+        const sym = document.createElement('div'); sym.className = 'sym'; sym.textContent = w.ticker
+        const sub = document.createElement('div'); sub.className = 'sub'; sub.textContent = `named ${mmDay(w.t)} · ${w.section.toLowerCase()}`
+        txt.append(sym, sub); ident.appendChild(txt); cCoin.appendChild(ident)
+        const cSpark = document.createElement('td'); cSpark.className = 'c-spark'
+        const spark = mmSpark(m.sparkline_in_7d?.price, (m.price_change_percentage_7d_in_currency ?? 0) >= 0 ? 'up' : 'down')
+        if (spark) cSpark.appendChild(spark)
+        const cPx = document.createElement('td'); cPx.className = 'c-px'
+        cPx.appendChild(mmPriceEl(m.current_price))
+        const s = document.createElement('div'); s.className = 'since'
+        if (since != null) { const b = document.createElement('b'); b.className = since >= 0 ? 'up' : 'down'; b.textContent = mmPct(since); s.append(b, ' since named') }
+        else { s.textContent = `${mmPct(m.price_change_percentage_24h_in_currency)} 24h` }
+        cPx.appendChild(s)
+        tr.append(cCoin, cSpark, cPx); tbody.appendChild(tr)
+      }
+      tbl.appendChild(tbody)
+    }
+
+    /* ── next up: every dated event still ahead, from every digest ──
+       The tracker already dedups restatements of one call; here the same
+       event named for several coins, or once with a ticker and once without,
+       folds into one row. Tap a row to open the digest that first named it. */
+    // the stored catalyst keeps its date lead, ticker lead, source tail and the trailing
+    // ticker segment; the calendar row wants only the event
+    function nxCore(cat) {
+      let t = cat.replace(DATE_LEAD, '').replace(/^([A-Z][A-Z0-9]{1,9})(?:\s*,\s*[A-Z][A-Z0-9]{1,9})*:\s+/, '').trim()
+      for (let i = 0; i < 3; i++) {
+        t = t.replace(SRC_TAIL, '')
+        t = t.replace(/[\s.,]*\(?Source:\s*[^)]*?\)?\.?$/i, '')
+        t = t.replace(/\s*\((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\s*,\s*(?:[a-z0-9-]+\.)+[a-z]{2,})*\)\.?$/i, '')
+        t = t.replace(/[.,]?\s+([A-Z][A-Z0-9]{1,9}(?:\s*,\s*[A-Z][A-Z0-9]{1,9})*)\.?$/, (m, seg) => seg.split(/\s*,\s*/).every((x) => KNOWN.has(x)) ? '' : m)
+        t = t.trim()
+      }
+      return t.replace(/\s+-\s*$/, '').trim()
+    }
+    const nxWords = (t) => new Set(t.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length >= 4))
+    function nxRows() {
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      const rows = (SC.rows || []).filter((r) => r.event_date && new Date(r.event_date + 'T00:00:00') >= today)
+        .sort((a, b) => a.event_date.localeCompare(b.event_date) || (a.ticker ? 0 : 1) - (b.ticker ? 0 : 1) || new Date(a.post_at) - new Date(b.post_at))
+      const groups = []
+      for (const r of rows) {
+        const core = nxCore(r.catalyst), words = nxWords(core)
+        let g = groups.find((g) => {
+          if (g.date !== r.event_date) return false
+          // same day and the text is the same event (two shared words and enough overlap);
+          // a line with no ticker also folds into a row whose coin it names
+          const shared = [...g.words].filter((w) => words.has(w)).length
+          const same = shared >= 2 && shared / new Set([...g.words, ...words]).size >= 0.15
+          if (!r.ticker) return same || g.tickers.some((t) => core.toUpperCase().includes(t))
+          return same
+        })
+        if (!g) { g = { date: r.event_date, tickers: [], core, words, section: r.section, source: r.source, post_id: r.post_id, post_at: r.post_at, sections: new Set() }; groups.push(g) }
+        if (r.ticker && !g.tickers.includes(r.ticker)) g.tickers.push(r.ticker)
+        // the dated section's wording wins over a BLUE CHIPS restatement; otherwise the fuller line
+        const restated = g.section === 'BLUE CHIPS' && r.section !== 'BLUE CHIPS'
+        const sameClass = (g.section === 'BLUE CHIPS') === (r.section === 'BLUE CHIPS')
+        if (restated || (sameClass && core.length > g.core.length)) { g.core = core; g.words = words; g.section = r.section }
+        if (!g.source && r.source) g.source = r.source
+        if (new Date(r.post_at) < new Date(g.post_at)) { g.post_at = r.post_at; g.post_id = r.post_id }
+        g.sections.add(r.section)
+      }
+      return groups
+    }
+    function nxRender() {
+      const host = el('nx-rows'); host.textContent = ''
+      if (!SC.rows) {
+        for (let i = 0; i < 3; i++) { const r = document.createElement('div'); r.className = 'wire-row'; const a = document.createElement('div'); a.append(skel('44px', 11), skel('30px', 9, 6)); const b = document.createElement('div'); b.append(skel('70%', 11)); r.append(a, b); host.appendChild(r) }
+        return
+      }
+      const groups = nxRows()
+      el('nx-upd').textContent = groups.length ? `${groups.length} dated event${groups.length === 1 ? '' : 's'} ahead, from every digest` : 'from every digest'
+      if (!groups.length) { const p = document.createElement('p'); p.className = 'nx-empty'; p.textContent = 'Nothing dated ahead. The digest has not named a future event yet.'; host.appendChild(p); return }
+      // the digest's own horizon is two weeks; the rest waits behind one tap
+      const today0 = new Date(); today0.setHours(0, 0, 0, 0)
+      const within = groups.filter((g) => new Date(g.date + 'T00:00:00') - today0 <= 14 * 864e5).length
+      const LIMIT = Math.max(3, within)
+      const show = MM.nxOpen ? groups : groups.slice(0, LIMIT)
+      for (const g of show) {
+        const d = new Date(g.date + 'T00:00:00')
+        const row = document.createElement('div'); row.className = 'wire-row'
+        row.title = 'Open the digest that first named it'
+        row.addEventListener('click', () => wireJump(g.post_id))
+        const when = document.createElement('div'); when.className = 'wire-when'
+        const dd = document.createElement('div'); dd.className = 'd'; dd.textContent = mmDay(d)
+        const rel = wireRel(d)
+        const rr = document.createElement('div'); rr.className = 'rel' + (rel.soon ? ' soon' : ''); rr.textContent = rel.t
+        when.append(dd, rr)
+        const t = document.createElement('div'); t.className = 'wire-text'
+        for (const tk of g.tickers) t.appendChild(tkChip(tk, { lead: true, logo: true }))
+        t.appendChild(tkText(g.core, g.tickers))
+        const src = document.createElement('div'); src.className = 'wire-src'
+        if (g.source) { const a = document.createElement('a'); a.href = 'https://' + g.source.replace(/^https?:\/\//, ''); a.target = '_blank'; a.rel = 'noopener'; a.textContent = g.source.replace(/^https?:\/\//, '').replace(/\/.*$/, ''); a.addEventListener('click', (e) => e.stopPropagation()); src.appendChild(a) }
+        row.append(when, t, src); host.appendChild(row)
+      }
+      if (groups.length > LIMIT) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'nx-more'
+        b.textContent = MM.nxOpen ? 'Back to the next two weeks' : `Show ${groups.length - LIMIT} more beyond two weeks`
+        b.addEventListener('click', () => { MM.nxOpen = !MM.nxOpen; nxRender() })
+        host.appendChild(b)
+      }
+    }
+    function wireJump(postId) {
+      const i = MM.posts.findIndex((p) => p.id === postId)
+      if (i < 0) return
+      MM.idx = i; wireRender(true)
+      document.querySelector('.wire-head')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    // arrow keys step the wire when nothing else wants them
+    document.addEventListener('keydown', (e) => {
+      if (CP.open || !isVisible('mm-desk') || e.altKey || e.ctrlKey || e.metaKey) return
+      const a = document.activeElement, tag = a?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || a?.isContentEditable) return
+      if (e.key === 'ArrowLeft') { e.preventDefault(); wireGo(1) }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); wireGo(-1) }
+    })
+
     /* ── the wire: one digest at a time, stepped by day ── */
     async function mmLoadWire(force = false) {
       if (!force && Date.now() - MM.wireAt < 60 * 1000) return
       if (MM.loadingWire) return MM.loadingWire
+      if (!MM.posts.length) {
+        const host = el('mm-wire'); host.textContent = ''
+        for (let i = 0; i < 4; i++) { const r = document.createElement('div'); r.className = 'wire-row'; const a = document.createElement('div'); a.append(skel('48px', 11), skel('34px', 9, 6)); const b = document.createElement('div'); b.append(skel('82%', 11), skel('46%', 11, 8)); r.append(a, b); host.appendChild(r) }
+      }
       MM.loadingWire = (async () => {
         const { data, error } = await supabase.from('memecoin_posts').select('*').order('created_at', { ascending: false }).limit(60)
         MM.loadingWire = null
@@ -5939,6 +6176,7 @@
       const foot = []
       const openSection = (name) => {
         sec = document.createElement('section'); sec.className = 'wire-sec'
+        sec.style.setProperty('--i', String(art.querySelectorAll('.wire-sec').length + 1))
         secCount = null
         if (name) {
           const head = document.createElement('div'); head.className = 'wire-sec-head'
@@ -6000,7 +6238,7 @@
         const t = document.createElement('div'); t.className = 'wire-text'; t.appendChild(tkText(line)); row.appendChild(t)
         addRow(row)
       }
-      if (foot.length) { const f = document.createElement('p'); f.className = 'wire-foot'; f.textContent = foot.join(' '); art.appendChild(f) }
+      if (foot.length) { const f = document.createElement('p'); f.className = 'wire-foot'; f.style.setProperty('--i', String(art.querySelectorAll('.wire-sec').length + 1)); f.textContent = foot.join(' '); art.appendChild(f) }
       host.appendChild(art)
     }
 
@@ -6080,6 +6318,24 @@
       }
       host.appendChild(price)
 
+      // where today sits in the last 30 days of stored marks
+      const w30 = CP.pts.filter((p) => p.t >= Date.now() - 30 * 864e5)
+      if (w30.length > 2 && px != null) {
+        let lo = Infinity, hi = -Infinity
+        for (const p of w30) { if (p.p < lo) lo = p.p; if (p.p > hi) hi = p.p }
+        if (hi > lo) {
+          const rg = document.createElement('div'); rg.className = 'cp-range'
+          const bar = document.createElement('div'); bar.className = 'bar'
+          const dot = document.createElement('i'); dot.style.left = '0%'; bar.appendChild(dot)
+          const ends = document.createElement('div'); ends.className = 'ends'
+          const l = document.createElement('span'); const lb = document.createElement('b'); lb.textContent = mmPrice(lo); l.append(lb, ' 30d low')
+          const r = document.createElement('span'); const rb = document.createElement('b'); rb.textContent = mmPrice(hi); r.append('30d high ', rb)
+          ends.append(l, r); rg.append(bar, ends); host.appendChild(rg)
+          const k = Math.max(0, Math.min(1, (px - lo) / (hi - lo)))
+          requestAnimationFrame(() => requestAnimationFrame(() => { dot.style.left = (k * 100).toFixed(1) + '%' }))
+        }
+      }
+
       // chart + range
       const ch = document.createElement('div'); ch.className = 'cp-chart-head'
       const lbl = document.createElement('span'); lbl.className = 'label'; lbl.textContent = 'Price'
@@ -6138,7 +6394,7 @@
           const d = document.createElement('div'); d.className = 'd'; d.textContent = mmDay(r.entry_at)
           const s = document.createElement('div'); s.className = 'sec'; s.textContent = r.section
           left.append(d, s)
-          const cat = document.createElement('div'); cat.className = 'cat'; cat.textContent = r.catalyst
+          const cat = document.createElement('div'); cat.className = 'cat'; cat.textContent = r.catalyst.startsWith(sym + ': ') ? r.catalyst.slice(sym.length + 2) : r.catalyst
           const rets = document.createElement('div'); rets.className = 'rets'
           for (const [k, f] of [['1d', 'ret_1d'], ['7d', 'ret_7d'], ['event', 'ret_event']]) {
             if (f === 'ret_event' && r[f] == null) continue

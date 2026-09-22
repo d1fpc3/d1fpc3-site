@@ -1,17 +1,17 @@
 // Memecoins desk audit (manual, not a node:test).
 //   node tests/memecoins-desk-visual.mjs        (THEME=dark|light, VPS=wide,desk,phone, OUT, PORT, URL env)
 // Serves the repo itself (or URL= for production), signs in as the owner by minting a
-// magic link with the service key, then: desk (tape, wire, board), steps back one digest,
-// opens a coin from the board and one from a wire chip, hovers the chart, switches the
-// range, closes with Escape, then the scorecard filter and section filter. Screenshots
-// per viewport; reports overflow, missing rows, segmented-ink drift and page errors.
-// CoinGecko throttles this IP after a few runs; the page is expected to degrade to its
-// Retry note and the profile still draws from stored marks.
+// magic link with the service key, then: desk (tape, Next up, wire, board, named this
+// week), a Next up row jumping the wire, board sort, arrow keys stepping, a coin from the
+// board and one from a wire chip (chart hover, range switch, Escape), then the scorecard
+// filter, section filter and by-ticker rows. Screenshots per viewport; reports overflow,
+// missing rows, segmented-ink drift and page errors. CoinGecko throttles this IP after a
+// few runs; the page is expected to degrade to its Retry note and the profile still
+// draws from stored marks.
 import { createRequire } from 'module'
 import { createServer } from 'http'
 import { existsSync, mkdirSync, readFileSync, statSync } from 'fs'
-import { tmpdir } from 'os'
-import { homedir } from 'os'
+import { homedir, tmpdir } from 'os'
 import { join, extname, normalize } from 'path'
 
 const require = createRequire(import.meta.url)
@@ -105,8 +105,40 @@ for (const name of VPS) {
     foot: document.querySelector('#mm-wire .wire-foot')?.textContent?.slice(0, 60),
   }))
   console.log(`\n== ${name} desk ==`); console.log(JSON.stringify(desk, null, 1))
+  await page.waitForFunction(() => document.querySelectorAll('#nx-rows .wire-row').length > 0 || document.querySelector('#nx-rows .nx-empty'), null, { timeout: 15000 }).catch(() => findings.push(`${name}: next up never rendered`))
+  await page.waitForTimeout(400)
+  const nx = await page.evaluate(() => ({
+    upd: document.getElementById('nx-upd')?.textContent,
+    rows: [...document.querySelectorAll('#nx-rows .wire-row')].map((r) => `${r.querySelector('.d')?.textContent} ${r.querySelector('.rel')?.textContent} | ${[...r.querySelectorAll('.lead-tk')].map((b) => b.textContent).join(',')} | ${r.querySelector('.wire-text')?.textContent.trim().slice(0, 60)} | ${r.querySelector('.wire-src a')?.textContent || '-'}`),
+    more: document.querySelector('#nx-rows .nx-more')?.textContent || null,
+    watch: [...document.querySelectorAll('#mm-watch-rows .board-row')].map((r) => `${r.querySelector('.sym')?.textContent} ${r.querySelector('.sub')?.textContent} ${r.querySelector('.since')?.textContent}`),
+    sort: document.querySelector('#board-sort .on')?.dataset.s,
+  }))
+  console.log('next up:', JSON.stringify(nx, null, 1))
   await shot('desk'); await metrics('desk')
   if (name === 'wide') await shot('desk-full', true)
+  // next up row -> the wire jumps to the digest that first named it
+  const jumped = await page.evaluate(() => { const r = document.querySelector('#nx-rows .wire-row'); if (!r) return null; r.click(); return true })
+  await page.waitForTimeout(700)
+  if (jumped) {
+    const j = await page.evaluate(() => ({ cur: document.getElementById('wire-cur')?.textContent, title: document.querySelector('#mm-wire h4')?.textContent }))
+    console.log('after next-up click:', JSON.stringify(j))
+    if (/latest of/.test(j.cur || '') && nx.rows[0] && !/Sep 21/.test(j.title || '')) findings.push(`${name}: next-up click did not jump`)
+    await shot('desk-jumped')
+    await page.evaluate(() => { while (!document.getElementById('wire-next').disabled) document.getElementById('wire-next').click() })
+    await page.waitForTimeout(300)
+  }
+  // board sort by 24h reorders
+  const firstCap = await page.evaluate(() => document.querySelector('#mm-chips .board-row .sym')?.textContent)
+  await page.evaluate(() => document.querySelector('#board-sort [data-s="d24"]')?.click()); await page.waitForTimeout(300)
+  const first24 = await page.evaluate(() => ({ sym: document.querySelector('#mm-chips .board-row .sym')?.textContent, order: [...document.querySelectorAll('#mm-chips .board-row .c-px .sub')].map((s) => s.textContent.split(' ')[0]).join(' ') }))
+  console.log('sort cap first:', firstCap, '| 24h first:', JSON.stringify(first24))
+  await page.evaluate(() => document.querySelector('#board-sort [data-s="cap"]')?.click()); await page.waitForTimeout(200)
+  // arrow keys step the wire
+  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(400)
+  const keyed = await page.evaluate(() => document.getElementById('wire-cur')?.textContent)
+  if (!/2 of/.test(keyed || '')) findings.push(`${name}: ArrowLeft did not step the wire (${keyed})`)
+  await page.keyboard.press('ArrowRight'); await page.waitForTimeout(300)
 
   // step back one digest
   await page.evaluate(() => document.getElementById('wire-prev').click())
@@ -136,6 +168,7 @@ for (const name of VPS) {
     grid: [...document.querySelectorAll('#cp .cp-grid > div')].map((d) => d.querySelector('.k')?.textContent + '=' + d.querySelector('.v')?.textContent),
     empty: document.querySelector('#cp .cp-chart-empty')?.textContent || null,
     width: document.getElementById('cp').getBoundingClientRect().width,
+    range: document.querySelector('#cp .cp-range') ? `${document.querySelector('#cp .cp-range .bar i')?.style.left} ${document.querySelector('#cp .cp-range .ends')?.textContent}` : null,
   }))
   console.log('profile:', JSON.stringify(prof))
   // hover the chart mid-way
@@ -176,7 +209,7 @@ for (const name of VPS) {
   console.log('filter pu:', JSON.stringify(filt))
   await page.fill('#sc-q', ''); await page.waitForTimeout(200)
   await page.evaluate(() => document.querySelector('#sc-sections .sc-sec-row')?.click()); await page.waitForTimeout(300)
-  const secf = await page.evaluate(() => ({ rows: document.querySelectorAll('#sc-rows tr').length, on: document.querySelector('#sc-sections .sc-sec-row.on .sym')?.textContent }))
+  const secf = await page.evaluate(() => ({ rows: document.querySelectorAll('#sc-rows tr').length, on: document.querySelector('#sc-sections .sc-sec-row.on .sym')?.textContent, byTicker: [...document.querySelectorAll('#sc-tickers .sc-tk-row')].slice(0, 4).map((r) => r.textContent.replace(/\s+/g, ' ').trim()) }))
   console.log('section filter:', JSON.stringify(secf))
   await shot('scorecard-section')
   await page.evaluate(() => document.querySelector('#sc-sections .sc-sec-row.on')?.click())
