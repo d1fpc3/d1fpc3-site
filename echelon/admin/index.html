@@ -974,9 +974,13 @@
       .pb-toc a.on { background: rgba(201,162,74,0.14); }
     }
 
-    /* ── memes desk ───────────────────────────────────────────── */
+    /* ── memecoins: tape, wire, board, scorecard, coin profile ─────
+       Flat like the rest of the admin (hairlines, no boxes). The wire is
+       parsed at render time, so a digest reads as rows with a date, the
+       tickers as chips and the source at the edge, not as an email.
+       Any ticker anywhere opens the coin profile drawer. */
 
-    .mm-tabs { display: flex; gap: 26px; margin-bottom: 30px; border-bottom: 1px solid var(--line); }
+    .mm-tabs { display: flex; gap: 26px; margin-bottom: 26px; border-bottom: 1px solid var(--line); }
     .mm-tab {
       appearance: none; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
       padding: 0 2px 11px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer;
@@ -984,21 +988,100 @@
     }
     .mm-tab:hover { color: var(--ink); }
     .mm-tab.on { color: var(--gold); border-bottom-color: var(--gold); }
-    .mm-strip { display: flex; flex-wrap: wrap; gap: 18px 52px; padding: 2px 0 26px; margin-bottom: 34px; border-bottom: 1px solid var(--line); }
-    .mm-stat .k { font-size: 10.5px; letter-spacing: 0.02em; color: var(--faint); margin-bottom: 6px; }
-    .mm-stat .v { font-size: 23px; font-weight: 650; letter-spacing: -0.015em; color: var(--ink); font-variant-numeric: tabular-nums; }
-    .mm-stat .v .pct { font-size: 12.5px; font-weight: 600; margin-left: 7px; letter-spacing: 0; }
-    .pct.up { color: var(--good); }
-    .pct.down { color: var(--bad); }
+
+    /* tape: the market strip, one stat per cell, hairlines between */
+    .mm-strip { display: flex; flex-wrap: wrap; gap: 12px 0; padding: 2px 0 22px; margin-bottom: 30px; border-bottom: 1px solid var(--line); min-height: 92px; }
+    .mm-stat { display: flex; align-items: flex-start; gap: 18px; padding: 4px 34px 4px 0; margin-right: 34px; border-right: 1px solid var(--line); min-width: 0; }
+    .mm-stat:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
+    .mm-stat .k { font-size: 11px; letter-spacing: 0.02em; color: var(--faint); margin-bottom: 6px; white-space: nowrap; }
+    .mm-stat .v {
+      display: flex; align-items: baseline; gap: 8px; font-size: 24px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.05;
+      color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .mm-stat .v .sub { font-size: 12px; font-weight: 500; color: var(--faint); letter-spacing: 0; }
+    .pct { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0; padding: 2px 6px; border-radius: 5px; font-variant-numeric: tabular-nums; line-height: 1.3; }
+    .pct.up { color: var(--good); background: rgba(134,181,127,0.12); }
+    .pct.down { color: var(--bad); background: rgba(217,139,122,0.12); }
+    .pct.flat { color: var(--faint); background: var(--panel-2); }
+    .mm-stat .spark { width: 84px; height: 30px; flex: none; margin-top: 15px; }
+    .mm-meter { width: 84px; height: 3px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
+    .mm-meter i { display: block; height: 100%; border-radius: 2px; background: var(--gold); transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .mm-strip-note { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: var(--muted); padding: 10px 0; grid-column: 1 / -1; }
+    .mm-strip-note .rowbtn { padding: 5px 10px; }
+    .mm-stat.is-skel { flex-direction: column; align-items: flex-start; gap: 0; min-width: 120px; }
     .mm-upd { font-size: 11.5px; color: var(--faint); }
-    .mm-cols { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 0 56px; align-items: start; }
+
+    .mm-cols { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 0 56px; align-items: start; }
     .mm-side { position: sticky; top: 98px; }
     .mm-sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 
+    /* sparkline: a plain line, coloured by the sign of the move */
+    .spark { display: block; opacity: 0.9; }
+    .spark.up { color: var(--good); }
+    .spark.down { color: var(--bad); }
+    .spark.gold { color: var(--gold); }
+
+    /* ── the wire: one digest at a time, stepped by day ── */
+    .wire-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+    .wire-step { display: inline-flex; align-items: center; gap: 4px; }
+    .wire-step .arrow {
+      appearance: none; background: none; border: 1px solid transparent; border-radius: 7px; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+      color: var(--muted); cursor: pointer; transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    }
+    .wire-step .arrow svg { width: 14px; height: 14px; }
+    .wire-step .arrow:hover:not(:disabled) { color: var(--ink); background: var(--panel-2); }
+    .wire-step .arrow:active:not(:disabled) { transform: scale(0.92); }
+    .wire-step .arrow:disabled { opacity: 0.3; cursor: default; }
+    .wire-step .cur { min-width: 150px; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .wire-step .cur small { display: block; font-size: 11px; font-weight: 500; color: var(--faint); margin-top: 1px; }
+
+    .wire-post { padding: 22px 0 6px; }
+    .wire-post.enter { animation: wire-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    @keyframes wire-in { from { opacity: 0; transform: translateY(6px); } }
+    .wire-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .wire-title h4 { font-size: 17px; font-weight: 650; letter-spacing: -0.015em; color: var(--ink); margin: 0; }
+    .wire-title .kind { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); padding: 3px 7px; border-radius: 5px; background: rgba(201,162,74,0.12); }
+    .wire-title .meta { font-size: 12px; color: var(--faint); }
+    .wire-post[data-kind="alert"] .wire-title .kind { color: var(--bad); background: rgba(217,139,122,0.12); }
+    .wire-post[data-kind="note"] .wire-title .kind { color: var(--muted); background: var(--panel-2); }
+
+    .wire-sec { margin-top: 26px; }
+    .wire-sec-head { display: flex; align-items: baseline; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+    .wire-sec-head .n { font-weight: 500; letter-spacing: 0; color: var(--faint); }
+    .wire-post[data-kind="alert"] .wire-sec-head { color: var(--bad); }
+
+    .wire-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 0 18px; padding: 12px 0; border-bottom: 1px solid var(--line); align-items: start; }
+    .wire-row:last-child { border-bottom: 0; }
+    .wire-row.prose, .wire-row.lead { grid-template-columns: minmax(0, 1fr) auto; }
+    .wire-when .d { font-size: 13px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .wire-when .rel { font-size: 11.5px; color: var(--faint); margin-top: 2px; white-space: nowrap; }
+    .wire-when .rel.soon { color: var(--gold); font-weight: 600; }
+    .wire-text { font-size: 13.5px; line-height: 1.6; color: var(--muted); overflow-wrap: anywhere; }
+    .wire-text .lead-tk { margin-right: 6px; }
+    .wire-row.none .wire-text { color: var(--faint); }
+    .wire-src { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; padding-top: 3px; }
+    .wire-src a { font-size: 11px; color: var(--faint); font-family: ui-monospace, Menlo, monospace; letter-spacing: 0.01em; white-space: nowrap; text-decoration: none; transition: color 0.15s ease; }
+    .wire-src a:hover { color: var(--gold); }
+    .wire-foot { margin-top: 24px; font-size: 12px; color: var(--faint); line-height: 1.6; }
+    .wire-empty { padding: 34px 0; font-size: 13px; color: var(--faint); }
+
+    /* ticker chip: gold on a quiet ground; every one opens the coin */
+    .tk {
+      display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.4;
+      color: var(--gold); background: rgba(201,162,74,0.1); border: 0; border-radius: 5px; padding: 1px 6px; margin: 0 1px;
+      cursor: pointer; vertical-align: baseline; white-space: nowrap;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    }
+    .tk:hover { background: rgba(201,162,74,0.2); }
+    .tk:active { transform: scale(0.95); }
+    .tk.dim { color: var(--muted); background: var(--panel-2); }
+    .tk .logo { width: 14px; height: 14px; border-radius: 50%; object-fit: cover; }
+
+    /* ── the board (aside): blue chips, each row opens the coin ── */
     .mm-tbl { width: 100%; min-width: 0; border-collapse: collapse; }
     .mm-tbl td { padding: 11px 0; border-bottom: 1px solid var(--line); background: none; font-variant-numeric: tabular-nums; vertical-align: middle; }
     .mm-tbl tr:last-child td { border-bottom: 0; }
-    .mm-tbl .c-coin .sym { font-size: 13.5px; font-weight: 650; color: var(--ink); letter-spacing: 0.01em; }
+    .mm-tbl .c-coin .sym { font-size: 13.5px; font-weight: 650; color: var(--ink); letter-spacing: 0.01em; transition: color 0.15s ease; }
     .mm-tbl .sub { font-size: 11.5px; color: var(--faint); margin-top: 2px; }
     .mm-tbl .c-spark { width: 88px; padding-right: 14px; }
     .mm-tbl .c-px { text-align: right; }
@@ -1006,29 +1089,20 @@
     .mm-tbl .c-px .px .dim { color: var(--faint); font-weight: 450; }
     .mm-tbl .c-px .sub.up { color: var(--good); }
     .mm-tbl .c-px .sub.down { color: var(--bad); }
-    .spark { width: 76px; height: 22px; display: block; opacity: 0.9; }
-    .spark.up { color: var(--good); }
-    .spark.down { color: var(--bad); }
+    .mm-tbl .spark { width: 76px; height: 22px; }
+    .board-row { cursor: pointer; }
+    .board-row .ident { display: flex; align-items: center; gap: 10px; }
+    .board-row .logo { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex: none; background: var(--panel-2); }
+    .board-row:hover .c-coin .sym { color: var(--gold); }
+    .board-row .c-coin .rec { font-size: 11px; color: var(--faint); margin-top: 2px; }
+    .board-row .c-coin .rec b { color: var(--muted); font-weight: 600; }
+    .board-head-row td { padding: 0 0 8px; border-bottom: 1px solid var(--line); font-size: 10.5px; letter-spacing: 0.02em; color: var(--faint); }
 
-    .mm-post { padding: 20px 0; border-bottom: 1px solid var(--line); }
-    .mm-post h4 { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 3px; }
-    .mm-post-meta { font-size: 11.5px; color: var(--faint); letter-spacing: 0.04em; }
-    .mm-post-meta .kind { letter-spacing: 0.02em; }
-    .mm-post[data-kind="alert"] .mm-post-meta .kind { color: var(--bad); font-weight: 650; }
-    .mm-post[data-kind="digest"] .mm-post-meta .kind { color: var(--gold); }
-    .mm-post-body { margin-top: 12px; font-size: 13px; line-height: 1.7; color: var(--muted); overflow-wrap: break-word; }
-    .mm-post-body .ln { min-height: 6px; }
-    .mm-post-body .ln.h { margin-top: 14px; font-size: 10.5px; letter-spacing: 0.02em; color: var(--faint); font-weight: 600; }
-    .mm-post-body .ln.h:first-child { margin-top: 0; }
-    .mm-post-body .ln.li { padding-left: 16px; position: relative; margin: 3px 0; }
-    .mm-post-body .ln.li::before { content: ''; position: absolute; left: 2px; top: 0.72em; width: 5px; height: 1px; background: var(--gold); }
-
-    /* ── scorecard: how the digest's own calls actually did ───────
-       Rows come from the memecoin_scorecard view (admin-only RLS), which
-       scores each call on the digest's rule: announcement is the entry,
-       event is the exit. scripts/memecoin-track.mjs fills it nightly. */
+    /* ── scorecard: how the digest's own calls actually did ── */
     .sc-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 4px; }
     .sc-head .mm-sec-head { flex: 1; border-bottom: 0; padding-bottom: 0; }
+    .sc-tools { display: flex; align-items: center; gap: 10px; flex: none; }
+    .sc-tools .inp { padding: 6px 10px; font-size: 12px; width: 150px; border-radius: 8px; }
     .sc-seg { position: relative; display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 10px; flex: none; }
     .sc-seg-ink {
       position: absolute; top: 3px; bottom: 3px; left: 0; width: 0; border-radius: 7px;
@@ -1046,36 +1120,142 @@
     .sc-tbl td { vertical-align: top; }
     .sc-tbl .c-when { width: 96px; padding-right: 14px; white-space: nowrap; }
     .sc-tbl .c-when .d { font-size: 13px; font-weight: 550; color: var(--ink); }
+    .sc-tbl .c-coin .tk { font-size: 13px; padding: 2px 8px; margin: 0 0 3px; }
     .sc-tbl .c-ret { width: 128px; text-align: right; padding-left: 14px; }
     .sc-tbl .c-ret .px { font-size: 13.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
     .sc-tbl .c-ret .px.up { color: var(--good); }
     .sc-tbl .c-ret .px.down { color: var(--bad); }
     .sc-tbl .c-ret .px.none { color: var(--faint); font-weight: 450; }
-    /* magnitude bar, centred on zero so up and down read at a glance */
     .sc-bar { position: relative; height: 3px; margin-top: 7px; background: var(--line); border-radius: 2px; overflow: hidden; }
     .sc-bar i { position: absolute; top: 0; bottom: 0; left: 50%; border-radius: 2px; transition: width 0.3s ease, transform 0.3s ease; }
     .sc-bar i.up { background: var(--good); }
     .sc-bar i.down { background: var(--bad); transform: translateX(-100%); }
     .sc-tbl .lowconf { font-size: 10px; letter-spacing: 0.04em; color: var(--bad); margin-left: 6px; font-weight: 650; }
-    .sc-rate { display: flex; align-items: center; gap: 9px; }
+    .sc-rate { display: flex; align-items: center; gap: 9px; min-width: 130px; }
     .sc-rate .track { flex: 1; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
     .sc-rate .track i { display: block; height: 100%; background: var(--gold); border-radius: 2px; transition: width 0.3s ease; }
     .sc-note { margin-top: 26px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; line-height: 1.65; color: var(--muted); }
     .sc-note b { color: var(--ink); font-weight: 650; }
     .sc-empty { padding: 34px 0; font-size: 13px; color: var(--faint); }
+    .sc-sec-row { cursor: pointer; }
+    .sc-sec-row:hover .sym { color: var(--gold); }
+    .sc-sec-row.on .sym { color: var(--gold); }
+
+    /* ── coin profile: a drawer from the right, full sheet on phones ── */
+    .cp-scrim { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,0.45); opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+    .cp {
+      position: fixed; top: 0; right: 0; bottom: 0; width: min(580px, calc(100 * var(--vw))); z-index: 71;
+      background: var(--panel); border-left: 1px solid var(--line); box-shadow: -30px 0 80px -40px rgba(0,0,0,0.7);
+      transform: translateX(104%); transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+      overflow-y: auto; overscroll-behavior: contain; padding: 26px 30px 44px; padding-top: max(26px, env(safe-area-inset-top));
+    }
+    :root[data-theme="light"] .cp { box-shadow: -30px 0 80px -40px rgba(0,0,0,0.25); }
+    .cp-open .cp { transform: translateX(0); }
+    .cp-open .cp-scrim { opacity: 1; pointer-events: auto; }
+    .cp-close {
+      position: absolute; top: 18px; right: 18px; width: 32px; height: 32px; border-radius: 8px; border: 0; background: none;
+      color: var(--faint); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+      transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    }
+    .cp-close svg { width: 16px; height: 16px; }
+    .cp-close:hover { color: var(--ink); background: var(--panel-2); }
+    .cp-close:active { transform: scale(0.92); }
+    .cp-head { display: flex; align-items: center; gap: 14px; padding-right: 40px; }
+    .cp-head .logo { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--panel-2); flex: none; }
+    .cp-head .logo.blank { display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--gold); }
+    .cp-head h3 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); margin: 0; line-height: 1.15; }
+    .cp-head .sym { font-size: 12px; font-weight: 600; color: var(--faint); letter-spacing: 0.04em; margin-top: 3px; }
+    .cp-head .sym .rank { font-weight: 500; letter-spacing: 0; margin-left: 8px; }
+    .cp-price { margin-top: 20px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .cp-price .px { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1; }
+    .cp-price .px .dim { color: var(--faint); font-weight: 500; }
+    .cp-price .chg { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--faint); }
+    .cp-price .quote { font-size: 12px; color: var(--faint); }
+    .cp-chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; }
+    .cp-chart-head .label { margin: 0; }
+    .cp-chart { position: relative; height: 190px; margin-top: 12px; }
+    .cp-chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+    .cp-chart .area { fill: url(#cp-grad); }
+    .cp-chart .line { fill: none; stroke: var(--gold); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+    .cp-chart .call { fill: var(--panel); stroke: var(--gold); stroke-width: 1.6; }
+    .cp-chart .call.hot { fill: var(--gold); }
+    .cp-chart .xh { stroke: var(--line-bright); stroke-dasharray: 2 3; opacity: 0; transition: opacity 0.12s ease; }
+    .cp-chart .dot { fill: var(--gold); opacity: 0; transition: opacity 0.12s ease; }
+    .cp-chart.hover .xh, .cp-chart.hover .dot { opacity: 1; }
+    .cp-chart .axis { font-size: 10.5px; fill: var(--faint); font-variant-numeric: tabular-nums; }
+    .cp-tip {
+      position: absolute; top: -4px; left: 0; pointer-events: none; font-size: 11.5px; color: var(--ink); background: var(--panel-2);
+      border: 1px solid var(--line); padding: 4px 8px; border-radius: 6px; white-space: nowrap; transform: translateX(-50%);
+      opacity: 0; transition: opacity 0.12s ease; font-variant-numeric: tabular-nums;
+    }
+    .cp-tip small { color: var(--faint); margin-left: 6px; }
+    .cp-tip .call-note { display: block; color: var(--gold); font-size: 11px; margin-top: 1px; }
+    .cp-chart.hover .cp-tip { opacity: 1; }
+    .cp-chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12.5px; color: var(--faint); }
+    .cp-legend { display: flex; gap: 16px; margin-top: 10px; font-size: 11px; color: var(--faint); }
+    .cp-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--gold); vertical-align: -1px; margin-right: 6px; }
+    .cp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 18px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .cp-grid .k { font-size: 11px; letter-spacing: 0.02em; color: var(--faint); }
+    .cp-grid .v { font-size: 15px; font-weight: 600; color: var(--ink); margin-top: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cp-grid .v.up { color: var(--good); } .cp-grid .v.down { color: var(--bad); }
+    .cp-rec { margin-top: 30px; }
+    .cp-rec .mm-sec-head .label { margin: 0; }
+    .cp-rec-sum { display: flex; gap: 0; margin: 16px 0 6px; }
+    .cp-rec-sum > div { padding-right: 22px; margin-right: 22px; border-right: 1px solid var(--line); min-width: 0; }
+    .cp-rec-sum > div:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
+    .cp-rec-sum .k { font-size: 11px; color: var(--faint); }
+    .cp-rec-sum .v { font-size: 18px; font-weight: 650; color: var(--ink); margin-top: 3px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+    .cp-rec-sum .v.up { color: var(--good); } .cp-rec-sum .v.down { color: var(--bad); }
+    .cp-call { display: grid; grid-template-columns: 108px minmax(0, 1fr) auto; gap: 0 14px; padding: 11px 0; border-bottom: 1px solid var(--line); align-items: start; }
+    .cp-call:last-child { border-bottom: 0; }
+    .cp-call .d { font-size: 12.5px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .cp-call .sec { font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); margin-top: 2px; }
+    .cp-call .cat { font-size: 12.5px; line-height: 1.55; color: var(--muted); overflow-wrap: anywhere; }
+    .cp-call .rets { display: flex; gap: 10px; font-size: 11.5px; font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: 2px; }
+    .cp-call .rets span { color: var(--faint); }
+    .cp-call .rets b { font-weight: 600; margin-left: 3px; }
+    .cp-call .rets b.up { color: var(--good); } .cp-call .rets b.down { color: var(--bad); } .cp-call .rets b.none { color: var(--faint); font-weight: 450; }
+    .cp-empty { padding: 26px 0; font-size: 12.5px; color: var(--faint); }
+    .cp-links { display: flex; gap: 8px; margin-top: 28px; flex-wrap: wrap; }
+    .cp-links .rowbtn { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .cp-links .rowbtn svg { width: 12px; height: 12px; }
+
     @media (prefers-reduced-motion: reduce) {
-      .sc-seg-ink, .sc-bar i, .sc-rate .track i { transition: none; }
+      .sc-seg-ink, .sc-bar i, .sc-rate .track i, .mm-meter i { transition: none; }
+      .wire-post.enter { animation: none; }
+      .cp { transition: opacity 0.2s ease; transform: none; opacity: 0; pointer-events: none; }
+      .cp-open .cp { opacity: 1; pointer-events: auto; }
     }
     @media (max-width: 1100px) {
       .sc-cols { display: flex; flex-direction: column; gap: 0; }
       .sc-cols .mm-side { position: static; order: -1; margin-bottom: 36px; width: 100%; }
       .sc-head { flex-direction: column; align-items: stretch; gap: 14px; }
-    }
-    @media (max-width: 1100px) {
+      .sc-tools { justify-content: space-between; }
       .mm-cols { display: flex; flex-direction: column; gap: 0; }
-      .mm-side { position: static; order: -1; margin-bottom: 36px; width: 100%; }
-      .mm-strip { gap: 14px 34px; }
-      .mm-stat .v { font-size: 19px; }
+      .mm-side { position: static; margin-top: 40px; width: 100%; }
+      .mm-strip { gap: 14px 0; }
+      .mm-stat { padding-right: 22px; margin-right: 22px; gap: 12px; }
+      .mm-stat .v { font-size: 20px; }
+    }
+    @media (max-width: 640px) {
+      .mm-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 18px; }
+      .mm-stat { border-right: 0; margin-right: 0; padding: 0; }
+      .mm-stat .spark { width: 64px; height: 24px; }
+      .wire-head { flex-direction: column; align-items: stretch; gap: 10px; }
+      .wire-step { justify-content: space-between; }
+      .wire-step .cur { flex: 1; }
+      .wire-row { grid-template-columns: minmax(0, 1fr); gap: 4px 0; }
+      .wire-row.prose, .wire-row.lead { grid-template-columns: minmax(0, 1fr); }
+      .wire-when { display: flex; align-items: baseline; gap: 8px; }
+      .wire-when .rel { margin-top: 0; }
+      .wire-src { flex-direction: row; align-items: center; gap: 10px; padding-top: 0; }
+      .sc-tools { flex-wrap: wrap; }
+      .sc-tools .inp { flex: none; width: 100%; }
+      .sc-seg { width: 100%; }
+      .sc-seg-btn { flex: 1; padding: 6px 6px; }
+      .cp { width: calc(100 * var(--vw)); border-left: 0; padding: 22px 20px 40px; padding-top: max(22px, env(safe-area-inset-top)); }
+      .cp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cp-call { grid-template-columns: minmax(0, 1fr); gap: 4px 0; }
     }
     /* ── the members-app intro, replayed on demand from Settings (same css +
        lockup as echelon/app; scripts/build-splash-svg.py keeps the lockup in sync) ── */
@@ -1760,7 +1940,7 @@
           </div>
         </section>
 
-        <!-- MEMECOINS: desk (market strip + wire feed from memecoin_posts) + playbook reader -->
+        <!-- MEMECOINS: desk (tape + the wire + the board), scorecard, playbook reader; any ticker opens the coin profile drawer -->
         <section class="view" id="v-memes">
           <div class="mm-tabs">
             <button class="mm-tab on" data-mm="desk">Desk</button>
@@ -1768,18 +1948,21 @@
             <button class="mm-tab" data-mm="playbook">Playbook</button>
           </div>
           <div id="mm-scorecard" hidden>
-            <div class="mm-strip" id="sc-strip"><span class="pb-loading">Loading the scorecard…</span></div>
+            <div class="mm-strip" id="sc-strip"></div>
             <div class="sc-head">
               <div class="mm-sec-head">
                 <span class="label">Every ticker the digest named</span>
                 <span class="mm-upd" id="sc-upd"></span>
               </div>
-              <div class="sc-seg" id="sc-seg">
-                <span class="sc-seg-ink" aria-hidden="true"></span>
-                <button class="sc-seg-btn on" data-h="ret_1d">1d</button>
-                <button class="sc-seg-btn" data-h="ret_7d">7d</button>
-                <button class="sc-seg-btn" data-h="ret_30d">30d</button>
-                <button class="sc-seg-btn" data-h="ret_event">To event</button>
+              <div class="sc-tools">
+                <input class="inp" id="sc-q" type="search" placeholder="Filter tickers" autocomplete="off" spellcheck="false">
+                <div class="sc-seg" id="sc-seg">
+                  <span class="sc-seg-ink" aria-hidden="true"></span>
+                  <button class="sc-seg-btn on" data-h="ret_1d">1d</button>
+                  <button class="sc-seg-btn" data-h="ret_7d">7d</button>
+                  <button class="sc-seg-btn" data-h="ret_30d">30d</button>
+                  <button class="sc-seg-btn" data-h="ret_event">To event</button>
+                </div>
               </div>
             </div>
             <div class="sc-cols">
@@ -1787,7 +1970,7 @@
                 <table class="mm-tbl sc-tbl" id="sc-rows"></table>
               </section>
               <aside class="mm-side">
-                <div class="mm-sec-head"><span class="label">By section</span><span class="mm-upd">share that rose</span></div>
+                <div class="mm-sec-head"><span class="label">By section</span><span class="mm-upd">share that rose, tap to filter</span></div>
                 <table class="mm-tbl" id="sc-sections"></table>
                 <div class="sc-note" id="sc-unpriced" hidden></div>
                 <div class="sc-note">
@@ -1799,14 +1982,21 @@
             </div>
           </div>
           <div id="mm-desk">
-            <div class="mm-strip" id="mm-strip"><span class="pb-loading">Loading market…</span></div>
+            <div class="mm-strip" id="mm-strip"></div>
             <div class="mm-cols">
               <section class="mm-main">
-                <div class="mm-sec-head"><span class="label">The wire</span><span class="mm-upd">daily catalyst scan posts at 8am ET</span></div>
-                <div id="mm-wire"><p class="pb-loading">Loading the wire…</p></div>
+                <div class="wire-head">
+                  <span class="label">The wire</span>
+                  <div class="wire-step" id="wire-step">
+                    <button class="arrow" id="wire-prev" type="button" aria-label="Earlier digest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                    <div class="cur" id="wire-cur"><span>&nbsp;</span><small>&nbsp;</small></div>
+                    <button class="arrow" id="wire-next" type="button" aria-label="Later digest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                  </div>
+                </div>
+                <div id="mm-wire"><p class="wire-empty">Loading the wire…</p></div>
               </section>
               <aside class="mm-side">
-                <div class="mm-sec-head"><span class="label">Blue chips</span><span class="mm-upd" id="mm-upd"></span></div>
+                <div class="mm-sec-head"><span class="label">The board</span><span class="mm-upd" id="mm-upd"></span></div>
                 <table class="mm-tbl" id="mm-chips"></table>
               </aside>
             </div>
@@ -1826,6 +2016,13 @@
             </div>
           </div>
         </section>
+
+        <!-- coin profile drawer: opened by any ticker on the memecoins page -->
+        <div class="cp-scrim" id="cp-scrim"></div>
+        <aside class="cp" id="cp" aria-hidden="true" role="dialog" aria-label="Coin profile">
+          <button class="cp-close" id="cp-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          <div id="cp-body"></div>
+        </aside>
 
         <!-- MSNR -->
         <section class="view" id="v-msnr">
@@ -2051,7 +2248,7 @@
       gex: 'Your gamma board, the same one GEX subscribers see in their app plus the admin extras. Copy pineData is the manual feed for the TradingView script; the daily job normally republishes it on its own.',
       cars: 'A reference playbook, for you. Nothing on this page is member-facing.',
       civic: 'The Civic service sheet, for you. Nothing on this page is member-facing.',
-      memes: 'The memecoin desk: the market strip and the wire up top, the playbook behind the sub-tab. For you; nothing here is member-facing.',
+      memes: 'The memecoin desk: the tape and the board on the right, the wire stepped by day on the left, the scorecard and the playbook behind the sub-tabs. Tap any ticker anywhere to open the coin. For you; nothing here is member-facing.',
       msnr: 'The MSNR × QM playbook with its chart figures. A reference read, for you; nothing here is member-facing.',
       settings: 'Which integrations are wired, as booleans only. This page can see that a secret exists, never what it is.',
     }
@@ -5352,14 +5549,26 @@
         .catch((err) => { body.innerHTML = ''; const p = document.createElement('p'); p.className = 'pb-error'; p.textContent = `Could not load the playbook (${err.message}).`; body.appendChild(p) })
         .finally(() => { pb.loading = null })
     }
-    /* ── memes desk: market strip + blue chips + the wire ──
-       Market data straight from CoinGecko/DefiLlama in the browser (both
-       CORS-open, cached 5 min). The wire reads memecoin_posts (admin-only
-       RLS): the daily catalyst routine inserts a digest row every morning
-       and Claude sessions add notes/alerts. */
-    const MM = { marketAt: 0, wireAt: 0 }
+    /* ── memecoins: tape + the wire + the board, scorecard, coin profile ──
+       Market data straight from CoinGecko, DefiLlama and alternative.me in
+       the browser (all CORS-open, cached 5 min). The wire reads memecoin_posts
+       (admin-only RLS): the daily catalyst routine inserts a digest row every
+       morning and Claude sessions add notes/alerts. The scorecard view scores
+       those digests; the coin profile drawer joins all of it per coin. */
+    const MM = { marketAt: 0, wireAt: 0, market: null, fng: null, coins: new Map(), posts: [], idx: 0, loadingWire: null }
+    // ticker -> coingecko id, learned from the board, the scorecard and a seed
+    // that matches scripts/memecoin-track.mjs so the two surfaces never disagree
+    const KNOWN = new Map(Object.entries({
+      DOGE: 'dogecoin', SHIB: 'shiba-inu', PEPE: 'pepe', WIF: 'dogwifcoin',
+      BONK: 'bonk', FARTCOIN: 'fartcoin', PENGU: 'pudgy-penguins', PUMP: 'pump-fun',
+      SPX6900: 'spx6900', SPX: 'spx6900', TRUMP: 'official-trump', MELANIA: 'melania-meme',
+      POPCAT: 'popcat', FLOKI: 'floki', BARD: 'lombard', USELESS: 'useless-3',
+      BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana', BNB: 'binancecoin',
+    }))
+    const TK_STOP = new Set(['USD', 'USDT', 'USDC', 'KRW', 'EUR', 'ETF', 'ETFS', 'SEC', 'US', 'ET', 'AM', 'PM', 'IP', 'ATH', 'NFT', 'NFTS', 'IPO', 'AI', 'CEO', 'DEX', 'CEX', 'TVL', 'APY', 'APR', 'TGE', 'FDV', 'OTC', 'KOL', 'KOLS', 'OG', 'TV', 'ID', 'UTC', 'GMT'])
+
     function memesShown() {
-      if (!el('mm-desk').hidden) { mmLoadMarket(); mmLoadWire(); return }
+      if (!el('mm-desk').hidden) { mmLoadMarket(); mmLoadWire(); scLoad({ quiet: true }); return }
       if (!el('mm-scorecard').hidden) { scLoad(); return }
       playbookShown('memes')
     }
@@ -5372,36 +5581,106 @@
       memesShown()
     }))
 
-    /* ── scorecard: did the digest's own calls go anywhere? ──
-       One row per tracked call from the memecoin_scorecard view (admin-only
-       RLS), filled nightly by scripts/memecoin-track.mjs. Switching horizon
-       is local state plus a transform, so it never refetches and never
-       re-renders the page around it. */
-    const SC = { at: 0, rows: null, horizon: 'ret_1d', loading: null }
-    const SC_LABEL = { ret_1d: '1 day', ret_7d: '7 days', ret_30d: '30 days', ret_event: 'the event' }
-    const scPct = (v) => v == null ? '–' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
-    const scDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-
-    function scSegInk() {
-      const seg = el('sc-seg'); if (!seg) return
+    /* ── formatting ── */
+    const mmPrice = (v) => v == null ? '–' : v >= 1 ? '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : v >= 1e-6 ? '$' + Number(v.toPrecision(3)).toFixed(Math.max(2, 1 - Math.floor(Math.log10(v)) + 1)) : '$' + v.toFixed(9)
+    const mmPct = (v) => v == null ? '–' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
+    const mmCap = (v) => v == null ? '–' : v >= 1e9 ? '$' + (v / 1e9).toFixed(2) + 'B' : v >= 1e6 ? '$' + Math.round(v / 1e6) + 'M' : '$' + Math.round(v / 1e3) + 'K'
+    const mmDay = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    // micro-cap prices: dim the run of leading zeros so the significant digits read
+    function mmPriceEl(v, cls = 'px') {
+      const d = document.createElement('div'); d.className = cls
+      const s = mmPrice(v)
+      const m = s.match(/^(\$0\.0{3,})(\d+)$/)
+      if (m) { const dim = document.createElement('span'); dim.className = 'dim'; dim.textContent = m[1]; d.append(dim, m[2]) }
+      else d.textContent = s
+      return d
+    }
+    function pctPill(v) {
+      const p = document.createElement('span')
+      p.className = 'pct ' + (v == null ? 'flat' : v > 0 ? 'up' : v < 0 ? 'down' : 'flat')
+      p.textContent = mmPct(v); return p
+    }
+    function mmSpark(prices, tone, w = 76, h = 22, every = 3) {
+      if (!Array.isArray(prices) || prices.length < 2) return null
+      const pts = prices.filter((_, i) => i % every === 0)
+      const n = pts.length
+      const min = Math.min(...pts), max = Math.max(...pts), span = (max - min) || 1
+      const line = pts.map((p, i) => `${(i / (n - 1) * w).toFixed(1)},${(h - 1.5 - ((p - min) / span) * (h - 3)).toFixed(1)}`).join(' ')
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`); svg.setAttribute('class', `spark ${tone}`); svg.setAttribute('aria-hidden', 'true')
+      const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline')
+      pl.setAttribute('points', line); pl.setAttribute('fill', 'none'); pl.setAttribute('stroke', 'currentColor')
+      pl.setAttribute('stroke-width', '1.5'); pl.setAttribute('stroke-linejoin', 'round'); pl.setAttribute('stroke-linecap', 'round')
+      svg.appendChild(pl); return svg
+    }
+    // segmented control: slide the ink under the active button
+    function segInk(seg) {
+      if (!seg) return
       const on = seg.querySelector('.sc-seg-btn.on'), ink = seg.querySelector('.sc-seg-ink')
       if (!on || !ink) return
       ink.style.width = on.offsetWidth + 'px'
       ink.style.transform = `translateX(${on.offsetLeft}px)`
     }
+    const isVisible = (id) => { const n = el(id); return n && !n.hidden && n.offsetParent !== null }
+
+    /* ── ticker chips: any ticker in any text opens the coin ── */
+    function tkChip(ticker, opts = {}) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'tk' + (opts.lead ? ' lead-tk' : '')
+      const id = KNOWN.get(ticker)
+      if (!id) b.classList.add('dim')
+      const mk = id ? MM.coins.get(id) : null
+      if (opts.logo && mk?.image) { const im = document.createElement('img'); im.className = 'logo'; im.src = mk.image; im.alt = ''; im.loading = 'lazy'; b.appendChild(im) }
+      b.appendChild(document.createTextNode(ticker))
+      b.title = id ? `Open ${ticker}` : `${ticker}: not tracked`
+      b.addEventListener('click', (e) => { e.stopPropagation(); openCoin({ ticker }) })
+      return b
+    }
+    // text -> nodes, with every known ticker as a chip
+    function tkText(text, skip = []) {
+      const frag = document.createDocumentFragment()
+      const re = /\b([A-Z][A-Z0-9]{1,9})\b/g
+      let last = 0, m
+      while ((m = re.exec(text))) {
+        const t = m[1]
+        if (!KNOWN.has(t) || TK_STOP.has(t) || skip.includes(t)) continue
+        let from = m.index, to = m.index + t.length
+        if (text[from - 1] === '(' && text[to] === ')') { from--; to++ }
+        if (from > last) frag.appendChild(document.createTextNode(text.slice(last, from)))
+        frag.appendChild(tkChip(t))
+        last = to
+      }
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)))
+      return frag
+    }
+
+    /* ── scorecard: did the digest's own calls go anywhere? ──
+       One row per tracked call from the memecoin_scorecard view (admin-only
+       RLS), filled nightly by scripts/memecoin-track.mjs. Horizon, ticker
+       filter and section filter are local state plus a transform, so they
+       never refetch and never re-render the page around them. */
+    const SC = { at: 0, rows: null, horizon: 'ret_1d', loading: null, q: '', section: null }
+    const SC_LABEL = { ret_1d: '1 day', ret_7d: '7 days', ret_30d: '30 days', ret_event: 'the event' }
+    const scPct = (v) => v == null ? '–' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
+
     el('sc-seg').addEventListener('click', (e) => {
       const btn = e.target.closest('.sc-seg-btn'); if (!btn || btn.classList.contains('on')) return
       el('sc-seg').querySelectorAll('.sc-seg-btn').forEach((b) => b.classList.toggle('on', b === btn))
       SC.horizon = btn.dataset.h
-      scSegInk(); scRender()
+      segInk(el('sc-seg')); scRender()
     })
+    el('sc-q').addEventListener('input', () => { SC.q = el('sc-q').value.trim().toUpperCase(); scRender() })
 
     function scStat(k, v, tone) {
       const d = document.createElement('div'); d.className = 'mm-stat'
+      const inner = document.createElement('div')
       const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = k
       const vv = document.createElement('div'); vv.className = 'v'; vv.textContent = v
       if (tone) vv.style.color = `var(--${tone})`
-      d.append(kk, vv); return d
+      inner.append(kk, vv); d.appendChild(inner); return d
+    }
+    function scStripSkel(host, n = 5) {
+      host.textContent = ''
+      for (let i = 0; i < n; i++) { const s = document.createElement('div'); s.className = 'mm-stat is-skel'; s.append(skel('64px', 9), skel('52px', 22, 10)); host.appendChild(s) }
     }
 
     function scRender() {
@@ -5421,12 +5700,12 @@
         scStat('Broad market', String(rows.length - tickered.length)),
       )
       // rows come back newest first; show the span, not a second call count
-      // that would sit next to the strip's own number and read as a mismatch
-      el('sc-upd').textContent = rows.length ? `${scDate(rows[rows.length - 1].entry_at)} to ${scDate(rows[0].entry_at)}` : ''
+      el('sc-upd').textContent = rows.length ? `${mmDay(rows[rows.length - 1].entry_at)} to ${mmDay(rows[0].entry_at)}` : ''
 
       // rows, biggest absolute move first so the tape reads itself
       const tbl = el('sc-rows'); tbl.textContent = ''
-      const view = tickered.slice().sort((a, b) => {
+      tbl.parentNode.querySelector('.sc-empty')?.remove()
+      const view = tickered.filter((r) => (!SC.q || r.ticker.startsWith(SC.q)) && (!SC.section || r.section === SC.section)).sort((a, b) => {
         if (a[h] == null && b[h] == null) return new Date(b.entry_at) - new Date(a.entry_at)
         if (a[h] == null) return 1
         if (b[h] == null) return -1
@@ -5434,7 +5713,7 @@
       })
       if (!view.length) {
         const p = document.createElement('p'); p.className = 'sc-empty'
-        p.textContent = 'No calls scored yet. The tracker fills this in nightly.'
+        p.textContent = rows.length ? 'Nothing matches that filter.' : 'No calls scored yet. The tracker fills this in nightly.'
         tbl.parentNode.appendChild(p)
       }
       const max = Math.max(1, ...view.map((r) => Math.abs(r[h] ?? 0)))
@@ -5442,13 +5721,12 @@
         const tr = document.createElement('tr')
 
         const when = document.createElement('td'); when.className = 'c-when'
-        const d1 = document.createElement('div'); d1.className = 'd'; d1.textContent = scDate(r.entry_at)
+        const d1 = document.createElement('div'); d1.className = 'd'; d1.textContent = mmDay(r.entry_at)
         const d2 = document.createElement('div'); d2.className = 'sub'; d2.textContent = r.section
         when.append(d1, d2)
 
         const coin = document.createElement('td'); coin.className = 'c-coin'
-        const sym = document.createElement('span'); sym.className = 'sym'; sym.textContent = r.ticker
-        coin.appendChild(sym)
+        coin.appendChild(tkChip(r.ticker, { logo: true }))
         if (r.ticker_confidence === 'low') {
           const w = document.createElement('span'); w.className = 'lowconf'; w.textContent = 'CHECK'
           w.title = 'Ticker matched more than one coin; verify it is the right one.'
@@ -5474,7 +5752,7 @@
         tr.append(when, coin, ret); tbl.appendChild(tr)
       }
 
-      // by section
+      // by section; tapping one filters the rows
       const sec = el('sc-sections'); sec.textContent = ''
       const by = new Map()
       for (const r of scored) {
@@ -5484,9 +5762,10 @@
       for (const [section, list] of [...by].sort((a, b) => b[1].length - a[1].length)) {
         const rate = (list.filter((v) => v > 0).length / list.length) * 100
         const avg = list.reduce((a, b) => a + b, 0) / list.length
-        const tr = document.createElement('tr')
+        const tr = document.createElement('tr'); tr.className = 'sc-sec-row' + (SC.section === section ? ' on' : '')
+        tr.addEventListener('click', () => { SC.section = SC.section === section ? null : section; scRender() })
         const td1 = document.createElement('td')
-        const s = document.createElement('div'); s.className = 'sym'; s.style.fontSize = '12.5px'; s.textContent = section
+        const s = document.createElement('div'); s.className = 'sym'; s.style.fontSize = '12.5px'; s.style.fontWeight = '650'; s.style.transition = 'color 0.15s ease'; s.textContent = section
         const sub = document.createElement('div'); sub.className = 'sub'; sub.textContent = `n=${list.length} · avg ${scPct(avg)}`
         td1.append(s, sub)
         const td2 = document.createElement('td'); td2.className = 'c-px'
@@ -5510,133 +5789,524 @@
       }
     }
 
-    async function scLoad() {
-      if (SC.rows && Date.now() - SC.at < 5 * 60 * 1000) { scRender(); scSegInk(); return }
-      if (SC.loading) return
-      SC.loading = supabase.from('memecoin_scorecard').select('*').order('entry_at', { ascending: false })
-      try {
-        const { data, error } = await SC.loading
-        if (error) throw error
-        SC.rows = data || []; SC.at = Date.now()
-        scRender(); scSegInk()
-      } catch (e) {
-        el('sc-strip').textContent = `Could not load the scorecard (${e.message}).`
-      } finally { SC.loading = null }
+    async function scLoad(opts = {}) {
+      const fresh = SC.rows && Date.now() - SC.at < 5 * 60 * 1000
+      if (fresh) { if (!opts.quiet) { scRender(); segInk(el('sc-seg')) } return }
+      if (SC.loading) return SC.loading
+      if (!opts.quiet) scStripSkel(el('sc-strip'))
+      SC.loading = (async () => {
+        try {
+          const { data, error } = await supabase.from('memecoin_scorecard').select('*').order('entry_at', { ascending: false })
+          if (error) throw error
+          SC.rows = data || []; SC.at = Date.now()
+          for (const r of SC.rows) if (r.ticker && !KNOWN.has(r.ticker)) KNOWN.set(r.ticker, r.coin_id || null)
+          if (isVisible('mm-scorecard')) { scRender(); segInk(el('sc-seg')) }
+          // chips in the wire and the record line on the board depend on these rows
+          if (isVisible('mm-desk')) { wireRender(false); boardRender() }
+        } catch (e) {
+          if (!opts.quiet) { el('sc-strip').textContent = ''; el('sc-strip').appendChild(stripNote(`Could not load the scorecard (${e.message}).`, () => scLoad())) }
+        } finally { SC.loading = null }
+      })()
+      return SC.loading
     }
-    const mmPrice = (v) => v == null ? '–' : v >= 1 ? '$' + v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : v >= 1e-6 ? '$' + Number(v.toPrecision(3)).toFixed(Math.max(2, 1 - Math.floor(Math.log10(v)) + 1)) : '$' + v.toFixed(9)
-    const mmPct = (v) => v == null ? '–' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
-    const mmCap = (v) => v == null ? '–' : v >= 1e9 ? '$' + (v / 1e9).toFixed(2) + 'B' : '$' + Math.round(v / 1e6) + 'M'
-    // micro-cap prices: dim the run of leading zeros so the significant digits read
-    function mmPriceEl(v) {
-      const d = document.createElement('div'); d.className = 'px'
-      const s = mmPrice(v)
-      const m = s.match(/^(\$0\.0{3,})(\d+)$/)
-      if (m) { const dim = document.createElement('span'); dim.className = 'dim'; dim.textContent = m[1]; d.append(dim, m[2]) }
-      else d.textContent = s
-      return d
+
+    /* ── the tape: SOL, dominance, sector, launchpad fees, sentiment ── */
+    function stripNote(text, retry) {
+      const n = document.createElement('div'); n.className = 'mm-strip-note'
+      n.appendChild(document.createTextNode(text))
+      if (retry) { const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn'; b.textContent = 'Retry'; b.addEventListener('click', retry); n.appendChild(b) }
+      return n
     }
-    function mmSpark(prices, up) {
-      if (!Array.isArray(prices) || prices.length < 2) return null
-      const pts = prices.filter((_, i) => i % 3 === 0)
-      const w = 76, h = 22, n = pts.length
-      const min = Math.min(...pts), max = Math.max(...pts), span = (max - min) || 1
-      const line = pts.map((p, i) => `${(i / (n - 1) * w).toFixed(1)},${(h - 1.5 - ((p - min) / span) * (h - 3)).toFixed(1)}`).join(' ')
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-      svg.setAttribute('viewBox', `0 0 ${w} ${h}`); svg.setAttribute('class', `spark ${up ? 'up' : 'down'}`); svg.setAttribute('aria-hidden', 'true')
-      const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline')
-      pl.setAttribute('points', line); pl.setAttribute('fill', 'none'); pl.setAttribute('stroke', 'currentColor')
-      pl.setAttribute('stroke-width', '1.5'); pl.setAttribute('stroke-linejoin', 'round'); pl.setAttribute('stroke-linecap', 'round')
-      svg.appendChild(pl); return svg
+    function mmStat(k, v, extra = {}) {
+      const s = document.createElement('div'); s.className = 'mm-stat'
+      const inner = document.createElement('div')
+      const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = k
+      const vv = document.createElement('div'); vv.className = 'v'
+      if (v instanceof Node) vv.appendChild(v); else vv.textContent = v
+      if (extra.pct !== undefined) vv.appendChild(pctPill(extra.pct))
+      if (extra.sub) { const sub = document.createElement('span'); sub.className = 'sub'; sub.textContent = extra.sub; vv.appendChild(sub) }
+      inner.append(kk, vv)
+      if (extra.meter != null) { const m = document.createElement('div'); m.className = 'mm-meter'; const i = document.createElement('i'); i.style.width = '0%'; m.appendChild(i); inner.appendChild(m); requestAnimationFrame(() => { i.style.width = Math.max(0, Math.min(100, extra.meter)) + '%' }) }
+      s.appendChild(inner)
+      if (extra.spark) s.appendChild(extra.spark)
+      return s
     }
-    async function mmLoadMarket() {
-      if (Date.now() - MM.marketAt < 5 * 60 * 1000) return
+    async function mmLoadMarket(force = false) {
+      if (!force && Date.now() - MM.marketAt < 5 * 60 * 1000) { boardRender(); return }
       MM.marketAt = Date.now()
       const strip = el('mm-strip')
+      if (!MM.market) { scStripSkel(strip); skelRows(el('mm-chips'), 3, 6) }
       try {
         const ids = 'solana,dogecoin,shiba-inu,pepe,dogwifcoin,bonk,fartcoin,pudgy-penguins,pump-fun,spx6900,official-trump'
-        const [mkts, glob, cats, fees] = await Promise.all([
-          fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=true&price_change_percentage=24h,7d`).then((r) => r.json()),
+        const [mkts, glob, cats, fees, fng] = await Promise.all([
+          fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=true&price_change_percentage=24h,7d,30d`).then((r) => r.json()),
           fetch('https://api.coingecko.com/api/v3/global').then((r) => r.json()).catch(() => null),
           fetch('https://api.coingecko.com/api/v3/coins/categories?order=market_cap_desc').then((r) => r.json()).catch(() => null),
           fetch('https://api.llama.fi/summary/fees/pump.fun?dataType=dailyFees').then((r) => r.json()).catch(() => null),
+          fetch('https://api.alternative.me/fng/?limit=1').then((r) => r.json()).catch(() => null),
         ])
         if (!Array.isArray(mkts)) throw new Error('rate limited')
+        MM.market = mkts
+        for (const m of mkts) { MM.coins.set(m.id, m); const t = (m.symbol || '').toUpperCase(); if (t && !KNOWN.get(t)) KNOWN.set(t, m.id) }
         const sol = mkts.find((m) => m.id === 'solana')
         const meme = Array.isArray(cats) ? cats.find((c) => c.id === 'meme-token') : null
         const btcDom = glob?.data?.market_cap_percentage?.btc
+        const f = fng?.data?.[0]
         strip.textContent = ''
-        const stat = (k, v, pct) => {
-          const s = document.createElement('div'); s.className = 'mm-stat'
-          const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = k
-          const vv = document.createElement('div'); vv.className = 'v'; vv.textContent = v
-          if (pct != null) { const p = document.createElement('span'); p.className = pct >= 0 ? 'pct up' : 'pct down'; p.textContent = mmPct(pct); vv.appendChild(p) }
-          s.append(kk, vv); strip.appendChild(s)
-        }
-        if (sol) stat('SOL', mmPrice(sol.current_price), sol.price_change_percentage_24h)
-        if (btcDom != null) stat('BTC dominance', btcDom.toFixed(1) + '%')
-        if (meme) stat('Meme sector', mmCap(meme.market_cap), meme.market_cap_change_24h)
-        if (fees?.total24h != null) stat('pump.fun fees 24h', mmCap(fees.total24h))
-        const chips = el('mm-chips'); chips.textContent = ''
-        const tbody = document.createElement('tbody')
-        for (const m of mkts.filter((x) => x.id !== 'solana')) {
-          const d24 = m.price_change_percentage_24h_in_currency, d7 = m.price_change_percentage_7d_in_currency
-          const tr = document.createElement('tr')
-          const cCoin = document.createElement('td'); cCoin.className = 'c-coin'
-          const sym = document.createElement('div'); sym.className = 'sym'; sym.textContent = (m.symbol || '').toUpperCase()
-          const cap = document.createElement('div'); cap.className = 'sub'; cap.textContent = mmCap(m.market_cap)
-          cCoin.append(sym, cap)
-          const cSpark = document.createElement('td'); cSpark.className = 'c-spark'
-          const spark = mmSpark(m.sparkline_in_7d?.price, (d7 ?? 0) >= 0)
-          if (spark) cSpark.appendChild(spark)
-          const cPx = document.createElement('td'); cPx.className = 'c-px'
-          cPx.appendChild(mmPriceEl(m.current_price))
-          const sub = document.createElement('div'); sub.className = `sub ${(d24 ?? 0) >= 0 ? 'up' : 'down'}`
-          sub.textContent = `${mmPct(d24)} · 7d ${mmPct(d7)}`
-          cPx.appendChild(sub)
-          tr.append(cCoin, cSpark, cPx)
-          tbody.appendChild(tr)
-        }
-        chips.appendChild(tbody)
+        if (sol) strip.appendChild(mmStat('SOL', mmPrice(sol.current_price), { pct: sol.price_change_percentage_24h, spark: mmSpark(sol.sparkline_in_7d?.price, (sol.price_change_percentage_7d_in_currency ?? 0) >= 0 ? 'up' : 'down', 84, 30) }))
+        if (btcDom != null) strip.appendChild(mmStat('BTC dominance', btcDom.toFixed(1) + '%'))
+        if (meme) strip.appendChild(mmStat('Meme sector', mmCap(meme.market_cap), { pct: meme.market_cap_change_24h }))
+        if (fees?.total24h != null) strip.appendChild(mmStat('pump.fun fees 24h', mmCap(fees.total24h)))
+        if (f?.value) strip.appendChild(mmStat('Fear & greed', String(f.value), { sub: (f.value_classification || '').toLowerCase(), meter: Number(f.value) }))
         el('mm-upd').textContent = `updated ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+        boardRender()
+        if (MM.posts.length) wireRender(false)
       } catch (err) {
         MM.marketAt = 0
-        strip.innerHTML = ''
-        const p = document.createElement('p'); p.className = 'pb-error'; p.textContent = `Could not load market data (${err.message}). CoinGecko rate-limits; try again in a minute.`
-        strip.appendChild(p)
+        strip.textContent = ''
+        strip.appendChild(stripNote('Market data is rate-limited right now.', () => mmLoadMarket(true)))
+        if (!MM.market) { const t = el('mm-chips'); t.textContent = ''; const tb = document.createElement('tbody'); const tr = document.createElement('tr'); const td = document.createElement('td'); td.className = 'wire-empty'; td.textContent = 'The board comes back with the market data.'; tr.appendChild(td); tb.appendChild(tr); t.appendChild(tb) }
       }
     }
-    async function mmLoadWire() {
-      if (Date.now() - MM.wireAt < 60 * 1000) return
-      MM.wireAt = Date.now()
-      const host = el('mm-wire')
-      const { data, error } = await supabase.from('memecoin_posts').select('*').order('created_at', { ascending: false }).limit(30)
-      if (error) { MM.wireAt = 0; host.innerHTML = ''; const p = document.createElement('p'); p.className = 'pb-error'; p.textContent = 'Could not load the wire (sign in as admin).'; host.appendChild(p); return }
-      host.textContent = ''
-      if (!data.length) { const p = document.createElement('p'); p.className = 'pb-loading'; p.textContent = 'Nothing on the wire yet.'; host.appendChild(p); return }
-      for (const post of data) {
-        const art = document.createElement('article'); art.className = 'mm-post'; art.dataset.kind = post.kind
-        const h = document.createElement('h4'); h.textContent = post.title
-        const meta = document.createElement('div'); meta.className = 'mm-post-meta'
-        const kind = document.createElement('span'); kind.className = 'kind'; kind.textContent = post.kind
-        meta.append(kind, ' · ' + new Date(post.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))
-        const body = document.createElement('div'); body.className = 'mm-post-body'
-        // line-aware rendering: SECTION HEADERS: get small-caps, "- " bullets get gold ticks
-        for (const raw of post.body.split('\n')) {
-          const head = raw.match(/^([A-Z][A-Z0-9 ().,/&'-]*):(.*)$/)
-          if (head) {
-            const h4l = document.createElement('div'); h4l.className = 'ln h'; h4l.textContent = head[1]
-            body.appendChild(h4l)
-            if (head[2].trim()) { const rest = document.createElement('div'); rest.className = 'ln'; rest.textContent = head[2].trim(); body.appendChild(rest) }
-            continue
-          }
-          const ln = document.createElement('div')
-          if (raw.startsWith('- ')) { ln.className = 'ln li'; ln.textContent = raw.slice(2) }
-          else { ln.className = 'ln'; ln.textContent = raw }
-          body.appendChild(ln)
-        }
-        art.append(h, meta, body)
-        host.appendChild(art)
+
+    /* ── the board: blue chips, each with its digest record ── */
+    function coinRecord(id, ticker) {
+      const rows = (SC.rows || []).filter((r) => (id && r.coin_id === id) || (!id && ticker && r.ticker === ticker))
+      const s1 = rows.map((r) => r.ret_1d).filter((v) => v != null)
+      const s7 = rows.map((r) => r.ret_7d).filter((v) => v != null).sort((a, b) => a - b)
+      return {
+        rows, calls: rows.length,
+        up1d: s1.length ? Math.round((s1.filter((v) => v > 0).length / s1.length) * 100) : null,
+        med7: s7.length ? s7[Math.floor(s7.length / 2)] : null,
       }
+    }
+    function boardRender() {
+      if (!MM.market) return
+      const chips = el('mm-chips'); chips.textContent = ''
+      const tbody = document.createElement('tbody')
+      for (const m of MM.market.filter((x) => x.id !== 'solana')) {
+        const d24 = m.price_change_percentage_24h_in_currency, d7 = m.price_change_percentage_7d_in_currency
+        const tr = document.createElement('tr'); tr.className = 'board-row'; tr.tabIndex = 0
+        tr.addEventListener('click', () => openCoin({ id: m.id }))
+        tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCoin({ id: m.id }) } })
+        const cCoin = document.createElement('td'); cCoin.className = 'c-coin'
+        const ident = document.createElement('div'); ident.className = 'ident'
+        if (m.image) { const im = document.createElement('img'); im.className = 'logo'; im.src = m.image; im.alt = ''; im.loading = 'lazy'; ident.appendChild(im) }
+        const txt = document.createElement('div')
+        const sym = document.createElement('div'); sym.className = 'sym'; sym.textContent = (m.symbol || '').toUpperCase()
+        const rec = coinRecord(m.id)
+        const cap = document.createElement('div'); cap.className = 'sub'
+        cap.textContent = mmCap(m.market_cap)
+        if (rec.calls) { const b = document.createElement('span'); b.className = 'rec'; b.textContent = ` · ${rec.calls} call${rec.calls === 1 ? '' : 's'}${rec.up1d != null ? `, ${rec.up1d}% rose` : ''}`; cap.appendChild(b) }
+        txt.append(sym, cap); ident.appendChild(txt); cCoin.appendChild(ident)
+        const cSpark = document.createElement('td'); cSpark.className = 'c-spark'
+        const spark = mmSpark(m.sparkline_in_7d?.price, (d7 ?? 0) >= 0 ? 'up' : 'down')
+        if (spark) cSpark.appendChild(spark)
+        const cPx = document.createElement('td'); cPx.className = 'c-px'
+        cPx.appendChild(mmPriceEl(m.current_price))
+        const sub = document.createElement('div'); sub.className = `sub ${(d24 ?? 0) >= 0 ? 'up' : 'down'}`
+        sub.textContent = `${mmPct(d24)} · 7d ${mmPct(d7)}`
+        cPx.appendChild(sub)
+        tr.append(cCoin, cSpark, cPx)
+        tbody.appendChild(tr)
+      }
+      chips.appendChild(tbody)
+    }
+
+    /* ── the wire: one digest at a time, stepped by day ── */
+    async function mmLoadWire(force = false) {
+      if (!force && Date.now() - MM.wireAt < 60 * 1000) return
+      if (MM.loadingWire) return MM.loadingWire
+      MM.loadingWire = (async () => {
+        const { data, error } = await supabase.from('memecoin_posts').select('*').order('created_at', { ascending: false }).limit(60)
+        MM.loadingWire = null
+        if (error) { const host = el('mm-wire'); host.textContent = ''; host.appendChild(stripNote('Could not load the wire (sign in as admin).', () => mmLoadWire(true))); return }
+        MM.wireAt = Date.now()
+        const newest = data[0]?.id
+        const keep = MM.posts[MM.idx]?.id
+        MM.posts = data
+        MM.idx = keep && keep !== newest ? Math.max(0, data.findIndex((p) => p.id === keep)) : 0
+        wireRender(true)
+      })()
+      return MM.loadingWire
+    }
+    el('wire-prev').addEventListener('click', () => wireGo(1))
+    el('wire-next').addEventListener('click', () => wireGo(-1))
+    function wireGo(delta) {
+      const next = MM.idx + delta
+      if (next < 0 || next >= MM.posts.length) return
+      MM.idx = next; wireRender(true)
+    }
+
+    // "Sep 30, 2026", "Sep 9", "2026-09-29" -> a local Date, or null
+    function wireDate(s, year) {
+      let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+      if (m) return new Date(+m[1], +m[2] - 1, +m[3])
+      m = s.match(/^([A-Z][a-z]{2,8})\.? (\d{1,2})(?:,? (\d{4}))?$/)
+      if (!m) return null
+      const d = new Date(`${m[1]} ${m[2]}, ${m[3] || year}`)
+      return Number.isNaN(d.getTime()) ? null : d
+    }
+    function wireRel(d) {
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      const n = Math.round((d - today) / 864e5)
+      if (n === 0) return { t: 'today', soon: true }
+      if (n === 1) return { t: 'tomorrow', soon: true }
+      if (n === -1) return { t: 'yesterday' }
+      if (n > 0) return { t: `in ${n}d`, soon: n <= 7 }
+      return { t: `${-n}d ago` }
+    }
+    // "Sep 30, 2026 - ", "Sep 9 - ", "2026-09-29 - ", plus ranges and qualifiers the
+    // digest uses: "Sep 1-30 (ongoing) - ", "Sep 28 to Oct 2 - ", "Sep 19 (announced today) - "
+    const DATE_LEAD = /^([A-Z][a-z]{2,8}\.? \d{1,2}(?:,? \d{4})?|\d{4}-\d{2}-\d{2})((?:\s*(?:-|–|to)\s*(?:[A-Z][a-z]{2,8}\.? )?\d{1,2}\b)?)\s*(?:\(([^)]{1,48})\))?\s*[-–:]\s+/
+    const TICK_TAIL = /\s[-–]\s([A-Z][A-Z0-9]{1,9}(?:\s*,\s*[A-Z][A-Z0-9]{1,9})*)$/
+    const SRC_TAIL = /\s[-–]\s((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/\S*)?(?:\s*,\s*(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/\S*)?)*)\.?$/i
+    function parseBullet(raw, year) {
+      let s = raw.replace(/^-\s+/, '').trim()
+      const out = { date: null, dateText: '', qualifier: '', tickers: [], text: s, sources: [] }
+      let m = s.match(DATE_LEAD)
+      if (m) {
+        out.date = wireDate(m[1], year)
+        out.dateText = out.date ? mmDay(out.date) + (m[2] ? m[2].replace(/\s*(-|–)\s*/, '-').replace(/\s*to\s*/, ' to ') : '') : m[1] + (m[2] || '')
+        out.qualifier = (m[3] || '').trim()
+        s = s.slice(m[0].length)
+      }
+      m = s.match(/^([A-Z][A-Z0-9]{1,9}):\s+/)
+      if (m && KNOWN.has(m[1])) { out.tickers.push(m[1]); s = s.slice(m[0].length) }
+      m = s.match(SRC_TAIL)
+      if (m) { out.sources = m[1].split(/\s*,\s*/); s = s.slice(0, m.index) }
+      // the explicit trailing ticker segment: "... - CP, USELESS, HEMI"
+      m = s.match(TICK_TAIL)
+      if (m) { for (const t of m[1].split(/\s*,\s*/)) if (!out.tickers.includes(t)) out.tickers.push(t); s = s.slice(0, m.index) }
+      out.text = s.trim()
+      return out
+    }
+    function wireRender(animate) {
+      const host = el('mm-wire'); host.textContent = ''
+      const post = MM.posts[MM.idx]
+      el('wire-prev').disabled = MM.idx >= MM.posts.length - 1
+      el('wire-next').disabled = MM.idx <= 0
+      const cur = el('wire-cur'); cur.textContent = ''
+      if (!post) {
+        const p = document.createElement('p'); p.className = 'wire-empty'; p.textContent = 'Nothing on the wire yet.'; host.appendChild(p)
+        cur.append(document.createElement('span'), document.createElement('small')); return
+      }
+      const at = new Date(post.created_at)
+      const big = document.createElement('span'); big.textContent = at.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      const small = document.createElement('small'); small.textContent = MM.idx === 0 ? `latest of ${MM.posts.length}` : `${MM.idx + 1} of ${MM.posts.length}`
+      cur.append(big, small)
+
+      const art = document.createElement('article'); art.className = 'wire-post' + (animate ? ' enter' : ''); art.dataset.kind = post.kind
+      const title = document.createElement('div'); title.className = 'wire-title'
+      const h = document.createElement('h4'); h.textContent = post.title
+      const kind = document.createElement('span'); kind.className = 'kind'; kind.textContent = post.kind
+      const meta = document.createElement('span'); meta.className = 'meta'; meta.textContent = 'posted ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      title.append(h, kind, meta); art.appendChild(title)
+
+      const year = at.getFullYear()
+      let sec = null, secRows = null, secCount = null, n = 0
+      const foot = []
+      const openSection = (name) => {
+        sec = document.createElement('section'); sec.className = 'wire-sec'
+        secCount = null
+        if (name) {
+          const head = document.createElement('div'); head.className = 'wire-sec-head'
+          const nm = document.createElement('span'); nm.textContent = name
+          secCount = document.createElement('span'); secCount.className = 'n'
+          head.append(nm, secCount); sec.appendChild(head)
+        }
+        secRows = document.createElement('div'); sec.appendChild(secRows)
+        art.appendChild(sec); n = 0
+      }
+      const ensureSection = () => { if (!secRows) openSection(null) }
+      const addRow = (row) => { ensureSection(); secRows.appendChild(row); n++; if (secCount) secCount.textContent = n > 1 ? String(n) : '' }
+      const srcCol = (sources) => {
+        const c = document.createElement('div'); c.className = 'wire-src'
+        for (const s of sources) {
+          const a = document.createElement('a'); a.href = 'https://' + s.replace(/^https?:\/\//, ''); a.target = '_blank'; a.rel = 'noopener'; a.textContent = s.replace(/\/.*$/, '')
+          c.appendChild(a)
+        }
+        return c
+      }
+      for (const raw of post.body.split('\n')) {
+        const line = raw.trim()
+        if (!line) continue
+        if (/^(Patterns, not promises|Rules card)/.test(line)) { foot.push(line); continue }
+        const head = line.match(/^([A-Z][A-Z0-9 .,/&'-]*(?:\([^)]*\))?[A-Z0-9 .,/&'-]*):(.*)$/)
+        if (head && !KNOWN.has(head[1].trim())) {
+          openSection(head[1].trim().toLowerCase())
+          const rest = head[2].trim()
+          if (rest) {
+            const row = document.createElement('div'); row.className = 'wire-row prose' + (/^(No |Nothing |None )/.test(rest) ? ' none' : '')
+            const t = document.createElement('div'); t.className = 'wire-text'; t.appendChild(tkText(rest)); row.appendChild(t)
+            addRow(row)
+          }
+          continue
+        }
+        const b = parseBullet(line, year)
+        const isEvent = line.startsWith('- ') || b.date || b.tickers.length || b.sources.length
+        if (isEvent) {
+          const row = document.createElement('div')
+          const t = document.createElement('div'); t.className = 'wire-text'
+          if (b.date) {
+            row.className = 'wire-row'
+            const when = document.createElement('div'); when.className = 'wire-when'
+            const d = document.createElement('div'); d.className = 'd'; d.textContent = b.dateText
+            const rel = wireRel(b.date)
+            const r = document.createElement('div'); r.className = 'rel' + (rel.soon && !b.qualifier ? ' soon' : ''); r.textContent = b.qualifier || rel.t
+            when.append(d, r); row.appendChild(when)
+          } else {
+            row.className = 'wire-row lead' + (/^(No |Nothing |None )/.test(b.text) ? ' none' : '')
+          }
+          for (const tk of b.tickers) t.appendChild(tkChip(tk, { lead: true, logo: true }))
+          t.appendChild(tkText(b.text, b.tickers))
+          row.appendChild(t)
+          row.appendChild(srcCol(b.sources))
+          addRow(row)
+          continue
+        }
+        const row = document.createElement('div'); row.className = 'wire-row prose' + (/^(No |Nothing |None )/.test(line) ? ' none' : '')
+        const t = document.createElement('div'); t.className = 'wire-text'; t.appendChild(tkText(line)); row.appendChild(t)
+        addRow(row)
+      }
+      if (foot.length) { const f = document.createElement('p'); f.className = 'wire-foot'; f.textContent = foot.join(' '); art.appendChild(f) }
+      host.appendChild(art)
+    }
+
+    /* ── coin profile: price, the chart with the digest's entries on it, the
+       record of every call. Opened by any ticker; Esc, the scrim or the X close it. ── */
+    const CP = { open: false, id: null, ticker: null, range: '30d', series: new Map(), seriesLoading: new Map(), pts: [], calls: [], lastFocus: null, token: 0 }
+    el('cp-close').addEventListener('click', closeCoin)
+    el('cp-scrim').addEventListener('click', closeCoin)
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && CP.open) closeCoin() })
+    function closeCoin() {
+      if (!CP.open) return
+      CP.open = false; CP.token++
+      document.body.classList.remove('cp-open')
+      el('cp').setAttribute('aria-hidden', 'true')
+      CP.lastFocus?.focus?.(); CP.lastFocus = null
+    }
+    async function loadSeries(id) {
+      if (CP.series.has(id)) return CP.series.get(id)
+      if (CP.seriesLoading.has(id)) return CP.seriesLoading.get(id)
+      const p = (async () => {
+        const { data, error } = await supabase.from('memecoin_prices').select('ts,usd').eq('coin_id', id).order('ts', { ascending: true }).limit(3000)
+        const pts = error ? [] : (data || []).map((r) => ({ t: new Date(r.ts).getTime(), p: r.usd }))
+        CP.series.set(id, pts); CP.seriesLoading.delete(id); return pts
+      })()
+      CP.seriesLoading.set(id, p); return p
+    }
+    async function loadCoinMarket(id) {
+      if (MM.coins.has(id)) return MM.coins.get(id)
+      try {
+        const r = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(id)}&sparkline=true&price_change_percentage=24h,7d,30d`)
+        const j = await r.json()
+        if (Array.isArray(j) && j[0]) { MM.coins.set(id, j[0]); return j[0] }
+      } catch {}
+      return null
+    }
+    async function openCoin(ref) {
+      const ticker = ref.ticker || null
+      const id = ref.id || (ticker ? KNOWN.get(ticker) : null) || null
+      const token = ++CP.token
+      CP.id = id; CP.ticker = ticker
+      if (!CP.open) { CP.lastFocus = document.activeElement; CP.open = true; document.body.classList.add('cp-open'); el('cp').setAttribute('aria-hidden', 'false'); el('cp').scrollTop = 0 }
+      cpRender({ id, ticker, market: id ? MM.coins.get(id) : null, pts: null, loading: true })
+      el('cp-close').focus({ preventScroll: true })
+      const [market, pts] = await Promise.all([id ? loadCoinMarket(id) : null, id ? loadSeries(id) : [], SC.rows ? null : scLoad({ quiet: true })])
+      if (token !== CP.token) return
+      cpRender({ id, ticker, market, pts: pts || [], loading: false })
+    }
+    function cpRender(v) {
+      const host = el('cp-body'); host.textContent = ''
+      const m = v.market
+      const sym = (m?.symbol || v.ticker || '').toUpperCase()
+      const rec = coinRecord(v.id, v.ticker)
+      CP.pts = v.pts || []; CP.calls = rec.rows
+
+      const head = document.createElement('div'); head.className = 'cp-head'
+      if (m?.image) { const im = document.createElement('img'); im.className = 'logo'; im.src = m.image; im.alt = ''; head.appendChild(im) }
+      else { const bl = document.createElement('div'); bl.className = 'logo blank'; bl.textContent = sym.slice(0, 3); head.appendChild(bl) }
+      const ht = document.createElement('div')
+      const h3 = document.createElement('h3'); h3.textContent = m?.name || (v.id ? v.id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : sym)
+      const sy = document.createElement('div'); sy.className = 'sym'; sy.textContent = sym
+      if (m?.market_cap_rank) { const rk = document.createElement('span'); rk.className = 'rank'; rk.textContent = `#${m.market_cap_rank}`; sy.appendChild(rk) }
+      ht.append(h3, sy); head.appendChild(ht); host.appendChild(head)
+
+      // price line: the live quote, or the last stored mark when the quote is throttled
+      const price = document.createElement('div'); price.className = 'cp-price'
+      const last = CP.pts.length ? CP.pts[CP.pts.length - 1] : null
+      const px = m?.current_price ?? last?.p ?? null
+      price.appendChild(mmPriceEl(px, 'px'))
+      if (m) {
+        const chg = document.createElement('div'); chg.className = 'chg'
+        chg.append(pctPill(m.price_change_percentage_24h_in_currency ?? m.price_change_percentage_24h), document.createTextNode('24h'))
+        price.appendChild(chg)
+      } else if (v.loading) {
+        const s = document.createElement('span'); s.className = 'quote'; s.textContent = 'loading…'; price.appendChild(s)
+      } else {
+        const s = document.createElement('span'); s.className = 'quote'; s.textContent = v.id ? (last ? `last mark ${mmDay(last.t)}, live quote throttled` : 'no quote') : 'this ticker did not resolve to one coin'; price.appendChild(s)
+      }
+      host.appendChild(price)
+
+      // chart + range
+      const ch = document.createElement('div'); ch.className = 'cp-chart-head'
+      const lbl = document.createElement('span'); lbl.className = 'label'; lbl.textContent = 'Price'
+      const seg = document.createElement('div'); seg.className = 'sc-seg'
+      const ink = document.createElement('span'); ink.className = 'sc-seg-ink'; seg.appendChild(ink)
+      for (const [r, t] of [['7d', '7d'], ['30d', '30d'], ['all', 'All']]) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'sc-seg-btn' + (CP.range === r ? ' on' : ''); b.dataset.r = r; b.textContent = t
+        b.addEventListener('click', () => { if (CP.range === r) return; CP.range = r; seg.querySelectorAll('.sc-seg-btn').forEach((x) => x.classList.toggle('on', x === b)); segInk(seg); cpChart(chart) })
+        seg.appendChild(b)
+      }
+      ch.append(lbl, seg); host.appendChild(ch)
+      const chart = document.createElement('div'); chart.className = 'cp-chart'; host.appendChild(chart)
+      const legend = document.createElement('div'); legend.className = 'cp-legend'
+      const l1 = document.createElement('span'); l1.appendChild(document.createElement('i')); l1.appendChild(document.createTextNode('digest named it that morning'))
+      legend.appendChild(l1); host.appendChild(legend)
+
+      // the numbers
+      const grid = document.createElement('div'); grid.className = 'cp-grid'
+      const cellV = (k, val, tone) => { const c = document.createElement('div'); const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = k; const vv = document.createElement('div'); vv.className = 'v' + (tone ? ' ' + tone : ''); vv.textContent = val; c.append(kk, vv); grid.appendChild(c) }
+      const tone = (x) => x == null ? '' : x >= 0 ? 'up' : 'down'
+      const cut30 = Date.now() - 30 * 864e5
+      const hi30 = CP.pts.reduce((h, p) => p.t >= cut30 && p.p > h ? p.p : h, 0)
+      const offHi = hi30 && px != null ? ((px / hi30) - 1) * 100 : null
+      if (m) {
+        cellV('Market cap', mmCap(m.market_cap))
+        cellV('Volume 24h', mmCap(m.total_volume))
+        cellV('From ATH', mmPct(m.ath_change_percentage), tone(m.ath_change_percentage))
+        cellV('7 days', mmPct(m.price_change_percentage_7d_in_currency), tone(m.price_change_percentage_7d_in_currency))
+        cellV('30 days', mmPct(m.price_change_percentage_30d_in_currency), tone(m.price_change_percentage_30d_in_currency))
+        if (offHi != null) cellV('From 30d high', mmPct(offHi), tone(offHi))
+      } else if (CP.pts.length) {
+        const at = (days) => { const cut = Date.now() - days * 864e5; const p = CP.pts.find((x) => x.t >= cut); return p && last ? ((last.p / p.p) - 1) * 100 : null }
+        cellV('7 days', mmPct(at(7)), tone(at(7)))
+        cellV('30 days', mmPct(at(30)), tone(at(30)))
+        if (offHi != null) cellV('From 30d high', mmPct(offHi), tone(offHi))
+      }
+      if (grid.children.length) host.appendChild(grid)
+
+      // the digest's record on this coin
+      const recWrap = document.createElement('section'); recWrap.className = 'cp-rec'
+      const rh = document.createElement('div'); rh.className = 'mm-sec-head'
+      const rl = document.createElement('span'); rl.className = 'label'; rl.textContent = 'Digest record'
+      const ru = document.createElement('span'); ru.className = 'mm-upd'; ru.textContent = rec.calls ? 'entry is the morning it was named' : ''
+      rh.append(rl, ru); recWrap.appendChild(rh)
+      if (rec.calls) {
+        const sum = document.createElement('div'); sum.className = 'cp-rec-sum'
+        const sv = (k, val, cls) => { const d = document.createElement('div'); const kk = document.createElement('div'); kk.className = 'k'; kk.textContent = k; const vv = document.createElement('div'); vv.className = 'v' + (cls ? ' ' + cls : ''); vv.textContent = val; d.append(kk, vv); sum.appendChild(d) }
+        sv('Calls', String(rec.calls))
+        sv('Rose at 1d', rec.up1d == null ? '–' : rec.up1d + '%')
+        sv('Median 7d', mmPct(rec.med7), tone(rec.med7))
+        recWrap.appendChild(sum)
+        const list = document.createElement('div')
+        for (const r of rec.rows.slice().sort((a, b) => new Date(b.entry_at) - new Date(a.entry_at))) {
+          const row = document.createElement('div'); row.className = 'cp-call'
+          const left = document.createElement('div')
+          const d = document.createElement('div'); d.className = 'd'; d.textContent = mmDay(r.entry_at)
+          const s = document.createElement('div'); s.className = 'sec'; s.textContent = r.section
+          left.append(d, s)
+          const cat = document.createElement('div'); cat.className = 'cat'; cat.textContent = r.catalyst
+          const rets = document.createElement('div'); rets.className = 'rets'
+          for (const [k, f] of [['1d', 'ret_1d'], ['7d', 'ret_7d'], ['event', 'ret_event']]) {
+            if (f === 'ret_event' && r[f] == null) continue
+            const sp = document.createElement('span'); sp.textContent = k
+            const b = document.createElement('b'); b.className = r[f] == null ? 'none' : r[f] >= 0 ? 'up' : 'down'; b.textContent = mmPct(r[f])
+            sp.appendChild(b); rets.appendChild(sp)
+          }
+          row.append(left, cat, rets); list.appendChild(row)
+        }
+        recWrap.appendChild(list)
+      } else {
+        const p = document.createElement('p'); p.className = 'cp-empty'; p.textContent = v.loading ? 'Loading the record…' : 'The digest has not named this coin in a scored section.'; recWrap.appendChild(p)
+      }
+      host.appendChild(recWrap)
+
+      if (v.id || sym) {
+        const links = document.createElement('div'); links.className = 'cp-links'
+        const mk = (label, href) => { const a = document.createElement('a'); a.className = 'rowbtn'; a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = label; a.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg>'); return a }
+        if (v.id) links.appendChild(mk('CoinGecko', `https://www.coingecko.com/en/coins/${encodeURIComponent(v.id)}`))
+        if (sym) links.appendChild(mk('DexScreener', `https://dexscreener.com/search?q=${encodeURIComponent(sym)}`))
+        host.appendChild(links)
+      }
+      requestAnimationFrame(() => { segInk(seg); cpChart(chart) })
+    }
+    // the chart: stored marks for the range, area + line, a ring at every call's entry
+    function cpChart(box) {
+      box.textContent = ''; box.classList.remove('hover')
+      const NS = 'http://www.w3.org/2000/svg'
+      const days = CP.range === '7d' ? 7 : CP.range === '30d' ? 30 : 3650
+      const cut = Date.now() - days * 864e5
+      let pts = CP.pts.filter((p) => p.t >= cut)
+      if (pts.length < 2 && CP.id && MM.coins.get(CP.id)?.sparkline_in_7d?.price?.length > 2 && days <= 7) {
+        // no stored marks in range: fall back to the live 7-day sparkline (hourly, ends now)
+        const sp = MM.coins.get(CP.id).sparkline_in_7d.price
+        pts = sp.map((p, i) => ({ t: Date.now() - (sp.length - 1 - i) * 3600e3, p }))
+      }
+      if (pts.length < 2) {
+        const e = document.createElement('div'); e.className = 'cp-chart-empty'; e.textContent = CP.pts.length ? 'No marks stored in this range.' : 'No stored marks yet for this coin.'; box.appendChild(e); return
+      }
+      const W = Math.max(200, box.offsetWidth), H = box.offsetHeight || 190, PT = 14, PB = 18, PL = 2, PR = 2
+      const t0 = pts[0].t, t1 = pts[pts.length - 1].t, span = (t1 - t0) || 1
+      let lo = Infinity, hi = -Infinity
+      for (const p of pts) { if (p.p < lo) lo = p.p; if (p.p > hi) hi = p.p }
+      if (hi === lo) { hi = lo * 1.01 || 1; lo = lo * 0.99 }
+      const X = (t) => PL + ((t - t0) / span) * (W - PL - PR)
+      const Y = (p) => PT + (1 - (p - lo) / (hi - lo)) * (H - PT - PB)
+      const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('preserveAspectRatio', 'none')
+      const defs = document.createElementNS(NS, 'defs')
+      const grad = document.createElementNS(NS, 'linearGradient'); grad.id = 'cp-grad'; grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0'); grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1')
+      const s1 = document.createElementNS(NS, 'stop'); s1.setAttribute('offset', '0'); s1.setAttribute('stop-color', 'var(--gold)'); s1.setAttribute('stop-opacity', '0.22')
+      const s2 = document.createElementNS(NS, 'stop'); s2.setAttribute('offset', '1'); s2.setAttribute('stop-color', 'var(--gold)'); s2.setAttribute('stop-opacity', '0')
+      grad.append(s1, s2); defs.appendChild(grad); svg.appendChild(defs)
+      // thin the series so the path stays light: at most ~600 points
+      const step = Math.max(1, Math.floor(pts.length / 600))
+      const draw = pts.filter((_, i) => i % step === 0 || i === pts.length - 1)
+      const d = draw.map((p, i) => `${i ? 'L' : 'M'}${X(p.t).toFixed(1)},${Y(p.p).toFixed(1)}`).join(' ')
+      const area = document.createElementNS(NS, 'path'); area.setAttribute('class', 'area'); area.setAttribute('d', `${d} L${X(t1).toFixed(1)},${H - PB} L${X(t0).toFixed(1)},${H - PB} Z`)
+      const line = document.createElementNS(NS, 'path'); line.setAttribute('class', 'line'); line.setAttribute('d', d)
+      svg.append(area, line)
+      // guide lines + labels: high and low of the range
+      for (const [p, y] of [[hi, PT], [lo, H - PB]]) {
+        const tx = document.createElementNS(NS, 'text'); tx.setAttribute('class', 'axis'); tx.setAttribute('x', W - PR); tx.setAttribute('y', y === PT ? y - 4 : y + 12); tx.setAttribute('text-anchor', 'end'); tx.textContent = mmPrice(p)
+        svg.appendChild(tx)
+      }
+      const tx0 = document.createElementNS(NS, 'text'); tx0.setAttribute('class', 'axis'); tx0.setAttribute('x', PL); tx0.setAttribute('y', H - 3); tx0.textContent = mmDay(t0)
+      const tx1 = document.createElementNS(NS, 'text'); tx1.setAttribute('class', 'axis'); tx1.setAttribute('x', (W / 2).toFixed(0)); tx1.setAttribute('y', H - 3); tx1.setAttribute('text-anchor', 'middle'); tx1.textContent = mmDay((t0 + t1) / 2)
+      svg.append(tx0, tx1)
+      // every call whose entry falls inside the range: a ring on the line
+      const calls = CP.calls.filter((c) => { const t = new Date(c.entry_at).getTime(); return t >= t0 - 3600e3 && t <= t1 + 3600e3 })
+      const nearest = (t) => { let best = pts[0], bd = Infinity; for (const p of pts) { const dd = Math.abs(p.t - t); if (dd < bd) { bd = dd; best = p } } return best }
+      const marks = []
+      for (const c of calls) {
+        const t = new Date(c.entry_at).getTime()
+        const p = c.entry_usd ?? nearest(t).p
+        const ring = document.createElementNS(NS, 'circle'); ring.setAttribute('class', 'call'); ring.setAttribute('cx', X(t).toFixed(1)); ring.setAttribute('cy', Y(p).toFixed(1)); ring.setAttribute('r', '4')
+        svg.appendChild(ring); marks.push({ t, c })
+      }
+      // hover: crosshair + readout, nearest mark by time
+      const xh = document.createElementNS(NS, 'line'); xh.setAttribute('class', 'xh'); xh.setAttribute('y1', PT - 6); xh.setAttribute('y2', H - PB)
+      const dot = document.createElementNS(NS, 'circle'); dot.setAttribute('class', 'dot'); dot.setAttribute('r', '3')
+      svg.append(xh, dot); box.appendChild(svg)
+      const tip = document.createElement('div'); tip.className = 'cp-tip'; box.appendChild(tip)
+      const onMove = (e) => {
+        const r = box.getBoundingClientRect()
+        const k = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width))
+        const t = t0 + k * span
+        const p = nearest(t)
+        const x = X(p.t), y = Y(p.p)
+        xh.setAttribute('x1', x.toFixed(1)); xh.setAttribute('x2', x.toFixed(1)); dot.setAttribute('cx', x.toFixed(1)); dot.setAttribute('cy', y.toFixed(1))
+        tip.textContent = ''
+        tip.appendChild(document.createTextNode(mmPrice(p.p)))
+        const sm = document.createElement('small'); sm.textContent = new Date(p.t).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric' }); tip.appendChild(sm)
+        const near = marks.find((mk) => Math.abs(mk.t - p.t) < span / 60)
+        if (near) { const cn = document.createElement('span'); cn.className = 'call-note'; cn.textContent = `${near.c.section.toLowerCase()} · ${mmPct(near.c.ret_1d)} at 1d`; tip.appendChild(cn) }
+        tip.style.left = `${Math.max(14, Math.min(86, (x / W) * 100))}%`
+        box.classList.add('hover')
+      }
+      box.addEventListener('pointermove', onMove)
+      box.addEventListener('pointerleave', () => box.classList.remove('hover'))
     }
 
     function playbookSpy(tocId) {
