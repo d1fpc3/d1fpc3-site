@@ -86,6 +86,7 @@ begin
    where v.id in (
      select c.id from public.library_videos c
       where c.is_published
+        and c.audience = 'members'
         and c.discord_notified_at is null
         and c.discord_attempts < 5
         and c.created_at > h.go_live_at
@@ -124,6 +125,7 @@ begin
     join public.library_videos v on true
    where h.id = 1 and h.enabled
      and v.is_published
+     and v.audience = 'members'
      and v.discord_notified_at is null
      and v.discord_attempts < 5
      and v.created_at > h.go_live_at

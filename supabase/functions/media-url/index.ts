@@ -84,15 +84,28 @@ Deno.serve(async (req)=>{
     }, 400);
   }
   // Library videos: the row is the gate — its storage_path is the only thing
-  // ever signed, for anyone signed in (published rows) or admins — the
-  // library is for every member, mod and free account (migration 0045).
+  // ever signed, and only for a viewer its audience admits: every signed-in
+  // account for 'members' (the library is for every member, mod and free
+  // account, migration 0045), moderators for 'mods', the people listed in
+  // library_video_access for 'people'. The uploader and the admin always may.
+  // Same rule as the library_read policy, so what you can list you can play.
   if (libraryId) {
-    const { data: vid, error: vidErr } = await admin.from('library_videos').select('id, storage_path, is_published, captions_path').eq('id', libraryId).maybeSingle();
+    const { data: vid, error: vidErr } = await admin.from('library_videos').select('id, storage_path, is_published, captions_path, audience, created_by').eq('id', libraryId).maybeSingle();
     if (vidErr || !vid) return json({
       error: 'no such video'
     }, 404);
     const { data: isAdmin } = await admin.from('admins').select('user_id').eq('user_id', user.id).maybeSingle();
-    if (!isAdmin && !vid.is_published) return json({
+    let allowed = !!isAdmin || vid.created_by === user.id;
+    if (!allowed && vid.is_published) {
+      if (vid.audience === 'mods') {
+        allowed = !!(await admin.from('mods').select('user_id').eq('user_id', user.id).maybeSingle()).data;
+      } else if (vid.audience === 'people') {
+        allowed = !!(await admin.from('library_video_access').select('user_id').eq('video_id', vid.id).eq('user_id', user.id).maybeSingle()).data;
+      } else {
+        allowed = true;
+      }
+    }
+    if (!allowed) return json({
       error: 'no access'
     }, 403);
     const { data: signed, error: signErr } = await admin.storage.from('lesson-files').createSignedUrl(vid.storage_path, TTL_SECONDS);

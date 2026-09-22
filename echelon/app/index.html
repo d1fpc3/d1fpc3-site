@@ -2603,6 +2603,8 @@
       background: rgba(11,10,9,0.72); border-radius: 6px; padding: 3px 8px;
     }
     .lib-thumb .new { position: absolute; right: 10px; top: 8px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; color: #1a1207; background: var(--gold); border-radius: 6px; padding: 3px 7px; }
+    .lib-thumb .aud { position: absolute; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 4px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; color: #fff; background: rgba(0,0,0,0.62); backdrop-filter: blur(6px); border-radius: 6px; padding: 3px 7px 3px 6px; }
+    .lib-thumb .aud svg { width: 10px; height: 10px; color: var(--gold); }
 
     .lib-thumb .done { position: absolute; left: 10px; bottom: 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: #fff; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); border-radius: 6px; padding: 3px 7px 3px 5px; } .lib-thumb .done svg { width: 11px; height: 11px; color: var(--good); }
     .lib-thumb .prog { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,0.25); } .lib-thumb .prog::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--p); background: var(--gold); }
@@ -17580,7 +17582,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function loadLibraryNow() {
       LIB.loaded = true
       const { data } = await supabase.from('library_videos')
-        .select('id, title, summary, category, created_at, is_published, thumb_path, created_by')
+        .select('id, title, summary, category, created_at, is_published, thumb_path, created_by, audience')
         .order('created_at', { ascending: false })
       LIB.rows = data ?? []
       const { data: seen } = await supabase.from('library_views').select('video_id').eq('user_id', state.user.id)
@@ -17635,6 +17637,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
         const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = LIB_NAME[m.cat] ?? m.cat
         th.appendChild(tag)
+        // a video not every member gets says so: staff see who it is for, a chosen person sees it was shared with them
+        if (m.kind === 'video' && m.r.audience && m.r.audience !== 'members') {
+          const au = document.createElement('span'); au.className = 'aud'
+          au.innerHTML = LIB_LOCK; au.appendChild(document.createTextNode(libAudLabel(m.r)))
+          th.appendChild(au)
+        }
         if (m.kind === 'video' && videoIsNew(m.r, LIB.views)) { const nw = document.createElement('span'); nw.className = 'new'; nw.textContent = 'NEW'; th.appendChild(nw) }
         else if (m.kind === 'video') {
           const p = libPos(m.r.id), frac = p && p.d ? p.t / p.d : 0
@@ -17659,6 +17667,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     }
     const LIB_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>'
+    const LIB_LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'
+    const libAudLabel = (r) => r.audience === 'mods' ? 'Mods only' : r.audience === 'people' ? ((state.isMod || state.isAdmin) ? 'Chosen people' : 'Shared with you') : ''
     // staff strip under the player: who watched, who liked
     function libStaffPaint() {
       const host = el('lib-staff'), r = LIB.current; if (!host) return
@@ -17730,7 +17740,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function openLibraryVideo(r, autoplay = false) {
       LIB.current = r
       document.body.classList.add('watching')
-      const meta = el('lib-meta'); if (meta) meta.textContent = `${LIB_NAME[r.category] ?? r.category} · ${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      const meta = el('lib-meta'); if (meta) meta.textContent = `${LIB_NAME[r.category] ?? r.category} · ${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}${r.audience && r.audience !== 'members' ? ' · ' + libAudLabel(r) : ''}`
       libNextPaint(r); el('libmodal').scrollTop = 0
       libLikePaint(); libStaffPaint()
       // opened from Today before the library loaded: fetch this video's likes on their own
@@ -17993,7 +18003,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           category: el('mlib-cat').value,
           storage_path: path,
           thumb_path: thumbPath,
-        }).select('id, title, summary, category, created_at, is_published, thumb_path, created_by').single()
+        }).select('id, title, summary, category, created_at, is_published, thumb_path, created_by, audience').single()
         if (error) throw error
         msg.className = 'msg ok'; msg.textContent = 'Posted.'
         el('mlib-title').value = ''; el('mlib-sum').value = ''

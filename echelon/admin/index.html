@@ -1205,6 +1205,25 @@
     .cp-next .wire-row:hover .wire-text { color: var(--ink); }
     .cp-next .wire-text { transition: color 0.15s ease; }
 
+    /* ── video library: who can watch ── */
+    .aud-row { align-items: center; gap: 12px; }
+    .aud-seg .sc-seg-btn { padding: 6px 12px; }
+    .pp { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1; min-width: 240px; position: relative; }
+    .pp-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink); background: var(--panel-2); border-radius: 6px; padding: 4px 6px 4px 9px; }
+    .pp-chip button { appearance: none; border: 0; background: none; color: var(--faint); cursor: pointer; font: inherit; font-size: 14px; line-height: 1; padding: 0 2px; transition: color 0.15s ease; }
+    .pp-chip button:hover { color: var(--bad); }
+    .pp .inp { flex: 1; min-width: 170px; padding: 6px 10px; font-size: 12.5px; }
+    .pp-list { position: absolute; top: 100%; left: 0; z-index: 20; margin-top: 6px; min-width: 250px; max-height: 240px; overflow: auto; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 10px; box-shadow: 0 16px 40px -20px rgba(0,0,0,0.6); padding: 4px; }
+    .pp-list button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; appearance: none; border: 0; background: none; font: inherit; font-size: 12.5px; color: var(--ink); padding: 7px 10px; border-radius: 7px; cursor: pointer; text-align: left; }
+    .pp-list button:hover { background: var(--panel-2); }
+    .pp-list button small { color: var(--faint); font-size: 11px; }
+    .pp-empty { padding: 8px 10px; font-size: 12px; color: var(--faint); }
+    .aud-edit td { background: var(--panel-2) !important; padding: 12px 18px !important; }
+    .aud-edit .wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .aud-edit .msg { padding: 0; }
+    .aud-cell small { display: block; color: var(--faint); font-size: 11px; margin-top: 1px; max-width: 220px; white-space: normal; }
+    .aud-cell.locked { color: var(--gold); }
+
     /* ── coin profile: a drawer from the right, full sheet on phones ── */
     .cp-scrim { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,0.45); opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
     .cp {
@@ -1755,6 +1774,11 @@
             <div class="field-row" style="padding-top:0;">
               <input class="inp" id="lib-sum-in" placeholder="One line on what it covers (optional)" style="flex:1;">
             </div>
+            <div class="field-row aud-row" style="padding-top:0;">
+              <span class="label" style="flex:none;">Who can watch</span>
+              <div class="sc-seg aud-seg" id="lib-aud"><span class="sc-seg-ink" aria-hidden="true"></span><button type="button" class="sc-seg-btn on" data-a="members">Everyone</button><button type="button" class="sc-seg-btn" data-a="mods">Mods only</button><button type="button" class="sc-seg-btn" data-a="people">Chosen people</button></div>
+              <div class="pp" id="lib-pp" hidden></div>
+            </div>
             <div class="field-row" style="padding-top:0;">
               <button class="btn" id="lib-save">Upload and publish</button>
               <button class="rowbtn" id="lib-pick">Choose video</button>
@@ -1770,7 +1794,7 @@
           <div class="block">
             <div class="block-head"><h3>All videos</h3><span class="label" id="libadmin-total"></span></div>
             <div class="tbl-scroll"><table id="lib-table"></table></div>
-            <div class="empty" id="lib-admin-empty" hidden>Nothing uploaded yet. Members see videos the moment they land.</div>
+            <div class="empty" id="lib-admin-empty" hidden>Nothing uploaded yet. Members see videos the moment they land, unless you narrow who can watch.</div>
           </div>
           <div class="block">
             <div class="block-head">
@@ -2264,7 +2288,7 @@
       billing: 'Money in. The cards summarize revenue, Orders is the ledger, and the Stripe events below are the raw webhook feed, kept as your audit trail when something looks off.',
       content: 'The course builder. Categories hold lessons, the arrows reorder them, and opening a lesson gives the block editor for text, headings, video and files. Viewers shows who actually watched. Nothing reaches members until it is published.',
       homework: 'Every lesson with its assignment, in one place. Add or edit a prompt and members see it immediately on that lesson; Remove lets the lesson complete on its own again. The counts show what is sitting in the review queue. The markups themselves get approved in the members app, by you or a mod.',
-      library: 'Videos and written recaps in one place. Upload and publish puts a video live immediately; below it, write the session recap: blank line between paragraphs, ## for a heading, paste or drop a video to attach. Members only ever see what you publish.',
+      library: 'Videos and written recaps in one place. Upload and publish puts a video live immediately, for everyone, for mods only, or for the people you pick (Who can watch, on the form and on every row); a narrowed video never reaches the others, in the app or in Discord. Below it, write the session recap: blank line between paragraphs, ## for a heading, paste or drop a video to attach. Members only ever see what you publish.',
       codes: 'Passes and discounts. A free code comps the course when redeemed at sign-in; a discount code takes its percentage at checkout. Cap the uses, set an expiry, and note who it was for so future-you knows.',
       community: 'The community itself. Channels are created and ordered here (announcements are staff-post-only). The free signup page lets people straight in now. The list below is the record of who joined and what they wrote, with Deny as your kick switch. Mods moderate chat and get the indicators free while they hold the role.',
       perms: 'What each role may do in chat, enforced by the database rather than hidden buttons. Tap On or Off and it saves on the spot; the app updates AND the server refuses the write. Per channel, posting can be everyone, mods only, or just you.',
@@ -4331,11 +4355,18 @@
       loadLibraryAdmin()
     }
     async function loadLibraryAdmin() {
-      const [{ data }, { data: views }] = await Promise.all([
+      const [{ data }, { data: views }, { data: access }, { data: dir }] = await Promise.all([
         supabase.from('library_videos').select('*').order('created_at', { ascending: false }),
         supabase.from('library_views').select('video_id, view_count'),
+        supabase.from('library_video_access').select('video_id, user_id'),
+        supabase.from('member_directory').select('user_id, username, is_mod, is_admin'),
       ])
       LIBV = data ?? []
+      LIBACC = {}
+      for (const a of access ?? []) (LIBACC[a.video_id] ??= []).push(a.user_id)
+      LIB_DIR = (dir ?? []).slice().sort((a, b) => (a.username || '').localeCompare(b.username || ''))
+      LIB_NAMES = new Map(LIB_DIR.map((d) => [d.user_id, d.username]))
+      if (!LIB_PP_READY) { LIB_PP_READY = true; peoplePicker(el('lib-pp'), libPeople) }
       // Two numbers per video: how many members opened it, and total opens.
       LIBVIEWS = {}
       for (const v of views ?? []) {
@@ -4350,7 +4381,7 @@
       // captions still cooking: look again in a bit
       clearTimeout(LIB_CAP_TIMER)
       if (LIBV.some((r) => r.captions_status === 'working' || r.captions_status === 'queued')) LIB_CAP_TIMER = setTimeout(loadLibraryAdmin, 15000)
-      table(el('lib-table'), ['', 'Title', 'Category', 'Added', 'Views', 'State', 'Captions', ''], LIBV, (r) => {
+      table(el('lib-table'), ['', 'Title', 'Category', 'Added', 'Views', 'State', 'Who can watch', 'Captions', ''], LIBV, (r) => {
         const tr = document.createElement('tr')
         const th = document.createElement('td')
         if (r.thumb_path) {
@@ -4370,6 +4401,7 @@
           cell(when(r.created_at), 'num'),
           cell(vc ? `${vc.people} member${vc.people === 1 ? '' : 's'} · ${vc.opens} open${vc.opens === 1 ? '' : 's'}` : '–', 'num'),
           cell(r.is_published ? 'Live' : 'Hidden'),
+          audCell(r),
           captionsCell(r),
         )
         const td = document.createElement('td'); td.className = 'num'
@@ -4380,6 +4412,7 @@
         if (r.captions_status !== 'working' && r.captions_status !== 'queued') {
           btn(r.captions_status === 'ready' ? 'Redo captions' : r.captions_status === 'failed' ? 'Retry captions' : 'Captions', (b) => capStart(r, b))
         }
+        btn('Who can watch', () => audEditor(r, tr))
         btn('Thumbnail', (b) => {
           const inp = document.createElement('input')
           inp.type = 'file'; inp.accept = 'image/*'
@@ -4405,6 +4438,106 @@
       })
     }
     let LIBVIEWS = {}
+    /* ── who can watch: everyone, mods only, or chosen people ──
+       audience lives on the row (RLS + media-url read it), the chosen
+       people in library_video_access. */
+    let LIBACC = {}, LIB_DIR = [], LIB_NAMES = new Map(), LIB_PP_READY = false
+    let libAud = 'members'
+    const libPeople = new Set()
+    const AUD_OPTS = [['members', 'Everyone'], ['mods', 'Mods only'], ['people', 'Chosen people']]
+    const audLabel = (r) => r.audience === 'mods' ? 'Mods only' : r.audience === 'people' ? `${(LIBACC[r.id] || []).length} ${(LIBACC[r.id] || []).length === 1 ? 'person' : 'people'}` : 'Everyone'
+    function audCell(r) {
+      const td = document.createElement('td'); td.className = 'aud-cell' + (r.audience && r.audience !== 'members' ? ' locked' : '')
+      td.appendChild(document.createTextNode(audLabel(r)))
+      if (r.audience === 'people') {
+        const ids = LIBACC[r.id] || []
+        const s = document.createElement('small'); s.textContent = ids.slice(0, 4).map((id) => '@' + (LIB_NAMES.get(id) || 'member')).join(', ') + (ids.length > 4 ? ` +${ids.length - 4}` : '')
+        td.appendChild(s)
+      }
+      return td
+    }
+    /* chips of the chosen, plus a search that lists everyone else */
+    function peoplePicker(host, picked, onChange) {
+      host.textContent = ''
+      const inp = document.createElement('input'); inp.className = 'inp'; inp.type = 'search'; inp.placeholder = 'Add a member by name'; inp.autocomplete = 'off'
+      const list = document.createElement('div'); list.className = 'pp-list'; list.hidden = true
+      const paint = () => {
+        host.querySelectorAll('.pp-chip').forEach((c) => c.remove())
+        for (const id of picked) {
+          const c = document.createElement('span'); c.className = 'pp-chip'
+          c.appendChild(document.createTextNode('@' + (LIB_NAMES.get(id) || 'member')))
+          const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove')
+          x.addEventListener('click', () => { picked.delete(id); paint(); onChange?.() })
+          c.appendChild(x); host.insertBefore(c, inp)
+        }
+      }
+      const suggest = () => {
+        const q = inp.value.trim().toLowerCase().replace(/^@/, '')
+        list.textContent = ''
+        const rows = LIB_DIR.filter((d) => !picked.has(d.user_id) && (!q || (d.username || '').toLowerCase().includes(q))).slice(0, 8)
+        if (!rows.length) { const e = document.createElement('div'); e.className = 'pp-empty'; e.textContent = q ? 'No member by that name.' : 'Everyone is already in.'; list.appendChild(e) }
+        for (const d of rows) {
+          const b = document.createElement('button'); b.type = 'button'
+          b.appendChild(document.createTextNode('@' + (d.username || 'member')))
+          const s = document.createElement('small'); s.textContent = d.is_admin ? 'admin' : d.is_mod ? 'mod' : 'member'; b.appendChild(s)
+          b.addEventListener('mousedown', (e) => { e.preventDefault(); picked.add(d.user_id); inp.value = ''; paint(); suggest(); onChange?.() })
+          list.appendChild(b)
+        }
+        list.hidden = false
+      }
+      inp.addEventListener('focus', suggest); inp.addEventListener('input', suggest)
+      inp.addEventListener('blur', () => setTimeout(() => { list.hidden = true }, 150))
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Escape') { list.hidden = true; inp.blur() } })
+      host.append(inp, list); paint()
+    }
+    el('lib-aud').addEventListener('click', (e) => {
+      const b = e.target.closest('.sc-seg-btn'); if (!b) return
+      libAud = b.dataset.a
+      el('lib-aud').querySelectorAll('.sc-seg-btn').forEach((x) => x.classList.toggle('on', x === b)); segInk(el('lib-aud'))
+      el('lib-pp').hidden = libAud !== 'people'
+      if (libAud === 'people') el('lib-pp').querySelector('input')?.focus()
+    })
+    async function libSaveAudience(id, aud, picked) {
+      const { error } = await supabase.from('library_videos').update({ audience: aud, updated_at: new Date().toISOString() }).eq('id', id)
+      if (error) return error.message
+      const { error: dErr } = await supabase.from('library_video_access').delete().eq('video_id', id)
+      if (dErr) return dErr.message
+      if (aud === 'people' && picked.size) {
+        const { error: iErr } = await supabase.from('library_video_access').insert([...picked].map((user_id) => ({ video_id: id, user_id })))
+        if (iErr) return iErr.message
+      }
+      return null
+    }
+    function audEditor(r, tr) {
+      const open = tr.nextElementSibling
+      tr.parentNode.querySelectorAll('.aud-edit').forEach((x) => x.remove())
+      if (open?.classList.contains('aud-edit')) return
+      const ed = document.createElement('tr'); ed.className = 'aud-edit'
+      const td = document.createElement('td'); td.colSpan = tr.children.length
+      const wrap = document.createElement('div'); wrap.className = 'wrap'
+      let aud = r.audience || 'members'; const picked = new Set(LIBACC[r.id] || [])
+      const seg = document.createElement('div'); seg.className = 'sc-seg aud-seg'
+      const ink = document.createElement('span'); ink.className = 'sc-seg-ink'; seg.appendChild(ink)
+      const pp = document.createElement('div'); pp.className = 'pp'; pp.hidden = aud !== 'people'
+      for (const [v, label] of AUD_OPTS) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'sc-seg-btn' + (aud === v ? ' on' : ''); b.textContent = label
+        b.addEventListener('click', () => { aud = v; seg.querySelectorAll('.sc-seg-btn').forEach((x) => x.classList.toggle('on', x === b)); segInk(seg); pp.hidden = v !== 'people'; if (v === 'people') pp.querySelector('input')?.focus() })
+        seg.appendChild(b)
+      }
+      peoplePicker(pp, picked)
+      const save = document.createElement('button'); save.className = 'rowbtn gold'; save.textContent = 'Save'
+      const cancel = document.createElement('button'); cancel.className = 'rowbtn'; cancel.textContent = 'Cancel'; cancel.addEventListener('click', () => ed.remove())
+      const msg = document.createElement('span'); msg.className = 'msg'
+      save.addEventListener('click', async () => {
+        if (aud === 'people' && !picked.size) { msg.className = 'msg err'; msg.textContent = 'Pick at least one person, or nobody but you sees it.'; return }
+        save.disabled = true; msg.className = 'msg'; msg.textContent = 'Saving…'
+        const err = await libSaveAudience(r.id, aud, picked)
+        if (err) { msg.className = 'msg err'; msg.textContent = err; save.disabled = false; return }
+        loadLibraryAdmin()
+      })
+      wrap.append(seg, pp, save, cancel, msg); td.appendChild(wrap); ed.appendChild(td)
+      tr.after(ed); requestAnimationFrame(() => segInk(seg))
+    }
     // Resumable upload with real progress (tus, 6MB chunks). Falls back to
     // the plain upload if tus failed to load.
     async function uploadResumable(bucket, path, file, onPct) {
@@ -4516,6 +4649,7 @@
       const title = el('lib-title-in').value.trim()
       if (!title) { msg.className = 'msg err'; msg.textContent = 'A title, at least.'; return }
       if (!libFile) { msg.className = 'msg err'; msg.textContent = 'Choose the video file.'; return }
+      if (libAud === 'people' && !libPeople.size) { msg.className = 'msg err'; msg.textContent = 'Pick at least one person to share it with.'; return }
       el('lib-save').disabled = true
       msg.className = 'msg'; msg.textContent = ''
       const bar = el('lib-bar'), fill = el('lib-fill'), pct = el('lib-pct')
@@ -4534,16 +4668,24 @@
             .upload(thumbPath, thumb, { contentType: 'image/jpeg' })
           if (thErr) thumbPath = null
         }
-        const { error } = await supabase.from('library_videos').insert({
+        const { data: made, error } = await supabase.from('library_videos').insert({
           title,
           summary: el('lib-sum-in').value.trim() || null,
           category: el('lib-cat-in').value,
           storage_path: path,
           thumb_path: thumbPath,
-        })
+          audience: libAud,
+        }).select('id').single()
         if (error) throw error
+        if (libAud === 'people' && libPeople.size) {
+          const { error: aErr } = await supabase.from('library_video_access').insert([...libPeople].map((user_id) => ({ video_id: made.id, user_id })))
+          if (aErr) throw aErr
+        }
         bar.classList.remove('on')
-        msg.className = 'msg ok'; msg.textContent = 'Published. Members can watch it now; captions follow within the hour.'
+        msg.className = 'msg ok'; msg.textContent = libAud === 'mods' ? 'Published for mods only; captions follow within the hour.'
+          : libAud === 'people' ? `Published for ${libPeople.size} chosen ${libPeople.size === 1 ? 'person' : 'people'}; captions follow within the hour.`
+          : 'Published. Members can watch it now; captions follow within the hour.'
+        libPeople.clear(); peoplePicker(el('lib-pp'), libPeople)
         el('lib-title-in').value = ''; el('lib-sum-in').value = ''
         el('lib-file').value = ''; libFile = null; el('lib-file-name').textContent = ''
         el('lib-thumb-file').value = ''; libThumbFile = null; el('lib-thumb-name').textContent = ''
