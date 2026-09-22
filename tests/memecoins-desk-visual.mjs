@@ -1,13 +1,14 @@
 // Memecoins desk audit (manual, not a node:test).
 //   node tests/memecoins-desk-visual.mjs        (THEME=dark|light, VPS=wide,desk,phone, OUT, PORT, URL env)
 // Serves the repo itself (or URL= for production), signs in as the owner by minting a
-// magic link with the service key, then: desk (tape, Next up, wire, board, named this
-// week), a Next up row jumping the wire, board sort, arrow keys stepping, a coin from the
-// board and one from a wire chip (chart hover, range switch, Escape), then the scorecard
-// filter, section filter and by-ticker rows. Screenshots per viewport; reports overflow,
-// missing rows, segmented-ink drift and page errors. CoinGecko throttles this IP after a
-// few runs; the page is expected to degrade to its Retry note and the profile still
-// draws from stored marks.
+// magic link with the service key, then: desk (tape with the digest hit rate, Next up with
+// the buy filter pills and named dates, wire, board, named this week), a Next up row
+// jumping the wire, board sort, arrow keys stepping, a coin from the board and one from a
+// wire chip (next event, chart hover, range switch, Escape), then the scorecard filter,
+// section filter and by-ticker rows. Screenshots per viewport; reports overflow, missing
+// rows, segmented-ink drift and page errors. Read-only against the database (the composer
+// is exercised by hand). CoinGecko throttles this IP after a few runs; the page is expected
+// to degrade to its Retry note and the profile still draws from stored marks.
 import { createRequire } from 'module'
 import { createServer } from 'http'
 import { existsSync, mkdirSync, readFileSync, statSync } from 'fs'
@@ -111,6 +112,10 @@ for (const name of VPS) {
     upd: document.getElementById('nx-upd')?.textContent,
     rows: [...document.querySelectorAll('#nx-rows .wire-row')].map((r) => `${r.querySelector('.d')?.textContent} ${r.querySelector('.rel')?.textContent} | ${[...r.querySelectorAll('.lead-tk')].map((b) => b.textContent).join(',')} | ${r.querySelector('.wire-text')?.textContent.trim().slice(0, 60)} | ${r.querySelector('.wire-src a')?.textContent || '-'}`),
     more: document.querySelector('#nx-rows .nx-more')?.textContent || null,
+    pills: [...document.querySelectorAll('#nx-rows .bf')].map((b) => [...b.querySelectorAll('.bf-p')].map((p) => p.textContent + ':' + p.className.replace('bf-p ', '')[0]).join(' ') + (b.classList.contains('all') ? ' ALL' : '')),
+    pillTitle: document.querySelector('#nx-rows .bf')?.title,
+    named: [...document.querySelectorAll('#nx-rows .rel.named')].slice(0, 3).map((n) => n.textContent),
+    tapeDigest: [...document.querySelectorAll('#mm-strip .mm-stat')].find((s) => /Digest/.test(s.textContent))?.textContent.replace(/\s+/g, ' '),
     watch: [...document.querySelectorAll('#mm-watch-rows .board-row')].map((r) => `${r.querySelector('.sym')?.textContent} ${r.querySelector('.sub')?.textContent} ${r.querySelector('.since')?.textContent}`),
     sort: document.querySelector('#board-sort .on')?.dataset.s,
   }))
@@ -169,6 +174,7 @@ for (const name of VPS) {
     empty: document.querySelector('#cp .cp-chart-empty')?.textContent || null,
     width: document.getElementById('cp').getBoundingClientRect().width,
     range: document.querySelector('#cp .cp-range') ? `${document.querySelector('#cp .cp-range .bar i')?.style.left} ${document.querySelector('#cp .cp-range .ends')?.textContent}` : null,
+    next: document.querySelector('#cp .cp-next') ? document.querySelector('#cp .cp-next').textContent.replace(/\s+/g, ' ').trim().slice(0, 160) : null,
   }))
   console.log('profile:', JSON.stringify(prof))
   // hover the chart mid-way

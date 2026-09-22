@@ -1179,6 +1179,32 @@
     .sc-tk-row { cursor: pointer; }
     .sc-tk-row:hover .tk { background: rgba(201,162,74,0.2); }
 
+    /* the buy filter, machine read: Future, Demand, Liquid, Early */
+    .bf { display: inline-flex; gap: 3px; margin-top: 6px; }
+    .bf-p { width: 18px; height: 18px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; background: var(--panel-2); color: var(--faint); }
+    .bf-p.pass { color: var(--gold); background: rgba(201,162,74,0.14); }
+    .bf-p.fail { color: var(--bad); background: rgba(217,139,122,0.12); text-decoration: line-through; }
+    .bf.all .bf-p.pass { background: var(--gold); color: #1a1207; }
+    .wire-when .rel.named { color: var(--faint); font-weight: 500; }
+
+    /* write to the wire */
+    .wire-left { display: inline-flex; align-items: center; gap: 12px; }
+    .wire-write { appearance: none; background: none; border: 1px solid var(--line-bright); border-radius: 7px; font: inherit; font-size: 11.5px; font-weight: 600; color: var(--muted); padding: 3px 9px; cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease, transform 0.1s ease; }
+    .wire-write:hover, .wire-write.on { color: var(--gold); border-color: var(--gold); }
+    .wire-write:active { transform: scale(0.96); }
+    .wire-compose { padding: 18px 0 8px; border-bottom: 1px solid var(--line); animation: wire-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    .wc-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .wc-row .inp { flex: 1; min-width: 200px; }
+    .wire-compose textarea.inp { width: 100%; margin-top: 10px; resize: vertical; min-height: 110px; line-height: 1.55; display: block; }
+    .wc-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .wc-actions .msg { padding: 0; }
+
+    /* profile: the coin's next dated event */
+    .cp-next { margin-top: 24px; }
+    .cp-next .wire-row { cursor: pointer; padding: 12px 0 0; border-bottom: 0; }
+    .cp-next .wire-row:hover .wire-text { color: var(--ink); }
+    .cp-next .wire-text { transition: color 0.15s ease; }
+
     /* ── coin profile: a drawer from the right, full sheet on phones ── */
     .cp-scrim { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,0.45); opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
     .cp {
@@ -1986,12 +2012,20 @@
                   <div id="nx-rows"></div>
                 </section>
                 <div class="wire-head">
-                  <span class="label">The wire</span>
+                  <span class="wire-left"><span class="label">The wire</span><button class="wire-write" id="wire-write" type="button">Write</button></span>
                   <div class="wire-step" id="wire-step">
                     <button class="arrow" id="wire-prev" type="button" aria-label="Earlier digest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
                     <div class="cur" id="wire-cur"><span>&nbsp;</span><small>&nbsp;</small></div>
                     <button class="arrow" id="wire-next" type="button" aria-label="Later digest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
                   </div>
+                </div>
+                <div class="wire-compose" id="wire-compose" hidden>
+                  <div class="wc-row">
+                    <div class="sc-seg" id="wc-kind"><span class="sc-seg-ink" aria-hidden="true"></span><button type="button" class="sc-seg-btn on" data-k="note">Note</button><button type="button" class="sc-seg-btn" data-k="alert">Alert</button></div>
+                    <input class="inp" id="wc-title" placeholder="Title" maxlength="120" autocomplete="off">
+                  </div>
+                  <textarea class="inp" id="wc-body" rows="5" placeholder="What you saw, what you did, why. SECTION: lines and - bullets render like the digest; tickers become chips."></textarea>
+                  <div class="wc-actions"><button class="rowbtn gold" id="wc-post" type="button">Post to the wire</button><button class="rowbtn" id="wc-cancel" type="button">Cancel</button><span class="msg" id="wc-msg"></span></div>
                 </div>
                 <div id="mm-wire"><p class="wire-empty">Loading the wire…</p></div>
               </section>
@@ -2235,7 +2269,7 @@
       community: 'The community itself. Channels are created and ordered here (announcements are staff-post-only). The free signup page lets people straight in now. The list below is the record of who joined and what they wrote, with Deny as your kick switch. Mods moderate chat and get the indicators free while they hold the role.',
       perms: 'What each role may do in chat, enforced by the database rather than hidden buttons. Tap On or Off and it saves on the spot; the app updates AND the server refuses the write. Per channel, posting can be everyone, mods only, or just you.',
       gex: 'Your gamma board, the same one GEX subscribers see in their app plus the admin extras. Copy pineData is the manual feed for the TradingView script; the daily job normally republishes it on its own.',
-      memes: 'The memecoin desk. The tape, then Next up (every dated event still ahead, from every digest, merged), then the wire one digest per day (arrow keys step it). On the right the board, sortable, and the coins the wire named this week with their move since that morning. Scorecard and playbook behind the sub-tabs. Tap any ticker anywhere to open the coin. For you; nothing here is member-facing.',
+      memes: 'The memecoin desk. The tape (with the digest\'s own hit rate), then Next up: every dated event still ahead from every digest, merged, each with your buy filter read by machine (F future, D demand not supply, L liquid above $50M, E early under +50% since named; hover a pill for the why). Then the wire, one digest per day, arrow keys step it, Write posts a note or an alert of your own. On the right the board, sortable, and the coins the wire named this week with their move since that morning. Scorecard and playbook behind the sub-tabs. Tap any ticker anywhere to open the coin. For you; nothing here is member-facing.',
       settings: 'Which integrations are wired, as booleans only. This page can see that a secret exists, never what it is.',
     }
     for (const [view, text] of Object.entries(PAGE_HELP)) {
@@ -5537,7 +5571,9 @@
        (admin-only RLS): the daily catalyst routine inserts a digest row every
        morning and Claude sessions add notes/alerts. The scorecard view scores
        those digests; the coin profile drawer joins all of it per coin. */
-    const MM = { marketAt: 0, wireAt: 0, market: null, watch: null, sort: 'cap', coins: new Map(), posts: [], idx: 0, loadingWire: null, nxOpen: false }
+    const pref = (k, d) => { try { return localStorage.getItem(k) || d } catch { return d } }
+    const setPref = (k, v) => { try { localStorage.setItem(k, v) } catch {} }
+    const MM = { marketAt: 0, wireAt: 0, market: null, watch: null, sort: pref('echelon-mm-sort', 'cap'), coins: new Map(), posts: [], idx: 0, loadingWire: null, nxOpen: false }
     const BLUE = ['solana', 'dogecoin', 'shiba-inu', 'pepe', 'dogwifcoin', 'bonk', 'fartcoin', 'pudgy-penguins', 'pump-fun', 'spx6900', 'official-trump']
     // majors and stables are named in passing; they are not a memecoin watch
     const WATCH_SKIP = new Set(['bitcoin', 'ethereum', 'solana', 'binancecoin', 'tether', 'usd-coin', 'paypal-usd', 'jpycoin', 'dai', 'ethena-usde', 'first-digital-usd', 'usd1-wlfi', 'ripple', 'tron'])
@@ -5643,14 +5679,16 @@
        RLS), filled nightly by scripts/memecoin-track.mjs. Horizon, ticker
        filter and section filter are local state plus a transform, so they
        never refetch and never re-render the page around them. */
-    const SC = { at: 0, rows: null, horizon: 'ret_1d', loading: null, q: '', section: null }
+    const SC = { at: 0, rows: null, horizon: pref('echelon-sc-h', 'ret_1d'), loading: null, q: '', section: null }
+    el('sc-seg').querySelectorAll('.sc-seg-btn').forEach((b) => b.classList.toggle('on', b.dataset.h === SC.horizon))
+    el('board-sort').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.s === MM.sort))
     const SC_LABEL = { ret_1d: '1 day', ret_7d: '7 days', ret_30d: '30 days', ret_event: 'the event' }
     const scPct = (v) => v == null ? '–' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
 
     el('sc-seg').addEventListener('click', (e) => {
       const btn = e.target.closest('.sc-seg-btn'); if (!btn || btn.classList.contains('on')) return
       el('sc-seg').querySelectorAll('.sc-seg-btn').forEach((b) => b.classList.toggle('on', b === btn))
-      SC.horizon = btn.dataset.h
+      SC.horizon = btn.dataset.h; setPref('echelon-sc-h', SC.horizon)
       segInk(el('sc-seg')); scRender()
     })
     el('sc-q').addEventListener('input', () => { SC.q = el('sc-q').value.trim().toUpperCase(); scRender() })
@@ -5870,8 +5908,16 @@
         if (meme) strip.appendChild(mmStat('Meme sector', mmCap(meme.market_cap), { pct: meme.market_cap_change_24h }))
         if (fees?.total24h != null) strip.appendChild(mmStat('pump.fun fees 24h', mmCap(fees.total24h)))
         if (f?.value) strip.appendChild(mmStat('Fear & greed', String(f.value), { sub: (f.value_classification || '').toLowerCase(), meter: Number(f.value) }))
+        // the desk's own number: how often the digest's calls rose the next day
+        const scored1 = (SC.rows || []).filter((r) => r.ticker && r.ret_1d != null)
+        if (scored1.length) {
+          const up = scored1.filter((r) => r.ret_1d > 0).length
+          const st = mmStat('Digest hit rate', Math.round((up / scored1.length) * 100) + '%', { sub: `at 1d, ${scored1.length} calls` })
+          st.classList.add('link'); st.title = 'Open the scorecard'; st.addEventListener('click', () => document.querySelector('.mm-tab[data-mm="scorecard"]').click())
+          strip.appendChild(st)
+        }
         el('mm-upd').textContent = `updated ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
-        boardRender(); watchRender()
+        boardRender(); watchRender(); nxRender()
         if (MM.posts.length) wireRender(false)
       } catch (err) {
         MM.marketAt = 0
@@ -5928,7 +5974,7 @@
 
     el('board-sort').addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b || b.dataset.s === MM.sort) return
-      MM.sort = b.dataset.s
+      MM.sort = b.dataset.s; setPref('echelon-mm-sort', MM.sort)
       el('board-sort').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b))
       boardRender()
     })
@@ -6012,8 +6058,9 @@
           if (!r.ticker) return same || g.tickers.some((t) => core.toUpperCase().includes(t))
           return same
         })
-        if (!g) { g = { date: r.event_date, tickers: [], core, words, section: r.section, source: r.source, post_id: r.post_id, post_at: r.post_at, sections: new Set() }; groups.push(g) }
+        if (!g) { g = { date: r.event_date, tickers: [], entries: new Map(), core, words, section: r.section, source: r.source, post_id: r.post_id, post_at: r.post_at, sections: new Set() }; groups.push(g) }
         if (r.ticker && !g.tickers.includes(r.ticker)) g.tickers.push(r.ticker)
+        if (r.ticker && !g.entries.has(r.ticker)) g.entries.set(r.ticker, { coin_id: r.coin_id, entry_usd: r.entry_usd })
         // the dated section's wording wins over a BLUE CHIPS restatement; otherwise the fuller line
         const restated = g.section === 'BLUE CHIPS' && r.section !== 'BLUE CHIPS'
         const sameClass = (g.section === 'BLUE CHIPS') === (r.section === 'BLUE CHIPS')
@@ -6047,12 +6094,14 @@
         const dd = document.createElement('div'); dd.className = 'd'; dd.textContent = mmDay(d)
         const rel = wireRel(d)
         const rr = document.createElement('div'); rr.className = 'rel' + (rel.soon ? ' soon' : ''); rr.textContent = rel.t
-        when.append(dd, rr)
+        const nm = document.createElement('div'); nm.className = 'rel named'; nm.textContent = 'named ' + mmDay(g.post_at)
+        when.append(dd, rr, nm)
         const t = document.createElement('div'); t.className = 'wire-text'
         for (const tk of g.tickers) t.appendChild(tkChip(tk, { lead: true, logo: true }))
         t.appendChild(tkText(g.core, g.tickers))
         const src = document.createElement('div'); src.className = 'wire-src'
         if (g.source) { const a = document.createElement('a'); a.href = 'https://' + g.source.replace(/^https?:\/\//, ''); a.target = '_blank'; a.rel = 'noopener'; a.textContent = g.source.replace(/^https?:\/\//, '').replace(/\/.*$/, ''); a.addEventListener('click', (e) => e.stopPropagation()); src.appendChild(a) }
+        src.appendChild(bfPills(bfRead(g)))
         row.append(when, t, src); host.appendChild(row)
       }
       if (groups.length > LIMIT) {
@@ -6062,6 +6111,72 @@
         host.appendChild(b)
       }
     }
+    /* ── the buy filter, machine read ──
+       The playbook's four questions, answered from what the desk already knows:
+       FUTURE is true by construction (only dated events ahead are listed);
+       DEMAND or SUPPLY comes from the wording; LIQUID is the live market cap
+       against $50M; EARLY is the move since the morning it was named against
+       +50%. A machine read, so every pill explains itself on hover. */
+    const BF_NAMES = { F: 'Future', D: 'Demand', L: 'Liquid', E: 'Early' }
+    function bfRead(g) {
+      const text = g.core.toLowerCase()
+      let dir = null
+      if (/(suspension|restriction|ban|halt|freeze|pause)[^.]{0,80}(expire|lift|end|resum|over)/.test(text)) dir = 'demand'
+      else if (/unlock|vesting|delist|suspend|suspension|liquidat|winding down|wind down|shut|shutting|expire|halt|remov|cash distribution|final trading day|final [a-z ]{0,20}session|sell-?off|dump/.test(text)) dir = 'supply'
+      else if (/\blist(?:s|ed|ing)?\b|\betf\b|buyback|burn|mainnet|launch|\bopens?\b|markets? for|\badds?\b|\badded\b|futures|perp|airdrop|integrat|partnership|upgrade|activation|roadmap|approv/.test(text)) dir = 'demand'
+      const F = { s: 'pass', why: 'dated and still ahead' }
+      const D = dir === 'demand' ? { s: 'pass', why: 'reads as new demand (listing, venue, buyback, upgrade)' }
+        : dir === 'supply' ? { s: 'fail', why: 'reads as new supply or removed access (unlock, delisting, suspension)' }
+        : { s: 'unknown', why: 'could not tell demand from supply, read it yourself' }
+      let L = { s: 'unknown', why: 'no coin resolved on this line' }, E = { s: 'unknown', why: 'no coin resolved on this line' }
+      const coins = [...g.entries.values()].map((e) => ({ ...e, m: e.coin_id ? MM.coins.get(e.coin_id) : null }))
+      if (coins.length) {
+        const caps = coins.map((c) => c.m?.market_cap).filter((v) => v != null)
+        L = !caps.length ? { s: 'unknown', why: 'no live quote yet for this coin' }
+          : caps.every((v) => v >= 50e6) ? { s: 'pass', why: `market cap ${caps.map(mmCap).join(', ')}, above $50M` }
+          : { s: 'fail', why: `market cap ${caps.map(mmCap).join(', ')}, under $50M` }
+        const moves = coins.map((c) => c.m?.current_price && c.entry_usd ? ((c.m.current_price / c.entry_usd) - 1) * 100 : null).filter((v) => v != null)
+        E = !moves.length ? { s: 'unknown', why: 'no entry mark or live quote for this coin' }
+          : moves.every((v) => v < 50) ? { s: 'pass', why: `moved ${moves.map(mmPct).join(', ')} since named, under +50%` }
+          : { s: 'fail', why: `already moved ${moves.map(mmPct).join(', ')} since named` }
+      }
+      return { F, D, L, E }
+    }
+    function bfPills(read) {
+      const w = document.createElement('div'); w.className = 'bf'
+      const passes = Object.keys(BF_NAMES).filter((k) => read[k].s === 'pass').length
+      w.title = `Buy filter, machine read: ${passes} of 4 pass\n` + Object.keys(BF_NAMES).map((k) => `${BF_NAMES[k]}: ${read[k].why}`).join('\n')
+      for (const k of Object.keys(BF_NAMES)) { const p = document.createElement('span'); p.className = 'bf-p ' + read[k].s; p.textContent = k; w.appendChild(p) }
+      if (passes === 4) w.classList.add('all')
+      return w
+    }
+
+    /* ── write to the wire: a note or an alert, from the admin, RLS-gated ── */
+    el('wire-write').addEventListener('click', () => {
+      const c = el('wire-compose'); c.hidden = !c.hidden
+      el('wire-write').classList.toggle('on', !c.hidden)
+      if (!c.hidden) { segInk(el('wc-kind')); el('wc-title').focus() }
+    })
+    el('wc-cancel').addEventListener('click', () => { el('wire-compose').hidden = true; el('wire-write').classList.remove('on'); el('wc-msg').textContent = '' })
+    el('wc-kind').addEventListener('click', (e) => {
+      const b = e.target.closest('.sc-seg-btn'); if (!b) return
+      el('wc-kind').querySelectorAll('.sc-seg-btn').forEach((x) => x.classList.toggle('on', x === b)); segInk(el('wc-kind'))
+    })
+    el('wc-post').addEventListener('click', async () => {
+      const kind = el('wc-kind').querySelector('.on')?.dataset.k || 'note'
+      const title = el('wc-title').value.trim(), body = el('wc-body').value.trim(), msg = el('wc-msg')
+      if (!title || !body) { msg.className = 'msg err'; msg.textContent = 'A title and a body, both.'; return }
+      el('wc-post').disabled = true; msg.className = 'msg'; msg.textContent = 'Posting…'
+      const { error } = await supabase.from('memecoin_posts').insert({ kind, title, body })
+      el('wc-post').disabled = false
+      if (error) { msg.className = 'msg err'; msg.textContent = error.message; return }
+      msg.className = 'msg ok'; msg.textContent = 'On the wire.'
+      el('wc-title').value = ''; el('wc-body').value = ''
+      MM.posts = []; MM.idx = 0; MM.wireAt = 0
+      await mmLoadWire(true)
+      setTimeout(() => { el('wire-compose').hidden = true; el('wire-write').classList.remove('on'); msg.textContent = '' }, 900)
+    })
+
     function wireJump(postId) {
       const i = MM.posts.findIndex((p) => p.id === postId)
       if (i < 0) return
@@ -6244,7 +6359,7 @@
 
     /* ── coin profile: price, the chart with the digest's entries on it, the
        record of every call. Opened by any ticker; Esc, the scrim or the X close it. ── */
-    const CP = { open: false, id: null, ticker: null, range: '30d', series: new Map(), seriesLoading: new Map(), pts: [], calls: [], lastFocus: null, token: 0 }
+    const CP = { open: false, id: null, ticker: null, range: pref('echelon-cp-range', '30d'), series: new Map(), seriesLoading: new Map(), pts: [], calls: [], lastFocus: null, token: 0 }
     el('cp-close').addEventListener('click', closeCoin)
     el('cp-scrim').addEventListener('click', closeCoin)
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && CP.open) closeCoin() })
@@ -6336,6 +6451,32 @@
         }
       }
 
+      // the coin's next dated event, with the buy filter read on it
+      if (sym && SC.rows) {
+        const mine = nxRows().filter((g) => g.tickers.includes(sym))
+        if (mine.length) {
+          const g = mine[0]
+          const wrap = document.createElement('section'); wrap.className = 'cp-next'
+          const hh = document.createElement('div'); hh.className = 'mm-sec-head'
+          const l1 = document.createElement('span'); l1.className = 'label'; l1.textContent = mine.length > 1 ? `Next dated event, ${mine.length} ahead` : 'Next dated event'
+          const l2 = document.createElement('span'); l2.className = 'mm-upd'; l2.textContent = 'buy filter, machine read'
+          hh.append(l1, l2); wrap.appendChild(hh)
+          const d = new Date(g.date + 'T00:00:00')
+          const row = document.createElement('div'); row.className = 'wire-row'; row.title = 'Open the digest that first named it'
+          row.addEventListener('click', () => { closeCoin(); document.querySelector('.mm-tab[data-mm="desk"]').click(); wireJump(g.post_id) })
+          const when = document.createElement('div'); when.className = 'wire-when'
+          const dd = document.createElement('div'); dd.className = 'd'; dd.textContent = mmDay(d)
+          const rel = wireRel(d)
+          const rr = document.createElement('div'); rr.className = 'rel' + (rel.soon ? ' soon' : ''); rr.textContent = rel.t
+          when.append(dd, rr)
+          const t = document.createElement('div'); t.className = 'wire-text'
+          t.appendChild(tkText(g.core, g.tickers))
+          const src = document.createElement('div'); src.className = 'wire-src'
+          src.appendChild(bfPills(bfRead(g)))
+          row.append(when, t, src); wrap.appendChild(row); host.appendChild(wrap)
+        }
+      }
+
       // chart + range
       const ch = document.createElement('div'); ch.className = 'cp-chart-head'
       const lbl = document.createElement('span'); lbl.className = 'label'; lbl.textContent = 'Price'
@@ -6343,7 +6484,7 @@
       const ink = document.createElement('span'); ink.className = 'sc-seg-ink'; seg.appendChild(ink)
       for (const [r, t] of [['7d', '7d'], ['30d', '30d'], ['all', 'All']]) {
         const b = document.createElement('button'); b.type = 'button'; b.className = 'sc-seg-btn' + (CP.range === r ? ' on' : ''); b.dataset.r = r; b.textContent = t
-        b.addEventListener('click', () => { if (CP.range === r) return; CP.range = r; seg.querySelectorAll('.sc-seg-btn').forEach((x) => x.classList.toggle('on', x === b)); segInk(seg); cpChart(chart) })
+        b.addEventListener('click', () => { if (CP.range === r) return; CP.range = r; setPref('echelon-cp-range', r); seg.querySelectorAll('.sc-seg-btn').forEach((x) => x.classList.toggle('on', x === b)); segInk(seg); cpChart(chart) })
         seg.appendChild(b)
       }
       ch.append(lbl, seg); host.appendChild(ch)
