@@ -192,6 +192,14 @@
     /* ════ edge hunt ═════════════════════════════════════════ */
     .edge { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 28px; align-items: start; }
     @media (max-width: 1100px) { .edge { grid-template-columns: 1fr; } }
+    .exec { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; padding: 14px 16px; background: var(--panel-2); border-radius: 10px; }
+    @media (max-width: 720px) { .exec { grid-template-columns: 1fr; } }
+    .exec-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .exec-k { font-size: 12px; color: var(--faint); }
+    .exec-v { font-size: 14px; font-weight: 500; }
+    .exec-v .live { color: var(--good); }
+    .exec-v .armed { color: var(--gold); }
+    .exec-note { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; margin: 0; }
     .edge-stats { margin-bottom: 14px; }
     .edge-book .chart { margin: 4px 0 12px; }
     .edge-book .reading { font-size: 14px; }
@@ -313,6 +321,12 @@
           </div>
           <div class="chart" id="edge-chart"></div>
           <p class="reading quiet" id="edge-reading">Loading.</p>
+        </div>
+        <div class="exec" id="exec">
+          <div class="exec-row"><span class="exec-k">Execution</span><span id="exec-mode" class="exec-v">–</span></div>
+          <div class="exec-row"><span class="exec-k">Gate</span><span id="exec-gate" class="exec-v">–</span></div>
+          <div class="exec-row"><span class="exec-k">Today</span><span id="exec-today" class="exec-v">–</span></div>
+          <p class="exec-note">Orders go to the account only when the paper book has passed the gate and the live switch is set by hand. Until then every intent is logged and nothing is sent.</p>
         </div>
         <div class="tbl-scroll edge-cells"><table id="cells"><thead><tr>
           <th>Series</th><th>Minutes left</th><th>Cell</th><th>Buy</th><th class="n">Rounds</th><th class="n">Won</th><th class="n">Ask</th><th class="n" title="Wilson lower bound of the win rate, minus the ask, minus the taker fee">Edge, floor</th><th class="n" title="mean win rate minus ask minus fee">Edge, mean</th>
@@ -666,6 +680,22 @@
             <text x="${m.l}" y="${H - 6}">${book[0].as_of.slice(5)}</text><text x="${W - m.r}" y="${H - 6}" text-anchor="end">${book[book.length - 1].as_of.slice(5)}</text></g>
         </svg>`
       }
+
+      // execution: what the executor did with the cells, and why
+      try {
+        const since = new Date(Date.now() - 86400000).toISOString()
+        const orders = await q('kalshi_live_orders', (b) => b.select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(50))
+        const last = orders[0]
+        const modeEl = el('exec-mode')
+        modeEl.innerHTML = last
+          ? (last.mode === 'live' ? '<span class="live">Live</span>, sending real orders' : '<span class="armed">Armed</span>, logging intents, sending nothing')
+          : '<span class="armed">Armed</span>, no intents in the last 24 h'
+        el('exec-gate').textContent = `${fmt.format(trades)} of 100 paper trades${trades ? `, ${money(pnl)}` : ''}${trades >= 100 && pnl > 0 ? ', passed' : ', not passed'}${last ? `; switch ${last.live_switch ? 'on' : 'off'}` : ''}`
+        const placed = orders.filter((o) => o.status === 'placed' || o.status === 'filled' || o.status === 'settled')
+        el('exec-today').textContent = orders.length
+          ? `${orders.length} ${orders.length === 1 ? 'intent' : 'intents'}, ${placed.length} sent${last.halted ? ', halted for the day' : ''}; last ${short(last.series)} ${last.side.toUpperCase()} ${last.contracts} @ ${p2(last.price)} ${ago(last.created_at)}`
+          : 'no intents'
+      } catch (e) { console.error(e) }
 
       // the cells
       const tb = el('cells').querySelector('tbody')
