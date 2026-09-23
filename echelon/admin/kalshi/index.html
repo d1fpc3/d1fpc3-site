@@ -301,7 +301,7 @@
     <section class="panel span-12">
       <div class="panel-head">
         <h2>Edge hunt</h2>
-        <span class="sub">Cells are hypotheses; the paper trades are the only evidence. Every cell over 30 days with 200+ rounds where the win rate's 99.9% lower bound beat the real ask plus the fee, traded on paper the next day at that minute's ask, $10 a round. This is the cell book. The signal bot's model book lives in Discord with its own gate, and the two are never summed.</span>
+        <span class="sub">Cells are hypotheses; the paper trades are the only evidence. Every cell over 30 days with 200+ rounds where the win rate's 99.9% lower bound beat the real ask plus the fee by at least half a cent, traded on paper the next day at that minute's ask, $10 a round. This is the cell book. The signal bot's model book lives in Discord with its own gate, and the two are never summed.</span>
       </div>
       <div class="edge">
         <div class="edge-book">
@@ -318,6 +318,18 @@
           <th>Series</th><th>Minutes left</th><th>Cell</th><th>Buy</th><th class="n">Rounds</th><th class="n">Won</th><th class="n">Ask</th><th class="n" title="Wilson lower bound of the win rate, minus the ask, minus the taker fee">Edge, floor</th><th class="n" title="mean win rate minus ask minus fee">Edge, mean</th>
         </tr></thead><tbody><tr><td colspan="9"><div class="skel"></div></td></tr></tbody></table></div>
       </div>
+    </section>
+
+    <!-- what the model learned: the weights, per series, from last night's fit -->
+    <section class="panel span-12">
+      <div class="panel-head">
+        <h2>What it learned</h2>
+        <span class="sub" id="learn-sub">Last night's fitted weights per series, on standardized inputs, so they compare across columns. Above 1 on the market's own probability means the market is under-confident there.</span>
+      </div>
+      <p class="reading quiet" id="learn-reading">Loading.</p>
+      <div class="tbl-scroll"><table id="weights"><thead><tr>
+        <th>Series</th><th class="n">Trained on</th><th class="n" title="weight on the logit of the market mid; 1.0 means the model takes the market at face value, above 1 sharpens it">Market probability</th><th class="n" title="distance from the open divided by the square root of minutes left">Scaled distance</th><th class="n">Distance</th><th class="n">Range so far</th><th class="n">3-min momentum</th><th class="n">Minutes left</th><th class="n" title="in-sample Brier of the fit; the out-of-sample score is on the curve">Fit Brier</th><th class="n" title="the market-blind model's out-of-sample Brier that day">Blind, next day</th>
+      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
 
     <!-- coverage -->
@@ -530,7 +542,8 @@
         { key: 'brier_calibrated', cls: 'line-c', name: 'Calibrated mid', color: 'var(--series-b)', lbl: 'lbl b' },
         { key: 'brier_mid', cls: 'line-b', name: 'Market mid', color: 'var(--series-b)', lbl: 'lbl b' },
       ]
-      const ys = rows.flatMap((r) => KEYS.map((k) => Number(r[k.key]))).filter((v) => Number.isFinite(v))
+      // Number(null) is 0, which would drag the axis floor to zero on any day a line has no value
+      const ys = rows.flatMap((r) => KEYS.filter((k) => r[k.key] != null).map((k) => Number(r[k.key]))).filter((v) => Number.isFinite(v))
       const y0 = Math.min(...ys), y1 = Math.max(...ys), pad = Math.max((y1 - y0) * 0.15, 0.002)
       const ylo = Math.max(0, y0 - pad), yhi = y1 + pad
       const one = rows.length === 1
@@ -661,6 +674,46 @@
         <td class="n ok">+${(100 * Number(c.ev_lo)).toFixed(1)}¢</td>
         <td class="n">+${(100 * Number(c.ev_mean)).toFixed(1)}¢</td>
       </tr>`).join('') : `<tr><td colspan="9" class="empty">${asOf ? 'No cell clears the bar as of ' + asOf + '.' : 'No scoring yet.'}</td></tr>`
+    }
+
+    /* ── what it learned ── */
+    async function loadWeights() {
+      const latest = await q('kalshi_models', (b) => b.select('as_of').eq('kind', 'full').order('as_of', { ascending: false }).limit(1))
+      const asOf = latest[0]?.as_of ?? null
+      const tb = el('weights').querySelector('tbody'), reading = el('learn-reading')
+      if (!asOf) {
+        tb.innerHTML = '<tr><td colspan="10" class="empty">No model fitted yet. The learner runs after the nightly scoring.</td></tr>'
+        reading.textContent = 'The learner refits every night on the trailing 30 days and scores the next day out of sample. Nothing here is tuned after a score.'
+        return
+      }
+      const [models, next] = await Promise.all([
+        q('kalshi_models', (b) => b.select('*').eq('kind', 'full').eq('as_of', asOf).order('series')),
+        q('kalshi_daily', (b) => b.select('series,brier_model_spot,brier_model,brier_mid').eq('as_of', new Date(Date.parse(asOf + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10))),
+      ])
+      const nextBy = new Map(next.map((r) => [r.series, r]))
+      const w = (m, k) => Number(m.coef?.weights?.[k] ?? 0)
+      const f2 = (x) => (x > 0 ? '+' : '') + x.toFixed(2)
+      const mean = (k) => models.reduce((t, m) => t + w(m, k), 0) / models.length
+      el('learn-sub').textContent = `Fitted ${asOf} on the 30 days before it, standardized inputs so weights compare across columns. Above 1 on the market's own probability means the market is under-confident there.`
+      tb.innerHTML = models.map((m) => {
+        const n = nextBy.get(m.series)
+        const pm = w(m, 'logit_mid')
+        return `<tr>
+          <td><span class="ser">${short(m.series)}</span></td>
+          <td class="n">${fmt.format(m.n_train)}</td>
+          <td class="n"><span class="${pm > 1.05 ? 'ok' : pm < 0.95 ? 'err' : ''}">${pm.toFixed(2)}</span></td>
+          <td class="n">${f2(w(m, 'scaled_bps'))}</td>
+          <td class="n">${f2(w(m, 'bps'))}</td>
+          <td class="n">${f2(w(m, 'range'))}</td>
+          <td class="n">${f2(w(m, 'mom'))}</td>
+          <td class="n">${f2(w(m, 'mtc'))}</td>
+          <td class="n">${p4(m.brier_train)}</td>
+          <td class="n">${n ? `${p4(n.brier_model_spot)} <span class="cnt">vs ${p4(n.brier_mid)}</span>` : '–'}</td>
+        </tr>`
+      }).join('')
+      const pmAvg = mean('logit_mid'), sdAvg = mean('scaled_bps')
+      reading.className = 'reading'
+      reading.textContent = `Across ${models.length} series the weight on the market's own probability averages ${pmAvg.toFixed(2)}${pmAvg > 1.05 ? ', so the model consistently sharpens the market: it thinks favorites are priced too close to even.' : pmAvg < 0.95 ? ', so the model consistently softens the market: it thinks prices are over-confident.' : ', so it takes the market roughly at face value.'} Scaled distance carries ${f2(sdAvg)} on top of that${Math.abs(sdAvg) > 0.2 ? ': where price sits relative to the open still adds information the price has not absorbed.' : ': the price already holds most of what distance knows.'}`
     }
 
     /* ── coverage heat grid ── */
@@ -803,7 +856,7 @@
     segment(el('cal-mtc'), MTC.map((b) => ({ v: b, label: b.replace('-', ' to ') + ' min' })), state.mtc, (v) => { state.mtc = v; renderCalib() })
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadTicks(), loadStats(), loadDaily(), loadEdge(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadTicks(), loadStats(), loadDaily(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
     setInterval(() => { loadTicks(); loadLive() }, 30_000)
     setInterval(() => { loadStats(); loadCoverage(); loadEdge() }, 5 * 60_000)

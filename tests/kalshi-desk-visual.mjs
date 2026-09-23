@@ -81,6 +81,7 @@ for (const name of VPS) {
     tickRows: document.querySelectorAll('#ticks tbody tr').length,
     coverageCells: document.querySelectorAll('#coverage .cell').length,
     edgeRows: document.querySelectorAll('#cells tbody tr').length,
+    weightRows: document.querySelectorAll('#weights tbody tr').length,
     edgePnl: document.getElementById('e-pnl')?.textContent,
     heroEmpty: Boolean(document.querySelector('#hero-chart .empty')),
     heroSvg: Boolean(document.querySelector('#hero-chart svg')),
@@ -92,6 +93,7 @@ for (const name of VPS) {
   if (!m.tickRows) findings.push(`${name}: collector table empty`)
   if (!m.coverageCells) findings.push(`${name}: coverage grid empty`)
   if (!m.edgeRows) findings.push(`${name}: edge table rendered nothing (not even its empty state)`)
+  if (!m.weightRows) findings.push(`${name}: weights table rendered nothing (not even its empty state)`)
   if (!m.heroEmpty && !m.heroSvg) findings.push(`${name}: hero rendered neither a chart nor its empty state`)
   if (errors.length) findings.push(`${name}: ${errors.length} page/console errors: ${errors.slice(0, 3).join(' | ')}`)
   console.log(`${name}: pulse "${m.pulse}" [${m.pulseClass}] live ${m.liveRows} ticks ${m.tickRows} cells ${m.coverageCells} hero ${m.heroSvg ? 'chart' : m.heroEmpty ? 'empty state' : 'NOTHING'} stats ${m.stats.join(' / ')} edge ${m.edgeRows} rows, P&L ${m.edgePnl}`)
