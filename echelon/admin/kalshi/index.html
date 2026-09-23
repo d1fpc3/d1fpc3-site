@@ -155,6 +155,10 @@
     .chart .line-b { fill: none; stroke: var(--series-b); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
     /* the calibrated mid is the market mid corrected, so it wears the mid's gray, dashed */
     .chart .line-c { fill: none; stroke: var(--series-b); stroke-width: 2; stroke-dasharray: 5 4; stroke-linejoin: round; stroke-linecap: round; }
+    /* the learned model is ours like the distance model, so it wears the gold, dashed */
+    .chart .line-d { fill: none; stroke: var(--series-a); stroke-width: 2; stroke-dasharray: 5 4; stroke-linejoin: round; stroke-linecap: round; }
+    .draw .line-d { opacity: 0; animation: fadein 500ms 800ms ease-out forwards; }
+    @media (prefers-reduced-motion: reduce) { .draw .line-d { animation: none; opacity: 1; } }
     .chart .zero { stroke: var(--line-bright); }
     .chart .lbl { font-size: 12px; font-weight: 500; fill: var(--ink); }
     .chart .lbl.b { fill: var(--muted); }
@@ -266,7 +270,7 @@
     <section class="panel span-12">
       <div class="panel-head">
         <h2>Learning curve</h2>
-        <span class="sub">Brier score by day, lower is better. The market mid, the mid corrected by calibration, and a forecast built only from distance and time, all scored out of sample.</span>
+        <span class="sub">Brier score by day, lower is better. The market mid, the mid corrected by calibration, a forecast built only from distance and time, and a model refit every night on the trailing 30 days, all scored out of sample.</span>
         <div class="right">
           <div class="seg scroll" id="hero-series"></div>
           <div class="seg" id="hero-mode">
@@ -507,20 +511,21 @@
       const n = last7.reduce((t, r) => t + (r.rounds_settled ?? 0), 0)
       const mean = (key) => last7.reduce((t, r) => t + Number(r[key]), 0) / last7.length
       const gMid = mean('brier_mid'), gCal = mean('brier_calibrated')
-      const withDist = last7.filter((r) => r.brier_dist != null)
-      const gDist = withDist.length ? withDist.reduce((t, r) => t + Number(r.brier_dist), 0) / withDist.length : null
-      const dDist = gDist == null ? null : gMid - gDist, dCal = gMid - gCal
+      const meanOf = (key) => { const w = last7.filter((r) => r[key] != null); return w.length ? w.reduce((t, r) => t + Number(r[key]), 0) / w.length : null }
+      const gDist = meanOf('brier_dist'), gModel = meanOf('brier_model'), gSpot = meanOf('brier_model_spot')
+      const dDist = gDist == null ? null : gMid - gDist, dCal = gMid - gCal, dModel = gModel == null ? null : gMid - gModel, dSpot = gSpot == null ? null : gMid - gSpot
       const say = (name, d) => Math.abs(d) < 0.0005 ? `${name} matches the market within ${p4(Math.abs(d))}` : d > 0 ? `${name} beats the market by ${p4(d)}` : `${name} trails the market by ${p4(-d)}`
       reading.className = 'reading'
       reading.textContent = last7.length < 2
-        ? `One day scored over ${fmt.format(n)} rounds: market mid ${p4(last7[0].brier_mid)}, calibrated ${p4(last7[0].brier_calibrated)}, distance model ${p4(last7[0].brier_dist)}. Nothing to read yet.`
-        : `Last ${last7.length} days, ${fmt.format(n)} rounds, market mid at ${p4(gMid)} Brier. ${dDist == null ? 'The distance model has no scored days yet' : say('The distance model', dDist)}; ${say('the calibrated mid', dCal).replace(/^The/, 'the')}.`
+        ? `One day scored over ${fmt.format(n)} rounds: market mid ${p4(last7[0].brier_mid)}, calibrated ${p4(last7[0].brier_calibrated)}, distance model ${p4(last7[0].brier_dist)}, learned model ${p4(last7[0].brier_model)}. Nothing to read yet.`
+        : `Last ${last7.length} days, ${fmt.format(n)} rounds, market mid at ${p4(gMid)} Brier. ${dModel == null ? 'The learned model has not scored yet' : say('The learned model', dModel)}; ${dDist == null ? 'the distance model has no scored days yet' : say('the distance model', dDist).replace(/^The/, 'the')}; ${say('the calibrated mid', dCal).replace(/^The/, 'the')}.${dSpot == null ? '' : dSpot > 0.0005 ? ` The market-blind model beats the market by ${p4(dSpot)}: the spot feed knows something the price does not.` : ` The market-blind model trails the market by ${p4(-dSpot)}: the price already holds what spot knows.`}`
 
       // chart, drawn at the container's real pixel width so text stays legible on a phone
       const W = Math.max(320, Math.round(host.clientWidth || 900)), H = W < 600 ? 230 : 280
       const m = { t: 22, r: 18, b: 34, l: W < 600 ? 44 : 52 }
       const xs = rows.map((r) => Date.parse(r.as_of))
       const KEYS = [
+        { key: 'brier_model', cls: 'line-d', name: 'Learned model', color: 'var(--series-a)', lbl: 'lbl' },
         { key: 'brier_dist', cls: 'line-a', name: 'Distance model', color: 'var(--series-a)', lbl: 'lbl' },
         { key: 'brier_calibrated', cls: 'line-c', name: 'Calibrated mid', color: 'var(--series-b)', lbl: 'lbl b' },
         { key: 'brier_mid', cls: 'line-b', name: 'Market mid', color: 'var(--series-b)', lbl: 'lbl b' },
@@ -555,6 +560,7 @@
         <path class="line-b" d="${path('brier_mid')}"/>
         <path class="line-c" d="${path('brier_calibrated')}"/>
         <path class="line-a" d="${path('brier_dist')}"/>
+        <path class="line-d" d="${path('brier_model')}"/>
         ${ends.map((e) => `<circle cx="${lx.toFixed(1)}" cy="${e.y.toFixed(1)}" r="3.5" fill="${e.color}"/>`).join('')}
         ${ends.map((e, i) => `<text class="${e.lbl}" x="${lxo.toFixed(1)}" y="${labelY[i].toFixed(1)}" text-anchor="${anchor}">${e.name} ${p4(e.v)}</text>`).join('')}
         <line class="xhair" id="xh" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" opacity="0"/>
@@ -569,6 +575,8 @@
         const r = rows[best]
         xh.setAttribute('x1', x(xs[best])); xh.setAttribute('x2', x(xs[best])); xh.setAttribute('opacity', '1')
         showTip(`<div class="t">${new Date(r.as_of + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })}, ${fmt.format(r.rounds_settled ?? 0)} rounds</div>
+          <div class="row"><span><i class="sw" style="background: var(--series-a); opacity: .6"></i>Learned model</span><b>${p4(r.brier_model)}</b></div>
+          <div class="row"><span><i class="sw" style="background: var(--series-a); opacity: .3"></i>Learned, market-blind</span><b>${p4(r.brier_model_spot)}</b></div>
           <div class="row"><span><i class="sw" style="background: var(--series-a)"></i>Distance model</span><b>${p4(r.brier_dist)}</b></div>
           <div class="row"><span><i class="sw" style="background: var(--series-b); opacity: .6"></i>Calibrated mid</span><b>${p4(r.brier_calibrated)}</b></div>
           <div class="row"><span><i class="sw" style="background: var(--series-b)"></i>Market mid</span><b>${p4(r.brier_mid)}</b></div>
@@ -579,8 +587,8 @@
 
       // table view
       const gapCell = (a, b) => (a == null || b == null) ? '<td class="n">–</td>' : `<td class="n ${Number(a) - Number(b) > 0.0005 ? 'ok' : Number(a) - Number(b) < -0.0005 ? 'err' : 'cnt'}">${(Number(a) - Number(b) > 0 ? '+' : '') + p4(Number(a) - Number(b))}</td>`
-      tbl.innerHTML = `<div class="tbl-scroll"><table><thead><tr><th>Day</th><th class="n">Rounds</th><th class="n">Spot</th><th class="n">Market mid</th><th class="n">Calibrated</th><th class="n" title="market minus calibrated, positive means the correction helped">Edge</th><th class="n">Distance model</th><th class="n" title="market minus distance model, positive means the model beat the market">Edge</th></tr></thead><tbody>${
-        [...rows].reverse().map((r) => `<tr><td>${r.as_of}</td><td class="n">${n0(r.rounds_settled)}</td><td class="n">${r.spot_coverage == null ? '–' : Math.round(r.spot_coverage * 100) + '%'}</td><td class="n">${p4(r.brier_mid)}</td><td class="n">${p4(r.brier_calibrated)}</td>${gapCell(r.brier_mid, r.brier_calibrated)}<td class="n">${p4(r.brier_dist)}</td>${gapCell(r.brier_mid, r.brier_dist)}</tr>`).join('')
+      tbl.innerHTML = `<div class="tbl-scroll"><table><thead><tr><th>Day</th><th class="n">Rounds</th><th class="n">Market mid</th><th class="n">Calibrated</th><th class="n" title="market minus calibrated, positive means the correction helped">Edge</th><th class="n">Distance</th><th class="n" title="market minus distance model">Edge</th><th class="n">Learned</th><th class="n" title="market minus learned model">Edge</th><th class="n" title="the learned model with the market price withheld">Market-blind</th><th class="n" title="rows the models trained on">Trained on</th></tr></thead><tbody>${
+        [...rows].reverse().map((r) => `<tr><td>${r.as_of}</td><td class="n">${n0(r.rounds_settled)}</td><td class="n">${p4(r.brier_mid)}</td><td class="n">${p4(r.brier_calibrated)}</td>${gapCell(r.brier_mid, r.brier_calibrated)}<td class="n">${p4(r.brier_dist)}</td>${gapCell(r.brier_mid, r.brier_dist)}<td class="n">${p4(r.brier_model)}</td>${gapCell(r.brier_mid, r.brier_model)}<td class="n">${p4(r.brier_model_spot)}</td><td class="n">${n0(r.model_n_train)}</td></tr>`).join('')
       }</tbody></table></div>`
     }
 
