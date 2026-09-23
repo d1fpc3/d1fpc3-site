@@ -93,9 +93,13 @@ create table if not exists public.kalshi_calibration (
   mean_mid     numeric not null,
   hit_rate     numeric not null,          -- mean(settlement_value): the calibrated probability
   brier_mid    numeric not null,
+  mean_spread  numeric,                   -- book thins toward close, so near-close buckets carry wider spreads
+  mean_depth   numeric,                   -- least(top5_yes, top5_no): the binding side; spread and depth diverge on one-sided books
   window_days  int     not null,
   primary key (as_of, series, mtc_bucket, band, window_days)
 );
+alter table public.kalshi_calibration add column if not exists mean_spread numeric;
+alter table public.kalshi_calibration add column if not exists mean_depth  numeric;
 
 -- One row per day per series: how well the market mid forecast that day's rounds,
 -- and how well the PRIOR day's calibration table would have corrected it. The gap
@@ -111,9 +115,13 @@ create table if not exists public.kalshi_daily (
   brier_calibrated   numeric,            -- out of sample: uses the table as of the day before
   logloss_mid        numeric,
   logloss_calibrated numeric,
+  mean_spread        numeric,            -- so a worse near-close Brier can be read against the book, not blamed on calibration
+  mean_depth         numeric,
   computed_at        timestamptz not null default now(),
   primary key (as_of, series)
 );
+alter table public.kalshi_daily add column if not exists mean_spread numeric;
+alter table public.kalshi_daily add column if not exists mean_depth  numeric;
 
 -- ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -138,12 +146,18 @@ $$;
 create or replace function public.kalshi_calibrate(p_as_of date default null)
 returns table (series text, rounds_settled int, brier_mid numeric, brier_calibrated numeric)
 language plpgsql security definer set search_path = public as $$
+-- The RETURNS TABLE names double as PL/pgSQL variables and collide with the same-named
+-- columns inside the INSERT below ("series" is ambiguous). Columns win; v_day is not a
+-- column anywhere, so it still resolves to the variable. Found by a dry run, which is
+-- the only way this would have been found before the first 00:10 UTC cron.
+#variable_conflict use_column
 declare
   v_day date := coalesce(p_as_of, ((now() at time zone 'utc')::date - 1));
 begin
   -- Every scored minute of every round that closed on v_day and has a result.
   create temp table _snaps on commit drop as
-  select r.series, r.ticker, s.minute_utc, s.mid,
+  select r.series, r.ticker, s.minute_utc, s.mid, s.spread,
+         least(s.top5_yes, s.top5_no) as depth,
          r.settlement_value as y,
          floor(extract(epoch from (r.close_time - s.minute_utc)) / 60)::int as mtc
   from kalshi_rounds r
@@ -152,6 +166,11 @@ begin
     and (r.close_time at time zone 'utc')::date = v_day
     and s.minute_utc >= r.close_time - interval '15 minutes'
     and s.minute_utc <  r.close_time;
+
+  -- A day with nothing scorable writes nothing, rather than a zero-count row.
+  if not exists (select 1 from _snaps) then
+    return;
+  end if;
 
   -- Correct each mid with the calibration table as it stood the day BEFORE, so the
   -- corrected score is out of sample. Buckets with no prior row fall back to the mid.
@@ -169,7 +188,7 @@ begin
 
   insert into kalshi_daily
     (as_of, series, rounds_settled, snaps, tape_minutes, coverage,
-     brier_mid, brier_calibrated, logloss_mid, logloss_calibrated, computed_at)
+     brier_mid, brier_calibrated, logloss_mid, logloss_calibrated, mean_spread, mean_depth, computed_at)
   select v_day, coalesce(g.series, 'ALL'),
          count(distinct g.ticker), count(*),
          (select count(*) from kalshi_tape_minutes t where t.ticker in (select distinct ticker from _scored z where g.series is null or z.series = g.series)),
@@ -178,6 +197,8 @@ begin
          avg((g.p_cal - g.y) ^ 2),
          avg(-(g.y * ln(greatest(g.mid,   1e-6)) + (1 - g.y) * ln(greatest(1 - g.mid,   1e-6)))),
          avg(-(g.y * ln(greatest(g.p_cal, 1e-6)) + (1 - g.y) * ln(greatest(1 - g.p_cal, 1e-6)))),
+         avg(g.spread),
+         avg(g.depth),
          now()
   from _scored g
   group by grouping sets ((g.series), ())
@@ -186,16 +207,17 @@ begin
     tape_minutes = excluded.tape_minutes, coverage = excluded.coverage,
     brier_mid = excluded.brier_mid, brier_calibrated = excluded.brier_calibrated,
     logloss_mid = excluded.logloss_mid, logloss_calibrated = excluded.logloss_calibrated,
+    mean_spread = excluded.mean_spread, mean_depth = excluded.mean_depth,
     computed_at = now();
 
   -- Rebuild the 30-day table as of v_day.
   delete from kalshi_calibration where as_of = v_day and window_days = 30;
   insert into kalshi_calibration
-    (as_of, series, mtc_bucket, band, n, mean_mid, hit_rate, brier_mid, window_days)
+    (as_of, series, mtc_bucket, band, n, mean_mid, hit_rate, brier_mid, mean_spread, mean_depth, window_days)
   select v_day, coalesce(w.series, 'ALL'), w.mtcb, w.band,
-         count(*), avg(w.mid), avg(w.y), avg((w.mid - w.y) ^ 2), 30
+         count(*), avg(w.mid), avg(w.y), avg((w.mid - w.y) ^ 2), avg(w.spread), avg(w.depth), 30
   from (
-    select r.series, s.mid, r.settlement_value as y,
+    select r.series, s.mid, s.spread, least(s.top5_yes, s.top5_no) as depth, r.settlement_value as y,
            kalshi_mtc_bucket(floor(extract(epoch from (r.close_time - s.minute_utc)) / 60)::int) as mtcb,
            kalshi_band(s.mid) as band
     from kalshi_rounds r

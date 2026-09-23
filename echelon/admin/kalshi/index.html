@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Kalshi desk</title>
+  <link rel="icon" href="/echelon-favicon.svg" type="image/svg+xml">
+  <script>
+    // Follow the admin's theme choice. Dark is the default and the door stays dark.
+    try { if (localStorage.getItem('echelon-theme') === 'light') document.documentElement.dataset.theme = 'light' } catch {}
+  </script>
+  <style>
+    /* ─────────────────────────────────────────────────────────
+       d1fpc3.com | echelon | admin | Kalshi desk
+       One question, answered at a glance: is it collecting, and is it
+       getting better. Everything else on the page is drill-down.
+       Same bones and tokens as /echelon/admin. This file is public;
+       every row it shows arrives because Postgres decided the signed-in
+       user is an admin, never because the page said so.
+       ───────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+    :root {
+      --bg: #0b0a09;
+      --panel: #131211;
+      --panel-2: #1a1817;
+      --ink: #f4f2ee;
+      --muted: #9d978c;
+      --faint: #6b665e;
+      --line: #262321;
+      --line-bright: #383431;
+      --gold: #c9a24a;
+      --gold-deep: #a8842c;
+      --bad: #d98b7a;
+      --good: #86b57f;
+      /* Chart series. Validated with the dataviz palette script on #131211:
+         lightness band pass, CVD separation 14.3, normal-vision 15.5, contrast pass.
+         The gray fails the chroma floor by design: it is the de-emphasis series
+         (emphasis form, one hue plus gray). Direct labels and the table view are
+         the relief channel. */
+      --series-a: #a8842c;   /* the calibrated forecast: the line that matters */
+      --series-b: #6b665e;   /* the market mid: the reference */
+      --ramp-0: #1a1817; --ramp-1: #3a2f14; --ramp-2: #6b5320; --ramp-3: #a8842c; --ramp-4: #c9a24a;
+    }
+    :root[data-theme="light"] {
+      --bg: #f6f4f0;
+      --panel: #ffffff;
+      --panel-2: #efece6;
+      --ink: #1a1815;
+      --muted: #5f5a51;
+      --faint: #8a847a;
+      --line: #e4e0d8;
+      --line-bright: #d3cec4;
+      --gold: #a8842c;
+      --gold-deep: #8a6a1e;
+      --bad: #b4543c;
+      --good: #4e7d46;
+      /* validated on #ffffff: band pass, CVD 17.5, normal-vision 18.9, contrast pass */
+      --series-a: #a8842c;
+      --series-b: #5f5a51;
+      --ramp-0: #efece6; --ramp-1: #e2d3ad; --ramp-2: #c9a24a; --ramp-3: #a8842c; --ramp-4: #6e5416;
+    }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg); color: var(--ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px; line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      font-variant-numeric: tabular-nums;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
+    html { scrollbar-color: var(--line-bright) transparent; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: var(--line-bright); border-radius: 5px; border: 3px solid var(--bg); }
+
+    /* ════ top bar ═══════════════════════════════════════════ */
+    .topbar {
+      position: sticky; top: 0; z-index: 5;
+      display: flex; align-items: center; gap: 20px;
+      height: 56px; padding: 0 24px;
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+    .back { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); padding: 6px 10px 6px 6px; border-radius: 8px; transition: color 160ms, background 160ms; }
+    .back svg { width: 16px; height: 16px; }
+    @media (hover: hover) { .back:hover { color: var(--ink); background: var(--panel-2); } }
+    .back:active { transform: scale(0.97); }
+    .title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+    .pulse { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; color: var(--muted); white-space: nowrap; min-width: 0; }
+    .pulse-short { display: none; }
+    .pulse .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); position: relative; }
+    .pulse.live .dot { background: var(--good); }
+    .pulse.live .dot::after {
+      content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1px solid var(--good);
+      animation: ring 1.8s ease-out infinite; opacity: 0.7;
+    }
+    .pulse.stale .dot { background: var(--bad); }
+    @keyframes ring { from { transform: scale(0.6); opacity: 0.7; } to { transform: scale(1.6); opacity: 0; } }
+
+    /* ════ layout ════════════════════════════════════════════ */
+    .wrap { max-width: 1720px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+    .panel { --pad: 22px; background: var(--panel); border-radius: 14px; padding: 20px var(--pad) var(--pad); min-width: 0; }
+    .span-12 { grid-column: span 12; }
+    .span-7 { grid-column: span 7; }
+    .span-5 { grid-column: span 5; }
+    @media (max-width: 1100px) { .span-7, .span-5 { grid-column: span 12; } }
+    @media (max-width: 640px) {
+      .wrap { padding: 16px; gap: 16px; }
+      .panel { --pad: 16px; padding: 16px var(--pad); border-radius: 12px; }
+      .topbar { padding: 0 16px; gap: 12px; }
+      .panel-head .right { width: 100%; margin-left: 0; }
+      .pulse-long { display: none; }
+      .pulse-short { display: inline; }
+    }
+
+    .panel-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+    .panel-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    .panel-head .sub { color: var(--muted); font-size: 13px; }
+    .panel-head .right { margin-left: auto; display: flex; gap: 10px; align-items: center; min-width: 0; max-width: 100%; }
+
+    /* segmented control: a real one, not a row of buttons */
+    .seg { display: inline-flex; padding: 3px; background: var(--panel-2); border-radius: 9px; position: relative; }
+    .seg button { position: relative; z-index: 1; padding: 5px 11px; border-radius: 7px; color: var(--muted); font-size: 12.5px; font-weight: 500; transition: color 160ms; white-space: nowrap; }
+    .seg button.on { color: var(--ink); }
+    .seg .thumb { position: absolute; top: 3px; bottom: 3px; left: 0; width: 0; background: var(--panel); border-radius: 7px; box-shadow: 0 1px 2px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04); transition: left 220ms cubic-bezier(0.2, 0.8, 0.2, 1), width 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .seg button:active { transform: scale(0.97); }
+    .seg.scroll { max-width: 100%; min-width: 0; flex: 0 1 auto; overflow-x: auto; scrollbar-width: none; }
+    .seg.scroll::-webkit-scrollbar { display: none; }
+
+    /* ════ hero ══════════════════════════════════════════════ */
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: stretch; }
+    @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } }
+    .hero-side { display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
+    .stat { display: flex; flex-direction: column; gap: 2px; }
+    .stat .v { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+    .stat .v.gold { color: var(--gold); }
+    .stat .k { color: var(--muted); font-size: 13px; }
+    .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+    .reading { color: var(--ink); font-size: 15px; line-height: 1.5; max-width: 62ch; }
+    .reading.quiet { color: var(--muted); }
+    .empty { color: var(--muted); font-size: 14px; padding: 28px 0; text-align: center; }
+    .empty b { color: var(--ink); font-weight: 500; }
+
+    /* ════ charts ════════════════════════════════════════════ */
+    .chart { position: relative; width: 100%; }
+    .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .chart .grid line { stroke: var(--line); stroke-width: 1; }
+    .chart .axis text { fill: var(--faint); font-size: 11px; }
+    .chart .axis-title { fill: var(--muted); font-size: 11.5px; }
+    .chart .line-a { fill: none; stroke: var(--series-a); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    .chart .line-b { fill: none; stroke: var(--series-b); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    .chart .lbl { font-size: 12px; font-weight: 500; fill: var(--ink); }
+    .chart .lbl.b { fill: var(--muted); }
+    .chart .diag { stroke: var(--line-bright); stroke-dasharray: 3 4; }
+    .chart .dot { fill: var(--series-a); stroke: var(--panel); stroke-width: 2; transition: r 120ms; }
+    .chart .xhair { stroke: var(--line-bright); stroke-width: 1; pointer-events: none; }
+    .chart .hit { fill: transparent; }
+    .draw .line-a, .draw .line-b { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: draw 900ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    .draw .line-b { animation-delay: 80ms; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .draw .line-a, .draw .line-b { animation: none; stroke-dashoffset: 0; }
+      .pulse.live .dot::after { animation: none; }
+      .seg .thumb { transition: none; }
+    }
+    .tip {
+      position: fixed; z-index: 20; pointer-events: none; opacity: 0; transform: translateY(4px);
+      transition: opacity 120ms, transform 120ms;
+      background: var(--panel-2); color: var(--ink); border-radius: 9px; padding: 8px 11px; font-size: 12.5px; line-height: 1.45;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+      max-width: 280px; white-space: nowrap;
+    }
+    .tip.on { opacity: 1; transform: translateY(0); }
+    .tip .t { color: var(--muted); margin-bottom: 2px; }
+    .tip .row { display: flex; gap: 12px; justify-content: space-between; }
+    .tip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
+
+    /* ════ coverage heat grid ════════════════════════════════ */
+    .heat { display: grid; gap: 4px; align-items: center; }
+    .heat .rl { font-size: 12px; color: var(--muted); padding-right: 8px; white-space: nowrap; }
+    .heat .cl { font-size: 10.5px; color: var(--faint); text-align: center; padding-bottom: 4px; }
+    .heat .cell { height: 22px; border-radius: 5px; background: var(--ramp-0); transition: transform 120ms; cursor: default; }
+    @media (hover: hover) { .heat .cell:hover { transform: scale(1.12); outline: 1px solid var(--line-bright); } }
+    .heat .cell[data-l="1"] { background: var(--ramp-1); }
+    .heat .cell[data-l="2"] { background: var(--ramp-2); }
+    .heat .cell[data-l="3"] { background: var(--ramp-3); }
+    .heat .cell[data-l="4"] { background: var(--ramp-4); }
+    .legend { display: flex; align-items: center; gap: 6px; color: var(--faint); font-size: 11.5px; margin-top: 12px; }
+    .legend i { width: 14px; height: 10px; border-radius: 3px; display: inline-block; }
+
+    /* ════ tables ════════════════════════════════════════════ */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; font-weight: 500; color: var(--faint); font-size: 12px; padding: 0 10px 10px 0; white-space: nowrap; }
+    td { padding: 9px 10px 9px 0; border-top: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+    th.n, td.n { text-align: right; padding-right: 0; padding-left: 10px; }
+    td .ser { font-weight: 600; letter-spacing: -0.01em; }
+    td .mid { font-weight: 600; color: var(--gold); }
+    .bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--ramp-2); vertical-align: middle; margin-left: 8px; }
+    .cnt { color: var(--muted); }
+    .ok { color: var(--good); }
+    .err { color: var(--bad); }
+    .tick-err { color: var(--muted); font-size: 12px; max-width: 60ch; white-space: normal; }
+    #ticks th:last-child, #ticks td:last-child { padding-left: 20px; }
+    .tbl-scroll { overflow-x: auto; margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad); }
+    details summary { cursor: pointer; color: var(--muted); list-style: none; }
+    details summary::-webkit-details-marker { display: none; }
+    @media (hover: hover) { details summary:hover { color: var(--ink); } }
+
+    /* ════ gate ══════════════════════════════════════════════ */
+    .gate { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: #0b0a09; color: #f4f2ee; padding: 24px; }
+    .gate .card { text-align: center; max-width: 380px; }
+    .gate h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .gate p { color: #9d978c; margin-bottom: 18px; }
+    .gate .go { display: inline-block; padding: 10px 18px; border-radius: 10px; background: #c9a24a; color: #0b0a09; font-weight: 600; }
+    .gate .go:active { transform: scale(0.97); }
+    .skel { position: relative; overflow: hidden; background: var(--panel-2); border-radius: 8px; min-height: 18px; }
+    .skel::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent); animation: sh 1.4s infinite; }
+    @keyframes sh { to { transform: translateX(100%); } }
+  </style>
+</head>
+<body>
+  <div class="gate" id="gate" hidden>
+    <div class="card">
+      <h1 id="gate-title">Kalshi desk</h1>
+      <p id="gate-body">Sign in from the admin dashboard first.</p>
+      <a class="go" id="gate-go" href="/echelon/admin/">Open admin</a>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <a class="back" href="/echelon/admin/" aria-label="Back to admin">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg>
+      Admin
+    </a>
+    <div class="title">Kalshi desk</div>
+    <div class="pulse" id="pulse"><span class="dot"></span><span class="pulse-long" id="pulse-text">Checking the collector</span><span class="pulse-short" id="pulse-short"></span></div>
+  </header>
+
+  <main class="wrap">
+    <!-- hero: the learning curve, or, before the first scoring, what has been captured -->
+    <section class="panel span-12">
+      <div class="panel-head">
+        <h2>Learning curve</h2>
+        <span class="sub">Brier score by day, lower is better. The market mid against the calibrated forecast, scored out of sample.</span>
+        <div class="right">
+          <div class="seg scroll" id="hero-series"></div>
+          <div class="seg" id="hero-mode">
+            <span class="thumb"></span>
+            <button class="on" data-v="chart">Chart</button>
+            <button data-v="table">Table</button>
+          </div>
+        </div>
+      </div>
+      <div class="hero">
+        <div>
+          <div class="chart" id="hero-chart"><div class="skel" style="height: 260px"></div></div>
+          <div id="hero-table" hidden></div>
+        </div>
+        <aside class="hero-side">
+          <div class="stat-row">
+            <div class="stat"><div class="v gold" id="s-rounds">–</div><div class="k">rounds captured</div></div>
+            <div class="stat"><div class="v" id="s-minutes">–</div><div class="k">minutes of book</div></div>
+            <div class="stat"><div class="v" id="s-settled">–</div><div class="k">settled with a result</div></div>
+            <div class="stat"><div class="v" id="s-days">–</div><div class="k">days scored</div></div>
+          </div>
+          <p class="reading quiet" id="reading">Loading.</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- coverage -->
+    <section class="panel span-7">
+      <div class="panel-head">
+        <h2>Coverage</h2>
+        <span class="sub">Minutes of book captured per series, per UTC day. A full day is 1,440.</span>
+      </div>
+      <div id="coverage"><div class="skel" style="height: 220px"></div></div>
+      <div class="legend"><span>less</span><i style="background: var(--ramp-0)"></i><i style="background: var(--ramp-1)"></i><i style="background: var(--ramp-2)"></i><i style="background: var(--ramp-3)"></i><i style="background: var(--ramp-4)"></i><span>full</span></div>
+    </section>
+
+    <!-- calibration -->
+    <section class="panel span-5">
+      <div class="panel-head">
+        <h2>Calibration</h2>
+        <span class="sub" id="cal-sub">What the mid said against what happened, last 30 days.</span>
+        <div class="right"><div class="seg scroll" id="cal-mtc"></div></div>
+      </div>
+      <div class="chart" id="cal-chart"><div class="skel" style="height: 240px"></div></div>
+    </section>
+
+    <!-- live board -->
+    <section class="panel span-12">
+      <div class="panel-head">
+        <h2>Live board</h2>
+        <span class="sub" id="live-sub">Every series' current round as the collector last saw it.</span>
+      </div>
+      <div class="tbl-scroll"><table id="live"><thead><tr>
+        <th>Series</th><th>Closes in</th><th class="n">Strike</th><th class="n">Yes bid</th><th class="n">Yes ask</th><th class="n">Mid</th><th class="n">Spread</th><th class="n" title="contracts resting in the five best yes-bid levels">Depth yes</th><th class="n" title="contracts resting in the five best no-bid levels">Depth no</th><th class="n" title="the last full minute of tape: trades, then contracts">Last minute</th><th class="n" title="share of last-minute contracts where the taker bought yes">Taker yes</th>
+      </tr></thead><tbody><tr><td colspan="11"><div class="skel"></div></td></tr></tbody></table></div>
+    </section>
+
+    <!-- collector -->
+    <section class="panel span-12">
+      <div class="panel-head">
+        <h2>Collector</h2>
+        <span class="sub">One row per run. Silence here means the Worker did not run, never that it ran and hid it.</span>
+      </div>
+      <div class="tbl-scroll"><table id="ticks"><thead><tr>
+        <th>Ran at</th><th>From</th><th class="n">Rounds</th><th class="n">Snaps</th><th class="n">Tape</th><th class="n">Settled</th><th class="n">Took</th><th>Errors</th>
+      </tr></thead><tbody><tr><td colspan="8"><div class="skel"></div></td></tr></tbody></table></div>
+    </section>
+  </main>
+
+  <div class="tip" id="tip"></div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+    const SUPABASE_URL = 'https://cqdignbleethroyxxvzr.supabase.co'
+    const SUPABASE_KEY = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x'
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+    const el = (id) => document.getElementById(id)
+    const fmt = new Intl.NumberFormat('en-US')
+    const n0 = (x) => (x == null ? '–' : fmt.format(Math.round(x)))
+    const p2 = (x) => (x == null ? '–' : Number(x).toFixed(2))
+    const p3 = (x) => (x == null ? '–' : Number(x).toFixed(3))
+    const p4 = (x) => (x == null ? '–' : Number(x).toFixed(4))
+    const short = (s) => String(s).replace(/^KX/, '').replace(/15M$/, '')
+    const ago = (iso) => { const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); return s < 90 ? `${Math.round(s)}s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : `${(s / 3600).toFixed(1)} h ago` }
+
+    /* ── gate: same rule as the admin, Postgres decides ── */
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { el('gate').hidden = false; throw new Error('no session') }
+    const { data: isAdmin } = await supabase.rpc('is_admin')
+    if (!isAdmin) {
+      el('gate-title').textContent = 'Not an admin.'
+      el('gate-body').textContent = `${session.user.email} does not have admin access.`
+      el('gate-go').textContent = 'Sign out'; el('gate-go').href = '#'
+      el('gate-go').addEventListener('click', async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = '/echelon/admin/' })
+      el('gate').hidden = false; throw new Error('not admin')
+    }
+
+    /* ── tooltip ── */
+    const tip = el('tip')
+    function showTip(html, x, y) {
+      tip.innerHTML = html; tip.classList.add('on')
+      const r = tip.getBoundingClientRect()
+      const left = Math.min(x + 14, window.innerWidth - r.width - 12)
+      const top = y - r.height - 14 < 8 ? y + 18 : y - r.height - 14
+      tip.style.left = `${left}px`; tip.style.top = `${top}px`
+    }
+    const hideTip = () => tip.classList.remove('on')
+
+    /* ── segmented control ── */
+    function segment(host, items, value, onChange) {
+      host.innerHTML = '<span class="thumb"></span>' + items.map((it) => `<button data-v="${it.v}"${it.v === value ? ' class="on"' : ''}>${it.label}</button>`).join('')
+      const thumb = host.querySelector('.thumb')
+      const place = () => { const on = host.querySelector('button.on'); if (!on) return; thumb.style.left = `${on.offsetLeft}px`; thumb.style.width = `${on.offsetWidth}px` }
+      host.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+        host.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b))
+        place(); onChange(b.dataset.v)
+      }))
+      requestAnimationFrame(place)
+      new ResizeObserver(place).observe(host)
+      return place
+    }
+    // the static Chart/Table control
+    {
+      const host = el('hero-mode'), thumb = host.querySelector('.thumb')
+      const place = () => { const on = host.querySelector('button.on'); thumb.style.left = `${on.offsetLeft}px`; thumb.style.width = `${on.offsetWidth}px` }
+      host.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+        host.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); place()
+        const table = b.dataset.v === 'table'
+        el('hero-chart').hidden = table; el('hero-table').hidden = !table
+      }))
+      requestAnimationFrame(place)
+    }
+
+    /* ── data ── */
+    const SERIES = ['ALL', 'KXBTC15M', 'KXETH15M', 'KXDOGE15M', 'KXGOLD15M', 'KXSOL15M', 'KXXRP15M', 'KXBNB15M', 'KXHYPE15M', 'KXNEAR15M', 'KXZEC15M']
+    const MTC = ['00-02', '03-05', '06-08', '09-11', '12-14']
+    const state = { series: 'ALL', mtc: '00-02', daily: [], calib: [], calibAsOf: null }
+    const dayAgo = (d) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10)
+
+    async function q(table, build) {
+      const { data, error } = await build(supabase.from(table))
+      if (error) throw new Error(`${table}: ${error.message}`)
+      return data ?? []
+    }
+
+    /* ── pulse + collector ticks ── */
+    async function loadTicks() {
+      const ticks = await q('kalshi_collector_ticks', (b) => b.select('*').order('ran_at', { ascending: false }).limit(12))
+      const pulse = el('pulse'), text = el('pulse-text')
+      // Two collectors write here (the PC from a clean IP, the Worker as a fallback that
+      // Kalshi rate-limits). Health is "anything wrote real rows in the last 3 minutes".
+      const where = (s) => (s === 'pc' ? 'your PC' : 'Cloudflare')
+      if (!ticks.length) { pulse.className = 'pulse stale'; text.textContent = 'No runs recorded yet'; }
+      else {
+        const recent = ticks.filter((t) => (Date.now() - Date.parse(t.ran_at)) / 1000 < 180)
+        const best = [...recent].sort((a, b) => b.snaps - a.snaps)[0]
+        const healthy = best && best.snaps > 0
+        pulse.className = `pulse ${healthy ? 'live' : 'stale'}`
+        text.textContent = healthy
+          ? `Collecting from ${where(best.source)}, ${best.snaps} of ${best.series_count} series, ${ago(best.ran_at)}`
+          : recent.length ? `Running but writing nothing, ${ago(recent[0].ran_at)}` : `Stalled, last run ${ago(ticks[0].ran_at)}`
+      }
+      el('pulse-short').textContent = ticks.length ? ago(ticks[0].ran_at) : 'no runs'
+      const tb = el('ticks').querySelector('tbody')
+      tb.innerHTML = ticks.length ? ticks.map((t) => {
+        const errs = Array.isArray(t.errors) ? t.errors : []
+        const cls = errs.length ? (t.snaps ? 'cnt' : 'err') : 'ok'
+        return `<tr>
+          <td>${new Date(t.ran_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' })} UTC</td>
+          <td>${where(t.source)}</td>
+          <td class="n">${t.rounds} of ${t.series_count}</td><td class="n">${t.snaps}</td><td class="n">${t.tape_rows}</td><td class="n">${t.settled}</td>
+          <td class="n">${n0(t.ms)} ms</td>
+          <td>${errs.length ? `<details><summary class="${cls}">${errs.length} ${errs.length === 1 ? 'error' : 'errors'}</summary><div class="tick-err">${errs.map((e) => e.replace(/[<>]/g, '')).join('<br>')}</div></details>` : '<span class="ok">clean</span>'}</td>
+        </tr>`
+      }).join('') : '<tr><td colspan="7" class="empty">The collector has not written a run yet.</td></tr>'
+    }
+
+    /* ── hero stats + reading ── */
+    async function loadStats() {
+      const [rounds, settled, snaps, days] = await Promise.all([
+        supabase.from('kalshi_rounds').select('*', { count: 'exact', head: true }),
+        supabase.from('kalshi_rounds').select('*', { count: 'exact', head: true }).not('result', 'is', null),
+        supabase.from('kalshi_book_snaps').select('*', { count: 'exact', head: true }),
+        supabase.from('kalshi_daily').select('as_of').eq('series', 'ALL'),
+      ])
+      el('s-rounds').textContent = n0(rounds.count)
+      el('s-settled').textContent = n0(settled.count)
+      el('s-minutes').textContent = n0(snaps.count)
+      el('s-days').textContent = n0((days.data ?? []).length)
+    }
+
+    /* ── learning curve ── */
+    async function loadDaily() {
+      state.daily = await q('kalshi_daily', (b) => b.select('*').eq('series', state.series).order('as_of', { ascending: true }).limit(90))
+      renderHero()
+    }
+    function renderHero() {
+      const rows = state.daily.filter((r) => r.brier_mid != null)
+      const host = el('hero-chart'), tbl = el('hero-table'), reading = el('reading')
+      if (!rows.length) {
+        host.innerHTML = `<div class="empty" style="padding: 40px 0 28px"><b>No days scored yet.</b><br>The first scoring runs at 00:10 UTC over the rounds that closed today. Until then this desk shows what has been captured.</div>`
+        tbl.innerHTML = ''
+        reading.className = 'reading quiet'
+        reading.textContent = 'The calibrated line appears after the first scoring. It uses the previous day\'s calibration table, so it is out of sample from day one.'
+        return
+      }
+      // reading: the honest one-liner
+      const last7 = rows.slice(-7)
+      const gap = last7.reduce((t, r) => t + (Number(r.brier_mid) - Number(r.brier_calibrated)), 0) / last7.length
+      const n = last7.reduce((t, r) => t + (r.rounds_settled ?? 0), 0)
+      reading.className = 'reading'
+      reading.textContent = last7.length < 2
+        ? `One day scored: market mid ${p4(last7[0].brier_mid)}, calibrated ${p4(last7[0].brier_calibrated)}, over ${fmt.format(n)} rounds. Nothing to read yet.`
+        : Math.abs(gap) < 0.0005
+          ? `Over the last ${last7.length} days the calibrated forecast and the market mid are within ${p4(Math.abs(gap))} Brier of each other across ${fmt.format(n)} rounds. The market is already calibrated here.`
+          : gap > 0
+            ? `Over the last ${last7.length} days the calibrated forecast beats the market mid by ${p4(gap)} Brier across ${fmt.format(n)} rounds.`
+            : `Over the last ${last7.length} days the calibrated forecast is ${p4(-gap)} Brier worse than the market mid across ${fmt.format(n)} rounds. The correction is hurting.`
+
+      // chart
+      const W = 900, H = 280, m = { t: 18, r: 110, b: 34, l: 52 }
+      const xs = rows.map((r) => Date.parse(r.as_of))
+      const ys = rows.flatMap((r) => [Number(r.brier_mid), Number(r.brier_calibrated)]).filter((v) => Number.isFinite(v))
+      const y0 = Math.min(...ys), y1 = Math.max(...ys), pad = Math.max((y1 - y0) * 0.15, 0.002)
+      const ylo = Math.max(0, y0 - pad), yhi = y1 + pad
+      const x = (t) => rows.length === 1 ? (W - m.r + m.l) / 2 : m.l + ((t - xs[0]) / (xs[xs.length - 1] - xs[0])) * (W - m.l - m.r)
+      const y = (v) => m.t + (1 - (v - ylo) / (yhi - ylo)) * (H - m.t - m.b)
+      const path = (key) => rows.map((r, i) => `${i ? 'L' : 'M'}${x(xs[i]).toFixed(1)},${y(Number(r[key])).toFixed(1)}`).join(' ')
+      const yt = 4, yticks = Array.from({ length: yt + 1 }, (_, i) => ylo + (i / yt) * (yhi - ylo))
+      const xticks = rows.filter((_, i) => rows.length <= 8 || i % Math.ceil(rows.length / 8) === 0 || i === rows.length - 1)
+      const lastA = rows[rows.length - 1], lx = x(xs[xs.length - 1]) + 8
+      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="draw" style="--len: 2000" role="img" aria-label="Brier score by day, market mid against calibrated forecast">
+        <g class="grid">${yticks.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`).join('')}</g>
+        <g class="axis">${yticks.map((v) => `<text x="${m.l - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${p3(v)}</text>`).join('')}
+          ${xticks.map((r) => `<text x="${x(Date.parse(r.as_of)).toFixed(1)}" y="${H - 10}" text-anchor="middle">${new Date(r.as_of + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</text>`).join('')}</g>
+        <path class="line-b" d="${path('brier_mid')}"/>
+        <path class="line-a" d="${path('brier_calibrated')}"/>
+        <text class="lbl b" x="${lx}" y="${(y(Number(lastA.brier_mid)) + 4).toFixed(1)}">Market mid ${p4(lastA.brier_mid)}</text>
+        <text class="lbl" x="${lx}" y="${(y(Number(lastA.brier_calibrated)) + 4).toFixed(1)}">Calibrated ${p4(lastA.brier_calibrated)}</text>
+        <line class="xhair" id="xh" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" opacity="0"/>
+        <rect class="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}"/>
+      </svg>`
+      const svg = host.querySelector('svg'), xh = host.querySelector('#xh'), hit = host.querySelector('.hit')
+      hit.addEventListener('mousemove', (e) => {
+        const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+        const p = pt.matrixTransform(svg.getScreenCTM().inverse())
+        let best = 0, bd = Infinity
+        xs.forEach((t, i) => { const d = Math.abs(x(t) - p.x); if (d < bd) { bd = d; best = i } })
+        const r = rows[best]
+        xh.setAttribute('x1', x(xs[best])); xh.setAttribute('x2', x(xs[best])); xh.setAttribute('opacity', '1')
+        showTip(`<div class="t">${new Date(r.as_of + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })}, ${fmt.format(r.rounds_settled ?? 0)} rounds</div>
+          <div class="row"><span><i class="sw" style="background: var(--series-a)"></i>Calibrated</span><b>${p4(r.brier_calibrated)}</b></div>
+          <div class="row"><span><i class="sw" style="background: var(--series-b)"></i>Market mid</span><b>${p4(r.brier_mid)}</b></div>
+          <div class="row"><span>Coverage</span><b>${r.coverage == null ? '–' : Math.round(r.coverage * 100) + '%'}</b></div>`, e.clientX, e.clientY)
+      })
+      hit.addEventListener('mouseleave', () => { xh.setAttribute('opacity', '0'); hideTip() })
+
+      // table view
+      tbl.innerHTML = `<div class="tbl-scroll"><table><thead><tr><th>Day</th><th class="n">Rounds</th><th class="n">Coverage</th><th class="n">Market mid</th><th class="n">Calibrated</th><th class="n">Gap</th></tr></thead><tbody>${
+        [...rows].reverse().map((r) => `<tr><td>${r.as_of}</td><td class="n">${n0(r.rounds_settled)}</td><td class="n">${r.coverage == null ? '–' : Math.round(r.coverage * 100) + '%'}</td><td class="n">${p4(r.brier_mid)}</td><td class="n">${p4(r.brier_calibrated)}</td><td class="n ${Number(r.brier_mid) - Number(r.brier_calibrated) > 0 ? 'ok' : 'cnt'}">${p4(Number(r.brier_mid) - Number(r.brier_calibrated))}</td></tr>`).join('')
+      }</tbody></table></div>`
+    }
+
+    /* ── coverage heat grid ── */
+    async function loadCoverage() {
+      const rows = await q('kalshi_coverage', (b) => b.select('*').gte('day', dayAgo(13)).order('day', { ascending: true }))
+      const host = el('coverage')
+      if (!rows.length) { host.innerHTML = '<div class="empty"><b>Nothing captured yet.</b></div>'; return }
+      const days = Array.from({ length: 14 }, (_, i) => dayAgo(13 - i))
+      const series = SERIES.slice(1).filter((s) => rows.some((r) => r.series === s)).concat(rows.map((r) => r.series).filter((s) => !SERIES.includes(s)).filter((s, i, a) => a.indexOf(s) === i))
+      const by = new Map(rows.map((r) => [`${r.series}|${r.day}`, r]))
+      const lvl = (snaps) => snaps === 0 ? 0 : snaps < 360 ? 1 : snaps < 720 ? 2 : snaps < 1200 ? 3 : 4
+      host.innerHTML = `<div class="heat" style="grid-template-columns: auto repeat(14, minmax(0, 1fr))">
+        <div></div>${days.map((d) => `<div class="cl">${new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { day: 'numeric', timeZone: 'UTC' })}</div>`).join('')}
+        ${series.map((s) => `<div class="rl">${short(s)}</div>${days.map((d) => { const r = by.get(`${s}|${d}`); return `<div class="cell" data-l="${lvl(r?.snaps ?? 0)}" data-s="${s}" data-d="${d}"></div>` }).join('')}`).join('')}
+      </div>`
+      host.querySelectorAll('.cell').forEach((c) => {
+        c.addEventListener('mousemove', (e) => {
+          const r = by.get(`${c.dataset.s}|${c.dataset.d}`)
+          showTip(`<div class="t">${c.dataset.s}, ${new Date(c.dataset.d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</div>${r
+            ? `<div class="row"><span>Minutes of book</span><b>${n0(r.snaps)} of 1,440</b></div><div class="row"><span>Rounds</span><b>${n0(r.rounds)}, ${n0(r.settled)} settled</b></div><div class="row"><span>Tape minutes</span><b>${n0(r.tape_minutes)}</b></div>`
+            : '<div class="row"><span>Nothing captured</span></div>'}`, e.clientX, e.clientY)
+        })
+        c.addEventListener('mouseleave', hideTip)
+      })
+    }
+
+    /* ── calibration ── */
+    async function loadCalib() {
+      const latest = await q('kalshi_calibration', (b) => b.select('as_of').eq('window_days', 30).order('as_of', { ascending: false }).limit(1))
+      state.calibAsOf = latest[0]?.as_of ?? null
+      state.calib = state.calibAsOf
+        ? await q('kalshi_calibration', (b) => b.select('*').eq('window_days', 30).eq('as_of', state.calibAsOf).eq('series', state.series))
+        : []
+      renderCalib()
+    }
+    function renderCalib() {
+      const host = el('cal-chart')
+      const rows = state.calib.filter((r) => r.mtc_bucket === state.mtc).sort((a, b) => Number(a.mean_mid) - Number(b.mean_mid))
+      el('cal-sub').textContent = state.calibAsOf ? `What the mid said against what happened, 30 days to ${state.calibAsOf}.` : 'What the mid said against what happened, last 30 days.'
+      if (!rows.length) {
+        host.innerHTML = `<div class="empty" style="padding: 88px 0"><b>${state.calibAsOf ? 'No rounds in this bucket yet.' : 'No calibration yet.'}</b><br>${state.calibAsOf ? 'Pick another series or minutes-to-close.' : 'The table is built by the first scoring at 00:10 UTC.'}</div>`
+        return
+      }
+      const W = 520, H = 300, m = { t: 14, r: 16, b: 36, l: 44 }
+      const x = (v) => m.l + v * (W - m.l - m.r), y = (v) => m.t + (1 - v) * (H - m.t - m.b)
+      const nmax = Math.max(...rows.map((r) => r.n))
+      const rad = (n) => 4 + 9 * Math.sqrt(n / nmax)
+      const ticks = [0, 0.25, 0.5, 0.75, 1]
+      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Calibration: hit rate against market mid by price band">
+        <g class="grid">${ticks.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><line y1="${m.t}" y2="${H - m.b}" x1="${x(v)}" x2="${x(v)}"/>`).join('')}</g>
+        <line class="diag" x1="${x(0)}" y1="${y(0)}" x2="${x(1)}" y2="${y(1)}"/>
+        <g class="axis">${ticks.map((v) => `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(2)}</text><text x="${x(v)}" y="${H - 12}" text-anchor="middle">${v.toFixed(2)}</text>`).join('')}
+          <text class="axis-title" x="${(W + m.l - m.r) / 2}" y="${H}" text-anchor="middle">market mid</text>
+          <text class="axis-title" transform="translate(12 ${(H + m.t - m.b) / 2}) rotate(-90)" text-anchor="middle">how often yes happened</text></g>
+        ${rows.map((r, i) => `<circle class="dot" data-i="${i}" cx="${x(Number(r.mean_mid)).toFixed(1)}" cy="${y(Number(r.hit_rate)).toFixed(1)}" r="${rad(r.n).toFixed(1)}"/>`).join('')}
+      </svg>`
+      host.querySelectorAll('.dot').forEach((d) => {
+        d.addEventListener('mousemove', (e) => {
+          const r = rows[Number(d.dataset.i)]
+          showTip(`<div class="t">Band ${r.band}, ${state.mtc} minutes to close</div>
+            <div class="row"><span>Market mid</span><b>${p3(r.mean_mid)}</b></div>
+            <div class="row"><span>Yes happened</span><b>${p3(r.hit_rate)}</b></div>
+            <div class="row"><span>Rounds scored</span><b>${fmt.format(r.n)}</b></div>
+            <div class="row"><span>Brier of the mid</span><b>${p4(r.brier_mid)}</b></div>`, e.clientX, e.clientY)
+        })
+        d.addEventListener('mouseleave', hideTip)
+      })
+    }
+
+    /* ── live board ── */
+    let liveTimer
+    async function loadLive() {
+      const rows = await q('kalshi_live', (b) => b.select('*').order('series'))
+      const tb = el('live').querySelector('tbody')
+      if (!rows.length) { tb.innerHTML = '<tr><td colspan="11" class="empty">No round in the last 20 minutes.</td></tr>'; return }
+      const tickers = rows.map((r) => r.ticker)
+      const tape = await q('kalshi_tape_minutes', (b) => b.select('ticker,minute_utc,trades,contracts,taker_yes_contracts').in('ticker', tickers).order('minute_utc', { ascending: false }).limit(tickers.length * 3))
+      const lastTape = new Map(); for (const t of tape) if (!lastTape.has(t.ticker)) lastTape.set(t.ticker, t)
+      const depthMax = Math.max(1, ...rows.map((r) => Math.max(Number(r.top5_yes ?? 0), Number(r.top5_no ?? 0))))
+      el('live-sub').textContent = `Every series' current round as the collector last saw it, ${rows[0].minute_utc ? ago(rows[0].minute_utc) : ''}.`
+      tb.innerHTML = rows.map((r) => {
+        const t = lastTape.get(r.ticker)
+        const tk = t && Number(t.contracts) > 0 ? Math.round(100 * Number(t.taker_yes_contracts) / Number(t.contracts)) : null
+        return `<tr>
+          <td><span class="ser">${short(r.series)}</span> <span class="cnt">${r.result ? 'settled ' + r.result : ''}</span></td>
+          <td data-close="${r.close_time}"></td>
+          <td class="n">${r.strike == null ? '–' : fmt.format(Number(r.strike))}</td>
+          <td class="n">${p2(r.yes_bid)}</td><td class="n">${p2(r.yes_ask)}</td>
+          <td class="n"><span class="mid">${p2(r.mid)}</span></td>
+          <td class="n">${p2(r.spread)}</td>
+          <td class="n">${n0(r.top5_yes)}<span class="bar" style="width: ${Math.round(60 * Math.sqrt(Number(r.top5_yes ?? 0) / depthMax))}px"></span></td>
+          <td class="n">${n0(r.top5_no)}<span class="bar" style="width: ${Math.round(60 * Math.sqrt(Number(r.top5_no ?? 0) / depthMax))}px"></span></td>
+          <td class="n">${t ? `${fmt.format(t.trades)} trades, ${n0(t.contracts)}` : '–'}</td>
+          <td class="n">${tk == null ? '–' : tk + '%'}</td>
+        </tr>`
+      }).join('')
+      clearInterval(liveTimer)
+      const tickClocks = () => tb.querySelectorAll('td[data-close]').forEach((td) => {
+        const s = (Date.parse(td.dataset.close) - Date.now()) / 1000
+        td.textContent = s <= 0 ? 'closed' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
+        td.className = s > 0 && s < 60 ? 'err' : ''
+      })
+      tickClocks(); liveTimer = setInterval(tickClocks, 1000)
+    }
+
+    /* ── controls ── */
+    segment(el('hero-series'), SERIES.map((s) => ({ v: s, label: s === 'ALL' ? 'All' : short(s) })), state.series, (v) => { state.series = v; loadDaily(); loadCalib() })
+    segment(el('cal-mtc'), MTC.map((b) => ({ v: b, label: b.replace('-', ' to ') + ' min' })), state.mtc, (v) => { state.mtc = v; renderCalib() })
+
+    /* ── boot ── */
+    const boot = () => Promise.allSettled([loadTicks(), loadStats(), loadDaily(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    await boot()
+    setInterval(() => { loadTicks(); loadLive() }, 30_000)
+    setInterval(() => { loadStats(); loadCoverage() }, 5 * 60_000)
+    supabase.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') location.href = '/echelon/admin/' })
+  </script>
+</body>
+</html>
