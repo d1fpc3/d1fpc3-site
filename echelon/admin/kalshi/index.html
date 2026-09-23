@@ -326,7 +326,7 @@
           <div class="exec-row"><span class="exec-k">Execution</span><span id="exec-mode" class="exec-v">–</span></div>
           <div class="exec-row"><span class="exec-k">Gate</span><span id="exec-gate" class="exec-v">–</span></div>
           <div class="exec-row"><span class="exec-k">Today</span><span id="exec-today" class="exec-v">–</span></div>
-          <p class="exec-note">Orders go to the account only when the paper book has passed the gate and the live switch is set by hand. Until then every intent is logged and nothing is sent.</p>
+          <p class="exec-note">One signer for every source. Cell-book orders go to the account only when the paper book has passed the gate and the live switch is set by hand; signal orders go when the signals switch is set by hand, no paper gate, by D1's choice. $10 an order, one per round, five open, and a hard stop for the day at minus $50 realized across both. Every intent is logged with the reason it did or did not send.</p>
         </div>
         <div class="tbl-scroll edge-cells"><table id="cells"><thead><tr>
           <th>Series</th><th>Minutes left</th><th>Cell</th><th>Buy</th><th class="n">Rounds</th><th class="n">Won</th><th class="n">Ask</th><th class="n" title="Wilson lower bound of the win rate, minus the ask, minus the taker fee">Edge, floor</th><th class="n" title="mean win rate minus ask minus fee">Edge, mean</th>
@@ -683,20 +683,28 @@
         </svg>`
       }
 
-      // execution: what the executor did with the cells, and why
+      // execution: what the executor did with every intent, from every source, and why
       try {
         const since = new Date(Date.now() - 86400000).toISOString()
-        const orders = await q('kalshi_live_orders', (b) => b.select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(50))
+        const [orders, book] = await Promise.all([
+          q('kalshi_live_orders', (b) => b.select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(100)),
+          q('kalshi_live_daily', (b) => b.select('*').order('day', { ascending: true })),
+        ])
         const last = orders[0]
-        const modeEl = el('exec-mode')
-        modeEl.innerHTML = last
-          ? (last.mode === 'live' ? '<span class="live">Live</span>, sending real orders' : '<span class="armed">Armed</span>, logging intents, sending nothing')
-          : '<span class="armed">Armed</span>, no intents in the last 24 h'
-        el('exec-gate').textContent = `${fmt.format(trades)} of 100 paper trades${trades ? `, ${money(pnl)}` : ''}${trades >= 100 && pnl > 0 ? ', passed' : ', not passed'}${last ? `; switch ${last.live_switch ? 'on' : 'off'}` : ''}`
-        const placed = orders.filter((o) => o.status === 'placed' || o.status === 'filled' || o.status === 'settled')
+        const sent = orders.filter((o) => ['placed', 'settled', 'unfilled'].includes(o.status))
+        const liveNow = sent.some((o) => o.mode === 'live')
+        const lastProcessed = orders.find((o) => o.processed_at)
+        const swCells = lastProcessed && lastProcessed.source === 'cells' ? lastProcessed.live_switch : null
+        const swSig = lastProcessed && lastProcessed.source === 'signals' ? lastProcessed.live_switch : null
+        el('exec-mode').innerHTML = liveNow
+          ? '<span class="live">Live</span>, real orders have gone to the account in the last 24 h'
+          : last ? '<span class="armed">Armed</span>, intents logged, nothing sent in the last 24 h' : '<span class="armed">Armed</span>, no intents in the last 24 h'
+        el('exec-gate').textContent = `Cell book: ${fmt.format(trades)} of 100 paper trades${trades ? `, ${money(pnl)}` : ''}${trades >= 100 && pnl > 0 ? ', passed' : ', not passed'}${swCells != null ? `, switch ${swCells ? 'on' : 'off'}` : ''}. Signals: no paper gate by D1's choice${swSig != null ? `, switch ${swSig ? 'on' : 'off'}` : ''}.`
+        const realized = book.reduce((t, r) => t + Number(r.pnl ?? 0), 0), settled = book.reduce((t, r) => t + Number(r.settled ?? 0), 0)
+        const bySrc = (s) => orders.filter((o) => o.source === s).length
         el('exec-today').textContent = orders.length
-          ? `${orders.length} ${orders.length === 1 ? 'intent' : 'intents'}, ${placed.length} sent${last.halted ? ', halted for the day' : ''}; last ${short(last.series)} ${last.side.toUpperCase()} ${last.contracts} @ ${p2(last.price)} ${ago(last.created_at)}`
-          : 'no intents'
+          ? `${orders.length} ${orders.length === 1 ? 'intent' : 'intents'} (${bySrc('signals')} signals, ${bySrc('cells')} cells), ${sent.length} sent${settled ? `, ${settled} settled for ${money(realized)} real` : ''}${last.halted ? ', halted for the day' : ''}; last ${short(last.series)} ${last.side.toUpperCase()} ${last.contracts} @ ${p2(last.price)} ${ago(last.created_at)}, ${last.status}`
+          : `no intents${settled ? `; realized book ${money(realized)} over ${settled} settled` : ''}`
       } catch (e) { console.error(e) }
 
       // the cells
