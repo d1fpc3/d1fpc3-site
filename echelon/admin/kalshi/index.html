@@ -375,9 +375,13 @@
         host.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); place()
         const table = b.dataset.v === 'table'
         el('hero-chart').hidden = table; el('hero-table').hidden = !table
+        if (!table) renderHero() // it was measured at zero width while hidden
       }))
       requestAnimationFrame(place)
     }
+    // charts are drawn at their container's width, so redraw when that changes
+    let rsz
+    new ResizeObserver(() => { clearTimeout(rsz); rsz = setTimeout(() => { renderHero(); renderCalib() }, 150) }).observe(document.querySelector('.wrap'))
 
     /* ── data ── */
     const SERIES = ['ALL', 'KXBTC15M', 'KXETH15M', 'KXDOGE15M', 'KXGOLD15M', 'KXSOL15M', 'KXXRP15M', 'KXBNB15M', 'KXHYPE15M', 'KXNEAR15M', 'KXZEC15M']
@@ -465,26 +469,38 @@
             ? `Over the last ${last7.length} days the calibrated forecast beats the market mid by ${p4(gap)} Brier across ${fmt.format(n)} rounds.`
             : `Over the last ${last7.length} days the calibrated forecast is ${p4(-gap)} Brier worse than the market mid across ${fmt.format(n)} rounds. The correction is hurting.`
 
-      // chart
-      const W = 900, H = 280, m = { t: 18, r: 110, b: 34, l: 52 }
+      // chart, drawn at the container's real pixel width so text stays legible on a phone
+      const W = Math.max(320, Math.round(host.clientWidth || 900)), H = W < 600 ? 230 : 280
+      const m = { t: 22, r: 18, b: 34, l: W < 600 ? 44 : 52 }
       const xs = rows.map((r) => Date.parse(r.as_of))
       const ys = rows.flatMap((r) => [Number(r.brier_mid), Number(r.brier_calibrated)]).filter((v) => Number.isFinite(v))
       const y0 = Math.min(...ys), y1 = Math.max(...ys), pad = Math.max((y1 - y0) * 0.15, 0.002)
       const ylo = Math.max(0, y0 - pad), yhi = y1 + pad
-      const x = (t) => rows.length === 1 ? (W - m.r + m.l) / 2 : m.l + ((t - xs[0]) / (xs[xs.length - 1] - xs[0])) * (W - m.l - m.r)
+      const one = rows.length === 1
+      const x = (t) => one ? (W - m.r + m.l) / 2 : m.l + ((t - xs[0]) / (xs[xs.length - 1] - xs[0])) * (W - m.l - m.r)
       const y = (v) => m.t + (1 - (v - ylo) / (yhi - ylo)) * (H - m.t - m.b)
       const path = (key) => rows.map((r, i) => `${i ? 'L' : 'M'}${x(xs[i]).toFixed(1)},${y(Number(r[key])).toFixed(1)}`).join(' ')
       const yt = 4, yticks = Array.from({ length: yt + 1 }, (_, i) => ylo + (i / yt) * (yhi - ylo))
-      const xticks = rows.filter((_, i) => rows.length <= 8 || i % Math.ceil(rows.length / 8) === 0 || i === rows.length - 1)
-      const lastA = rows[rows.length - 1], lx = x(xs[xs.length - 1]) + 8
-      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="draw" style="--len: 2000" role="img" aria-label="Brier score by day, market mid against calibrated forecast">
+      const maxX = W < 600 ? 4 : 8
+      const xticks = rows.filter((_, i) => rows.length <= maxX || i % Math.ceil(rows.length / maxX) === 0 || i === rows.length - 1)
+      const last = rows[rows.length - 1], lx = x(xs[xs.length - 1])
+      const yA = y(Number(last.brier_calibrated)), yB = y(Number(last.brier_mid))
+      // end labels sit above their own line; when the two lines end within a few pixels
+      // of each other (calibrated tracking the mid is the expected case) they stack instead
+      let la = yA - 9, lb = yB - 9
+      if (Math.abs(yA - yB) < 18) { const c = (yA + yB) / 2; la = c - 10; lb = c + 16 }
+      const anchor = one ? 'start' : 'end', lxo = one ? lx + 10 : lx - 6
+      const first = !renderHero.drawn; renderHero.drawn = true
+      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="${first ? 'draw' : ''}" style="--len: ${W * 2}" role="img" aria-label="Brier score by day, market mid against calibrated forecast">
         <g class="grid">${yticks.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`).join('')}</g>
         <g class="axis">${yticks.map((v) => `<text x="${m.l - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${p3(v)}</text>`).join('')}
           ${xticks.map((r) => `<text x="${x(Date.parse(r.as_of)).toFixed(1)}" y="${H - 10}" text-anchor="middle">${new Date(r.as_of + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</text>`).join('')}</g>
         <path class="line-b" d="${path('brier_mid')}"/>
         <path class="line-a" d="${path('brier_calibrated')}"/>
-        <text class="lbl b" x="${lx}" y="${(y(Number(lastA.brier_mid)) + 4).toFixed(1)}">Market mid ${p4(lastA.brier_mid)}</text>
-        <text class="lbl" x="${lx}" y="${(y(Number(lastA.brier_calibrated)) + 4).toFixed(1)}">Calibrated ${p4(lastA.brier_calibrated)}</text>
+        <circle cx="${lx.toFixed(1)}" cy="${yB.toFixed(1)}" r="3.5" fill="var(--series-b)"/>
+        <circle cx="${lx.toFixed(1)}" cy="${yA.toFixed(1)}" r="3.5" fill="var(--series-a)"/>
+        <text class="lbl b" x="${lxo.toFixed(1)}" y="${lb.toFixed(1)}" text-anchor="${anchor}">Market mid ${p4(last.brier_mid)}</text>
+        <text class="lbl" x="${lxo.toFixed(1)}" y="${la.toFixed(1)}" text-anchor="${anchor}">Calibrated ${p4(last.brier_calibrated)}</text>
         <line class="xhair" id="xh" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" opacity="0"/>
         <rect class="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}"/>
       </svg>`
@@ -550,7 +566,8 @@
         host.innerHTML = `<div class="empty" style="padding: 88px 0"><b>${state.calibAsOf ? 'No rounds in this bucket yet.' : 'No calibration yet.'}</b><br>${state.calibAsOf ? 'Pick another series or minutes-to-close.' : 'The table is built by the first scoring at 00:10 UTC.'}</div>`
         return
       }
-      const W = 520, H = 300, m = { t: 14, r: 16, b: 36, l: 44 }
+      const W = Math.max(280, Math.round(host.clientWidth || 520)), H = W < 480 ? 260 : 300
+      const m = { t: 14, r: 16, b: 36, l: 44 }
       const x = (v) => m.l + v * (W - m.l - m.r), y = (v) => m.t + (1 - v) * (H - m.t - m.b)
       const nmax = Math.max(...rows.map((r) => r.n))
       const rad = (n) => 4 + 9 * Math.sqrt(n / nmax)
