@@ -752,13 +752,18 @@
       const today = new Date().toISOString().slice(0, 10)
       // kalshi_executor_state is one row the executor upserts at the end of every pass: the
       // switch as it is NOW, not as it was when the last intent went through.
-      const [orders, book, stateRows] = await Promise.all([
+      const [orders, book, stateRows, swRows] = await Promise.all([
         q('kalshi_live_orders', (b) => b.select('ticker,created_at,series,cell,side,price,contracts,filled,source,status,mode,live_switch,halted,processed_at,won,pnl,exit_price,exit_filled').order('created_at', { ascending: false }).limit(60)),
         q('kalshi_live_daily', (b) => b.select('*').order('day', { ascending: true })),
         q('kalshi_executor_state', (b) => b.select('*').eq('id', 1)).catch(() => []),
+        q('kalshi_switch', (b) => b.select('signals,updated_at').eq('id', 1)).catch(() => []),
       ])
       const st = stateRows[0] ?? null
       const stFresh = st && (Date.now() - Date.parse(st.at)) / 1000 < 180
+      // The button is a request; the heartbeat is the truth. Say so when they disagree.
+      const want = swRows[0]?.signals
+      if (st && stFresh && want != null && want !== st.switch_signals) el('mode-note').textContent = `set to ${want ? 'Live' : 'Paper'} ${ago(swRows[0].updated_at)}, executor has not picked it up yet`
+      else if (st && stFresh && want != null && /picked it up/.test(el('mode-note').textContent)) el('mode-note').textContent = `executor confirmed ${want ? 'Live' : 'Paper'}`
       const sum = (rows, k) => rows.reduce((t, r) => t + Number(r[k] ?? 0), 0)
       const realized = sum(book, 'pnl'), settled = sum(book, 'settled'), wins = sum(book, 'wins')
       const todayReal = sum(book.filter((r) => r.day === today), 'pnl')
@@ -850,9 +855,10 @@
         if (!canFlip) { initSwitch(); return }
         const { error } = await supabase.from('kalshi_switch').update({ signals: v === 'live', updated_at: new Date().toISOString(), updated_by: session.user.email }).eq('id', 1)
         if (error) { console.error(error); note.textContent = 'could not flip: ' + error.message }
-        else note.textContent = v === 'live' ? 'live: the next call shown is sent' : 'paper: nothing is sent'
+        else note.textContent = `set to ${v === 'live' ? 'Live' : 'Paper'}, waiting for the executor to pick it up`
         host.classList.toggle('live', v === 'live')
-        setTimeout(loadAccount, 65_000) // the executor reads the row on its next pass
+        // the executor reads the row on its next pass; the heartbeat then confirms or the note says it did not land
+        setTimeout(loadAccount, 30_000); setTimeout(loadAccount, 70_000)
       })
     }
 
