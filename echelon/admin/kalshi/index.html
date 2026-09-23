@@ -587,9 +587,11 @@
     /* ── edge hunt ── */
     const money = (x) => (x == null ? '–' : (x < 0 ? '-' : '+') + '$' + Math.abs(Number(x)).toFixed(2))
     async function loadEdge() {
+      // "as of" comes from the scoring log, not the cells table, so a night that found no
+      // cells still reads as scored rather than as never run
       const [book, latest] = await Promise.all([
         q('kalshi_paper_daily', (b) => b.select('*').order('as_of', { ascending: true })),
-        q('kalshi_edge_cells', (b) => b.select('as_of').eq('window_days', 30).order('as_of', { ascending: false }).limit(1)),
+        q('kalshi_daily', (b) => b.select('as_of').eq('series', 'ALL').not('edge_cells', 'is', null).order('as_of', { ascending: false }).limit(1)),
       ])
       const asOf = latest[0]?.as_of ?? null
       const cells = asOf ? await q('kalshi_edge_cells', (b) => b.select('*').eq('window_days', 30).eq('as_of', asOf).order('ev_lo', { ascending: false })) : []
