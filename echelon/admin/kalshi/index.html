@@ -329,7 +329,7 @@
       <div class="panel-head">
         <h2>Book</h2>
         <span class="sub" id="acct-sub" title="The exit rule: every minute the model's fair value of the held side is recomputed from spot, strike, volatility and time left; the position is sold the minute the market bid, after the exit fee, pays 2c more than that expected value. Otherwise it rides to close.">Live sends every call shown in Discord to the account at $10; Paper logs them and sends nothing. Exits are the model's call: sell when the market pays more than the expected value of holding.</span>
-        <div class="right"><span class="mode-note" id="mode-note"></span><div class="seg" id="mode-seg"></div></div>
+        <div class="right"><span class="mode-note" id="mode-note"></span><div class="seg" id="mode-seg"></div><div class="seg" id="exit-seg" title="The model's exit rule on the account: sell an open position the minute the market pays 2c more than the model's expected value of holding it. Off means every position rides to close."></div></div>
       </div>
       <h3 class="book-h">Account <span>real money</span></h3>
       <div class="stat-row acct-stats">
@@ -843,14 +843,20 @@
     /* ── the switch: Live sends, Paper does not. D1 flips it here as the admin; the page is
        public but the update policy is not, so a logged-out viewer sees a locked control. ── */
     async function initSwitch() {
-      const host = el('mode-seg'), note = el('mode-note')
-      const rows = await q('kalshi_switch', (b) => b.select('*').eq('id', 1))
-      const on = rows[0]?.signals === true
+      const host = el('mode-seg'), note = el('mode-note'), exitHost = el('exit-seg')
+      const rows = await q('kalshi_switch', (b) => b.select('signals,live,model_exits,updated_at').eq('id', 1))
+      const on = rows[0]?.signals === true, exitsOn = rows[0]?.model_exits === true
       let canFlip = false
       if (session) { const { data } = await supabase.rpc('is_admin'); canFlip = data === true }
       host.classList.toggle('locked', !canFlip)
       host.classList.toggle('live', on)
+      exitHost.classList.toggle('locked', !canFlip)
       note.textContent = canFlip ? '' : 'sign in at /echelon/admin to flip'
+      segment(exitHost, [{ v: 'on', label: 'Model exits' }, { v: 'off', label: 'Ride to close' }], exitsOn ? 'on' : 'off', async (v) => {
+        if (!canFlip) { initSwitch(); return }
+        const { error } = await supabase.from('kalshi_switch').update({ model_exits: v === 'on', updated_at: new Date().toISOString(), updated_by: session.user.email }).eq('id', 1)
+        note.textContent = error ? 'could not flip: ' + error.message : v === 'on' ? 'model exits on: open positions are sold when the model says so' : 'exits off: every position rides to close'
+      })
       segment(host, [{ v: 'live', label: 'Live' }, { v: 'paper', label: 'Paper' }], on ? 'live' : 'paper', async (v) => {
         if (!canFlip) { initSwitch(); return }
         const { error } = await supabase.from('kalshi_switch').update({ signals: v === 'live', updated_at: new Date().toISOString(), updated_by: session.user.email }).eq('id', 1)
