@@ -329,7 +329,7 @@
         <div class="stat"><div class="v" id="a-open">–</div><div class="k">open orders</div></div>
         <div class="stat"><div class="v" id="a-sent">–</div><div class="k" id="a-sent-k">sent, of intents in 24 h</div></div>
         <div class="stat"><div class="v" id="a-won">–</div><div class="k" id="a-won-k">won of settled</div></div>
-        <div class="stat"><div class="v" id="a-switch">–</div><div class="k" title="as the executor read it when it processed the newest signal intent">switch at last intent</div></div>
+        <div class="stat"><div class="v" id="a-switch">–</div><div class="k" id="a-switch-k">signals switch</div></div>
       </div>
       <p class="reading quiet" id="acct-reading">Loading.</p>
       <div class="tbl-scroll"><table id="orders"><thead><tr>
@@ -731,10 +731,15 @@
     async function loadAccount() {
       const since = new Date(Date.now() - 86400000).toISOString()
       const today = new Date().toISOString().slice(0, 10)
-      const [orders, book] = await Promise.all([
+      // kalshi_executor_state is one row the executor upserts at the end of every pass: the
+      // switch as it is NOW, not as it was when the last intent went through.
+      const [orders, book, stateRows] = await Promise.all([
         q('kalshi_live_orders', (b) => b.select('ticker,created_at,series,cell,side,price,contracts,filled,source,status,mode,live_switch,halted,processed_at,won,pnl').order('created_at', { ascending: false }).limit(60)),
         q('kalshi_live_daily', (b) => b.select('*').order('day', { ascending: true })),
+        q('kalshi_executor_state', (b) => b.select('*').eq('id', 1)).catch(() => []),
       ])
+      const st = stateRows[0] ?? null
+      const stFresh = st && (Date.now() - Date.parse(st.at)) / 1000 < 180
       const sum = (rows, k) => rows.reduce((t, r) => t + Number(r[k] ?? 0), 0)
       const realized = sum(book, 'pnl'), settled = sum(book, 'settled'), wins = sum(book, 'wins')
       const todayReal = sum(book.filter((r) => r.day === today), 'pnl')
@@ -742,8 +747,8 @@
       const last24 = orders.filter((o) => o.created_at >= since)
       const sent = last24.filter((o) => ['placed', 'settled', 'unfilled'].includes(o.status)).length
       const lastSig = orders.find((o) => o.source === 'signals' && o.processed_at)
-      const sw = lastSig ? lastSig.live_switch : null
-      const halted = orders.some((o) => o.halted && o.created_at >= today)
+      const sw = st ? st.switch_signals === true : lastSig ? lastSig.live_switch : null
+      const halted = st ? st.halted === true : orders.some((o) => o.halted && o.created_at >= today)
       const tone = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : 'gold')
 
       const real = el('a-real'); real.textContent = settled ? money(realized) : '$0.00'; real.className = 'v ' + tone(settled ? realized : 0)
@@ -753,6 +758,8 @@
       el('a-won').textContent = settled ? Math.round(100 * wins / settled) + '%' : '–'
       el('a-won-k').textContent = settled ? `won of ${fmt.format(settled)} settled` : 'won of settled'
       const swEl = el('a-switch'); swEl.textContent = sw == null ? '–' : sw ? 'ON' : 'OFF'; swEl.className = 'v ' + (sw == null ? '' : sw ? 'on' : 'off')
+      el('a-switch-k').textContent = st ? (stFresh ? `signals switch, executor ${ago(st.at)}` : `signals switch, executor SILENT since ${ago(st.at)}`) : 'switch at last intent'
+      el('a-switch-k').className = 'k' + (st && !stFresh ? ' err' : '')
 
       const reading = el('acct-reading')
       const last = orders[0]
@@ -762,7 +769,7 @@
       } else {
         reading.className = 'reading'
         const what = { intent: 'queued', placed: 'open', settled: last.won ? 'won' : 'lost', unfilled: 'unfilled', armed: 'armed, switch was off', skipped: 'skipped, round already taken', expired: 'expired', halted: 'halted', rejected: 'rejected' }[last.status] ?? last.status
-        reading.textContent = (sw == null ? 'The signals switch has not been read yet. ' : sw ? `Live: every call shown in Discord goes to the account at $10${halted ? ', halted for the rest of the day at the -$50 stop' : ''}. ` : 'Switch off: calls are logged as armed and never sent later. ')
+        reading.textContent = (sw == null ? 'The signals switch has not been read yet. ' : sw ? `Live: every call shown in Discord goes to the account at $10${halted ? ', halted for the rest of the day at the -$50 stop' : ''}${st && !stFresh ? '. The executor has not reported since ' + ago(st.at) + ', so nothing is being sent' : ''}. ` : 'Switch off: calls are logged as armed and never sent later. ')
           + `${settled ? `${fmt.format(settled)} settled for ${money(realized)} real, ${Math.round(100 * wins / settled)}% won. ` : 'Nothing settled yet. '}`
           + `Last: ${short(last.series)} ${last.side.toUpperCase()} ${last.contracts} @ ${p2(last.price)} from ${last.source === 'signals' ? 'rule ' + last.cell : 'cell ' + last.cell}, ${ago(last.created_at)}, ${what}.`
       }
