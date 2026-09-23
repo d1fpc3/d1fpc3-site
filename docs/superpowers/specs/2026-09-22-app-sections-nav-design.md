@@ -75,3 +75,14 @@ D1 judged the five-section build "decent, could use some work", then "the direct
 - Titles: a family page is titled by its family (Chat, Study); settings sub-pages carry a "Settings" crumb, Followers a "Profile" crumb.
 
 Harness: `tests/app-nav-visual.mjs` (replaces the sections harness), light and dark via `THEME`.
+
+## Max pass, same night
+
+Approved by D1 on screen. On top of the sidebar:
+
+- Bell popover on desktop (>= 841px): the latest eight notifications drop under the bell, rendered by the inbox's own `loadInbox(host, limit)` so rows and clicks are identical; it marks only what it showed as read; "See all" opens the page; Escape, outside click or any navigation closes it. Phones keep the page.
+- Palette Actions group once you type: log today's session, calculators, switch theme, interface size, invite friends, notification settings, keyboard shortcuts, sign out.
+- Hover prefetch: hovering Chat warms `loadChat()`, hovering Study warms `loadLibrary()` (140ms delay, pointer devices only).
+- Keyboard and screen readers: the segment is a `tablist` with roving tabindex and arrow keys; `aria-current="page"` on the lit row; gold focus rings on every nav control; row tooltips carry the jump key ("Chat (g h)"); the brand row is a link to Today.
+- Motion: press dip on rows, icon nudge on hover, a short rise on the title when it changes, all off under reduced motion.
+- The chat page's top bar is compact on desktop (10px padding) so the conversation stays tall; the tab title carries the unread chat count; the phone quick row fades at its right edge.

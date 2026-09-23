@@ -311,6 +311,33 @@
       .td-chip[hidden] { display: none; }
     }
 
+    /* craft: press dip, focus rings, a nudge on hover, a short rise on the title */
+    .grp-main .tab, .grp-tools .tab { transition: background 0.15s ease, color 0.15s ease, transform 0.3s cubic-bezier(.2,.8,.2,1); }
+    .grp-main .tab:active, .grp-tools .tab:active { transform: scale(0.985); transition-duration: 0.06s; }
+    .grp-main .tab .ic { transition: color 0.15s ease, transform 0.3s cubic-bezier(.2,.8,.2,1); }
+    @media (hover: hover) { .grp-main .tab:hover .ic { transform: scale(1.08); } }
+    .tab:focus-visible, .tbseg button:focus-visible, .u-hit:focus-visible, .u-gear:focus-visible, .bnav button:focus-visible, .td-chip:focus-visible, .tb-bell:focus-visible, .tb-search:focus-visible, .side-brand:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; border-radius: 9px; }
+    .side-brand { cursor: pointer; }
+    .tb-title h2.swap { animation: tt-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    @keyframes tt-in { from { opacity: 0; transform: translateY(4px); } }
+    /* a compact bar on the chat page keeps the conversation tall */
+    @media (min-width: 841px) { body.in-chat .topbar { padding-top: 10px; padding-bottom: 10px; } }
+    /* phones: the quick row fades at its right edge so the overflow reads */
+    @media (max-width: 840px) { .td-chips { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); } }
+    /* the bell's popover (desktop): the latest few, without leaving the page */
+    .nbp { position: fixed; z-index: 120; width: 400px; max-height: min(calc(64 * var(--vh)), 620px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,0.45); opacity: 0; transform: translateY(-6px) scale(0.985); transform-origin: top right; transition: opacity 0.14s ease, transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    :root[data-theme="light"] .nbp { box-shadow: 0 24px 70px rgba(0,0,0,0.16); }
+    .nbp.on { opacity: 1; transform: none; }
+    .nbp[hidden] { display: none; }
+    .nbp-h { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 8px; font-weight: 700; font-size: 14px; }
+    .nbp-h button { background: none; border: 0; color: var(--gold); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+    .nbp-h button:hover { background: var(--panel-2); }
+    .nbp-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 12px; overscroll-behavior: contain; scrollbar-width: none; }
+    .nbp-list::-webkit-scrollbar { display: none; }
+    .nbp-list .nb-day { padding-top: 8px; }
+    .nbp-empty { padding: 26px 16px 30px; text-align: center; color: var(--faint); font-size: 13px; }
+    @media (prefers-reduced-motion: reduce) { .tb-title h2.swap { animation: none; } .nbp { transition: none; } }
+
     .main { min-width: 0; display: flex; flex-direction: column; }
 
     /* the bar is plain at the top of a page and turns into material (blur 20,
@@ -5305,7 +5332,7 @@
       if (!navSilent && view !== prev) navPush({ view })
       // settings pops back from a sub-page (slides in from the left); everything else pushes
       el('v-settings')?.classList.toggle('back', view === 'settings' && !!el(`v-${prev}`)?.classList.contains('setpage'))
-      tabs.forEach((t) => t.classList.toggle('on', t.dataset.view === view || t.dataset.view === rowOf(view)))
+      tabs.forEach((t) => { const on = t.dataset.view === view || t.dataset.view === rowOf(view); t.classList.toggle('on', on); if (on) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current') })
       document.querySelectorAll('.view').forEach((v) => v.classList.toggle('on', v.id === `v-${view}`))
       markFresh(`v-${view}`)
       // a view left behind must not keep narrating in the background
@@ -5314,7 +5341,9 @@
       // a family page is titled by its family (the segment names the page);
       // a settings or profile sub-page keeps its own title with a crumb
       { const head = FAMILY_OF[view], r = ROW_OF[view]
-        el('pane-title').textContent = head ? tabOf(head).dataset.title : tab.dataset.title
+        const next = head ? tabOf(head).dataset.title : tab.dataset.title
+        const tt = el('pane-title'); if (tt.textContent !== next) { tt.textContent = next; tt.classList.remove('swap'); void tt.offsetWidth; tt.classList.add('swap') }
+        globalThis.__nbpClose?.()
         el('pane-crumb').textContent = head ? '' : (r === 'gear' && view !== 'settings' ? 'Settings' : r === 'profile' && view !== 'set-profile' ? 'Profile' : tab.dataset.crumb) }
       document.body.classList.toggle('journal-full', view === 'journal')
       document.body.classList.toggle('in-chat', view === 'chat')
@@ -5406,7 +5435,7 @@
         seg.querySelectorAll('button').forEach((b) => b.remove())
         for (const p of pages) {
           const t = tabOf(p)
-          const b = document.createElement('button'); b.type = 'button'; b.dataset.view = p
+          const b = document.createElement('button'); b.type = 'button'; b.dataset.view = p; b.setAttribute('role', 'tab')
           b.textContent = SEG_LABEL[p] ?? t.dataset.title
           const badge = SEG_BADGE[p]
           if (badge) { const i = document.createElement('i'); i.className = badge[1]; i.hidden = true; b.appendChild(i); mirrorBadge(badge[0], i) }
@@ -5414,7 +5443,16 @@
           seg.appendChild(b)
         }
       }
-      seg.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.view === v))
+      seg.querySelectorAll('button').forEach((b) => { const on = b.dataset.view === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1 })
+      if (!seg.dataset.keys) {
+        seg.dataset.keys = '1'; seg.setAttribute('role', 'tablist')
+        seg.addEventListener('keydown', (e) => {
+          if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+          const bs = [...seg.querySelectorAll('button')], i = bs.findIndex((b) => b.classList.contains('on'))
+          const n = bs[(i + (e.key === 'ArrowRight' ? 1 : bs.length - 1)) % bs.length]
+          if (n) { e.preventDefault(); n.click(); n.focus() }
+        })
+      }
       segInd()
     }
     function segInd() {
@@ -5455,6 +5493,22 @@
       el('set-admin-row')?.addEventListener('click', () => { location.href = '/echelon/admin/' })
       const tb = document.querySelector('.topbar')
       if (tb && 'ResizeObserver' in window) new ResizeObserver(() => document.documentElement.style.setProperty('--tbh', tb.offsetHeight + 'px')).observe(tb)
+      const brand = document.querySelector('.side-brand')
+      if (brand) { brand.tabIndex = 0; brand.setAttribute('role', 'link'); brand.title = 'Today'; brand.addEventListener('click', () => showView('overview')); brand.addEventListener('keydown', (e) => { if (e.key === 'Enter') showView('overview') }) }
+      // hovering a row warms its data, so the click lands on content rather than a spinner
+      if (matchMedia('(hover: hover)').matches) {
+        const WARM = { chat: () => { if (!chat.loaded) loadChat() }, course: () => { if (typeof LIB !== 'undefined' && !LIB.loaded) loadLibrary() } }
+        for (const [v, warm] of Object.entries(WARM)) {
+          const t = tabOf(v); if (!t) continue
+          let timer = 0
+          t.addEventListener('mouseenter', () => { timer = setTimeout(() => { try { warm() } catch {} }, 140) })
+          t.addEventListener('mouseleave', () => clearTimeout(timer))
+        }
+      }
+      // the browser tab carries the unread chat count
+      { const base = document.title, src = el('n-chat')
+        const sync = () => { const n = src && !src.hidden ? src.textContent.trim() : ''; document.title = n ? `(${n}) ${base}` : base }
+        if (src) { new MutationObserver(sync).observe(src, { attributes: true, attributeFilter: ['hidden'], childList: true, characterData: true, subtree: true }); sync() } }
       if (nav && 'ResizeObserver' in window) new ResizeObserver(() => syncRail()).observe(nav)
     }
 
@@ -9550,7 +9604,38 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         .subscribe()
     }
     let inboxFrom = 'overview'
-    el('tb-bell').addEventListener('click', () => { if (curView() !== 'inbox') inboxFrom = curView(); showView('inbox') })
+    el('tb-bell').addEventListener('click', () => {
+      if (matchMedia('(min-width: 841px)').matches && curView() !== 'inbox') { if (NBP.open) nbpClose(); else nbpOpen(); return }
+      if (curView() !== 'inbox') inboxFrom = curView(); showView('inbox')
+    })
+    /* ── the bell's popover (desktop) ──
+       The latest few notifications drop under the bell so nothing leaves the
+       page. Rows are the inbox's own rows (same renderer, same clicks). See
+       all opens the page. */
+    const NBP = { open: false }
+    function nbpEl() {
+      let m = el('nbp'); if (m) return m
+      m = document.createElement('div'); m.className = 'nbp'; m.id = 'nbp'; m.hidden = true; m.setAttribute('role', 'dialog'); m.setAttribute('aria-label', 'Notifications')
+      m.innerHTML = '<div class="nbp-h"><span>Notifications</span><button type="button" id="nbp-all">See all</button></div><div class="nbp-list" id="nbp-list"></div>'
+      document.body.appendChild(m)
+      el('nbp-all').addEventListener('click', () => { nbpClose(); if (curView() !== 'inbox') inboxFrom = curView(); showView('inbox') })
+      document.addEventListener('click', (e) => { if (NBP.open && !m.contains(e.target) && !el('tb-bell').contains(e.target)) nbpClose() })
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && NBP.open) nbpClose() })
+      window.addEventListener('resize', () => { if (NBP.open) nbpPlace() })
+      return m
+    }
+    function nbpPlace() { const m = el('nbp'), b = el('tb-bell'); if (!m || !b) return; const r = R(b); m.style.top = Math.round(r.bottom + 8) + 'px'; m.style.right = Math.max(12, Math.round(VW() - r.right)) + 'px' }
+    async function nbpOpen() {
+      const m = nbpEl(); NBP.open = true; m.hidden = false; nbpPlace()
+      requestAnimationFrame(() => m.classList.add('on'))
+      const list = el('nbp-list'); list.textContent = ''
+      const e = document.createElement('div'); e.className = 'nbp-empty'; e.textContent = 'Loading'; list.appendChild(e)
+      try { await loadInbox(list, 8) } catch (err) { console.warn('bell', err) }
+      if (!NBP.open) return
+      if (!list.querySelector('.nb-row')) { list.textContent = ''; const e2 = document.createElement('div'); e2.className = 'nbp-empty'; e2.textContent = 'Nothing yet. Likes, comments and follows land here.'; list.appendChild(e2) }
+    }
+    function nbpClose() { const m = el('nbp'); if (!m || m.hidden) return; NBP.open = false; m.classList.remove('on'); setTimeout(() => { m.hidden = true }, 160) }
+    globalThis.__nbpClose = nbpClose
     // a horizontal swipe on the notifications page goes back where you were
     {
       const v = el('v-inbox'); let sx = null, sy = null, drag = false
@@ -9575,9 +9660,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         drag = false
       }, { passive: true })
     }
-    async function loadInbox() {
-      const host = el('inbox')
-      const { data } = await supabase.from('notifications').select('id, kind, actor_id, recap_id, body, created_at, read_at').order('created_at', { ascending: false }).limit(60)
+    async function loadInbox(host = el('inbox'), limit = 60) {
+      const { data } = await supabase.from('notifications').select('id, kind, actor_id, recap_id, body, created_at, read_at').order('created_at', { ascending: false }).limit(limit)
       const rows = data ?? []
       // announcements ride along with the notifications, newest first
       const anns = (state.annMsgs ?? []).map((m) => ({ id: `ann-${m.id}`, kind: 'ann', actor_id: null, recap_id: null, body: m.body || 'Posted an image.', created_at: m.created_at, read_at: m.created_at, channel_id: m.channel_id }))
@@ -9588,7 +9672,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const tidy = (t) => String(t || '').replace(/\s*\u2014\s*/g, ', ')
       const dayLabel = (iso) => { const d = new Date(iso), t = new Date(); const days = Math.round((new Date(t.getFullYear(), t.getMonth(), t.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5); return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : days < 7 ? 'This week' : days < 31 ? 'This month' : 'Earlier' }
       let lastLabel = null
-      el('inbox-empty').hidden = items.length > 0
+      if (host === el('inbox')) el('inbox-empty').hidden = items.length > 0
       const ids = [...new Set(rows.map((n) => n.actor_id).filter(Boolean))].filter((id) => !mrProfile(id) && !chat.byUser?.[id])
       if (ids.length) {
         const { data: profs } = await supabase.from('member_directory').select('user_id, username, avatar_url').in('user_id', ids)
@@ -9628,9 +9712,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         })
         host.appendChild(row)
       }
-      // seen: everything unread up to now
+      // seen: everything unread up to now (the popover only marks what it showed)
       const unreadIds = rows.filter((n) => !n.read_at).map((n) => n.id)
-      if (unreadIds.length) { await supabase.from('notifications').update({ read_at: new Date().toISOString() }).in('id', unreadIds); setBell(0) }
+      if (unreadIds.length) { await supabase.from('notifications').update({ read_at: new Date().toISOString() }).in('id', unreadIds); if (host === el('inbox')) setBell(0); else refreshBell() }
       else refreshBell()
     }
 
@@ -11993,7 +12077,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>',
       msg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.5-4.5A8 8 0 1 1 21 12z"/></svg>',
       recent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+      act: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
     }
+    // things to do, reachable by name once you start typing
+    const PAL_ACTS = [
+      ["Log today's session", 'the composer on Today', () => { showView('overview'); setTimeout(() => el('mr-title')?.focus(), 360) }],
+      ['Calculators', 'position size and risk', () => el('rc-open')?.click()],
+      ['Switch theme', 'dark or light', () => el('theme-toggle')?.click()],
+      ['Interface size', 'appearance settings', () => showView('set-appearance')],
+      ['Invite friends', 'your invite link', () => showView('set-invite')],
+      ['Notification settings', 'what reaches you', () => showView('notifs')],
+      ['Keyboard shortcuts', 'the sheet', () => keysToggle()],
+      ['Sign out', '', () => el('signout')?.click()],
+    ]
     const PAL_PLACES = [['overview', 'Today', 'the morning briefing'], ['chart', 'Chart', 'NQ, MNQ, ES, MES'], ['feed', 'Feed', 'trades from members'], ['journal', 'Journal', 'your session notes'], ['course', 'Study', 'the lessons'], ['chat', 'Chat', 'channels and messages'], ['library', 'Video library', 'recaps and breakdowns'], ['news', 'News', 'the USD calendar'], ['gex', 'D1 GEX', 'the gamma board'], ['propfirms', 'Prop firms', 'the comparison sheet'], ['indicators', 'Indicators', 'the store'], ['members', 'Members', 'everyone here'], ['set-profile', 'Profile', 'your page'], ['inbox', 'Notifications', ''], ['settings', 'Settings', '']]
     function palEl() {
       let m = el('palette'); if (m) return m
@@ -12022,6 +12118,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const rec = ql ? [] : recentList().filter((v) => v !== curView())
       for (const v of rec) { const p = PAL_PLACES.find((x) => x[0] === v); if (p) out.push({ k: 'recent', t: p[1], d: secHint(v, p[2]), icon: 'recent', run: () => showView(v) }) }
       for (const [v, name, hint] of PAL_PLACES) if ((!ql || palHas(name + ' ' + hint, ql)) && !rec.includes(v)) out.push({ k: 'go', t: name, d: secHint(v, hint), icon: 'go', run: () => showView(v) })
+      if (ql) for (const [t, d, run] of PAL_ACTS) if (palHas(t + ' ' + d, ql)) out.push({ k: 'act', t, d, icon: 'act', run })
       for (const c of chat.channels || []) if (!ql || palHas(c.name, ql)) out.push({ k: 'chan', t: '#' + c.name, d: c.topic || 'channel', icon: 'chan', run: () => { showView('chat'); openConversation('channel', c.id) } })
       if (ql) {
         for (const u of (state.members || []).filter((u) => u.username && palHas(u.username + ' ' + (u.bio || ''), ql)).slice(0, 6)) out.push({ k: 'user', t: '@' + u.username, d: u.bio || (u.is_admin ? 'Admin' : u.is_mod ? 'Mod' : 'member'), icon: 'user', av: u, run: () => openChatProfile(u.user_id) })
@@ -12043,7 +12140,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const local = palLocal(PAL.q), remote = PAL.q.trim().length >= 2 ? (PAL.remote || []) : []
       PAL.items = [...local, ...remote]; PAL.idx = Math.min(PAL.idx, Math.max(0, PAL.items.length - 1))
       const list = el('pal-list'); list.textContent = ''
-      const groups = [['recent', 'Recent'], ['go', 'Go to'], ['chan', 'Channels'], ['user', 'People'], ['lesson', 'Lessons'], ['video', 'Videos'], ['msg', 'Messages']]
+      const groups = [['recent', 'Recent'], ['go', 'Go to'], ['act', 'Actions'], ['chan', 'Channels'], ['user', 'People'], ['lesson', 'Lessons'], ['video', 'Videos'], ['msg', 'Messages']]
       let i = 0
       for (const [k, label] of groups) {
         const rows = PAL.items.filter((x) => x.k === k); if (!rows.length) continue
@@ -12083,6 +12180,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     const JUMP = { t: 'overview', c: 'chart', g: 'gex', n: 'news', s: 'course', l: 'library', f: 'feed', h: 'chat', m: 'members', j: 'journal', p: 'set-profile', ',': 'settings' }
     const JUMP_LABEL = { t: 'Today', c: 'Chart', g: 'GEX', n: 'News', s: 'Study', l: 'Library', f: 'Feed', h: 'Chat', m: 'Members', j: 'Journal', p: 'Profile', ',': 'Settings' }
+    for (const [k, v] of Object.entries(JUMP)) { const t = tabOf(v); if (t) t.title = (t.dataset.title || '') + ' (g ' + k + ')' }
     let jumpAt = 0
     const keysTyping = (e) => { const t = e.target; return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')) }
     document.addEventListener('keydown', (e) => {
