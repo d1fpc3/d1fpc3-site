@@ -1,6 +1,70 @@
 # Kalshi maker desk
 
-Date: 2026-09-22. Status: awaiting D1's review.
+Date: 2026-09-22. **Status: SUPERSEDED before implementation. No code was written.**
+
+## Why this was not built
+
+The thesis was measured directly and did not survive. Doc:
+`apps/kalshi-bot/docs/research/2026-09-22-maker-pool-measurement.md`, commit a54f2f4.
+
+The whole design rests on the resting side collecting the favorite-longshot bias. That pool can
+be computed from the tape as arithmetic, with no fill model and no counterfactual: every trade
+has a maker on the other side, settlement is 0 or 1, and the maker fee is zero.
+
+| Series | Rounds | Notional | Pool | bps | 95% CI |
+|---|---|---|---|---|---|
+| `KXBTC15M` | 30 | $41.5M | -$46,957 | -11.3 | -$19,510 to +$16,380 |
+| `KXETH15M` | 20 | $1.32M | +$47,380 | +358.0 | -$1,755 to +$6,493 |
+
+Both CIs straddle zero widely and the two series disagree in sign. Over 50 rounds and $42.9M of
+notional, **the pool this design was built to harvest does not appear.** Phase 1's bracket would
+have measured D1's share of it, and the numerator is not there.
+
+**A prediction in an earlier revision of this spec was backwards, and it matters.** I argued a
+positive pool was near guaranteed because the rounds report showed takers losing. Follow the
+arithmetic: maker and taker sum to zero *before* fees, and takers were slightly negative *after*
+fees, which makes them slightly positive before fees, which forces the aggregate maker slightly
+negative. The correct prior was a pool at or just below zero. BTC at -11.3 bps is roughly what
+"minus the fee take" looks like. That arithmetic should have been run before a thesis was built
+on top of it.
+
+**This is not a clean kill, and should not be recorded as one.** Three limits, all real:
+
+- Underpowered at n=30 and n=20 against a fat tail. BTC's mean is negative while its median is
+  +$10,526, per-round range -$133,679 to +$77,270. The resting side wins most rounds and
+  occasionally gets destroyed.
+- Roughly two days per series, one regime.
+- **The aggregate includes every careless resting order on the book, so a selective maker could
+  beat the aggregate.** This is the strongest argument against treating the measurement as
+  decisive.
+
+What the number does establish, combined with the rest: a cron Worker is last in queue, and the
+competition is subsidised through the Liquidity **Provider** Program (executed Market Maker
+Agreement, allocated by auction, 50+ series including crypto, not available to D1). The position
+on offer is the worst share of a pool measuring zero, against counterparties who do not need
+trading P&L to justify their quotes.
+
+## The one thread that survives, and it is a different project
+
+Kalshi's Liquidity **Incentive** Program is a separate program from the Provider Program above.
+Open to most regular US members, no Market Maker Agreement, no application, no designation. It
+pays $1 to $1,000 per market per day for resting orders **whether or not they fill**, and all
+markets are potentially eligible.
+
+That is a subsidy, not an edge. It does not depend on the pool being positive, and it inverts the
+central risk of this spec: the danger of resting is adverse selection on fills, and LIP pays for
+resting regardless. It needs sizing before it justifies anything, because the reward is a
+proportional share of a pot against all participants including the funded pros, so at a $250
+bankroll D1's slice may round to nothing.
+
+**LIP is deliberately not folded into this document.** It has a different objective function
+(maximise resting score while not getting run over), and quietly morphing a bias-harvesting spec
+into an LIP design would erase the fact that the original thesis was tested and failed. If D1
+wants it, it gets its own spec.
+
+Everything below is the superseded design, kept for the record.
+
+---
 
 ## Problem
 
