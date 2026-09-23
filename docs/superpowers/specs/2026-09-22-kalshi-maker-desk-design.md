@@ -117,7 +117,28 @@ Per tick, for each series: resolve the open round, pull orderbook plus new trade
 compute fair value from reference spot (Coinbase Exchange for BTC/ETH/DOGE, Pyth for gold),
 record intended resting quotes, and on round close apply the Phase 1 fill rule and book P&L.
 
-Secrets held by the Worker: the Supabase service role key. **No Kalshi credentials at all.**
+Secrets held by the Worker: the Supabase service role key, plus the two Discord webhook URLs
+below. **No Kalshi credentials at all**, because every Kalshi endpoint this design uses is
+public. The Worker does hold Discord write access, which is worth stating plainly rather than
+letting "keyless" imply it holds nothing.
+
+### Notifications
+
+D1 supplied two webhooks, stored in `C:\Users\clari\.kalshi\secrets.json` under
+`discord.webhook_pnl` (daily P&L) and `discord.webhook_signals` (signals). Both verified live.
+They never enter a repo, a spec, a committed `.env`, or chat. A Cloudflare Worker cannot read
+that local file, so deploying Phase 2 means putting both in via `wrangler secret put`.
+
+**Wire the transport, do not schedule the post.** Nothing has traded, and Phase 1 is a backtest,
+so a recurring daily job today would post an empty message every day and train D1 to ignore the
+channel before it ever carries a real number. The recurring P&L post turns on when there is a
+P&L, which is Phase 4.
+
+**Fetch trap.** A webhook POST with no `User-Agent` header returns 403 Forbidden even when the
+webhook is perfectly valid, which is indistinguishable from a revoked token. Node, Deno and
+Worker `fetch` all send their own UA and are fine. To tell the two apart, GET the webhook URL
+with a real UA: a 200 carrying `channel_id` and `name` means the token is good and the UA was
+the problem.
 
 ### Phase 3: the desk
 
@@ -167,12 +188,19 @@ fill plus drift from fill mid to settlement. The second term is the adverse sele
 
 ## Security
 
-- No Kalshi API key exists anywhere in this design. Every endpoint used is public.
+- No Kalshi API key exists anywhere in this design. Every Kalshi endpoint used is public.
+- The Worker is not credential-free. It holds the Supabase service role key and two Discord
+  webhook URLs, which are write credentials for those two channels. It holds nothing that can
+  place a trade.
 - `d1fpc3-site` is a **public** repo. Worker source lives outside it. The only value in Echelon
-  is the publishable Supabase key, which is already committed there by design.
-- If Phase 4 ever goes live, keys stay in `C:\Users\clari\.kalshi\`, never in a repo or chat.
+  is the publishable Supabase key, which is already committed there by design. Webhook URLs and
+  channel ids are kept out of it too, referenced only by secret name.
+- Secrets live in `C:\Users\clari\.kalshi\secrets.json` (outside OneDrive, outside every repo)
+  and reach the Worker only through `wrangler secret put`. If Phase 4 ever goes live, Kalshi
+  keys join them there, never a repo and never chat.
 
 ## Out of scope
 
-Weather series, the `weather-ai` Claude overlay, Discord notifications, real order placement,
-and the authenticated WebSocket. Each is a separate decision after the bracket reports.
+Weather series, the `weather-ai` Claude overlay, real order placement, the authenticated
+WebSocket, and any **recurring** Discord post. Each is a separate decision after the bracket
+reports.
