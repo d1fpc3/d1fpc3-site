@@ -297,7 +297,7 @@
     <section class="panel span-12">
       <div class="panel-head">
         <h2>Edge hunt</h2>
-        <span class="sub">Cells where the hit rate beat the real ask plus the fee at 99.9% confidence over 30 days, traded on paper the next day. The running total is the only number that counts.</span>
+        <span class="sub">Cells are hypotheses; the paper trades are the only evidence. Every cell over 30 days with 200+ rounds where the win rate's 99.9% lower bound beat the real ask plus the fee, traded on paper the next day at that minute's ask, $10 a round. This is the cell book. The signal bot's model book lives in Discord with its own gate, and the two are never summed.</span>
       </div>
       <div class="edge">
         <div class="edge-book">
@@ -305,7 +305,7 @@
             <div class="stat"><div class="v gold" id="e-pnl">–</div><div class="k">paper P&amp;L, net of fees</div></div>
             <div class="stat"><div class="v" id="e-trades">–</div><div class="k">paper trades</div></div>
             <div class="stat"><div class="v" id="e-win">–</div><div class="k">won</div></div>
-            <div class="stat"><div class="v" id="e-cells">–</div><div class="k">cells live tonight</div></div>
+            <div class="stat"><div class="v" id="e-cells">–</div><div class="k" id="e-cells-k">cells live tonight</div></div>
           </div>
           <div class="chart" id="edge-chart"></div>
           <p class="reading quiet" id="edge-reading">Loading.</p>
@@ -591,9 +591,10 @@
       // cells still reads as scored rather than as never run
       const [book, latest] = await Promise.all([
         q('kalshi_paper_daily', (b) => b.select('*').order('as_of', { ascending: true })),
-        q('kalshi_daily', (b) => b.select('as_of').eq('series', 'ALL').not('edge_cells', 'is', null).order('as_of', { ascending: false }).limit(1)),
+        q('kalshi_daily', (b) => b.select('as_of,cells_tested,edge_cells').eq('series', 'ALL').not('edge_cells', 'is', null).order('as_of', { ascending: false }).limit(1)),
       ])
       const asOf = latest[0]?.as_of ?? null
+      const tested = latest[0]?.cells_tested ?? null
       const cells = asOf ? await q('kalshi_edge_cells', (b) => b.select('*').eq('window_days', 30).eq('as_of', asOf).order('ev_lo', { ascending: false })) : []
 
       // the book
@@ -605,12 +606,15 @@
       el('e-trades').textContent = fmt.format(trades)
       el('e-win').textContent = trades ? Math.round(100 * wins / trades) + '%' : '–'
       el('e-cells').textContent = fmt.format(cells.length)
+      // the denominator: at z = 3.09 about one in a thousand candidates clears by chance,
+      // and a chance flag can persist across overlapping 30-day windows for weeks
+      el('e-cells-k').textContent = tested != null ? `cells live, of ${fmt.format(tested)} tested` : 'cells live tonight'
       const reading = el('edge-reading')
       if (!trades) {
         reading.className = 'reading quiet'
         reading.textContent = cells.length
-          ? `${cells.length} ${cells.length === 1 ? 'cell clears' : 'cells clear'} the bar as of ${asOf}. Paper trades start with the next scored day.`
-          : 'No cell clears the bar yet: 200 rounds in the cell and a 99.9% lower bound on the win rate above the ask plus the fee. That is deliberate. With a thousand cells, a looser bar finds edge that is not there.'
+          ? `${cells.length} of ${fmt.format(tested ?? 0)} ${cells.length === 1 ? 'cell clears' : 'cells clear'} the bar as of ${asOf}; at this bar about one in a thousand does by chance, which is why nothing counts until it is traded forward. Paper trades start with the next scored day.`
+          : `No cell clears the bar${tested ? ` (${fmt.format(tested)} tested as of ${asOf})` : ' yet'}: 200 rounds in the cell and a 99.9% lower bound on the win rate above the ask plus the fee. That is deliberate. With a thousand cells, a looser bar finds edge that is not there. Candle asks are the displayed ask at the minute's close with unknown size, fine for $10 clips.`
       } else {
         reading.className = 'reading'
         const roi = cost ? pnl / cost : 0
