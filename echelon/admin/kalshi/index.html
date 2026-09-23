@@ -153,6 +153,9 @@
     .chart .axis-title { fill: var(--muted); font-size: 11.5px; }
     .chart .line-a { fill: none; stroke: var(--series-a); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
     .chart .line-b { fill: none; stroke: var(--series-b); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    /* the calibrated mid is the market mid corrected, so it wears the mid's gray, dashed */
+    .chart .line-c { fill: none; stroke: var(--series-b); stroke-width: 2; stroke-dasharray: 5 4; stroke-linejoin: round; stroke-linecap: round; }
+    .chart .zero { stroke: var(--line-bright); }
     .chart .lbl { font-size: 12px; font-weight: 500; fill: var(--ink); }
     .chart .lbl.b { fill: var(--muted); }
     .chart .diag { stroke: var(--line-bright); stroke-dasharray: 3 4; }
@@ -161,9 +164,12 @@
     .chart .hit { fill: transparent; }
     .draw .line-a, .draw .line-b { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: draw 900ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
     .draw .line-b { animation-delay: 80ms; }
+    .draw .line-c { opacity: 0; animation: fadein 500ms 700ms ease-out forwards; }
     @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes fadein { to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) {
       .draw .line-a, .draw .line-b { animation: none; stroke-dashoffset: 0; }
+      .draw .line-c { animation: none; opacity: 1; }
       .pulse.live .dot::after { animation: none; }
       .seg .thumb { transition: none; }
     }
@@ -245,7 +251,7 @@
     <section class="panel span-12">
       <div class="panel-head">
         <h2>Learning curve</h2>
-        <span class="sub">Brier score by day, lower is better. The market mid against the calibrated forecast, scored out of sample.</span>
+        <span class="sub">Brier score by day, lower is better. The market mid, the mid corrected by calibration, and a forecast built only from distance and time, all scored out of sample.</span>
         <div class="right">
           <div class="seg scroll" id="hero-series"></div>
           <div class="seg" id="hero-mode">
@@ -287,7 +293,7 @@
       <div class="panel-head">
         <h2>Calibration</h2>
         <span class="sub" id="cal-sub">What the mid said against what happened, last 30 days.</span>
-        <div class="right"><div class="seg scroll" id="cal-mtc"></div></div>
+        <div class="right"><div class="seg" id="cal-mode"></div><div class="seg scroll" id="cal-mtc"></div></div>
       </div>
       <div class="chart" id="cal-chart"><div class="skel" style="height: 240px"></div></div>
     </section>
@@ -299,8 +305,8 @@
         <span class="sub" id="live-sub">Every series' current round as the collector last saw it.</span>
       </div>
       <div class="tbl-scroll"><table id="live"><thead><tr>
-        <th>Series</th><th>Closes in</th><th class="n">Strike</th><th class="n">Yes bid</th><th class="n">Yes ask</th><th class="n">Mid</th><th class="n">Spread</th><th class="n" title="contracts resting in the five best yes-bid levels">Depth yes</th><th class="n" title="contracts resting in the five best no-bid levels">Depth no</th><th class="n" title="the last full minute of tape: trades, then contracts">Last minute</th><th class="n" title="share of last-minute contracts where the taker bought yes">Taker yes</th>
-      </tr></thead><tbody><tr><td colspan="11"><div class="skel"></div></td></tr></tbody></table></div>
+        <th>Series</th><th>Closes in</th><th class="n">Strike</th><th class="n" title="Coinbase, PAXG for gold">Spot</th><th class="n" title="basis points from the same feed's price at the round's open minute">vs open</th><th class="n">Yes bid</th><th class="n">Yes ask</th><th class="n">Mid</th><th class="n">Spread</th><th class="n" title="contracts resting in the five best yes-bid levels">Depth yes</th><th class="n" title="contracts resting in the five best no-bid levels">Depth no</th><th class="n" title="the last full minute of tape: trades, then contracts">Last minute</th><th class="n" title="share of last-minute contracts where the taker bought yes">Taker yes</th>
+      </tr></thead><tbody><tr><td colspan="13"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
 
     <!-- collector -->
@@ -386,7 +392,8 @@
     /* ── data ── */
     const SERIES = ['ALL', 'KXBTC15M', 'KXETH15M', 'KXDOGE15M', 'KXGOLD15M', 'KXSOL15M', 'KXXRP15M', 'KXBNB15M', 'KXHYPE15M', 'KXNEAR15M', 'KXZEC15M']
     const MTC = ['00-02', '03-05', '06-08', '09-11', '12-14']
-    const state = { series: 'ALL', mtc: '00-02', daily: [], calib: [], calibAsOf: null }
+    const state = { series: 'ALL', mtc: '00-02', calMode: 'band', daily: [], calib: [], calibDist: [], calibAsOf: null }
+    const bps = (x) => (x == null ? '–' : (x > 0 ? '+' : '') + Number(x).toFixed(1))
     const dayAgo = (d) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10)
 
     async function q(table, build) {
@@ -456,51 +463,62 @@
         reading.textContent = 'The calibrated line appears after the first scoring. It uses the previous day\'s calibration table, so it is out of sample from day one.'
         return
       }
-      // reading: the honest one-liner
+      // reading: the honest one-liner. The distance model is the line that matters; the
+      // calibrated mid is the control. Both are compared to the market over the last 7 days.
       const last7 = rows.slice(-7)
-      const gap = last7.reduce((t, r) => t + (Number(r.brier_mid) - Number(r.brier_calibrated)), 0) / last7.length
       const n = last7.reduce((t, r) => t + (r.rounds_settled ?? 0), 0)
+      const mean = (key) => last7.reduce((t, r) => t + Number(r[key]), 0) / last7.length
+      const gMid = mean('brier_mid'), gCal = mean('brier_calibrated')
+      const withDist = last7.filter((r) => r.brier_dist != null)
+      const gDist = withDist.length ? withDist.reduce((t, r) => t + Number(r.brier_dist), 0) / withDist.length : null
+      const dDist = gDist == null ? null : gMid - gDist, dCal = gMid - gCal
+      const say = (name, d) => Math.abs(d) < 0.0005 ? `${name} matches the market within ${p4(Math.abs(d))}` : d > 0 ? `${name} beats the market by ${p4(d)}` : `${name} trails the market by ${p4(-d)}`
       reading.className = 'reading'
       reading.textContent = last7.length < 2
-        ? `One day scored: market mid ${p4(last7[0].brier_mid)}, calibrated ${p4(last7[0].brier_calibrated)}, over ${fmt.format(n)} rounds. Nothing to read yet.`
-        : Math.abs(gap) < 0.0005
-          ? `Over the last ${last7.length} days the calibrated forecast and the market mid are within ${p4(Math.abs(gap))} Brier of each other across ${fmt.format(n)} rounds. The market is already calibrated here.`
-          : gap > 0
-            ? `Over the last ${last7.length} days the calibrated forecast beats the market mid by ${p4(gap)} Brier across ${fmt.format(n)} rounds.`
-            : `Over the last ${last7.length} days the calibrated forecast is ${p4(-gap)} Brier worse than the market mid across ${fmt.format(n)} rounds. The correction is hurting.`
+        ? `One day scored over ${fmt.format(n)} rounds: market mid ${p4(last7[0].brier_mid)}, calibrated ${p4(last7[0].brier_calibrated)}, distance model ${p4(last7[0].brier_dist)}. Nothing to read yet.`
+        : `Last ${last7.length} days, ${fmt.format(n)} rounds, market mid at ${p4(gMid)} Brier. ${dDist == null ? 'The distance model has no scored days yet' : say('The distance model', dDist)}; ${say('the calibrated mid', dCal).replace(/^The/, 'the')}.`
 
       // chart, drawn at the container's real pixel width so text stays legible on a phone
       const W = Math.max(320, Math.round(host.clientWidth || 900)), H = W < 600 ? 230 : 280
       const m = { t: 22, r: 18, b: 34, l: W < 600 ? 44 : 52 }
       const xs = rows.map((r) => Date.parse(r.as_of))
-      const ys = rows.flatMap((r) => [Number(r.brier_mid), Number(r.brier_calibrated)]).filter((v) => Number.isFinite(v))
+      const KEYS = [
+        { key: 'brier_dist', cls: 'line-a', name: 'Distance model', color: 'var(--series-a)', lbl: 'lbl' },
+        { key: 'brier_calibrated', cls: 'line-c', name: 'Calibrated mid', color: 'var(--series-b)', lbl: 'lbl b' },
+        { key: 'brier_mid', cls: 'line-b', name: 'Market mid', color: 'var(--series-b)', lbl: 'lbl b' },
+      ]
+      const ys = rows.flatMap((r) => KEYS.map((k) => Number(r[k.key]))).filter((v) => Number.isFinite(v))
       const y0 = Math.min(...ys), y1 = Math.max(...ys), pad = Math.max((y1 - y0) * 0.15, 0.002)
       const ylo = Math.max(0, y0 - pad), yhi = y1 + pad
       const one = rows.length === 1
       const x = (t) => one ? (W - m.r + m.l) / 2 : m.l + ((t - xs[0]) / (xs[xs.length - 1] - xs[0])) * (W - m.l - m.r)
       const y = (v) => m.t + (1 - (v - ylo) / (yhi - ylo)) * (H - m.t - m.b)
-      const path = (key) => rows.map((r, i) => `${i ? 'L' : 'M'}${x(xs[i]).toFixed(1)},${y(Number(r[key])).toFixed(1)}`).join(' ')
+      // a day with no value for a series breaks the line rather than drawing to zero
+      const path = (key) => rows.map((r, i) => r[key] == null ? null : `${x(xs[i]).toFixed(1)},${y(Number(r[key])).toFixed(1)}`)
+        .reduce((d, p, i, a) => d + (p == null ? '' : `${i === 0 || a[i - 1] == null ? 'M' : 'L'}${p}`), '')
       const yt = 4, yticks = Array.from({ length: yt + 1 }, (_, i) => ylo + (i / yt) * (yhi - ylo))
       const maxX = W < 600 ? 4 : 8
       const xticks = rows.filter((_, i) => rows.length <= maxX || i % Math.ceil(rows.length / maxX) === 0 || i === rows.length - 1)
       const last = rows[rows.length - 1], lx = x(xs[xs.length - 1])
-      const yA = y(Number(last.brier_calibrated)), yB = y(Number(last.brier_mid))
-      // end labels sit above their own line; when the two lines end within a few pixels
-      // of each other (calibrated tracking the mid is the expected case) they stack instead
-      let la = yA - 9, lb = yB - 9
-      if (Math.abs(yA - yB) < 18) { const c = (yA + yB) / 2; la = c - 10; lb = c + 16 }
+      // end labels: one per line, above its own end point, pushed apart to 16px so three
+      // lines that end together (the expected case early on) read as a stack, not a smear
+      const ends = KEYS.filter((k) => last[k.key] != null).map((k) => ({ ...k, v: Number(last[k.key]), y: y(Number(last[k.key])) }))
+      ends.sort((a, b) => a.y - b.y)
+      const labelY = ends.map((e) => e.y - 8)
+      for (let i = 1; i < labelY.length; i++) labelY[i] = Math.max(labelY[i], labelY[i - 1] + 16)
+      const over = labelY.length ? labelY[labelY.length - 1] - (H - m.b - 4) : 0
+      if (over > 0) for (let i = 0; i < labelY.length; i++) labelY[i] -= over
       const anchor = one ? 'start' : 'end', lxo = one ? lx + 10 : lx - 6
       const first = !renderHero.drawn; renderHero.drawn = true
-      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="${first ? 'draw' : ''}" style="--len: ${W * 2}" role="img" aria-label="Brier score by day, market mid against calibrated forecast">
+      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="${first ? 'draw' : ''}" style="--len: ${W * 2}" role="img" aria-label="Brier score by day: market mid, calibrated mid, and the distance model">
         <g class="grid">${yticks.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`).join('')}</g>
         <g class="axis">${yticks.map((v) => `<text x="${m.l - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${p3(v)}</text>`).join('')}
           ${xticks.map((r) => `<text x="${x(Date.parse(r.as_of)).toFixed(1)}" y="${H - 10}" text-anchor="middle">${new Date(r.as_of + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</text>`).join('')}</g>
         <path class="line-b" d="${path('brier_mid')}"/>
-        <path class="line-a" d="${path('brier_calibrated')}"/>
-        <circle cx="${lx.toFixed(1)}" cy="${yB.toFixed(1)}" r="3.5" fill="var(--series-b)"/>
-        <circle cx="${lx.toFixed(1)}" cy="${yA.toFixed(1)}" r="3.5" fill="var(--series-a)"/>
-        <text class="lbl b" x="${lxo.toFixed(1)}" y="${lb.toFixed(1)}" text-anchor="${anchor}">Market mid ${p4(last.brier_mid)}</text>
-        <text class="lbl" x="${lxo.toFixed(1)}" y="${la.toFixed(1)}" text-anchor="${anchor}">Calibrated ${p4(last.brier_calibrated)}</text>
+        <path class="line-c" d="${path('brier_calibrated')}"/>
+        <path class="line-a" d="${path('brier_dist')}"/>
+        ${ends.map((e) => `<circle cx="${lx.toFixed(1)}" cy="${e.y.toFixed(1)}" r="3.5" fill="${e.color}"/>`).join('')}
+        ${ends.map((e, i) => `<text class="${e.lbl}" x="${lxo.toFixed(1)}" y="${labelY[i].toFixed(1)}" text-anchor="${anchor}">${e.name} ${p4(e.v)}</text>`).join('')}
         <line class="xhair" id="xh" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" opacity="0"/>
         <rect class="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}"/>
       </svg>`
@@ -513,15 +531,18 @@
         const r = rows[best]
         xh.setAttribute('x1', x(xs[best])); xh.setAttribute('x2', x(xs[best])); xh.setAttribute('opacity', '1')
         showTip(`<div class="t">${new Date(r.as_of + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })}, ${fmt.format(r.rounds_settled ?? 0)} rounds</div>
-          <div class="row"><span><i class="sw" style="background: var(--series-a)"></i>Calibrated</span><b>${p4(r.brier_calibrated)}</b></div>
+          <div class="row"><span><i class="sw" style="background: var(--series-a)"></i>Distance model</span><b>${p4(r.brier_dist)}</b></div>
+          <div class="row"><span><i class="sw" style="background: var(--series-b); opacity: .6"></i>Calibrated mid</span><b>${p4(r.brier_calibrated)}</b></div>
           <div class="row"><span><i class="sw" style="background: var(--series-b)"></i>Market mid</span><b>${p4(r.brier_mid)}</b></div>
-          <div class="row"><span>Coverage</span><b>${r.coverage == null ? '–' : Math.round(r.coverage * 100) + '%'}</b></div>`, e.clientX, e.clientY)
+          <div class="row"><span>Spot coverage</span><b>${r.spot_coverage == null ? '–' : Math.round(r.spot_coverage * 100) + '%'}</b></div>
+          <div class="row"><span>Mean spread</span><b>${r.mean_spread == null ? '–' : p3(r.mean_spread)}</b></div>`, e.clientX, e.clientY)
       })
       hit.addEventListener('mouseleave', () => { xh.setAttribute('opacity', '0'); hideTip() })
 
       // table view
-      tbl.innerHTML = `<div class="tbl-scroll"><table><thead><tr><th>Day</th><th class="n">Rounds</th><th class="n">Coverage</th><th class="n">Market mid</th><th class="n">Calibrated</th><th class="n">Gap</th></tr></thead><tbody>${
-        [...rows].reverse().map((r) => `<tr><td>${r.as_of}</td><td class="n">${n0(r.rounds_settled)}</td><td class="n">${r.coverage == null ? '–' : Math.round(r.coverage * 100) + '%'}</td><td class="n">${p4(r.brier_mid)}</td><td class="n">${p4(r.brier_calibrated)}</td><td class="n ${Number(r.brier_mid) - Number(r.brier_calibrated) > 0 ? 'ok' : 'cnt'}">${p4(Number(r.brier_mid) - Number(r.brier_calibrated))}</td></tr>`).join('')
+      const gapCell = (a, b) => (a == null || b == null) ? '<td class="n">–</td>' : `<td class="n ${Number(a) - Number(b) > 0.0005 ? 'ok' : Number(a) - Number(b) < -0.0005 ? 'err' : 'cnt'}">${(Number(a) - Number(b) > 0 ? '+' : '') + p4(Number(a) - Number(b))}</td>`
+      tbl.innerHTML = `<div class="tbl-scroll"><table><thead><tr><th>Day</th><th class="n">Rounds</th><th class="n">Spot</th><th class="n">Market mid</th><th class="n">Calibrated</th><th class="n" title="market minus calibrated, positive means the correction helped">Edge</th><th class="n">Distance model</th><th class="n" title="market minus distance model, positive means the model beat the market">Edge</th></tr></thead><tbody>${
+        [...rows].reverse().map((r) => `<tr><td>${r.as_of}</td><td class="n">${n0(r.rounds_settled)}</td><td class="n">${r.spot_coverage == null ? '–' : Math.round(r.spot_coverage * 100) + '%'}</td><td class="n">${p4(r.brier_mid)}</td><td class="n">${p4(r.brier_calibrated)}</td>${gapCell(r.brier_mid, r.brier_calibrated)}<td class="n">${p4(r.brier_dist)}</td>${gapCell(r.brier_mid, r.brier_dist)}</tr>`).join('')
       }</tbody></table></div>`
     }
 
@@ -542,7 +563,7 @@
         c.addEventListener('mousemove', (e) => {
           const r = by.get(`${c.dataset.s}|${c.dataset.d}`)
           showTip(`<div class="t">${c.dataset.s}, ${new Date(c.dataset.d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</div>${r
-            ? `<div class="row"><span>Minutes of book</span><b>${n0(r.snaps)} of 1,440</b></div><div class="row"><span>Rounds</span><b>${n0(r.rounds)}, ${n0(r.settled)} settled</b></div><div class="row"><span>Tape minutes</span><b>${n0(r.tape_minutes)}</b></div>`
+            ? `<div class="row"><span>Minutes of book</span><b>${n0(r.snaps)} of 1,440</b></div><div class="row"><span>Seen live</span><b>${n0(r.snaps_live ?? 0)}, rest from candles</b></div><div class="row"><span>Rounds</span><b>${n0(r.rounds)}, ${n0(r.settled)} settled</b></div><div class="row"><span>Tape minutes</span><b>${n0(r.tape_minutes)}</b></div>`
             : '<div class="row"><span>Nothing captured</span></div>'}`, e.clientX, e.clientY)
         })
         c.addEventListener('mouseleave', hideTip)
@@ -553,41 +574,68 @@
     async function loadCalib() {
       const latest = await q('kalshi_calibration', (b) => b.select('as_of').eq('window_days', 30).order('as_of', { ascending: false }).limit(1))
       state.calibAsOf = latest[0]?.as_of ?? null
-      state.calib = state.calibAsOf
-        ? await q('kalshi_calibration', (b) => b.select('*').eq('window_days', 30).eq('as_of', state.calibAsOf).eq('series', state.series))
-        : []
+      const [calib, calibDist] = state.calibAsOf ? await Promise.all([
+        q('kalshi_calibration', (b) => b.select('*').eq('window_days', 30).eq('as_of', state.calibAsOf).eq('series', state.series)),
+        q('kalshi_calibration_dist', (b) => b.select('*').eq('window_days', 30).eq('as_of', state.calibAsOf).eq('series', state.series)),
+      ]) : [[], []]
+      state.calib = calib; state.calibDist = calibDist
       renderCalib()
     }
     function renderCalib() {
-      const host = el('cal-chart')
-      const rows = state.calib.filter((r) => r.mtc_bucket === state.mtc).sort((a, b) => Number(a.mean_mid) - Number(b.mean_mid))
-      el('cal-sub').textContent = state.calibAsOf ? `What the mid said against what happened, 30 days to ${state.calibAsOf}.` : 'What the mid said against what happened, last 30 days.'
+      const host = el('cal-chart'), dist = state.calMode === 'dist'
+      const src = dist ? state.calibDist : state.calib
+      const rows = src.filter((r) => r.mtc_bucket === state.mtc).sort((a, b) => Number(dist ? a.mean_bps : a.mean_mid) - Number(dist ? b.mean_bps : b.mean_mid))
+      const to = state.calibAsOf ? `30 days to ${state.calibAsOf}` : 'last 30 days'
+      el('cal-sub').textContent = dist ? `How often yes happened, by how far price sat from the round's open, ${to}.` : `What the mid said against what happened, ${to}.`
       if (!rows.length) {
-        host.innerHTML = `<div class="empty" style="padding: 88px 0"><b>${state.calibAsOf ? 'No rounds in this bucket yet.' : 'No calibration yet.'}</b><br>${state.calibAsOf ? 'Pick another series or minutes-to-close.' : 'The table is built by the first scoring at 00:10 UTC.'}</div>`
+        host.innerHTML = `<div class="empty" style="padding: 88px 0"><b>${state.calibAsOf ? (dist ? 'No spot-matched rounds in this bucket yet.' : 'No rounds in this bucket yet.') : 'No calibration yet.'}</b><br>${state.calibAsOf ? 'Pick another series or minutes-to-close.' : 'The table is built by the first scoring at 00:10 UTC.'}</div>`
         return
       }
       const W = Math.max(280, Math.round(host.clientWidth || 520)), H = W < 480 ? 260 : 300
       const m = { t: 14, r: 16, b: 36, l: 44 }
-      const x = (v) => m.l + v * (W - m.l - m.r), y = (v) => m.t + (1 - v) * (H - m.t - m.b)
       const nmax = Math.max(...rows.map((r) => r.n))
       const rad = (n) => 4 + 9 * Math.sqrt(n / nmax)
-      const ticks = [0, 0.25, 0.5, 0.75, 1]
-      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Calibration: hit rate against market mid by price band">
-        <g class="grid">${ticks.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><line y1="${m.t}" y2="${H - m.b}" x1="${x(v)}" x2="${x(v)}"/>`).join('')}</g>
-        <line class="diag" x1="${x(0)}" y1="${y(0)}" x2="${x(1)}" y2="${y(1)}"/>
-        <g class="axis">${ticks.map((v) => `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(2)}</text><text x="${x(v)}" y="${H - 12}" text-anchor="middle">${v.toFixed(2)}</text>`).join('')}
-          <text class="axis-title" x="${(W + m.l - m.r) / 2}" y="${H}" text-anchor="middle">market mid</text>
+      const y = (v) => m.t + (1 - v) * (H - m.t - m.b)
+      const yticks = [0, 0.25, 0.5, 0.75, 1]
+      let x, xticks, xfmt, xtitle, ref
+      if (dist) {
+        // basis points, clamped so a single wild bucket cannot flatten the rest
+        const lim = Math.min(80, Math.max(20, ...rows.map((r) => Math.abs(Number(r.mean_bps))))) * 1.1
+        x = (v) => m.l + ((Math.max(-lim, Math.min(lim, v)) + lim) / (2 * lim)) * (W - m.l - m.r)
+        xticks = [-lim, -lim / 2, 0, lim / 2, lim].map((v) => Math.round(v))
+        xfmt = (v) => (v > 0 ? '+' : '') + v
+        xtitle = 'basis points from the open'
+        ref = `<line class="zero" x1="${x(0)}" x2="${x(0)}" y1="${m.t}" y2="${H - m.b}"/><line class="diag" x1="${m.l}" x2="${W - m.r}" y1="${y(0.5)}" y2="${y(0.5)}"/>`
+      } else {
+        x = (v) => m.l + v * (W - m.l - m.r)
+        xticks = yticks
+        xfmt = (v) => v.toFixed(2)
+        xtitle = 'market mid'
+        ref = `<line class="diag" x1="${x(0)}" y1="${y(0)}" x2="${x(1)}" y2="${y(1)}"/>`
+      }
+      const xv = (r) => Number(dist ? r.mean_bps : r.mean_mid)
+      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${dist ? 'Hit rate by distance from the open' : 'Calibration: hit rate against market mid by price band'}">
+        <g class="grid">${yticks.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/>`).join('')}${xticks.map((v) => `<line y1="${m.t}" y2="${H - m.b}" x1="${x(v)}" x2="${x(v)}"/>`).join('')}</g>
+        ${ref}
+        <g class="axis">${yticks.map((v) => `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(2)}</text>`).join('')}${xticks.map((v) => `<text x="${x(v)}" y="${H - 12}" text-anchor="middle">${xfmt(v)}</text>`).join('')}
+          <text class="axis-title" x="${(W + m.l - m.r) / 2}" y="${H}" text-anchor="middle">${xtitle}</text>
           <text class="axis-title" transform="translate(12 ${(H + m.t - m.b) / 2}) rotate(-90)" text-anchor="middle">how often yes happened</text></g>
-        ${rows.map((r, i) => `<circle class="dot" data-i="${i}" cx="${x(Number(r.mean_mid)).toFixed(1)}" cy="${y(Number(r.hit_rate)).toFixed(1)}" r="${rad(r.n).toFixed(1)}"/>`).join('')}
+        ${rows.map((r, i) => `<circle class="dot" data-i="${i}" cx="${x(xv(r)).toFixed(1)}" cy="${y(Number(r.hit_rate)).toFixed(1)}" r="${rad(r.n).toFixed(1)}"/>`).join('')}
       </svg>`
       host.querySelectorAll('.dot').forEach((d) => {
         d.addEventListener('mousemove', (e) => {
           const r = rows[Number(d.dataset.i)]
-          showTip(`<div class="t">Band ${r.band}, ${state.mtc} minutes to close</div>
-            <div class="row"><span>Market mid</span><b>${p3(r.mean_mid)}</b></div>
-            <div class="row"><span>Yes happened</span><b>${p3(r.hit_rate)}</b></div>
-            <div class="row"><span>Rounds scored</span><b>${fmt.format(r.n)}</b></div>
-            <div class="row"><span>Brier of the mid</span><b>${p4(r.brier_mid)}</b></div>`, e.clientX, e.clientY)
+          showTip(dist
+            ? `<div class="t">${r.dist_bucket} bps, ${state.mtc} minutes to close</div>
+              <div class="row"><span>Mean distance</span><b>${bps(r.mean_bps)} bps</b></div>
+              <div class="row"><span>Yes happened</span><b>${p3(r.hit_rate)}</b></div>
+              <div class="row"><span>Market mid there</span><b>${p3(r.mean_mid)}</b></div>
+              <div class="row"><span>Rounds scored</span><b>${fmt.format(r.n)}</b></div>`
+            : `<div class="t">Band ${r.band}, ${state.mtc} minutes to close</div>
+              <div class="row"><span>Market mid</span><b>${p3(r.mean_mid)}</b></div>
+              <div class="row"><span>Yes happened</span><b>${p3(r.hit_rate)}</b></div>
+              <div class="row"><span>Rounds scored</span><b>${fmt.format(r.n)}</b></div>
+              <div class="row"><span>Brier of the mid</span><b>${p4(r.brier_mid)}</b></div>`, e.clientX, e.clientY)
         })
         d.addEventListener('mouseleave', hideTip)
       })
@@ -598,7 +646,7 @@
     async function loadLive() {
       const rows = await q('kalshi_live', (b) => b.select('*').order('series'))
       const tb = el('live').querySelector('tbody')
-      if (!rows.length) { tb.innerHTML = '<tr><td colspan="11" class="empty">No round in the last 20 minutes.</td></tr>'; return }
+      if (!rows.length) { tb.innerHTML = '<tr><td colspan="13" class="empty">No round in the last 20 minutes.</td></tr>'; return }
       const tickers = rows.map((r) => r.ticker)
       const tape = await q('kalshi_tape_minutes', (b) => b.select('ticker,minute_utc,trades,contracts,taker_yes_contracts').in('ticker', tickers).order('minute_utc', { ascending: false }).limit(tickers.length * 3))
       const lastTape = new Map(); for (const t of tape) if (!lastTape.has(t.ticker)) lastTape.set(t.ticker, t)
@@ -607,10 +655,13 @@
       tb.innerHTML = rows.map((r) => {
         const t = lastTape.get(r.ticker)
         const tk = t && Number(t.contracts) > 0 ? Math.round(100 * Number(t.taker_yes_contracts) / Number(t.contracts)) : null
+        const b = r.bps == null ? null : Number(r.bps)
         return `<tr>
           <td><span class="ser">${short(r.series)}</span> <span class="cnt">${r.result ? 'settled ' + r.result : ''}</span></td>
           <td data-close="${r.close_time}"></td>
           <td class="n">${r.strike == null ? '–' : fmt.format(Number(r.strike))}</td>
+          <td class="n">${r.spot == null ? '–' : fmt.format(Number(r.spot))}</td>
+          <td class="n ${b == null ? '' : b > 0 ? 'ok' : b < 0 ? 'err' : ''}">${bps(b)}</td>
           <td class="n">${p2(r.yes_bid)}</td><td class="n">${p2(r.yes_ask)}</td>
           <td class="n"><span class="mid">${p2(r.mid)}</span></td>
           <td class="n">${p2(r.spread)}</td>
@@ -631,6 +682,7 @@
 
     /* ── controls ── */
     segment(el('hero-series'), SERIES.map((s) => ({ v: s, label: s === 'ALL' ? 'All' : short(s) })), state.series, (v) => { state.series = v; loadDaily(); loadCalib() })
+    segment(el('cal-mode'), [{ v: 'band', label: 'Mid' }, { v: 'dist', label: 'Distance' }], state.calMode, (v) => { state.calMode = v; renderCalib() })
     segment(el('cal-mtc'), MTC.map((b) => ({ v: b, label: b.replace('-', ' to ') + ' min' })), state.mtc, (v) => { state.mtc = v; renderCalib() })
 
     /* ── boot ── */
