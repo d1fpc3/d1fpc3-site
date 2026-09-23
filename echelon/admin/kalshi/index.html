@@ -185,6 +185,21 @@
     .tip .row { display: flex; gap: 12px; justify-content: space-between; }
     .tip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
 
+    /* ════ edge hunt ═════════════════════════════════════════ */
+    .edge { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 28px; align-items: start; }
+    @media (max-width: 1100px) { .edge { grid-template-columns: 1fr; } }
+    .edge-stats { margin-bottom: 14px; }
+    .edge-book .chart { margin: 4px 0 12px; }
+    .edge-book .reading { font-size: 14px; }
+    .chart .line-p { fill: none; stroke: var(--series-a); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    .chart .area-p { fill: var(--series-a); opacity: 0.12; }
+    .v.neg { color: var(--bad); }
+    .v.pos { color: var(--good); }
+    td .cell-k { color: var(--muted); font-size: 12px; margin-left: 6px; }
+    td .buy { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel-2); }
+    td .buy.yes { color: var(--good); }
+    td .buy.no { color: var(--bad); }
+
     /* ════ coverage heat grid ════════════════════════════════ */
     .heat { display: grid; gap: 4px; align-items: center; }
     .heat .rl { font-size: 12px; color: var(--muted); padding-right: 8px; white-space: nowrap; }
@@ -275,6 +290,29 @@
           </div>
           <p class="reading quiet" id="reading">Loading.</p>
         </aside>
+      </div>
+    </section>
+
+    <!-- the edge hunt: cells the market misprices, and the paper book that tests them -->
+    <section class="panel span-12">
+      <div class="panel-head">
+        <h2>Edge hunt</h2>
+        <span class="sub">Cells where the hit rate beat the real ask plus the fee at 99.9% confidence over 30 days, traded on paper the next day. The running total is the only number that counts.</span>
+      </div>
+      <div class="edge">
+        <div class="edge-book">
+          <div class="stat-row edge-stats">
+            <div class="stat"><div class="v gold" id="e-pnl">–</div><div class="k">paper P&amp;L, net of fees</div></div>
+            <div class="stat"><div class="v" id="e-trades">–</div><div class="k">paper trades</div></div>
+            <div class="stat"><div class="v" id="e-win">–</div><div class="k">won</div></div>
+            <div class="stat"><div class="v" id="e-cells">–</div><div class="k">cells live tonight</div></div>
+          </div>
+          <div class="chart" id="edge-chart"></div>
+          <p class="reading quiet" id="edge-reading">Loading.</p>
+        </div>
+        <div class="tbl-scroll edge-cells"><table id="cells"><thead><tr>
+          <th>Series</th><th>Minutes left</th><th>Cell</th><th>Buy</th><th class="n">Rounds</th><th class="n">Won</th><th class="n">Ask</th><th class="n" title="Wilson lower bound of the win rate, minus the ask, minus the taker fee">Edge, floor</th><th class="n" title="mean win rate minus ask minus fee">Edge, mean</th>
+        </tr></thead><tbody><tr><td colspan="9"><div class="skel"></div></td></tr></tbody></table></div>
       </div>
     </section>
 
@@ -387,7 +425,7 @@
     }
     // charts are drawn at their container's width, so redraw when that changes
     let rsz
-    new ResizeObserver(() => { clearTimeout(rsz); rsz = setTimeout(() => { renderHero(); renderCalib() }, 150) }).observe(document.querySelector('.wrap'))
+    new ResizeObserver(() => { clearTimeout(rsz); rsz = setTimeout(() => { renderHero(); renderCalib(); loadEdge() }, 150) }).observe(document.querySelector('.wrap'))
 
     /* ── data ── */
     const SERIES = ['ALL', 'KXBTC15M', 'KXETH15M', 'KXDOGE15M', 'KXGOLD15M', 'KXSOL15M', 'KXXRP15M', 'KXBNB15M', 'KXHYPE15M', 'KXNEAR15M', 'KXZEC15M']
@@ -546,6 +584,71 @@
       }</tbody></table></div>`
     }
 
+    /* ── edge hunt ── */
+    const money = (x) => (x == null ? '–' : (x < 0 ? '-' : '+') + '$' + Math.abs(Number(x)).toFixed(2))
+    async function loadEdge() {
+      const [book, latest] = await Promise.all([
+        q('kalshi_paper_daily', (b) => b.select('*').order('as_of', { ascending: true })),
+        q('kalshi_edge_cells', (b) => b.select('as_of').eq('window_days', 30).order('as_of', { ascending: false }).limit(1)),
+      ])
+      const asOf = latest[0]?.as_of ?? null
+      const cells = asOf ? await q('kalshi_edge_cells', (b) => b.select('*').eq('window_days', 30).eq('as_of', asOf).order('ev_lo', { ascending: false })) : []
+
+      // the book
+      const trades = book.reduce((t, r) => t + r.trades, 0), wins = book.reduce((t, r) => t + r.wins, 0)
+      const pnl = book.length ? Number(book[book.length - 1].pnl_cum) : null
+      const cost = book.reduce((t, r) => t + Number(r.cost), 0)
+      const pnlEl = el('e-pnl'); pnlEl.textContent = trades ? money(pnl) : '$0.00'
+      pnlEl.className = 'v ' + (pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : 'gold')
+      el('e-trades').textContent = fmt.format(trades)
+      el('e-win').textContent = trades ? Math.round(100 * wins / trades) + '%' : '–'
+      el('e-cells').textContent = fmt.format(cells.length)
+      const reading = el('edge-reading')
+      if (!trades) {
+        reading.className = 'reading quiet'
+        reading.textContent = cells.length
+          ? `${cells.length} ${cells.length === 1 ? 'cell clears' : 'cells clear'} the bar as of ${asOf}. Paper trades start with the next scored day.`
+          : 'No cell clears the bar yet: 200 rounds in the cell and a 99.9% lower bound on the win rate above the ask plus the fee. That is deliberate. With a thousand cells, a looser bar finds edge that is not there.'
+      } else {
+        reading.className = 'reading'
+        const roi = cost ? pnl / cost : 0
+        reading.textContent = `${fmt.format(trades)} paper trades over ${book.length} ${book.length === 1 ? 'day' : 'days'}, ${money(pnl)} on $${fmt.format(Math.round(cost))} traded (${(roi * 100).toFixed(1)}% on cost), ${Math.round(100 * wins / trades)}% won. ${trades < 100 ? `Your gate is 100 trades; ${100 - trades} to go.` : pnl > 0 ? 'Past the 100-trade gate and positive after fees.' : 'Past the 100-trade gate and not positive. The cells are not an edge.'}`
+      }
+
+      // cumulative P&L, small
+      const host = el('edge-chart')
+      if (book.length < 2) { host.innerHTML = '' }
+      else {
+        const W = Math.max(280, Math.round(host.clientWidth || 380)), H = 120, m = { t: 8, r: 8, b: 20, l: 44 }
+        const xs = book.map((r) => Date.parse(r.as_of)), ys = book.map((r) => Number(r.pnl_cum))
+        const y0 = Math.min(0, ...ys), y1 = Math.max(0, ...ys), pad = Math.max((y1 - y0) * 0.1, 1)
+        const x = (t) => m.l + ((t - xs[0]) / (xs[xs.length - 1] - xs[0])) * (W - m.l - m.r)
+        const y = (v) => m.t + (1 - (v - (y0 - pad)) / ((y1 + pad) - (y0 - pad))) * (H - m.t - m.b)
+        const pts = book.map((r, i) => `${x(xs[i]).toFixed(1)},${y(ys[i]).toFixed(1)}`)
+        host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative paper P&L by day">
+          <line class="zero" x1="${m.l}" x2="${W - m.r}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>
+          <path class="area-p" d="M${pts[0]} L${pts.join(' L')} L${x(xs[xs.length - 1]).toFixed(1)},${y(0).toFixed(1)} L${x(xs[0]).toFixed(1)},${y(0).toFixed(1)} Z"/>
+          <path class="line-p" d="M${pts.join(' L')}"/>
+          <g class="axis"><text x="${m.l - 6}" y="${y(y1) + 4}" text-anchor="end">${money(y1)}</text><text x="${m.l - 6}" y="${y(y0) + 4}" text-anchor="end">${money(y0)}</text>
+            <text x="${m.l}" y="${H - 6}">${book[0].as_of.slice(5)}</text><text x="${W - m.r}" y="${H - 6}" text-anchor="end">${book[book.length - 1].as_of.slice(5)}</text></g>
+        </svg>`
+      }
+
+      // the cells
+      const tb = el('cells').querySelector('tbody')
+      tb.innerHTML = cells.length ? cells.map((c) => `<tr>
+        <td><span class="ser">${short(c.series)}</span></td>
+        <td>${c.mtc_bucket.replace('-', ' to ')}</td>
+        <td>${c.key === 'band' ? 'mid ' + c.cell + 's' : c.cell + ' bps'}<span class="cell-k">${c.key === 'band' ? 'price band' : 'from open'}</span></td>
+        <td><span class="buy ${c.side}">${c.side.toUpperCase()}</span></td>
+        <td class="n">${fmt.format(c.n)}</td>
+        <td class="n">${(100 * Number(c.side === 'yes' ? c.hit_rate : 1 - c.hit_rate)).toFixed(1)}%</td>
+        <td class="n">${p2(c.mean_ask)}</td>
+        <td class="n ok">+${(100 * Number(c.ev_lo)).toFixed(1)}¢</td>
+        <td class="n">+${(100 * Number(c.ev_mean)).toFixed(1)}¢</td>
+      </tr>`).join('') : `<tr><td colspan="9" class="empty">${asOf ? 'No cell clears the bar as of ' + asOf + '.' : 'No scoring yet.'}</td></tr>`
+    }
+
     /* ── coverage heat grid ── */
     async function loadCoverage() {
       const rows = await q('kalshi_coverage', (b) => b.select('*').gte('day', dayAgo(13)).order('day', { ascending: true }))
@@ -686,10 +789,10 @@
     segment(el('cal-mtc'), MTC.map((b) => ({ v: b, label: b.replace('-', ' to ') + ' min' })), state.mtc, (v) => { state.mtc = v; renderCalib() })
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadTicks(), loadStats(), loadDaily(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadTicks(), loadStats(), loadDaily(), loadEdge(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
     setInterval(() => { loadTicks(); loadLive() }, 30_000)
-    setInterval(() => { loadStats(); loadCoverage() }, 5 * 60_000)
+    setInterval(() => { loadStats(); loadCoverage(); loadEdge() }, 5 * 60_000)
     supabase.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') location.href = '/echelon/admin/' })
   </script>
 </body>
