@@ -57,6 +57,20 @@ is alive.** Each phase has an exit condition that can stop the project.
 
 ### Phase 1: the fill bracket (runs in `apps/kalshi-bot`)
 
+**The strategy under test is bias harvesting, not spot-model quoting.** This has to be stated
+before anything else, because an earlier revision of this spec tested one and built the other.
+
+The thesis inherited from the rounds report is narrow: the favorite-longshot bias is visible at
+the mid (longshots 0.4 to 1.8 points rich), and spread plus the 7% taker fee ate it, so only a
+maker paying zero fee could collect it. So the quoting rule is **an offset from the prevailing
+market mid**, and it is the same rule in Phase 1 and Phase 2.
+
+Reference spot (Coinbase for BTC/ETH/DOGE, Pyth for gold) is **not in the quoting path**. A
+log-normal model on trailing realized vol is exactly what the rounds backtest already killed:
+it lost at every threshold on BTC and ETH holdout with CIs below zero, and the Kalshi mid out
+forecast it at every horizon with the gap widening into the close. Reference spot stays as a
+diagnostic column so the reports can show what it would have said, and nothing quotes off it.
+
 Replay historical tape and compute maker P&L under **two** fill models on an identical
 requote policy. This is the core methodological decision and it comes from
 `2026-09-22-maker-adverse-selection-methodology.md`.
@@ -74,9 +88,28 @@ object. This is checked, not trusted.
 
 | Bracket result | Decision |
 |---|---|
-| Both bounds positive | Real. Proceed to Phase 2. |
+| Both bounds clear the economics floor | Real **and** worth building. Proceed to Phase 2. |
+| Both bounds positive but under the floor | Statistically real, economically pointless. Write the report and stop. A Worker, five tables and an admin page are not worth pocket change per month. |
 | Both bounds negative | Dead. Stop. No queue modelling rescues it. Write the report and close the project. |
-| Straddles zero | This, and only this, justifies building live capture for queue position. |
+| Straddles zero | For D1 specifically, read this as **stop**, not as a green light. See below. |
+
+**The economics floor, fixed before the run.** Significance and worth-doing are different tests
+and only the first was in the earlier revision of this spec. A bracket can come back technically
+positive at 2% on cost and trigger Phases 2 to 4 for pocket change. So the floor is pre-registered
+and cannot be rationalised after the number is seen.
+
+Proposed defaults, **D1's to move, but only before the run**: at least **0.5 points net per
+contract traded**, and at least **$50 per month** projected at his actual $250 bankroll and $10
+per market sizing. Below either, the project stops regardless of how good the p-value looks.
+
+**Why "straddles zero" is not a continue path here.** The methodology doc frames it as the case
+that justifies building live capture, which is correct in general and misleading for D1. A cron
+Worker polling a public REST API is last in queue against colocated market makers: it loses every
+race to a new price level and joins the back of every existing one. That makes the strict
+trade-through bound close to his realistic expected result rather than a floor beneath it. So if
+the bracket straddles, the honest reading is "this works for someone with better infrastructure
+than D1", and the choice is to stop or to consciously enter an infrastructure race he will not
+win. Capture gets built only if he decides to enter that race with his eyes open.
 
 Two honesty constraints carried forward from the prior reports:
 
@@ -114,8 +147,12 @@ Cloudflare Worker `kalshi-desk`, source **outside** `d1fpc3-site` (that repo is 
 reason `gex-worker` lives apart). Cron trigger every minute.
 
 Per tick, for each series: resolve the open round, pull orderbook plus new trades by cursor,
-compute fair value from reference spot (Coinbase Exchange for BTC/ETH/DOGE, Pyth for gold),
-record intended resting quotes, and on round close apply the Phase 1 fill rule and book P&L.
+apply **the same mid-offset quoting rule Phase 1 validated**, record intended resting quotes,
+and on round close apply the Phase 1 fill rule and book P&L.
+
+The quoting rule is shared code with Phase 1, not a reimplementation. If Phase 2 quotes off
+anything Phase 1 did not test, Phase 1 proves nothing about what ships. Reference spot is
+recorded as a diagnostic only.
 
 Secrets held by the Worker: the Supabase service role key, plus the two Discord webhook URLs
 below. **No Kalshi credentials at all**, because every Kalshi endpoint this design uses is
