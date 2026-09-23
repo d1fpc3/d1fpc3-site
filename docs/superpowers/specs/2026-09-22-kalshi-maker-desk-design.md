@@ -68,7 +68,9 @@ requote policy. This is the core methodological decision and it comes from
 - **Optimistic bound.** Front of queue: fill on any volume at your price. This is what a naive
   maker backtest reports, and it looks good even when the strategy is dead.
 
-The requote policy must be **byte identical** across both bounds or the bracket is meaningless.
+The requote policy must be **byte identical** across both bounds, or the bracket stops bracketing
+anything and the decision rule below is void. Both runs assert they consumed the same policy
+object. This is checked, not trusted.
 
 | Bracket result | Decision |
 |---|---|
@@ -82,17 +84,29 @@ Two honesty constraints carried forward from the prior reports:
   on that data is not clean out of sample even though the fill model is new information.
   Forward paper is the confirmation, not this.
 - Pre-registered parameter grid and confidence intervals, same standard as the earlier reports.
-  No threshold tuning after seeing the result.
+  No threshold tuning after seeing the result, and **every cell gets reported**, not just the
+  survivors. The cautionary case is the gold 92 to 96c +1.7% in the rounds report, which was only
+  read correctly as noise because the report was honest that 10 bands by 5 time buckets per asset
+  produces winners by chance. A maker bracket has more knobs than that, so the temptation is
+  larger.
 
 **Cost control.** One 15 minute BTC round is roughly 34,000 trades (34 pages at `limit=1000`).
 Pulling four assets whole is about 200k requests per asset-month. Phase 1 samples: one round
 per hour, or only the final N minutes of each round. Sampling design is fixed before the run.
 
-**The sign convention guard.** `taker_side` semantics get re-derived from the data on every
-run by joining prints to the prevailing quote, and asserted. It is never read off the field
-name. Peer research measured 86% of `taker_side=yes` at or above the ask; my own sample showed
-`taker_side` and `taker_book_side` labelled in opposite senses. Getting this backwards silently
-inverts every number in the report, so it is a test, not a comment.
+**The sign convention guard.** `taker_side` semantics get re-derived from the data on every run
+by joining prints to the prevailing quote, and asserted. They are never read off a field name.
+
+Why this needs a guard at all: `taker_book_side` describes the **taker's own order**, not the
+resting order it consumed. A taker buying YES submits a marketable bid, which crosses and
+consumes a resting yes ask, so `taker_side=yes` pairs with `taker_book_side=bid`. The field is
+named from the opposite perspective to the one a maker backtest cares about, which is exactly
+why it reads backwards to anyone thinking about resting orders. Measured independently twice and
+agreed: 86% of `taker_side=yes` prints sit at or above the ask, and the pairing counts are
+`(yes,bid) 551 / (no,ask) 449`. **Key off `taker_side`, never off `taker_book_side`.**
+
+The assertion **fails the run**. It does not warn. If the convention ever flips, every P&L number
+in the report inverts silently, and a line in a log is not protection against that.
 
 ### Phase 2: schema and paper engine
 
@@ -144,7 +158,7 @@ fill plus drift from fill mid to settlement. The second term is the adverse sele
 
 | Risk | Mitigation |
 |---|---|
-| Kalshi introduces a maker fee on the 15m series | The whole thesis dies. Scheduled guard: re-pull the fee PDF, extract the Non-Standard table, alert if any `*15M` row appears or the maker default stops being 0. Note the PDF returns 429 to plain fetchers; a browser User-Agent plus `Referer: https://kalshi.com/` gets it. |
+| Kalshi introduces a maker fee on the 15m series | The whole thesis dies. Scheduled guard: re-pull the fee PDF, extract the Non-Standard table, alert if any `*15M` row appears or the maker default stops being 0. Two traps for whoever automates this. First, the PDF returns 429 to plain fetchers; a browser User-Agent plus `Referer: https://kalshi.com/` gets it. Second, it is **image-based with CID-encoded glyphs**, so naive stream inflation extracts nothing at all: use `pdfjs-dist`. The guard must **assert it extracted the known page 2 formula text** before drawing any conclusion, because an empty extraction otherwise reads as "no maker fee found" and the guard passes forever while blind. |
 | Sign convention inverted | Asserted per run, see Phase 1. |
 | Overfitting already-seen data | Pre-registered grid, bracket rather than point estimate, forward paper as the only confirmation. |
 | Request cost | Sampling design fixed before the run, at roughly 200k requests per asset-month if pulled whole. |
