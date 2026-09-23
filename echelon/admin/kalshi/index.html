@@ -391,16 +391,22 @@
     const short = (s) => String(s).replace(/^KX/, '').replace(/15M$/, '')
     const ago = (iso) => { const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); return s < 90 ? `${Math.round(s)}s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : `${(s / 3600).toFixed(1)} h ago` }
 
-    /* ── gate: same rule as the admin, Postgres decides ── */
+    /* ── gate: same rule as the admin, Postgres decides ──
+       PUBLIC = true skips the login for this page only; the tables it reads must then
+       carry the anon read policies from supabase/sql/kalshi-public-on.sql (reverse:
+       kalshi-public-off.sql and PUBLIC = false). Paper data and calibration only. */
+    const PUBLIC = false
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { el('gate').hidden = false; throw new Error('no session') }
-    const { data: isAdmin } = await supabase.rpc('is_admin')
-    if (!isAdmin) {
-      el('gate-title').textContent = 'Not an admin.'
-      el('gate-body').textContent = `${session.user.email} does not have admin access.`
-      el('gate-go').textContent = 'Sign out'; el('gate-go').href = '#'
-      el('gate-go').addEventListener('click', async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = '/echelon/admin/' })
-      el('gate').hidden = false; throw new Error('not admin')
+    if (!PUBLIC) {
+      if (!session) { el('gate').hidden = false; throw new Error('no session') }
+      const { data: isAdmin } = await supabase.rpc('is_admin')
+      if (!isAdmin) {
+        el('gate-title').textContent = 'Not an admin.'
+        el('gate-body').textContent = `${session.user.email} does not have admin access.`
+        el('gate-go').textContent = 'Sign out'; el('gate-go').href = '#'
+        el('gate-go').addEventListener('click', async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = '/echelon/admin/' })
+        el('gate').hidden = false; throw new Error('not admin')
+      }
     }
 
     /* ── tooltip ── */
