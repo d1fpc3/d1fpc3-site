@@ -103,6 +103,8 @@
 
     /* ════ layout ════════════════════════════════════════════ */
     .wrap { max-width: 1720px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+    /* D1 reads this at 2560: use the width instead of centering a 1720 strip in it */
+    @media (min-width: 2200px) { .wrap { max-width: 2080px; padding: 32px; gap: 28px; } }
     .panel { --pad: 22px; background: var(--panel); border-radius: 14px; padding: 20px var(--pad) var(--pad); min-width: 0; }
     .span-12 { grid-column: span 12; }
     .span-7 { grid-column: span 7; }
@@ -160,7 +162,8 @@
     .draw .line-d { opacity: 0; animation: fadein 500ms 800ms ease-out forwards; }
     @media (prefers-reduced-motion: reduce) { .draw .line-d { animation: none; opacity: 1; } }
     .chart .zero { stroke: var(--line-bright); }
-    .chart .lbl { font-size: 12px; font-weight: 500; fill: var(--ink); }
+    /* a halo in the panel color so an end label stays legible where lines cross under it */
+    .chart .lbl { font-size: 12px; font-weight: 500; fill: var(--ink); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; }
     .chart .lbl.b { fill: var(--muted); }
     .chart .diag { stroke: var(--line-bright); stroke-dasharray: 3 4; }
     .chart .dot { fill: var(--series-a); stroke: var(--panel); stroke-width: 2; transition: r 120ms; }
@@ -192,15 +195,24 @@
     /* ════ edge hunt ═════════════════════════════════════════ */
     .edge { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 28px; align-items: start; }
     @media (max-width: 1100px) { .edge { grid-template-columns: 1fr; } }
-    .exec { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; padding: 14px 16px; background: var(--panel-2); border-radius: 10px; }
-    @media (max-width: 720px) { .exec { grid-template-columns: 1fr; } }
-    .exec-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .exec-k { font-size: 12px; color: var(--faint); }
-    .exec-v { font-size: 14px; font-weight: 500; }
-    .exec-v .live { color: var(--good); }
-    .exec-v .armed { color: var(--gold); }
-    .exec-note { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; margin: 0; }
     .edge-stats { margin-bottom: 14px; }
+
+    /* ════ account: the real book ═════════════════════════════ */
+    .acct-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: 16px; }
+    @media (max-width: 1100px) { .acct-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 540px) { .acct-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .acct .reading { margin-bottom: 18px; max-width: 90ch; }
+    .v.on { color: var(--good); }
+    .v.off { color: var(--muted); }
+    td .st { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background: var(--panel-2); color: var(--muted); }
+    td .st.open { color: var(--gold); }
+    td .st.won { color: var(--good); }
+    td .st.lost, td .st.rejected { color: var(--bad); }
+    td .st.queued { color: var(--ink); }
+    td .src { color: var(--muted); font-size: 12px; }
+    #orders th:nth-child(7), #orders td:nth-child(7) { padding-left: 20px; }
+    #orders td.n.pos { color: var(--good); }
+    #orders td.n.neg { color: var(--bad); }
     .edge-book .chart { margin: 4px 0 12px; }
     .edge-book .reading { font-size: 14px; }
     .chart .line-p { fill: none; stroke: var(--series-a); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
@@ -278,7 +290,7 @@
     <section class="panel span-12">
       <div class="panel-head">
         <h2>Learning curve</h2>
-        <span class="sub">Brier score by day, lower is better. The market mid, the mid corrected by calibration, a forecast built only from distance and time, and a model refit every night on the trailing 30 days, all scored out of sample.</span>
+        <span class="sub" title="The market mid, the mid corrected by calibration, a forecast built only from distance and time, and a model refit every night on the trailing 30 days, all scored out of sample.">Brier score by day, lower is better. Every line is scored out of sample.</span>
         <div class="right">
           <div class="seg scroll" id="hero-series"></div>
           <div class="seg" id="hero-mode">
@@ -305,11 +317,31 @@
       </div>
     </section>
 
+    <!-- account: the real book. Every source's intents and what the one executor did with them. -->
+    <section class="panel span-12 acct">
+      <div class="panel-head">
+        <h2>Account</h2>
+        <span class="sub" id="acct-sub">Real orders, $10 each, one per round, five open, stop at -$50 a day.</span>
+      </div>
+      <div class="stat-row acct-stats">
+        <div class="stat"><div class="v gold" id="a-real">–</div><div class="k">realized, all time</div></div>
+        <div class="stat"><div class="v" id="a-today">–</div><div class="k">realized today</div></div>
+        <div class="stat"><div class="v" id="a-open">–</div><div class="k">open orders</div></div>
+        <div class="stat"><div class="v" id="a-sent">–</div><div class="k" id="a-sent-k">sent, of intents in 24 h</div></div>
+        <div class="stat"><div class="v" id="a-won">–</div><div class="k" id="a-won-k">won of settled</div></div>
+        <div class="stat"><div class="v" id="a-switch">–</div><div class="k" title="as the executor read it when it processed the newest signal intent">switch at last intent</div></div>
+      </div>
+      <p class="reading quiet" id="acct-reading">Loading.</p>
+      <div class="tbl-scroll"><table id="orders"><thead><tr>
+        <th>When</th><th>From</th><th>Series</th><th>Buy</th><th class="n">Price</th><th class="n" title="contracts asked for; filled of asked once sent">Size</th><th>What happened</th><th class="n">P&amp;L</th>
+      </tr></thead><tbody><tr><td colspan="8"><div class="skel"></div></td></tr></tbody></table></div>
+    </section>
+
     <!-- the edge hunt: cells the market misprices, and the paper book that tests them -->
     <section class="panel span-12">
       <div class="panel-head">
         <h2>Edge hunt</h2>
-        <span class="sub">Cells are hypotheses; the paper trades are the only evidence. Every cell over 30 days with 200+ rounds where the win rate's 99.9% lower bound beat the real ask plus the fee by at least half a cent, traded on paper the next day at that minute's ask, $10 a round. This is the cell book. The signal bot's model book lives in Discord with its own gate, and the two are never summed.</span>
+        <span class="sub" title="Every cell over 30 days with 200+ rounds where the win rate's 99.9% lower bound beat the real ask plus the fee by at least half a cent, traded on paper the next day at that minute's ask, $10 a round. The signal bot's model book lives in Discord and the two are never summed.">Cells the market mispriced over 30 days, traded on paper the next day at $10 a round. The paper trades are the only evidence.</span>
       </div>
       <div class="edge">
         <div class="edge-book">
@@ -321,12 +353,6 @@
           </div>
           <div class="chart" id="edge-chart"></div>
           <p class="reading quiet" id="edge-reading">Loading.</p>
-        </div>
-        <div class="exec" id="exec">
-          <div class="exec-row"><span class="exec-k">Execution</span><span id="exec-mode" class="exec-v">–</span></div>
-          <div class="exec-row"><span class="exec-k">Gate</span><span id="exec-gate" class="exec-v">–</span></div>
-          <div class="exec-row"><span class="exec-k">Today</span><span id="exec-today" class="exec-v">–</span></div>
-          <p class="exec-note">One signer for every source. Cell-book orders go to the account only when the paper book has passed the gate and the live switch is set by hand; signal orders go when the signals switch is set by hand, no paper gate, by D1's choice. $10 an order, one per round, five open, and a hard stop for the day at minus $50 realized across both. Every intent is logged with the reason it did or did not send.</p>
         </div>
         <div class="tbl-scroll edge-cells"><table id="cells"><thead><tr>
           <th>Series</th><th>Minutes left</th><th>Cell</th><th>Buy</th><th class="n">Rounds</th><th class="n">Won</th><th class="n">Ask</th><th class="n" title="Wilson lower bound of the win rate, minus the ask, minus the taker fee">Edge, floor</th><th class="n" title="mean win rate minus ask minus fee">Edge, mean</th>
@@ -683,30 +709,6 @@
         </svg>`
       }
 
-      // execution: what the executor did with every intent, from every source, and why
-      try {
-        const since = new Date(Date.now() - 86400000).toISOString()
-        const [orders, book] = await Promise.all([
-          q('kalshi_live_orders', (b) => b.select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(100)),
-          q('kalshi_live_daily', (b) => b.select('*').order('day', { ascending: true })),
-        ])
-        const last = orders[0]
-        const sent = orders.filter((o) => ['placed', 'settled', 'unfilled'].includes(o.status))
-        const liveNow = sent.some((o) => o.mode === 'live')
-        const lastProcessed = orders.find((o) => o.processed_at)
-        const swCells = lastProcessed && lastProcessed.source === 'cells' ? lastProcessed.live_switch : null
-        const swSig = lastProcessed && lastProcessed.source === 'signals' ? lastProcessed.live_switch : null
-        el('exec-mode').innerHTML = liveNow
-          ? '<span class="live">Live</span>, real orders have gone to the account in the last 24 h'
-          : last ? '<span class="armed">Armed</span>, intents logged, nothing sent in the last 24 h' : '<span class="armed">Armed</span>, no intents in the last 24 h'
-        el('exec-gate').textContent = `Cell book: ${fmt.format(trades)} of 100 paper trades${trades ? `, ${money(pnl)}` : ''}${trades >= 100 && pnl > 0 ? ', passed' : ', not passed'}${swCells != null ? `, switch ${swCells ? 'on' : 'off'}` : ''}. Signals: no paper gate by D1's choice${swSig != null ? `, switch ${swSig ? 'on' : 'off'}` : ''}.`
-        const realized = book.reduce((t, r) => t + Number(r.pnl ?? 0), 0), settled = book.reduce((t, r) => t + Number(r.settled ?? 0), 0)
-        const bySrc = (s) => orders.filter((o) => o.source === s).length
-        el('exec-today').textContent = orders.length
-          ? `${orders.length} ${orders.length === 1 ? 'intent' : 'intents'} (${bySrc('signals')} signals, ${bySrc('cells')} cells), ${sent.length} sent${settled ? `, ${settled} settled for ${money(realized)} real` : ''}${last.halted ? ', halted for the day' : ''}; last ${short(last.series)} ${last.side.toUpperCase()} ${last.contracts} @ ${p2(last.price)} ${ago(last.created_at)}, ${last.status}`
-          : `no intents${settled ? `; realized book ${money(realized)} over ${settled} settled` : ''}`
-      } catch (e) { console.error(e) }
-
       // the cells
       const tb = el('cells').querySelector('tbody')
       tb.innerHTML = cells.length ? cells.map((c) => `<tr>
@@ -720,6 +722,67 @@
         <td class="n ok">+${(100 * Number(c.ev_lo)).toFixed(1)}¢</td>
         <td class="n">+${(100 * Number(c.ev_mean)).toFixed(1)}¢</td>
       </tr>`).join('') : `<tr><td colspan="9" class="empty">${asOf ? 'No cell clears the bar as of ' + asOf + '.' : 'No scoring yet.'}</td></tr>`
+    }
+
+    /* ── account: the real book ──
+       kalshi_live_orders is every intent from every source and what the one executor did
+       with it; kalshi_live_daily is the realized book by day and source. Paper and real are
+       never summed anywhere on this page. */
+    async function loadAccount() {
+      const since = new Date(Date.now() - 86400000).toISOString()
+      const today = new Date().toISOString().slice(0, 10)
+      const [orders, book] = await Promise.all([
+        q('kalshi_live_orders', (b) => b.select('ticker,created_at,series,cell,side,price,contracts,filled,source,status,mode,live_switch,halted,processed_at,won,pnl').order('created_at', { ascending: false }).limit(60)),
+        q('kalshi_live_daily', (b) => b.select('*').order('day', { ascending: true })),
+      ])
+      const sum = (rows, k) => rows.reduce((t, r) => t + Number(r[k] ?? 0), 0)
+      const realized = sum(book, 'pnl'), settled = sum(book, 'settled'), wins = sum(book, 'wins')
+      const todayReal = sum(book.filter((r) => r.day === today), 'pnl')
+      const open = orders.filter((o) => o.status === 'placed').length
+      const last24 = orders.filter((o) => o.created_at >= since)
+      const sent = last24.filter((o) => ['placed', 'settled', 'unfilled'].includes(o.status)).length
+      const lastSig = orders.find((o) => o.source === 'signals' && o.processed_at)
+      const sw = lastSig ? lastSig.live_switch : null
+      const halted = orders.some((o) => o.halted && o.created_at >= today)
+      const tone = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : 'gold')
+
+      const real = el('a-real'); real.textContent = settled ? money(realized) : '$0.00'; real.className = 'v ' + tone(settled ? realized : 0)
+      const tr = el('a-today'); tr.textContent = money(todayReal).replace('+$0.00', '$0.00'); tr.className = 'v ' + (todayReal ? tone(todayReal) : '')
+      el('a-open').textContent = fmt.format(open)
+      el('a-sent').textContent = `${sent} of ${last24.length}`
+      el('a-won').textContent = settled ? Math.round(100 * wins / settled) + '%' : '–'
+      el('a-won-k').textContent = settled ? `won of ${fmt.format(settled)} settled` : 'won of settled'
+      const swEl = el('a-switch'); swEl.textContent = sw == null ? '–' : sw ? 'ON' : 'OFF'; swEl.className = 'v ' + (sw == null ? '' : sw ? 'on' : 'off')
+
+      const reading = el('acct-reading')
+      const last = orders[0]
+      if (!orders.length) {
+        reading.className = 'reading quiet'
+        reading.textContent = 'No intents yet. The first call shown in Discord after the switch is on becomes the first order.'
+      } else {
+        reading.className = 'reading'
+        const what = { intent: 'queued', placed: 'open', settled: last.won ? 'won' : 'lost', unfilled: 'unfilled', armed: 'armed, switch was off', skipped: 'skipped, round already taken', expired: 'expired', halted: 'halted', rejected: 'rejected' }[last.status] ?? last.status
+        reading.textContent = (sw == null ? 'The signals switch has not been read yet. ' : sw ? `Live: every call shown in Discord goes to the account at $10${halted ? ', halted for the rest of the day at the -$50 stop' : ''}. ` : 'Switch off: calls are logged as armed and never sent later. ')
+          + `${settled ? `${fmt.format(settled)} settled for ${money(realized)} real, ${Math.round(100 * wins / settled)}% won. ` : 'Nothing settled yet. '}`
+          + `Last: ${short(last.series)} ${last.side.toUpperCase()} ${last.contracts} @ ${p2(last.price)} from ${last.source === 'signals' ? 'rule ' + last.cell : 'cell ' + last.cell}, ${ago(last.created_at)}, ${what}.`
+      }
+
+      const tb = el('orders').querySelector('tbody')
+      const pill = (o) => {
+        const map = { intent: ['queued', 'queued'], placed: ['open', 'open'], settled: [o.won ? 'won' : 'lost', o.won ? 'won' : 'lost'], unfilled: ['unfilled', ''], armed: ['armed, switch off', ''], skipped: ['skipped', ''], expired: ['expired', ''], halted: ['halted', ''], rejected: ['rejected', 'rejected'] }
+        const [label, cls] = map[o.status] ?? [o.status, '']
+        return `<span class="st ${cls}">${label}</span>`
+      }
+      tb.innerHTML = orders.length ? orders.slice(0, 30).map((o) => `<tr>
+        <td title="${o.created_at}">${ago(o.created_at)}</td>
+        <td><span class="src">${o.source === 'signals' ? 'rule' : 'cell'}</span> ${o.cell}</td>
+        <td><span class="ser">${short(o.series)}</span></td>
+        <td><span class="buy ${o.side}">${o.side.toUpperCase()}</span></td>
+        <td class="n">${p2(o.price)}</td>
+        <td class="n">${o.filled != null && ['placed', 'settled', 'unfilled'].includes(o.status) ? `${o.filled} of ${o.contracts}` : o.contracts}</td>
+        <td>${pill(o)}</td>
+        <td class="n ${o.pnl == null ? '' : Number(o.pnl) > 0 ? 'pos' : Number(o.pnl) < 0 ? 'neg' : ''}">${o.pnl == null ? '–' : money(o.pnl)}</td>
+      </tr>`).join('') : '<tr><td colspan="8" class="empty">No intents yet.</td></tr>'
     }
 
     /* ── what it learned ── */
@@ -906,9 +969,9 @@
     segment(el('cal-mtc'), MTC.map((b) => ({ v: b, label: b.replace('-', ' to ') + ' min' })), state.mtc, (v) => { state.mtc = v; renderCalib() })
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadTicks(), loadStats(), loadDaily(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadTicks(), loadAccount(), loadStats(), loadDaily(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
-    setInterval(() => { loadTicks(); loadLive() }, 30_000)
+    setInterval(() => { loadTicks(); loadAccount(); loadLive() }, 30_000)
     setInterval(() => { loadStats(); loadCoverage(); loadEdge() }, 5 * 60_000)
     supabase.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') location.href = '/echelon/admin/' })
   </script>
