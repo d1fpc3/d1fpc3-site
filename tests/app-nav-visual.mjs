@@ -147,6 +147,16 @@ const barCentred = async (page) => page.$eval("#tabs", (nav) => { const on = nav
   if (await page.locator("#nbp").isVisible()) fails.push("popover stayed open after See all");
   await page.click(".side-brand"); await page.waitForTimeout(600);
   if (await curView(page) !== "overview") fails.push("brand did not go to Today");
+  // hash routes: the address names the page, a reload lands back on it, Today stays clean
+  if ((await page.evaluate(() => location.hash)) !== "") fails.push("Today carries a hash: " + await page.evaluate(() => location.hash));
+  await page.click('#tabs .tab[data-view="news"]'); await page.waitForTimeout(600);
+  if ((await page.evaluate(() => location.hash)) !== "#news") fails.push("news hash wrong: " + await page.evaluate(() => location.hash));
+  await page.reload({ waitUntil: "domcontentloaded" }); await page.waitForSelector("#td-h1", { timeout: 25000 }); await page.waitForTimeout(2500);
+  if (await curView(page) !== "news") fails.push("reload did not land on news: " + await curView(page));
+  if ((await litRows(page)).join() !== "news") fails.push("news row not lit after reload");
+  await page.goBack(); await page.waitForTimeout(700);
+  if (await curView(page) !== "overview") fails.push("back after a routed reload did not reach Today: " + await curView(page));
+  if ((await page.evaluate(() => location.hash)) !== "") fails.push("hash left behind on Today after back");
   await page.keyboard.press("Control+k"); await page.waitForTimeout(400); await page.keyboard.type("theme"); await page.waitForTimeout(400);
   const actHeads = await page.$$eval("#pal-list .pal-h", (hs) => hs.map((h) => h.textContent.trim()));
   if (!actHeads.includes("Actions")) fails.push("palette actions missing: " + actHeads);
@@ -228,6 +238,19 @@ const barCentred = async (page) => page.$eval("#tabs", (nav) => { const on = nav
   if (await curView(page) !== "library") fails.push("phone: library segment failed");
   if ((await page.$$eval("#bnav button.on", (bs) => bs.map((b) => b.dataset.view))).join() !== "course") fails.push("phone: library did not light Study");
   await shot("05-library"); await noOverflow(page, "phone library");
+  // the dock steps away while reading, comes back on the first scroll up, and never hides on a navigation
+  await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(300);
+  for (let y = 40; y <= 520; y += 40) { await page.evaluate((y) => window.scrollTo(0, y), y); await page.waitForTimeout(40); }
+  await page.waitForTimeout(600);
+  const away = await page.locator("#bnav").boundingBox();
+  if (!(away && away.y >= 844)) fails.push("dock did not step away on scroll down: " + JSON.stringify(away));
+  await page.evaluate(() => window.scrollTo(0, 440)); await page.waitForTimeout(600);
+  const back = await page.locator("#bnav").boundingBox();
+  if (!(back && back.y + back.height <= 844)) fails.push("dock did not return on scroll up: " + JSON.stringify(back));
+  await page.click('#bnav button[data-view="feed"]'); await page.waitForTimeout(900);
+  const afterNav = await page.locator("#bnav").boundingBox();
+  if (!(afterNav && afterNav.y + afterNav.height <= 844)) fails.push("dock hidden right after a navigation");
+  await page.click('#bnav button[data-view="course"]'); await page.waitForTimeout(700);
   // profile slot, then settings from the profile gear
   await page.click('#bnav button[data-view="set-profile"]'); await page.waitForTimeout(700);
   if (await curView(page) !== "set-profile") fails.push("phone: profile slot failed");

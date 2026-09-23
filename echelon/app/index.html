@@ -320,6 +320,8 @@
     .side-brand { cursor: pointer; }
     .tb-title h2.swap { animation: tt-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
     @keyframes tt-in { from { opacity: 0; transform: translateY(4px); } }
+    .view.on.enter { animation: view-in 0.16s ease-out; }
+    @keyframes view-in { from { opacity: 0; transform: translateY(3px); } }
     /* a compact bar on the chat page keeps the conversation tall */
     @media (min-width: 841px) { body.in-chat .topbar { padding-top: 10px; padding-bottom: 10px; } }
     /* phones: the quick row fades at its right edge so the overflow reads */
@@ -336,7 +338,7 @@
     .nbp-list::-webkit-scrollbar { display: none; }
     .nbp-list .nb-day { padding-top: 8px; }
     .nbp-empty { padding: 26px 16px 30px; text-align: center; color: var(--faint); font-size: 13px; }
-    @media (prefers-reduced-motion: reduce) { .tb-title h2.swap { animation: none; } .nbp { transition: none; } }
+    @media (prefers-reduced-motion: reduce) { .tb-title h2.swap { animation: none; } .nbp { transition: none; } .view.on.enter { animation: none; } body.nu-away .bnav { transform: none; } }
 
     .main { min-width: 0; display: flex; flex-direction: column; }
 
@@ -2591,6 +2593,8 @@
         display: flex; align-items: center; justify-content: center;
       }
       .bnav button[hidden] { display: none; }
+      /* reading: the dock steps out of the way on a scroll down and returns on the first scroll up */
+      body.nu-away .bnav { transform: translateY(calc(100% + 28px)); }
       .pane { padding-bottom: calc(28px + var(--bnav)) !important; }
       .chat { height: calc(calc(100 * var(--dvh)) - 118px - var(--bnav) - var(--segrow, 0px)); }
       /* inside a conversation the composer takes the bottom, like a DM thread */
@@ -5265,7 +5269,9 @@
     // re-applies whatever the entry says without pushing again.
     let navSilent = false
     const curView = () => document.querySelector('.view.on')?.id.replace(/^v-/, '') ?? 'overview'
-    function navPush(stateObj) { if (!navSilent) history.pushState(stateObj, '', location.pathname + location.search) }
+    // every page has an address (#chat, #gex): a reload or a shared link lands there; Today stays clean
+    const routeUrl = (view) => location.pathname + location.search + (view && view !== 'overview' ? '#' + view : '')
+    function navPush(stateObj) { if (!navSilent) history.pushState(stateObj, '', routeUrl(stateObj?.view)) }
     function navPopLayer(layer) {
       // Closing a layer by its own button: if it is the top history entry,
       // go back so history stays honest; popstate does the actual close.
@@ -5325,7 +5331,7 @@
       else document.documentElement.style.removeProperty('--nu-right')
     }
     addEventListener('resize', () => requestAnimationFrame(nextupPlace))
-    { let lastY = 0; addEventListener('scroll', () => { const y = window.scrollY; if (Math.abs(y - lastY) < 8) return; document.body.classList.toggle('nu-away', y > lastY && y > 120); lastY = y }, { passive: true }) }
+    { let lastY = 0; addEventListener('scroll', () => { const y = window.scrollY; if (performance.now() - (globalThis.__navJumpAt || 0) < 500) { lastY = y; return }; if (Math.abs(y - lastY) < 8) return; document.body.classList.toggle('nu-away', y > lastY && y > 120); lastY = y }, { passive: true }) }
     function showView(view) {
       const prev = curView()
       if (prev !== view) VIEW_SCROLL[prev] = window.scrollY
@@ -5335,6 +5341,7 @@
       tabs.forEach((t) => { const on = t.dataset.view === view || t.dataset.view === rowOf(view); t.classList.toggle('on', on); if (on) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current') })
       document.querySelectorAll('.view').forEach((v) => v.classList.toggle('on', v.id === `v-${view}`))
       markFresh(`v-${view}`)
+      if (prev !== view && !['chart', 'chat', 'feed'].includes(view)) { const nv = el(`v-${view}`); if (nv && !nv.classList.contains('fresh')) { nv.classList.remove('enter'); void nv.offsetWidth; nv.classList.add('enter'); setTimeout(() => nv.classList.remove('enter'), 240) } }
       // a view left behind must not keep narrating in the background
       document.querySelectorAll('.view:not(.on) video').forEach((v) => v.pause())
       const tab = tabs.find((t) => t.dataset.view === view)
@@ -5353,6 +5360,8 @@
       if (view === 'course' && prev !== 'course') studyShowMap()
       if (view === 'set-appearance') { showOnlineInit(); showOnlineInit.paint?.() }
       syncBnav(view); segRender(view); syncRail(view); recentPush(view)
+      // a navigation's own scroll is not a reading scroll: the dock and the pill stay put
+      globalThis.__navJumpAt = performance.now(); document.body.classList.remove('nu-away')
       // sub-pages always open at the top (a push); top-level views resume where you were
       window.scrollTo({ top: (prev !== view && !el(`v-${view}`)?.classList.contains('setpage')) ? (VIEW_SCROLL[view] ?? 0) : 0 })
       globalThis.__syncBarEdge?.()
@@ -18958,7 +18967,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // supabase.channel('badges') throws on an already-subscribed topic.
     // Every sign-out path reloads the page, so the flag never needs resetting.
     let booted = false
-    history.replaceState({ view: 'overview' }, '', location.pathname + location.search)
+    history.replaceState({ view: 'overview' }, '', location.pathname + location.search + (/^#[a-z-]+$/.test(location.hash) ? location.hash : ''))
     async function boot() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return signInScreen()
@@ -19058,6 +19067,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const tab = document.querySelector('.tab[data-view="library"]')
         if (tab && !tab.hidden) { showView('library'); libReady().then(() => { const r = LIB.rows.find((x) => x.id === vid); if (r) openLibraryVideo(r); else toast('That video is gone.') }) }
       }
+      // A hash names a page (#chat, #gex, #set-appearance): land there without a history push
+      { const route = /^#([a-z-]+)$/.exec(location.hash)?.[1]
+        const tab = route && route !== 'overview' && document.querySelector(`.tab[data-view="${route}"]`)
+        if (tab && !tab.hidden && curView() !== route) { navSilent = true; try { showView(route) } finally { navSilent = false }; history.replaceState({ view: route }, '', routeUrl(route)) } }
       const start = new URLSearchParams(location.search).get('start')
       if (start) {
         const map = { study: 'course', course: 'course', recaps: 'library', chat: 'chat', indicators: 'indicators', members: 'members', gex: 'gex', feed: 'feed', inbox: 'inbox', board: 'board', news: 'news' }

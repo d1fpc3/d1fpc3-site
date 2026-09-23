@@ -86,3 +86,9 @@ Approved by D1 on screen. On top of the sidebar:
 - Keyboard and screen readers: the segment is a `tablist` with roving tabindex and arrow keys; `aria-current="page"` on the lit row; gold focus rings on every nav control; row tooltips carry the jump key ("Chat (g h)"); the brand row is a link to Today.
 - Motion: press dip on rows, icon nudge on hover, a short rise on the title when it changes, all off under reduced motion.
 - The chat page's top bar is compact on desktop (10px padding) so the conversation stays tall; the tab title carries the unread chat count; the phone quick row fades at its right edge.
+
+## Round three, same night
+
+- Hash routes: `navPush` writes `#view` (Today stays clean). The boot keeps a plain route hash, and after entitlements are known lands on it without a history push (`routeUrl`, `navSilent`). Reload and shared links land on the page; Back from a routed reload reaches Today.
+- The phone dock steps away on a scroll down (`body.nu-away .bnav`) and returns on the first scroll up. A navigation's own scroll never counts (`globalThis.__navJumpAt` guard in the scroll listener) and `showView` clears `nu-away`.
+- A soft crossfade (`.view.on.enter`, 160ms) when a view swaps; chart, chat and feed keep their own entrances. Off under reduced motion, as is the dock motion.
