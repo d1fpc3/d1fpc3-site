@@ -350,7 +350,7 @@
     <section class="panel span-7">
       <div class="panel-head">
         <h2>Coverage</h2>
-        <span class="sub">Minutes of book captured per series, per UTC day. A full day is 1,440.</span>
+        <span class="sub">Minutes of book captured per series, per UTC day. A full day is 1,440. Refreshed every five minutes.</span>
       </div>
       <div id="coverage"><div class="skel" style="height: 220px"></div></div>
       <div class="legend"><span>less</span><i style="background: var(--ramp-0)"></i><i style="background: var(--ramp-1)"></i><i style="background: var(--ramp-2)"></i><i style="background: var(--ramp-3)"></i><i style="background: var(--ramp-4)"></i><span>full</span></div>
@@ -508,17 +508,19 @@
       }).join('') : '<tr><td colspan="7" class="empty">The collector has not written a run yet.</td></tr>'
     }
 
-    /* ── hero stats + reading ── */
+    /* ── hero stats + reading ──
+       Derived from the materialized coverage (refreshed every five minutes), not from
+       counting the big tables live: logged-out viewers carry a 3-second statement
+       timeout and the tables passed 400k rows on day one. */
     async function loadStats() {
-      const [rounds, settled, snaps, days] = await Promise.all([
-        supabase.from('kalshi_rounds').select('*', { count: 'exact', head: true }),
-        supabase.from('kalshi_rounds').select('*', { count: 'exact', head: true }).not('result', 'is', null),
-        supabase.from('kalshi_book_snaps').select('*', { count: 'exact', head: true }),
+      const [cov, days] = await Promise.all([
+        q('kalshi_coverage_mv', (b) => b.select('rounds,settled,snaps')),
         supabase.from('kalshi_daily').select('as_of').eq('series', 'ALL'),
       ])
-      el('s-rounds').textContent = n0(rounds.count)
-      el('s-settled').textContent = n0(settled.count)
-      el('s-minutes').textContent = n0(snaps.count)
+      const sum = (k) => cov.reduce((t, r) => t + Number(r[k] ?? 0), 0)
+      el('s-rounds').textContent = n0(sum('rounds'))
+      el('s-settled').textContent = n0(sum('settled'))
+      el('s-minutes').textContent = n0(sum('snaps'))
       el('s-days').textContent = n0((days.data ?? []).length)
     }
 
@@ -758,7 +760,7 @@
 
     /* ── coverage heat grid ── */
     async function loadCoverage() {
-      const rows = await q('kalshi_coverage', (b) => b.select('*').gte('day', dayAgo(13)).order('day', { ascending: true }))
+      const rows = await q('kalshi_coverage_mv', (b) => b.select('*').gte('day', dayAgo(13)).order('day', { ascending: true }))
       const host = el('coverage')
       if (!rows.length) { host.innerHTML = '<div class="empty"><b>Nothing captured yet.</b></div>'; return }
       const days = Array.from({ length: 14 }, (_, i) => dayAgo(13 - i))

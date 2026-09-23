@@ -13,5 +13,7 @@ begin
     execute format('revoke select on public.%I from anon', t);
   end loop;
 end $$;
-revoke select on public.kalshi_coverage, public.kalshi_live, public.kalshi_paper_daily, public.kalshi_candle_cover from anon;
+revoke select on public.kalshi_coverage, public.kalshi_live, public.kalshi_paper_daily, public.kalshi_candle_cover, public.kalshi_coverage_mv from anon;
+drop policy if exists kalshi_live_orders_public_read on public.kalshi_live_orders;
+revoke select on public.kalshi_live_orders from anon;
 revoke execute on function public.kalshi_asset(text) from anon;

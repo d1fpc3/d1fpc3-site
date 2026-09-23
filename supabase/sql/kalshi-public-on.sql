@@ -17,5 +17,6 @@ begin
     execute format('grant select on public.%I to anon', t);
   end loop;
 end $$;
-grant select on public.kalshi_coverage, public.kalshi_live, public.kalshi_paper_daily, public.kalshi_candle_cover to anon;
+grant select on public.kalshi_coverage, public.kalshi_live, public.kalshi_paper_daily, public.kalshi_candle_cover, public.kalshi_coverage_mv to anon;
+grant select on public.kalshi_live_orders to anon;
 grant execute on function public.kalshi_asset(text) to anon;
