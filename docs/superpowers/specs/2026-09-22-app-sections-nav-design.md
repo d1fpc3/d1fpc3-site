@@ -50,3 +50,28 @@ Discord and Admin move to a Tools footer at the bottom of the rail. On phones th
 ## Testing
 
 `tests/app-sections-nav-visual.mjs`: signs in as the App Review account, runs at 390 (phone), 1440 and 2560 (desktop). Asserts five rail sections and five dock slots, that each section click lands on the expected page, that the segment lists the right pages and switches views, that secondary pages light the right segment, that nothing overflows horizontally, and screenshots every state.
+
+## Revision, same evening: sidebar with eight destinations
+
+D1 judged the five-section build "decent, could use some work", then "the direction is off": the rail tiles, a More panel (tried as a mockup) and the page set were all wrong. Approved instead:
+
+| Destination (sidebar row) | Pages folded in |
+|---|---|
+| Today | |
+| Chart | |
+| GEX (if owned) | |
+| News | |
+| Feed | |
+| Chat | Members (segment: Channels, Members) |
+| Study | Library, Homework (segment: Lessons, Library, Homework) |
+| Journal | |
+
+- Tools group under a hairline: Indicators, Prop firms, Discord (if linked), Admin (if admin).
+- Member row at the bottom: avatar + name open Profile, a gear opens Settings. Sign out stays in Settings.
+- The sidebar stays open on desktop (232px, real labels, small icons, active row filled with a gold icon and a sliding gold bar). The hover rail is gone.
+- The top-bar segment now serves only the two families. Chat keeps its top bar on desktop so the Channels / Members switch is visible; the chat height subtracts the measured bar height (`--tbh`).
+- Phones: dock of five (Today, Feed, Chat, Study, avatar). A quick row of chips under the Today hero reaches Chart, GEX, News, Journal, Library, Members. No hamburger.
+- Palette recents, `g` jump keys and the `?` sheet stay. Place hints read "in Chat" / "in Study" for folded pages.
+- Titles: a family page is titled by its family (Chat, Study); settings sub-pages carry a "Settings" crumb, Followers a "Profile" crumb.
+
+Harness: `tests/app-nav-visual.mjs` (replaces the sections harness), light and dark via `THEME`.
