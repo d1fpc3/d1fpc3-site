@@ -324,11 +324,11 @@
     <section class="panel span-12">
       <div class="panel-head">
         <h2>What it learned</h2>
-        <span class="sub" id="learn-sub">Last night's fitted weights per series, on standardized inputs, so they compare across columns. Above 1 on the market's own probability means the market is under-confident there.</span>
+        <span class="sub" id="learn-sub">Last night's fitted slopes per series. On the market's own probability 1.0 is face value; below 1 means the model discounts the market's confidence and gets the rest from the other inputs.</span>
       </div>
       <p class="reading quiet" id="learn-reading">Loading.</p>
       <div class="tbl-scroll"><table id="weights"><thead><tr>
-        <th>Series</th><th class="n">Trained on</th><th class="n" title="weight on the logit of the market mid; 1.0 means the model takes the market at face value, above 1 sharpens it">Market probability</th><th class="n" title="distance from the open divided by the square root of minutes left">Scaled distance</th><th class="n">Distance</th><th class="n">Range so far</th><th class="n">3-min momentum</th><th class="n">Minutes left</th><th class="n" title="in-sample Brier of the fit; the out-of-sample score is on the curve">Fit Brier</th><th class="n" title="the market-blind model's out-of-sample Brier that day">Blind, next day</th>
+        <th>Series</th><th class="n">Trained on</th><th class="n" title="raw slope on the logit of the market mid; 1.0 means taken at face value, below 1 discounts the market's confidence">Market probability</th><th class="n" title="per basis point of distance from the open divided by the square root of minutes left">Scaled distance</th><th class="n" title="per basis point">Distance</th><th class="n" title="per basis point of the round's range so far">Range so far</th><th class="n" title="per basis point of 3-minute momentum">3-min momentum</th><th class="n" title="per minute left">Minutes left</th><th class="n" title="in-sample Brier of the fit; the out-of-sample score is on the curve">Fit Brier</th><th class="n" title="the market-blind model's out-of-sample Brier that day">Blind, next day</th>
       </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
 
@@ -697,29 +697,33 @@
         q('kalshi_daily', (b) => b.select('series,brier_model_spot,brier_model,brier_mid').eq('as_of', new Date(Date.parse(asOf + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10))),
       ])
       const nextBy = new Map(next.map((r) => [r.series, r]))
-      const w = (m, k) => Number(m.coef?.weights?.[k] ?? 0)
+      // raw slopes, not standardized weights: weight divided by the input's spread in the
+      // training window. On the market's logit, 1.0 means taken at face value, below 1
+      // means the model discounts the market's confidence and leans on the other inputs.
+      const w = (m, k) => { const wt = Number(m.coef?.weights?.[k] ?? 0), sd = Number(m.coef?.sd?.[k] ?? 1); return sd ? wt / sd : wt }
       const f2 = (x) => (x > 0 ? '+' : '') + x.toFixed(2)
+      const f3 = (x) => (x > 0 ? '+' : '') + x.toFixed(3)
       const mean = (k) => models.reduce((t, m) => t + w(m, k), 0) / models.length
-      el('learn-sub').textContent = `Fitted ${asOf} on the 30 days before it, standardized inputs so weights compare across columns. Above 1 on the market's own probability means the market is under-confident there.`
+      el('learn-sub').textContent = `Fitted ${asOf} on the 30 days before it. Raw slopes: on the market's own probability 1.0 is face value and below 1 means the model discounts the market's confidence and gets the rest from the other inputs. Distance slopes are per basis point.`
       tb.innerHTML = models.map((m) => {
         const n = nextBy.get(m.series)
         const pm = w(m, 'logit_mid')
         return `<tr>
           <td><span class="ser">${short(m.series)}</span></td>
           <td class="n">${fmt.format(m.n_train)}</td>
-          <td class="n"><span class="${pm > 1.05 ? 'ok' : pm < 0.95 ? 'err' : ''}">${pm.toFixed(2)}</span></td>
-          <td class="n">${f2(w(m, 'scaled_bps'))}</td>
-          <td class="n">${f2(w(m, 'bps'))}</td>
-          <td class="n">${f2(w(m, 'range'))}</td>
-          <td class="n">${f2(w(m, 'mom'))}</td>
-          <td class="n">${f2(w(m, 'mtc'))}</td>
+          <td class="n"><span class="${pm > 1.05 ? 'ok' : pm < 0.95 ? 'cnt' : ''}">${pm.toFixed(2)}</span></td>
+          <td class="n">${f3(w(m, 'scaled_bps'))}</td>
+          <td class="n">${f3(w(m, 'bps'))}</td>
+          <td class="n">${f3(w(m, 'range'))}</td>
+          <td class="n">${f3(w(m, 'mom'))}</td>
+          <td class="n">${f3(w(m, 'mtc'))}</td>
           <td class="n">${p4(m.brier_train)}</td>
           <td class="n">${n ? `${p4(n.brier_model_spot)} <span class="cnt">vs ${p4(n.brier_mid)}</span>` : '–'}</td>
         </tr>`
       }).join('')
       const pmAvg = mean('logit_mid'), sdAvg = mean('scaled_bps')
       reading.className = 'reading'
-      reading.textContent = `Across ${models.length} series the weight on the market's own probability averages ${pmAvg.toFixed(2)}${pmAvg > 1.05 ? ', so the model consistently sharpens the market: it thinks favorites are priced too close to even.' : pmAvg < 0.95 ? ', so the model consistently softens the market: it thinks prices are over-confident.' : ', so it takes the market roughly at face value.'} Scaled distance carries ${f2(sdAvg)} on top of that${Math.abs(sdAvg) > 0.2 ? ': where price sits relative to the open still adds information the price has not absorbed.' : ': the price already holds most of what distance knows.'}`
+      reading.textContent = `Across ${models.length} series the model takes ${pmAvg.toFixed(2)} of the market's own confidence${pmAvg > 1.05 ? ' and adds to it: it thinks favorites are priced too close to even.' : pmAvg < 0.95 ? ' and gets the rest from where price sits relative to the open (' + f3(sdAvg) + ' per scaled basis point). Splitting the market\'s confidence between the price and distance is how it lands where the market already is; see the curve.' : ' at face value.'}`
     }
 
     /* ── coverage heat grid ── */
