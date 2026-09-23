@@ -202,6 +202,13 @@
     @media (max-width: 1100px) { .acct-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (max-width: 540px) { .acct-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     .acct .reading { margin-bottom: 18px; max-width: 90ch; }
+    .book-h { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); margin: 6px 0 12px; }
+    .book-h span { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--faint); margin-left: 8px; }
+    .paper-stats { margin-top: 4px; }
+    .seg.locked button { cursor: not-allowed; }
+    .seg.locked button:active { transform: none; }
+    .mode-note { color: var(--faint); font-size: 12px; white-space: nowrap; }
+    .seg.live .thumb { background: color-mix(in srgb, var(--good) 22%, var(--panel)); }
     .v.on { color: var(--good); }
     .v.off { color: var(--muted); }
     td .st { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background: var(--panel-2); color: var(--muted); }
@@ -320,9 +327,11 @@
     <!-- account: the real book. Every source's intents and what the one executor did with them. -->
     <section class="panel span-12 acct">
       <div class="panel-head">
-        <h2>Account</h2>
-        <span class="sub" id="acct-sub">Real orders, $10 each, one per round, five open, stop at -$50 a day.</span>
+        <h2>Book</h2>
+        <span class="sub" id="acct-sub">Live sends every call shown in Discord to the account at $10; Paper logs them and sends nothing. Positions sell the first minute they are green, else ride to close.</span>
+        <div class="right"><span class="mode-note" id="mode-note"></span><div class="seg" id="mode-seg"></div></div>
       </div>
+      <h3 class="book-h">Account <span>real money</span></h3>
       <div class="stat-row acct-stats">
         <div class="stat"><div class="v gold" id="a-real">–</div><div class="k">realized, all time</div></div>
         <div class="stat"><div class="v" id="a-today">–</div><div class="k">realized today</div></div>
@@ -332,6 +341,16 @@
         <div class="stat"><div class="v" id="a-switch">–</div><div class="k" id="a-switch-k">signals switch</div></div>
       </div>
       <p class="reading quiet" id="acct-reading">Loading.</p>
+      <h3 class="book-h">Paper <span>every rule, $10 a call, nothing sent</span></h3>
+      <div class="stat-row acct-stats paper-stats">
+        <div class="stat"><div class="v" id="p-today">–</div><div class="k">today, held to close</div></div>
+        <div class="stat"><div class="v" id="p-today-exit">–</div><div class="k">today, first green exit</div></div>
+        <div class="stat"><div class="v" id="p-all">–</div><div class="k">all time, held to close</div></div>
+        <div class="stat"><div class="v" id="p-all-exit">–</div><div class="k">all time, first green exit</div></div>
+        <div class="stat"><div class="v" id="p-calls">–</div><div class="k" id="p-calls-k">calls today</div></div>
+        <div class="stat"><div class="v" id="p-won">–</div><div class="k" id="p-won-k">won today</div></div>
+      </div>
+      <p class="reading quiet" id="paper-reading">Loading.</p>
       <div class="tbl-scroll"><table id="orders"><thead><tr>
         <th>When</th><th>From</th><th>Series</th><th>Buy</th><th class="n">Price</th><th class="n" title="contracts asked for; filled of asked once sent">Size</th><th>What happened</th><th class="n">P&amp;L</th>
       </tr></thead><tbody><tr><td colspan="8"><div class="skel"></div></td></tr></tbody></table></div>
@@ -734,7 +753,7 @@
       // kalshi_executor_state is one row the executor upserts at the end of every pass: the
       // switch as it is NOW, not as it was when the last intent went through.
       const [orders, book, stateRows] = await Promise.all([
-        q('kalshi_live_orders', (b) => b.select('ticker,created_at,series,cell,side,price,contracts,filled,source,status,mode,live_switch,halted,processed_at,won,pnl').order('created_at', { ascending: false }).limit(60)),
+        q('kalshi_live_orders', (b) => b.select('ticker,created_at,series,cell,side,price,contracts,filled,source,status,mode,live_switch,halted,processed_at,won,pnl,exit_price,exit_filled').order('created_at', { ascending: false }).limit(60)),
         q('kalshi_live_daily', (b) => b.select('*').order('day', { ascending: true })),
         q('kalshi_executor_state', (b) => b.select('*').eq('id', 1)).catch(() => []),
       ])
@@ -745,7 +764,7 @@
       const todayReal = sum(book.filter((r) => r.day === today), 'pnl')
       const open = orders.filter((o) => o.status === 'placed').length
       const last24 = orders.filter((o) => o.created_at >= since)
-      const sent = last24.filter((o) => ['placed', 'settled', 'unfilled'].includes(o.status)).length
+      const sent = last24.filter((o) => ['placed', 'settled', 'unfilled', 'exited'].includes(o.status)).length
       const lastSig = orders.find((o) => o.source === 'signals' && o.processed_at)
       const sw = st ? st.switch_signals === true : lastSig ? lastSig.live_switch : null
       const halted = st ? st.halted === true : orders.some((o) => o.halted && o.created_at >= today)
@@ -768,7 +787,7 @@
         reading.textContent = 'No intents yet. The first call shown in Discord after the switch is on becomes the first order.'
       } else {
         reading.className = 'reading'
-        const what = { intent: 'queued', placed: 'open', settled: last.won ? 'won' : 'lost', unfilled: 'unfilled', armed: 'armed, switch was off', skipped: 'skipped, round already taken', expired: 'expired', halted: 'halted', rejected: 'rejected' }[last.status] ?? last.status
+        const what = { intent: 'queued', placed: 'open', exited: `sold green at ${p2(last.exit_price)} for ${money(last.pnl)}`, settled: last.won ? 'won' : 'lost', unfilled: 'unfilled', armed: 'armed, switch was off', skipped: 'skipped, round already taken', expired: 'expired', halted: 'halted', rejected: 'rejected' }[last.status] ?? last.status
         reading.textContent = (sw == null ? 'The signals switch has not been read yet. ' : sw ? `Live: every call shown in Discord goes to the account at $10${halted ? ', halted for the rest of the day at the -$50 stop' : ''}${st && !stFresh ? '. The executor has not reported since ' + ago(st.at) + ', so nothing is being sent' : ''}. ` : 'Switch off: calls are logged as armed and never sent later. ')
           + `${settled ? `${fmt.format(settled)} settled for ${money(realized)} real, ${Math.round(100 * wins / settled)}% won. ` : 'Nothing settled yet. '}`
           + `Last: ${short(last.series)} ${last.side.toUpperCase()} ${last.contracts} @ ${p2(last.price)} from ${last.source === 'signals' ? 'rule ' + last.cell : 'cell ' + last.cell}, ${ago(last.created_at)}, ${what}.`
@@ -776,7 +795,7 @@
 
       const tb = el('orders').querySelector('tbody')
       const pill = (o) => {
-        const map = { intent: ['queued', 'queued'], placed: ['open', 'open'], settled: [o.won ? 'won' : 'lost', o.won ? 'won' : 'lost'], unfilled: ['unfilled', ''], armed: ['armed, switch off', ''], skipped: ['skipped', ''], expired: ['expired', ''], halted: ['halted', ''], rejected: ['rejected', 'rejected'] }
+        const map = { intent: ['queued', 'queued'], placed: [o.exit_filled > 0 ? `open, ${o.exit_filled} sold green` : 'open', 'open'], exited: [`sold green at ${p2(o.exit_price)}`, 'won'], settled: [o.won ? 'won' : 'lost', o.won ? 'won' : 'lost'], unfilled: ['unfilled', ''], armed: ['armed, switch off', ''], skipped: ['skipped', ''], expired: ['expired', ''], halted: ['halted', ''], rejected: ['rejected', 'rejected'] }
         const [label, cls] = map[o.status] ?? [o.status, '']
         return `<span class="st ${cls}">${label}</span>`
       }
@@ -786,10 +805,55 @@
         <td><span class="ser">${short(o.series)}</span></td>
         <td><span class="buy ${o.side}">${o.side.toUpperCase()}</span></td>
         <td class="n">${p2(o.price)}</td>
-        <td class="n">${o.filled != null && ['placed', 'settled', 'unfilled'].includes(o.status) ? `${o.filled} of ${o.contracts}` : o.contracts}</td>
+        <td class="n">${o.filled != null && ['placed', 'settled', 'unfilled', 'exited'].includes(o.status) ? `${o.filled} of ${o.contracts}` : o.contracts}</td>
         <td>${pill(o)}</td>
         <td class="n ${o.pnl == null ? '' : Number(o.pnl) > 0 ? 'pos' : Number(o.pnl) < 0 ? 'neg' : ''}">${o.pnl == null ? '–' : money(o.pnl)}</td>
       </tr>`).join('') : '<tr><td colspan="8" class="empty">No intents yet.</td></tr>'
+    }
+
+    /* ── paper: the signal bot's book by day, written by the bot after every grading pass ── */
+    async function loadPaper() {
+      const rows = await q('kalshi_signal_paper', (b) => b.select('*').order('day', { ascending: true }))
+      const today = new Date().toISOString().slice(0, 10)
+      const t = rows.find((r) => r.day === today)
+      const sum = (k) => rows.reduce((a, r) => a + Number(r[k] ?? 0), 0)
+      const set = (id, v, cls) => { const e = el(id); e.textContent = v; e.className = 'v ' + (cls ?? '') }
+      const tone = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '')
+      set('p-today', t ? money(t.pnl) : '$0.00', t ? tone(Number(t.pnl)) : '')
+      set('p-today-exit', t && t.pnl_exit != null ? money(t.pnl_exit) : '–', t ? tone(Number(t.pnl_exit)) : '')
+      set('p-all', rows.length ? money(sum('pnl')) : '$0.00', tone(sum('pnl')))
+      set('p-all-exit', rows.length ? money(sum('pnl_exit')) : '–', tone(sum('pnl_exit')))
+      set('p-calls', t ? fmt.format(t.calls) : '0')
+      el('p-calls-k').textContent = t ? `calls today, ${fmt.format(t.graded)} graded` : 'calls today'
+      set('p-won', t && t.graded ? Math.round(100 * t.wins / t.graded) + '%' : '–')
+      el('p-won-k').textContent = t && t.graded ? `won of ${fmt.format(t.graded)} today` : 'won today'
+      const reading = el('paper-reading')
+      if (!rows.length) { reading.className = 'reading quiet'; reading.textContent = 'The bot publishes its paper book here after its next grading pass.'; return }
+      const all = { graded: sum('graded'), wins: sum('wins'), pnl: sum('pnl'), exit: sum('pnl_exit'), exits: sum('exits') }
+      const d = all.exit - all.pnl
+      reading.className = 'reading'
+      reading.textContent = `${fmt.format(all.graded)} graded paper calls over ${rows.length} ${rows.length === 1 ? 'day' : 'days'}: ${money(all.pnl)} held to close, ${money(all.exit)} selling the first green minute (${fmt.format(all.exits)} would have sold early). ${Math.abs(d) < 0.005 ? 'Same either way so far.' : d > 0 ? `Selling green is ahead by ${money(d)}.` : `Holding is ahead by ${money(-d)}.`}${t ? ` Today: ${fmt.format(t.graded)} graded, ${money(t.pnl)} held, ${money(t.pnl_exit ?? t.pnl)} with exits.` : ''}`
+    }
+
+    /* ── the switch: Live sends, Paper does not. D1 flips it here as the admin; the page is
+       public but the update policy is not, so a logged-out viewer sees a locked control. ── */
+    async function initSwitch() {
+      const host = el('mode-seg'), note = el('mode-note')
+      const rows = await q('kalshi_switch', (b) => b.select('*').eq('id', 1))
+      const on = rows[0]?.signals === true
+      let canFlip = false
+      if (session) { const { data } = await supabase.rpc('is_admin'); canFlip = data === true }
+      host.classList.toggle('locked', !canFlip)
+      host.classList.toggle('live', on)
+      note.textContent = canFlip ? '' : 'sign in at /echelon/admin to flip'
+      segment(host, [{ v: 'live', label: 'Live' }, { v: 'paper', label: 'Paper' }], on ? 'live' : 'paper', async (v) => {
+        if (!canFlip) { initSwitch(); return }
+        const { error } = await supabase.from('kalshi_switch').update({ signals: v === 'live', updated_at: new Date().toISOString(), updated_by: session.user.email }).eq('id', 1)
+        if (error) { console.error(error); note.textContent = 'could not flip: ' + error.message }
+        else note.textContent = v === 'live' ? 'live: the next call shown is sent' : 'paper: nothing is sent'
+        host.classList.toggle('live', v === 'live')
+        setTimeout(loadAccount, 65_000) // the executor reads the row on its next pass
+      })
     }
 
     /* ── what it learned ── */
@@ -976,9 +1040,9 @@
     segment(el('cal-mtc'), MTC.map((b) => ({ v: b, label: b.replace('-', ' to ') + ' min' })), state.mtc, (v) => { state.mtc = v; renderCalib() })
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadTicks(), loadAccount(), loadStats(), loadDaily(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadTicks(), initSwitch(), loadAccount(), loadPaper(), loadStats(), loadDaily(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
-    setInterval(() => { loadTicks(); loadAccount(); loadLive() }, 30_000)
+    setInterval(() => { loadTicks(); loadAccount(); loadPaper(); loadLive() }, 30_000)
     setInterval(() => { loadStats(); loadCoverage(); loadEdge() }, 5 * 60_000)
     supabase.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') location.href = '/echelon/admin/' })
   </script>
