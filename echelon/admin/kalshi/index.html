@@ -328,7 +328,7 @@
     <section class="panel span-12 acct">
       <div class="panel-head">
         <h2>Book</h2>
-        <span class="sub" id="acct-sub">Live sends every call shown in Discord to the account at $10; Paper logs them and sends nothing. Positions sell the first minute they are green, else ride to close.</span>
+        <span class="sub" id="acct-sub" title="The exit rule: every minute the model's fair value of the held side is recomputed from spot, strike, volatility and time left; the position is sold the minute the market bid, after the exit fee, pays 2c more than that expected value. Otherwise it rides to close.">Live sends every call shown in Discord to the account at $10; Paper logs them and sends nothing. Exits are the model's call: sell when the market pays more than the expected value of holding.</span>
         <div class="right"><span class="mode-note" id="mode-note"></span><div class="seg" id="mode-seg"></div></div>
       </div>
       <h3 class="book-h">Account <span>real money</span></h3>
@@ -344,9 +344,9 @@
       <h3 class="book-h">Paper <span>every rule, $10 a call, nothing sent</span></h3>
       <div class="stat-row acct-stats paper-stats">
         <div class="stat"><div class="v" id="p-today">–</div><div class="k">today, held to close</div></div>
-        <div class="stat"><div class="v" id="p-today-exit">–</div><div class="k">today, first green exit</div></div>
+        <div class="stat"><div class="v" id="p-today-exit">–</div><div class="k">today, with model exits</div></div>
         <div class="stat"><div class="v" id="p-all">–</div><div class="k">all time, held to close</div></div>
-        <div class="stat"><div class="v" id="p-all-exit">–</div><div class="k">all time, first green exit</div></div>
+        <div class="stat"><div class="v" id="p-all-exit">–</div><div class="k">all time, with model exits</div></div>
         <div class="stat"><div class="v" id="p-calls">–</div><div class="k" id="p-calls-k">calls today</div></div>
         <div class="stat"><div class="v" id="p-won">–</div><div class="k" id="p-won-k">won today</div></div>
       </div>
@@ -837,7 +837,7 @@
       const all = { graded: sum('graded'), wins: sum('wins'), pnl: sum('pnl'), exit: sum('pnl_exit'), exits: sum('exits') }
       const d = all.exit - all.pnl
       reading.className = 'reading'
-      reading.textContent = `${fmt.format(all.graded)} graded paper calls over ${rows.length} ${rows.length === 1 ? 'day' : 'days'}: ${money(all.pnl)} held to close, ${money(all.exit)} selling the first green minute (${fmt.format(all.exits)} would have sold early). ${Math.abs(d) < 0.005 ? 'Same either way so far.' : d > 0 ? `Selling green is ahead by ${money(d)}.` : `Holding is ahead by ${money(-d)}.`}${t ? ` Today: ${fmt.format(t.graded)} graded, ${money(t.pnl)} held, ${money(t.pnl_exit ?? t.pnl)} with exits.` : ''}`
+      reading.textContent = `${fmt.format(all.graded)} graded paper calls over ${rows.length} ${rows.length === 1 ? 'day' : 'days'}: ${money(all.pnl)} held to close, ${money(all.exit)} with the model's exits (${fmt.format(all.exits)} would have sold before close). ${Math.abs(d) < 0.005 ? 'Same either way so far.' : d > 0 ? `The model's exits are ahead by ${money(d)}.` : `Holding is ahead by ${money(-d)}.`}${t ? ` Today: ${fmt.format(t.graded)} graded, ${money(t.pnl)} held, ${money(t.pnl_exit ?? t.pnl)} with exits.` : ''}`
     }
 
     /* ── the switch: Live sends, Paper does not. D1 flips it here as the admin; the page is
