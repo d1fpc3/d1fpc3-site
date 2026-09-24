@@ -81,7 +81,13 @@
     .band { display: grid; grid-template-columns: 62px 1fr 78px; align-items: center; gap: 12px; }
     .band .lbl { font-size: 13px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
     .band .track { position: relative; height: 26px; background: var(--panel-2); border-radius: 7px; overflow: hidden; }
-    .band .zero { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line-bright); }
+    .band .zero { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--line-bright); transform: translateX(-1px); }
+    .bands { position: relative; }
+    /* One shared axis label under the column of zero lines, so the split reads at a glance. */
+    .axis { display: grid; grid-template-columns: 62px 1fr 78px; gap: 12px; margin-top: 6px; }
+    .axis .mid { position: relative; height: 14px; }
+    .axis .mid span { position: absolute; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--faint); letter-spacing: .04em; }
+    @media (max-width: 620px) { .axis { grid-template-columns: 52px 1fr 66px; gap: 8px; } }
     .band .bar { position: absolute; top: 5px; bottom: 5px; border-radius: 4px; transition: width .5s cubic-bezier(.2,.7,.2,1), left .5s cubic-bezier(.2,.7,.2,1); }
     .band .bar.pos { background: linear-gradient(90deg, var(--gold-deep), var(--gold)); }
     .band .bar.neg { background: linear-gradient(90deg, var(--bad), color-mix(in oklab, var(--bad) 62%, var(--panel-2))); }
@@ -97,7 +103,8 @@
     th { text-align: left; color: var(--faint); font-weight: 500; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; padding: 0 10px 8px 0; border-bottom: 1px solid var(--line); }
     td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
     tr:last-child td { border-bottom: 0; }
-    td.num, th.num { text-align: right; padding-right: 0; }
+    td.num, th.num { text-align: right; padding-right: 14px; }
+    td:last-child, th:last-child { padding-right: 0; }
     .pos { color: var(--gold); } .neg { color: var(--bad); } .dim { color: var(--faint); }
     .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; border: 1px solid var(--line-bright); color: var(--muted); }
     .tag.ask { border-color: color-mix(in oklab, var(--gold) 40%, var(--line-bright)); color: var(--gold); }
@@ -111,7 +118,18 @@
     .q.good .n { color: var(--good); } .q.mid .n { color: var(--gold); } .q.bad .n { color: var(--bad); }
     @media (max-width: 600px) { .queue { grid-template-columns: 1fr; } }
 
+    .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; padding: 0 4px; }
+    .scroll table { min-width: 100%; }
     .empty { color: var(--faint); font-size: 13.5px; padding: 18px 0; }
+    /* The panels in a row size to their own content instead of stretching to the tallest. */
+    .grid { align-items: start; }
+    @media (max-width: 620px) {
+      .wrap { padding-left: 16px; padding-right: 16px; }
+      #fills th:nth-child(2), #fills td:nth-child(2),
+      #fills th:nth-child(4), #fills td:nth-child(4) { display: none; }
+      .band { grid-template-columns: 52px 1fr 66px; gap: 8px; }
+      .band .lbl { font-size: 12px; }
+    }
     footer { color: var(--faint); font-size: 12.5px; margin-top: 30px; line-height: 1.7; }
     footer a { color: var(--muted); }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -144,6 +162,7 @@
       block trades, so all of it passed through the public book.
     </p>
     <div class="bands" id="bands"></div>
+    <div class="axis"><div></div><div class="mid"><span>the maker breaks even here</span></div><div></div></div>
   </section>
 
   <section class="panel">
@@ -163,18 +182,18 @@
     <section class="panel span-6">
       <div class="panel-head"><h2>The books</h2><span class="meta">by policy</span></div>
       <p class="note">Two fill models bracket the truth. <em>Strict</em> credits a fill only when the market traded through our price; <em>front</em> credits one at it.</p>
-      <table id="books"><thead><tr><th>Policy</th><th>Model</th><th class="num">Fills</th><th class="num">Graded</th><th class="num">P&amp;L</th></tr></thead><tbody></tbody></table>
+      <div class="scroll"><table id="books"><thead><tr><th>Policy</th><th>Model</th><th class="num">Fills</th><th class="num">Graded</th><th class="num">P&amp;L</th></tr></thead><tbody></tbody></table></div>
     </section>
     <section class="panel span-6">
       <div class="panel-head"><h2>Resting</h2><span class="meta">by city</span></div>
       <p class="note">Live quotes on the book, and the money at risk if every one of them filled.</p>
-      <table id="resting"><thead><tr><th>City</th><th class="num">Quotes</th><th class="num">At risk</th></tr></thead><tbody></tbody></table>
+      <div class="scroll"><table id="resting"><thead><tr><th>City</th><th class="num">Quotes</th><th class="num">At risk</th></tr></thead><tbody></tbody></table></div>
     </section>
   </div>
 
   <section class="panel">
     <div class="panel-head"><h2>Fills</h2><span class="meta">most recent first</span></div>
-    <table id="fills"><thead><tr><th>When</th><th>Policy</th><th>City</th><th>Box</th><th>Side</th><th class="num">Price</th><th class="num">Size</th><th>Settled</th><th class="num">P&amp;L</th></tr></thead><tbody></tbody></table>
+    <div class="scroll"><table id="fills"><thead><tr><th>When</th><th>Policy</th><th>City</th><th>Box</th><th>Side</th><th class="num">Price</th><th class="num">Size</th><th>Settled</th><th class="num">P&amp;L</th></tr></thead><tbody></tbody></table></div>
   </section>
 
   <footer>
@@ -249,7 +268,7 @@
   }
 
   function fills(rows) {
-    $('#fills tbody').innerHTML = rows.length ? rows.slice(0, 40).map((r) => {
+    $('#fills tbody').innerHTML = rows.length ? rows.slice(0, 15).map((r) => {
       const graded = r.graded_at != null, p = Number(r.pnl ?? 0)
       return `<tr><td class="dim">${clock(r.filled_at)}</td><td>${r.policy}</td><td>${r.city}</td><td>${r.bucket}</td>
         <td><span class="tag ${r.side}">${r.side === 'ask' ? 'sold' : 'bought'}</span></td>
