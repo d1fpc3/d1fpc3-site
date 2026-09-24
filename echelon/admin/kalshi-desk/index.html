@@ -80,20 +80,35 @@
     ::-webkit-scrollbar-thumb { background: var(--line-bright); border-radius: 5px; border: 3px solid var(--bg); }
 
     /* ════ top bar ═══════════════════════════════════════════ */
+    /* The bar carries six things and a phone is 390px wide, so it is a wrapping grid, not a
+       single nowrap row: back and title hold the first line, the jump links and the status
+       drop to a second line when they no longer fit. A fixed height is what used to push the
+       sign-out button off the right edge. */
     .topbar {
       position: sticky; top: 0; z-index: 5;
-      display: flex; align-items: center; gap: 20px;
-      height: 56px; padding: 0 24px;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px;
+      min-height: 56px; padding: 8px 24px;
       background: color-mix(in srgb, var(--bg) 85%, transparent);
       backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--line);
     }
-    .back { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); padding: 6px 10px 6px 6px; border-radius: 8px; transition: color 160ms, background 160ms; }
-    .back svg { width: 16px; height: 16px; }
+    /* Back is the only thing in the bar that leaves the page, so it is the only thing that
+       gets a chevron and a word. The sibling pages are .jump: same row, visibly not "back". */
+    .back {
+      display: inline-flex; align-items: center; gap: 6px; color: var(--muted);
+      margin-left: -8px; padding: 6px 11px 6px 8px; border-radius: 8px; font-size: 13.5px;
+      transition: color 160ms, background 160ms, transform 120ms;
+    }
+    .back svg { width: 15px; height: 15px; flex: 0 0 auto; }
     @media (hover: hover) { .back:hover { color: var(--ink); background: var(--panel-2); } }
-    .back:active { transform: scale(0.97); }
+    .back:active { transform: translateX(-2px); }
+    .jumps { display: inline-flex; gap: 2px; padding: 3px; background: var(--panel-2); border-radius: 9px; }
+    .jumps a { padding: 4px 11px; border-radius: 7px; color: var(--muted); font-size: 12.5px; transition: color 160ms, background 160ms; }
+    @media (hover: hover) { .jumps a:hover { color: var(--ink); background: var(--panel); } }
+    .jumps a:active { transform: scale(0.97); }
     .title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
-    .pulse { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; color: var(--muted); white-space: nowrap; min-width: 0; }
+    .status { margin-left: auto; display: inline-flex; align-items: center; gap: 14px; min-width: 0; }
+    .pulse { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); white-space: nowrap; min-width: 0; }
     .pulse-short { display: none; }
     .pulse .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); position: relative; }
     .pulse.live .dot { background: var(--good); }
@@ -104,7 +119,7 @@
     .pulse.stale .dot { background: var(--bad); }
     @keyframes ring { from { transform: scale(0.6); opacity: 0.7; } to { transform: scale(1.6); opacity: 0; } }
 
-    .who { margin-left: 14px; display: inline-flex; align-items: center; }
+    .who { display: inline-flex; align-items: center; flex: 0 0 auto; }
 
     /* ════ section nav ═══════════════════════════════════════
        A sliding thumb rather than ten separate hover boxes: one moving element
@@ -148,11 +163,16 @@
     @media (max-width: 640px) {
       .wrap { padding: 16px; gap: 16px; }
       .panel { --pad: 16px; padding: 16px var(--pad); border-radius: 12px; }
-      .topbar { padding: 0 16px; gap: 12px; }
+      .topbar { padding: 8px 16px; gap: 8px 12px; }
+      /* the status is given its own line rather than allowed to squeeze: at 390px the
+         sign-out chip used to run off the right edge and sit on top of the collector clock */
+      .status { flex: 1 0 100%; margin-left: 0; justify-content: space-between; }
       .panel-head .right { width: 100%; margin-left: 0; }
       .pulse-long { display: none; }
       .pulse-short { display: inline; }
     }
+    /* the section nav is sticky under the topbar, which is two rows tall on a phone */
+    @media (max-width: 640px) { .sectionnav { top: 88px; } .panel[id^="s-"] { scroll-margin-top: 144px; } }
 
     .panel-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
     .panel-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
@@ -172,6 +192,13 @@
     .hero { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: stretch; }
     @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } }
     .hero-side { display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
+    /* Below 600px the four end labels are wider than the plot and land on top of each other
+       and on the lines. They become a legend under the chart instead: same four numbers,
+       read in one pass, nothing overlapping. */
+    .hero-legend { display: flex; flex-wrap: wrap; gap: 7px 16px; margin: 10px 0 0; font-size: 12.5px; color: var(--muted); }
+    .hero-legend span { display: inline-flex; align-items: center; gap: 7px; }
+    .hero-legend i { width: 11px; height: 3px; border-radius: 2px; flex: 0 0 auto; }
+    .hero-legend b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
     .stat { display: flex; flex-direction: column; gap: 2px; }
     .stat .v { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
     .stat .v.gold { color: var(--gold); }
@@ -231,6 +258,63 @@
     .edge { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 28px; align-items: start; }
     @media (max-width: 1100px) { .edge { grid-template-columns: 1fr; } }
     .edge-stats { margin-bottom: 14px; }
+
+    /* ════ the edge: the one mispricing, and what it costs to reach ════
+       The centrepiece is a 2x2, not a chart, because the finding IS a 2x2: two
+       independent conditions, and the money lives only where both fire. A bar chart
+       of four numbers would hide the structure that matters. */
+    .thesis { font-size: 17px; line-height: 1.55; max-width: 76ch; margin: 0 0 20px; }
+    .thesis b { color: var(--gold); font-weight: 600; }
+    .edge-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 26px 32px; align-items: start; }
+    @media (max-width: 1000px) { .edge-grid { grid-template-columns: minmax(0, 1fr); } }
+    /* the 2x2 */
+    .m2 { display: grid; grid-template-columns: auto 1fr 1fr; gap: 7px; }
+    .m2 .ch, .m2 .rh { color: var(--muted); font-size: 12.5px; line-height: 1.3; align-self: end; padding: 0 2px 3px; }
+    .m2 .rh { align-self: center; text-align: right; max-width: 11ch; padding: 0 8px 0 0; }
+    .m2 .cell { position: relative; padding: 13px 14px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; min-height: 96px; }
+    .m2 .cell .r { font-size: 25px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .m2 .cell .meta { color: var(--faint); font-size: 12px; margin-top: 5px; font-variant-numeric: tabular-nums; }
+    .m2 .cell .tag { color: var(--muted); font-size: 12px; margin-top: 7px; }
+    .m2 .cell.take { border-color: var(--gold-deep); background: linear-gradient(180deg, rgba(201,162,74,0.10), rgba(201,162,74,0.03)); }
+    .m2 .cell.take .r, .m2 .cell.take .tag { color: var(--gold); }
+    .m2 .cell.dead { opacity: 0.62; }
+    .m2 .cell.dead .r { color: var(--bad); }
+    /* a phone cannot hold a 2x2 of 25px numbers and its two header rows; below 620 it
+       becomes four stacked cells that each name their own corner */
+    @media (max-width: 620px) {
+      .m2 { grid-template-columns: minmax(0, 1fr); gap: 9px; }
+      .m2 .ch { display: none; }
+      .m2 .rh { text-align: left; max-width: none; padding: 6px 0 0; align-self: start; }
+      .m2 .cell { min-height: 0; }
+    }
+    .hero5 { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px 18px; margin: 0 0 24px; }
+    .hero5 .v { font-size: 34px; }
+    @media (max-width: 900px) { .hero5 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .hero5 .v { font-size: 28px; } }
+    @media (max-width: 560px) { .hero5 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    /* the rule, as conditions rather than steps: no numbering, because it is not a sequence */
+    ul.rulelist { list-style: none; display: flex; flex-direction: column; gap: 9px; margin: 0 0 18px; max-width: 64ch; }
+    ul.rulelist li { display: grid; grid-template-columns: 82px 1fr; gap: 12px; align-items: baseline; font-size: 14px; line-height: 1.5; color: var(--muted); }
+    ul.rulelist li span { color: var(--ink); font-weight: 600; font-size: 13px; }
+    @media (max-width: 560px) { ul.rulelist li { grid-template-columns: 1fr; gap: 2px; } }
+
+    /* the gate readout. NOT .gate: that class is already the sign-in gate at the top of
+       the page, and styling it as a flex row broke this panel's layout. */
+    .egate { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .egate .g { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 11px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+    .egate .g em { font-style: normal; color: var(--faint); }
+    .egate .g b { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .egate .g.off { border-color: var(--line); color: var(--muted); }
+    .egate .g.off b { color: var(--bad); }
+    .egate .g.on b { color: var(--good); }
+    /* the basis table */
+    .basis-h { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; }
+    .basis-note { color: var(--faint); font-size: 12.5px; line-height: 1.45; margin: 0 0 11px; max-width: 54ch; }
+    table.basis { width: 100%; border-collapse: collapse; }
+    table.basis th, table.basis td { padding: 6px 8px; border-bottom: 1px solid var(--line); font-size: 13px; }
+    table.basis th { color: var(--muted); font-weight: 500; text-align: left; }
+    table.basis td.n, table.basis th.n { text-align: right; font-variant-numeric: tabular-nums; }
+    table.basis tr.traded td:first-child { color: var(--gold); font-weight: 600; }
+    table.basis .bar { display: inline-block; height: 7px; border-radius: 2px; background: var(--gold-deep); vertical-align: middle; }
 
     /* ════ bots: the shared cards ═════════════════════════════ */
     .bots { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 18px; }
@@ -324,7 +408,19 @@
     .err { color: var(--bad); }
     .tick-err { color: var(--muted); font-size: 12px; max-width: 60ch; white-space: normal; }
     #ticks th:last-child, #ticks td:last-child { padding-left: 20px; }
-    .tbl-scroll { overflow-x: auto; margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad); }
+    /* A ten-column table on a 390px phone has to scroll sideways, and clipped at the panel
+       edge with no affordance it just reads as a broken table. These are the classic
+       background scroll shadows: the two `local` layers ride the content and cover the
+       `scroll` shadows at each end, so the hint appears only while there is more to see and
+       costs no JavaScript and no layout. */
+    .tbl-scroll {
+      overflow-x: auto; margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad);
+      background:
+        linear-gradient(to right, var(--panel) 40%, transparent) left center / 28px 100% no-repeat local,
+        linear-gradient(to left, var(--panel) 40%, transparent) right center / 28px 100% no-repeat local,
+        radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.38), transparent) left center / 11px 100% no-repeat scroll,
+        radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.38), transparent) right center / 11px 100% no-repeat scroll;
+    }
 
     /* A log table is not worth 2000px of page. Capped, it scrolls in place with its header
        held, and the fade at the bottom edge is what tells you there is more without adding
@@ -371,12 +467,17 @@
   <header class="topbar">
     <a class="back" href="/echelon/admin/" title="Back to Echelon admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Admin
     </a>
     <div class="title">Kalshi desk</div>
-    <a class="back" href="terminal.html">terminal</a>
-    <a class="back" href="weather.html">weather</a>
-    <div class="pulse" id="pulse"><span class="dot"></span><span class="pulse-long" id="pulse-text">Checking the collector</span><span class="pulse-short" id="pulse-short"></span></div>
-    <div class="who" data-desk-signout></div>
+    <nav class="jumps" aria-label="Desk pages">
+      <a href="terminal.html">Terminal</a>
+      <a href="weather.html">Weather</a>
+    </nav>
+    <div class="status">
+      <div class="pulse" id="pulse"><span class="dot"></span><span class="pulse-long" id="pulse-text">Checking the collector</span><span class="pulse-short" id="pulse-short"></span></div>
+      <div class="who" data-desk-signout></div>
+    </div>
   </header>
 
   <!-- This page is about 7000px tall. Without a way to jump, the lower half may as well
@@ -387,6 +488,7 @@
     <a href="#s-rules">Rules</a>
     <a href="#s-learning">Learning</a>
     <a href="#s-book">Book</a>
+    <a href="#s-thesis">The edge</a>
     <a href="#s-edge">Edge hunt</a>
     <a href="#s-learned">Learned</a>
     <a href="#s-coverage">Coverage</a>
@@ -400,7 +502,7 @@
     <section id="s-bots" class="panel span-12">
       <div class="panel-head">
         <h2>Bots</h2>
-        <span class="sub">Every bot that reports to this desk, its public book. Each bot writes only its own rows.</span>
+        <span class="sub">Every bot that reports to this desk, and only the calls it made in public. These are not whole-strategy books: the printer's silent paper calls, every rule including the cold ones, are in <a href="#s-book" style="color: var(--muted); border-bottom: 1px solid var(--line-bright)">Book</a> below, which is why that panel's numbers are larger. Each bot writes only its own rows.</span>
       </div>
       <div class="bots" id="bots"><div class="skel" style="height: 120px"></div></div>
       <div class="tbl-scroll capped" data-cap="feed"><table id="feed"><thead><tr>
@@ -494,6 +596,79 @@
     </section>
 
     <!-- the edge hunt: cells the market misprices, and the paper book that tests them -->
+    <!-- the edge: what it is, where it lives, and what the bot requires before it pays for it -->
+    <section id="s-thesis" class="panel span-12">
+      <div class="panel-head">
+        <h2>The edge</h2>
+        <span class="sub">What the bot trades, and the evidence for it. One row per round, priced at the touch, net of the real taker fee, over the last 31 days. Recomputed nightly from the tape.</span>
+      </div>
+
+      <p class="thesis">The market prices these at about <b>90 cents</b>. They win about
+        <b>94% of the time</b>. Break-even after the fee is 90.5 cents, so the gap is the edge. It
+        exists because the book prices more movement than a fifteen-minute round actually
+        delivers, which leaves the side that is already ahead too cheap.</p>
+
+      <div class="stat-row hero5" id="edge-hero">
+        <div class="stat"><div class="v" id="eh-pay">–</div><div class="k">we pay</div></div>
+        <div class="stat"><div class="v" id="eh-win">–</div><div class="k">it wins</div></div>
+        <div class="stat"><div class="v" id="eh-be">–</div><div class="k">break-even with fee</div></div>
+        <div class="stat"><div class="v gold" id="eh-edge">–</div><div class="k">edge per contract</div></div>
+        <div class="stat"><div class="v" id="eh-day">–</div><div class="k">setups a day</div></div>
+      </div>
+
+      <div class="edge-grid">
+        <div>
+          <p class="basis-h">What we take</p>
+          <ul class="rulelist">
+            <li><span>Book</span> BTC, ETH, SOL, XRP or DOGE. The other five run 2 to 5 cent spreads that eat the whole edge.</li>
+            <li><span>Clock</span> Nine minutes before the round closes.</li>
+            <li><span>Distance</span> Spot at least 15 basis points clear of the strike, on the side we are buying. A favourite sitting on its strike is a coin flip wearing a favourite's price.</li>
+            <li><span>Price</span> The leading side quoted between 85 and 95 cents. Bought at the ask, held to settlement.</li>
+            <li><span>A plus</span> Off. Narrowing to this cell raises the edge to 3.8 cents but drops to 30 setups a day, which earns about half as much. It is also the one cut chosen by searching, so its significance is the softest number here.</li>
+          </ul>
+
+          <div class="egate" id="edge-gate"><span class="g"><em>Loading the live gate.</em></span></div>
+
+          <p class="basis-h" style="margin-top: 22px">Why it is there</p>
+          <div class="m2">
+            <div class="cnr"></div>
+            <div class="ch">Book pricing less movement than the hour delivered</div>
+            <div class="ch">Book pricing more movement than the hour delivered</div>
+            <div class="rh">Tape has moved</div>
+            <div class="cell"><div class="r">+1.99%</div><div class="meta">946 rounds · t 1.83</div></div>
+            <div class="cell take"><div class="r">+3.81%</div><div class="meta">946 rounds · t 4.83</div><div class="tag">The A plus cell</div></div>
+            <div class="rh">Tape is quiet</div>
+            <div class="cell dead"><div class="r">-0.42%</div><div class="meta">858 rounds · t -0.35</div><div class="tag">A coin flip paying a toll</div></div>
+            <div class="cell"><div class="r">+2.67%</div><div class="meta">691 rounds · t 2.40</div></div>
+          </div>
+          <p class="basis-note" style="margin-top: 11px; max-width: 64ch">Both cuts carry signal independently, and the
+            edge is flat zero only where the tape is quiet and the book is pricing no more movement than it delivered.
+            The effect is indifferent to which way the tape moved, which is what rules out a slow book and a plain taste
+            for favourites, and leaves a volatility risk premium as the explanation.</p>
+        </div>
+
+        <div>
+          <p class="basis-h">Proof, per book</p>
+          <p class="basis-note">Recomputed from the tape every night, not pasted in. The error bar clusters on the
+            expiry instant, because rounds that settle together lose together: five simultaneous positions are worth
+            about 1.7 independent bets, so an unclustered figure overstates by roughly 1.7 times.</p>
+          <div class="tbl-scroll"><table class="basis"><thead><tr>
+            <th>Scope</th><th class="n">Wins</th><th class="n">Pays</th><th class="n" title="win rate minus price minus fee">Edge</th><th class="n" title="cluster-robust t on the mean return">t</th><th class="n">Rounds</th>
+          </tr></thead><tbody id="proof-rows"><tr><td colspan="6"><div class="skel"></div></td></tr></tbody></table></div>
+          <p class="basis-note" id="proof-foot" style="margin-top: 10px"></p>
+
+          <p class="basis-h" style="margin-top: 22px">The settlement basis</p>
+          <p class="basis-note">Kalshi settles on the CF Benchmarks index averaged over the final sixty seconds. The
+            desk records Coinbase, which runs below it. Each round's strike is the previous round's settlement value,
+            so the gap is re-estimated from the last seven days and added to the distance before the gate reads it.</p>
+          <div class="tbl-scroll"><table class="basis"><thead><tr>
+            <th>Asset</th><th class="n">Basis</th><th class="n"></th><th class="n">t</th><th class="n">Rounds</th>
+          </tr></thead><tbody id="basis-rows"><tr><td colspan="5"><div class="skel"></div></td></tr></tbody></table></div>
+          <p class="basis-note" id="basis-foot" style="margin-top: 10px"></p>
+        </div>
+      </div>
+    </section>
+
     <section id="s-edge" class="panel span-5">
       <div class="panel-head">
         <h2>Edge hunt</h2>
@@ -827,6 +1002,7 @@
       const over = labelY.length ? labelY[labelY.length - 1] - (H - m.b - 4) : 0
       if (over > 0) for (let i = 0; i < labelY.length; i++) labelY[i] -= over
       const anchor = one ? 'start' : 'end', lxo = one ? lx + 10 : lx - 6
+      const narrow = W < 600
       const first = !renderHero.drawn; renderHero.drawn = true
       host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="${first ? 'draw' : ''}" style="--len: ${W * 2}" role="img" aria-label="Brier score by day: market mid, calibrated mid, and the distance model">
         <g class="grid">${yticks.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`).join('')}</g>
@@ -837,10 +1013,10 @@
         <path class="line-a" d="${path('brier_dist')}"/>
         <path class="line-d" d="${path('brier_model')}"/>
         ${ends.map((e) => `<circle cx="${lx.toFixed(1)}" cy="${e.y.toFixed(1)}" r="3.5" fill="${e.color}"/>`).join('')}
-        ${ends.map((e, i) => `<text class="${e.lbl}" x="${lxo.toFixed(1)}" y="${labelY[i].toFixed(1)}" text-anchor="${anchor}">${e.name} ${p4(e.v)}</text>`).join('')}
+        ${narrow ? '' : ends.map((e, i) => `<text class="${e.lbl}" x="${lxo.toFixed(1)}" y="${labelY[i].toFixed(1)}" text-anchor="${anchor}">${e.name} ${p4(e.v)}</text>`).join('')}
         <line class="xhair" id="xh" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" opacity="0"/>
         <rect class="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}"/>
-      </svg>`
+      </svg>` + (narrow ? `<p class="hero-legend">${ends.map((e) => `<span><i style="background: ${e.color}${e.cls === 'line-d' || e.cls === 'line-c' ? '; opacity: .6' : ''}"></i>${e.name}<b>${p4(e.v)}</b></span>`).join('')}</p>` : '')
       const svg = host.querySelector('svg'), xh = host.querySelector('#xh'), hit = host.querySelector('.hit')
       hit.addEventListener('mousemove', (e) => {
         const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
@@ -868,7 +1044,111 @@
     }
 
     /* ── edge hunt ── */
-    const money = (x) => (x == null ? '–' : (x < 0 ? '-' : '+') + '$' + Math.abs(Number(x)).toFixed(2))
+    /* Zero is neither a gain nor a loss, so it carries no sign. It used to render "+$0.00",
+       which reads as a win of nothing, and every caller that cared patched it back out by
+       hand; one of them did not, and a flat bot card claimed a profit. */
+    const money = (x) => (x == null ? '–' : (Number(x) < 0 ? '-' : Number(x) > 0 ? '+' : '') + '$' + Math.abs(Number(x)).toFixed(2))
+
+    /* ── the edge: the rule the bot actually trades, its live gate and the nightly proof ──
+       The gate numbers mirror the executor's own constants; the switch row beside them is
+       read live so the page can never claim a gate the bot is not applying. */
+    const FAV_GATE = { minPrice: 0.85, maxPrice: 0.95, mtcLo: 7, mtcHi: 11, minBps: 15, minRatio: 0.93, minMom: 10 }
+    const TRADED = new Set(['BTC', 'ETH', 'SOL', 'XRP', 'DOGE'])
+
+    async function loadTheEdge() {
+      const [basis, sw] = await Promise.all([
+        q('kalshi_basis', (t) => t.select('asset,med_bps,mean_bps,sd_bps,t_stat,n,as_of').order('med_bps', { ascending: false })),
+        q('kalshi_switch', (t) => t.select('fav_rule,signals,live,min_price,clip').eq('id', 1).maybeSingle()),
+      ])
+
+      // ── the basis table ──
+      const rows = basis ?? []
+      const tb = el('basis-rows')
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="5" class="quiet">No estimate yet. It needs 200 graded rounds in the window.</td></tr>'
+      } else {
+        const top = Math.max(...rows.map((r) => Math.abs(Number(r.med_bps))), 0.01)
+        tb.innerHTML = rows.map((r) => {
+          const m = Number(r.med_bps)
+          const w = Math.max(2, Math.round((Math.abs(m) / top) * 54))
+          return `<tr class="${TRADED.has(r.asset) ? 'traded' : ''}">`
+            + `<td>${r.asset}</td>`
+            + `<td class="n">${bps(m)}</td>`
+            + `<td class="n"><span class="bar" style="width:${w}px"></span></td>`
+            + `<td class="n">${r.t_stat == null ? '–' : Number(r.t_stat).toFixed(1)}</td>`
+            + `<td class="n">${fmt.format(r.n)}</td></tr>`
+        }).join('')
+        const traded = rows.filter((r) => TRADED.has(r.asset))
+        const rest = rows.filter((r) => !TRADED.has(r.asset))
+        const weak = rows.filter((r) => r.t_stat != null && Math.abs(Number(r.t_stat)) < 2).map((r) => r.asset)
+        const asOf = rows[0]?.as_of ?? null
+        el('basis-foot').textContent = `The gold rows are the five books the rule trades, estimated`
+          + ` ${asOf ? 'on ' + asOf : 'today'}. Every median is positive, so the index sits above our feed`
+          + ` everywhere it has been measured`
+          + (weak.length ? `, though ${weak.join(' and ')} ${weak.length > 1 ? 'are' : 'is'} too small this week to`
+              + ` separate from zero.` : '.')
+          + (traded.length ? ` The traded five run ${bps(Math.min(...traded.map((r) => +r.med_bps)))} to`
+              + ` ${bps(Math.max(...traded.map((r) => +r.med_bps)))} basis points against a 15 bps gate, so the correction`
+              + ` rarely changes a call here.` : '')
+          + (rest.length ? ` The large gaps sit on ${rest.slice(0, 2).map((r) => r.asset).join(' and ')},`
+              + ` which this rule does not trade: that is where correcting the feed is worth real money, and it is the`
+              + ` next thing to test.` : '')
+          + ` The metal is absent because it settles on Pyth, not CF Benchmarks, and our proxy`
+          + ` disagrees with it too often to correct.`
+      }
+
+      // ── the proof, recomputed server side ──
+      // reads the nightly materialisation, never the function: computing it live blows the
+      // authenticated role's statement_timeout (57014)
+      const rows2 = await q('kalshi_edge_stats', (t) => t.select('scope,n,per_day,win_pct,pay_cents,breakeven_cents,edge_cents,ret_pct,t_clustered,window_days,as_of')) ?? []
+      const pick = (k) => rows2.find((r) => r.scope === k)
+      const all = pick('All qualifying')
+      if (all) {
+        el('eh-pay').textContent = Number(all.pay_cents).toFixed(1) + 'c'
+        el('eh-win').textContent = Number(all.win_pct).toFixed(1) + '%'
+        el('eh-be').textContent = Number(all.breakeven_cents).toFixed(1) + 'c'
+        el('eh-edge').textContent = bps(all.edge_cents) + 'c'
+        el('eh-day').textContent = fmt.format(all.per_day)
+      }
+      const order = (r) => (r.scope === 'All qualifying' ? 0 : r.scope === 'A plus only' ? 1 : 2)
+      const pb = el('proof-rows')
+      pb.innerHTML = rows2.length ? rows2.slice().sort((a, b) => order(a) - order(b) || b.edge_cents - a.edge_cents).map((r) => {
+        const head = order(r) < 2
+        const t = r.t_clustered == null ? null : Number(r.t_clustered)
+        return `<tr class="${head ? 'traded' : ''}">`
+          + `<td>${r.scope.replace('Per book: ', '')}</td>`
+          + `<td class="n">${Number(r.win_pct).toFixed(1)}%</td>`
+          + `<td class="n">${Number(r.pay_cents).toFixed(1)}c</td>`
+          + `<td class="n">${bps(r.edge_cents)}c</td>`
+          + `<td class="n" style="color:${t != null && t >= 2 ? 'var(--good)' : 'var(--muted)'}">${t == null ? '–' : t.toFixed(2)}</td>`
+          + `<td class="n">${fmt.format(r.n)}</td></tr>`
+      }).join('') : '<tr><td colspan="6" class="quiet">No graded rounds in the window.</td></tr>'
+      const books = rows2.filter((r) => r.scope.startsWith('Per book'))
+      if (books.length) {
+        const sig = books.filter((r) => Number(r.t_clustered) >= 2).length
+        el('proof-foot').textContent = `All ${books.length} books are positive and ${sig} of ${books.length} clear`
+          + ` significance on their own, so this is not one book carrying the rest. The first two rows are the`
+          + ` rule as traded; the books below are the same rule split out. A t above 2 is shown in green.`
+      }
+
+      // ── the gate: what the executor requires right now ──
+      const g = FAV_GATE
+      const on = sw?.fav_rule === true
+      const armed = sw?.signals === true
+      const floor = sw?.min_price == null ? g.minPrice : Number(sw.min_price)
+      const pill = (k, v, cls) => `<span class="g ${cls ?? ''}"><em>${k}</em><b>${v}</b></span>`
+      el('edge-gate').innerHTML = [
+        pill('rule', on ? 'on' : 'off', on ? 'on' : 'off'),
+        pill('sending', armed ? 'live orders' : 'paper only', armed ? 'on' : 'off'),
+        pill('price', `${(floor * 100).toFixed(0)}c to ${(g.maxPrice * 100).toFixed(0)}c`),
+        pill('clock', `${g.mtcLo} to ${g.mtcHi} min left`),
+        pill('distance', `${g.minBps}+ bps, basis corrected`),
+        pill('tape moved', `${g.minMom}+ bps`),
+        pill('vol premium', `${g.minRatio}x+`),
+        pill('clip', sw?.clip == null ? '–' : '$' + Number(sw.clip).toFixed(0)),
+      ].join('')
+    }
+
     async function loadEdge() {
       // "as of" comes from the scoring log, not the cells table, so a night that found no
       // cells still reads as scored rather than as never run
@@ -979,7 +1259,7 @@
       const acct = el('a-acct'); acct.textContent = acctToday.length ? money(acctPnl) : '$0.00'; acct.className = 'v ' + tone(acctToday.length ? acctPnl : 0)
       el('a-acct-k').textContent = acctToday.length ? `your account, ${acctToday.length} settled today${handN ? `, ${handN} by hand` : ''}` : 'your account, settled today'
       const real = el('a-real'); real.textContent = settled ? money(realized) : '$0.00'; real.className = 'v ' + tone(settled ? realized : 0)
-      const tr = el('a-today'); tr.textContent = money(todayReal).replace('+$0.00', '$0.00'); tr.className = 'v ' + (todayReal ? tone(todayReal) : '')
+      const tr = el('a-today'); tr.textContent = money(todayReal); tr.className = 'v ' + (todayReal ? tone(todayReal) : '')
       el('a-open').textContent = fmt.format(open)
       el('a-sent').textContent = `${sent} of ${last24.length}`
       el('a-sent-k').textContent = sent ? `sent of ${last24.length} intents in 24 h · ${Math.round(100 * filledN / sent)}% filled` : 'sent, of intents in 24 h'
@@ -1025,12 +1305,19 @@
     const botExt = new Map()
     async function loadBots() {
       const today = new Date().toISOString().slice(0, 10)
-      const [bots, daily, feed] = await Promise.all([
+      let [bots, daily, feed] = await Promise.all([
         q('desk_bots', (b) => b.select('*').order('created_at')),
         q('desk_daily', (b) => b.select('*').order('day', { ascending: true })),
         q('desk_signals', (b) => b.select('*').eq('shown', true).order('called_at', { ascending: false }).limit(40)),
       ])
       const host = el('bots')
+      // A bot owns its own rows, so a bug in one bot can date a day into the future and the
+      // card would then bank money that has not happened. The weather maker did exactly this,
+      // reporting by the market's climate date rather than the day the quote was placed.
+      // The desk drops those rows and says so rather than adding them up silently.
+      const ahead = daily.filter((d) => d.day > today)
+      if (ahead.length) console.warn(`[desk] ignoring ${ahead.length} desk_daily row(s) dated after ${today}:`, ahead.map((d) => `${d.bot} ${d.day}`).join(', '))
+      daily = daily.filter((d) => d.day <= today)
       const tone = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '')
       const ctxFor = (bot) => ({ supabase, bot, q, money, fmt, ago, short, p2 })
       const whatOf = (f) => ({ called: 'open', won: 'won', lost: 'lost', exited: 'sold at ' + p2(f.exit_price), void: 'void' }[f.status] ?? f.status)
@@ -1394,10 +1681,10 @@
     segment(el('cal-mtc'), MTC.map((b) => ({ v: b, label: b.replace('-', ' to ') + ' min' })), state.mtc, (v) => { state.mtc = v; renderCalib() })
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadBots(), loadRules(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadStats(), loadDaily(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadBots(), loadRules(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadStats(), loadDaily(), loadTheEdge(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
     setInterval(() => { loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive() }, 30_000)
-    setInterval(() => { loadStats(); loadCoverage(); loadEdge() }, 5 * 60_000)
+    setInterval(() => { loadStats(); loadCoverage(); loadTheEdge(); loadEdge() }, 5 * 60_000)
   </script>
 </body>
 </html>
