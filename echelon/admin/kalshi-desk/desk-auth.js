@@ -73,6 +73,9 @@ const CSS = `
   color:#8a8a8a;font:inherit;font-size:11px;letter-spacing:.07em;text-transform:uppercase;
   padding:5px 10px;cursor:pointer;transition:color .14s,border-color .14s}
 @media (pointer:coarse){.dsk-out{font-size:11.5px;padding:9px 12px}}
+/* the name is the first thing to go: on a phone the bar needs the width more than the reader
+   needs reminding which account they are on, and the tooltip still says it */
+@media (max-width:700px){.dsk-out .dsk-who,.dsk-out .dsk-sep{display:none}}
 .dsk-out:hover{color:#ffa000;border-color:#ffa000}
 .dsk-out-inline{position:static;background:transparent;border-color:#2a2a2a}
 `;
@@ -168,7 +171,16 @@ function addSignOut(user) {
   const b = document.createElement('button');
   b.className = host ? 'dsk-out dsk-out-inline' : 'dsk-out';
   b.type = 'button';
-  b.textContent = user?.email ? `${user.email.split('@')[0]} · sign out` : 'sign out';
+  if (user?.email) {
+    const who = document.createElement('span');
+    who.className = 'dsk-who';
+    who.textContent = user.email.split('@')[0];
+    const sep = document.createElement('span');
+    sep.className = 'dsk-sep';
+    sep.textContent = ' · ';
+    b.append(who, sep);
+  }
+  b.append(document.createTextNode('sign out'));
   // the session is Echelon's, so say so: this button logs you out of the whole admin, not
   // just this page, and that is a surprise worth spending a tooltip on
   b.title = user?.email

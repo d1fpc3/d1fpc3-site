@@ -93,6 +93,12 @@
     .topstick {
       position: sticky; top: 0; z-index: 5;
       transition: box-shadow 220ms ease;
+      /* The page sets viewport-fit=cover, so on a notched iPhone the layout runs under the
+         status bar and nothing was reserving room for it: the bar's first row rendered
+         beneath the clock and the battery. env() is 0 everywhere else, so this costs nothing
+         on a desktop. Padding rather than margin, so the opaque ::before (inset:0 covers the
+         padding box) paints under the notch too instead of leaving a transparent strip. */
+      padding-top: env(safe-area-inset-top, 0px);
     }
     /* One backdrop for the whole region, and OPAQUE. At 85% the page slid underneath and stayed
        legible through the bar, so the top of the screen read as two things printed on each
@@ -121,10 +127,13 @@
     .back svg { width: 15px; height: 15px; flex: 0 0 auto; }
     @media (hover: hover) { .back:hover { color: var(--ink); background: var(--panel-2); } }
     .back:active { transform: translateX(-2px); }
-    .jumps { display: inline-flex; gap: 2px; padding: 3px; background: var(--panel-2); border-radius: 9px; }
-    .jumps a { padding: 4px 11px; border-radius: 7px; color: var(--muted); font-size: 12.5px; transition: color 160ms, background 160ms; }
-    @media (hover: hover) { .jumps a:hover { color: var(--ink); background: var(--panel); } }
-    .jumps a:active { transform: scale(0.97); }
+    /* Terminal and Weather live at the end of the section rail rather than in the bar. In the
+       bar they were a third band of chrome: WebKit wraps the bar harder than Chromium (106px
+       against 81px at 390) and the header was eating 24.5% of an iPhone 12 and 37.2% of an SE.
+       The rail already scrolls sideways and is already the "take me somewhere" row. */
+    .sn-sep { flex: 0 0 auto; width: 1px; height: 18px; margin: 0 8px; background: var(--line-bright); }
+    .sectionnav a.sn-page { color: var(--faint); }
+    @media (hover: hover) { .sectionnav a.sn-page:hover { color: var(--ink); } }
     .title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .status { margin-left: auto; display: inline-flex; align-items: center; gap: 14px; min-width: 0; }
     .pulse { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); white-space: nowrap; min-width: 0; }
@@ -202,7 +211,7 @@
     }
 
     /* ════ layout ════════════════════════════════════════════ */
-    .wrap { max-width: 1720px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+    .wrap { max-width: 1720px; margin: 0 auto; padding: 24px max(24px, env(safe-area-inset-right, 0px)) 24px max(24px, env(safe-area-inset-left, 0px)); display: grid; gap: 24px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
     /* D1 reads this at 2560: use the width instead of centering a 1720 strip in it */
     @media (min-width: 2200px) { .wrap { max-width: 2080px; padding: 32px; gap: 28px; } }
     .panel { --pad: 22px; background: var(--panel); border-radius: 14px; padding: 20px var(--pad) var(--pad); min-width: 0; }
@@ -215,15 +224,23 @@
       .panel { --pad: 16px; padding: 16px var(--pad); border-radius: 12px; }
       .topbar { padding: 8px 16px; gap: 8px 12px; }
       .sectionnav { padding: 8px 16px; }
-      /* the status is given its own line rather than allowed to squeeze: at 390px the
-         sign-out chip used to run off the right edge and sit on top of the collector clock */
-      .status { flex: 1 0 100%; margin-left: 0; justify-content: space-between; }
+      /* With the page links gone the bar holds back + title + status on ONE row, so the
+         status no longer needs a line of its own. It still may take one if the collector
+         sentence is long; the bar wraps rather than overflowing, which is the safe failure. */
+      .status { gap: 10px; }
+      .topbar { padding: 6px 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+      .sectionnav { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+      .title { font-size: 15px; }
       .panel-head .right { width: 100%; margin-left: 0; }
     }
     /* The long collector sentence is what forced the bar to wrap between 641 and 900, where
        there is no second-line layout to catch it. Below 900 it becomes the short form, so the
        bar stays one row everywhere except true phones, where the wrap is deliberate. */
     @media (max-width: 900px) { .pulse-long { display: none; } .pulse-short { display: inline; } }
+    /* Under 380 the clock loses its words and keeps its colour. On a 320px SE the bar was
+       still taking two rows and 28% of the screen; the dot alone still says live, stale or
+       dead, which is the part that is actually watched. */
+    @media (max-width: 380px) { .pulse-short { display: none; } .pulse { gap: 0; } .title { font-size: 14.5px; } }
 
     .panel-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
     .panel-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
@@ -557,10 +574,6 @@
       Admin
     </a>
     <div class="title">Kalshi desk</div>
-    <nav class="jumps" aria-label="Desk pages">
-      <a href="terminal.html">Terminal</a>
-      <a href="weather.html">Weather</a>
-    </nav>
     <div class="status">
       <div class="pulse" id="pulse"><span class="dot"></span><span class="pulse-long" id="pulse-text">Checking the collector</span><span class="pulse-short" id="pulse-short"></span></div>
       <div class="who" data-desk-signout></div>
@@ -582,6 +595,9 @@
     <a href="#s-calibration">Calibration</a>
     <a href="#s-live">Live board</a>
     <a href="#s-collector">Collector</a>
+    <span class="sn-sep" aria-hidden="true"></span>
+    <a class="sn-page" href="terminal.html">Terminal</a>
+    <a class="sn-page" href="weather.html">Weather</a>
   </nav>
   </div>
 
@@ -838,7 +854,7 @@
   <div class="tip" id="tip"></div>
 
   <script type="module">
-    import { SB as supabase, requireDesk } from './desk-auth.js?v=2650f13249'
+    import { SB as supabase, requireDesk } from './desk-auth.js?v=5ee29628d7'
     const el = (id) => document.getElementById(id)
     const fmt = new Intl.NumberFormat('en-US')
     const n0 = (x) => (x == null ? '–' : fmt.format(Math.round(x)))
@@ -892,7 +908,8 @@
        "most visible" on a page whose panels differ in height by 50x. */
     {
       const nav = el('sectionnav'), thumb = el('sn-thumb')
-      const links = [...nav.querySelectorAll('a')]
+      // in-page anchors only: the rail also carries the two cross-page links now
+      const links = [...nav.querySelectorAll('a[href^="#"]')]
       const sections = links.map((a) => el(a.getAttribute('href').slice(1))).filter(Boolean)
       const moveTo = (a) => {
         if (!a) return
@@ -1508,7 +1525,7 @@
         const target = el(`bot-${bot.id}-ext`)
         if (botExt.has(bot.id)) { const m = botExt.get(bot.id); if (m?.mount) m.mount(target, ctxFor(bot)); continue }
         botExt.set(bot.id, null)
-        import(`./bots/${bot.id}.js?v=2650f13249`).then((m) => { botExt.set(bot.id, m); if (m?.mount) m.mount(el(`bot-${bot.id}-ext`), ctxFor(bot)) }).catch(() => {})
+        import(`./bots/${bot.id}.js?v=5ee29628d7`).then((m) => { botExt.set(bot.id, m); if (m?.mount) m.mount(el(`bot-${bot.id}-ext`), ctxFor(bot)) }).catch(() => {})
       }
       const tb = el('feed').querySelector('tbody')
       const pill = (f) => { const [label, cls] = { called: ['open', 'open'], won: ['won', 'won'], lost: ['lost', 'lost'], exited: ['sold at ' + p2(f.exit_price), 'won'], void: ['void', ''] }[f.status] ?? [f.status, '']; return `<span class="st ${cls}">${label}</span>` }
