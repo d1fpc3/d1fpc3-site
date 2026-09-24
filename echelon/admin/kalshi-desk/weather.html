@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Weather maker</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+/* ─────────────────────────────────────────────────────────────────────
+   WEATHER MAKER, inside the Kalshi desk.
+
+   A second page rather than another section of index.html, the same way
+   terminal.html is: it reads a different family of tables (weather_*),
+   it is one bot's record, and keeping it separate means the shared page
+   stays the shared page. Same tokens, same gate, same access list.
+
+   Nothing here places an order. The bot behind it rests paper quotes and
+   reads the real tape to see which of them would have filled.
+   ───────────────────────────────────────────────────────────────────── */
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#0b0a09; --panel:#131211; --panel-2:#1a1817; --ink:#f4f2ee; --muted:#9d978c;
+  --faint:#6b665e; --line:#262321; --line-bright:#383431; --gold:#c9a24a; --gold-deep:#a8842c;
+  --bad:#d98b7a; --good:#86b57f;
+}
+:root[data-theme="light"] {
+  --bg:#f6f4f0; --panel:#ffffff; --panel-2:#efece6; --ink:#1a1815; --muted:#5f5a51;
+  --faint:#8a847a; --line:#e4e0d8; --line-bright:#d6d0c4; --gold:#8a6a1e; --gold-deep:#6f5417;
+  --bad:#a8402c; --good:#3f7a38;
+}
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg); color: var(--ink); min-height: 100vh;
+  font: 15px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+a { color: inherit; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px;
+  padding: 12px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px); border-bottom: 1px solid var(--line);
+}
+.topbar .back {
+  display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 9px;
+  color: var(--muted); border: 1px solid var(--line); text-decoration: none;
+  transition: color .16s ease, border-color .16s ease, background .16s ease;
+}
+.topbar .back:hover { color: var(--ink); border-color: var(--line-bright); background: var(--panel-2); }
+.topbar .back svg { width: 17px; height: 17px; }
+.topbar .title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+.topbar .paper {
+  font-size: 12px; font-weight: 600; color: var(--gold); padding: 3px 9px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+  background: color-mix(in srgb, var(--gold) 10%, transparent); white-space: nowrap;
+}
+.topbar .spacer { flex: 1 1 auto; min-width: 0; }
+.topbar .tick { color: var(--faint); font-size: 12.5px; white-space: nowrap; }
+
+.wrap {
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px;
+  padding: 18px max(16px, env(safe-area-inset-right)) 64px max(16px, env(safe-area-inset-left));
+  max-width: 1680px; margin: 0 auto; align-items: start;
+}
+.panel {
+  grid-column: span 12; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; padding: 18px; min-width: 0;
+}
+.span-7 { grid-column: span 7; }
+.span-5 { grid-column: span 5; }
+.panel-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.panel-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.panel-head .meta { color: var(--faint); font-size: 12.5px; }
+.reading { color: var(--muted); font-size: 13.5px; line-height: 1.55; max-width: 76ch; margin: 8px 0 15px; }
+.reading b { color: var(--ink); font-weight: 600; }
+
+.bands { display: flex; flex-direction: column; gap: 7px; }
+.band { display: grid; grid-template-columns: 76px 1fr 96px; align-items: center; gap: 12px; }
+.band .lbl { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.band .track { position: relative; height: 24px; border-radius: 5px; background: var(--panel-2); overflow: hidden; }
+.band .zero { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--line-bright); }
+.band .fill { position: absolute; top: 4px; bottom: 4px; border-radius: 3px; transition: width .55s cubic-bezier(.22,1,.36,1), left .55s cubic-bezier(.22,1,.36,1); }
+.band .fill.pos { background: linear-gradient(90deg, var(--gold-deep), var(--gold)); }
+.band .fill.neg { background: color-mix(in srgb, var(--bad) 74%, transparent); }
+.band .val { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; line-height: 1.25; }
+.band .val.pos { color: var(--gold); } .band .val.neg { color: var(--bad); }
+.band .val small { display: block; color: var(--faint); font-size: 11px; font-weight: 400; }
+
+.queue { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.qcell { background: var(--panel-2); border-radius: 11px; padding: 14px; min-width: 0; }
+.qcell .v { font-size: 27px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.qcell .k { color: var(--ink); font-size: 13px; margin-top: 4px; }
+.qcell .n { color: var(--faint); font-size: 11.5px; margin-top: 2px; line-height: 1.4; }
+.qcell.good .v { color: var(--gold); }
+.qcell.bad .v { color: var(--bad); }
+
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(126px, 1fr)); gap: 12px 18px; margin-bottom: 16px; }
+.stat .v { font-size: 25px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .v.pos { color: var(--gold); } .stat .v.neg { color: var(--bad); }
+.stat .k { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+
+.scroll { overflow-x: auto; overflow-y: auto; max-height: 430px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th {
+  position: sticky; top: 0; z-index: 1; background: var(--panel); color: var(--faint);
+  font-weight: 500; font-size: 11.5px; letter-spacing: .02em;
+}
+td { color: var(--ink); }
+td.what { white-space: normal; color: var(--muted); min-width: 260px; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--panel-2); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.dim { color: var(--muted); }
+.pos { color: var(--gold); } .neg { color: var(--bad); }
+.empty { color: var(--faint); padding: 18px 10px; font-size: 13px; white-space: normal; }
+.skel { height: 15px; border-radius: 4px; background: linear-gradient(90deg, var(--panel-2), var(--line), var(--panel-2)); background-size: 200% 100%; animation: sh 1.4s linear infinite; }
+@keyframes sh { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+@media (max-width: 1080px) { .span-7, .span-5 { grid-column: span 12; } }
+@media (max-width: 560px) {
+  .wrap { gap: 12px; padding-top: 14px; }
+  .panel { padding: 14px; border-radius: 12px; }
+  .queue { grid-template-columns: 1fr; }
+  .band { grid-template-columns: 60px 1fr 80px; gap: 8px; }
+  .topbar .tick { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="back" href="./" title="Back to the Kalshi desk">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="title">Weather maker</div>
+  <span class="paper">paper</span>
+  <div class="spacer"></div>
+  <div class="tick" id="tick">Loading</div>
+  <div class="who" data-desk-signout></div>
+</header>
+
+<main class="wrap">
+  <section class="panel">
+    <div class="panel-head"><h2>The map</h2><span class="meta">every maker in these markets, measured from settled records</span></div>
+    <p class="reading">
+      Each print has one taker and one maker at one price, and the box settles at zero or one, so what makers
+      earned is arithmetic on the exchange's own record. No model, no fill assumption. Makers are paid at both
+      ends and taxed in the middle: <b>sell the cheap boxes, buy the near certain ones, quote nothing between
+      20c and 80c</b>. Every policy below is judged against this shape.
+    </p>
+    <div class="stat-row" id="pool-stats"></div>
+    <div class="bands" id="bands"><div class="skel" style="height:190px"></div></div>
+  </section>
+
+  <section class="panel span-7">
+    <div class="panel-head"><h2>Are we first in line?</h2><span class="meta">live, against the touch</span></div>
+    <p class="reading">
+      The pool is a ceiling, not a forecast. Every cent of it went to a maker already in the queue when the taker
+      arrived. A quote resting <b>behind the touch</b> is filled only once everyone ahead of it is, which is the
+      one thing that broke the first backtest and the reason the newest policy beats the touch by a cent or stays out.
+    </p>
+    <div class="queue" id="queue"><div class="skel" style="height:96px"></div></div>
+  </section>
+
+  <section class="panel span-5">
+    <div class="panel-head"><h2>Resting now</h2><span class="meta">by city</span></div>
+    <div class="scroll" style="max-height:286px">
+      <table id="resting"><thead><tr><th>City</th><th class="num">Quotes</th><th class="num">At risk</th></tr></thead>
+      <tbody><tr><td colspan="3"><div class="skel"></div></td></tr></tbody></table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>The books</h2><span class="meta">one row per policy per fill model</span></div>
+    <p class="reading">
+      Two fill models bracket the truth. <b>Strict</b> fills only when the tape printed through the resting price,
+      so it keeps the adverse half by construction. <b>Front of queue</b> assumes we were first every time. Both now
+      respect the size of each print and the contracts ahead of us, which earlier versions did not.
+    </p>
+    <div class="scroll">
+      <table id="books"><thead><tr>
+        <th>Policy</th><th>What it quotes</th><th>Model</th><th class="num">Fills</th><th class="num">Graded</th><th class="num">Won</th><th class="num">P&amp;L</th>
+      </tr></thead><tbody><tr><td colspan="7"><div class="skel"></div></td></tr></tbody></table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Fills</h2><span class="meta">most recent first</span></div>
+    <div class="scroll">
+      <table id="fills"><thead><tr>
+        <th>When</th><th>Policy</th><th>Model</th><th>City</th><th>Box</th><th>Side</th><th class="num">Price</th><th class="num">Size</th><th>Settled</th><th class="num">P&amp;L</th>
+      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { SB, requireDesk } from './desk-auth.js'
+
+await requireDesk()
+
+const q = async (t, b) => { const { data, error } = await b(SB.from(t)); if (error) throw new Error(t + ': ' + error.message); return data ?? [] }
+const el = (id) => document.getElementById(id)
+const n0 = new Intl.NumberFormat('en-US')
+const DASH = '–'
+const money = (x) => (x == null ? DASH : (Number(x) < 0 ? '-' : '+') + '$' + Math.abs(Number(x)).toFixed(2))
+const p2 = (x) => (x == null ? DASH : Number(x).toFixed(2))
+const ago = (iso) => { const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); return s < 90 ? Math.round(s) + 's ago' : s < 5400 ? Math.round(s / 60) + ' min ago' : (s / 3600).toFixed(1) + ' h ago' }
+const tone = (x) => (Number(x) > 0 ? 'pos' : Number(x) < 0 ? 'neg' : '')
+
+/* What each policy is for, in words, so a row reads without opening the source. */
+const WHAT = {
+  'wm-v1': 'Both sides, model blended with the market mid. The untouched control.',
+  'wm-v2': 'Asks only, nothing under a 0.55 fair.',
+  'wm-v3': 'Asks only, no forecast at all.',
+  'wm-v4': 'Asks only, and never above 20c.',
+  'wm-v5': 'The map. Asks at or under 20c, bids at or over 85c, beats the touch by a cent or stays out.',
+}
+
+async function load() {
+  const [bands, book, snap, fills, status] = await Promise.all([
+    q('weather_pool_band', (b) => b.select('*').order('sort_order')),
+    q('weather_policy_book', (b) => b.select('*')),
+    q('weather_quote_snapshot', (b) => b.select('*')),
+    q('weather_fill', (b) => b.select('*').order('filled_at', { ascending: false }).limit(60)),
+    q('weather_status', (b) => b.select('*').limit(1)),
+  ])
+
+  const st = status[0]
+  el('tick').textContent = st && st.last_tick_at
+    ? n0.format(st.resting ?? 0) + ' resting, ' + st.cities + ' cities, last tick ' + ago(st.last_tick_at)
+    : 'No tick recorded yet'
+
+  /* the pool */
+  const tot = bands.reduce((t, b) => t + Number(b.maker_pnl), 0)
+  const ctr = bands.reduce((t, b) => t + Number(b.contracts), 0)
+  el('pool-stats').innerHTML = [
+    ['v pos', money(tot), 'to all makers, combined'],
+    ['v', n0.format(ctr), 'contracts measured'],
+    ['v pos', ctr ? (100 * tot / ctr).toFixed(3) + 'c' : DASH, 'per contract'],
+    ['v neg', '3.3x', 'taker fees over that'],
+  ].map(([c, v, k]) => '<div class="stat"><div class="' + c + '">' + v + '</div><div class="k">' + k + '</div></div>').join('')
+
+  const peak = Math.max(...bands.map((b) => Math.abs(Number(b.cents_each))), 0.001)
+  el('bands').innerHTML = bands.length ? bands.map((b) => {
+    const c = Number(b.cents_each), w = (Math.abs(c) / peak) * 50
+    return '<div class="band">' +
+      '<span class="lbl">' + b.band + '</span>' +
+      '<span class="track"><i class="zero"></i>' +
+      '<i class="fill ' + (c >= 0 ? 'pos' : 'neg') + '" style="left:' + (c >= 0 ? 50 : 50 - w) + '%;width:' + w + '%"></i></span>' +
+      '<span class="val ' + tone(c) + '">' + (c >= 0 ? '+' : '') + c.toFixed(3) + 'c<small>' + n0.format(b.contracts) + '</small></span>' +
+      '</div>'
+  }).join('') : '<p class="empty">The pool has not been measured into this table yet.</p>'
+
+  /* queue */
+  const by = (p) => snap.filter((s) => s.queue_pos === p).length
+  const T = snap.length || 1
+  el('queue').innerHTML = [
+    ['good', 'inside', 'Inside the spread', 'first in line by construction'],
+    ['', 'at-touch', 'At the touch', 'behind whoever got there first'],
+    ['bad', 'behind', 'Behind the touch', 'filled only once the queue clears'],
+  ].map(([c, k, label, note]) => '<div class="qcell ' + c + '">' +
+      '<div class="v">' + (snap.length ? Math.round(100 * by(k) / T) + '%' : DASH) + '</div>' +
+      '<div class="k">' + label + '</div>' +
+      '<div class="n">' + n0.format(by(k)) + ' of ' + n0.format(snap.length) + ' resting, ' + note + '</div>' +
+    '</div>').join('')
+
+  /* resting by city */
+  const cities = new Map()
+  for (const s of snap) {
+    const c = cities.get(s.city) ?? { n: 0, risk: 0 }
+    c.n++; c.risk += Number(s.at_risk ?? 0); cities.set(s.city, c)
+  }
+  const rest = [...cities.entries()].sort((a, b) => b[1].risk - a[1].risk)
+  el('resting').querySelector('tbody').innerHTML = rest.length
+    ? rest.map(([c, v]) => '<tr><td>' + c + '</td><td class="num">' + v.n + '</td><td class="num">$' + v.risk.toFixed(2) + '</td></tr>').join('')
+    : '<tr><td colspan="3" class="empty">Nothing resting. Every quote is cancelled once its ladder passes the cutoff.</td></tr>'
+
+  /* books */
+  const order = ['wm-v5', 'wm-v4', 'wm-v3', 'wm-v2', 'wm-v1']
+  const rank = (p) => { const i = order.indexOf(p); return i < 0 ? 99 : i }
+  const rows = book.slice().sort((a, b) => (rank(a.policy) - rank(b.policy)) || a.fill_model.localeCompare(b.fill_model))
+  el('books').querySelector('tbody').innerHTML = rows.length ? rows.map((r) => '<tr>' +
+      '<td><b>' + r.policy + '</b></td>' +
+      '<td class="what">' + (WHAT[r.policy] ?? '') + '</td>' +
+      '<td class="dim">' + (r.fill_model === 'foq' ? 'front of queue' : 'strict') + '</td>' +
+      '<td class="num">' + n0.format(r.fills) + '</td>' +
+      '<td class="num">' + n0.format(r.graded) + '</td>' +
+      '<td class="num">' + (r.graded ? Math.round(100 * r.wins / r.graded) + '%' : DASH) + '</td>' +
+      '<td class="num ' + (r.graded ? tone(r.pnl) : '') + '">' + (r.graded ? money(r.pnl) : DASH) + '</td>' +
+    '</tr>').join('') : '<tr><td colspan="7" class="empty">No quotes recorded yet.</td></tr>'
+
+  /* fills */
+  el('fills').querySelector('tbody').innerHTML = fills.length ? fills.map((f) => '<tr>' +
+      '<td class="dim" title="' + f.filled_at + '">' + ago(f.filled_at) + '</td>' +
+      '<td>' + f.policy + '</td>' +
+      '<td class="dim">' + (f.fill_model === 'foq' ? 'front' : 'strict') + '</td>' +
+      '<td>' + f.city + '</td>' +
+      '<td class="dim">' + f.bucket + '</td>' +
+      '<td>' + f.side + '</td>' +
+      '<td class="num">' + p2(f.price) + '</td>' +
+      '<td class="num">' + f.contracts + '</td>' +
+      '<td class="dim">' + (f.settled_yes == null ? 'open' : f.settled_yes ? 'yes' : 'no') + '</td>' +
+      '<td class="num ' + tone(f.pnl) + '">' + (f.pnl == null ? DASH : money(f.pnl)) + '</td>' +
+    '</tr>').join('') : '<tr><td colspan="10" class="empty">No fills yet.</td></tr>'
+}
+
+await load().catch((e) => { el('tick').textContent = 'Could not load: ' + e.message })
+setInterval(() => load().catch(() => {}), 60000)
+</script>
+</body>
+</html>
