@@ -1,7 +1,7 @@
 // Kalshi desk visual harness (manual, not CI).
 //   node tests/kalshi-desk-visual.mjs        (THEME=dark|light, VPS=wide,desk,phone, OUT, PORT env)
 //
-// Signs in as the admin with a minted magic link, loads /echelon/admin/kalshi/ at three
+// Signs in as the admin with a minted magic link, loads /echelon/admin/kalshi-desk/ at three
 // widths, waits for every panel to leave its skeleton, screenshots the top and the
 // full page, and reports page overflow, leftover skeletons, empty required panels and
 // console errors. Exit 1 on any finding. Same session recipe as memecoins-desk-visual.

@@ -483,7 +483,6 @@
     td .buy.yes { color: var(--good); }
     td .buy.no { color: var(--bad); }
 
-    /* ════ coverage heat grid ════════════════════════════════ */
     .heat { display: grid; gap: 4px; align-items: center; }
     .heat .rl { font-size: 12px; color: var(--muted); padding-right: 8px; white-space: nowrap; }
     .heat .cl { font-size: 10.5px; color: var(--faint); text-align: center; padding-bottom: 4px; }
@@ -554,6 +553,177 @@
     .skel { position: relative; overflow: hidden; background: var(--panel-2); border-radius: 8px; min-height: 18px; }
     .skel::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent); animation: sh 1.4s infinite; }
     @keyframes sh { to { transform: translateX(100%); } }
+    /* ── calendar ─────────────────────────────────────────────────────────────
+       The month grid is the desk's front page: one cell per day, the money the
+       rule made that day at whatever clip is selected, and a wash behind the
+       number so a bad week is visible before you read a single figure.
+
+       Everything here is recomputed in the browser from kalshi_fav_day_price,
+       which stores legs bucketed by (day, asset, price). Every leg in a bucket
+       shares a price, so it shares a contract count and a fee at any clip, and
+       the rescale is exact rather than a per-contract approximation. */
+    .cal-ctl { display: flex; align-items: flex-end; gap: 18px 26px; flex-wrap: wrap; margin-bottom: 16px; }
+    .cal-nav { display: flex; align-items: center; gap: 4px; }
+    .cal-arrow {
+      width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px;
+      color: var(--muted); border: 1px solid var(--line); background: var(--panel-2);
+      transition: color 160ms, border-color 160ms, background 160ms;
+    }
+    .cal-arrow svg { width: 15px; height: 15px; }
+    .cal-arrow:hover:not(:disabled) { color: var(--ink); border-color: var(--line-bright); }
+    .cal-arrow:active:not(:disabled) { transform: scale(0.94); }
+    .cal-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+    .cal-month {
+      min-width: 168px; text-align: center; font-size: 17px; font-weight: 600;
+      letter-spacing: -0.01em; color: var(--ink); font-variant-numeric: tabular-nums;
+    }
+    .cal-month span { color: var(--faint); font-weight: 400; }
+    .cal-jump {
+      margin-left: 8px; font-size: 11.5px; color: var(--faint); padding: 5px 9px; border-radius: 7px;
+      border: 1px solid var(--line); transition: color 160ms, border-color 160ms;
+    }
+    .cal-jump:hover { color: var(--gold); border-color: var(--gold-deep); }
+    .cal-knobs { display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; margin-left: auto; }
+    .cal-knob { display: flex; flex-direction: column; gap: 6px; }
+    .cal-knob > span {
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint);
+    }
+    .cal-knob .row { display: flex; align-items: center; gap: 8px; }
+    .cal-own {
+      width: 74px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+      color: var(--ink); font: inherit; font-size: 12.5px; font-variant-numeric: tabular-nums;
+      padding: 5px 8px; outline: 0; transition: border-color 160ms, box-shadow 160ms;
+    }
+    .cal-own:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 1px var(--gold-deep); }
+
+    /* the month's own numbers, above the grid */
+    .cal-strip {
+      display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px;
+      background: var(--line); border: 1px solid var(--line); border-radius: 12px;
+      overflow: hidden; margin-bottom: 14px;
+    }
+    .cal-cell { background: var(--panel-2); padding: 11px 13px 12px; min-width: 0; }
+    .cal-cell b {
+      display: block; font-size: 19px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink);
+      font-variant-numeric: tabular-nums; line-height: 1.15;
+    }
+    .cal-cell b.up { color: var(--good); }
+    .cal-cell b.down { color: var(--bad); }
+    .cal-cell span {
+      display: block; margin-top: 3px; font-size: 10.5px; color: var(--faint);
+      letter-spacing: 0.03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .cal-dow {
+      display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-bottom: 6px;
+    }
+    .cal-dow span {
+      font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint);
+      text-align: center;
+    }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+    .cal-d {
+      position: relative; height: clamp(74px, 6.4vw, 104px); border-radius: 10px; padding: 7px 8px;
+      border: 1px solid var(--line); background: var(--panel-2); overflow: hidden;
+      display: flex; flex-direction: column; text-align: left;
+      transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 160ms, box-shadow 160ms;
+    }
+    .cal-d.pad { background: transparent; border-color: transparent; pointer-events: none; }
+    .cal-d.none { opacity: 0.4; cursor: default; }
+    .cal-d .num {
+      position: relative; z-index: 1;
+      font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; line-height: 1;
+    }
+    .cal-d.is-today .num { color: var(--gold); font-weight: 600; }
+    .cal-d .val {
+      position: relative; z-index: 1;
+      margin-top: auto; font-size: 14.5px; font-weight: 600; letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums; line-height: 1.1;
+    }
+    .cal-d .val.up { color: var(--good); }
+    .cal-d .val.down { color: var(--bad); }
+    .cal-d .val-s { display: none; }
+    .cal-d .sub { position: relative; z-index: 1; font-size: 9.5px; color: var(--faint); margin-top: 2px; line-height: 1.2; }
+    .cal-d .real {
+      position: absolute; top: 7px; right: 7px; z-index: 1; width: 5px; height: 5px; border-radius: 50%;
+      background: var(--gold);
+    }
+    .cal-d:not(.pad):not(.none):hover {
+      transform: translateY(-2px); border-color: var(--line-bright);
+      box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.7);
+    }
+    .cal-d.sel { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold-deep); }
+    /* the wash: magnitude as a tint, so the month's shape reads before the digits do */
+    .cal-d .wash { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+
+    /* the clicked day */
+    .cal-day {
+      margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2);
+      padding: 14px 16px 15px; animation: cal-open 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+    @keyframes cal-open { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    .cal-day-hd { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .cal-day-hd h4 { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .cal-day-hd em {
+      font-style: normal; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    .cal-day-hd em.up { color: var(--good); } .cal-day-hd em.down { color: var(--bad); }
+    .cal-day-hd small { color: var(--faint); font-size: 11px; margin-left: auto; }
+    .cal-books { display: grid; gap: 7px; }
+    .cal-book { display: grid; grid-template-columns: 46px 1fr 78px 64px; align-items: center; gap: 10px; }
+    .cal-book i {
+      font-style: normal; font-size: 11px; color: var(--muted); letter-spacing: 0.04em;
+    }
+    .cal-book .track { height: 7px; border-radius: 4px; background: var(--panel); position: relative; overflow: hidden; }
+    .cal-book .track u {
+      position: absolute; top: 0; bottom: 0; border-radius: 4px; display: block;
+      transition: width 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .cal-book .mny {
+      text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 500;
+    }
+    .cal-book .mny.up { color: var(--good); } .cal-book .mny.down { color: var(--bad); }
+    .cal-book .cnt { text-align: right; font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+    .cal-note { margin-top: 12px; font-size: 11px; color: var(--faint); line-height: 1.55; }
+    .cal-note b { color: var(--muted); font-weight: 500; }
+
+    .cal-all {
+      margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line);
+      display: flex; gap: 10px 30px; flex-wrap: wrap; align-items: baseline;
+    }
+    .cal-all div { display: flex; flex-direction: column; gap: 2px; }
+    .cal-all span { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+    .cal-all b {
+      font-size: 15px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+    }
+    .cal-all b.up { color: var(--good); } .cal-all b.down { color: var(--bad); }
+
+    @media (max-width: 900px) {
+      .cal-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .cal-knobs { margin-left: 0; width: 100%; }
+    }
+    @media (max-width: 620px) {
+      .cal-grid, .cal-dow { gap: 3px; }
+      .cal-d { height: 58px; padding: 5px; border-radius: 8px; }
+      .cal-d .val { display: none; }
+      .cal-d .val-s {
+        display: block; position: relative; z-index: 1; margin-top: auto; font-size: 11.5px;
+        font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.1;
+      }
+      .cal-d .val-s.up { color: var(--good); }
+      .cal-d .val-s.down { color: var(--bad); }
+      .cal-cell span { white-space: normal; }
+      .cal-d .sub { display: none; }
+      .cal-d .num { font-size: 9px; }
+      .cal-month { min-width: 0; font-size: 15px; }
+      .cal-book { grid-template-columns: 40px 1fr 70px; }
+      .cal-book .cnt { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cal-d, .cal-day, .cal-book .track u { transition: none; animation: none; }
+    }
   </style>
 </head>
 <body>
@@ -584,15 +754,11 @@
        not exist, so every panel is reachable from here and the current one is marked. -->
   <nav class="sectionnav" id="sectionnav" aria-label="Desk sections">
     <span class="sn-thumb" id="sn-thumb"></span>
+    <a href="#s-calendar">Calendar</a>
     <a href="#s-bots">Bots</a>
     <a href="#s-rules">Rules</a>
-    <a href="#s-learning">Learning</a>
     <a href="#s-book">Book</a>
     <a href="#s-thesis">The edge</a>
-    <a href="#s-edge">Edge hunt</a>
-    <a href="#s-learned">Learned</a>
-    <a href="#s-coverage">Coverage</a>
-    <a href="#s-calibration">Calibration</a>
     <a href="#s-live">Live board</a>
     <a href="#s-collector">Collector</a>
     <span class="sn-sep" aria-hidden="true"></span>
@@ -602,6 +768,44 @@
   </div>
 
   <main class="wrap">
+    <!-- calendar: the rule's whole record, one cell per day, rescaled to any clip.
+         This is first on the page because it is the only panel that answers the
+         question the desk exists to answer: did the money go up. -->
+    <section id="s-calendar" class="panel span-12">
+      <div class="panel-head">
+        <h2>Calendar</h2>
+        <span class="sub">Every day the rule has book data for, held to settlement, fees paid, priced at whatever you risk per call. Change the clip and the whole history re-prices. A gold dot marks a day real money actually traded, and that day shows both what the account booked and what the rule modelled.</span>
+      </div>
+
+      <div class="cal-ctl">
+        <div class="cal-nav">
+          <button class="cal-arrow" id="cal-prev" type="button" aria-label="Previous month">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="cal-month" id="cal-month">&nbsp;</div>
+          <button class="cal-arrow" id="cal-next" type="button" aria-label="Next month">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+          <button class="cal-jump" id="cal-today" type="button">This month</button>
+        </div>
+        <div class="cal-knobs">
+          <label class="cal-knob"><span>Risked per call</span>
+            <div class="row"><div class="seg" id="cal-clip"></div>
+              <input class="cal-own" id="cal-own" type="number" min="1" max="500" step="1" aria-label="Any clip size in dollars" placeholder="$"></div>
+          </label>
+          <label class="cal-knob"><span>Price floor</span>
+            <div class="seg" id="cal-floor"></div>
+          </label>
+        </div>
+      </div>
+
+      <div class="cal-strip" id="cal-strip"></div>
+      <div class="cal-dow" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-day" id="cal-day" hidden></div>
+      <div class="cal-all" id="cal-all"></div>
+    </section>
+
     <!-- bots: every bot on this desk, side by side, from the shared desk_* tables (CONTRACT.md) -->
     <section id="s-bots" class="panel span-12">
       <div class="panel-head">
@@ -626,36 +830,6 @@
       </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
 
-    <!-- hero: the learning curve, or, before the first scoring, what has been captured -->
-    <section id="s-learning" class="panel span-12">
-      <div class="panel-head">
-        <h2>Learning curve</h2>
-        <span class="sub" title="The market mid, the mid corrected by calibration, a forecast built only from distance and time, and a model refit every night on the trailing 30 days, all scored out of sample.">Brier score by day, lower is better. Every line is scored out of sample.</span>
-        <div class="right">
-          <div class="seg scroll" id="hero-series"></div>
-          <div class="seg" id="hero-mode">
-            <span class="thumb"></span>
-            <button class="on" data-v="chart">Chart</button>
-            <button data-v="table">Table</button>
-          </div>
-        </div>
-      </div>
-      <div class="hero">
-        <div>
-          <div class="chart" id="hero-chart"><div class="skel" style="height: 260px"></div></div>
-          <div id="hero-table" hidden></div>
-        </div>
-        <aside class="hero-side">
-          <div class="stat-row">
-            <div class="stat"><div class="v gold" id="s-rounds">–</div><div class="k">rounds captured</div></div>
-            <div class="stat"><div class="v" id="s-minutes">–</div><div class="k">minutes of book</div></div>
-            <div class="stat"><div class="v" id="s-settled">–</div><div class="k">settled with a result</div></div>
-            <div class="stat"><div class="v" id="s-days">–</div><div class="k">days scored</div></div>
-          </div>
-          <p class="reading quiet" id="reading">Loading.</p>
-        </aside>
-      </div>
-    </section>
 
     <!-- account: the real book. Every source's intents and what the one executor did with them. -->
     <section id="s-book" class="panel span-12 acct">
@@ -699,8 +873,6 @@
         <th>When</th><th>From</th><th>Series</th><th>Buy</th><th class="n">Price</th><th class="n" title="contracts asked for; filled of asked once sent">Size</th><th>What happened</th><th class="n">P&amp;L</th>
       </tr></thead><tbody><tr><td colspan="8"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
-
-    <!-- the edge hunt: cells the market misprices, and the paper book that tests them -->
     <!-- the edge: what it is, where it lives, and what the bot requires before it pays for it -->
     <section id="s-thesis" class="panel span-12">
       <div class="panel-head">
@@ -774,59 +946,9 @@
       </div>
     </section>
 
-    <section id="s-edge" class="panel span-5">
-      <div class="panel-head">
-        <h2>Edge hunt</h2>
-        <span class="sub" title="Every cell over 30 days with 200+ rounds where the win rate's 99.9% lower bound beat the real ask plus the fee by at least half a cent, traded on paper the next day at that minute's ask, $10 a round. The signal bot's model book lives in Discord and the two are never summed.">Cells the market mispriced over 30 days, traded on paper the next day at $10 a round. The paper trades are the only evidence.</span>
-      </div>
-      <div class="edge">
-        <div class="edge-book">
-          <div class="stat-row edge-stats">
-            <div class="stat"><div class="v gold" id="e-pnl">–</div><div class="k">paper P&amp;L, net of fees</div></div>
-            <div class="stat"><div class="v" id="e-trades">–</div><div class="k">paper trades</div></div>
-            <div class="stat"><div class="v" id="e-win">–</div><div class="k">won</div></div>
-            <div class="stat"><div class="v" id="e-cells">–</div><div class="k" id="e-cells-k">cells live tonight</div></div>
-          </div>
-          <div class="chart" id="edge-chart"></div>
-          <p class="reading quiet" id="edge-reading">Loading.</p>
-        </div>
-        <div class="tbl-scroll edge-cells"><table id="cells"><thead><tr>
-          <th>Series</th><th>Minutes left</th><th>Cell</th><th>Buy</th><th class="n">Rounds</th><th class="n">Won</th><th class="n">Ask</th><th class="n" title="Wilson lower bound of the win rate, minus the ask, minus the taker fee">Edge, floor</th><th class="n" title="mean win rate minus ask minus fee">Edge, mean</th>
-        </tr></thead><tbody><tr><td colspan="9"><div class="skel"></div></td></tr></tbody></table></div>
-      </div>
-    </section>
 
-    <!-- what the model learned: the weights, per series, from last night's fit -->
-    <section id="s-learned" class="panel span-7">
-      <div class="panel-head">
-        <h2>What it learned</h2>
-        <span class="sub" id="learn-sub">Last night's fitted slopes per series. On the market's own probability 1.0 is face value; below 1 means the model discounts the market's confidence and gets the rest from the other inputs.</span>
-      </div>
-      <p class="reading quiet" id="learn-reading">Loading.</p>
-      <div class="tbl-scroll capped" data-cap="weights"><table id="weights"><thead><tr>
-        <th>Series</th><th class="n">Trained on</th><th class="n" title="raw slope on the logit of the market mid; 1.0 means taken at face value, below 1 discounts the market's confidence">Market probability</th><th class="n" title="per basis point of distance from the open divided by the square root of minutes left">Scaled distance</th><th class="n" title="per basis point">Distance</th><th class="n" title="per basis point of the round's range so far">Range so far</th><th class="n" title="per basis point of 3-minute momentum">3-min momentum</th><th class="n" title="per minute left">Minutes left</th><th class="n" title="in-sample Brier of the fit; the out-of-sample score is on the curve">Fit Brier</th><th class="n" title="the market-blind model's out-of-sample Brier that day">Blind, next day</th>
-      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
-    </section>
 
-    <!-- coverage -->
-    <section id="s-coverage" class="panel span-7">
-      <div class="panel-head">
-        <h2>Coverage</h2>
-        <span class="sub">Minutes of book captured per series, per UTC day. A full day is 1,440. Refreshed every five minutes.</span>
-      </div>
-      <div id="coverage"><div class="skel" style="height: 220px"></div></div>
-      <div class="legend"><span>less</span><i style="background: var(--ramp-0)"></i><i style="background: var(--ramp-1)"></i><i style="background: var(--ramp-2)"></i><i style="background: var(--ramp-3)"></i><i style="background: var(--ramp-4)"></i><span>full</span></div>
-    </section>
 
-    <!-- calibration -->
-    <section id="s-calibration" class="panel span-5">
-      <div class="panel-head">
-        <h2>Calibration</h2>
-        <span class="sub" id="cal-sub">What the mid said against what happened, last 30 days.</span>
-        <div class="right"><div class="seg" id="cal-mode"></div><div class="seg scroll" id="cal-mtc"></div></div>
-      </div>
-      <div class="chart" id="cal-chart"><div class="skel" style="height: 240px"></div></div>
-    </section>
 
     <!-- live board -->
     <section id="s-live" class="panel span-12">
@@ -1019,26 +1141,11 @@
       new ResizeObserver(place).observe(host)
       return place
     }
-    // the static Chart/Table control
-    {
-      const host = el('hero-mode'), thumb = host.querySelector('.thumb')
-      const place = () => { const on = host.querySelector('button.on'); thumb.style.left = `${on.offsetLeft}px`; thumb.style.width = `${on.offsetWidth}px` }
-      host.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
-        host.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); place()
-        const table = b.dataset.v === 'table'
-        el('hero-chart').hidden = table; el('hero-table').hidden = !table
-        if (!table) renderHero() // it was measured at zero width while hidden
-      }))
-      requestAnimationFrame(place)
-    }
-    // charts are drawn at their container's width, so redraw when that changes
-    let rsz
-    new ResizeObserver(() => { clearTimeout(rsz); rsz = setTimeout(() => { renderHero(); renderCalib(); loadEdge() }, 150) }).observe(document.querySelector('.wrap'))
 
     /* ── data ── */
     const SERIES = ['ALL', 'KXBTC15M', 'KXETH15M', 'KXDOGE15M', 'KXGOLD15M', 'KXSOL15M', 'KXXRP15M', 'KXBNB15M', 'KXHYPE15M', 'KXNEAR15M', 'KXZEC15M']
     const MTC = ['00-02', '03-05', '06-08', '09-11', '12-14']
-    const state = { series: 'ALL', mtc: '00-02', calMode: 'band', daily: [], calib: [], calibDist: [], calibAsOf: null }
+    const state = { series: 'ALL' }
     const bps = (x) => (x == null ? '–' : (x > 0 ? '+' : '') + Number(x).toFixed(1))
     const dayAgo = (d) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10)
 
@@ -1080,131 +1187,6 @@
       }).join('') : '<tr><td colspan="7" class="empty">The collector has not written a run yet.</td></tr>'
     }
 
-    /* ── hero stats + reading ──
-       Derived from the materialized coverage (refreshed every five minutes), not from
-       counting the big tables live: logged-out viewers carry a 3-second statement
-       timeout and the tables passed 400k rows on day one. */
-    async function loadStats() {
-      const [cov, days] = await Promise.all([
-        q('kalshi_coverage_mv', (b) => b.select('rounds,settled,snaps')),
-        supabase.from('kalshi_daily').select('as_of').eq('series', 'ALL'),
-      ])
-      const sum = (k) => cov.reduce((t, r) => t + Number(r[k] ?? 0), 0)
-      el('s-rounds').textContent = n0(sum('rounds'))
-      el('s-settled').textContent = n0(sum('settled'))
-      el('s-minutes').textContent = n0(sum('snaps'))
-      el('s-days').textContent = n0((days.data ?? []).length)
-    }
-
-    /* ── learning curve ── */
-    async function loadDaily() {
-      state.daily = await q('kalshi_daily', (b) => b.select('*').eq('series', state.series).order('as_of', { ascending: true }).limit(90))
-      renderHero()
-    }
-    function renderHero() {
-      const rows = state.daily.filter((r) => r.brier_mid != null)
-      const host = el('hero-chart'), tbl = el('hero-table'), reading = el('reading')
-      if (!rows.length) {
-        host.innerHTML = `<div class="empty" style="padding: 40px 0 28px"><b>No days scored yet.</b><br>The first scoring runs at 00:10 UTC over the rounds that closed today. Until then this desk shows what has been captured.</div>`
-        tbl.innerHTML = ''
-        reading.className = 'reading quiet'
-        reading.textContent = 'The calibrated line appears after the first scoring. It uses the previous day\'s calibration table, so it is out of sample from day one.'
-        return
-      }
-      // reading: the honest one-liner. The distance model is the line that matters; the
-      // calibrated mid is the control. Both are compared to the market over the last 7 days.
-      const last7 = rows.slice(-7)
-      const n = last7.reduce((t, r) => t + (r.rounds_settled ?? 0), 0)
-      const mean = (key) => last7.reduce((t, r) => t + Number(r[key]), 0) / last7.length
-      const gMid = mean('brier_mid'), gCal = mean('brier_calibrated')
-      const meanOf = (key) => { const w = last7.filter((r) => r[key] != null); return w.length ? w.reduce((t, r) => t + Number(r[key]), 0) / w.length : null }
-      const gDist = meanOf('brier_dist'), gModel = meanOf('brier_model'), gSpot = meanOf('brier_model_spot')
-      const dDist = gDist == null ? null : gMid - gDist, dCal = gMid - gCal, dModel = gModel == null ? null : gMid - gModel, dSpot = gSpot == null ? null : gMid - gSpot
-      const say = (name, d) => Math.abs(d) < 0.0005 ? `${name} matches the market within ${p4(Math.abs(d))}` : d > 0 ? `${name} beats the market by ${p4(d)}` : `${name} trails the market by ${p4(-d)}`
-      reading.className = 'reading'
-      reading.textContent = last7.length < 2
-        ? `One day scored over ${fmt.format(n)} rounds: market mid ${p4(last7[0].brier_mid)}, calibrated ${p4(last7[0].brier_calibrated)}, distance model ${p4(last7[0].brier_dist)}, learned model ${p4(last7[0].brier_model)}. Nothing to read yet.`
-        : `Last ${last7.length} days, ${fmt.format(n)} rounds, market mid at ${p4(gMid)} Brier. ${dModel == null ? 'The learned model has not scored yet' : say('The learned model', dModel)}; ${dDist == null ? 'the distance model has no scored days yet' : say('the distance model', dDist).replace(/^The/, 'the')}; ${say('the calibrated mid', dCal).replace(/^The/, 'the')}.${dSpot == null ? '' : dSpot > 0.0005 ? ` The market-blind model beats the market by ${p4(dSpot)}: the spot feed knows something the price does not.` : ` The market-blind model trails the market by ${p4(-dSpot)}: the price already holds what spot knows.`}`
-
-      // chart, drawn at the container's real pixel width so text stays legible on a phone
-      const W = Math.max(320, Math.round(host.clientWidth || 900)), H = W < 600 ? 230 : 280
-      const m = { t: 22, r: 18, b: 34, l: W < 600 ? 44 : 52 }
-      const xs = rows.map((r) => Date.parse(r.as_of))
-      const KEYS = [
-        { key: 'brier_model', cls: 'line-d', name: 'Learned model', color: 'var(--series-a)', lbl: 'lbl' },
-        { key: 'brier_dist', cls: 'line-a', name: 'Distance model', color: 'var(--series-a)', lbl: 'lbl' },
-        { key: 'brier_calibrated', cls: 'line-c', name: 'Calibrated mid', color: 'var(--series-b)', lbl: 'lbl b' },
-        { key: 'brier_mid', cls: 'line-b', name: 'Market mid', color: 'var(--series-b)', lbl: 'lbl b' },
-      ]
-      // Number(null) is 0, which would drag the axis floor to zero on any day a line has no value
-      const ys = rows.flatMap((r) => KEYS.filter((k) => r[k.key] != null).map((k) => Number(r[k.key]))).filter((v) => Number.isFinite(v))
-      const y0 = Math.min(...ys), y1 = Math.max(...ys), pad = Math.max((y1 - y0) * 0.15, 0.002)
-      const ylo = Math.max(0, y0 - pad), yhi = y1 + pad
-      const one = rows.length === 1
-      const x = (t) => one ? (W - m.r + m.l) / 2 : m.l + ((t - xs[0]) / (xs[xs.length - 1] - xs[0])) * (W - m.l - m.r)
-      const y = (v) => m.t + (1 - (v - ylo) / (yhi - ylo)) * (H - m.t - m.b)
-      // a day with no value for a series breaks the line rather than drawing to zero
-      const path = (key) => rows.map((r, i) => r[key] == null ? null : `${x(xs[i]).toFixed(1)},${y(Number(r[key])).toFixed(1)}`)
-        .reduce((d, p, i, a) => d + (p == null ? '' : `${i === 0 || a[i - 1] == null ? 'M' : 'L'}${p}`), '')
-      const yt = 4, yticks = Array.from({ length: yt + 1 }, (_, i) => ylo + (i / yt) * (yhi - ylo))
-      const maxX = W < 600 ? 4 : 8
-      const xticks = rows.filter((_, i) => rows.length <= maxX || i % Math.ceil(rows.length / maxX) === 0 || i === rows.length - 1)
-      const last = rows[rows.length - 1], lx = x(xs[xs.length - 1])
-      // end labels: one per line, above its own end point, pushed apart to 16px so three
-      // lines that end together (the expected case early on) read as a stack, not a smear
-      const ends = KEYS.filter((k) => last[k.key] != null).map((k) => ({ ...k, v: Number(last[k.key]), y: y(Number(last[k.key])) }))
-      ends.sort((a, b) => a.y - b.y)
-      const labelY = ends.map((e) => e.y - 8)
-      for (let i = 1; i < labelY.length; i++) labelY[i] = Math.max(labelY[i], labelY[i - 1] + 16)
-      const over = labelY.length ? labelY[labelY.length - 1] - (H - m.b - 4) : 0
-      if (over > 0) for (let i = 0; i < labelY.length; i++) labelY[i] -= over
-      const anchor = one ? 'start' : 'end', lxo = one ? lx + 10 : lx - 6
-      // The legend has to carry the DASH, not just the colour. line-c shares its grey with
-      // line-b and line-d shares its gold with line-a, so drawn as solid blocks four series
-      // read as two and the legend claimed two pairs were the same series.
-      const swatch = (e) => (e.cls === 'line-c' || e.cls === 'line-d')
-        ? `repeating-linear-gradient(90deg, ${e.color} 0 5px, transparent 5px 9px)`
-        : e.color
-      const narrow = W < 600
-      const first = !renderHero.drawn; renderHero.drawn = true
-      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="${first ? 'draw' : ''}" style="--len: ${W * 2}" role="img" aria-label="Brier score by day: market mid, calibrated mid, and the distance model">
-        <g class="grid">${yticks.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`).join('')}</g>
-        <g class="axis">${yticks.map((v) => `<text x="${m.l - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${p3(v)}</text>`).join('')}
-          ${xticks.map((r) => `<text x="${x(Date.parse(r.as_of)).toFixed(1)}" y="${H - 10}" text-anchor="middle">${new Date(r.as_of + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</text>`).join('')}</g>
-        <path class="line-b" d="${path('brier_mid')}"/>
-        <path class="line-c" d="${path('brier_calibrated')}"/>
-        <path class="line-a" d="${path('brier_dist')}"/>
-        <path class="line-d" d="${path('brier_model')}"/>
-        ${ends.map((e) => `<circle cx="${lx.toFixed(1)}" cy="${e.y.toFixed(1)}" r="3.5" fill="${e.color}"/>`).join('')}
-        ${narrow ? '' : ends.map((e, i) => `<text class="${e.lbl}" x="${lxo.toFixed(1)}" y="${labelY[i].toFixed(1)}" text-anchor="${anchor}">${e.name} ${p4(e.v)}</text>`).join('')}
-        <line class="xhair" id="xh" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" opacity="0"/>
-        <rect class="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}"/>
-      </svg>` + (narrow ? `<p class="hero-legend"><span class="lg-when">latest scored day</span>${ends.map((e) => `<span><i style="background: ${swatch(e)}"></i>${e.name}<b>${p4(e.v)}</b></span>`).join('')}</p>` : '')
-      const svg = host.querySelector('svg'), xh = host.querySelector('#xh'), hit = host.querySelector('.hit')
-      hit.addEventListener('mousemove', (e) => {
-        const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
-        const p = pt.matrixTransform(svg.getScreenCTM().inverse())
-        let best = 0, bd = Infinity
-        xs.forEach((t, i) => { const d = Math.abs(x(t) - p.x); if (d < bd) { bd = d; best = i } })
-        const r = rows[best]
-        xh.setAttribute('x1', x(xs[best])); xh.setAttribute('x2', x(xs[best])); xh.setAttribute('opacity', '1')
-        showTip(`<div class="t">${new Date(r.as_of + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })}, ${fmt.format(r.rounds_settled ?? 0)} rounds</div>
-          <div class="row"><span><i class="sw" style="background: var(--series-a); opacity: .6"></i>Learned model</span><b>${p4(r.brier_model)}</b></div>
-          <div class="row"><span><i class="sw" style="background: var(--series-a); opacity: .3"></i>Learned, market-blind</span><b>${p4(r.brier_model_spot)}</b></div>
-          <div class="row"><span><i class="sw" style="background: var(--series-a)"></i>Distance model</span><b>${p4(r.brier_dist)}</b></div>
-          <div class="row"><span><i class="sw" style="background: var(--series-b); opacity: .6"></i>Calibrated mid</span><b>${p4(r.brier_calibrated)}</b></div>
-          <div class="row"><span><i class="sw" style="background: var(--series-b)"></i>Market mid</span><b>${p4(r.brier_mid)}</b></div>
-          <div class="row"><span>Spot coverage</span><b>${r.spot_coverage == null ? '–' : Math.round(r.spot_coverage * 100) + '%'}</b></div>
-          <div class="row"><span>Mean spread</span><b>${r.mean_spread == null ? '–' : p3(r.mean_spread)}</b></div>`, e.clientX, e.clientY)
-      })
-      hit.addEventListener('mouseleave', () => { xh.setAttribute('opacity', '0'); hideTip() })
-
-      // table view
-      const gapCell = (a, b) => (a == null || b == null) ? '<td class="n">–</td>' : `<td class="n ${Number(a) - Number(b) > 0.0005 ? 'ok' : Number(a) - Number(b) < -0.0005 ? 'err' : 'cnt'}">${(Number(a) - Number(b) > 0 ? '+' : '') + p4(Number(a) - Number(b))}</td>`
-      tbl.innerHTML = `<div class="tbl-scroll"><table><thead><tr><th>Day</th><th class="n">Rounds</th><th class="n">Market mid</th><th class="n">Calibrated</th><th class="n" title="market minus calibrated, positive means the correction helped">Edge</th><th class="n">Distance</th><th class="n" title="market minus distance model">Edge</th><th class="n">Learned</th><th class="n" title="market minus learned model">Edge</th><th class="n" title="the learned model with the market price withheld">Market-blind</th><th class="n" title="rows the models trained on">Trained on</th></tr></thead><tbody>${
-        [...rows].reverse().map((r) => `<tr><td>${r.as_of}</td><td class="n">${n0(r.rounds_settled)}</td><td class="n">${p4(r.brier_mid)}</td><td class="n">${p4(r.brier_calibrated)}</td>${gapCell(r.brier_mid, r.brier_calibrated)}<td class="n">${p4(r.brier_dist)}</td>${gapCell(r.brier_mid, r.brier_dist)}<td class="n">${p4(r.brier_model)}</td>${gapCell(r.brier_mid, r.brier_model)}<td class="n">${p4(r.brier_model_spot)}</td><td class="n">${n0(r.model_n_train)}</td></tr>`).join('')
-      }</tbody></table></div>`
-    }
 
     /* ── edge hunt ── */
     /* Zero is neither a gain nor a loss, so it carries no sign. It used to render "+$0.00",
@@ -1312,74 +1294,6 @@
       ].join('')
     }
 
-    async function loadEdge() {
-      // "as of" comes from the scoring log, not the cells table, so a night that found no
-      // cells still reads as scored rather than as never run
-      const [book, latest] = await Promise.all([
-        q('kalshi_paper_daily', (b) => b.select('*').order('as_of', { ascending: true })),
-        q('kalshi_daily', (b) => b.select('as_of,cells_tested,edge_cells').eq('series', 'ALL').not('edge_cells', 'is', null).order('as_of', { ascending: false }).limit(1)),
-      ])
-      const asOf = latest[0]?.as_of ?? null
-      const tested = latest[0]?.cells_tested ?? null
-      const cells = asOf ? await q('kalshi_edge_cells', (b) => b.select('*').eq('window_days', 30).eq('as_of', asOf).order('ev_lo', { ascending: false })) : []
-
-      // the book
-      const trades = book.reduce((t, r) => t + r.trades, 0), wins = book.reduce((t, r) => t + r.wins, 0)
-      const pnl = book.length ? Number(book[book.length - 1].pnl_cum) : null
-      const cost = book.reduce((t, r) => t + Number(r.cost), 0)
-      const pnlEl = el('e-pnl'); pnlEl.textContent = trades ? money(pnl) : '$0.00'
-      pnlEl.className = 'v ' + (pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : 'gold')
-      el('e-trades').textContent = fmt.format(trades)
-      el('e-win').textContent = trades ? Math.round(100 * wins / trades) + '%' : '–'
-      el('e-cells').textContent = fmt.format(cells.length)
-      // the denominator: at z = 3.09 about one in a thousand candidates clears by chance,
-      // and a chance flag can persist across overlapping 30-day windows for weeks
-      el('e-cells-k').textContent = tested != null ? `cells live, of ${fmt.format(tested)} tested` : 'cells live tonight'
-      const reading = el('edge-reading')
-      if (!trades) {
-        reading.className = 'reading quiet'
-        reading.textContent = cells.length
-          ? `${cells.length} of ${fmt.format(tested ?? 0)} ${cells.length === 1 ? 'cell clears' : 'cells clear'} the bar as of ${asOf}; at this bar about one in a thousand does by chance, which is why nothing counts until it is traded forward. Paper trades start with the next scored day.`
-          : `No cell clears the bar${tested ? ` (${fmt.format(tested)} tested as of ${asOf})` : ' yet'}: 200 rounds in the cell and a 99.9% lower bound on the win rate above the ask plus the fee. That is deliberate. With a thousand cells, a looser bar finds edge that is not there. Candle asks are the displayed ask at the minute's close with unknown size, fine for $10 clips.`
-      } else {
-        reading.className = 'reading'
-        const roi = cost ? pnl / cost : 0
-        reading.textContent = `${fmt.format(trades)} paper trades over ${book.length} ${book.length === 1 ? 'day' : 'days'}, ${money(pnl)} on $${fmt.format(Math.round(cost))} traded (${(roi * 100).toFixed(1)}% on cost), ${Math.round(100 * wins / trades)}% won. ${trades < 100 ? `Your gate is 100 trades; ${100 - trades} to go.` : pnl > 0 ? 'Past the 100-trade gate and positive after fees.' : 'Past the 100-trade gate and not positive. The cells are not an edge.'}`
-      }
-
-      // cumulative P&L, small
-      const host = el('edge-chart')
-      if (book.length < 2) { host.innerHTML = '' }
-      else {
-        const W = Math.max(280, Math.round(host.clientWidth || 380)), H = 120, m = { t: 8, r: 8, b: 20, l: 44 }
-        const xs = book.map((r) => Date.parse(r.as_of)), ys = book.map((r) => Number(r.pnl_cum))
-        const y0 = Math.min(0, ...ys), y1 = Math.max(0, ...ys), pad = Math.max((y1 - y0) * 0.1, 1)
-        const x = (t) => m.l + ((t - xs[0]) / (xs[xs.length - 1] - xs[0])) * (W - m.l - m.r)
-        const y = (v) => m.t + (1 - (v - (y0 - pad)) / ((y1 + pad) - (y0 - pad))) * (H - m.t - m.b)
-        const pts = book.map((r, i) => `${x(xs[i]).toFixed(1)},${y(ys[i]).toFixed(1)}`)
-        host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative paper P&L by day">
-          <line class="zero" x1="${m.l}" x2="${W - m.r}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>
-          <path class="area-p" d="M${pts[0]} L${pts.join(' L')} L${x(xs[xs.length - 1]).toFixed(1)},${y(0).toFixed(1)} L${x(xs[0]).toFixed(1)},${y(0).toFixed(1)} Z"/>
-          <path class="line-p" d="M${pts.join(' L')}"/>
-          <g class="axis"><text x="${m.l - 6}" y="${y(y1) + 4}" text-anchor="end">${money(y1)}</text><text x="${m.l - 6}" y="${y(y0) + 4}" text-anchor="end">${money(y0)}</text>
-            <text x="${m.l}" y="${H - 6}">${book[0].as_of.slice(5)}</text><text x="${W - m.r}" y="${H - 6}" text-anchor="end">${book[book.length - 1].as_of.slice(5)}</text></g>
-        </svg>`
-      }
-
-      // the cells
-      const tb = el('cells').querySelector('tbody')
-      tb.innerHTML = cells.length ? cells.map((c) => `<tr>
-        <td><span class="ser">${short(c.series)}</span></td>
-        <td>${c.mtc_bucket.replace('-', ' to ')}</td>
-        <td>${c.key === 'band' ? 'mid ' + c.cell + 's' : c.cell + ' bps'}<span class="cell-k">${c.key === 'band' ? 'price band' : 'from open'}</span></td>
-        <td><span class="buy ${c.side}">${c.side.toUpperCase()}</span></td>
-        <td class="n">${fmt.format(c.n)}</td>
-        <td class="n">${(100 * Number(c.side === 'yes' ? c.hit_rate : 1 - c.hit_rate)).toFixed(1)}%</td>
-        <td class="n">${p2(c.mean_ask)}</td>
-        <td class="n ok">+${(100 * Number(c.ev_lo)).toFixed(1)}¢</td>
-        <td class="n">+${(100 * Number(c.ev_mean)).toFixed(1)}¢</td>
-      </tr>`).join('') : `<tr><td colspan="9" class="empty">${asOf ? 'No cell clears the bar as of ' + asOf + '.' : 'No scoring yet.'}</td></tr>`
-    }
 
     /* ── account: the real book ──
        kalshi_live_orders is every intent from every source and what the one executor did
@@ -1677,143 +1591,9 @@
     }
 
     /* ── what it learned ── */
-    async function loadWeights() {
-      const latest = await q('kalshi_models', (b) => b.select('as_of').eq('kind', 'full').order('as_of', { ascending: false }).limit(1))
-      const asOf = latest[0]?.as_of ?? null
-      const tb = el('weights').querySelector('tbody'), reading = el('learn-reading')
-      if (!asOf) {
-        tb.innerHTML = '<tr><td colspan="10" class="empty">No model fitted yet. The learner runs after the nightly scoring.</td></tr>'
-        reading.textContent = 'The learner refits every night on the trailing 30 days and scores the next day out of sample. Nothing here is tuned after a score.'
-        return
-      }
-      const [models, next] = await Promise.all([
-        q('kalshi_models', (b) => b.select('*').eq('kind', 'full').eq('as_of', asOf).order('series')),
-        q('kalshi_daily', (b) => b.select('series,brier_model_spot,brier_model,brier_mid').eq('as_of', new Date(Date.parse(asOf + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10))),
-      ])
-      const nextBy = new Map(next.map((r) => [r.series, r]))
-      // raw slopes, not standardized weights: weight divided by the input's spread in the
-      // training window. On the market's logit, 1.0 means taken at face value, below 1
-      // means the model discounts the market's confidence and leans on the other inputs.
-      const w = (m, k) => { const wt = Number(m.coef?.weights?.[k] ?? 0), sd = Number(m.coef?.sd?.[k] ?? 1); return sd ? wt / sd : wt }
-      const f2 = (x) => (x > 0 ? '+' : '') + x.toFixed(2)
-      const f3 = (x) => (x > 0 ? '+' : '') + x.toFixed(3)
-      const mean = (k) => models.reduce((t, m) => t + w(m, k), 0) / models.length
-      el('learn-sub').textContent = `Fitted ${asOf} on the 30 days before it. Raw slopes: on the market's own probability 1.0 is face value and below 1 means the model discounts the market's confidence and gets the rest from the other inputs. Distance slopes are per basis point.`
-      tb.innerHTML = models.map((m) => {
-        const n = nextBy.get(m.series)
-        const pm = w(m, 'logit_mid')
-        return `<tr>
-          <td><span class="ser">${short(m.series)}</span></td>
-          <td class="n">${fmt.format(m.n_train)}</td>
-          <td class="n"><span class="${pm > 1.05 ? 'ok' : pm < 0.95 ? 'cnt' : ''}">${pm.toFixed(2)}</span></td>
-          <td class="n">${f3(w(m, 'scaled_bps'))}</td>
-          <td class="n">${f3(w(m, 'bps'))}</td>
-          <td class="n">${f3(w(m, 'range'))}</td>
-          <td class="n">${f3(w(m, 'mom'))}</td>
-          <td class="n">${f3(w(m, 'mtc'))}</td>
-          <td class="n">${p4(m.brier_train)}</td>
-          <td class="n">${n ? `${p4(n.brier_model_spot)} <span class="cnt">vs ${p4(n.brier_mid)}</span>` : '–'}</td>
-        </tr>`
-      }).join('')
-      const pmAvg = mean('logit_mid'), sdAvg = mean('scaled_bps')
-      reading.className = 'reading'
-      reading.textContent = `Across ${models.length} series the model takes ${pmAvg.toFixed(2)} of the market's own confidence${pmAvg > 1.05 ? ' and adds to it: it thinks favorites are priced too close to even.' : pmAvg < 0.95 ? ' and gets the rest from where price sits relative to the open (' + f3(sdAvg) + ' per scaled basis point). Splitting the market\'s confidence between the price and distance is how it lands where the market already is; see the curve.' : ' at face value.'}`
-    }
 
-    /* ── coverage heat grid ── */
-    async function loadCoverage() {
-      const rows = await q('kalshi_coverage_mv', (b) => b.select('*').gte('day', dayAgo(13)).order('day', { ascending: true }))
-      const host = el('coverage')
-      if (!rows.length) { host.innerHTML = '<div class="empty"><b>Nothing captured yet.</b></div>'; return }
-      const days = Array.from({ length: 14 }, (_, i) => dayAgo(13 - i))
-      const series = SERIES.slice(1).filter((s) => rows.some((r) => r.series === s)).concat(rows.map((r) => r.series).filter((s) => !SERIES.includes(s)).filter((s, i, a) => a.indexOf(s) === i))
-      const by = new Map(rows.map((r) => [`${r.series}|${r.day}`, r]))
-      const lvl = (snaps) => snaps === 0 ? 0 : snaps < 360 ? 1 : snaps < 720 ? 2 : snaps < 1200 ? 3 : 4
-      host.innerHTML = `<div class="heat" style="grid-template-columns: auto repeat(14, minmax(0, 1fr))">
-        <div></div>${days.map((d) => `<div class="cl">${new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { day: 'numeric', timeZone: 'UTC' })}</div>`).join('')}
-        ${series.map((s) => `<div class="rl">${short(s)}</div>${days.map((d) => { const r = by.get(`${s}|${d}`); return `<div class="cell" data-l="${lvl(r?.snaps ?? 0)}" data-s="${s}" data-d="${d}"></div>` }).join('')}`).join('')}
-      </div>`
-      host.querySelectorAll('.cell').forEach((c) => {
-        c.addEventListener('mousemove', (e) => {
-          const r = by.get(`${c.dataset.s}|${c.dataset.d}`)
-          showTip(`<div class="t">${c.dataset.s}, ${new Date(c.dataset.d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</div>${r
-            ? `<div class="row"><span>Minutes of book</span><b>${n0(r.snaps)} of 1,440</b></div><div class="row"><span>Seen live</span><b>${n0(r.snaps_live ?? 0)}, rest from candles</b></div><div class="row"><span>Rounds</span><b>${n0(r.rounds)}, ${n0(r.settled)} settled</b></div><div class="row"><span>Tape minutes</span><b>${n0(r.tape_minutes)}</b></div>`
-            : '<div class="row"><span>Nothing captured</span></div>'}`, e.clientX, e.clientY)
-        })
-        c.addEventListener('mouseleave', hideTip)
-      })
-    }
 
     /* ── calibration ── */
-    async function loadCalib() {
-      const latest = await q('kalshi_calibration', (b) => b.select('as_of').eq('window_days', 30).order('as_of', { ascending: false }).limit(1))
-      state.calibAsOf = latest[0]?.as_of ?? null
-      const [calib, calibDist] = state.calibAsOf ? await Promise.all([
-        q('kalshi_calibration', (b) => b.select('*').eq('window_days', 30).eq('as_of', state.calibAsOf).eq('series', state.series)),
-        q('kalshi_calibration_dist', (b) => b.select('*').eq('window_days', 30).eq('as_of', state.calibAsOf).eq('series', state.series)),
-      ]) : [[], []]
-      state.calib = calib; state.calibDist = calibDist
-      renderCalib()
-    }
-    function renderCalib() {
-      const host = el('cal-chart'), dist = state.calMode === 'dist'
-      const src = dist ? state.calibDist : state.calib
-      const rows = src.filter((r) => r.mtc_bucket === state.mtc).sort((a, b) => Number(dist ? a.mean_bps : a.mean_mid) - Number(dist ? b.mean_bps : b.mean_mid))
-      const to = state.calibAsOf ? `30 days to ${state.calibAsOf}` : 'last 30 days'
-      el('cal-sub').textContent = dist ? `How often yes happened, by how far price sat from the round's open, ${to}.` : `What the mid said against what happened, ${to}.`
-      if (!rows.length) {
-        host.innerHTML = `<div class="empty" style="padding: 88px 0"><b>${state.calibAsOf ? (dist ? 'No spot-matched rounds in this bucket yet.' : 'No rounds in this bucket yet.') : 'No calibration yet.'}</b><br>${state.calibAsOf ? 'Pick another series or minutes-to-close.' : 'The table is built by the first scoring at 00:10 UTC.'}</div>`
-        return
-      }
-      const W = Math.max(280, Math.round(host.clientWidth || 520)), H = W < 480 ? 260 : 300
-      const m = { t: 14, r: 16, b: 36, l: 44 }
-      const nmax = Math.max(...rows.map((r) => r.n))
-      const rad = (n) => 4 + 9 * Math.sqrt(n / nmax)
-      const y = (v) => m.t + (1 - v) * (H - m.t - m.b)
-      const yticks = [0, 0.25, 0.5, 0.75, 1]
-      let x, xticks, xfmt, xtitle, ref
-      if (dist) {
-        // basis points, clamped so a single wild bucket cannot flatten the rest
-        const lim = Math.min(80, Math.max(20, ...rows.map((r) => Math.abs(Number(r.mean_bps))))) * 1.1
-        x = (v) => m.l + ((Math.max(-lim, Math.min(lim, v)) + lim) / (2 * lim)) * (W - m.l - m.r)
-        xticks = [-lim, -lim / 2, 0, lim / 2, lim].map((v) => Math.round(v))
-        xfmt = (v) => (v > 0 ? '+' : '') + v
-        xtitle = 'basis points from the open'
-        ref = `<line class="zero" x1="${x(0)}" x2="${x(0)}" y1="${m.t}" y2="${H - m.b}"/><line class="diag" x1="${m.l}" x2="${W - m.r}" y1="${y(0.5)}" y2="${y(0.5)}"/>`
-      } else {
-        x = (v) => m.l + v * (W - m.l - m.r)
-        xticks = yticks
-        xfmt = (v) => v.toFixed(2)
-        xtitle = 'market mid'
-        ref = `<line class="diag" x1="${x(0)}" y1="${y(0)}" x2="${x(1)}" y2="${y(1)}"/>`
-      }
-      const xv = (r) => Number(dist ? r.mean_bps : r.mean_mid)
-      host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${dist ? 'Hit rate by distance from the open' : 'Calibration: hit rate against market mid by price band'}">
-        <g class="grid">${yticks.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/>`).join('')}${xticks.map((v) => `<line y1="${m.t}" y2="${H - m.b}" x1="${x(v)}" x2="${x(v)}"/>`).join('')}</g>
-        ${ref}
-        <g class="axis">${yticks.map((v) => `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(2)}</text>`).join('')}${xticks.map((v) => `<text x="${x(v)}" y="${H - 12}" text-anchor="middle">${xfmt(v)}</text>`).join('')}
-          <text class="axis-title" x="${(W + m.l - m.r) / 2}" y="${H}" text-anchor="middle">${xtitle}</text>
-          <text class="axis-title" transform="translate(12 ${(H + m.t - m.b) / 2}) rotate(-90)" text-anchor="middle">how often yes happened</text></g>
-        ${rows.map((r, i) => `<circle class="dot" data-i="${i}" cx="${x(xv(r)).toFixed(1)}" cy="${y(Number(r.hit_rate)).toFixed(1)}" r="${rad(r.n).toFixed(1)}"/>`).join('')}
-      </svg>`
-      host.querySelectorAll('.dot').forEach((d) => {
-        d.addEventListener('mousemove', (e) => {
-          const r = rows[Number(d.dataset.i)]
-          showTip(dist
-            ? `<div class="t">${r.dist_bucket} bps, ${state.mtc} minutes to close</div>
-              <div class="row"><span>Mean distance</span><b>${bps(r.mean_bps)} bps</b></div>
-              <div class="row"><span>Yes happened</span><b>${p3(r.hit_rate)}</b></div>
-              <div class="row"><span>Market mid there</span><b>${p3(r.mean_mid)}</b></div>
-              <div class="row"><span>Rounds scored</span><b>${fmt.format(r.n)}</b></div>`
-            : `<div class="t">Band ${r.band}, ${state.mtc} minutes to close</div>
-              <div class="row"><span>Market mid</span><b>${p3(r.mean_mid)}</b></div>
-              <div class="row"><span>Yes happened</span><b>${p3(r.hit_rate)}</b></div>
-              <div class="row"><span>Rounds scored</span><b>${fmt.format(r.n)}</b></div>
-              <div class="row"><span>Brier of the mid</span><b>${p4(r.brier_mid)}</b></div>`, e.clientX, e.clientY)
-        })
-        d.addEventListener('mouseleave', hideTip)
-      })
-    }
 
     /* ── live board ── */
     let liveTimer
@@ -1854,16 +1634,273 @@
       tickClocks(); liveTimer = setInterval(tickClocks, 1000)
     }
 
+    /* ── calendar ─────────────────────────────────────────────────────────────
+       kalshi_fav_day_price holds one row per (day, asset, price) bucket of
+       qualifying favourite legs. Every leg in a bucket shares its price, so it
+       shares both the contract count floor(clip / price) and the per-contract
+       fee, which is why a whole month can be re-priced to a different clip in
+       the browser with no rounding error and no second query.
+
+       The modelled number is what the rule would have made holding every leg to
+       settlement. Where real orders exist for a day, both are shown, because
+       they are not the same thing and a desk that quietly conflates them is how
+       you end up trusting a backtest as though it were a bank statement. */
+    const CAL_CLIPS = [3, 5, 8, 12, 16, 25]
+    const cal = {
+      clip: 16,
+      floor: 0.80,
+      ceil: 0.95,
+      month: null,          // Date pinned to the 1st of the month on show, UTC
+      days: new Map(),      // 'YYYY-MM-DD' -> { legs, wins, pnl, cost, books: Map }
+      live: new Map(),      // 'YYYY-MM-DD' -> { pnl, n, wins }
+      sel: null,
+      loaded: false,
+    }
+
+    /** The exchange's trading fee, rounded up to the 1/100 of a cent it settles on. */
+    const calFee = (p, n) => Math.ceil(0.07 * p * (1 - p) * n * 10000 - 1e-9) / 10000
+
+    /** One price bucket, priced at a clip: what those legs paid and what they returned. */
+    function calBucket(price, legs, wins, clip) {
+      const n = Math.floor(clip / price + 1e-9)
+      if (n < 1) return null
+      const losses = legs - wins
+      return {
+        n,
+        pnl: wins * n * (1 - price) - losses * n * price - legs * calFee(price, n),
+        cost: legs * n * price,
+        contracts: legs * n,
+      }
+    }
+
+    const calKey = (d) => d.toISOString().slice(0, 10)
+    const calMonthKey = (d) => d.toISOString().slice(0, 7)
+
+    async function calFetchAll(table, cols, tune) {
+      const out = []
+      for (let from = 0; ; from += 1000) {
+        let q = supabase.from(table).select(cols).range(from, from + 999)
+        if (tune) q = tune(q)
+        const { data, error } = await q
+        if (error) throw error
+        out.push(...data)
+        if (data.length < 1000) return out
+      }
+    }
+
+    async function loadCalendar() {
+      const [buckets, orders] = await Promise.all([
+        calFetchAll('kalshi_fav_day_price', 'dt,asset,price,legs,wins'),
+        calFetchAll('kalshi_live_orders', 'close_time,created_at,price,pnl,filled,source', (q) =>
+          q.eq('source', 'fav').not('pnl', 'is', null).gt('filled', 0)),
+      ])
+      cal.raw = buckets
+      cal.live = new Map()
+      for (const o of orders) {
+        const k = (o.close_time ?? o.created_at).slice(0, 10)
+        const e = cal.live.get(k) ?? { pnl: 0, n: 0, wins: 0 }
+        e.pnl += Number(o.pnl); e.n += 1; e.wins += Number(o.pnl) > 0 ? 1 : 0
+        cal.live.set(k, e)
+      }
+      cal.loaded = true
+      if (!cal.month) {
+        const last = buckets.reduce((a, b) => (b.dt > a ? b.dt : a), '0000-00-00')
+        cal.month = new Date(`${last.slice(0, 7)}-01T00:00:00Z`)
+      }
+      calPrice()
+      renderCalendar()
+    }
+
+    /** Re-price every day from the raw buckets. Runs on any clip or floor change. */
+    function calPrice() {
+      cal.days = new Map()
+      for (const b of cal.raw ?? []) {
+        const price = Number(b.price)
+        if (price < cal.floor || price > cal.ceil) continue
+        const r = calBucket(price, b.legs, b.wins, cal.clip)
+        if (!r) continue
+        let d = cal.days.get(b.dt)
+        if (!d) { d = { legs: 0, wins: 0, pnl: 0, cost: 0, contracts: 0, books: new Map() }; cal.days.set(b.dt, d) }
+        d.legs += b.legs; d.wins += b.wins; d.pnl += r.pnl; d.cost += r.cost; d.contracts += r.contracts
+        const bk = d.books.get(b.asset) ?? { legs: 0, wins: 0, pnl: 0 }
+        bk.legs += b.legs; bk.wins += b.wins; bk.pnl += r.pnl
+        d.books.set(b.asset, bk)
+      }
+    }
+
+    const CAL_MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+      'August', 'September', 'October', 'November', 'December']
+
+    function renderCalendar() {
+      if (!cal.loaded) return
+      const y = cal.month.getUTCFullYear(), m = cal.month.getUTCMonth()
+      el('cal-month').innerHTML = `${CAL_MONTH_NAMES[m]} <span>${y}</span>`
+
+      // month bounds and the days that have data
+      const first = new Date(Date.UTC(y, m, 1))
+      const nDays = new Date(Date.UTC(y, m + 1, 0)).getUTCDate()
+      const keys = [...cal.days.keys()].sort()
+      const inMonth = keys.filter((k) => k.startsWith(calMonthKey(first)))
+      el('cal-prev').disabled = !keys.some((k) => k < calMonthKey(first) + '-01')
+      el('cal-next').disabled = !keys.some((k) => k > `${y}-${String(m + 1).padStart(2, '0')}-${nDays}`)
+
+      // ── the month's numbers
+      const tot = inMonth.reduce((a, k) => {
+        const d = cal.days.get(k)
+        a.pnl += d.pnl; a.legs += d.legs; a.wins += d.wins; a.cost += d.cost
+        if (d.pnl > 0) a.green++; else if (d.pnl < 0) a.red++
+        if (a.best == null || d.pnl > cal.days.get(a.best).pnl) a.best = k
+        if (a.worst == null || d.pnl < cal.days.get(a.worst).pnl) a.worst = k
+        return a
+      }, { pnl: 0, legs: 0, wins: 0, cost: 0, green: 0, red: 0, best: null, worst: null })
+      const dayN = (k) => Number(k.slice(8))
+      const win = tot.legs ? (100 * tot.wins / tot.legs) : null
+      el('cal-strip').innerHTML = !inMonth.length
+        ? `<div class="cal-cell" style="grid-column: 1 / -1"><b>No data</b><span>The collector has no settled book for this month.</span></div>`
+        : [
+          [`<b class="${tot.pnl > 0 ? 'up' : tot.pnl < 0 ? 'down' : ''}">${money(tot.pnl)}</b>`, `${inMonth.length} day${inMonth.length === 1 ? '' : 's'} at ${money(cal.clip).replace('+', '')} a call`],
+          [`<b>${money(tot.pnl / inMonth.length)}</b>`, 'average day'],
+          [`<b>${win == null ? '–' : win.toFixed(1) + '%'}</b>`, `${fmt.format(tot.wins)} of ${fmt.format(tot.legs)} calls won`],
+          [`<b class="up">${money(tot.best == null ? 0 : cal.days.get(tot.best).pnl)}</b>`, `best day, the ${dayN(tot.best)}`],
+          [`<b class="down">${money(tot.worst == null ? 0 : cal.days.get(tot.worst).pnl)}</b>`, `worst day, the ${dayN(tot.worst)}`],
+          [`<b class="up">${tot.green}</b>`, `up days against ${tot.red} down`],
+        ].map(([b, s]) => `<div class="cal-cell">${b}<span>${s}</span></div>`).join('')
+
+      // ── the grid. The wash is scaled against the biggest absolute day IN THIS
+      //    month, so a quiet month still reads, and a violent one is not all ink.
+      const peak = Math.max(1, ...inMonth.map((k) => Math.abs(cal.days.get(k).pnl)))
+      const today = new Date().toISOString().slice(0, 10)
+      const cells = []
+      for (let i = 0; i < first.getUTCDay(); i++) cells.push('<div class="cal-d pad"></div>')
+      for (let dd = 1; dd <= nDays; dd++) {
+        const k = `${y}-${String(m + 1).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
+        const d = cal.days.get(k)
+        if (!d) {
+          cells.push(`<div class="cal-d none${k === today ? ' is-today' : ''}"><span class="num">${dd}</span></div>`)
+          continue
+        }
+        const a = Math.min(0.62, 0.10 + 0.52 * Math.abs(d.pnl) / peak)
+        const hue = d.pnl >= 0 ? 'var(--good)' : 'var(--bad)'
+        const real = cal.live.get(k)
+        cells.push(`<button class="cal-d${k === cal.sel ? ' sel' : ''}${k === today ? ' is-today' : ''}" type="button" data-k="${k}"
+          title="${k}: ${money(d.pnl)} on ${d.legs} calls">
+          <span class="wash" style="background: linear-gradient(0deg, color-mix(in srgb, ${hue} ${Math.round(a * 100)}%, transparent), color-mix(in srgb, ${hue} ${Math.round(a * 18)}%, transparent) 62%, transparent)"></span>
+          <span class="num">${dd}</span>${real ? '<span class="real" title="real money traded this day"></span>' : ''}
+          <span class="val ${d.pnl > 0 ? 'up' : d.pnl < 0 ? 'down' : ''}">${money(d.pnl)}</span>
+          <span class="val-s ${d.pnl > 0 ? 'up' : d.pnl < 0 ? 'down' : ''}">${(d.pnl < 0 ? '-' : '')}$${Math.round(Math.abs(d.pnl))}</span>
+          <span class="sub">${d.legs} call${d.legs === 1 ? '' : 's'}</span>
+        </button>`)
+      }
+      el('cal-grid').innerHTML = cells.join('')
+      el('cal-grid').querySelectorAll('button[data-k]').forEach((b) =>
+        b.addEventListener('click', () => { cal.sel = cal.sel === b.dataset.k ? null : b.dataset.k; renderCalendar() }))
+
+      renderCalDay()
+      renderCalAll(keys)
+    }
+
+    const CAL_BOOKS = ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE']
+
+    function renderCalDay() {
+      const host = el('cal-day')
+      const d = cal.sel && cal.days.get(cal.sel)
+      if (!d) { host.hidden = true; host.innerHTML = ''; return }
+      host.hidden = false
+      const real = cal.live.get(cal.sel)
+      const when = new Date(`${cal.sel}T00:00:00Z`).toLocaleDateString('en-US',
+        { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })
+      const peak = Math.max(1, ...[...d.books.values()].map((b) => Math.abs(b.pnl)))
+      const rows = CAL_BOOKS.filter((a) => d.books.has(a)).map((a) => {
+        const b = d.books.get(a)
+        const w = Math.round(46 * Math.abs(b.pnl) / peak)
+        const side = b.pnl >= 0
+        return `<div class="cal-book">
+          <i>${a}</i>
+          <span class="track"><u style="${side ? 'left: 50%' : `right: 50%`}; width: ${w}%; background: ${side ? 'var(--good)' : 'var(--bad)'}"></u></span>
+          <span class="mny ${side ? 'up' : 'down'}">${money(b.pnl)}</span>
+          <span class="cnt">${b.wins}/${b.legs} won</span>
+        </div>`
+      }).join('')
+      host.innerHTML = `
+        <div class="cal-day-hd">
+          <h4>${when}</h4>
+          <em class="${d.pnl > 0 ? 'up' : d.pnl < 0 ? 'down' : ''}">${money(d.pnl)}</em>
+          <small>${d.legs} calls, ${fmt.format(d.contracts)} contracts, ${money(d.cost).replace('+', '')} cycled, ${(100 * d.wins / d.legs).toFixed(1)}% won</small>
+        </div>
+        <div class="cal-books">${rows}</div>
+        ${real ? `<p class="cal-note"><b>Real money traded this day.</b> The account booked
+          ${money(real.pnl)} on ${real.n} filled orders, ${real.wins} of them winners. The
+          ${money(d.pnl)} above is what the rule modelled at ${money(cal.clip).replace('+', '')} a call over every
+          qualifying round, so the two differ wherever the executor was armed for part of the
+          day, sized differently, or missed a fill.</p>` : ''}`
+    }
+
+    function renderCalAll(keys) {
+      const all = keys.reduce((a, k) => {
+        const d = cal.days.get(k)
+        a.pnl += d.pnl; a.legs += d.legs; a.wins += d.wins
+        if (d.pnl < a.worst) { a.worst = d.pnl; a.worstK = k }
+        if (d.pnl < 0) a.red++
+        return a
+      }, { pnl: 0, legs: 0, wins: 0, red: 0, worst: 0, worstK: null })
+      const band = `${Math.round(cal.floor * 100)} to ${Math.round(cal.ceil * 100)}c`
+      el('cal-all').innerHTML = [
+        [`<b class="${all.pnl > 0 ? 'up' : all.pnl < 0 ? 'down' : ''}">${money(all.pnl)}</b>`, `all ${keys.length} days, ${band}`],
+        [`<b>${money(all.pnl / Math.max(1, keys.length))}</b>`, 'per day'],
+        [`<b>${fmt.format(all.legs)}</b>`, 'calls'],
+        [`<b>${all.legs ? (100 * all.wins / all.legs).toFixed(2) + '%' : '–'}</b>`, 'won'],
+        [`<b class="down">${money(all.worst)}</b>`, `worst day${all.worstK ? ', ' + all.worstK : ''}`],
+        [`<b>${all.red}</b>`, 'losing days'],
+      ].map(([b, s]) => `<div>${b}<span>${s}</span></div>`).join('')
+    }
+
+    function calStep(delta) {
+      const y = cal.month.getUTCFullYear(), m = cal.month.getUTCMonth()
+      cal.month = new Date(Date.UTC(y, m + delta, 1))
+      cal.sel = null
+      renderCalendar()
+    }
+
     /* ── controls ── */
-    segment(el('hero-series'), SERIES.map((s) => ({ v: s, label: s === 'ALL' ? 'All' : short(s) })), state.series, (v) => { state.series = v; loadDaily(); loadCalib() })
-    segment(el('cal-mode'), [{ v: 'band', label: 'Mid' }, { v: 'dist', label: 'Distance' }], state.calMode, (v) => { state.calMode = v; renderCalib() })
-    segment(el('cal-mtc'), MTC.map((b) => ({ v: b, label: b.replace('-', ' to ') + ' min' })), state.mtc, (v) => { state.mtc = v; renderCalib() })
+    {
+      const clipSeg = segment(el('cal-clip'), CAL_CLIPS.map((v) => ({ v, label: '$' + v })), cal.clip, (v) => {
+        cal.clip = Number(v); el('cal-own').value = ''; calPrice(); renderCalendar()
+      })
+      segment(el('cal-floor'), [{ v: '0.8', label: '80c' }, { v: '0.85', label: '85c' }], '0.8', (v) => {
+        cal.floor = Number(v); calPrice(); renderCalendar()
+      })
+      // a clip the buttons do not offer. Typing one drops the thumb, because the
+      // segment no longer describes what the grid is showing.
+      el('cal-own').addEventListener('input', (ev) => {
+        const v = Number(ev.target.value)
+        if (!(v >= 1 && v <= 500)) return
+        cal.clip = v
+        el('cal-clip').querySelectorAll('button').forEach((b) => b.classList.remove('on'))
+        el('cal-clip').querySelector('.thumb').style.width = '0px'
+        calPrice(); renderCalendar()
+      })
+      el('cal-prev').addEventListener('click', () => calStep(-1))
+      el('cal-next').addEventListener('click', () => calStep(1))
+      el('cal-today').addEventListener('click', () => {
+        const last = [...cal.days.keys()].sort().pop()
+        if (last) { cal.month = new Date(`${last.slice(0, 7)}-01T00:00:00Z`); cal.sel = null; renderCalendar() }
+      })
+      // arrows page the month whenever the calendar is the thing in view
+      addEventListener('keydown', (ev) => {
+        if (ev.metaKey || ev.ctrlKey || ev.altKey) return
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')) return
+        const r = el('s-calendar').getBoundingClientRect()
+        if (r.bottom < 80 || r.top > innerHeight - 80) return
+        if (ev.key === 'ArrowLeft' && !el('cal-prev').disabled) { ev.preventDefault(); calStep(-1) }
+        if (ev.key === 'ArrowRight' && !el('cal-next').disabled) { ev.preventDefault(); calStep(1) }
+      })
+    }
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadBots(), loadRules(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadStats(), loadDaily(), loadTheEdge(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadCalendar(), loadBots(), loadRules(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
     setInterval(() => { loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive() }, 30_000)
-    setInterval(() => { loadStats(); loadCoverage(); loadTheEdge(); loadEdge() }, 5 * 60_000)
+    setInterval(() => { loadTheEdge(); loadCalendar() }, 5 * 60_000)
   </script>
 </body>
 </html>
