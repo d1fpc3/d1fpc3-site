@@ -197,6 +197,47 @@
     @media (max-width: 1100px) { .edge { grid-template-columns: 1fr; } }
     .edge-stats { margin-bottom: 14px; }
 
+    /* ════ the edge: the one mispricing, and what it costs to reach ════
+       The centrepiece is a 2x2, not a chart, because the finding IS a 2x2: two
+       independent conditions, and the money lives only where both fire. A bar chart
+       of four numbers would hide the structure that matters. */
+    .thesis { font-size: 17px; line-height: 1.55; max-width: 76ch; margin: 0 0 20px; }
+    .thesis b { color: var(--gold); font-weight: 600; }
+    .edge-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 26px 32px; align-items: start; }
+    @media (max-width: 1000px) { .edge-grid { grid-template-columns: minmax(0, 1fr); } }
+    /* the 2x2 */
+    .m2 { display: grid; grid-template-columns: auto 1fr 1fr; gap: 7px; }
+    .m2 .cnr { }
+    .m2 .ch, .m2 .rh { color: var(--muted); font-size: 12.5px; line-height: 1.3; align-self: end; padding: 0 2px 3px; }
+    .m2 .rh { align-self: center; text-align: right; max-width: 11ch; padding: 0 8px 0 0; }
+    .m2 .cell { position: relative; padding: 13px 14px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; min-height: 96px; }
+    .m2 .cell .r { font-size: 25px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .m2 .cell .meta { color: var(--faint); font-size: 12px; margin-top: 5px; font-variant-numeric: tabular-nums; }
+    .m2 .cell .tag { color: var(--muted); font-size: 12px; margin-top: 7px; }
+    .m2 .cell.take { border-color: var(--gold-deep); background: linear-gradient(180deg, rgba(201,162,74,0.10), rgba(201,162,74,0.03)); }
+    .m2 .cell.take .r { color: var(--gold); }
+    .m2 .cell.take .tag { color: var(--gold); }
+    .m2 .cell.dead { opacity: 0.62; }
+    .m2 .cell.dead .r { color: var(--bad); }
+    /* the gate readout. NOT .gate: that class is already the sign-in gate at the top of
+       the page, and styling it as a flex row broke this panel's layout. */
+    .egate { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .egate .g { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 11px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+    .egate .g em { font-style: normal; color: var(--faint); }
+    .egate .g b { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .egate .g.off { border-color: var(--line); color: var(--muted); }
+    .egate .g.off b { color: var(--bad); }
+    .egate .g.on b { color: var(--good); }
+    /* the basis table */
+    .basis-h { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; }
+    .basis-note { color: var(--faint); font-size: 12.5px; line-height: 1.45; margin: 0 0 11px; max-width: 54ch; }
+    table.basis { width: 100%; border-collapse: collapse; }
+    table.basis th, table.basis td { padding: 6px 8px; border-bottom: 1px solid var(--line); font-size: 13px; }
+    table.basis th { color: var(--muted); font-weight: 500; text-align: left; }
+    table.basis td.n, table.basis th.n { text-align: right; font-variant-numeric: tabular-nums; }
+    table.basis tr.traded td:first-child { color: var(--gold); font-weight: 600; }
+    table.basis .bar { display: inline-block; height: 7px; border-radius: 2px; background: var(--gold-deep); vertical-align: middle; }
+
     /* ════ account: the real book ═════════════════════════════ */
     .acct-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: 16px; }
     @media (max-width: 1100px) { .acct-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -391,6 +432,55 @@
       <div class="tbl-scroll"><table id="orders"><thead><tr>
         <th>When</th><th>From</th><th>Series</th><th>Buy</th><th class="n">Price</th><th class="n" title="contracts asked for; filled of asked once sent">Size</th><th>What happened</th><th class="n">P&amp;L</th>
       </tr></thead><tbody><tr><td colspan="8"><div class="skel"></div></td></tr></tbody></table></div>
+    </section>
+
+    <!-- the edge: what it is, where it lives, and what the bot requires before it pays for it -->
+    <section class="panel span-12">
+      <div class="panel-head">
+        <h2>The edge</h2>
+        <span class="sub">Measured over 31 days, 2026-08-24 to 09-24, on five books and about 2,940 graded rounds each. One row per round, priced at the touch, net of the real taker fee.</span>
+      </div>
+
+      <p class="thesis">The book prices more movement than a fifteen-minute round actually delivers. That
+        compression pushes every contract toward fifty cents, so the side that is already ahead is sold too
+        cheaply, and the buyer of that side collects the difference. It is a <b>volatility risk premium</b>, not a
+        taste for favourites and not a slow book: the effect is <b>indifferent to which way the tape moved</b>, which
+        is what rules the other two explanations out. It switches off completely when the tape is quiet and the
+        book is pricing no more movement than the last hour delivered.</p>
+
+      <div class="edge-grid">
+        <div>
+          <div class="m2">
+            <div class="cnr"></div>
+            <div class="ch">Book pricing less movement than the hour delivered</div>
+            <div class="ch">Book pricing more movement than the hour delivered</div>
+
+            <div class="rh">Tape has moved</div>
+            <div class="cell"><div class="r">+1.99%</div><div class="meta">946 rounds · t 1.83</div><div class="tag">Real, but not reliable</div></div>
+            <div class="cell take"><div class="r">+3.81%</div><div class="meta">946 rounds · t 4.83</div><div class="tag">The only cell we take</div></div>
+
+            <div class="rh">Tape is quiet</div>
+            <div class="cell dead"><div class="r">-0.42%</div><div class="meta">858 rounds · t -0.35</div><div class="tag">Nothing here. A coin flip paying a toll.</div></div>
+            <div class="cell"><div class="r">+2.67%</div><div class="meta">691 rounds · t 2.40</div><div class="tag">Real, but not reliable</div></div>
+          </div>
+
+          <div class="egate" id="edge-gate"><span class="g"><em>Loading the live gate.</em></span></div>
+
+          <p class="reading quiet" id="edge-honest" style="margin-top: 16px">Two things this does not survive cleanly, both of which argue for small size rather than for switching it off. The second half of the month runs about half the first, +1.35% against +2.68%, and on its own it is not significant. XRP carries roughly 2.4 times the other four books, though the four still pool to t 2.6 without it.</p>
+        </div>
+
+        <div>
+          <p class="basis-h">The settlement basis</p>
+          <p class="basis-note">Kalshi settles these rounds on the CF Benchmarks index, averaged over the final
+            sixty seconds. The desk records Coinbase, which runs below that index on every asset measured. The
+            gap is recoverable because each round's strike is the previous round's settlement value, so it is
+            re-estimated from the last seven days and added to the distance before the gate reads it.</p>
+          <table class="basis"><thead><tr>
+            <th>Asset</th><th class="n" title="rolling 7-day median of index minus our feed, in basis points">Basis</th><th class="n"></th><th class="n" title="mean over standard error, on the same window">t</th><th class="n">Rounds</th>
+          </tr></thead><tbody id="basis-rows"><tr><td colspan="5"><div class="skel"></div></td></tr></tbody></table>
+          <p class="basis-note" id="basis-foot" style="margin-top: 10px"></p>
+        </div>
+      </div>
     </section>
 
     <!-- the edge hunt: cells the market misprices, and the paper book that tests them -->
@@ -711,6 +801,70 @@
 
     /* ── edge hunt ── */
     const money = (x) => (x == null ? '–' : (x < 0 ? '-' : '+') + '$' + Math.abs(Number(x)).toFixed(2))
+    /* The edge panel. The 2x2 is a measured finding and lives in the markup; the two things
+       that CAN move, the rolling basis and the gate the executor is actually enforcing, are
+       read live so the page can never claim a gate the bot is not applying. */
+    const FAV_GATE = { minPrice: 0.85, maxPrice: 0.95, mtcLo: 7, mtcHi: 11, minBps: 15, minRatio: 0.93, minMom: 10 }
+    const TRADED = new Set(['BTC', 'ETH', 'SOL', 'XRP', 'DOGE'])
+
+    async function loadTheEdge() {
+      const [basis, sw] = await Promise.all([
+        q('kalshi_basis', (t) => t.select('asset,med_bps,mean_bps,sd_bps,t_stat,n,as_of').order('med_bps', { ascending: false })),
+        q('kalshi_switch', (t) => t.select('fav_rule,signals,live,min_price,clip').eq('id', 1).maybeSingle()),
+      ])
+
+      // ── the basis table ──
+      const rows = basis ?? []
+      const tb = el('basis-rows')
+      if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="5" class="quiet">No estimate yet. It needs 200 graded rounds in the window.</td></tr>'
+      } else {
+        const top = Math.max(...rows.map((r) => Math.abs(Number(r.med_bps))), 0.01)
+        tb.innerHTML = rows.map((r) => {
+          const m = Number(r.med_bps)
+          const w = Math.max(2, Math.round((Math.abs(m) / top) * 54))
+          return `<tr class="${TRADED.has(r.asset) ? 'traded' : ''}">`
+            + `<td>${r.asset}</td>`
+            + `<td class="n">${bps(m)}</td>`
+            + `<td class="n"><span class="bar" style="width:${w}px"></span></td>`
+            + `<td class="n">${r.t_stat == null ? '–' : Number(r.t_stat).toFixed(1)}</td>`
+            + `<td class="n">${fmt.format(r.n)}</td></tr>`
+        }).join('')
+        const traded = rows.filter((r) => TRADED.has(r.asset))
+        const rest = rows.filter((r) => !TRADED.has(r.asset))
+        const weak = rows.filter((r) => r.t_stat != null && Math.abs(Number(r.t_stat)) < 2).map((r) => r.asset)
+        const asOf = rows[0]?.as_of ?? null
+        el('basis-foot').textContent = `The gold rows are the five books the rule trades, estimated`
+          + ` ${asOf ? 'on ' + asOf : 'today'}. Every median is positive, so the index sits above our feed`
+          + ` everywhere it has been measured`
+          + (weak.length ? `, though ${weak.join(' and ')} ${weak.length > 1 ? 'are' : 'is'} too small this week to`
+              + ` separate from zero.` : '.')
+          + ` The traded five run ${bps(Math.min(...traded.map((r) => +r.med_bps)))} to`
+          + ` ${bps(Math.max(...traded.map((r) => +r.med_bps)))} basis points against a 15 bps gate, so the correction`
+          + ` rarely changes a call here. The large gaps sit on ${rest.slice(0, 2).map((r) => r.asset).join(' and ')},`
+          + ` which this rule does not trade: that is where correcting the feed is worth real money, and it is the`
+          + ` next thing to test. The metal is absent because it settles on Pyth, not CF Benchmarks, and our proxy`
+          + ` disagrees with it too often to correct.`
+      }
+
+      // ── the gate: what the executor requires right now ──
+      const g = FAV_GATE
+      const on = sw?.fav_rule === true
+      const armed = sw?.signals === true
+      const floor = sw?.min_price == null ? g.minPrice : Number(sw.min_price)
+      const pill = (k, v, cls) => `<span class="g ${cls ?? ''}"><em>${k}</em><b>${v}</b></span>`
+      el('edge-gate').innerHTML = [
+        pill('rule', on ? 'on' : 'off', on ? 'on' : 'off'),
+        pill('sending', armed ? 'live orders' : 'paper only', armed ? 'on' : 'off'),
+        pill('price', `${(floor * 100).toFixed(0)}c to ${(g.maxPrice * 100).toFixed(0)}c`),
+        pill('clock', `${g.mtcLo} to ${g.mtcHi} min left`),
+        pill('distance', `${g.minBps}+ bps, basis corrected`),
+        pill('tape moved', `${g.minMom}+ bps`),
+        pill('vol premium', `${g.minRatio}x+`),
+        pill('clip', sw?.clip == null ? '–' : '$' + Number(sw.clip).toFixed(0)),
+      ].join('')
+    }
+
     async function loadEdge() {
       // "as of" comes from the scoring log, not the cells table, so a night that found no
       // cells still reads as scored rather than as never run
@@ -1132,7 +1286,7 @@
     segment(el('cal-mtc'), MTC.map((b) => ({ v: b, label: b.replace('-', ' to ') + ' min' })), state.mtc, (v) => { state.mtc = v; renderCalib() })
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadStats(), loadDaily(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadStats(), loadDaily(), loadTheEdge(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
     setInterval(() => { loadTicks(); loadAccount(); loadPaper(); loadLive() }, 30_000)
     setInterval(() => { loadStats(); loadCoverage(); loadEdge() }, 5 * 60_000)
