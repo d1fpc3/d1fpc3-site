@@ -80,16 +80,33 @@
     ::-webkit-scrollbar-thumb { background: var(--line-bright); border-radius: 5px; border: 3px solid var(--bg); }
 
     /* ════ top bar ═══════════════════════════════════════════ */
-    /* The bar carries six things and a phone is 390px wide, so it is a wrapping grid, not a
-       single nowrap row: back and title hold the first line, the jump links and the status
-       drop to a second line when they no longer fit. A fixed height is what used to push the
-       sign-out button off the right edge. */
-    .topbar {
+    /* ONE sticky element holds the whole top region, and the bar and the nav inside it are
+       static. They used to be two independent sticky layers, the nav pinned at a hardcoded
+       `top: 56px` guess at the bar's height. The bar's height is not fixed, it wraps with its
+       content, so that guess was wrong at every width it did not happen to match: between 641
+       and 900 the bar is 81px and the nav pinned at 56 sat ON TOP of it, printing the section
+       links over the collector clock; under 640 the guess of 88 was 7px too tall and a live
+       strip of page text scrolled through the slot between them. A single sticky parent has
+       no offset to guess, cannot leave a gap, and paints one continuous surface. */
+    .topstick {
       position: sticky; top: 0; z-index: 5;
+      transition: box-shadow 220ms ease;
+    }
+    /* One backdrop for the whole region, and OPAQUE. At 85% the page slid underneath and stayed
+       legible through the bar, so the top of the screen read as two things printed on each
+       other. Glass is only worth it when what is behind it is quiet; behind this is a dense
+       table. It lifts off the page with a shadow once you scroll instead. */
+    .topstick::before {
+      content: ''; position: absolute; inset: 0; z-index: -1; background: var(--bg);
+    }
+    .topstick.lifted { box-shadow: 0 10px 28px -16px rgba(0, 0, 0, 0.85); }
+    @media (prefers-reduced-motion: reduce) { .topstick { transition: none; } }
+    /* The bar carries six things and a phone is 390px wide, so it is a wrapping flex row:
+       back and title hold the first line, the status drops to a second line when it no longer
+       fits. A fixed height is what used to push the sign-out button off the right edge. */
+    .topbar {
       display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px;
       min-height: 56px; padding: 8px 24px;
-      background: color-mix(in srgb, var(--bg) 85%, transparent);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--line);
     }
     /* Back is the only thing in the bar that leaves the page, so it is the only thing that
@@ -106,9 +123,11 @@
     .jumps a { padding: 4px 11px; border-radius: 7px; color: var(--muted); font-size: 12.5px; transition: color 160ms, background 160ms; }
     @media (hover: hover) { .jumps a:hover { color: var(--ink); background: var(--panel); } }
     .jumps a:active { transform: scale(0.97); }
-    .title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+    .title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .status { margin-left: auto; display: inline-flex; align-items: center; gap: 14px; min-width: 0; }
     .pulse { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); white-space: nowrap; min-width: 0; }
+    /* last resort: the status text ellipses rather than forcing the bar to grow a row */
+    .pulse > span:not(.dot) { overflow: hidden; text-overflow: ellipsis; }
     .pulse-short { display: none; }
     .pulse .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); position: relative; }
     .pulse.live .dot { background: var(--good); }
@@ -124,13 +143,15 @@
     /* ════ section nav ═══════════════════════════════════════
        A sliding thumb rather than ten separate hover boxes: one moving element
        reads as a control, ten outlined buttons read as a toolbar someone gave up on. */
+    /* position: relative is load-bearing. .sn-thumb is absolutely positioned and reads its
+       offsets from this element; when the nav stopped being sticky it stopped being a
+       positioned ancestor too, and the thumb jumped up to .topstick's origin and sat on top
+       of the back link. */
     .sectionnav {
-      position: sticky; top: 56px; z-index: 4;
+      position: relative;
       display: flex; align-items: center; gap: 2px; padding: 8px 24px;
-      background: color-mix(in srgb, var(--bg) 85%, transparent);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--line);
-      overflow-x: auto; scrollbar-width: none;
+      overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
     }
     .sectionnav::-webkit-scrollbar { display: none; }
     .sectionnav a {
@@ -147,8 +168,10 @@
       opacity: 0; pointer-events: none; left: 0;
     }
     .sn-thumb.ready { opacity: 1; }
-    /* the two sticky bars together are 97px; keep a heading clear of them when jumped to */
-    .panel[id^="s-"] { scroll-margin-top: 112px; }
+    /* Measured, not guessed: --top-h is written by a ResizeObserver on .topstick, so a jumped-to
+       heading clears the sticky region whatever height it happens to be at this width. The 112px
+       fallback only applies for the first frame, before the observer has run. */
+    .panel[id^="s-"] { scroll-margin-top: calc(var(--top-h, 104px) + 16px); }
     @media (prefers-reduced-motion: reduce) { .sn-thumb { transition: none; } }
 
     /* ════ layout ════════════════════════════════════════════ */
@@ -164,15 +187,16 @@
       .wrap { padding: 16px; gap: 16px; }
       .panel { --pad: 16px; padding: 16px var(--pad); border-radius: 12px; }
       .topbar { padding: 8px 16px; gap: 8px 12px; }
+      .sectionnav { padding: 8px 16px; }
       /* the status is given its own line rather than allowed to squeeze: at 390px the
          sign-out chip used to run off the right edge and sit on top of the collector clock */
       .status { flex: 1 0 100%; margin-left: 0; justify-content: space-between; }
       .panel-head .right { width: 100%; margin-left: 0; }
-      .pulse-long { display: none; }
-      .pulse-short { display: inline; }
     }
-    /* the section nav is sticky under the topbar, which is two rows tall on a phone */
-    @media (max-width: 640px) { .sectionnav { top: 88px; } .panel[id^="s-"] { scroll-margin-top: 144px; } }
+    /* The long collector sentence is what forced the bar to wrap between 641 and 900, where
+       there is no second-line layout to catch it. Below 900 it becomes the short form, so the
+       bar stays one row everywhere except true phones, where the wrap is deliberate. */
+    @media (max-width: 900px) { .pulse-long { display: none; } .pulse-short { display: inline; } }
 
     .panel-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
     .panel-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
@@ -464,6 +488,9 @@
     </div>
   </div>
 
+  <!-- One sticky wrapper, so the bar and the section nav can never drift apart or onto
+       each other however tall the bar grows at a given width. -->
+  <div class="topstick" id="topstick">
   <header class="topbar">
     <a class="back" href="/echelon/admin/" title="Back to Echelon admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -496,6 +523,7 @@
     <a href="#s-live">Live board</a>
     <a href="#s-collector">Collector</a>
   </nav>
+  </div>
 
   <main class="wrap">
     <!-- bots: every bot on this desk, side by side, from the shared desk_* tables (CONTRACT.md) -->
@@ -766,6 +794,25 @@
        allowed in. The old PUBLIC = true flag here is what left the account readable by
        anyone holding the publishable key; it is gone deliberately, do not reintroduce it. */
     const DESK_USER = await requireDesk()
+
+    /* ── the sticky region's real height ──
+       Everything that has to clear the top region reads --top-h rather than a number written
+       into the stylesheet. The bar wraps with its content, so its height changes with the
+       width, with the length of the collector sentence, and with whether the sign-out button
+       has rendered yet. Measuring it is the only version of this that stays true. */
+    {
+      const stick = el('topstick')
+      const write = () => document.documentElement.style.setProperty('--top-h', `${Math.round(stick.getBoundingClientRect().height)}px`)
+      write()
+      new ResizeObserver(write).observe(stick)
+      // The shadow is the only thing that says the bar is a layer rather than part of the page,
+      // and it is only true once there is something underneath it. A sentinel at the top of the
+      // document rather than a scroll listener, so this costs nothing while scrolling.
+      const sentinel = document.createElement('div')
+      sentinel.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:1px;pointer-events:none'
+      document.body.prepend(sentinel)
+      new IntersectionObserver(([e]) => stick.classList.toggle('lifted', !e.isIntersecting)).observe(sentinel)
+    }
 
     /* ── section nav ──
        The thumb is driven off the live link geometry rather than a fixed width per item,
