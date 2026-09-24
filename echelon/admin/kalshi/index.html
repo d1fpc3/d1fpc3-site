@@ -346,7 +346,7 @@
     <section class="panel span-12 acct">
       <div class="panel-head">
         <h2>Book</h2>
-        <span class="sub" id="acct-sub" title="The exit rule: every minute the model's fair value of the held side is recomputed from spot, strike, volatility and time left; the position is sold the minute the market bid, after the exit fee, pays 2c more than that expected value. Otherwise it rides to close.">Live sends every call shown in Discord to the account at $10; Paper logs them and sends nothing. Exits are the model's call: sell when the market pays more than the expected value of holding.</span>
+        <span class="sub" id="acct-sub" title="The exit rule: every minute the model's fair value of the held side is recomputed from spot, strike, volatility and time left; the position is sold the minute the market bid, after the exit fee, pays 2c more than that expected value. Otherwise it rides to close.">Live sends every call shown in Discord to the account at the per-call size below; Paper logs them and sends nothing. Exits are the model's call: sell when the market pays more than the expected value of holding.</span>
         <div class="right"><span class="mode-note" id="mode-note"></span><div class="seg" id="mode-seg"></div><div class="seg" id="exit-seg" title="The model's exit rule on the account: sell an open position the minute the market pays 2c more than the model's expected value of holding it. Off means every position rides to close."></div></div>
       </div>
       <h3 class="book-h">Account <span>real money</span></h3>
@@ -784,8 +784,9 @@
         q('kalshi_live_orders', (b) => b.select('ticker,created_at,series,cell,side,price,contracts,filled,source,status,mode,live_switch,halted,processed_at,won,pnl,exit_price,exit_filled').order('created_at', { ascending: false }).limit(60)),
         q('kalshi_live_daily', (b) => b.select('*').order('day', { ascending: true })),
         q('kalshi_executor_state', (b) => b.select('*').eq('id', 1)).catch(() => []),
-        q('kalshi_switch', (b) => b.select('signals,updated_at').eq('id', 1)).catch(() => []),
+        q('kalshi_switch', (b) => b.select('signals,updated_at,clip').eq('id', 1)).catch(() => []),
       ])
+      const clip = Number(swRows[0]?.clip ?? 10) || 10
       const st = stateRows[0] ?? null
       const stFresh = st && (Date.now() - Date.parse(st.at)) / 1000 < 180
       // The button is a request; the heartbeat is the truth. Say so when they disagree.
@@ -821,7 +822,7 @@
       } else {
         reading.className = 'reading'
         const what = { intent: 'queued', placed: 'open', exited: `sold green at ${p2(last.exit_price)} for ${money(last.pnl)}`, settled: last.won ? 'won' : 'lost', unfilled: 'unfilled', armed: 'armed, switch was off', skipped: 'skipped, round already taken', expired: 'expired', halted: 'halted', rejected: 'rejected' }[last.status] ?? last.status
-        reading.textContent = (sw == null ? 'The signals switch has not been read yet. ' : sw ? `Live: every call shown in Discord goes to the account at $10${halted ? ', halted for the rest of the day at the -$50 stop' : ''}${st && !stFresh ? '. The executor has not reported since ' + ago(st.at) + ', so nothing is being sent' : ''}. ` : 'Switch off: calls are logged as armed and never sent later. ')
+        reading.textContent = (sw == null ? 'The signals switch has not been read yet. ' : sw ? `Live: every call shown in Discord goes to the account at $${clip}${halted ? ', halted for the rest of the day at the stop' : ''}${st && !stFresh ? '. The executor has not reported since ' + ago(st.at) + ', so nothing is being sent' : ''}. ` : 'Switch off: calls are logged as armed and never sent later. ')
           + `${settled ? `${fmt.format(settled)} settled for ${money(realized)} real, ${Math.round(100 * wins / settled)}% won. ` : 'Nothing settled yet. '}`
           + `Last: ${short(last.series)} ${last.side.toUpperCase()} ${last.contracts} @ ${p2(last.price)} from ${last.source === 'signals' ? 'rule ' + last.cell : 'cell ' + last.cell}, ${ago(last.created_at)}, ${what}.`
       }
