@@ -6,6 +6,11 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Weather maker</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script>
+  // Before the stylesheet, so switching to light on the desk and clicking through does not
+  // flash a dark page. Same key the rest of Echelon uses.
+  try { if (localStorage.getItem('echelon-theme') === 'light') document.documentElement.dataset.theme = 'light' } catch {}
+</script>
 <style>
 /* ─────────────────────────────────────────────────────────────────────
    WEATHER MAKER, inside the Kalshi desk.
@@ -73,6 +78,28 @@ a { color: inherit; }
 .panel-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
 .panel-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 .panel-head .meta { color: var(--faint); font-size: 12.5px; }
+.panel-head .right { margin-left: auto; align-self: center; }
+
+/* a real segmented control: one track, one thumb that slides, not a row of buttons */
+.seg {
+  position: relative; display: inline-flex; padding: 3px; gap: 2px; border-radius: 9px;
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.seg .thumb {
+  position: absolute; top: 3px; bottom: 3px; left: 3px; width: 0; border-radius: 6px;
+  background: color-mix(in srgb, var(--gold) 16%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--gold) 34%, transparent);
+  transition: transform .28s cubic-bezier(.32,.72,0,1), width .28s cubic-bezier(.32,.72,0,1);
+  pointer-events: none;
+}
+.seg button {
+  position: relative; z-index: 1; appearance: none; border: 0; background: none; cursor: pointer;
+  color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; padding: 4px 11px;
+  border-radius: 6px; transition: color .2s ease; white-space: nowrap;
+}
+.seg button:hover { color: var(--ink); }
+.seg button.on { color: var(--gold); }
+.seg button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .reading { color: var(--muted); font-size: 13.5px; line-height: 1.55; max-width: 76ch; margin: 8px 0 15px; }
 .reading b { color: var(--ink); font-weight: 600; }
 
@@ -80,7 +107,7 @@ a { color: inherit; }
 .band { display: grid; grid-template-columns: 76px 1fr 96px; align-items: center; gap: 12px; }
 .band .lbl { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .band .track { position: relative; height: 24px; border-radius: 5px; background: var(--panel-2); overflow: hidden; }
-.band .zero { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--line-bright); }
+.band .zero { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: color-mix(in srgb, var(--ink) 26%, transparent); }
 .band .fill { position: absolute; top: 4px; bottom: 4px; border-radius: 3px; transition: width .55s cubic-bezier(.22,1,.36,1), left .55s cubic-bezier(.22,1,.36,1); }
 .band .fill.pos { background: linear-gradient(90deg, var(--gold-deep), var(--gold)); }
 .band .fill.neg { background: color-mix(in srgb, var(--bad) 74%, transparent); }
@@ -101,15 +128,29 @@ a { color: inherit; }
 .stat .v.pos { color: var(--gold); } .stat .v.neg { color: var(--bad); }
 .stat .k { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
 
-.scroll { overflow-x: auto; overflow-y: auto; max-height: 430px; }
+.scroll { position: relative; overflow-x: auto; overflow-y: auto; max-height: 430px; }
+.scroll-fade { position: relative; }
+.scroll-fade::after {
+  content: ""; position: absolute; left: 1px; right: 1px; bottom: 0; height: 46px; pointer-events: none;
+  background: linear-gradient(to top, var(--panel), transparent); border-radius: 0 0 13px 13px;
+  opacity: 0; transition: opacity .25s ease;
+}
+.scroll-fade.more::after { opacity: 1; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th {
   position: sticky; top: 0; z-index: 1; background: var(--panel); color: var(--faint);
   font-weight: 500; font-size: 11.5px; letter-spacing: .02em;
 }
+/* the books table groups its columns under two fill models, so its header is two rows deep */
+thead tr.grp th { top: 0; }
+thead tr.grp th[colspan] { color: var(--muted); font-weight: 600; text-align: center; padding-bottom: 3px; }
+thead tr.sub th { top: 25px; border-bottom: 1px solid var(--line-bright); }
+th.edge, td.edge { border-left: 1px solid var(--line); }
 td { color: var(--ink); }
-td.what { white-space: normal; color: var(--muted); min-width: 260px; }
+td.pol { white-space: normal; max-width: 460px; }
+td.pol b { display: block; font-weight: 600; }
+td.pol span { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 2px; }
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover td { background: var(--panel-2); }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -166,7 +207,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   </section>
 
   <section class="panel span-5">
-    <div class="panel-head"><h2>Resting now</h2><span class="meta">by city</span></div>
+    <div class="panel-head"><h2>Resting now</h2><span class="meta" id="resting-meta">by city</span></div>
     <div class="scroll" style="max-height:286px">
       <table id="resting"><thead><tr><th>City</th><th class="num">Quotes</th><th class="num">At risk</th></tr></thead>
       <tbody><tr><td colspan="3"><div class="skel"></div></td></tr></tbody></table>
@@ -174,25 +215,41 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   </section>
 
   <section class="panel">
-    <div class="panel-head"><h2>The books</h2><span class="meta">one row per policy per fill model</span></div>
+    <div class="panel-head"><h2>The books</h2><span class="meta">one row per policy, both fill models across</span></div>
     <p class="reading">
       Two fill models bracket the truth. <b>Strict</b> fills only when the tape printed through the resting price,
       so it keeps the adverse half by construction. <b>Front of queue</b> assumes we were first every time. Both now
       respect the size of each print and the contracts ahead of us, which earlier versions did not.
     </p>
     <div class="scroll">
-      <table id="books"><thead><tr>
-        <th>Policy</th><th>What it quotes</th><th>Model</th><th class="num">Fills</th><th class="num">Graded</th><th class="num">Won</th><th class="num">P&amp;L</th>
-      </tr></thead><tbody><tr><td colspan="7"><div class="skel"></div></td></tr></tbody></table>
+      <table id="books"><thead>
+        <tr class="grp">
+          <th rowspan="2">Policy</th>
+          <th colspan="3" class="edge">Strict</th><th colspan="3">Front of queue</th>
+        </tr>
+        <tr class="sub">
+          <th class="num edge">Fills</th><th class="num">Graded</th><th class="num">P&amp;L</th>
+          <th class="num edge">Fills</th><th class="num">Graded</th><th class="num">P&amp;L</th>
+        </tr>
+      </thead><tbody><tr><td colspan="7"><div class="skel"></div></td></tr></tbody></table>
     </div>
   </section>
 
   <section class="panel">
-    <div class="panel-head"><h2>Fills</h2><span class="meta">most recent first</span></div>
+    <div class="panel-head">
+      <h2>Fills</h2><span class="meta">most recent first</span>
+      <div class="right">
+        <div class="seg" id="fill-model" role="tablist" aria-label="Fill model">
+          <span class="thumb"></span>
+          <button class="on" data-v="strict" role="tab" aria-selected="true">Strict</button>
+          <button data-v="foq" role="tab" aria-selected="false">Front of queue</button>
+        </div>
+      </div>
+    </div>
     <div class="scroll">
       <table id="fills"><thead><tr>
-        <th>When</th><th>Policy</th><th>Model</th><th>City</th><th>Box</th><th>Side</th><th class="num">Price</th><th class="num">Size</th><th>Settled</th><th class="num">P&amp;L</th>
-      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table>
+        <th>When</th><th>Policy</th><th>City</th><th>Box</th><th>Side</th><th class="num">Price</th><th class="num">Size</th><th>Settled</th><th class="num">P&amp;L</th>
+      </tr></thead><tbody><tr><td colspan="9"><div class="skel"></div></td></tr></tbody></table>
     </div>
   </section>
 </main>
@@ -206,7 +263,14 @@ const q = async (t, b) => { const { data, error } = await b(SB.from(t)); if (err
 const el = (id) => document.getElementById(id)
 const n0 = new Intl.NumberFormat('en-US')
 const DASH = '–'
-const money = (x) => (x == null ? DASH : (Number(x) < 0 ? '-' : '+') + '$' + Math.abs(Number(x)).toFixed(2))
+// Cents matter on a paper book of a few dollars and are noise on a six figure pool, so the
+// separator is always there and the cents stop once the number is big enough not to need them.
+const money = (x) => {
+  if (x == null) return DASH
+  const v = Math.abs(Number(x))
+  const body = v >= 1000 ? n0.format(Math.round(v)) : v.toFixed(2)
+  return (Number(x) < 0 ? '-' : '+') + '$' + body
+}
 const p2 = (x) => (x == null ? DASH : Number(x).toFixed(2))
 const ago = (iso) => { const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); return s < 90 ? Math.round(s) + 's ago' : s < 5400 ? Math.round(s / 60) + ' min ago' : (s / 3600).toFixed(1) + ' h ago' }
 const tone = (x) => (Number(x) > 0 ? 'pos' : Number(x) < 0 ? 'neg' : '')
@@ -240,7 +304,7 @@ async function load() {
   el('pool-stats').innerHTML = [
     ['v pos', money(tot), 'to all makers, combined'],
     ['v', n0.format(ctr), 'contracts measured'],
-    ['v pos', ctr ? (100 * tot / ctr).toFixed(3) + 'c' : DASH, 'per contract'],
+    ['v pos', ctr ? '+' + (100 * tot / ctr).toFixed(3) + 'c' : DASH, 'per contract'],
     ['v neg', '3.3x', 'taker fees over that'],
   ].map(([c, v, k]) => '<div class="stat"><div class="' + c + '">' + v + '</div><div class="k">' + k + '</div></div>').join('')
 
@@ -275,39 +339,97 @@ async function load() {
     c.n++; c.risk += Number(s.at_risk ?? 0); cities.set(s.city, c)
   }
   const rest = [...cities.entries()].sort((a, b) => b[1].risk - a[1].risk)
+  el('resting-meta').textContent = rest.length ? rest.length + (rest.length === 1 ? ' city' : ' cities') : 'by city'
   el('resting').querySelector('tbody').innerHTML = rest.length
     ? rest.map(([c, v]) => '<tr><td>' + c + '</td><td class="num">' + v.n + '</td><td class="num">$' + v.risk.toFixed(2) + '</td></tr>').join('')
     : '<tr><td colspan="3" class="empty">Nothing resting. Every quote is cancelled once its ladder passes the cutoff.</td></tr>'
 
-  /* books */
+  /* books: one row per policy, the two fill models side by side rather than stacked, so the
+     bracket is read across a row and each policy says what it is once. */
   const order = ['wm-v5', 'wm-v4', 'wm-v3', 'wm-v2', 'wm-v1']
   const rank = (p) => { const i = order.indexOf(p); return i < 0 ? 99 : i }
-  const rows = book.slice().sort((a, b) => (rank(a.policy) - rank(b.policy)) || a.fill_model.localeCompare(b.fill_model))
-  el('books').querySelector('tbody').innerHTML = rows.length ? rows.map((r) => '<tr>' +
-      '<td><b>' + r.policy + '</b></td>' +
-      '<td class="what">' + (WHAT[r.policy] ?? '') + '</td>' +
-      '<td class="dim">' + (r.fill_model === 'foq' ? 'front of queue' : 'strict') + '</td>' +
-      '<td class="num">' + n0.format(r.fills) + '</td>' +
+  const byPolicy = new Map()
+  for (const r of book) {
+    const e = byPolicy.get(r.policy) ?? {}
+    e[r.fill_model] = r; byPolicy.set(r.policy, e)
+  }
+  const cells = (r) => r
+    ? '<td class="num edge">' + n0.format(r.fills) + '</td>' +
       '<td class="num">' + n0.format(r.graded) + '</td>' +
-      '<td class="num">' + (r.graded ? Math.round(100 * r.wins / r.graded) + '%' : DASH) + '</td>' +
-      '<td class="num ' + (r.graded ? tone(r.pnl) : '') + '">' + (r.graded ? money(r.pnl) : DASH) + '</td>' +
+      '<td class="num ' + (r.graded ? tone(r.pnl) : '') + '">' + (r.graded ? money(r.pnl) : DASH) + '</td>'
+    : '<td class="num edge">' + DASH + '</td><td class="num">' + DASH + '</td><td class="num">' + DASH + '</td>'
+  const policies = [...byPolicy.keys()].sort((a, b) => rank(a) - rank(b))
+  el('books').querySelector('tbody').innerHTML = policies.length ? policies.map((p) => '<tr>' +
+      '<td class="pol"><b>' + p + '</b><span>' + (WHAT[p] ?? '') + '</span></td>' +
+      cells(byPolicy.get(p).strict) + cells(byPolicy.get(p).foq) +
     '</tr>').join('') : '<tr><td colspan="7" class="empty">No quotes recorded yet.</td></tr>'
 
-  /* fills */
-  el('fills').querySelector('tbody').innerHTML = fills.length ? fills.map((f) => '<tr>' +
-      '<td class="dim" title="' + f.filled_at + '">' + ago(f.filled_at) + '</td>' +
-      '<td>' + f.policy + '</td>' +
-      '<td class="dim">' + (f.fill_model === 'foq' ? 'front' : 'strict') + '</td>' +
-      '<td>' + f.city + '</td>' +
-      '<td class="dim">' + f.bucket + '</td>' +
-      '<td>' + f.side + '</td>' +
-      '<td class="num">' + p2(f.price) + '</td>' +
-      '<td class="num">' + f.contracts + '</td>' +
-      '<td class="dim">' + (f.settled_yes == null ? 'open' : f.settled_yes ? 'yes' : 'no') + '</td>' +
-      '<td class="num ' + tone(f.pnl) + '">' + (f.pnl == null ? DASH : money(f.pnl)) + '</td>' +
-    '</tr>').join('') : '<tr><td colspan="10" class="empty">No fills yet.</td></tr>'
+  /* fills: one model at a time. Showing both doubles every row with its own near twin, and the
+     two are not independent observations of anything. Strict first because it is the honest one. */
+  latestFills = fills
+  drawFills(el('fill-model').querySelector('button.on').dataset.v)
 }
 
+let latestFills = []
+function drawFills(model) {
+  const rows = latestFills.filter((f) => f.fill_model === model)
+  el('fills').querySelector('tbody').innerHTML = rows.length ? rows.map((f) => '<tr>' +
+        '<td class="dim" title="' + f.filled_at + '">' + ago(f.filled_at) + '</td>' +
+        '<td>' + f.policy + '</td>' +
+        '<td>' + f.city + '</td>' +
+        '<td class="dim">' + f.bucket + '</td>' +
+        '<td>' + f.side + '</td>' +
+        '<td class="num">' + p2(f.price) + '</td>' +
+        '<td class="num">' + f.contracts + '</td>' +
+        '<td class="dim">' + (f.settled_yes == null ? 'open' : f.settled_yes ? 'yes' : 'no') + '</td>' +
+        '<td class="num ' + tone(f.pnl) + '">' + (f.pnl == null ? DASH : money(f.pnl)) + '</td>' +
+    '</tr>').join('')
+    : '<tr><td colspan="9" class="empty">No fills under this model yet.</td></tr>'
+}
+
+/* the segmented control: the thumb is measured from the live button, so it stays right when the
+   labels change width between themes or at phone size */
+function wireSeg(id, onPick) {
+  const seg = el(id), btns = [...seg.querySelectorAll('button')], thumb = seg.querySelector('.thumb')
+  const place = (b, animate) => {
+    if (!animate) thumb.style.transition = 'none'
+    thumb.style.width = b.offsetWidth + 'px'
+    thumb.style.transform = 'translateX(' + (b.offsetLeft - seg.clientLeft - 3) + 'px)'
+    if (!animate) requestAnimationFrame(() => { thumb.style.transition = '' })
+  }
+  const pick = (b, animate = true) => {
+    for (const o of btns) { o.classList.toggle('on', o === b); o.setAttribute('aria-selected', String(o === b)) }
+    place(b, animate)
+    onPick(b.dataset.v)
+  }
+  for (const b of btns) b.addEventListener('click', () => pick(b))
+  const current = () => seg.querySelector('button.on')
+  requestAnimationFrame(() => place(current(), false))
+  addEventListener('resize', () => place(current(), false))
+  return { redraw: () => onPick(current().dataset.v) }
+}
+
+/* A capped table that ends mid row looks like the end of the list. Wrap each one and fade the
+   last few pixels while there is more below, which is also the cheapest scroll affordance there
+   is: no scrollbar styling, nothing to keep in sync with the data. */
+function wireFades() {
+  for (const sc of document.querySelectorAll('.scroll')) {
+    let host = sc.parentElement
+    if (!host.classList.contains('scroll-fade')) {
+      host = document.createElement('div')
+      host.className = 'scroll-fade'
+      sc.parentElement.insertBefore(host, sc)
+      host.appendChild(sc)
+    }
+    const sync = () => host.classList.toggle('more', sc.scrollHeight - sc.clientHeight - sc.scrollTop > 8)
+    sc.addEventListener('scroll', sync, { passive: true })
+    new ResizeObserver(sync).observe(sc.firstElementChild ?? sc)
+    sync()
+  }
+}
+
+wireSeg('fill-model', drawFills)
+wireFades()
 await load().catch((e) => { el('tick').textContent = 'Could not load: ' + e.message })
 setInterval(() => load().catch(() => {}), 60000)
 </script>
