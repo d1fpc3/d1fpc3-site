@@ -204,6 +204,24 @@
     .acct .reading { margin-bottom: 18px; max-width: 90ch; }
     .book-h { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); margin: 6px 0 12px; }
     .book-h span { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--faint); margin-left: 8px; }
+    /* risk: the five numbers the executor obeys on the account, edited here by the admin */
+    .risk { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; padding: 12px 14px 13px; margin: 2px 0 16px; background: var(--panel-2); border-radius: 10px; }
+    .risk-h { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); align-self: center; margin-right: 2px; }
+    .rf { display: flex; flex-direction: column; gap: 5px; }
+    .rf .rk { font-size: 11.5px; color: var(--faint); white-space: nowrap; }
+    .ri { display: inline-flex; align-items: center; gap: 3px; height: 32px; padding: 0 9px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; transition: border-color 160ms, box-shadow 160ms; }
+    .ri:focus-within { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,162,74,0.14); }
+    .ri i { font-style: normal; color: var(--faint); font-size: 12.5px; }
+    .ri input { width: 58px; background: none; border: 0; color: var(--ink); font: inherit; font-size: 13.5px; font-variant-numeric: tabular-nums; outline: none; -moz-appearance: textfield; appearance: textfield; }
+    .ri input::-webkit-outer-spin-button, .ri input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .risk-save { height: 32px; padding: 0 14px; border-radius: 8px; background: var(--gold); color: #1a1815; font-size: 13px; font-weight: 600; transition: transform 120ms, opacity 160ms, box-shadow 160ms; }
+    .risk-save:active { transform: scale(0.97); }
+    .risk-save[disabled] { opacity: 0.38; cursor: default; }
+    .risk.dirty .risk-save:not([disabled]) { box-shadow: 0 0 0 3px rgba(201,162,74,0.22); }
+    .risk .note { color: var(--muted); font-size: 12px; margin-left: auto; align-self: center; max-width: 100%; }
+    .risk.locked .ri { opacity: 0.6; }
+    .risk.locked .ri input { pointer-events: none; }
+    @media (max-width: 720px) { .risk { gap: 10px; } .ri input { width: 52px; } .risk .note { margin-left: 0; width: 100%; } }
     .paper-stats { margin-top: 4px; }
     .seg.locked button { cursor: not-allowed; }
     .seg.locked button:active { transform: none; }
@@ -341,6 +359,16 @@
         <div class="stat"><div class="v" id="a-switch">–</div><div class="k" id="a-switch-k">signals switch</div></div>
       </div>
       <p class="reading quiet" id="acct-reading">Loading.</p>
+      <div class="risk" id="risk" title="What the executor obeys on the account. It reads this row on every pass, so a change lands within a minute.">
+        <div class="risk-h">Risk</div>
+        <label class="rf"><span class="rk">per call</span><span class="ri"><i>$</i><input id="r-clip" type="number" min="1" max="500" step="1" inputmode="decimal"></span></label>
+        <label class="rf"><span class="rk">stop for the day</span><span class="ri"><i>-$</i><input id="r-stop" type="number" min="0" max="5000" step="1" inputmode="decimal"></span></label>
+        <label class="rf"><span class="rk">cap for the day</span><span class="ri"><i>$</i><input id="r-cap" type="number" min="1" max="10000" step="1" inputmode="decimal"></span></label>
+        <label class="rf"><span class="rk">open at once</span><span class="ri"><input id="r-open" type="number" min="1" max="50" step="1" inputmode="numeric"></span></label>
+        <label class="rf"><span class="rk">lowest price</span><span class="ri"><input id="r-min" type="number" min="1" max="99" step="1" inputmode="numeric"><i>¢</i></span></label>
+        <button class="risk-save" id="r-save" disabled>Save</button>
+        <span class="note" id="risk-note"></span>
+      </div>
       <h3 class="book-h">Paper <span>every rule, $10 a call, nothing sent</span></h3>
       <div class="stat-row acct-stats paper-stats">
         <div class="stat"><div class="v" id="p-today">–</div><div class="k">today, held to close</div></div>
@@ -868,6 +896,44 @@
       })
     }
 
+    /* ── risk: the five numbers the executor obeys on the account (kalshi_switch, v18). The
+       admin edits them here; the executor reads the row on every pass. ── */
+    async function initRisk() {
+      const host = el('risk'), note = el('risk-note'), save = el('r-save')
+      const f = { clip: el('r-clip'), stop: el('r-stop'), cap: el('r-cap'), open: el('r-open'), min: el('r-min') }
+      const rows = await q('kalshi_switch', (b) => b.select('clip,daily_stop,daily_cap,max_open,min_price').eq('id', 1)).catch(() => [])
+      const r = rows[0]
+      if (!r) { note.textContent = 'no switch row'; return }
+      const fill = () => {
+        f.clip.value = Number(r.clip); f.stop.value = Math.abs(Number(r.daily_stop)); f.cap.value = Number(r.daily_cap)
+        f.open.value = Number(r.max_open); f.min.value = Math.round(Number(r.min_price) * 100)
+      }
+      fill()
+      let canEdit = false
+      if (session) { const { data } = await supabase.rpc('is_admin'); canEdit = data === true }
+      host.classList.toggle('locked', !canEdit)
+      note.textContent = canEdit ? '' : 'sign in at /echelon/admin to change'
+      const read = () => ({ clip: Number(f.clip.value), daily_stop: -Math.abs(Number(f.stop.value)), daily_cap: Number(f.cap.value), max_open: Math.floor(Number(f.open.value)), min_price: Math.round(Number(f.min.value)) / 100 })
+      const valid = (v) => v.clip >= 1 && v.clip <= 500 && v.daily_stop <= 0 && v.daily_stop >= -5000 && v.daily_cap >= 1 && v.daily_cap <= 10000 && v.max_open >= 1 && v.max_open <= 50 && v.min_price >= 0.01 && v.min_price <= 0.99
+      const same = (v) => v.clip === Number(r.clip) && v.daily_stop === Number(r.daily_stop) && v.daily_cap === Number(r.daily_cap) && v.max_open === Number(r.max_open) && Math.abs(v.min_price - Number(r.min_price)) < 1e-9
+      const changed = () => {
+        const v = read(), ok = valid(v), dirty = !same(v)
+        host.classList.toggle('dirty', dirty)
+        save.disabled = !canEdit || !dirty || !ok
+        if (canEdit) note.textContent = !ok ? 'out of range' : dirty ? 'not saved yet' : ''
+      }
+      Object.values(f).forEach((i) => i.addEventListener('input', changed))
+      save.addEventListener('click', async () => {
+        const v = read()
+        if (!canEdit || !valid(v)) return
+        save.disabled = true; note.textContent = 'saving'
+        const { error } = await supabase.from('kalshi_switch').update({ ...v, updated_at: new Date().toISOString(), updated_by: session.user.email }).eq('id', 1)
+        if (error) { note.textContent = 'could not save: ' + error.message; save.disabled = false; return }
+        Object.assign(r, v); fill(); host.classList.remove('dirty')
+        note.textContent = `saved: $${v.clip} a call, stop -$${Math.abs(v.daily_stop)}, cap $${v.daily_cap}, ${v.max_open} open, ${Math.round(v.min_price * 100)}¢ floor. The executor reads it on its next pass.`
+      })
+    }
+
     /* ── what it learned ── */
     async function loadWeights() {
       const latest = await q('kalshi_models', (b) => b.select('as_of').eq('kind', 'full').order('as_of', { ascending: false }).limit(1))
@@ -1052,7 +1118,7 @@
     segment(el('cal-mtc'), MTC.map((b) => ({ v: b, label: b.replace('-', ' to ') + ' min' })), state.mtc, (v) => { state.mtc = v; renderCalib() })
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadTicks(), initSwitch(), loadAccount(), loadPaper(), loadStats(), loadDaily(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadStats(), loadDaily(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
     setInterval(() => { loadTicks(); loadAccount(); loadPaper(); loadLive() }, 30_000)
     setInterval(() => { loadStats(); loadCoverage(); loadEdge() }, 5 * 60_000)
