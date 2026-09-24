@@ -41,6 +41,10 @@ body{
 .rail{
   position:sticky; top:0; z-index:30; display:flex; align-items:stretch; flex-wrap:wrap;
   background:#000; border-bottom:1px solid var(--amber-dim);
+  /* viewport-fit=cover is set on this page and nothing reserved the safe area, so on a
+     notched iPhone the rail rendered under the status bar. */
+  padding-top:env(safe-area-inset-top,0px);
+  padding-left:env(safe-area-inset-left,0px); padding-right:env(safe-area-inset-right,0px);
 }
 .rail .brand{
   background:var(--amber); color:#000; font-weight:700; letter-spacing:.14em;
@@ -78,10 +82,15 @@ body{
 
 /* ── tables ────────────────────────────────────────────────────── */
 table{width:100%; border-collapse:collapse; font-size:11px; white-space:nowrap}
+/* pinned under the rail, not at 0: both were sticky at top:0 and the column names slid
+   under the rail the moment a table scrolled. --rail-h is measured; the rail wraps. */
 thead th{
   color:var(--cyan); text-align:left; font-weight:500; text-transform:uppercase; letter-spacing:.05em;
-  font-size:9.5px; padding:2px 7px 3px; border-bottom:1px solid var(--rule2); position:sticky; top:0; background:var(--panel);
+  font-size:9.5px; padding:2px 7px 3px; border-bottom:1px solid var(--rule2);
+  position:sticky; top:var(--rail-h,48px); background:var(--panel);
 }
+/* same rule: .pb is overflow:auto, so headers inside it pin against the pane, not the page */
+.pb thead th{top:0}
 td{padding:1.5px 7px; border-bottom:1px solid #111}
 tbody tr:hover td{background:#141006}
 th.n,td.n{text-align:right}
@@ -110,8 +119,11 @@ th.n,td.n{text-align:right}
 .note{color:var(--faint); padding:4px 8px; font-size:10px; line-height:1.45; white-space:normal}
 .warn{color:var(--amber)}
 /* command rail */
+/* the home indicator sits over the bottom of the screen on a modern iPhone; without the
+   inset the command rail's text runs underneath it */
 .cmd{position:sticky; bottom:0; z-index:30; display:flex; gap:10px; align-items:center;
-  background:#000; border-top:1px solid var(--amber-dim); padding:4px 10px; color:var(--faint); font-size:10px}
+  background:#000; border-top:1px solid var(--amber-dim); color:var(--faint); font-size:10px;
+  padding:4px max(10px,env(safe-area-inset-right,0px)) max(4px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
 .cmd b{color:var(--amber)}
 .flash{animation:fl .5s ease-out}
 @keyframes fl{from{background:#3a2600}to{background:transparent}}
@@ -233,6 +245,17 @@ th.n,td.n{text-align:right}
   <span data-desk-signout></span>
 </div>
 
+<script>
+/* the sticky rail's real height, for the table headers that have to clear it */
+{
+  const rail = document.querySelector('.rail');
+  if (rail) {
+    const write = () => document.documentElement.style.setProperty('--rail-h', Math.round(rail.getBoundingClientRect().height) + 'px');
+    write();
+    new ResizeObserver(write).observe(rail);
+  }
+}
+</script>
 <script type="module">
 import { SB, requireDesk } from './desk-auth.js'
 // Nothing below runs until a listed member is signed in; the tables are RLS-gated

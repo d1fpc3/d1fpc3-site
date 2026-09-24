@@ -44,9 +44,14 @@ a { color: inherit; }
 
 .topbar {
   position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px;
+  /* the page is viewport-fit=cover, so without this the bar renders under the iPhone's
+     status bar. The left and right insets were already here; the top one was not. */
   padding: 12px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(14px); border-bottom: 1px solid var(--line);
+  padding-top: max(12px, env(safe-area-inset-top));
+  /* Opaque. At 88% the table underneath stayed legible through the bar, so the top of the
+     page read as two things printed on each other. Glass only works over quiet content. */
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
 }
 .topbar .back {
   display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 9px;
@@ -139,9 +144,17 @@ a { color: inherit; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th {
-  position: sticky; top: 0; z-index: 1; background: var(--panel); color: var(--faint);
+  /* Pinned BELOW the top bar, not at 0. Both were sticky at top:0, so scrolling a table slid
+     its header underneath the bar (z-index 1 against 20) and the column names disappeared
+     exactly when you needed them. --bar-h is measured, never a number written down here,
+     because the bar wraps and its height changes with the width. */
+  position: sticky; top: var(--bar-h, 48px); z-index: 1; background: var(--panel); color: var(--faint);
   font-weight: 500; font-size: 11.5px; letter-spacing: .02em;
 }
+/* A header inside .scroll is sticky against THAT scroller, not the page, so it pins at 0
+   there. Offsetting it by the page bar pushed it down into its own box instead. Only a
+   table sitting in the page flow has to clear the top bar. */
+.scroll th { top: 0; }
 /* the books table groups its columns under two fill models, so its header is two rows deep */
 thead tr.grp th { top: 0; }
 thead tr.grp th[colspan] { color: var(--muted); font-weight: 600; text-align: center; padding-bottom: 3px; }
@@ -254,6 +267,17 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   </section>
 </main>
 
+<script>
+/* the sticky bar's real height, for anything that has to clear it */
+{
+  const bar = document.querySelector('.topbar');
+  if (bar) {
+    const write = () => document.documentElement.style.setProperty('--bar-h', Math.round(bar.getBoundingClientRect().height) + 'px');
+    write();
+    new ResizeObserver(write).observe(bar);
+  }
+}
+</script>
 <script type="module">
 import { SB, requireDesk } from './desk-auth.js'
 
