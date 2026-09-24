@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Kalshi Terminal</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+/* ─────────────────────────────────────────────────────────────────────
+   KALSHI TERMINAL
+   Density over whitespace. Every number this desk can reach, on one
+   screen, in one typeface, refreshed on its own clock. The house style
+   of a trading terminal: amber on black, monospace, hairline rules,
+   inverted panel headers, no rounded corners, no decoration that is not
+   a number or a label for one.
+   Reads the Kalshi tables as a signed-in member of the desk access list.
+   Nothing here places an order.
+   ───────────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+:root{
+  --bg:#000; --panel:#080808; --rule:#1c1c1c; --rule2:#2a2a2a;
+  --amber:#ffa000; --amber-dim:#8a5a00; --ink:#e8e8e8; --muted:#8a8a8a; --faint:#585858;
+  --up:#00d95f; --down:#ff4d4d; --cyan:#35c8d8; --violet:#a98bff;
+  --mono:ui-monospace,'Cascadia Mono','SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace;
+}
+/* min-height, never height: a fixed body height caps the sticky containing block at one
+   viewport, so the rail and the command bar unstick once the page scrolls past it. */
+html,body{min-height:100%}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--mono);
+  font-size:11.5px; line-height:1.35; font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--rule2)}
+::-webkit-scrollbar-track{background:#000}
+
+/* ── top status rail ───────────────────────────────────────────── */
+.rail{
+  position:sticky; top:0; z-index:30; display:flex; align-items:stretch; flex-wrap:wrap;
+  background:#000; border-bottom:1px solid var(--amber-dim);
+}
+.rail .brand{
+  background:var(--amber); color:#000; font-weight:700; letter-spacing:.14em;
+  padding:5px 12px; white-space:nowrap;
+}
+.rail .cell{padding:5px 12px; border-right:1px solid var(--rule); white-space:nowrap; display:flex; gap:7px; align-items:baseline}
+.rail .k{color:var(--faint); text-transform:uppercase; letter-spacing:.07em; font-size:10px}
+.rail .v{color:var(--ink); font-weight:600}
+.rail .v.amber{color:var(--amber)}
+.rail .v.up{color:var(--up)} .rail .v.down{color:var(--down)}
+.rail .spacer{flex:1 1 auto; border-right:0}
+.dot{width:6px;height:6px;display:inline-block;background:var(--faint);vertical-align:1px}
+.dot.on{background:var(--up)} .dot.off{background:var(--down)} .dot.warn{background:var(--amber)}
+.blink{animation:bl 1.1s steps(2,start) infinite}
+@keyframes bl{50%{opacity:.25}}
+
+/* ── grid ──────────────────────────────────────────────────────── */
+.wrap{display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:1px; background:var(--rule); padding:1px}
+.p{background:var(--panel); min-width:0; display:flex; flex-direction:column}
+.c12{grid-column:span 12} .c8{grid-column:span 8} .c7{grid-column:span 7}
+.c6{grid-column:span 6} .c5{grid-column:span 5} .c4{grid-column:span 4} .c3{grid-column:span 3}
+@media(max-width:1500px){.c8,.c7,.c5,.c4,.c3{grid-column:span 6}}
+@media(max-width:900px){.c8,.c7,.c6,.c5,.c4,.c3{grid-column:span 12}}
+
+.ph{
+  display:flex; align-items:center; gap:9px; background:var(--amber); color:#000;
+  padding:2px 8px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; font-size:10.5px;
+}
+.ph .fk{background:#000; color:var(--amber); padding:0 5px; font-weight:700}
+.ph .sub{margin-left:auto; font-weight:400; letter-spacing:.04em; text-transform:none; color:#3a2600; font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.pb{padding:5px 8px 7px; overflow:auto; flex:1}
+.pb.cap{max-height:300px}
+.pb.cap2{max-height:232px}
+.pb.tight{padding:3px 0 4px}
+
+/* ── tables ────────────────────────────────────────────────────── */
+table{width:100%; border-collapse:collapse; font-size:11px; white-space:nowrap}
+thead th{
+  color:var(--cyan); text-align:left; font-weight:500; text-transform:uppercase; letter-spacing:.05em;
+  font-size:9.5px; padding:2px 7px 3px; border-bottom:1px solid var(--rule2); position:sticky; top:0; background:var(--panel);
+}
+td{padding:1.5px 7px; border-bottom:1px solid #111}
+tbody tr:hover td{background:#141006}
+th.n,td.n{text-align:right}
+.sym{color:var(--amber); font-weight:700}
+.up{color:var(--up)} .down{color:var(--down)} .mut{color:var(--muted)} .fnt{color:var(--faint)} .cy{color:var(--cyan)} .vi{color:var(--violet)}
+.yes{color:var(--up); font-weight:700} .no{color:var(--down); font-weight:700}
+.tag{background:#161616; padding:0 5px; color:var(--muted)}
+.tag.on{background:#062; color:#8fffc0} .tag.off{background:#400; color:#ffb3b3}
+.tag.hot{background:var(--amber); color:#000; font-weight:700}
+.bar{display:inline-block; height:6px; background:var(--amber-dim); vertical-align:1px; margin-left:5px}
+.empty{color:var(--faint); padding:10px 8px}
+.kv{display:grid; grid-template-columns:repeat(2,auto 1fr); gap:1px 10px; padding:4px 8px 6px}
+.kv .k{color:var(--faint); text-transform:uppercase; font-size:9.5px; letter-spacing:.05em}
+.kv .v{color:var(--ink); text-align:right; font-weight:600}
+.big{display:grid; grid-template-columns:repeat(auto-fit,minmax(92px,1fr)); gap:6px 10px; padding:6px 8px}
+.big .n{font-size:19px; font-weight:700; letter-spacing:-.02em; line-height:1.05}
+.big .l{color:var(--faint); font-size:9.5px; text-transform:uppercase; letter-spacing:.05em}
+.spark{display:block; width:100%; height:34px}
+.spark .ln{fill:none; stroke:var(--amber); stroke-width:1.2}
+.spark .z{stroke:var(--rule2); stroke-width:1}
+.spark .ar{fill:var(--amber); opacity:.1}
+.heat{display:grid; gap:1px}
+.heat i{height:11px; background:#0d0d0d; display:block}
+.heat i[data-l="1"]{background:#3a2600} .heat i[data-l="2"]{background:#6b4500}
+.heat i[data-l="3"]{background:#b37400} .heat i[data-l="4"]{background:var(--amber)}
+.note{color:var(--faint); padding:4px 8px; font-size:10px; line-height:1.45; white-space:normal}
+.warn{color:var(--amber)}
+/* command rail */
+.cmd{position:sticky; bottom:0; z-index:30; display:flex; gap:10px; align-items:center;
+  background:#000; border-top:1px solid var(--amber-dim); padding:4px 10px; color:var(--faint); font-size:10px}
+.cmd b{color:var(--amber)}
+.flash{animation:fl .5s ease-out}
+@keyframes fl{from{background:#3a2600}to{background:transparent}}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <div class="brand">KALSHI TERMINAL</div>
+  <div class="cell"><span class="k">UTC</span><span class="v amber" id="clock">--:--:--</span></div>
+  <div class="cell"><span class="k">Acct</span><span class="v" id="r-bal">–</span></div>
+  <div class="cell"><span class="k">Today</span><span class="v" id="r-day">–</span></div>
+  <div class="cell"><span class="k">Open</span><span class="v" id="r-open">–</span></div>
+  <div class="cell"><span class="k">Sent</span><span class="v" id="r-sent">–</span></div>
+  <div class="cell"><span class="k">Mode</span><span class="v" id="r-mode">–</span></div>
+  <div class="cell"><span class="k">Exec</span><span class="v" id="r-exec"><span class="dot"></span></span></div>
+  <div class="cell"><span class="k">Feed</span><span class="v" id="r-feed"><span class="dot"></span></span></div>
+  <div class="cell spacer"></div>
+  <div class="cell"><span class="k">Rounds</span><span class="v" id="r-rounds">–</span></div>
+  <div class="cell"><span class="k">Paper</span><span class="v" id="r-paper">–</span></div>
+</div>
+
+<main class="wrap">
+
+  <section class="p c8">
+    <div class="ph"><span class="fk">F1</span>Markets <span class="sub" id="mk-sub">live board, every series the collector sees</span></div>
+    <div class="pb tight cap"><table id="mk"><thead><tr>
+      <th>Series</th><th class="n">Close</th><th class="n">Strike</th><th class="n">Spot</th><th class="n">vs open</th>
+      <th class="n">Bid</th><th class="n">Ask</th><th class="n">Mid</th><th class="n">Spr</th>
+      <th class="n">DepthY</th><th class="n">DepthN</th><th class="n">Tape</th><th class="n">Tkr%</th>
+      <th class="n">Z</th><th class="n">Fair</th><th class="n">Edge</th><th>Signal</th>
+    </tr></thead><tbody><tr><td colspan="17" class="empty">loading</td></tr></tbody></table></div>
+  </section>
+
+  <section class="p c4">
+    <div class="ph"><span class="fk">F2</span>Account <span class="sub" id="ac-sub">exchange settlements, real money</span></div>
+    <div class="big" id="ac-big"></div>
+    <div class="pb tight"><table id="pos"><thead><tr>
+      <th>Open position</th><th>Side</th><th class="n">Entry</th><th class="n">Fill</th><th class="n">Now</th><th class="n">Unreal</th>
+    </tr></thead><tbody><tr><td colspan="6" class="empty">loading</td></tr></tbody></table></div>
+  </section>
+
+  <section class="p c7">
+    <div class="ph"><span class="fk">F3</span>Rules <span class="sub">last 20 graded, the gate's own window · proof = Wilson floor vs the price paid</span></div>
+    <div class="pb tight"><table id="rules"><thead><tr>
+      <th>Rule</th><th>State</th><th>Exit</th><th class="n">L20</th><th class="n">Held</th><th class="n">Exits</th>
+      <th class="n">All</th><th class="n">Net</th><th class="n">Win%</th><th class="n">Floor</th><th class="n">Needs</th><th>Proven</th>
+    </tr></thead><tbody><tr><td colspan="12" class="empty">loading</td></tr></tbody></table></div>
+  </section>
+
+  <section class="p c5">
+    <div class="ph"><span class="fk">F4</span>Assets <span class="sub">gate scored across every rule, last 40 graded</span></div>
+    <div class="pb tight"><table id="assets"><thead><tr>
+      <th>Asset</th><th>Gate</th><th class="n">n</th><th class="n">Win%</th><th class="n">Book</th><th class="n">$/call</th><th class="n">All time</th>
+    </tr></thead><tbody><tr><td colspan="7" class="empty">loading</td></tr></tbody></table></div>
+  </section>
+
+  <section class="p c7">
+    <div class="ph"><span class="fk">F5</span>Blotter <span class="sub">every intent this desk queued, newest first</span></div>
+    <div class="pb tight cap"><table id="blot"><thead><tr>
+      <th>When</th><th>Rule</th><th>Series</th><th>Side</th><th class="n">Px</th><th class="n">Size</th><th class="n">Mult</th><th>Exit</th><th>Status</th><th class="n">P&amp;L</th>
+    </tr></thead><tbody><tr><td colspan="10" class="empty">loading</td></tr></tbody></table></div>
+  </section>
+
+  <section class="p c5">
+    <div class="ph"><span class="fk">F6</span>P&amp;L <span class="sub">account and paper, never summed</span></div>
+    <div class="big" id="pl-big"></div>
+    <svg class="spark" id="pl-spark" viewBox="0 0 300 34" preserveAspectRatio="none"></svg>
+    <div class="pb tight cap2"><table id="pl"><thead><tr>
+      <th>Day</th><th class="n">Acct</th><th class="n">Orders</th><th class="n">Calls</th><th class="n">Graded</th><th class="n">Paper held</th><th class="n">Paper exits</th>
+    </tr></thead><tbody><tr><td colspan="7" class="empty">loading</td></tr></tbody></table></div>
+  </section>
+
+  <section class="p c4">
+    <div class="ph"><span class="fk">F7</span>Risk <span class="sub">kalshi_switch, live</span></div>
+    <div class="kv" id="risk"></div>
+    <p class="note" id="risk-note"></p>
+  </section>
+
+  <section class="p c4">
+    <div class="ph"><span class="fk">F8</span>Calibration <span class="sub" id="cal-sub">what the mid said against what happened</span></div>
+    <div class="pb tight cap2"><table id="cal"><thead><tr>
+      <th>Band</th><th class="n">n</th><th class="n">Mid</th><th class="n">Realized</th><th class="n">Gap</th><th class="n">Brier</th>
+    </tr></thead><tbody><tr><td colspan="6" class="empty">loading</td></tr></tbody></table></div>
+  </section>
+
+  <section class="p c4">
+    <div class="ph"><span class="fk">F9</span>Model <span class="sub" id="mdl-sub">last night's fit, raw slopes</span></div>
+    <div class="pb tight cap2"><table id="mdl"><thead><tr>
+      <th>Series</th><th class="n">Train</th><th class="n">P(mkt)</th><th class="n">Dist</th><th class="n">Range</th><th class="n">Mom</th><th class="n">Brier</th>
+    </tr></thead><tbody><tr><td colspan="7" class="empty">loading</td></tr></tbody></table></div>
+  </section>
+
+  <section class="p c6">
+    <div class="ph"><span class="fk">F10</span>Score <span class="sub">out-of-sample Brier by day, model against the market mid</span></div>
+    <div class="pb tight cap2"><table id="score"><thead><tr>
+      <th>Day</th><th class="n">Rounds</th><th class="n">Market</th><th class="n">Calibrated</th><th class="n">Distance</th><th class="n">Learned</th><th class="n">Blind</th><th class="n">Edge</th>
+    </tr></thead><tbody><tr><td colspan="8" class="empty">loading</td></tr></tbody></table></div>
+  </section>
+
+  <section class="p c6">
+    <div class="ph"><span class="fk">F11</span>System <span class="sub">collector runs and capture</span></div>
+    <div class="pb tight cap2"><table id="sys"><thead><tr>
+      <th>Ran</th><th>From</th><th class="n">Rounds</th><th class="n">Snaps</th><th class="n">Tape</th><th class="n">Spots</th><th class="n">Settled</th><th class="n">ms</th><th>Errors</th>
+    </tr></thead><tbody><tr><td colspan="9" class="empty">loading</td></tr></tbody></table></div>
+    <div class="ph" style="margin-top:2px"><span class="fk">F12</span>Coverage <span class="sub">minutes of book per series per UTC day, 1440 is full</span></div>
+    <div class="pb" id="cov"></div>
+  </section>
+
+</main>
+
+<div class="cmd">
+  <b>KALSHI TERMINAL</b>
+  <span id="who">private desk · nothing here places an order</span>
+  <span class="fnt">markets 10s · account 15s · books 60s · reference 5m</span>
+  <span class="fnt" id="cmd-err"></span>
+  <span style="margin-left:auto"><a href="index.html" style="color:var(--amber)">desk view</a></span>
+  <span data-desk-signout></span>
+</div>
+
+<script type="module">
+import { SB, requireDesk } from './desk-auth.js'
+// Nothing below runs until a listed member is signed in; the tables are RLS-gated
+// to the desk access list, so an unauthenticated page would just render zeros.
+const DESK_USER = await requireDesk()
+const el = (id) => document.getElementById(id)
+const fmt = new Intl.NumberFormat('en-US')
+const n0 = (x) => (x == null ? '–' : fmt.format(Math.round(Number(x))))
+const p2 = (x) => (x == null ? '–' : Number(x).toFixed(2))
+const p3 = (x) => (x == null ? '–' : Number(x).toFixed(3))
+const pc = (x, d = 0) => (x == null ? '–' : (100 * Number(x)).toFixed(d) + '%')
+const money = (x) => (x == null ? '–' : (Number(x) < 0 ? '-' : '') + '$' + Math.abs(Number(x)).toFixed(2))
+const signed = (x) => (x == null ? '–' : (Number(x) > 0 ? '+' : Number(x) < 0 ? '-' : '') + '$' + Math.abs(Number(x)).toFixed(2))
+const cls = (x) => (x == null || Number(x) === 0 ? '' : Number(x) > 0 ? 'up' : 'down')
+const short = (s) => String(s ?? '').replace(/^KX/, '').replace(/15M.*$/, '')
+const ago = (iso) => { if (!iso) return '–'; const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); return s < 90 ? Math.round(s) + 's' : s < 5400 ? Math.round(s / 60) + 'm' : (s / 3600).toFixed(1) + 'h' }
+const esc = (s) => String(s ?? '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))
+const q = async (t, b) => { const { data, error } = await b(SB.from(t)); if (error) throw new Error(t + ': ' + error.message); return data ?? [] }
+const fill = (id, html, cols) => { el(id).querySelector('tbody').innerHTML = html || `<tr><td colspan="${cols}" class="empty">no rows</td></tr>` }
+const errs = []
+const guard = (name, fn) => fn().catch((e) => { errs.push(name); el('cmd-err').textContent = 'errors: ' + [...new Set(errs)].slice(-4).join(', '); console.error(name, e) })
+
+/** Standard normal CDF, for the model's fair value on the live board. */
+const ncdf = (z) => { const t = 1 / (1 + 0.2316419 * Math.abs(z)); const d = 0.3989422804014327 * Math.exp(-z * z / 2)
+  let p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429)))); return z > 0 ? 1 - p : p }
+const takerFee = (n, p) => Math.ceil(0.07 * p * (1 - p) * n * 100) / 100
+const wilson = (w, n, z = 1.96) => { if (!n) return 0; const p = w / n, d = 1 + z * z / n
+  return (p + z * z / (2 * n) - z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))) / d }
+
+setInterval(() => { el('clock').textContent = new Date().toISOString().slice(11, 19) }, 1000)
+
+/* ── per-asset realized vol from the minute spot series, for Z and fair value ── */
+let SIGMA = new Map()
+async function loadSigma() {
+  const since = new Date(Date.now() - 6 * 3600_000).toISOString()
+  const rows = await q('kalshi_spot', (b) => b.select('asset,minute_utc,price').gte('minute_utc', since).order('minute_utc'))
+  const by = new Map()
+  for (const r of rows) { const a = by.get(r.asset) ?? []; a.push(Number(r.price)); by.set(r.asset, a) }
+  const out = new Map()
+  for (const [a, px] of by) {
+    let s = 0, n = 0
+    for (let i = 1; i < px.length; i++) { const x = px[i - 1], y = px[i]; if (x > 0 && y > 0) { const r = Math.log(y / x); s += r * r; n++ } }
+    if (n > 30) out.set(a, Math.sqrt(s / n))
+  }
+  SIGMA = out
+}
+
+/* ── F1 markets ── */
+async function loadMarkets() {
+  const live = await q('kalshi_live', (b) => b.select('*').order('series'))
+  if (!live.length) return fill('mk', '', 17)
+  const tks = live.map((r) => r.ticker)
+  const tape = await q('kalshi_tape_minutes', (b) => b.select('ticker,minute_utc,trades,contracts,taker_yes_contracts').in('ticker', tks).order('minute_utc', { ascending: false }).limit(tks.length * 3))
+  const last = new Map(); for (const t of tape) if (!last.has(t.ticker)) last.set(t.ticker, t)
+  const dmax = Math.max(1, ...live.map((r) => Math.max(Number(r.top5_yes ?? 0), Number(r.top5_no ?? 0))))
+  el('mk-sub').textContent = `${live.length} series · book ${ago(live[0].minute_utc)} old · sigma from ${SIGMA.size} spot series`
+  fill('mk', live.map((r) => {
+    const asset = short(r.series)
+    const sig = SIGMA.get(asset)
+    const mtc = r.close_time ? Math.max(0.2, (Date.parse(r.close_time) - Date.now()) / 60000) : null
+    const z = sig && r.spot && r.strike && mtc ? Math.log(Number(r.spot) / Number(r.strike)) / (sig * Math.sqrt(mtc)) : null
+    const fair = z == null ? null : ncdf(z)
+    // best executable edge after fee: buy YES at the ask or NO at 1-bid
+    let edge = null, sideTxt = ''
+    if (fair != null) {
+      const cands = []
+      if (r.yes_ask != null) { const p = Number(r.yes_ask), n = Math.floor(10 / p); if (n > 0 && p > 0 && p < 1) cands.push(['YES', p, fair - p - takerFee(n, p) / n]) }
+      if (r.yes_bid != null) { const p = 1 - Number(r.yes_bid), n = Math.floor(10 / p); if (n > 0 && p > 0 && p < 1) cands.push(['NO', p, (1 - fair) - p - takerFee(n, p) / n]) }
+      cands.sort((a, b2) => b2[2] - a[2])
+      if (cands[0]) { edge = cands[0][2]; sideTxt = `<span class="${cands[0][0] === 'YES' ? 'yes' : 'no'}">${cands[0][0]}</span> <span class="fnt">@${(100 * cands[0][1]).toFixed(0)}</span>` }
+    }
+    const t = last.get(r.ticker)
+    const tkr = t && Number(t.contracts) > 0 ? Math.round(100 * Number(t.taker_yes_contracts) / Number(t.contracts)) : null
+    const secs = r.close_time ? (Date.parse(r.close_time) - Date.now()) / 1000 : null
+    const clock = secs == null ? '–' : secs <= 0 ? 'CLOSED' : `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}`
+    const bps = r.bps == null ? null : Number(r.bps)
+    return `<tr>
+      <td class="sym">${asset}</td>
+      <td class="n ${secs != null && secs < 60 ? 'down blink' : ''}">${clock}</td>
+      <td class="n mut">${r.strike == null ? '–' : fmt.format(Number(r.strike))}</td>
+      <td class="n">${r.spot == null ? '–' : fmt.format(Number(r.spot))}</td>
+      <td class="n ${cls(bps)}">${bps == null ? '–' : (bps > 0 ? '+' : '') + bps.toFixed(1)}</td>
+      <td class="n">${p2(r.yes_bid)}</td><td class="n">${p2(r.yes_ask)}</td>
+      <td class="n" style="color:var(--amber)">${p2(r.mid)}</td>
+      <td class="n ${Number(r.spread) > 0.02 ? 'down' : 'mut'}">${p2(r.spread)}</td>
+      <td class="n mut">${n0(r.top5_yes)}<span class="bar" style="width:${Math.round(26 * Math.sqrt(Number(r.top5_yes ?? 0) / dmax))}px"></span></td>
+      <td class="n mut">${n0(r.top5_no)}<span class="bar" style="width:${Math.round(26 * Math.sqrt(Number(r.top5_no ?? 0) / dmax))}px"></span></td>
+      <td class="n fnt">${t ? `${fmt.format(t.trades)}/${n0(t.contracts)}` : '–'}</td>
+      <td class="n ${tkr == null ? 'fnt' : tkr > 55 ? 'up' : tkr < 45 ? 'down' : 'mut'}">${tkr == null ? '–' : tkr}</td>
+      <td class="n vi">${z == null ? '–' : (z > 0 ? '+' : '') + z.toFixed(2)}</td>
+      <td class="n cy">${fair == null ? '–' : pc(fair, 1)}</td>
+      <td class="n ${cls(edge)}">${edge == null ? '–' : (edge > 0 ? '+' : '') + (100 * edge).toFixed(1)}</td>
+      <td>${sideTxt}</td>
+    </tr>`
+  }).join(''), 17)
+}
+
+/* ── F2 account + positions, F7 risk, rail ── */
+async function loadAccount() {
+  const today = new Date().toISOString().slice(0, 10)
+  const since = new Date(Date.now() - 36 * 3600_000).toISOString()
+  const [orders, book, st, sw, setl, live] = await Promise.all([
+    q('kalshi_live_orders', (b) => b.select('*').order('created_at', { ascending: false }).limit(120)),
+    q('kalshi_live_daily', (b) => b.select('*').order('day')),
+    q('kalshi_executor_state', (b) => b.select('*').eq('id', 1)),
+    q('kalshi_switch', (b) => b.select('*').eq('id', 1)),
+    q('kalshi_settlements', (b) => b.select('*').gte('settled_time', since).order('settled_time', { ascending: false })),
+    q('kalshi_live', (b) => b.select('ticker,mid,yes_bid,yes_ask')),
+  ])
+  const S = st[0] ?? null, W = sw[0] ?? null
+  const mids = new Map(live.map((r) => [r.ticker, r]))
+  const todaySetl = setl.filter((s) => s.settled_time >= today + 'T00:00:00Z')
+  const acct = todaySetl.reduce((t, s) => t + Number(s.pnl ?? 0), 0)
+  const allReal = book.reduce((t, r) => t + Number(r.pnl ?? 0), 0)
+  const open = orders.filter((o) => o.status === 'placed')
+  const last24 = orders.filter((o) => o.created_at >= new Date(Date.now() - 864e5).toISOString())
+  const sent = last24.filter((o) => ['placed', 'settled', 'unfilled', 'exited'].includes(o.status))
+  const filled = sent.filter((o) => Number(o.filled ?? 0) > 0)
+  const hand = todaySetl.filter((s) => !s.bot).length
+
+  // rail
+  const bal = S ? null : null
+  el('r-day').textContent = signed(acct); el('r-day').className = 'v ' + cls(acct)
+  el('r-open').textContent = String(open.length)
+  el('r-sent').textContent = `${sent.length}/${last24.length}` + (sent.length ? ` · ${Math.round(100 * filled.length / sent.length)}% fill` : '')
+  const liveMode = S ? S.switch_signals === true : null
+  el('r-mode').innerHTML = liveMode == null ? '–' : liveMode ? '<span class="tag on">LIVE</span>' : '<span class="tag off">PAPER</span>'
+  const fresh = S && (Date.now() - Date.parse(S.at)) / 1000 < 180
+  el('r-exec').innerHTML = `<span class="dot ${fresh ? 'on' : 'off'}"></span> ${S ? ago(S.at) : 'never'}${S && S.halted ? ' <span class="tag off">HALTED</span>' : ''}`
+  el('r-bal').textContent = todaySetl.length ? `${todaySetl.length} settled${hand ? ` (${hand} hand)` : ''}` : 'flat'
+
+  el('ac-big').innerHTML = [
+    ['Today, exchange', signed(acct), cls(acct)],
+    ['Realized, all', signed(allReal), cls(allReal)],
+    ['Open', String(open.length), ''],
+    ['Sent 24h', String(sent.length), ''],
+    ['Fill rate', sent.length ? Math.round(100 * filled.length / sent.length) + '%' : '–', ''],
+    ['Settled today', String(todaySetl.length), ''],
+  ].map(([l, v, c]) => `<div><div class="n ${c}">${v}</div><div class="l">${l}</div></div>`).join('')
+  el('ac-sub').textContent = S ? `executor ${ago(S.at)} ago · realized today ${signed(S.realized_today)}` : 'no executor heartbeat'
+
+  fill('pos', open.map((o) => {
+    const m = mids.get(o.ticker)
+    const nowPx = !m ? null : o.side === 'yes' ? (m.yes_bid == null ? null : Number(m.yes_bid)) : (m.yes_ask == null ? null : 1 - Number(m.yes_ask))
+    const f = Number(o.filled ?? 0)
+    const un = nowPx == null || !f ? null : f * (nowPx - Number(o.price))
+    return `<tr><td class="sym">${short(o.series)} <span class="fnt">${esc(o.cell)}</span></td>
+      <td><span class="${o.side === 'yes' ? 'yes' : 'no'}">${String(o.side).toUpperCase()}</span></td>
+      <td class="n">${p2(o.price)}</td><td class="n">${f || '–'}/${o.contracts}</td>
+      <td class="n">${nowPx == null ? '–' : p2(nowPx)}</td>
+      <td class="n ${cls(un)}">${un == null ? '–' : signed(un)}</td></tr>`
+  }).join(''), 6)
+
+  fill('blot', orders.slice(0, 22).map((o) => {
+    const map = { intent: 'queued', placed: Number(o.exit_filled ?? 0) > 0 ? 'open, part sold' : 'open', exited: 'sold ' + p2(o.exit_fill_price ?? o.exit_price), settled: o.won ? 'won' : 'lost', unfilled: 'missed', armed: 'armed', skipped: 'skipped', expired: 'expired', halted: 'halted', rejected: 'rejected' }
+    const st2 = map[o.status] ?? o.status
+    const good = ['exited', 'settled'].includes(o.status) ? (Number(o.pnl ?? 0) > 0 ? 'up' : 'down') : o.status === 'placed' ? 'cy' : 'mut'
+    return `<tr><td class="fnt">${ago(o.created_at)}</td><td>${esc(o.cell)}</td><td class="sym">${short(o.series)}</td>
+      <td><span class="${o.side === 'yes' ? 'yes' : 'no'}">${String(o.side).toUpperCase()}</span></td>
+      <td class="n">${p2(o.fill_price ?? o.price)}</td><td class="n">${o.filled != null && Number(o.filled) > 0 ? o.filled + '/' + o.contracts : o.contracts}</td>
+      <td class="n fnt">${o.size_mult ? Number(o.size_mult).toFixed(2) + 'x' : '–'}</td>
+      <td class="fnt">${o.exit_policy ?? '–'}</td>
+      <td class="${good}">${esc(st2)}</td><td class="n ${cls(o.pnl)}">${o.pnl == null ? '–' : signed(o.pnl)}</td></tr>`
+  }).join(''), 10)
+
+  if (W) {
+    const rows = [['Per call', '$' + W.clip], ['Day stop', money(W.daily_stop)], ['Day cap sent', '$' + W.daily_cap],
+      ['Max open', W.max_open], ['Min price', pc(W.min_price, 0)], ['Model exits', W.model_exits ? 'ON' : 'off'],
+      ['Exit margin', Math.round(100 * Number(W.exit_margin)) + 'c'], ['Stop', Number(W.stop_cents) ? Number(W.stop_cents) * 100 + 'c' : 'off'],
+      ['TP1 / TP2', (Number(W.tp1_pct) || 0) + '% / ' + (Number(W.tp2_pct) || 0) + '%'], ['Breakeven arm', (Number(W.be_arm_pct) || 0) + '%'],
+      ['Signals', W.signals ? 'LIVE' : 'paper'], ['Cell book', W.live ? 'live' : 'off']]
+    el('risk').innerHTML = rows.map(([k, v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('')
+    const sentToday = orders.filter((o) => o.created_at >= today && ['placed', 'settled', 'unfilled', 'exited'].includes(o.status))
+      .reduce((t, o) => t + Number(o.cost ?? 0), 0)
+    el('risk-note').innerHTML = `Sent today <b class="warn">${money(sentToday)}</b> of the $${W.daily_cap} cap. `
+      + `The stop counts realized only, so up to ${W.max_open} open positions can settle after it trips. `
+      + `Set ${W.updated_by ? esc(String(W.updated_by).slice(0, 40)) : 'by hand'} ${ago(W.updated_at)} ago.`
+  }
+}
+
+/* ── F3 rules, F4 assets, from the shared desk tables ── */
+async function loadRules() {
+  const rows = await q('desk_signals', (b) => b.select('bot,rule,series,side,price,cost,status,pnl,pnl_hold,called_at,close_time')
+    .in('status', ['won', 'lost', 'exited']).order('called_at', { ascending: false }).limit(2000))
+  const POLICY = { 'late-favorite': 'hold', 'late-favorite-2': 'hold', 'mid-revert-late': 'hold', 'settle-lock': 'hold' }
+  const book = (r) => Number(r.pnl ?? r.pnl_hold ?? 0)
+  const byRule = new Map()
+  for (const r of rows) { const g = byRule.get(r.rule) ?? []; g.push(r); byRule.set(r.rule, g) }
+  const out = []
+  for (const [rule, rs] of byRule) {
+    const l20 = rs.slice(0, 20), all = rs
+    const wins = (a) => a.filter((r) => book(r) > 0).length
+    const sum = (a, f) => a.reduce((t, r) => t + f(r), 0)
+    const p50 = rs.slice(0, 50)
+    const slots = new Set(p50.map((r) => r.close_time)).size
+    const effW = slots ? Math.round((wins(p50) / p50.length) * slots) : 0
+    const meanP = p50.length ? sum(p50, (r) => Number(r.price)) / p50.length : 0
+    const be = meanP + Math.ceil(0.07 * meanP * (1 - meanP) * 100) / 100
+    const floor = wilson(effW, slots)
+    const hot = l20.length >= 10 && sum(l20, book) > 0
+    out.push({ rule, hot, l20, all, wins: wins(all), heldL20: sum(l20, (r) => Number(r.pnl_hold ?? r.pnl ?? 0)), exitL20: sum(l20, book),
+      net: sum(all, book), win: all.length ? wins(all) / all.length : 0, floor, be, slots, proven: slots > 0 && floor > be })
+  }
+  out.sort((a, b) => Number(b.hot) - Number(a.hot) || b.exitL20 - a.exitL20)
+  fill('rules', out.map((r) => `<tr>
+    <td class="sym">${esc(r.rule)}</td>
+    <td>${r.hot ? '<span class="tag hot">HOT</span>' : r.all.length < 10 ? '<span class="tag">seed</span>' : '<span class="tag off">cold</span>'}</td>
+    <td class="fnt">${POLICY[r.rule] ?? 'model'}</td>
+    <td class="n">${r.l20.filter((x) => book(x) > 0).length}/${r.l20.length}</td>
+    <td class="n ${cls(r.heldL20)}">${signed(r.heldL20)}</td>
+    <td class="n ${cls(r.exitL20)}">${signed(r.exitL20)}</td>
+    <td class="n mut">${r.wins}/${r.all.length}</td>
+    <td class="n ${cls(r.net)}">${signed(r.net)}</td>
+    <td class="n">${pc(r.win, 0)}</td>
+    <td class="n cy">${pc(r.floor, 0)}</td>
+    <td class="n mut">${pc(r.be, 0)}</td>
+    <td class="${r.proven ? 'up' : 'fnt'}">${r.proven ? 'PROVEN' : 'not proven (' + r.slots + ' indep)'}</td></tr>`).join(''), 12)
+
+  const byAsset = new Map()
+  for (const r of rows) { const a = short(r.series); const g = byAsset.get(a) ?? []; g.push(r); byAsset.set(a, g) }
+  const arr = []
+  for (const [a, rs] of byAsset) {
+    const last40 = rs.slice(0, 40)
+    const s = last40.reduce((t, r) => t + book(r), 0)
+    arr.push({ a, n: last40.length, win: last40.filter((r) => book(r) > 0).length / (last40.length || 1), s,
+      per: last40.length ? s / last40.length : 0, all: rs.reduce((t, r) => t + book(r), 0), on: last40.length < 12 || s > 0 })
+  }
+  arr.sort((x, y) => y.s - x.s)
+  fill('assets', arr.map((x) => `<tr><td class="sym">${x.a}</td>
+    <td>${x.on ? '<span class="tag on">ON</span>' : '<span class="tag off">OFF</span>'}</td>
+    <td class="n mut">${x.n}</td><td class="n">${pc(x.win, 0)}</td>
+    <td class="n ${cls(x.s)}">${signed(x.s)}</td><td class="n ${cls(x.per)}">${signed(x.per)}</td>
+    <td class="n ${cls(x.all)}">${signed(x.all)}</td></tr>`).join(''), 7)
+}
+
+/* ── F6 P&L ── */
+async function loadPnl() {
+  const [book, paper, setl] = await Promise.all([
+    q('kalshi_live_daily', (b) => b.select('*').order('day')),
+    q('kalshi_signal_paper', (b) => b.select('*').order('day')),
+    q('kalshi_settlements', (b) => b.select('settled_time,pnl').order('settled_time')),
+  ])
+  const days = [...new Set([...book.map((r) => r.day), ...paper.map((r) => r.day)])].sort().reverse()
+  const acctBy = new Map()
+  for (const s of setl) { const d = String(s.settled_time).slice(0, 10); acctBy.set(d, (acctBy.get(d) ?? 0) + Number(s.pnl ?? 0)) }
+  const P = new Map(paper.map((r) => [r.day, r])), B = new Map()
+  for (const r of book) B.set(r.day, { orders: (B.get(r.day)?.orders ?? 0) + Number(r.orders ?? 0) })
+  const acctTotal = [...acctBy.values()].reduce((a, b) => a + b, 0)
+  const paperHeld = paper.reduce((t, r) => t + Number(r.pnl ?? 0), 0)
+  const paperExit = paper.reduce((t, r) => t + Number(r.pnl_exit ?? r.pnl ?? 0), 0)
+  const calls = paper.reduce((t, r) => t + Number(r.calls ?? 0), 0)
+  const graded = paper.reduce((t, r) => t + Number(r.graded ?? 0), 0)
+  el('pl-big').innerHTML = [
+    ['Account', signed(acctTotal), cls(acctTotal)], ['Paper held', signed(paperHeld), cls(paperHeld)],
+    ['Paper exits', signed(paperExit), cls(paperExit)], ['Calls', n0(calls), ''], ['Graded', n0(graded), ''],
+  ].map(([l, v, c]) => `<div><div class="n ${c}">${v}</div><div class="l">${l}</div></div>`).join('')
+  el('r-paper').textContent = signed(paperExit); el('r-paper').className = 'v ' + cls(paperExit)
+
+  // cumulative account sparkline
+  const ds = [...acctBy.keys()].sort(); let run = 0
+  const pts = ds.map((d) => { run += acctBy.get(d); return run })
+  const sp = el('pl-spark')
+  if (pts.length > 1) {
+    const lo = Math.min(0, ...pts), hi = Math.max(0, ...pts), rng = (hi - lo) || 1
+    const X = (i) => (i / (pts.length - 1)) * 300, Y = (v) => 32 - ((v - lo) / rng) * 30
+    const d = pts.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' L')
+    sp.innerHTML = `<path class="ar" d="M0,${Y(lo)} L${d} L300,${Y(lo)} Z"/><line class="z" x1="0" x2="300" y1="${Y(0)}" y2="${Y(0)}"/><path class="ln" d="M${d}"/>`
+  } else sp.innerHTML = ''
+
+  fill('pl', days.slice(0, 14).map((d) => {
+    const p = P.get(d), a = acctBy.get(d)
+    return `<tr><td class="cy">${d}</td><td class="n ${cls(a)}">${a == null ? '–' : signed(a)}</td>
+      <td class="n mut">${B.get(d)?.orders ?? '–'}</td><td class="n mut">${p ? n0(p.calls) : '–'}</td><td class="n mut">${p ? n0(p.graded) : '–'}</td>
+      <td class="n ${cls(p?.pnl)}">${p ? signed(p.pnl) : '–'}</td><td class="n ${cls(p?.pnl_exit)}">${p && p.pnl_exit != null ? signed(p.pnl_exit) : '–'}</td></tr>`
+  }).join(''), 7)
+}
+
+/* ── F8 calibration, F9 model, F10 score, F11/F12 system ── */
+async function loadReference() {
+  const [calAsOf, mdlAsOf, daily, ticks, cov] = await Promise.all([
+    q('kalshi_calibration', (b) => b.select('as_of').eq('window_days', 30).order('as_of', { ascending: false }).limit(1)),
+    q('kalshi_models', (b) => b.select('as_of').eq('kind', 'full').order('as_of', { ascending: false }).limit(1)),
+    q('kalshi_daily', (b) => b.select('*').eq('series', 'ALL').order('as_of', { ascending: false }).limit(14)),
+    q('kalshi_collector_ticks', (b) => b.select('*').order('ran_at', { ascending: false }).limit(10)),
+    q('kalshi_coverage_mv', (b) => b.select('*').gte('day', new Date(Date.now() - 13 * 864e5).toISOString().slice(0, 10)).order('day')),
+  ])
+  if (calAsOf[0]) {
+    const raw = await q('kalshi_calibration', (b) => b.select('*').eq('window_days', 30).eq('as_of', calAsOf[0].as_of).eq('series', 'ALL'))
+    // one row per price band, weighted by n across every minutes-to-close bucket
+    const agg = new Map()
+    for (const r of raw) { const g = agg.get(r.band) ?? { band: r.band, n: 0, mid: 0, hit: 0, br: 0 }
+      const n = Number(r.n) || 0; g.n += n; g.mid += n * Number(r.mean_mid); g.hit += n * Number(r.hit_rate); g.br += n * Number(r.brier_mid); agg.set(r.band, g) }
+    const rows = [...agg.values()].filter((g) => g.n > 0).map((g) => ({ band: g.band, n: g.n, mean_mid: g.mid / g.n, hit_rate: g.hit / g.n, brier_mid: g.br / g.n })).sort((a, b) => a.mean_mid - b.mean_mid)
+    el('cal-sub').textContent = `30 days to ${calAsOf[0].as_of}, every series and horizon, weighted by n`
+    fill('cal', rows.map((r) => {
+      const gap = Number(r.hit_rate) - Number(r.mean_mid)
+      return `<tr><td class="sym">${esc(r.band)}</td><td class="n mut">${n0(r.n)}</td><td class="n">${p3(r.mean_mid)}</td>
+        <td class="n">${p3(r.hit_rate)}</td><td class="n ${cls(gap)}">${(gap > 0 ? '+' : '') + (100 * gap).toFixed(1)}c</td>
+        <td class="n cy">${p3(r.brier_mid)}</td></tr>`
+    }).join(''), 6)
+  }
+  if (mdlAsOf[0]) {
+    const rows = await q('kalshi_models', (b) => b.select('*').eq('kind', 'full').eq('as_of', mdlAsOf[0].as_of).order('series'))
+    el('mdl-sub').textContent = `fitted ${mdlAsOf[0].as_of} on the 30 days before it`
+    const w = (m, k) => { const wt = Number(m.coef?.weights?.[k] ?? 0), sd = Number(m.coef?.sd?.[k] ?? 1); return sd ? wt / sd : wt }
+    const f3 = (x) => (x > 0 ? '+' : '') + x.toFixed(3)
+    fill('mdl', rows.map((m) => `<tr><td class="sym">${short(m.series)}</td><td class="n mut">${n0(m.n_train)}</td>
+      <td class="n ${w(m, 'logit_mid') > 1.05 ? 'up' : w(m, 'logit_mid') < 0.95 ? 'down' : ''}">${w(m, 'logit_mid').toFixed(2)}</td>
+      <td class="n">${f3(w(m, 'scaled_bps'))}</td><td class="n">${f3(w(m, 'range'))}</td><td class="n">${f3(w(m, 'mom'))}</td>
+      <td class="n cy">${p3(m.brier_train)}</td></tr>`).join(''), 7)
+  }
+  fill('score', daily.map((d) => {
+    const edge = d.brier_mid != null && d.brier_model != null ? Number(d.brier_mid) - Number(d.brier_model) : null
+    return `<tr><td class="cy">${d.as_of}</td><td class="n mut">${n0(d.rounds_settled)}</td>
+      <td class="n">${p3(d.brier_mid)}</td><td class="n">${p3(d.brier_calibrated)}</td><td class="n">${p3(d.brier_dist)}</td>
+      <td class="n">${p3(d.brier_model)}</td><td class="n mut">${p3(d.brier_model_spot)}</td>
+      <td class="n ${cls(edge)}">${edge == null ? '–' : (edge > 0 ? '+' : '') + edge.toFixed(4)}</td></tr>`
+  }).join(''), 8)
+  const t0 = ticks[0]
+  el('r-feed').innerHTML = `<span class="dot ${t0 && (Date.now() - Date.parse(t0.ran_at)) / 1000 < 180 ? 'on' : 'off'}"></span> ${t0 ? ago(t0.ran_at) : 'never'}`
+  el('r-rounds').textContent = n0(cov.reduce((t, r) => t + Number(r.rounds ?? 0), 0))
+  fill('sys', ticks.map((t) => {
+    const e = Array.isArray(t.errors) ? t.errors : []
+    return `<tr><td class="fnt">${new Date(t.ran_at).toISOString().slice(11, 19)}</td><td class="mut">${t.source === 'pc' ? 'PC' : 'CF'}</td>
+      <td class="n">${t.rounds}/${t.series_count}</td><td class="n">${t.snaps}</td><td class="n">${t.tape_rows}</td>
+      <td class="n">${t.spots ?? '–'}</td><td class="n">${t.settled}</td><td class="n mut">${n0(t.ms)}</td>
+      <td class="${e.length ? 'down' : 'up'}">${e.length ? esc(e[0]).slice(0, 44) : 'clean'}</td></tr>`
+  }).join(''), 9)
+  const days = [...new Set(cov.map((r) => r.day))].sort()
+  const series = [...new Set(cov.map((r) => r.series))].sort()
+  const by = new Map(cov.map((r) => [r.series + '|' + r.day, r]))
+  const lvl = (s) => (!s ? 0 : s < 360 ? 1 : s < 720 ? 2 : s < 1200 ? 3 : 4)
+  el('cov').innerHTML = `<div class="heat" style="grid-template-columns:52px repeat(${days.length},minmax(0,1fr))">`
+    + `<div></div>${days.map((d) => `<div class="l fnt" style="font-size:9px;text-align:center">${d.slice(8)}</div>`).join('')}`
+    + series.map((s) => `<div class="fnt" style="font-size:9.5px">${short(s)}</div>`
+      + days.map((d) => { const r = by.get(s + '|' + d); return `<i data-l="${lvl(Number(r?.snaps ?? 0))}" title="${short(s)} ${d}: ${n0(r?.snaps ?? 0)} min"></i>` }).join('')).join('')
+    + '</div>'
+}
+
+/* ── boot and clocks ── */
+async function boot() {
+  await guard('sigma', loadSigma)
+  await Promise.all([guard('markets', loadMarkets), guard('account', loadAccount), guard('rules', loadRules), guard('pnl', loadPnl), guard('reference', loadReference)])
+}
+await boot()
+setInterval(() => guard('markets', loadMarkets), 10_000)
+setInterval(() => guard('account', loadAccount), 15_000)
+setInterval(() => { guard('rules', loadRules); guard('pnl', loadPnl) }, 60_000)
+setInterval(() => { guard('sigma', loadSigma); guard('reference', loadReference) }, 300_000)
+</script>
+</body>
+</html>

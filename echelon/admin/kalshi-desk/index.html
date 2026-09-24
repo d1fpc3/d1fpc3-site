@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <title>Kalshi desk</title>
-  <link rel="icon" href="/echelon-favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <script>
     // Follow the admin's theme choice. Dark is the default and the door stays dark.
     try { if (localStorage.getItem('echelon-theme') === 'light') document.documentElement.dataset.theme = 'light' } catch {}
@@ -15,9 +15,9 @@
        d1fpc3.com | echelon | admin | Kalshi desk
        One question, answered at a glance: is it collecting, and is it
        getting better. Everything else on the page is drill-down.
-       Same bones and tokens as /echelon/admin. This file is public;
-       every row it shows arrives because Postgres decided the signed-in
-       user is an admin, never because the page said so.
+       Same bones and tokens as /echelon/admin. This desk is PRIVATE and
+       unpublished; every row it shows arrives because Postgres decided the
+       signed-in user is on the desk access list, never because the page said so.
        ───────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     [hidden] { display: none !important; }
@@ -61,7 +61,10 @@
       --series-b: #5f5a51;
       --ramp-0: #efece6; --ramp-1: #e2d3ad; --ramp-2: #c9a24a; --ramp-3: #a8842c; --ramp-4: #6e5416;
     }
-    html, body { height: 100%; }
+    /* min-height, never height: a fixed body height caps the sticky containing block at one
+       viewport, so the top bar and the section nav unstick as soon as you scroll past 950px
+       on a page that is 7000px tall. */
+    html, body { min-height: 100%; }
     body {
       background: var(--bg); color: var(--ink);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -100,6 +103,38 @@
     }
     .pulse.stale .dot { background: var(--bad); }
     @keyframes ring { from { transform: scale(0.6); opacity: 0.7; } to { transform: scale(1.6); opacity: 0; } }
+
+    .who { margin-left: 14px; display: inline-flex; align-items: center; }
+
+    /* ════ section nav ═══════════════════════════════════════
+       A sliding thumb rather than ten separate hover boxes: one moving element
+       reads as a control, ten outlined buttons read as a toolbar someone gave up on. */
+    .sectionnav {
+      position: sticky; top: 56px; z-index: 4;
+      display: flex; align-items: center; gap: 2px; padding: 8px 24px;
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .sectionnav::-webkit-scrollbar { display: none; }
+    .sectionnav a {
+      position: relative; z-index: 1; flex: 0 0 auto;
+      padding: 5px 11px; border-radius: 7px; font-size: 12.5px; color: var(--muted);
+      white-space: nowrap; transition: color 180ms ease;
+    }
+    @media (hover: hover) { .sectionnav a:hover { color: var(--ink); } }
+    .sectionnav a.on { color: var(--ink); }
+    .sn-thumb {
+      position: absolute; z-index: 0; top: 8px; height: 27px; border-radius: 7px;
+      background: var(--panel-2); border: 1px solid var(--line-bright);
+      transition: transform 320ms cubic-bezier(.2,.8,.2,1), width 320ms cubic-bezier(.2,.8,.2,1), opacity 180ms;
+      opacity: 0; pointer-events: none; left: 0;
+    }
+    .sn-thumb.ready { opacity: 1; }
+    /* the two sticky bars together are 97px; keep a heading clear of them when jumped to */
+    .panel[id^="s-"] { scroll-margin-top: 112px; }
+    @media (prefers-reduced-motion: reduce) { .sn-thumb { transition: none; } }
 
     /* ════ layout ════════════════════════════════════════════ */
     .wrap { max-width: 1720px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
@@ -197,59 +232,22 @@
     @media (max-width: 1100px) { .edge { grid-template-columns: 1fr; } }
     .edge-stats { margin-bottom: 14px; }
 
-    /* ════ the edge: the one mispricing, and what it costs to reach ════
-       The centrepiece is a 2x2, not a chart, because the finding IS a 2x2: two
-       independent conditions, and the money lives only where both fire. A bar chart
-       of four numbers would hide the structure that matters. */
-    .thesis { font-size: 17px; line-height: 1.55; max-width: 76ch; margin: 0 0 20px; }
-    .thesis b { color: var(--gold); font-weight: 600; }
-    .edge-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 26px 32px; align-items: start; }
-    @media (max-width: 1000px) { .edge-grid { grid-template-columns: minmax(0, 1fr); } }
-    /* the 2x2 */
-    .m2 { display: grid; grid-template-columns: auto 1fr 1fr; gap: 7px; }
-    .m2 .cnr { }
-    .m2 .ch, .m2 .rh { color: var(--muted); font-size: 12.5px; line-height: 1.3; align-self: end; padding: 0 2px 3px; }
-    .m2 .rh { align-self: center; text-align: right; max-width: 11ch; padding: 0 8px 0 0; }
-    .m2 .cell { position: relative; padding: 13px 14px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; min-height: 96px; }
-    .m2 .cell .r { font-size: 25px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
-    .m2 .cell .meta { color: var(--faint); font-size: 12px; margin-top: 5px; font-variant-numeric: tabular-nums; }
-    .m2 .cell .tag { color: var(--muted); font-size: 12px; margin-top: 7px; }
-    .m2 .cell.take { border-color: var(--gold-deep); background: linear-gradient(180deg, rgba(201,162,74,0.10), rgba(201,162,74,0.03)); }
-    .m2 .cell.take .r { color: var(--gold); }
-    .m2 .cell.take .tag { color: var(--gold); }
-    .m2 .cell.dead { opacity: 0.62; }
-    .m2 .cell.dead .r { color: var(--bad); }
-    .hero5 { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px 18px; margin: 0 0 24px; }
-    .hero5 .v { font-size: 34px; }
-    @media (max-width: 900px) { .hero5 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 560px) { .hero5 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    /* the rule, as conditions rather than steps: no numbering, because it is not a sequence */
-    ul.rulelist { list-style: none; display: flex; flex-direction: column; gap: 9px; margin: 0 0 18px; max-width: 64ch; }
-    ul.rulelist li { display: grid; grid-template-columns: 82px 1fr; gap: 12px; align-items: baseline; font-size: 14px; line-height: 1.5; color: var(--muted); }
-    ul.rulelist li span { color: var(--ink); font-weight: 600; font-size: 13px; }
-    @media (max-width: 560px) { ul.rulelist li { grid-template-columns: 1fr; gap: 2px; } }
-
-    /* the gate readout. NOT .gate: that class is already the sign-in gate at the top of
-       the page, and styling it as a flex row broke this panel's layout. */
-    .egate { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
-    .egate .g { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 11px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
-    .egate .g em { font-style: normal; color: var(--faint); }
-    .egate .g b { font-weight: 600; font-variant-numeric: tabular-nums; }
-    .egate .g.off { border-color: var(--line); color: var(--muted); }
-    .egate .g.off b { color: var(--bad); }
-    .egate .g.on b { color: var(--good); }
-    /* the basis table */
-    .basis-h { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; }
-    .basis-note { color: var(--faint); font-size: 12.5px; line-height: 1.45; margin: 0 0 11px; max-width: 54ch; }
-    table.basis { width: 100%; border-collapse: collapse; }
-    table.basis th, table.basis td { padding: 6px 8px; border-bottom: 1px solid var(--line); font-size: 13px; }
-    table.basis th { color: var(--muted); font-weight: 500; text-align: left; }
-    table.basis td.n, table.basis th.n { text-align: right; font-variant-numeric: tabular-nums; }
-    table.basis tr.traded td:first-child { color: var(--gold); font-weight: 600; }
-    table.basis .bar { display: inline-block; height: 7px; border-radius: 2px; background: var(--gold-deep); vertical-align: middle; }
+    /* ════ bots: the shared cards ═════════════════════════════ */
+    .bots { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .bot { background: var(--panel-2); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .bot .name { display: flex; align-items: baseline; gap: 10px; }
+    .bot .name b { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    .bot .name span { color: var(--faint); font-size: 12px; }
+    .bot .stat-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; }
+    .bot .stat .v { font-size: 22px; }
+    .bot .last { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+    .bot .ext { margin-top: 4px; }
+    #feed th:nth-child(8), #feed td:nth-child(8) { padding-left: 20px; }
+    #rules th:nth-child(3), #rules td:nth-child(3) { padding-left: 14px; }
+    td .bot-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel-2); }
 
     /* ════ account: the real book ═════════════════════════════ */
-    .acct-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: 16px; }
+    .acct-stats { grid-template-columns: repeat(7, minmax(0, 1fr)); margin-bottom: 16px; }
     @media (max-width: 1100px) { .acct-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (max-width: 540px) { .acct-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     .acct .reading { margin-bottom: 18px; max-width: 90ch; }
@@ -269,9 +267,6 @@
     .risk-save:active { transform: scale(0.97); }
     .risk-save[disabled] { opacity: 0.38; cursor: default; }
     .risk.dirty .risk-save:not([disabled]) { box-shadow: 0 0 0 3px rgba(201,162,74,0.22); }
-    /* what is risked, then how it gets out */
-    .rsep { width: 1px; height: 30px; background: var(--line-bright); flex: 0 0 1px; }
-    @media (max-width: 720px) { .rsep { width: 100%; height: 1px; flex-basis: 1px; margin: 2px 0; } }
     .risk .note { color: var(--muted); font-size: 12px; margin-left: auto; align-self: center; max-width: 100%; }
     .risk.locked .ri { opacity: 0.6; }
     .risk.locked .ri input { pointer-events: none; }
@@ -330,6 +325,24 @@
     .tick-err { color: var(--muted); font-size: 12px; max-width: 60ch; white-space: normal; }
     #ticks th:last-child, #ticks td:last-child { padding-left: 20px; }
     .tbl-scroll { overflow-x: auto; margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad); }
+
+    /* A log table is not worth 2000px of page. Capped, it scrolls in place with its header
+       held, and the fade at the bottom edge is what tells you there is more without adding
+       a control that has to be explained. The page went from 7000px to about half that. */
+    .tbl-scroll.capped {
+      max-height: var(--cap, 420px); overflow-y: auto; overscroll-behavior: contain;
+      -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 34px), transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 calc(100% - 34px), transparent 100%);
+    }
+    /* at the end of the list there is nothing more to hint at, so drop the fade */
+    .tbl-scroll.capped.ended { -webkit-mask-image: none; mask-image: none; }
+    .tbl-scroll.capped thead th {
+      position: sticky; top: 0; z-index: 1; background: var(--panel);
+      box-shadow: inset 0 -1px 0 var(--line);
+    }
+    .tbl-scroll.capped table { border-collapse: separate; border-spacing: 0; }
+    /* the count sits with the heading, so the cap never reads as missing rows */
+    .rowcount { color: var(--faint); font-size: 12.5px; font-variant-numeric: tabular-nums; }
     details summary { cursor: pointer; color: var(--muted); list-style: none; }
     details summary::-webkit-details-marker { display: none; }
     @media (hover: hover) { details summary:hover { color: var(--ink); } }
@@ -351,22 +364,59 @@
     <div class="card">
       <h1 id="gate-title">Kalshi desk</h1>
       <p id="gate-body">Sign in from the admin dashboard first.</p>
-      <a class="go" id="gate-go" href="/echelon/admin/">Open admin</a>
+      <a class="go" id="gate-go" href="https://d1fpc3.com/echelon/admin/">Open admin</a>
     </div>
   </div>
 
   <header class="topbar">
-    <a class="back" href="/echelon/admin/" aria-label="Back to admin">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg>
-      Admin
-    </a>
     <div class="title">Kalshi desk</div>
+    <a class="back" href="terminal.html">terminal</a>
     <div class="pulse" id="pulse"><span class="dot"></span><span class="pulse-long" id="pulse-text">Checking the collector</span><span class="pulse-short" id="pulse-short"></span></div>
+    <div class="who" data-desk-signout></div>
   </header>
 
+  <!-- This page is about 7000px tall. Without a way to jump, the lower half may as well
+       not exist, so every panel is reachable from here and the current one is marked. -->
+  <nav class="sectionnav" id="sectionnav" aria-label="Desk sections">
+    <span class="sn-thumb" id="sn-thumb"></span>
+    <a href="#s-bots">Bots</a>
+    <a href="#s-rules">Rules</a>
+    <a href="#s-learning">Learning</a>
+    <a href="#s-book">Book</a>
+    <a href="#s-edge">Edge hunt</a>
+    <a href="#s-learned">Learned</a>
+    <a href="#s-coverage">Coverage</a>
+    <a href="#s-calibration">Calibration</a>
+    <a href="#s-live">Live board</a>
+    <a href="#s-collector">Collector</a>
+  </nav>
+
   <main class="wrap">
+    <!-- bots: every bot on this desk, side by side, from the shared desk_* tables (CONTRACT.md) -->
+    <section id="s-bots" class="panel span-12">
+      <div class="panel-head">
+        <h2>Bots</h2>
+        <span class="sub">Every bot that reports to this desk, its public book. Each bot writes only its own rows.</span>
+      </div>
+      <div class="bots" id="bots"><div class="skel" style="height: 120px"></div></div>
+      <div class="tbl-scroll capped" data-cap="feed"><table id="feed"><thead><tr>
+        <th>When</th><th>Bot</th><th>Series</th><th>Rule</th><th>Buy</th><th class="n">Price</th><th class="n">Size</th><th>Book</th><th>What happened</th><th class="n">P&amp;L</th>
+      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
+    </section>
+
+    <!-- rules: which rule is earning its place, per bot -->
+    <section id="s-rules" class="panel span-12">
+      <div class="panel-head">
+        <h2>Rules</h2>
+        <span class="sub">Every rule's last 20 graded calls. A rule posts and trades while it is net positive over its last 20 with at least 10 graded; below that it keeps calling on paper.</span>
+      </div>
+      <div class="tbl-scroll"><table id="rules"><thead><tr>
+        <th>Bot</th><th>Rule</th><th>State</th><th class="n">Last 20</th><th class="n" title="held to close">Net 20</th><th class="n" title="with the bot's exit rule">Net 20, exits</th><th class="n">All time</th><th class="n">Net, held</th><th class="n">Net, exits</th><th class="n">Calls today</th>
+      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
+    </section>
+
     <!-- hero: the learning curve, or, before the first scoring, what has been captured -->
-    <section class="panel span-12">
+    <section id="s-learning" class="panel span-12">
       <div class="panel-head">
         <h2>Learning curve</h2>
         <span class="sub" title="The market mid, the mid corrected by calibration, a forecast built only from distance and time, and a model refit every night on the trailing 30 days, all scored out of sample.">Brier score by day, lower is better. Every line is scored out of sample.</span>
@@ -397,7 +447,7 @@
     </section>
 
     <!-- account: the real book. Every source's intents and what the one executor did with them. -->
-    <section class="panel span-12 acct">
+    <section id="s-book" class="panel span-12 acct">
       <div class="panel-head">
         <h2>Book</h2>
         <span class="sub" id="acct-sub" title="The exit rule: every minute the model's fair value of the held side is recomputed from spot, strike, volatility and time left; the position is sold the minute the market bid, after the exit fee, pays 2c more than that expected value. Otherwise it rides to close.">Live sends every call shown in Discord to the account at the per-call size below; Paper logs them and sends nothing. Exits are the model's call: sell when the market pays more than the expected value of holding.</span>
@@ -405,7 +455,8 @@
       </div>
       <h3 class="book-h">Account <span>real money</span></h3>
       <div class="stat-row acct-stats">
-        <div class="stat"><div class="v gold" id="a-real">–</div><div class="k">realized, all time</div></div>
+        <div class="stat"><div class="v gold" id="a-acct">–</div><div class="k" id="a-acct-k" title="Every settlement on the Kalshi account today, bot orders and hand trades alike, from the exchange">your account, settled today</div></div>
+        <div class="stat"><div class="v gold" id="a-real">–</div><div class="k">bot orders, all time</div></div>
         <div class="stat"><div class="v" id="a-today">–</div><div class="k">realized today</div></div>
         <div class="stat"><div class="v" id="a-open">–</div><div class="k">open orders</div></div>
         <div class="stat"><div class="v" id="a-sent">–</div><div class="k" id="a-sent-k">sent, of intents in 24 h</div></div>
@@ -420,12 +471,6 @@
         <label class="rf"><span class="rk">cap for the day</span><span class="ri"><i>$</i><input id="r-cap" type="number" min="1" max="10000" step="1" inputmode="decimal"></span></label>
         <label class="rf"><span class="rk">open at once</span><span class="ri"><input id="r-open" type="number" min="1" max="50" step="1" inputmode="numeric"></span></label>
         <label class="rf"><span class="rk">lowest price</span><span class="ri"><input id="r-min" type="number" min="1" max="99" step="1" inputmode="numeric"><i>¢</i></span></label>
-        <span class="rsep" aria-hidden="true"></span>
-        <label class="rf" title="First take-profit: a resting order for part of the position at entry plus this much. 0 turns it off."><span class="rk">take profit 1</span><span class="ri"><i>+</i><input id="r-tp1" type="number" min="0" max="1000" step="5" inputmode="numeric"><i>%</i></span></label>
-        <label class="rf" title="How much of the position the first take-profit sells."><span class="rk">half off</span><span class="ri"><input id="r-frac" type="number" min="0" max="100" step="5" inputmode="numeric"><i>%</i></span></label>
-        <label class="rf" title="Second take-profit for the rest of the position. 0 turns it off."><span class="rk">take profit 2</span><span class="ri"><i>+</i><input id="r-tp2" type="number" min="0" max="1000" step="5" inputmode="numeric"><i>%</i></span></label>
-        <label class="rf" title="Trail to break even: once the bid has been up this much, the position is sold if it falls back to entry. 0 turns it off."><span class="rk">breakeven after</span><span class="ri"><i>+</i><input id="r-be" type="number" min="0" max="1000" step="5" inputmode="numeric"><i>%</i></span></label>
-        <label class="rf" title="Cut a position when the bid falls this many cents under what was paid. 0 turns it off. Replay over every 0.80+ call, 2026-09-24: hold -$80, a 10c stop -$23, but the two rules built for favourites did better holding on the five calls they made."><span class="rk">stop</span><span class="ri"><i>-</i><input id="r-stop-c" type="number" min="0" max="99" step="1" inputmode="numeric"><i>¢</i></span></label>
         <button class="risk-save" id="r-save" disabled>Save</button>
         <span class="note" id="risk-note"></span>
       </div>
@@ -439,86 +484,13 @@
         <div class="stat"><div class="v" id="p-won">–</div><div class="k" id="p-won-k">won today</div></div>
       </div>
       <p class="reading quiet" id="paper-reading">Loading.</p>
-      <div class="tbl-scroll"><table id="orders"><thead><tr>
+      <div class="tbl-scroll capped" data-cap="orders"><table id="orders"><thead><tr>
         <th>When</th><th>From</th><th>Series</th><th>Buy</th><th class="n">Price</th><th class="n" title="contracts asked for; filled of asked once sent">Size</th><th>What happened</th><th class="n">P&amp;L</th>
       </tr></thead><tbody><tr><td colspan="8"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
 
-    <!-- the edge: what it is, where it lives, and what the bot requires before it pays for it -->
-    <section class="panel span-12">
-      <div class="panel-head">
-        <h2>The edge</h2>
-        <span class="sub">What the bot trades, and the evidence for it. One row per round, priced at the touch, net of the real taker fee, over the last 31 days. Recomputed nightly from the tape.</span>
-      </div>
-
-      <p class="thesis">The market prices these at about <b>90 cents</b>. They win about
-        <b>94% of the time</b>. Break-even after the fee is 90.5 cents, so the gap is the edge. It
-        exists because the book prices more movement than a fifteen-minute round actually
-        delivers, which leaves the side that is already ahead too cheap.</p>
-
-      <div class="stat-row hero5" id="edge-hero">
-        <div class="stat"><div class="v" id="eh-pay">–</div><div class="k">we pay</div></div>
-        <div class="stat"><div class="v" id="eh-win">–</div><div class="k">it wins</div></div>
-        <div class="stat"><div class="v" id="eh-be">–</div><div class="k">break-even with fee</div></div>
-        <div class="stat"><div class="v gold" id="eh-edge">–</div><div class="k">edge per contract</div></div>
-        <div class="stat"><div class="v" id="eh-day">–</div><div class="k">setups a day</div></div>
-      </div>
-
-      <div class="edge-grid">
-        <div>
-          <p class="basis-h">What we take</p>
-          <ul class="rulelist">
-            <li><span>Book</span> BTC, ETH, SOL, XRP or DOGE. The other five run 2 to 5 cent spreads that eat the whole edge.</li>
-            <li><span>Clock</span> Nine minutes before the round closes.</li>
-            <li><span>Distance</span> Spot at least 15 basis points clear of the strike, on the side we are buying. A favourite sitting on its strike is a coin flip wearing a favourite's price.</li>
-            <li><span>Price</span> The leading side quoted between 85 and 95 cents. Bought at the ask, held to settlement.</li>
-            <li><span>A plus</span> Off. Narrowing to this cell raises the edge to 3.8 cents but drops to 30 setups a day, which earns about half as much. It is also the one cut chosen by searching, so its significance is the softest number here.</li>
-          </ul>
-
-          <div class="egate" id="edge-gate"><span class="g"><em>Loading the live gate.</em></span></div>
-
-          <p class="basis-h" style="margin-top: 22px">Why it is there</p>
-          <div class="m2">
-            <div class="cnr"></div>
-            <div class="ch">Book pricing less movement than the hour delivered</div>
-            <div class="ch">Book pricing more movement than the hour delivered</div>
-            <div class="rh">Tape has moved</div>
-            <div class="cell"><div class="r">+1.99%</div><div class="meta">946 rounds · t 1.83</div></div>
-            <div class="cell take"><div class="r">+3.81%</div><div class="meta">946 rounds · t 4.83</div><div class="tag">The A plus cell</div></div>
-            <div class="rh">Tape is quiet</div>
-            <div class="cell dead"><div class="r">-0.42%</div><div class="meta">858 rounds · t -0.35</div><div class="tag">A coin flip paying a toll</div></div>
-            <div class="cell"><div class="r">+2.67%</div><div class="meta">691 rounds · t 2.40</div></div>
-          </div>
-          <p class="basis-note" style="margin-top: 11px; max-width: 64ch">Both cuts carry signal independently, and the
-            edge is flat zero only where the tape is quiet and the book is pricing no more movement than it delivered.
-            The effect is indifferent to which way the tape moved, which is what rules out a slow book and a plain taste
-            for favourites, and leaves a volatility risk premium as the explanation.</p>
-        </div>
-
-        <div>
-          <p class="basis-h">Proof, per book</p>
-          <p class="basis-note">Recomputed from the tape every night, not pasted in. The error bar clusters on the
-            expiry instant, because rounds that settle together lose together: five simultaneous positions are worth
-            about 1.7 independent bets, so an unclustered figure overstates by roughly 1.7 times.</p>
-          <table class="basis"><thead><tr>
-            <th>Scope</th><th class="n">Wins</th><th class="n">Pays</th><th class="n" title="win rate minus price minus fee">Edge</th><th class="n" title="cluster-robust t on the mean return">t</th><th class="n">Rounds</th>
-          </tr></thead><tbody id="proof-rows"><tr><td colspan="6"><div class="skel"></div></td></tr></tbody></table>
-          <p class="basis-note" id="proof-foot" style="margin-top: 10px"></p>
-
-          <p class="basis-h" style="margin-top: 22px">The settlement basis</p>
-          <p class="basis-note">Kalshi settles on the CF Benchmarks index averaged over the final sixty seconds. The
-            desk records Coinbase, which runs below it. Each round's strike is the previous round's settlement value,
-            so the gap is re-estimated from the last seven days and added to the distance before the gate reads it.</p>
-          <table class="basis"><thead><tr>
-            <th>Asset</th><th class="n">Basis</th><th class="n"></th><th class="n">t</th><th class="n">Rounds</th>
-          </tr></thead><tbody id="basis-rows"><tr><td colspan="5"><div class="skel"></div></td></tr></tbody></table>
-          <p class="basis-note" id="basis-foot" style="margin-top: 10px"></p>
-        </div>
-      </div>
-    </section>
-
     <!-- the edge hunt: cells the market misprices, and the paper book that tests them -->
-    <section class="panel span-12">
+    <section id="s-edge" class="panel span-5">
       <div class="panel-head">
         <h2>Edge hunt</h2>
         <span class="sub" title="Every cell over 30 days with 200+ rounds where the win rate's 99.9% lower bound beat the real ask plus the fee by at least half a cent, traded on paper the next day at that minute's ask, $10 a round. The signal bot's model book lives in Discord and the two are never summed.">Cells the market mispriced over 30 days, traded on paper the next day at $10 a round. The paper trades are the only evidence.</span>
@@ -541,19 +513,19 @@
     </section>
 
     <!-- what the model learned: the weights, per series, from last night's fit -->
-    <section class="panel span-12">
+    <section id="s-learned" class="panel span-7">
       <div class="panel-head">
         <h2>What it learned</h2>
         <span class="sub" id="learn-sub">Last night's fitted slopes per series. On the market's own probability 1.0 is face value; below 1 means the model discounts the market's confidence and gets the rest from the other inputs.</span>
       </div>
       <p class="reading quiet" id="learn-reading">Loading.</p>
-      <div class="tbl-scroll"><table id="weights"><thead><tr>
+      <div class="tbl-scroll capped" data-cap="weights"><table id="weights"><thead><tr>
         <th>Series</th><th class="n">Trained on</th><th class="n" title="raw slope on the logit of the market mid; 1.0 means taken at face value, below 1 discounts the market's confidence">Market probability</th><th class="n" title="per basis point of distance from the open divided by the square root of minutes left">Scaled distance</th><th class="n" title="per basis point">Distance</th><th class="n" title="per basis point of the round's range so far">Range so far</th><th class="n" title="per basis point of 3-minute momentum">3-min momentum</th><th class="n" title="per minute left">Minutes left</th><th class="n" title="in-sample Brier of the fit; the out-of-sample score is on the curve">Fit Brier</th><th class="n" title="the market-blind model's out-of-sample Brier that day">Blind, next day</th>
       </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
 
     <!-- coverage -->
-    <section class="panel span-7">
+    <section id="s-coverage" class="panel span-7">
       <div class="panel-head">
         <h2>Coverage</h2>
         <span class="sub">Minutes of book captured per series, per UTC day. A full day is 1,440. Refreshed every five minutes.</span>
@@ -563,7 +535,7 @@
     </section>
 
     <!-- calibration -->
-    <section class="panel span-5">
+    <section id="s-calibration" class="panel span-5">
       <div class="panel-head">
         <h2>Calibration</h2>
         <span class="sub" id="cal-sub">What the mid said against what happened, last 30 days.</span>
@@ -573,23 +545,23 @@
     </section>
 
     <!-- live board -->
-    <section class="panel span-12">
+    <section id="s-live" class="panel span-12">
       <div class="panel-head">
         <h2>Live board</h2>
         <span class="sub" id="live-sub">Every series' current round as the collector last saw it.</span>
       </div>
-      <div class="tbl-scroll"><table id="live"><thead><tr>
+      <div class="tbl-scroll capped" data-cap="live"><table id="live"><thead><tr>
         <th>Series</th><th>Closes in</th><th class="n">Strike</th><th class="n" title="Coinbase, PAXG for gold">Spot</th><th class="n" title="basis points from the same feed's price at the round's open minute">vs open</th><th class="n">Yes bid</th><th class="n">Yes ask</th><th class="n">Mid</th><th class="n">Spread</th><th class="n" title="contracts resting in the five best yes-bid levels">Depth yes</th><th class="n" title="contracts resting in the five best no-bid levels">Depth no</th><th class="n" title="the last full minute of tape: trades, then contracts">Last minute</th><th class="n" title="share of last-minute contracts where the taker bought yes">Taker yes</th>
       </tr></thead><tbody><tr><td colspan="13"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
 
     <!-- collector -->
-    <section class="panel span-12">
+    <section id="s-collector" class="panel span-12">
       <div class="panel-head">
         <h2>Collector</h2>
         <span class="sub">One row per run. Silence here means the Worker did not run, never that it ran and hid it.</span>
       </div>
-      <div class="tbl-scroll"><table id="ticks"><thead><tr>
+      <div class="tbl-scroll capped" data-cap="ticks"><table id="ticks"><thead><tr>
         <th>Ran at</th><th>From</th><th class="n">Rounds</th><th class="n">Snaps</th><th class="n">Tape</th><th class="n">Settled</th><th class="n">Took</th><th>Errors</th>
       </tr></thead><tbody><tr><td colspan="8"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
@@ -598,10 +570,7 @@
   <div class="tip" id="tip"></div>
 
   <script type="module">
-    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-    const SUPABASE_URL = 'https://cqdignbleethroyxxvzr.supabase.co'
-    const SUPABASE_KEY = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x'
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+    import { SB as supabase, requireDesk } from './desk-auth.js'
     const el = (id) => document.getElementById(id)
     const fmt = new Intl.NumberFormat('en-US')
     const n0 = (x) => (x == null ? '–' : fmt.format(Math.round(x)))
@@ -611,22 +580,83 @@
     const short = (s) => String(s).replace(/^KX/, '').replace(/15M$/, '')
     const ago = (iso) => { const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); return s < 90 ? `${Math.round(s)}s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : `${(s / 3600).toFixed(1)} h ago` }
 
-    /* ── gate: same rule as the admin, Postgres decides ──
-       PUBLIC = true skips the login for this page only; the tables it reads must then
-       carry the anon read policies from supabase/sql/kalshi-public-on.sql (reverse:
-       kalshi-public-off.sql and PUBLIC = false). Paper data and calibration only. */
-    const PUBLIC = true
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!PUBLIC) {
-      if (!session) { el('gate').hidden = false; throw new Error('no session') }
-      const { data: isAdmin } = await supabase.rpc('is_admin')
-      if (!isAdmin) {
-        el('gate-title').textContent = 'Not an admin.'
-        el('gate-body').textContent = `${session.user.email} does not have admin access.`
-        el('gate-go').textContent = 'Sign out'; el('gate-go').href = '#'
-        el('gate-go').addEventListener('click', async (e) => { e.preventDefault(); await supabase.auth.signOut(); location.href = '/echelon/admin/' })
-        el('gate').hidden = false; throw new Error('not admin')
+    /* ── gate ──
+       This desk shows a live brokerage account, so there is no public mode. requireDesk()
+       asks for a login and then checks the same kalshi_desk_member() function the row
+       policies call, which means the page cannot disagree with the database about who is
+       allowed in. The old PUBLIC = true flag here is what left the account readable by
+       anyone holding the publishable key; it is gone deliberately, do not reintroduce it. */
+    const DESK_USER = await requireDesk()
+
+    /* ── section nav ──
+       The thumb is driven off the live link geometry rather than a fixed width per item,
+       so it stays correct when the labels reflow or the bar scrolls sideways. The active
+       section is whichever one owns the top of the viewport, which is steadier than
+       "most visible" on a page whose panels differ in height by 50x. */
+    {
+      const nav = el('sectionnav'), thumb = el('sn-thumb')
+      const links = [...nav.querySelectorAll('a')]
+      const sections = links.map((a) => el(a.getAttribute('href').slice(1))).filter(Boolean)
+      const moveTo = (a) => {
+        if (!a) return
+        thumb.style.width = `${a.offsetWidth}px`
+        thumb.style.transform = `translateX(${a.offsetLeft}px)`
+        thumb.classList.add('ready')
       }
+      const mark = (i) => {
+        links.forEach((a, k) => a.classList.toggle('on', k === i))
+        moveTo(links[i])
+        // keep the active chip in view when the bar itself has to scroll
+        const a = links[i]
+        if (a && (a.offsetLeft < nav.scrollLeft || a.offsetLeft + a.offsetWidth > nav.scrollLeft + nav.clientWidth)) {
+          nav.scrollTo({ left: a.offsetLeft - 24, behavior: 'smooth' })
+        }
+      }
+      const spy = () => {
+        const line = 130   // just under the two sticky bars
+        let i = 0
+        sections.forEach((s, k) => { if (s.getBoundingClientRect().top <= line) i = k })
+        mark(i)
+      }
+      links.forEach((a) => a.addEventListener('click', (e) => {
+        e.preventDefault()
+        el(a.getAttribute('href').slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }))
+      let raf = 0
+      addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; spy() }) }, { passive: true })
+      addEventListener('resize', () => moveTo(nav.querySelector('a.on')))
+      spy()
+    }
+
+    /* ── capped tables ──
+       Each capped box gets the row count beside its heading, so a box that scrolls never
+       reads as a table that lost rows, and the bottom fade turns off once you reach the end.
+       A MutationObserver rather than a call per render: the panels refresh on their own
+       clocks and none of them should have to remember to update a label. */
+    {
+      const boxes = [...document.querySelectorAll('.tbl-scroll.capped')]
+      const label = (box) => {
+        const head = box.closest('.panel')?.querySelector('.panel-head h2')
+        if (!head) return null
+        let tag = head.nextElementSibling?.classList.contains('rowcount') ? head.nextElementSibling : null
+        if (!tag) { tag = document.createElement('span'); tag.className = 'rowcount'; head.after(tag) }
+        return tag
+      }
+      const sync = (box) => {
+        const rows = box.querySelectorAll('tbody tr').length
+        const real = box.querySelector('tbody td.empty, tbody td[colspan]') ? 0 : rows
+        const tag = label(box)
+        if (tag) tag.textContent = real ? `${real.toLocaleString('en-US')} rows` : ''
+        // nothing to hint at when the content is shorter than the cap, or you are at the end
+        const atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 2
+        box.classList.toggle('ended', atEnd)
+      }
+      for (const box of boxes) {
+        sync(box)
+        box.addEventListener('scroll', () => sync(box), { passive: true })
+        new MutationObserver(() => sync(box)).observe(box, { childList: true, subtree: true })
+      }
+      addEventListener('resize', () => boxes.forEach(sync))
     }
 
     /* ── tooltip ── */
@@ -835,104 +865,6 @@
 
     /* ── edge hunt ── */
     const money = (x) => (x == null ? '–' : (x < 0 ? '-' : '+') + '$' + Math.abs(Number(x)).toFixed(2))
-    /* The edge panel. The 2x2 is a measured finding and lives in the markup; the two things
-       that CAN move, the rolling basis and the gate the executor is actually enforcing, are
-       read live so the page can never claim a gate the bot is not applying. */
-    const FAV_GATE = { minPrice: 0.85, maxPrice: 0.95, mtcLo: 7, mtcHi: 11, minBps: 15, minRatio: 0.93, minMom: 10 }
-    const TRADED = new Set(['BTC', 'ETH', 'SOL', 'XRP', 'DOGE'])
-
-    async function loadTheEdge() {
-      const [basis, sw] = await Promise.all([
-        q('kalshi_basis', (t) => t.select('asset,med_bps,mean_bps,sd_bps,t_stat,n,as_of').order('med_bps', { ascending: false })),
-        q('kalshi_switch', (t) => t.select('fav_rule,signals,live,min_price,clip').eq('id', 1).maybeSingle()),
-      ])
-
-      // ── the basis table ──
-      const rows = basis ?? []
-      const tb = el('basis-rows')
-      if (!rows.length) {
-        tb.innerHTML = '<tr><td colspan="5" class="quiet">No estimate yet. It needs 200 graded rounds in the window.</td></tr>'
-      } else {
-        const top = Math.max(...rows.map((r) => Math.abs(Number(r.med_bps))), 0.01)
-        tb.innerHTML = rows.map((r) => {
-          const m = Number(r.med_bps)
-          const w = Math.max(2, Math.round((Math.abs(m) / top) * 54))
-          return `<tr class="${TRADED.has(r.asset) ? 'traded' : ''}">`
-            + `<td>${r.asset}</td>`
-            + `<td class="n">${bps(m)}</td>`
-            + `<td class="n"><span class="bar" style="width:${w}px"></span></td>`
-            + `<td class="n">${r.t_stat == null ? '–' : Number(r.t_stat).toFixed(1)}</td>`
-            + `<td class="n">${fmt.format(r.n)}</td></tr>`
-        }).join('')
-        const traded = rows.filter((r) => TRADED.has(r.asset))
-        const rest = rows.filter((r) => !TRADED.has(r.asset))
-        const weak = rows.filter((r) => r.t_stat != null && Math.abs(Number(r.t_stat)) < 2).map((r) => r.asset)
-        const asOf = rows[0]?.as_of ?? null
-        el('basis-foot').textContent = `The gold rows are the five books the rule trades, estimated`
-          + ` ${asOf ? 'on ' + asOf : 'today'}. Every median is positive, so the index sits above our feed`
-          + ` everywhere it has been measured`
-          + (weak.length ? `, though ${weak.join(' and ')} ${weak.length > 1 ? 'are' : 'is'} too small this week to`
-              + ` separate from zero.` : '.')
-          + ` The traded five run ${bps(Math.min(...traded.map((r) => +r.med_bps)))} to`
-          + ` ${bps(Math.max(...traded.map((r) => +r.med_bps)))} basis points against a 15 bps gate, so the correction`
-          + ` rarely changes a call here. The large gaps sit on ${rest.slice(0, 2).map((r) => r.asset).join(' and ')},`
-          + ` which this rule does not trade: that is where correcting the feed is worth real money, and it is the`
-          + ` next thing to test. The metal is absent because it settles on Pyth, not CF Benchmarks, and our proxy`
-          + ` disagrees with it too often to correct.`
-      }
-
-      // ── the proof, recomputed server side ──
-      // reads the nightly materialisation, never the function: computing it live blows the
-      // authenticated role's statement_timeout (57014)
-      const rows2 = await q('kalshi_edge_stats', (t) => t.select('scope,n,per_day,win_pct,pay_cents,breakeven_cents,edge_cents,ret_pct,t_clustered,window_days,as_of')) ?? []
-      const pick = (k) => rows2.find((r) => r.scope === k)
-      const all = pick('All qualifying'), ap = pick('A plus only')
-      if (all) {
-        el('eh-pay').textContent = Number(all.pay_cents).toFixed(1) + 'c'
-        el('eh-win').textContent = Number(all.win_pct).toFixed(1) + '%'
-        el('eh-be').textContent = Number(all.breakeven_cents).toFixed(1) + 'c'
-        el('eh-edge').textContent = '+' + Number(all.edge_cents).toFixed(1) + 'c'
-        el('eh-day').textContent = fmt.format(all.per_day)
-      }
-      const order = (r) => (r.scope === 'All qualifying' ? 0 : r.scope === 'A plus only' ? 1 : 2)
-      const pb = el('proof-rows')
-      pb.innerHTML = rows2.length ? rows2.slice().sort((a, b) => order(a) - order(b) || b.edge_cents - a.edge_cents).map((r) => {
-        const head = order(r) < 2
-        const t = r.t_clustered == null ? null : Number(r.t_clustered)
-        return `<tr class="${head ? 'traded' : ''}">`
-          + `<td>${r.scope.replace('Per book: ', '')}</td>`
-          + `<td class="n">${Number(r.win_pct).toFixed(1)}%</td>`
-          + `<td class="n">${Number(r.pay_cents).toFixed(1)}c</td>`
-          + `<td class="n">${bps(r.edge_cents)}c</td>`
-          + `<td class="n" style="color:${t != null && t >= 2 ? 'var(--good)' : 'var(--muted)'}">${t == null ? '–' : t.toFixed(2)}</td>`
-          + `<td class="n">${fmt.format(r.n)}</td></tr>`
-      }).join('') : '<tr><td colspan="6" class="quiet">No graded rounds in the window.</td></tr>'
-      if (rows2.length) {
-        const books = rows2.filter((r) => r.scope.startsWith('Per book'))
-        const sig = books.filter((r) => Number(r.t_clustered) >= 2).length
-        el('proof-foot').textContent = `All ${books.length} books are positive and ${sig} of ${books.length} clear`
-          + ` significance on their own, so this is not one book carrying the rest. The first two rows are the`
-          + ` rule as traded; the books below are the same rule split out. A t above 2 is shown in green.`
-      }
-
-      // ── the gate: what the executor requires right now ──
-      const g = FAV_GATE
-      const on = sw?.fav_rule === true
-      const armed = sw?.signals === true
-      const floor = sw?.min_price == null ? g.minPrice : Number(sw.min_price)
-      const pill = (k, v, cls) => `<span class="g ${cls ?? ''}"><em>${k}</em><b>${v}</b></span>`
-      el('edge-gate').innerHTML = [
-        pill('rule', on ? 'on' : 'off', on ? 'on' : 'off'),
-        pill('sending', armed ? 'live orders' : 'paper only', armed ? 'on' : 'off'),
-        pill('price', `${(floor * 100).toFixed(0)}c to ${(g.maxPrice * 100).toFixed(0)}c`),
-        pill('clock', `${g.mtcLo} to ${g.mtcHi} min left`),
-        pill('distance', `${g.minBps}+ bps, basis corrected`),
-        pill('tape moved', `${g.minMom}+ bps`),
-        pill('vol premium', `${g.minRatio}x+`),
-        pill('clip', sw?.clip == null ? '–' : '$' + Number(sw.clip).toFixed(0)),
-      ].join('')
-    }
-
     async function loadEdge() {
       // "as of" comes from the scoring log, not the cells table, so a night that found no
       // cells still reads as scored rather than as never run
@@ -1011,11 +943,13 @@
       const today = new Date().toISOString().slice(0, 10)
       // kalshi_executor_state is one row the executor upserts at the end of every pass: the
       // switch as it is NOW, not as it was when the last intent went through.
-      const [orders, book, stateRows, swRows] = await Promise.all([
+      const [orders, book, stateRows, swRows, settlements] = await Promise.all([
         q('kalshi_live_orders', (b) => b.select('ticker,created_at,series,cell,side,price,contracts,filled,source,status,mode,live_switch,halted,processed_at,won,pnl,exit_price,exit_filled').order('created_at', { ascending: false }).limit(60)),
         q('kalshi_live_daily', (b) => b.select('*').order('day', { ascending: true })),
         q('kalshi_executor_state', (b) => b.select('*').eq('id', 1)).catch(() => []),
         q('kalshi_switch', (b) => b.select('signals,updated_at,clip').eq('id', 1)).catch(() => []),
+        // the exchange's own settlements for this account, bot and hand trades alike (last 36 h)
+        q('kalshi_settlements', (b) => b.select('ticker,settled_time,pnl,bot').gte('settled_time', new Date(Date.now() - 36 * 3600_000).toISOString()).order('settled_time', { ascending: false })).catch(() => []),
       ])
       const clip = Number(swRows[0]?.clip ?? 10) || 10
       const st = stateRows[0] ?? null
@@ -1030,15 +964,21 @@
       const open = orders.filter((o) => o.status === 'placed').length
       const last24 = orders.filter((o) => o.created_at >= since)
       const sent = last24.filter((o) => ['placed', 'settled', 'unfilled', 'exited'].includes(o.status)).length
+      const filledN = last24.filter((o) => ['placed', 'settled', 'exited'].includes(o.status) && Number(o.filled ?? 0) > 0).length
       const lastSig = orders.find((o) => o.source === 'signals' && o.processed_at)
       const sw = st ? st.switch_signals === true : lastSig ? lastSig.live_switch : null
       const halted = st ? st.halted === true : orders.some((o) => o.halted && o.created_at >= today)
       const tone = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : 'gold')
 
+      const acctToday = settlements.filter((s) => s.settled_time >= today + 'T00:00:00Z')
+      const acctPnl = acctToday.reduce((t, s) => t + Number(s.pnl ?? 0), 0), handN = acctToday.filter((s) => !s.bot).length
+      const acct = el('a-acct'); acct.textContent = acctToday.length ? money(acctPnl) : '$0.00'; acct.className = 'v ' + tone(acctToday.length ? acctPnl : 0)
+      el('a-acct-k').textContent = acctToday.length ? `your account, ${acctToday.length} settled today${handN ? `, ${handN} by hand` : ''}` : 'your account, settled today'
       const real = el('a-real'); real.textContent = settled ? money(realized) : '$0.00'; real.className = 'v ' + tone(settled ? realized : 0)
       const tr = el('a-today'); tr.textContent = money(todayReal).replace('+$0.00', '$0.00'); tr.className = 'v ' + (todayReal ? tone(todayReal) : '')
       el('a-open').textContent = fmt.format(open)
       el('a-sent').textContent = `${sent} of ${last24.length}`
+      el('a-sent-k').textContent = sent ? `sent of ${last24.length} intents in 24 h · ${Math.round(100 * filledN / sent)}% filled` : 'sent, of intents in 24 h'
       el('a-won').textContent = settled ? Math.round(100 * wins / settled) + '%' : '–'
       el('a-won-k').textContent = settled ? `won of ${fmt.format(settled)} settled` : 'won of settled'
       const swEl = el('a-switch'); swEl.textContent = sw == null ? '–' : sw ? 'ON' : 'OFF'; swEl.className = 'v ' + (sw == null ? '' : sw ? 'on' : 'off')
@@ -1074,6 +1014,103 @@
         <td>${pill(o)}</td>
         <td class="n ${o.pnl == null ? '' : Number(o.pnl) > 0 ? 'pos' : Number(o.pnl) < 0 ? 'neg' : ''}">${o.pnl == null ? '–' : money(o.pnl)}</td>
       </tr>`).join('') : '<tr><td colspan="8" class="empty">No intents yet.</td></tr>'
+    }
+
+    /* ── bots: the shared desk tables. Any bot registered in desk_bots shows up here with no
+       code change; a bot that wants its own panel ships bots/<id>.js exporting mount(el, ctx). ── */
+    const botExt = new Map()
+    async function loadBots() {
+      const today = new Date().toISOString().slice(0, 10)
+      const [bots, daily, feed] = await Promise.all([
+        q('desk_bots', (b) => b.select('*').order('created_at')),
+        q('desk_daily', (b) => b.select('*').order('day', { ascending: true })),
+        q('desk_signals', (b) => b.select('*').eq('shown', true).order('called_at', { ascending: false }).limit(40)),
+      ])
+      const host = el('bots')
+      const tone = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '')
+      const ctxFor = (bot) => ({ supabase, bot, q, money, fmt, ago, short, p2 })
+      const whatOf = (f) => ({ called: 'open', won: 'won', lost: 'lost', exited: 'sold at ' + p2(f.exit_price), void: 'void' }[f.status] ?? f.status)
+      host.innerHTML = bots.length ? bots.map((bot) => {
+        const mine = daily.filter((d) => d.bot === bot.id)
+        const sum = (rows, k) => rows.reduce((t, r) => t + Number(r[k] ?? 0), 0)
+        const t = mine.filter((d) => d.day === today)
+        const graded = sum(mine, 'graded'), wins = sum(mine, 'wins')
+        const last = feed.find((f) => f.bot === bot.id)
+        const lastLine = last
+          ? `Last: ${short(last.series)} ${last.side.toUpperCase()} @ ${p2(last.price)} (${last.rule}), ${ago(last.called_at)}, ${whatOf(last)}${last.pnl != null ? ', ' + money(last.pnl) : ''}`
+          : 'No calls reported yet.'
+        return `<div class="bot" id="bot-${bot.id}">
+          <div class="name"><b>${bot.name}</b><span>${bot.owner} · ${bot.id}</span></div>
+          <div class="stat-row">
+            <div class="stat"><div class="v ${tone(sum(t, 'pnl'))}">${t.length ? money(sum(t, 'pnl')) : '$0.00'}</div><div class="k">today</div></div>
+            <div class="stat"><div class="v ${tone(sum(mine, 'pnl'))}">${mine.length ? money(sum(mine, 'pnl')) : '$0.00'}</div><div class="k">all time, ${mine.length} ${mine.length === 1 ? 'day' : 'days'}</div></div>
+            <div class="stat"><div class="v">${graded ? Math.round(100 * wins / graded) + '%' : '–'}</div><div class="k">won of ${fmt.format(graded)}</div></div>
+          </div>
+          <div class="last">${lastLine}${t.length ? ` · ${fmt.format(sum(t, 'calls'))} calls today` : ''}</div>
+          <div class="ext" id="bot-${bot.id}-ext"></div>
+        </div>`
+      }).join('') : '<div class="empty"><b>No bots registered.</b></div>'
+      // a bot's own panel, if it shipped one (bots/<id>.js, see CONTRACT.md); imported once per load
+      for (const bot of bots) {
+        if (!bot.panel) continue // desk_bots.panel is flipped by D1 once bots/<id>.js exists
+        const target = el(`bot-${bot.id}-ext`)
+        if (botExt.has(bot.id)) { const m = botExt.get(bot.id); if (m?.mount) m.mount(target, ctxFor(bot)); continue }
+        botExt.set(bot.id, null)
+        import(`./bots/${bot.id}.js`).then((m) => { botExt.set(bot.id, m); if (m?.mount) m.mount(el(`bot-${bot.id}-ext`), ctxFor(bot)) }).catch(() => {})
+      }
+      const tb = el('feed').querySelector('tbody')
+      const pill = (f) => { const [label, cls] = { called: ['open', 'open'], won: ['won', 'won'], lost: ['lost', 'lost'], exited: ['sold at ' + p2(f.exit_price), 'won'], void: ['void', ''] }[f.status] ?? [f.status, '']; return `<span class="st ${cls}">${label}</span>` }
+      tb.innerHTML = feed.length ? feed.slice(0, 30).map((f) => `<tr>
+        <td title="${f.called_at}">${ago(f.called_at)}</td>
+        <td><span class="bot-tag">${bots.find((b) => b.id === f.bot)?.name ?? f.bot}</span></td>
+        <td><span class="ser">${short(f.series)}</span></td>
+        <td>${f.rule}</td>
+        <td><span class="buy ${f.side}">${f.side.toUpperCase()}</span></td>
+        <td class="n">${p2(f.price)}</td>
+        <td class="n">${f.contracts}</td>
+        <td>${f.book}</td>
+        <td>${pill(f)}</td>
+        <td class="n ${f.pnl == null ? '' : Number(f.pnl) > 0 ? 'pos' : Number(f.pnl) < 0 ? 'neg' : ''}">${f.pnl == null ? '–' : money(f.pnl)}</td>
+      </tr>`).join('') : '<tr><td colspan="10" class="empty">No calls reported by any bot yet.</td></tr>'
+    }
+
+    /* ── rules: every rule of every bot, its last 20 graded calls, from desk_signals. Hot means net
+       positive over those 20 with at least 10 of them, the same gate that decides what posts. ── */
+    async function loadRules() {
+      const rows = await q('desk_signals', (b) => b.select('bot,rule,status,pnl,pnl_hold,cost,called_at,shown').in('status', ['won', 'lost', 'exited']).order('called_at', { ascending: false }).limit(1500))
+      const bots = await q('desk_bots', (b) => b.select('id,name'))
+      const nameOf = (id) => bots.find((b) => b.id === id)?.name ?? id
+      const today = new Date().toISOString().slice(0, 10)
+      const by = new Map()
+      for (const r of rows) {
+        const k = r.bot + '|' + r.rule
+        const g = by.get(k) ?? { bot: r.bot, rule: r.rule, last: [], all: { n: 0, wins: 0, hold: 0, exit: 0 }, today: 0, shown: 0 }
+        if (g.last.length < 20) g.last.push(r)
+        g.all.n++; if (Number(r.pnl_hold ?? r.pnl) > 0) g.all.wins++
+        g.all.hold += Number(r.pnl_hold ?? r.pnl ?? 0); g.all.exit += Number(r.pnl ?? r.pnl_hold ?? 0)
+        if (r.called_at >= today) g.today++
+        if (r.shown) g.shown++
+        by.set(k, g)
+      }
+      const tb = el('rules').querySelector('tbody')
+      const list = [...by.values()].map((g) => {
+        const n = g.last.length, wins = g.last.filter((r) => Number(r.pnl_hold ?? r.pnl) > 0).length
+        const hold = g.last.reduce((t, r) => t + Number(r.pnl_hold ?? r.pnl ?? 0), 0), exit = g.last.reduce((t, r) => t + Number(r.pnl ?? r.pnl_hold ?? 0), 0)
+        return { ...g, n, wins, hold, exit, hot: n >= 10 && hold > 0 }
+      }).sort((a, b) => (b.hot - a.hot) || (b.hold - a.hold))
+      const tone = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '')
+      tb.innerHTML = list.length ? list.map((g) => `<tr>
+        <td><span class="bot-tag">${nameOf(g.bot)}</span></td>
+        <td><span class="ser">${g.rule}</span></td>
+        <td>${g.hot ? '<span class="st won">hot, posting</span>' : g.n < 10 ? '<span class="st">seeding</span>' : '<span class="st">cold, paper only</span>'}</td>
+        <td class="n">${g.wins}/${g.n}</td>
+        <td class="n ${tone(g.hold)}">${money(g.hold)}</td>
+        <td class="n ${tone(g.exit)}">${money(g.exit)}</td>
+        <td class="n">${g.all.wins}/${g.all.n}</td>
+        <td class="n ${tone(g.all.hold)}">${money(g.all.hold)}</td>
+        <td class="n ${tone(g.all.exit)}">${money(g.all.exit)}</td>
+        <td class="n">${fmt.format(g.today)}</td>
+      </tr>`).join('') : '<tr><td colspan="10" class="empty">No graded calls yet.</td></tr>'
     }
 
     /* ── paper: the signal bot's book by day, written by the bot after every grading pass ── */
@@ -1132,26 +1169,22 @@
        admin edits them here; the executor reads the row on every pass. ── */
     async function initRisk() {
       const host = el('risk'), note = el('risk-note'), save = el('r-save')
-      const f = { clip: el('r-clip'), stop: el('r-stop'), cap: el('r-cap'), open: el('r-open'), min: el('r-min'), tp1: el('r-tp1'), frac: el('r-frac'), tp2: el('r-tp2'), be: el('r-be'), stopC: el('r-stop-c') }
-      const rows = await q('kalshi_switch', (b) => b.select('clip,daily_stop,daily_cap,max_open,min_price,tp1_pct,tp1_frac,tp2_pct,be_arm_pct,stop_cents').eq('id', 1)).catch(() => [])
+      const f = { clip: el('r-clip'), stop: el('r-stop'), cap: el('r-cap'), open: el('r-open'), min: el('r-min') }
+      const rows = await q('kalshi_switch', (b) => b.select('clip,daily_stop,daily_cap,max_open,min_price').eq('id', 1)).catch(() => [])
       const r = rows[0]
       if (!r) { note.textContent = 'no switch row'; return }
       const fill = () => {
         f.clip.value = Number(r.clip); f.stop.value = Math.abs(Number(r.daily_stop)); f.cap.value = Number(r.daily_cap)
         f.open.value = Number(r.max_open); f.min.value = Math.round(Number(r.min_price) * 100)
-        f.tp1.value = Number(r.tp1_pct); f.frac.value = Math.round(Number(r.tp1_frac) * 100); f.tp2.value = Number(r.tp2_pct); f.be.value = Number(r.be_arm_pct)
-        f.stopC.value = Number(r.stop_cents)
       }
       fill()
       let canEdit = false
       if (session) { const { data } = await supabase.rpc('is_admin'); canEdit = data === true }
       host.classList.toggle('locked', !canEdit)
       note.textContent = canEdit ? '' : 'sign in at /echelon/admin to change'
-      const read = () => ({ clip: Number(f.clip.value), daily_stop: -Math.abs(Number(f.stop.value)), daily_cap: Number(f.cap.value), max_open: Math.floor(Number(f.open.value)), min_price: Math.round(Number(f.min.value)) / 100, tp1_pct: Number(f.tp1.value), tp1_frac: Math.round(Number(f.frac.value)) / 100, tp2_pct: Number(f.tp2.value), be_arm_pct: Number(f.be.value), stop_cents: Number(f.stopC.value) })
+      const read = () => ({ clip: Number(f.clip.value), daily_stop: -Math.abs(Number(f.stop.value)), daily_cap: Number(f.cap.value), max_open: Math.floor(Number(f.open.value)), min_price: Math.round(Number(f.min.value)) / 100 })
       const valid = (v) => v.clip >= 1 && v.clip <= 500 && v.daily_stop <= 0 && v.daily_stop >= -5000 && v.daily_cap >= 1 && v.daily_cap <= 10000 && v.max_open >= 1 && v.max_open <= 50 && v.min_price >= 0.01 && v.min_price <= 0.99
-        && v.tp1_pct >= 0 && v.tp1_pct <= 1000 && v.tp1_frac >= 0 && v.tp1_frac <= 1 && v.tp2_pct >= 0 && v.tp2_pct <= 1000 && v.be_arm_pct >= 0 && v.be_arm_pct <= 1000 && v.stop_cents >= 0 && v.stop_cents <= 99
       const same = (v) => v.clip === Number(r.clip) && v.daily_stop === Number(r.daily_stop) && v.daily_cap === Number(r.daily_cap) && v.max_open === Number(r.max_open) && Math.abs(v.min_price - Number(r.min_price)) < 1e-9
-        && v.tp1_pct === Number(r.tp1_pct) && Math.abs(v.tp1_frac - Number(r.tp1_frac)) < 1e-9 && v.tp2_pct === Number(r.tp2_pct) && v.be_arm_pct === Number(r.be_arm_pct) && v.stop_cents === Number(r.stop_cents)
       const changed = () => {
         const v = read(), ok = valid(v), dirty = !same(v)
         host.classList.toggle('dirty', dirty)
@@ -1166,7 +1199,7 @@
         const { error } = await supabase.from('kalshi_switch').update({ ...v, updated_at: new Date().toISOString(), updated_by: session.user.email }).eq('id', 1)
         if (error) { note.textContent = 'could not save: ' + error.message; save.disabled = false; return }
         Object.assign(r, v); fill(); host.classList.remove('dirty')
-        note.textContent = `saved: $${v.clip} a call, stop -$${Math.abs(v.daily_stop)}, cap $${v.daily_cap}, ${v.max_open} open, ${Math.round(v.min_price * 100)}¢ floor, ${Math.round(v.tp1_frac * 100)}% off at +${v.tp1_pct}%, rest at +${v.tp2_pct}%, breakeven after +${v.be_arm_pct}%. The executor reads it on its next pass.`
+        note.textContent = `saved: $${v.clip} a call, stop -$${Math.abs(v.daily_stop)}, cap $${v.daily_cap}, ${v.max_open} open, ${Math.round(v.min_price * 100)}¢ floor. The executor reads it on its next pass.`
       })
     }
 
@@ -1354,11 +1387,10 @@
     segment(el('cal-mtc'), MTC.map((b) => ({ v: b, label: b.replace('-', ' to ') + ' min' })), state.mtc, (v) => { state.mtc = v; renderCalib() })
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadStats(), loadDaily(), loadTheEdge(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadBots(), loadRules(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadStats(), loadDaily(), loadEdge(), loadWeights(), loadCoverage(), loadCalib(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
-    setInterval(() => { loadTicks(); loadAccount(); loadPaper(); loadLive() }, 30_000)
+    setInterval(() => { loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive() }, 30_000)
     setInterval(() => { loadStats(); loadCoverage(); loadEdge() }, 5 * 60_000)
-    supabase.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') location.href = '/echelon/admin/' })
   </script>
 </body>
 </html>
