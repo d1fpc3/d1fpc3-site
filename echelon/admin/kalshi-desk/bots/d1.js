@@ -7,5 +7,5 @@ export async function mount(el, ctx) {
   // The card's money is the SHOWN book only, the calls above. The full paper book across
   // every rule, silent ones included, is the Book panel, and it is a much larger number;
   // saying "paper book at $10 a call" here made the two panels look like they disagreed.
-  el.innerHTML = `<p class="last">${rules.length ? `Posting from ${rules.join(', ')}. The money above is these shown calls only, at $10 each; the full paper book across every rule is in Book.` : 'Every call shown in Discord lands here.'}</p>`
+  el.innerHTML = `<p class="last">${rules.length ? `Posting from ${rules.join(', ')}. The money above is these shown calls only, at $10 each, HELD TO CLOSE; the P&L column below is the exit book, so the two differ wherever the model sold early. The full paper book across every rule is in Book.` : 'Every call shown in Discord lands here.'}</p>`
 }

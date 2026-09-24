@@ -19,7 +19,7 @@ export async function mount(el, ctx) {
   const queue = rest.length ? `${Math.round((100 * first) / rest.length)}% of ${ctx.fmt.format(rest.length)} resting quotes are inside the spread` : 'nothing resting'
 
   el.innerHTML = `<p class="last">
-    Paper. ${ctx.fmt.format(fills)} strict ${fills === 1 ? 'fill' : 'fills'}, ${graded ? ctx.fmt.format(graded) + ' graded' : 'none graded yet'} · ${queue}.
+    Paper, all time: ${ctx.fmt.format(fills)} strict ${fills === 1 ? 'fill' : 'fills'}, ${graded ? ctx.fmt.format(graded) + ' graded' : 'none graded yet'} · ${queue}.
     <a href="weather.html" style="color: var(--gold); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--gold) 45%, transparent)">Open the weather desk</a>
   </p>`
 }

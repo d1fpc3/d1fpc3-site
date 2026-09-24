@@ -27,7 +27,9 @@
       --panel-2: #1a1817;
       --ink: #f4f2ee;
       --muted: #9d978c;
-      --faint: #6b665e;
+      /* 4.52:1 on --panel-2, 4.78 on --panel, 5.05 on --bg. At #6b665e it was 3.11:1,
+         and it is the colour of every table header, row count and axis label on the page. */
+      --faint: #868076;
       --line: #262321;
       --line-bright: #383431;
       --gold: #c9a24a;
@@ -49,7 +51,7 @@
       --panel-2: #efece6;
       --ink: #1a1815;
       --muted: #5f5a51;
-      --faint: #8a847a;
+      --faint: #6f6a61;
       --line: #e4e0d8;
       --line-bright: #d3cec4;
       --gold: #a8842c;
@@ -152,6 +154,11 @@
       display: flex; align-items: center; gap: 2px; padding: 8px 24px;
       border-bottom: 1px solid var(--line);
       overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+      background:
+        linear-gradient(to right, var(--bg) 40%, transparent) left center / 26px 100% no-repeat local,
+        linear-gradient(to left, var(--bg) 40%, transparent) right center / 26px 100% no-repeat local,
+        radial-gradient(farthest-side at 0 50%, rgba(0,0,0,0.5), transparent) left center / 10px 100% no-repeat scroll,
+        radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,0.5), transparent) right center / 10px 100% no-repeat scroll;
     }
     .sectionnav::-webkit-scrollbar { display: none; }
     .sectionnav a {
@@ -173,6 +180,26 @@
        fallback only applies for the first frame, before the observer has run. */
     .panel[id^="s-"] { scroll-margin-top: calc(var(--top-h, 104px) + 16px); }
     @media (prefers-reduced-motion: reduce) { .sn-thumb { transition: none; } }
+
+    /* ════ touch ═════════════════════════════════════════════
+       Every control on this page was built for a cursor: 47 of 47 came in under the 40px
+       touch minimum and the nav chips sat 2px apart, so on a phone the wrong one is what you
+       hit. Only the padding and the spacing change, so the desktop density is untouched. */
+    @media (pointer: coarse) {
+      .sectionnav { gap: 6px; padding: 10px 24px; }
+      .sectionnav a { padding: 10px 13px; }
+      .sn-thumb { top: 10px; height: 37px; }
+      .jumps { gap: 6px; }
+      .jumps a { padding: 9px 13px; }
+      .back { padding: 10px 13px 10px 10px; }
+      .seg { padding: 4px; }
+      .seg button { padding: 10px 13px; }
+      .seg .thumb { top: 4px; bottom: 4px; }
+      .ri { height: 42px; padding: 0 11px; }
+      .ri input { font-size: 16px; }
+      .risk-save { height: 42px; }
+      .bot .last a { display: inline-block; padding: 6px 0; }
+    }
 
     /* ════ layout ════════════════════════════════════════════ */
     .wrap { max-width: 1720px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
@@ -201,7 +228,10 @@
     .panel-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
     .panel-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
     .panel-head .sub { color: var(--muted); font-size: 13px; }
-    .panel-head .right { margin-left: auto; display: flex; gap: 10px; align-items: center; min-width: 0; max-width: 100%; }
+    /* flex-wrap, and every child may shrink. #hero-mode kept min-width:auto and refused to give,
+       so #hero-series was squeezed to 135px and hid 8 of its 11 series. */
+    .panel-head .right { margin-left: auto; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; min-width: 0; max-width: 100%; }
+    .panel-head .right > * { min-width: 0; }
 
     /* segmented control: a real one, not a row of buttons */
     .seg { display: inline-flex; padding: 3px; background: var(--panel-2); border-radius: 9px; position: relative; }
@@ -209,7 +239,17 @@
     .seg button.on { color: var(--ink); }
     .seg .thumb { position: absolute; top: 3px; bottom: 3px; left: 0; width: 0; background: var(--panel); border-radius: 7px; box-shadow: 0 1px 2px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04); transition: left 220ms cubic-bezier(0.2, 0.8, 0.2, 1), width 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
     .seg button:active { transform: scale(0.97); }
-    .seg.scroll { max-width: 100%; min-width: 0; flex: 0 1 auto; overflow-x: auto; scrollbar-width: none; }
+    /* These rails hid 8 of 11 series at 320 and the last minutes-to-close bucket at 1440,
+       with no scrollbar and nothing to say more existed. Same background scroll shadows the
+       tables use: they appear only while there is more to reach. */
+    .seg.scroll {
+      max-width: 100%; min-width: 0; flex: 0 1 auto; overflow-x: auto; scrollbar-width: none;
+      background:
+        linear-gradient(to right, var(--panel-2) 40%, transparent) left center / 22px 100% no-repeat local,
+        linear-gradient(to left, var(--panel-2) 40%, transparent) right center / 22px 100% no-repeat local,
+        radial-gradient(farthest-side at 0 50%, rgba(0,0,0,0.42), transparent) left center / 9px 100% no-repeat scroll,
+        radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,0.42), transparent) right center / 9px 100% no-repeat scroll;
+    }
     .seg.scroll::-webkit-scrollbar { display: none; }
 
     /* ════ hero ══════════════════════════════════════════════ */
@@ -223,6 +263,7 @@
     .hero-legend span { display: inline-flex; align-items: center; gap: 7px; }
     .hero-legend i { width: 11px; height: 3px; border-radius: 2px; flex: 0 0 auto; }
     .hero-legend b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .hero-legend .lg-when { color: var(--faint); font-size: 11.5px; }
     .stat { display: flex; flex-direction: column; gap: 2px; }
     .stat .v { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
     .stat .v.gold { color: var(--gold); }
@@ -278,10 +319,20 @@
     .tip .row { display: flex; gap: 12px; justify-content: space-between; }
     .tip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
 
-    /* ════ edge hunt ═════════════════════════════════════════ */
-    .edge { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 28px; align-items: start; }
-    @media (max-width: 1100px) { .edge { grid-template-columns: 1fr; } }
+    /* ════ edge hunt ═════════════════════════════════════════
+       This split is sized against the PANEL, not the viewport, because the panel is span-5
+       and its width runs opposite to the window's: above 1100 the panel is five twelfths of
+       the page (about 500px at 1280), below it the panel goes full width. The old rule was a
+       viewport media query, so it split the panel exactly where the panel was narrowest:
+       380px plus a 28px gap left 47px of track for a nine column table, and 81% of it was
+       scrolled out of sight with no scrollbar. A container query asks the only question that
+       matters, which is how much room this panel actually has. */
+    #s-edge { container-type: inline-size; }
+    .edge { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: start; }
+    @container (min-width: 820px) { .edge { grid-template-columns: minmax(0, 360px) minmax(0, 1fr); } }
     .edge-stats { margin-bottom: 14px; }
+    /* the cells table is the widest thing on the page for the room it gets; let it use it */
+    .edge-cells table { width: 100%; }
 
     /* ════ the edge: the one mispricing, and what it costs to reach ════
        The centrepiece is a 2x2, not a chart, because the finding IS a 2x2: two
@@ -301,7 +352,10 @@
     .m2 .cell .tag { color: var(--muted); font-size: 12px; margin-top: 7px; }
     .m2 .cell.take { border-color: var(--gold-deep); background: linear-gradient(180deg, rgba(201,162,74,0.10), rgba(201,162,74,0.03)); }
     .m2 .cell.take .r, .m2 .cell.take .tag { color: var(--gold); }
-    .m2 .cell.dead { opacity: 0.62; }
+    /* 0.62 dropped this cell's caption to 1.95:1, under even the 3:1 large-text floor. The
+       cell still needs to read as spent, so the de-emphasis moves to the border and the
+       number's colour rather than to an opacity that eats the text with it. */
+    .m2 .cell.dead { opacity: 0.9; border-style: dashed; }
     .m2 .cell.dead .r { color: var(--bad); }
     /* a phone cannot hold a 2x2 of 25px numbers and its two header rows; below 620 it
        becomes four stacked cells that each name their own corner */
@@ -340,8 +394,14 @@
     table.basis tr.traded td:first-child { color: var(--gold); font-weight: 600; }
     table.basis .bar { display: inline-block; height: 7px; border-radius: 2px; background: var(--gold-deep); vertical-align: middle; }
 
+    /* a dropped row is a fact about the data, so it belongs on the page, not in a console */
+    .dropnote { margin: 0 0 14px; padding: 9px 12px; border-radius: 9px; font-size: 12.5px; line-height: 1.45;
+      color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); border: 1px solid color-mix(in srgb, var(--bad) 32%, transparent); }
+
     /* ════ bots: the shared cards ═════════════════════════════ */
-    .bots { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    /* min(300px, 100%): a hard 300px floor is wider than a 320px phone's 288px content box,
+       so the cards pushed the whole document 25px sideways. */
+    .bots { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 14px; margin-bottom: 18px; }
     .bot { background: var(--panel-2); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
     .bot .name { display: flex; align-items: baseline; gap: 10px; }
     .bot .name b { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
@@ -532,9 +592,10 @@
         <h2>Bots</h2>
         <span class="sub">Every bot that reports to this desk, and only the calls it made in public. These are not whole-strategy books: the printer's silent paper calls, every rule including the cold ones, are in <a href="#s-book" style="color: var(--muted); border-bottom: 1px solid var(--line-bright)">Book</a> below, which is why that panel's numbers are larger. Each bot writes only its own rows.</span>
       </div>
+      <p class="dropnote" id="bots-drop" hidden></p>
       <div class="bots" id="bots"><div class="skel" style="height: 120px"></div></div>
       <div class="tbl-scroll capped" data-cap="feed"><table id="feed"><thead><tr>
-        <th>When</th><th>Bot</th><th>Series</th><th>Rule</th><th>Buy</th><th class="n">Price</th><th class="n">Size</th><th>Book</th><th>What happened</th><th class="n">P&amp;L</th>
+        <th>When</th><th>Bot</th><th>Series</th><th>Rule</th><th>Buy</th><th class="n">Price</th><th class="n">Size</th><th>Book</th><th>What happened</th><th class="n" title="The exit book: what the call actually realised, selling early when the model sold. The money on the cards above is held to close, so a rule that exits well reads better here than it does up there.">P&amp;L, exits</th>
       </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
 
@@ -545,7 +606,7 @@
         <span class="sub">Every rule's last 20 graded calls. A rule posts and trades while it is net positive over its last 20 with at least 10 graded; below that it keeps calling on paper.</span>
       </div>
       <div class="tbl-scroll"><table id="rules"><thead><tr>
-        <th>Bot</th><th>Rule</th><th>State</th><th class="n">Last 20</th><th class="n" title="held to close">Net 20</th><th class="n" title="with the bot's exit rule">Net 20, exits</th><th class="n">All time</th><th class="n">Net, held</th><th class="n">Net, exits</th><th class="n">Calls today</th>
+        <th>Bot</th><th>Rule</th><th>State</th><th class="n">Last 20</th><th class="n" title="held to close">Net 20</th><th class="n" title="with the bot's exit rule">Net 20, exits</th><th class="n">All time</th><th class="n">Net, held</th><th class="n">Net, exits</th><th class="n" title="Calls graded today. Calls still open are not counted, which is why this column runs below the Book panel's calls today.">Graded today</th>
       </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
 
@@ -783,6 +844,12 @@
     const n0 = (x) => (x == null ? '–' : fmt.format(Math.round(x)))
     const p2 = (x) => (x == null ? '–' : Number(x).toFixed(2))
     const p3 = (x) => (x == null ? '–' : Number(x).toFixed(3))
+    const px = (x) => {
+      if (x == null) return '–'
+      const v = Number(x), a = Math.abs(v)
+      const d = a === 0 ? 2 : Math.max(2, Math.min(8, Math.ceil(-Math.log10(a * 1e-4))))
+      return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
+    }
     const p4 = (x) => (x == null ? '–' : Number(x).toFixed(4))
     const short = (s) => String(s).replace(/^KX/, '').replace(/15M$/, '')
     const ago = (iso) => { const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); return s < 90 ? `${Math.round(s)}s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : `${(s / 3600).toFixed(1)} h ago` }
@@ -800,9 +867,13 @@
        into the stylesheet. The bar wraps with its content, so its height changes with the
        width, with the length of the collector sentence, and with whether the sign-out button
        has rendered yet. Measuring it is the only version of this that stays true. */
+    let TOP_H = 104   // the sticky region's measured height; everything that must clear it reads this
     {
       const stick = el('topstick')
-      const write = () => document.documentElement.style.setProperty('--top-h', `${Math.round(stick.getBoundingClientRect().height)}px`)
+      const write = () => {
+        TOP_H = Math.round(stick.getBoundingClientRect().height)
+        document.documentElement.style.setProperty('--top-h', `${TOP_H}px`)
+      }
       write()
       new ResizeObserver(write).observe(stick)
       // The shadow is the only thing that says the bar is a layer rather than part of the page,
@@ -839,15 +910,37 @@
         }
       }
       const spy = () => {
-        const line = 130   // just under the two sticky bars
+        // The probe line has to sit below the sticky region and below where a jumped-to
+        // heading lands (scroll-margin-top is --top-h + 16). It used to be a flat 130, which
+        // is under the region on a desktop but ABOVE it on a phone, where the bar is two rows
+        // and a heading lands at 143: tapping Learning lit Rules, every link off by one.
+        // A click is an answer, not a hint, so it holds the mark until the smooth scroll has
+        // settled or the reader takes the wheel back. Inference cannot serve both cases:
+        // Coverage and Calibration, and Edge hunt and What it learned, sit side by side in one
+        // grid row and share a top, so no scroll position can tell them apart, and the last
+        // section simply cannot be scrolled to the line at all. Picking by position lit the
+        // wrong one of each pair; breaking the tie the other way made the right-hand panel of
+        // each pair unreachable. Neither is inference's job once the reader has said which.
+        if (picked != null) return
+        const line = TOP_H + 24
         let i = 0
         sections.forEach((s, k) => { if (s.getBoundingClientRect().top <= line) i = k })
         mark(i)
       }
-      links.forEach((a) => a.addEventListener('click', (e) => {
+      // Held until the reader scrolls, NOT on a timer. A timer meant the chip they tapped lit
+      // up and then silently handed itself to the neighbouring panel a second later, which is
+      // worse than never lighting at all.
+      let picked = null
+      const release = () => { if (picked == null) return; picked = null; spy() }
+      links.forEach((a, k) => a.addEventListener('click', (e) => {
         e.preventDefault()
+        picked = k
+        mark(k)
         el(a.getAttribute('href').slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }))
+      // any scrolling of their own hands control straight back to the spy
+      for (const ev of ['wheel', 'touchmove', 'keydown']) addEventListener(ev, release, { passive: true })
+      addEventListener('pointerdown', (e) => { if (!nav.contains(e.target)) release() }, { passive: true })
       let raf = 0
       addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; spy() }) }, { passive: true })
       addEventListener('resize', () => moveTo(nav.querySelector('a.on')))
@@ -1049,6 +1142,12 @@
       const over = labelY.length ? labelY[labelY.length - 1] - (H - m.b - 4) : 0
       if (over > 0) for (let i = 0; i < labelY.length; i++) labelY[i] -= over
       const anchor = one ? 'start' : 'end', lxo = one ? lx + 10 : lx - 6
+      // The legend has to carry the DASH, not just the colour. line-c shares its grey with
+      // line-b and line-d shares its gold with line-a, so drawn as solid blocks four series
+      // read as two and the legend claimed two pairs were the same series.
+      const swatch = (e) => (e.cls === 'line-c' || e.cls === 'line-d')
+        ? `repeating-linear-gradient(90deg, ${e.color} 0 5px, transparent 5px 9px)`
+        : e.color
       const narrow = W < 600
       const first = !renderHero.drawn; renderHero.drawn = true
       host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="${first ? 'draw' : ''}" style="--len: ${W * 2}" role="img" aria-label="Brier score by day: market mid, calibrated mid, and the distance model">
@@ -1063,7 +1162,7 @@
         ${narrow ? '' : ends.map((e, i) => `<text class="${e.lbl}" x="${lxo.toFixed(1)}" y="${labelY[i].toFixed(1)}" text-anchor="${anchor}">${e.name} ${p4(e.v)}</text>`).join('')}
         <line class="xhair" id="xh" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" opacity="0"/>
         <rect class="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}"/>
-      </svg>` + (narrow ? `<p class="hero-legend">${ends.map((e) => `<span><i style="background: ${e.color}${e.cls === 'line-d' || e.cls === 'line-c' ? '; opacity: .6' : ''}"></i>${e.name}<b>${p4(e.v)}</b></span>`).join('')}</p>` : '')
+      </svg>` + (narrow ? `<p class="hero-legend"><span class="lg-when">latest scored day</span>${ends.map((e) => `<span><i style="background: ${swatch(e)}"></i>${e.name}<b>${p4(e.v)}</b></span>`).join('')}</p>` : '')
       const svg = host.querySelector('svg'), xh = host.querySelector('#xh'), hit = host.querySelector('.hit')
       hit.addEventListener('mousemove', (e) => {
         const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
@@ -1363,8 +1462,20 @@
       // reporting by the market's climate date rather than the day the quote was placed.
       // The desk drops those rows and says so rather than adding them up silently.
       const ahead = daily.filter((d) => d.day > today)
-      if (ahead.length) console.warn(`[desk] ignoring ${ahead.length} desk_daily row(s) dated after ${today}:`, ahead.map((d) => `${d.bot} ${d.day}`).join(', '))
       daily = daily.filter((d) => d.day <= today)
+      // Say it on the page, once. This used to be console.warn only, re-fired by the 30s
+      // refresh, so a desk left open all day logged about 960 identical lines and the one
+      // person who needed to know rows were being dropped was never told.
+      const dropNote = el('bots-drop')
+      if (ahead.length) {
+        const sig = ahead.map((d) => `${d.bot} ${d.day}`).sort().join(', ')
+        if (loadBots.warned !== sig) { console.warn(`[desk] ignoring ${ahead.length} desk_daily row(s) dated after ${today}: ${sig}`); loadBots.warned = sig }
+        dropNote.textContent = `${ahead.length} row${ahead.length === 1 ? '' : 's'} dated after today (${sig}) ${ahead.length === 1 ? 'is' : 'are'} not counted. A bot is reporting by an event date rather than the day it worked.`
+        dropNote.hidden = false
+      } else {
+        dropNote.hidden = true
+        loadBots.warned = null
+      }
       const tone = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '')
       const ctxFor = (bot) => ({ supabase, bot, q, money, fmt, ago, short, p2 })
       const whatOf = (f) => ({ called: 'open', won: 'won', lost: 'lost', exited: 'sold at ' + p2(f.exit_price), void: 'void' }[f.status] ?? f.status)
@@ -1417,8 +1528,12 @@
 
     /* ── rules: every rule of every bot, its last 20 graded calls, from desk_signals. Hot means net
        positive over those 20 with at least 10 of them, the same gate that decides what posts. ── */
+    /* The All time column is only as long as this query. At about 270 graded calls a day the
+       old 1500 silently turned "all time" into "the last five days"; the panel now says so when
+       the cap is reached rather than shrinking the number without telling anyone. */
+    const RULES_CAP = 6000
     async function loadRules() {
-      const rows = await q('desk_signals', (b) => b.select('bot,rule,status,pnl,pnl_hold,cost,called_at,shown').in('status', ['won', 'lost', 'exited']).order('called_at', { ascending: false }).limit(1500))
+      const rows = await q('desk_signals', (b) => b.select('bot,rule,status,pnl,pnl_hold,cost,called_at,shown').in('status', ['won', 'lost', 'exited']).order('called_at', { ascending: false }).limit(RULES_CAP))
       const bots = await q('desk_bots', (b) => b.select('id,name'))
       const nameOf = (id) => bots.find((b) => b.id === id)?.name ?? id
       const today = new Date().toISOString().slice(0, 10)
@@ -1701,8 +1816,8 @@
         return `<tr>
           <td><span class="ser">${short(r.series)}</span> <span class="cnt">${r.result ? 'settled ' + r.result : ''}</span></td>
           <td data-close="${r.close_time}"></td>
-          <td class="n">${r.strike == null ? '–' : fmt.format(Number(r.strike))}</td>
-          <td class="n">${r.spot == null ? '–' : fmt.format(Number(r.spot))}</td>
+          <td class="n">${px(r.strike)}</td>
+          <td class="n">${px(r.spot)}</td>
           <td class="n ${b == null ? '' : b > 0 ? 'ok' : b < 0 ? 'err' : ''}">${bps(b)}</td>
           <td class="n">${p2(r.yes_bid)}</td><td class="n">${p2(r.yes_ask)}</td>
           <td class="n"><span class="mid">${p2(r.mid)}</span></td>

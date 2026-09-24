@@ -70,8 +70,9 @@ const CSS = `
   animation:dsk-bl 1.05s steps(2,start) infinite}
 @keyframes dsk-bl{50%{opacity:0}}
 .dsk-out{position:fixed;right:9px;bottom:32px;z-index:60;background:#0a0a0a;border:1px solid #2a2a2a;
-  color:#8a8a8a;font:inherit;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
-  padding:3px 8px;cursor:pointer;transition:color .14s,border-color .14s}
+  color:#8a8a8a;font:inherit;font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+  padding:5px 10px;cursor:pointer;transition:color .14s,border-color .14s}
+@media (pointer:coarse){.dsk-out{font-size:11.5px;padding:9px 12px}}
 .dsk-out:hover{color:#ffa000;border-color:#ffa000}
 .dsk-out-inline{position:static;background:transparent;border-color:#2a2a2a}
 `;
