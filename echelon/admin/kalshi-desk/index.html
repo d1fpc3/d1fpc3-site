@@ -1040,9 +1040,12 @@
         const t = mine.filter((d) => d.day === today)
         const graded = sum(mine, 'graded'), wins = sum(mine, 'wins')
         const last = feed.find((f) => f.bot === bot.id)
+        // A bot that reports days but no public calls is not idle, it just does not make calls
+        // (a maker rests quotes). Saying "no calls reported" beside "67 calls today" is a lie
+        // either way round, so the fallback only speaks when there is nothing at all.
         const lastLine = last
           ? `Last: ${short(last.series)} ${last.side.toUpperCase()} @ ${p2(last.price)} (${last.rule}), ${ago(last.called_at)}, ${whatOf(last)}${last.pnl != null ? ', ' + money(last.pnl) : ''}`
-          : 'No calls reported yet.'
+          : mine.length ? '' : 'No calls reported yet.'
         return `<div class="bot" id="bot-${bot.id}">
           <div class="name"><b>${bot.name}</b><span>${bot.owner} · ${bot.id}</span></div>
           <div class="stat-row">
@@ -1050,7 +1053,7 @@
             <div class="stat"><div class="v ${tone(sum(mine, 'pnl'))}">${mine.length ? money(sum(mine, 'pnl')) : '$0.00'}</div><div class="k">all time, ${mine.length} ${mine.length === 1 ? 'day' : 'days'}</div></div>
             <div class="stat"><div class="v">${graded ? Math.round(100 * wins / graded) + '%' : '–'}</div><div class="k">won of ${fmt.format(graded)}</div></div>
           </div>
-          <div class="last">${lastLine}${t.length ? ` · ${fmt.format(sum(t, 'calls'))} calls today` : ''}</div>
+          <div class="last">${[lastLine, t.length ? `${fmt.format(sum(t, 'calls'))} today` : ''].filter(Boolean).join(' · ')}</div>
           <div class="ext" id="bot-${bot.id}-ext"></div>
         </div>`
       }).join('') : '<div class="empty"><b>No bots registered.</b></div>'
@@ -1148,7 +1151,7 @@
       const rows = await q('kalshi_switch', (b) => b.select('signals,live,model_exits,updated_at').eq('id', 1))
       const on = rows[0]?.signals === true, exitsOn = rows[0]?.model_exits === true
       let canFlip = false
-      if (session) { const { data } = await supabase.rpc('is_admin'); canFlip = data === true }
+      if (DESK_USER) { const { data } = await supabase.rpc('is_admin'); canFlip = data === true }
       host.classList.toggle('locked', !canFlip)
       host.classList.toggle('live', on)
       exitHost.classList.toggle('locked', !canFlip)
@@ -1183,7 +1186,7 @@
       }
       fill()
       let canEdit = false
-      if (session) { const { data } = await supabase.rpc('is_admin'); canEdit = data === true }
+      if (DESK_USER) { const { data } = await supabase.rpc('is_admin'); canEdit = data === true }
       host.classList.toggle('locked', !canEdit)
       note.textContent = canEdit ? '' : 'sign in at /echelon/admin to change'
       const read = () => ({ clip: Number(f.clip.value), daily_stop: -Math.abs(Number(f.stop.value)), daily_cap: Number(f.cap.value), max_open: Math.floor(Number(f.open.value)), min_price: Math.round(Number(f.min.value)) / 100 })
