@@ -218,6 +218,9 @@
     .risk-save:active { transform: scale(0.97); }
     .risk-save[disabled] { opacity: 0.38; cursor: default; }
     .risk.dirty .risk-save:not([disabled]) { box-shadow: 0 0 0 3px rgba(201,162,74,0.22); }
+    /* what is risked, then how it gets out */
+    .rsep { width: 1px; height: 30px; background: var(--line-bright); flex: 0 0 1px; }
+    @media (max-width: 720px) { .rsep { width: 100%; height: 1px; flex-basis: 1px; margin: 2px 0; } }
     .risk .note { color: var(--muted); font-size: 12px; margin-left: auto; align-self: center; max-width: 100%; }
     .risk.locked .ri { opacity: 0.6; }
     .risk.locked .ri input { pointer-events: none; }
@@ -366,10 +369,12 @@
         <label class="rf"><span class="rk">cap for the day</span><span class="ri"><i>$</i><input id="r-cap" type="number" min="1" max="10000" step="1" inputmode="decimal"></span></label>
         <label class="rf"><span class="rk">open at once</span><span class="ri"><input id="r-open" type="number" min="1" max="50" step="1" inputmode="numeric"></span></label>
         <label class="rf"><span class="rk">lowest price</span><span class="ri"><input id="r-min" type="number" min="1" max="99" step="1" inputmode="numeric"><i>¢</i></span></label>
+        <span class="rsep" aria-hidden="true"></span>
         <label class="rf" title="First take-profit: a resting order for part of the position at entry plus this much. 0 turns it off."><span class="rk">take profit 1</span><span class="ri"><i>+</i><input id="r-tp1" type="number" min="0" max="1000" step="5" inputmode="numeric"><i>%</i></span></label>
         <label class="rf" title="How much of the position the first take-profit sells."><span class="rk">half off</span><span class="ri"><input id="r-frac" type="number" min="0" max="100" step="5" inputmode="numeric"><i>%</i></span></label>
         <label class="rf" title="Second take-profit for the rest of the position. 0 turns it off."><span class="rk">take profit 2</span><span class="ri"><i>+</i><input id="r-tp2" type="number" min="0" max="1000" step="5" inputmode="numeric"><i>%</i></span></label>
         <label class="rf" title="Trail to break even: once the bid has been up this much, the position is sold if it falls back to entry. 0 turns it off."><span class="rk">breakeven after</span><span class="ri"><i>+</i><input id="r-be" type="number" min="0" max="1000" step="5" inputmode="numeric"><i>%</i></span></label>
+        <label class="rf" title="Cut a position when the bid falls this many cents under what was paid. 0 turns it off. Replay over every 0.80+ call, 2026-09-24: hold -$80, a 10c stop -$23, but the two rules built for favourites did better holding on the five calls they made."><span class="rk">stop</span><span class="ri"><i>-</i><input id="r-stop-c" type="number" min="0" max="99" step="1" inputmode="numeric"><i>¢</i></span></label>
         <button class="risk-save" id="r-save" disabled>Save</button>
         <span class="note" id="risk-note"></span>
       </div>
@@ -905,25 +910,26 @@
        admin edits them here; the executor reads the row on every pass. ── */
     async function initRisk() {
       const host = el('risk'), note = el('risk-note'), save = el('r-save')
-      const f = { clip: el('r-clip'), stop: el('r-stop'), cap: el('r-cap'), open: el('r-open'), min: el('r-min'), tp1: el('r-tp1'), frac: el('r-frac'), tp2: el('r-tp2'), be: el('r-be') }
-      const rows = await q('kalshi_switch', (b) => b.select('clip,daily_stop,daily_cap,max_open,min_price,tp1_pct,tp1_frac,tp2_pct,be_arm_pct').eq('id', 1)).catch(() => [])
+      const f = { clip: el('r-clip'), stop: el('r-stop'), cap: el('r-cap'), open: el('r-open'), min: el('r-min'), tp1: el('r-tp1'), frac: el('r-frac'), tp2: el('r-tp2'), be: el('r-be'), stopC: el('r-stop-c') }
+      const rows = await q('kalshi_switch', (b) => b.select('clip,daily_stop,daily_cap,max_open,min_price,tp1_pct,tp1_frac,tp2_pct,be_arm_pct,stop_cents').eq('id', 1)).catch(() => [])
       const r = rows[0]
       if (!r) { note.textContent = 'no switch row'; return }
       const fill = () => {
         f.clip.value = Number(r.clip); f.stop.value = Math.abs(Number(r.daily_stop)); f.cap.value = Number(r.daily_cap)
         f.open.value = Number(r.max_open); f.min.value = Math.round(Number(r.min_price) * 100)
         f.tp1.value = Number(r.tp1_pct); f.frac.value = Math.round(Number(r.tp1_frac) * 100); f.tp2.value = Number(r.tp2_pct); f.be.value = Number(r.be_arm_pct)
+        f.stopC.value = Number(r.stop_cents)
       }
       fill()
       let canEdit = false
       if (session) { const { data } = await supabase.rpc('is_admin'); canEdit = data === true }
       host.classList.toggle('locked', !canEdit)
       note.textContent = canEdit ? '' : 'sign in at /echelon/admin to change'
-      const read = () => ({ clip: Number(f.clip.value), daily_stop: -Math.abs(Number(f.stop.value)), daily_cap: Number(f.cap.value), max_open: Math.floor(Number(f.open.value)), min_price: Math.round(Number(f.min.value)) / 100, tp1_pct: Number(f.tp1.value), tp1_frac: Math.round(Number(f.frac.value)) / 100, tp2_pct: Number(f.tp2.value), be_arm_pct: Number(f.be.value) })
+      const read = () => ({ clip: Number(f.clip.value), daily_stop: -Math.abs(Number(f.stop.value)), daily_cap: Number(f.cap.value), max_open: Math.floor(Number(f.open.value)), min_price: Math.round(Number(f.min.value)) / 100, tp1_pct: Number(f.tp1.value), tp1_frac: Math.round(Number(f.frac.value)) / 100, tp2_pct: Number(f.tp2.value), be_arm_pct: Number(f.be.value), stop_cents: Number(f.stopC.value) })
       const valid = (v) => v.clip >= 1 && v.clip <= 500 && v.daily_stop <= 0 && v.daily_stop >= -5000 && v.daily_cap >= 1 && v.daily_cap <= 10000 && v.max_open >= 1 && v.max_open <= 50 && v.min_price >= 0.01 && v.min_price <= 0.99
-        && v.tp1_pct >= 0 && v.tp1_pct <= 1000 && v.tp1_frac >= 0 && v.tp1_frac <= 1 && v.tp2_pct >= 0 && v.tp2_pct <= 1000 && v.be_arm_pct >= 0 && v.be_arm_pct <= 1000
+        && v.tp1_pct >= 0 && v.tp1_pct <= 1000 && v.tp1_frac >= 0 && v.tp1_frac <= 1 && v.tp2_pct >= 0 && v.tp2_pct <= 1000 && v.be_arm_pct >= 0 && v.be_arm_pct <= 1000 && v.stop_cents >= 0 && v.stop_cents <= 99
       const same = (v) => v.clip === Number(r.clip) && v.daily_stop === Number(r.daily_stop) && v.daily_cap === Number(r.daily_cap) && v.max_open === Number(r.max_open) && Math.abs(v.min_price - Number(r.min_price)) < 1e-9
-        && v.tp1_pct === Number(r.tp1_pct) && Math.abs(v.tp1_frac - Number(r.tp1_frac)) < 1e-9 && v.tp2_pct === Number(r.tp2_pct) && v.be_arm_pct === Number(r.be_arm_pct)
+        && v.tp1_pct === Number(r.tp1_pct) && Math.abs(v.tp1_frac - Number(r.tp1_frac)) < 1e-9 && v.tp2_pct === Number(r.tp2_pct) && v.be_arm_pct === Number(r.be_arm_pct) && v.stop_cents === Number(r.stop_cents)
       const changed = () => {
         const v = read(), ok = valid(v), dirty = !same(v)
         host.classList.toggle('dirty', dirty)
