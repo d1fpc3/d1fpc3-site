@@ -315,13 +315,18 @@
     #s-index .side { font-weight: 600; letter-spacing: 0.02em; }
     #s-index .side.yes { color: var(--good); }
     #s-index .side.no { color: var(--bad); }
+    #ix-paper th:nth-child(10), #ix-paper td:nth-child(10) { padding-left: 18px; }
     #s-index td.pos { color: var(--good); }
     #s-index td.neg { color: var(--bad); }
     #s-index .ix-note { color: var(--muted); font-size: 12.5px; margin-top: 10px; line-height: 1.5; }
     #s-index tr.ix-open td { background: color-mix(in srgb, var(--gold) 6%, transparent); }
+    #s-index .ix-m { display: none; font-family: inherit; margin-top: 5px; font-size: 12px; color: var(--muted); gap: 10px; align-items: center; }
+    #s-index .ix-m .pos { color: var(--good); } #s-index .ix-m .neg { color: var(--bad); }
     @media (max-width: 720px) {
       #s-index .ix-stats { grid-template-columns: 1fr 1fr; }
       #s-index td.txt { max-width: 180px; }
+      #s-index .ix-m { display: flex; }
+      #ix-rules th:nth-child(2), #ix-rules td:nth-child(2), #ix-rules th:nth-child(3), #ix-rules td:nth-child(3) { display: none; }
     }
 
     /* ════ research ledger ═══════════════════════════════════
@@ -1714,8 +1719,10 @@
       const pv = stats[2].querySelector('.v'); pv.textContent = graded.length ? money(pnl) : '–'; pv.className = 'v' + (graded.length ? (pnl > 0 ? ' gold' : '') : '')
       stats[3].querySelector('.v').textContent = todayBooks.length ? `${todayBooks.length} · ${Math.round(100 * twoSided / todayBooks.length)}% two-sided` : '0'
       const rt = el('ix-rules').querySelector('tbody')
+      const IX_ORDER = ['hud-model-taker-5c-3to9', 'hud-model-taker-10c-3to9', 'hud-model-taker-5c-9to15', 'hud-cheap-side-2bps-9to15', 'hud-favourite-9min-80to95', 'dud-model-taker-5c-30to120', 'dud-favourite-9min-80to95']
+      hyps.sort((a, b) => (IX_ORDER.indexOf(a.id) + 1 || 99) - (IX_ORDER.indexOf(b.id) + 1 || 99) || a.id.localeCompare(b.id))
       rt.innerHTML = hyps.length ? hyps.map((h) => { const sc = byHyp.get(h.id), a = sc?.all || {}, r = sc?.recent || {}, st = ixStatus(sc); return `<tr>
-        <td class="mono">${esc(h.id)}${h.send ? ' <span title="its calls would go to the account if the switches were on">*</span>' : ''}</td>
+        <td class="mono">${esc(h.id)}${h.send ? ' <span title="its calls would go to the account if the switches were on">*</span>' : ''}<div class="ix-m"><span class="st ${st}">${st === 'decay' ? 'DECAY' : st}</span><span class="${a.net_c > 0 ? 'pos' : a.net_c < 0 ? 'neg' : ''}">${ixCents(a.net_c)}</span><span>n ${a.n ?? '–'}</span></div></td>
         <td class="txt" title="${esc(h.prior || '')}">${esc(ixWords(h))}</td>
         <td><span class="st ${st}">${st === 'decay' ? 'DECAY' : st}</span></td>
         <td class="n">${a.n ?? '–'}</td><td class="n ${a.net_c > 0 ? 'pos' : a.net_c < 0 ? 'neg' : ''}">${ixCents(a.net_c)}</td><td class="n">${Number.isFinite(a.t) ? Number(a.t).toFixed(1) : '–'}</td>
