@@ -870,9 +870,10 @@
     .rs-extras { display: grid; gap: 10px; margin: 0 0 14px; }
     .rs-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .rs-strip .lbl { font-size: 12.5px; color: var(--faint); margin-right: 2px; }
-    .rs-strip .pill { padding: 3px 10px; border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
-    .rs-strip .pill b { color: var(--ink); font-weight: 600; }
-    .rs-strip .pill.good b { color: var(--good); } .rs-strip .pill.bad b { color: var(--bad); } .rs-strip .pill.gold b { color: var(--gold); }
+    .rs-strip .rs-pill { padding: 3px 10px; border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+    .rs-strip .rs-pill b { color: var(--ink); font-weight: 600; }
+    .rs-strip .rs-pill.good b { color: var(--good); } .rs-strip .rs-pill.bad b { color: var(--bad); } .rs-strip .rs-pill.gold b { color: var(--gold); }
+    #rs-v2 { order: 1; } #rs-collectors { order: 2; }
 
     details.engine { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
     details.engine > summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: 12px; padding: 14px 20px; }
@@ -1738,12 +1739,12 @@
       const since = new Date(rows[rows.length - 1].created_at)
       rsStrip('rs-v2', [
         `<span class="lbl">The rule v2 on paper since ${since.toISOString().slice(5, 10).replace('-', '/')} ${since.toISOString().slice(11, 16)}Z</span>`,
-        `<span class="pill"><b>${fmt.format(rows.length)}</b> rests at ask-1c</span>`,
-        `<span class="pill"><b>${judged.length ? Math.round(100 * filled.length / judged.length) : '–'}%</b> filled inside 60 s</span>`,
-        `<span class="pill${gated ? ' gold' : ''}"><b>${gated}</b> books wider than 1c</span>`,
+        `<span class="rs-pill"><b>${fmt.format(rows.length)}</b> rests at ask-1c</span>`,
+        `<span class="rs-pill"><b>${judged.length ? Math.round(100 * filled.length / judged.length) : '–'}%</b> filled inside 60 s</span>`,
+        `<span class="rs-pill${gated ? ' gold' : ''}"><b>${gated}</b> books wider than 1c</span>`,
         settled.length
-          ? `<span class="pill"><b>${fmt.format(settled.length)}</b> settled</span><span class="pill${v1 != null && v2 != null ? (v2 > v1 ? ' good' : ' bad') : ''}">v1 <b>${c(v1)}</b> · v2 <b>${c(v2)}</b> a contract</span><span class="pill">won when filled <b>${win(settled.filter((r) => r.filled === true))}</b> · when crossed <b>${win(settled.filter((r) => r.filled === false))}</b></span>`
-          : `<span class="pill">nothing settled yet</span>`,
+          ? `<span class="rs-pill"><b>${fmt.format(settled.length)}</b> settled</span><span class="rs-pill${v1 != null && v2 != null ? (v2 > v1 ? ' good' : ' bad') : ''}">v1 <b>${c(v1)}</b> · v2 <b>${c(v2)}</b> a contract</span><span class="rs-pill">won when filled <b>${win(settled.filter((r) => r.filled === true))}</b> · when crossed <b>${win(settled.filter((r) => r.filled === false))}</b></span>`
+          : `<span class="rs-pill">nothing settled yet</span>`,
       ].join(''))
     }
     async function loadCollectors() {
@@ -1752,7 +1753,7 @@
       const one = (r) => {
         const d = r.detail || {}, m = Math.round((Date.now() - Date.parse(r.at)) / 60000), stale = m > 5
         const what = r.name === 'tick15m' ? `${(d.rounds || []).length} rounds, ${fmt.format(d.coinbase_matches || 0)} Coinbase prints` : d.live ? `${d.live} live: ${(d.games || []).join(', ')}` : 'no live games'
-        return `<span class="pill ${stale ? 'bad' : 'good'}"><b>${r.name}</b> ${what} · ${stale ? 'stale, ' : ''}${m < 1 ? 'just now' : m + ' min ago'}</span>`
+        return `<span class="rs-pill ${stale ? 'bad' : 'good'}"><b>${r.name}</b> ${what} · ${stale ? 'stale, ' : ''}${m < 1 ? 'just now' : m + ' min ago'}</span>`
       }
       rsStrip('rs-collectors', '<span class="lbl">Collectors</span>' + rows.sort((a, b) => a.name.localeCompare(b.name)).map(one).join(''))
     }
