@@ -868,6 +868,11 @@
 
     .rs-extras:empty { display: none; }
     .rs-extras { display: grid; gap: 10px; margin: 0 0 14px; }
+    .rs-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .rs-strip .lbl { font-size: 12.5px; color: var(--faint); margin-right: 2px; }
+    .rs-strip .pill { padding: 3px 10px; border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+    .rs-strip .pill b { color: var(--ink); font-weight: 600; }
+    .rs-strip .pill.good b { color: var(--good); } .rs-strip .pill.bad b { color: var(--bad); } .rs-strip .pill.gold b { color: var(--gold); }
 
     details.engine { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
     details.engine > summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: 12px; padding: 14px 20px; }
@@ -1712,6 +1717,46 @@
       </tr>`).join('') : '<tr><td colspan="10" class="empty">No graded calls yet.</td></tr>'
     }
 
+    /* ── research extras: the rule v2 on paper (kalshi_fav_v2_paper) and the collectors
+          (kalshi_collector_status), two strips under the research tally. Read-only. ── */
+    function rsStrip(id, html) {
+      const host = el('rs-extras'); if (!host) return
+      let d = el(id)
+      if (!html) { d?.remove(); return }
+      if (!d) { d = document.createElement('div'); d.className = 'rs-strip'; d.id = id; host.append(d) }
+      d.innerHTML = html
+    }
+    async function loadV2Paper() {
+      const rows = await q('kalshi_fav_v2_paper', (b) => b.select('side,status,filled,result,pnl_v1,pnl_v2,created_at,gate_pass').order('created_at', { ascending: false }).limit(2000))
+      if (!rows.length) { rsStrip('rs-v2', ''); return }
+      const judged = rows.filter((r) => r.status !== 'resting'), settled = rows.filter((r) => r.status === 'settled')
+      const filled = judged.filter((r) => r.filled === true), gated = rows.filter((r) => r.gate_pass === false).length
+      const mean = (a, k) => (a.length ? a.reduce((s, r) => s + Number(r[k] ?? 0), 0) / a.length : null)
+      const c = (x) => (x == null ? '–' : (x >= 0 ? '+' : '') + (x * 100).toFixed(2) + 'c')
+      const win = (a) => (a.length ? Math.round(100 * a.filter((r) => r.result === r.side).length / a.length) + '%' : '–')
+      const v1 = mean(settled, 'pnl_v1'), v2 = mean(settled, 'pnl_v2')
+      const since = new Date(rows[rows.length - 1].created_at)
+      rsStrip('rs-v2', [
+        `<span class="lbl">The rule v2 on paper since ${since.toISOString().slice(5, 10).replace('-', '/')} ${since.toISOString().slice(11, 16)}Z</span>`,
+        `<span class="pill"><b>${fmt.format(rows.length)}</b> rests at ask-1c</span>`,
+        `<span class="pill"><b>${judged.length ? Math.round(100 * filled.length / judged.length) : '–'}%</b> filled inside 60 s</span>`,
+        `<span class="pill${gated ? ' gold' : ''}"><b>${gated}</b> books wider than 1c</span>`,
+        settled.length
+          ? `<span class="pill"><b>${fmt.format(settled.length)}</b> settled</span><span class="pill${v1 != null && v2 != null ? (v2 > v1 ? ' good' : ' bad') : ''}">v1 <b>${c(v1)}</b> · v2 <b>${c(v2)}</b> a contract</span><span class="pill">won when filled <b>${win(settled.filter((r) => r.filled === true))}</b> · when crossed <b>${win(settled.filter((r) => r.filled === false))}</b></span>`
+          : `<span class="pill">nothing settled yet</span>`,
+      ].join(''))
+    }
+    async function loadCollectors() {
+      const rows = await q('kalshi_collector_status', (b) => b.select('name,at,detail'))
+      if (!rows.length) { rsStrip('rs-collectors', ''); return }
+      const one = (r) => {
+        const d = r.detail || {}, m = Math.round((Date.now() - Date.parse(r.at)) / 60000), stale = m > 5
+        const what = r.name === 'tick15m' ? `${(d.rounds || []).length} rounds, ${fmt.format(d.coinbase_matches || 0)} Coinbase prints` : d.live ? `${d.live} live: ${(d.games || []).join(', ')}` : 'no live games'
+        return `<span class="pill ${stale ? 'bad' : 'good'}"><b>${r.name}</b> ${what} · ${stale ? 'stale, ' : ''}${m < 1 ? 'just now' : m + ' min ago'}</span>`
+      }
+      rsStrip('rs-collectors', '<span class="lbl">Collectors</span>' + rows.sort((a, b) => a.name.localeCompare(b.name)).map(one).join(''))
+    }
+
     /* ── research ledger: kalshi_research, one row per hypothesis ever tested ── */
     const rs = { rows: [], market: 'all', verdict: 'all', query: '', open: new Set() }
     const RS_ALIVE = new Set(['survived', 'shipped', 'promising']), RS_OPEN = new Set(['queued', 'running'])
@@ -2290,9 +2335,9 @@
     tickNext(); setInterval(tickNext, 1000)
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadStatus(), loadCalendar(), loadBots(), loadRules(), loadResearch(), loadIndex(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadStatus(), loadCalendar(), loadBots(), loadRules(), loadResearch(), loadV2Paper(), loadCollectors(), loadIndex(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
-    setInterval(() => { loadStatus(); loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive(); loadIndex() }, 30_000)
+    setInterval(() => { loadStatus(); loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive(); loadIndex(); loadV2Paper(); loadCollectors() }, 30_000)
     setInterval(() => { loadTheEdge(); loadCalendar() }, 5 * 60_000)
   </script>
 </body>
