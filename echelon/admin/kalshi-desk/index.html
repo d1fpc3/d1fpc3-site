@@ -293,6 +293,37 @@
     .reading.quiet { color: var(--muted); }
     .empty { color: var(--muted); font-size: 14px; padding: 28px 0; text-align: center; }
 
+    /* ════ index markets: the S&P / Nasdaq-100 hourly loop (kalshi_index_*, desk-v8) ═══════════
+       Four numbers, the registered rules with tonight's re-score, the paper book sized to the touch.
+       Read-only; the loop on D1's PC writes it. Nothing here has traded. */
+    #s-index .ix-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 18px; margin-bottom: 16px; }
+    #s-index .ix-stats .stat .v { font-size: 26px; }
+    #s-index .ix-stats .stat .k { font-size: 12.5px; }
+    #s-index h3.ix-h { font-size: 13px; font-weight: 600; color: var(--muted); margin: 18px 0 8px; letter-spacing: 0.01em; }
+    #s-index h3.ix-h span { font-weight: 400; margin-left: 8px; }
+    #s-index table th.n, #s-index table td.n { text-align: right; font-variant-numeric: tabular-nums; }
+    #s-index td.txt { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #s-index td.mono, #s-index .ix-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+    #s-index .st { display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel-2); color: var(--muted); white-space: nowrap; }
+    #s-index .st::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.85; }
+    #s-index .st.holding { color: var(--good); background: color-mix(in srgb, var(--good) 14%, var(--panel-2)); }
+    #s-index .st.decay { color: var(--gold); background: color-mix(in srgb, var(--gold) 18%, var(--panel-2)); }
+    #s-index .st.decay::before { animation: rs-pulse 1.6s ease-in-out infinite; }
+    #s-index .st.dead { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, var(--panel-2)); }
+    #s-index .st.thin { opacity: 0.75; }
+    #s-index .st.waking { color: var(--gold); }
+    #s-index .side { font-weight: 600; letter-spacing: 0.02em; }
+    #s-index .side.yes { color: var(--good); }
+    #s-index .side.no { color: var(--bad); }
+    #s-index td.pos { color: var(--good); }
+    #s-index td.neg { color: var(--bad); }
+    #s-index .ix-note { color: var(--muted); font-size: 12.5px; margin-top: 10px; line-height: 1.5; }
+    #s-index tr.ix-open td { background: color-mix(in srgb, var(--gold) 6%, transparent); }
+    @media (max-width: 720px) {
+      #s-index .ix-stats { grid-template-columns: 1fr 1fr; }
+      #s-index td.txt { max-width: 180px; }
+    }
+
     /* ════ research ledger ═══════════════════════════════════
        Every hypothesis ever tested, with the number that killed or kept it. The point of the
        panel is the search box: type the idea before you run it. */
@@ -807,6 +838,7 @@
     <a href="#s-bots">Bots</a>
     <a href="#s-rules">Rules</a>
     <a href="#s-research">Research</a>
+    <a href="#s-index">Index markets</a>
     <a href="#s-book">Book</a>
     <a href="#s-thesis">The edge</a>
     <a href="#s-live">Live board</a>
@@ -897,6 +929,32 @@
       <div class="tbl-scroll capped" style="--cap: 560px"><table id="research"><thead><tr>
         <th></th><th>Tested</th><th>Market</th><th>Angle</th><th>Finding</th><th>Verdict</th><th title="fitting period">Fit</th><th title="out of sample">Holdout</th><th class="n" title="edge with a one-cent-worse fill">1c worse</th><th class="n" title="at the clip named in the notes">$/day</th>
       </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
+    </section>
+
+    <!-- index markets: the S&P 500 / Nasdaq-100 hourly loop (apps/kalshi-bot/indices). The loop on
+         D1's PC re-scores seven registered rules every night and keeps a paper book sized to what rested
+         at the touch; both land here through desk-v8. Read-only; nothing here has traded. -->
+    <section id="s-index" class="panel span-12">
+      <div class="panel-head">
+        <h2>Index markets</h2>
+        <span class="sub">The hourly S&amp;P 500 and Nasdaq-100 up/down markets. Seven registered rules re-scored every night on every candle since July, and a paper book sized to what actually rested at the touch. Nothing here has traded.</span>
+        <div class="right"><span class="ix-mono" id="ix-asof"></span></div>
+      </div>
+      <div class="ix-stats" id="ix-stats">
+        <div class="stat"><div class="v">–</div><div class="k">paper calls</div></div>
+        <div class="stat"><div class="v">–</div><div class="k">won</div></div>
+        <div class="stat"><div class="v">–</div><div class="k">P&amp;L at the touch size</div></div>
+        <div class="stat"><div class="v">–</div><div class="k">book readings today</div></div>
+      </div>
+      <h3 class="ix-h">Rules <span>the registry, with tonight's re-score over the whole store and the last 14 days</span></h3>
+      <div class="tbl-scroll"><table id="ix-rules"><thead><tr>
+        <th>Rule</th><th>What it does</th><th>Status</th><th class="n">n</th><th class="n" title="net cents a contract after the fee, at the touch">net</th><th class="n">t</th><th class="n" title="last 14 days">14d n</th><th class="n" title="last 14 days, net cents">14d net</th><th class="n" title="win rate">win</th><th class="n" title="dollars a day at a $10 clip, over days with a setup">$/day</th>
+      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
+      <h3 class="ix-h">Paper book <span>one call per market per rule, sized to the touch, graded from the exchange result</span></h3>
+      <div class="tbl-scroll capped" style="--cap: 440px"><table id="ix-paper"><thead><tr>
+        <th>When</th><th>Market</th><th>Rule</th><th>Side</th><th class="n">Price</th><th class="n" title="the model's probability for the bought side">Model</th><th class="n" title="contracts resting at the touch when the rule fired">At touch</th><th class="n">Size</th><th class="n" title="minutes to close">Left</th><th>Result</th><th class="n">P&amp;L</th>
+      </tr></thead><tbody><tr><td colspan="11"><div class="skel"></div></td></tr></tbody></table></div>
+      <div class="ix-note" id="ix-note"></div>
     </section>
 
     <!-- account: the real book. Every source's intents and what the one executor did with them. -->
@@ -1615,6 +1673,67 @@
       rsRender()
     }
 
+    /* ── index markets: kalshi_index_* (desk-v8), written by the loop in apps/kalshi-bot/indices ── */
+    const ixWords = (h) => {
+      const p = h.params || {}
+      const mkt = (h.series || []).some((x) => x.includes('HUD')) ? 'hourly' : 'daily'
+      if (h.kind === 'model-taker') return `${mkt}, ${p.mtcLo} to ${p.mtcHi} min left: buy the side the index model favours by ${Math.round(p.theta * 100)}c after fee, hold`
+      if (h.kind === 'favourite') return `${mkt}, at ${p.T} min: buy the favourite if it costs ${Math.round(p.lo * 100)} to ${Math.round(p.hi * 100)}c, hold (the control)`
+      if (h.kind === 'cheap-side') return `${mkt}, ${p.mtcLo} to ${p.mtcHi} min left, index within ${p.dmaxBps} bps of the strike: buy whichever side is offered at ${Math.round(p.pmax * 100)}c or less, hold`
+      return h.kind
+    }
+    const ixStatus = (s) => {
+      if (!s || !(s.all?.n >= 10)) return 'thin'
+      if (s.recent?.n < 10) return s.all.net_c > 0 ? 'holding' : 'dead'
+      if (s.all.net_c > 0 && s.recent.net_c > 0) return 'holding'
+      if (s.all.net_c > 0) return 'decay'
+      if (s.recent.net_c > 0) return 'waking'
+      return 'dead'
+    }
+    const ixCents = (x) => (x == null || !Number.isFinite(Number(x)) ? '–' : (Number(x) > 0 ? '+' : '') + Number(x).toFixed(1) + 'c')
+    const ixShort = (t) => { const m = /^(KX[A-Z0-9]+)-(\d\d[A-Z]{3}\d\d)(\d{4})?-T([\d.]+)$/.exec(t || ''); if (!m) return esc(t); const ser = m[1].replace('KXINXHUD', 'S&P').replace('KXNDQHUD', 'Nasdaq').replace('KXINXDUD', 'S&P daily').replace('KXNASDAQDUD', 'Nasdaq daily'); return `${ser}${m[3] ? ' ' + m[3].slice(0, 2) + ':00' : ''} <span class="ix-mono">${m[4]}</span>` }
+    const ixWhen = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    async function loadIndex() {
+      const day0 = new Date(Date.now() - 864e5).toISOString()
+      const [hyps, scores, paper, books] = await Promise.all([
+        q('kalshi_index_hypotheses', (b) => b.select('id,kind,series,params,registered,prior,send').order('id')),
+        q('kalshi_index_scoreboard', (b) => b.select('day,hypothesis,json').order('day', { ascending: false }).limit(40)),
+        q('kalshi_index_paper', (b) => b.select('ticker,rule,ts,mtc,side,price,p_model,touch_sz,contracts,cost,close_t,sent,result,won,pnl').order('ts', { ascending: false }).limit(80)),
+        q('kalshi_index_book', (b) => b.select('ticker,ts,yes_bid,yes_ask').gte('ts', day0).limit(2000)),
+      ])
+      const latestDay = scores[0]?.day
+      const byHyp = new Map(scores.filter((r) => r.day === latestDay).map((r) => [r.hypothesis, r.json]))
+      el('ix-asof').textContent = latestDay ? `re-scored ${latestDay}` : 'no re-score yet'
+      const graded = paper.filter((p) => p.result), won = graded.filter((p) => p.won).length
+      const pnl = graded.reduce((a, p) => a + Number(p.pnl || 0), 0)
+      const todayIso = new Date().toISOString().slice(0, 10)
+      const todayBooks = books.filter((b) => b.ts.slice(0, 10) === todayIso), twoSided = todayBooks.filter((b) => b.yes_bid > 0 && b.yes_ask < 1).length
+      const stats = el('ix-stats').querySelectorAll('.stat')
+      stats[0].querySelector('.v').textContent = `${graded.length}${paper.length > graded.length ? ` / ${paper.length}` : ''}`
+      stats[1].querySelector('.v').textContent = graded.length ? `${won} · ${Math.round(100 * won / graded.length)}%` : '–'
+      const pv = stats[2].querySelector('.v'); pv.textContent = graded.length ? money(pnl) : '–'; pv.className = 'v' + (graded.length ? (pnl > 0 ? ' gold' : '') : '')
+      stats[3].querySelector('.v').textContent = todayBooks.length ? `${todayBooks.length} · ${Math.round(100 * twoSided / todayBooks.length)}% two-sided` : '0'
+      const rt = el('ix-rules').querySelector('tbody')
+      rt.innerHTML = hyps.length ? hyps.map((h) => { const sc = byHyp.get(h.id), a = sc?.all || {}, r = sc?.recent || {}, st = ixStatus(sc); return `<tr>
+        <td class="mono">${esc(h.id)}${h.send ? ' <span title="its calls would go to the account if the switches were on">*</span>' : ''}</td>
+        <td class="txt" title="${esc(h.prior || '')}">${esc(ixWords(h))}</td>
+        <td><span class="st ${st}">${st === 'decay' ? 'DECAY' : st}</span></td>
+        <td class="n">${a.n ?? '–'}</td><td class="n ${a.net_c > 0 ? 'pos' : a.net_c < 0 ? 'neg' : ''}">${ixCents(a.net_c)}</td><td class="n">${Number.isFinite(a.t) ? Number(a.t).toFixed(1) : '–'}</td>
+        <td class="n">${r.n ?? '–'}</td><td class="n ${r.net_c > 0 ? 'pos' : r.net_c < 0 ? 'neg' : ''}">${ixCents(r.net_c)}</td>
+        <td class="n">${Number.isFinite(a.win) ? Math.round(100 * a.win) + '%' : '–'}</td><td class="n">${Number.isFinite(a.dollars_per_day_at_10) ? money(a.dollars_per_day_at_10) : '–'}</td>
+      </tr>` }).join('') : '<tr><td colspan="10" class="empty">The loop has not written its registry yet.</td></tr>'
+      const pt = el('ix-paper').querySelector('tbody')
+      pt.innerHTML = paper.length ? paper.map((p) => `<tr class="${p.result ? '' : 'ix-open'}">
+        <td>${ixWhen(p.ts)}</td><td>${ixShort(p.ticker)}</td><td class="mono">${esc(String(p.rule).replace('hud-model-taker-', 'model ').replace('hud-cheap-side-', 'cheap side ').replace('hud-favourite-', 'favourite '))}</td>
+        <td><span class="side ${esc(p.side)}">${esc(p.side).toUpperCase()}</span></td><td class="n">${Number(p.price).toFixed(2)}</td>
+        <td class="n">${p.p_model == null ? '–' : Math.round(100 * (p.side === 'yes' ? p.p_model : 1 - p.p_model)) + '%'}</td>
+        <td class="n">${p.touch_sz == null ? '–' : fmt.format(Math.floor(p.touch_sz))}</td><td class="n">${p.contracts}</td><td class="n">${p.mtc == null ? '–' : Number(p.mtc).toFixed(1)}m</td>
+        <td>${p.result ? `<span class="st ${p.won ? 'holding' : 'dead'}">${p.won ? 'won' : 'lost'}</span>` : `<span class="st thin">${p.sent ? 'sent' : 'open'}</span>`}</td>
+        <td class="n ${p.pnl > 0 ? 'pos' : p.pnl < 0 ? 'neg' : ''}">${p.pnl == null ? '–' : money(p.pnl)}</td>
+      </tr>`).join('') : '<tr><td colspan="11" class="empty">No paper call yet. A rule fires only in the last 15 minutes of an hour, and only when the book is lopsided against the live index.</td></tr>'
+      el('ix-note').textContent = 'Size is the contracts resting at the touch when the rule fired, never more than a $10 clip, so this book answers the one question the candle study could not: whether the price was there to take. A rule is a valid edge only after a week or more of these rows, net positive after fees at that size, and the three verification lenses on the research ledger above.'
+    }
+
     /* ── paper: the signal bot's book by day, written by the bot after every grading pass ── */
     async function loadPaper() {
       const rows = await q('kalshi_signal_paper', (b) => b.select('*').order('day', { ascending: true }))
@@ -2012,9 +2131,9 @@
     }
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadCalendar(), loadBots(), loadRules(), loadResearch(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadCalendar(), loadBots(), loadRules(), loadResearch(), loadIndex(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
-    setInterval(() => { loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive() }, 30_000)
+    setInterval(() => { loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive(); loadIndex() }, 30_000)
     setInterval(() => { loadTheEdge(); loadCalendar() }, 5 * 60_000)
   </script>
 </body>
