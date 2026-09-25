@@ -382,8 +382,10 @@ async function run(vpName) {
   st = await state(page); check(st.menuTitle === "Indicators", "back returns to the indicators list");
   // D1 LIT style panel: a part colour persists
   await page.evaluate(() => [...document.querySelectorAll("#ch-menu-body .ch-row")].find((r) => /^D1 LIT/.test(r.textContent.trim())).querySelector(".ch-gear").click()); await page.waitForTimeout(200);
-  await page.evaluate(() => { const r = [...document.querySelectorAll("#ch-menu-body .ch-prow")].find((x) => /PDH/.test(x.textContent)); const i = r.querySelector("input[type=color]"); i.value = "#ff00aa"; i.dispatchEvent(new Event("input", { bubbles: true })); });
+  await page.evaluate(() => { const r = [...document.querySelectorAll("#ch-menu-body .ch-prow")].find((x) => /PDH/.test(x.textContent)); r.querySelector(".ch-cbtn").click(); });
   await page.waitForTimeout(200);
+  await page.evaluate(() => { const i = document.querySelector("#ch-cpick .hex"); i.value = "#ff00aa"; i.dispatchEvent(new Event("input", { bubbles: true })); });
+  await page.waitForTimeout(200); await page.keyboard.press("Escape"); await page.waitForTimeout(100);
   const litC = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")).litPdC);
   check(litC === "#ff00aa", `LIT part colour persisted (${litC})`);
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-lit-panel.png` });
@@ -432,13 +434,13 @@ async function run(vpName) {
   await page.click("#ch-settings-btn"); await page.waitForTimeout(200);
   st = await state(page); check(st.menu && st.menuTitle === "Settings", "settings drawer opens");
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-settings-top.png` });
-  await page.click("#ch-menu-body .ch-preset:nth-child(2)"); await page.waitForTimeout(300);
-  const pre = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")));
-  check(pre.up === "#26a69a" && pre.bg === "#131722", `preset Classic applied: up ${pre.up} bg ${pre.bg}`);
-  await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-preset-classic.png` });
-  await page.click("#ch-menu-body .ch-preset:nth-child(1)"); await page.waitForTimeout(200);
-  await page.evaluate(() => { const s = [...document.querySelectorAll("#ch-menu-body .seg")][0]; s.querySelector("button")?.click(); const up = document.querySelector("#ch-menu-body input[type=color]"); up.value = "#2ec4b6"; up.dispatchEvent(new Event("input", { bubbles: true })); });
-  await page.waitForTimeout(300);
+  const pills = await page.evaluate(() => ({ presets: document.querySelectorAll("#ch-menu-body .ch-preset").length, pills: document.querySelectorAll("#ch-menu-body .ch-cbtn").length }));
+  check(pills.presets === 0 && pills.pills > 5, `settings: no presets, ${pills.pills} colour pills`);
+  await page.evaluate(() => { const s = [...document.querySelectorAll("#ch-menu-body .seg")][0]; s.querySelector("button")?.click(); });
+  await page.click('#ch-menu-body .ch-cbtn[data-key="up"]'); await page.waitForTimeout(200);
+  check(await page.evaluate(() => !document.getElementById("ch-cpick").hidden), "the Up body pill opens the colour picker");
+  await page.fill("#ch-cpick .hex", "#2ec4b6"); await page.waitForTimeout(300);
+  await page.keyboard.press("Escape"); await page.waitForTimeout(150);
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-settings.png` });
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}"));
   check(saved.up === "#2ec4b6" && saved.type === "candles", `settings persisted: up ${saved.up}, type ${saved.type}`);

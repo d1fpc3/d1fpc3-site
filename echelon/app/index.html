@@ -799,7 +799,7 @@
     /* ── chart: NQ, a charting platform inside the app ─────────
        The stage fills the pane. Tools on a rail (a row on phones), the
        settings drawer slides over the stage, everything else is canvas. */
-    #v-chart, :root[data-theme="light"] #v-chart { --bg: #ffffff; --panel: #ffffff; --panel-2: #f0f2f3; --line: #e5e8eb; --line-bright: #cbd1d6; --ink: #111111; --muted: #111111; --faint: #646b73; --good: #16a34a; --bad: #111111; --gold: #111111; color: var(--ink); }
+    /* tokens: see the chart skin block below (data-skin follows the canvas background) */
     #ch-back { display: none; }
     .ch-ib:focus-visible, .ch-tfbtn:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
     .ch-wrap { display: flex; flex-direction: column; height: calc(calc(100 * var(--dvh)) - 128px); min-height: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
@@ -1015,12 +1015,6 @@
     .ch-row .ctl { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .ch-gear { background: none; border: 0; color: var(--faint); cursor: pointer; padding: 4px; border-radius: 6px; display: inline-flex; transition: color 0.12s ease, background 0.12s ease; }
     .ch-gear svg { width: 14px; height: 14px; } .ch-gear:hover { color: var(--ink); background: var(--panel-2); }
-    .ch-presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 8px 0 12px; border-bottom: 1px solid var(--line); }
-    .ch-preset { background: none; border: 1px solid var(--line); border-radius: 9px; padding: 4px 4px 5px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; color: var(--faint); font-family: inherit; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease; }
-    .ch-preset:hover { color: var(--ink); transform: translateY(-1px); } .ch-preset.on { border-color: rgba(201,162,74,0.6); color: var(--gold); }
-    .ch-preset .pv { width: 100%; height: 34px; border-radius: 6px; background: var(--pbg); position: relative; overflow: hidden; }
-    .ch-preset .pv i { position: absolute; width: 4px; border-radius: 1px; }
-    .ch-preset .pv i::before { content: ''; position: absolute; left: 1.5px; top: -4px; bottom: -4px; width: 1px; background: inherit; }
     .ch-ma { padding: 8px 0; border-bottom: 1px solid var(--line); }
     .ch-ma .l1, .ch-ma .l2 { display: flex; align-items: center; gap: 8px; }
     .ch-ma .l2 { padding: 6px 0 0 48px; }
@@ -1074,18 +1068,32 @@
 
     /* ── Chart skin: the TradingView workspace. Tokens first, then every surface.
        Sits before the phone block so narrow screens still get their own rules. */
-    #v-chart, :root[data-theme="light"] #v-chart { --bg: #ffffff; --panel: #ffffff; --panel-2: #f0f3fa; --line: #e0e3eb; --line-bright: #d1d4dc; --ink: #131722; --muted: #131722; --faint: #787b86; --good: #089981; --bad: #f23645; --gold: #2962ff; --tv-blue: #2962ff; --tv-tint: rgba(41,98,255,0.1); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif; }
+    /* Two token sets. chSkin() stamps data-skin from the luminance of the canvas
+       background, so the bar, rail, foot and every dialog always sit on the same
+       side as the chart. --acc is the accent (gold on dark, TradingView blue on
+       light) and can be any colour from Settings. */
+    #v-chart { --acc: #c9a24a; --acc-ink: #14110a; --bg: #131722; --panel: #131722; --panel-2: #1e222d; --panel-3: #2a2e39; --field: #1a1f2b; --line: #2a2e39; --line-bright: #363a45; --ink: #d1d4dc; --muted: #b2b5be; --faint: #787b86; --good: #089981; --bad: #f23645; --gold: var(--acc); --tv-blue: var(--acc); --tv-tint: color-mix(in srgb, var(--acc) 14%, transparent); --shadow: 0 24px 64px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.4); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif; }
+    #v-chart[data-skin="light"] { --acc: #2962ff; --acc-ink: #ffffff; --bg: #ffffff; --panel: #ffffff; --panel-2: #f0f3fa; --panel-3: #e6e9f0; --field: #ffffff; --line: #e0e3eb; --line-bright: #d1d4dc; --ink: #131722; --muted: #434651; --faint: #787b86; --good: #089981; --bad: #f23645; --tv-tint: color-mix(in srgb, var(--acc) 11%, transparent); --shadow: 0 16px 48px rgba(19,23,34,0.22), 0 2px 4px rgba(0,0,0,0.18); }
     #v-chart .ch-ib.on, #v-chart .ch-tools button.on, #v-chart .ch-selbar button.on, #v-chart #ch-stay.on, #v-chart #ch-lockall.on { color: var(--tv-blue); background: var(--tv-tint); }
     #v-chart .ch-part.on { color: var(--tv-blue); border-color: rgba(41,98,255,0.45); background: rgba(41,98,255,0.07); }
     #v-chart .ch-selbar .lbl:focus { border-color: var(--tv-blue); }
     @media (min-width: 841px) {
       body.in-chart .topbar { display: none; }
       body.in-chart .pane { padding: 0; }
+      /* the sidebar folds away on request (the panel button in the bar); the grid
+         track and the aside animate together, the stage repaints as it grows */
+      .app.on { transition: grid-template-columns 0.36s cubic-bezier(0.2, 0.8, 0.2, 1); }
+      body.in-chart .side { transition: width 0.36s cubic-bezier(0.2, 0.8, 0.2, 1), border-width 0.36s ease, opacity 0.3s ease; }
+      body.in-chart.side-hid .app.on { grid-template-columns: 0px minmax(0, 1fr); }
+      body.in-chart.side-hid .side { width: 0; min-width: 0; border-right-width: 0; opacity: 0.4; }
+      body.in-chart.side-hid .side > * { min-width: var(--sidebar); }
+      body.in-chart.side-hid #v-chart .ch-wrap { border-left-color: transparent; }
       body.in-chart #v-chart { animation: none; }
       #v-chart .ch-wrap { border: 0; border-radius: 0; border-left: 1px solid var(--line); height: calc(100 * var(--dvh)); }
       #v-chart .ch-bar { height: 38px; padding: 0 6px; gap: 1px; overflow: visible; }
       #v-chart .ch-bar > * { order: 5; }
       #v-chart .ch-sym { order: 1; border-right: 0; padding-right: 2px; margin-right: 0; align-items: center; }
+      #v-chart #ch-side { display: inline-flex; order: 0; margin-right: 2px; }
       #v-chart .ch-tfs { order: 2; } #v-chart #ch-type-btn { order: 3; } #v-chart #ch-ind-btn { order: 4; }
       #v-chart #ch-alerts-btn, #v-chart #ch-replay-btn { order: 5; } #v-chart #ch-undo-btn, #v-chart #ch-redo-btn { order: 6; }
       #v-chart .ch-sp { order: 7; } #v-chart #ch-snap-btn, #v-chart #ch-settings-btn, #v-chart #ch-full { order: 8; }
@@ -1101,7 +1109,7 @@
     #v-chart .ch-sess.lag { color: #f57c00; }
     #v-chart .ch-ib { height: 30px; padding: 0 6px; border-radius: 4px; align-items: center; color: var(--ink); transition: background 0.12s ease; }
     #v-chart .ch-ib svg { width: 18px; height: 18px; stroke-width: 1.6; }
-    #v-chart .ch-ib:disabled { color: #b2b5be; cursor: default; background: none; }
+    #v-chart .ch-ib:disabled { color: var(--faint); opacity: 0.45; cursor: default; background: none; }
     #v-chart .ch-lb { gap: 5px; padding: 0 8px; font: inherit; font-size: 14px; }
     #v-chart .ch-lb span { font-size: 14px; font-weight: 400; }
     #v-chart .ch-tfs { background: none; border: 0; padding: 0; gap: 0; border-radius: 0; box-shadow: none; }
@@ -1120,10 +1128,10 @@
     #v-chart .ch-legend { top: 4px; left: 8px; gap: 0 8px; font-size: 13px; color: var(--ink); }
     #v-chart .ch-legend .ln { display: flex; align-items: center; gap: 8px; min-height: 22px; padding: 0 4px; border-radius: 4px; border: 1px solid transparent; }
     #v-chart .ch-legend .ln.hd { gap: 6px; min-height: 26px; }
-    #v-chart .ch-legend .ln:not(.hd):hover { border-color: var(--line-bright); background: rgba(255,255,255,0.9); }
+    #v-chart .ch-legend .ln:not(.hd):hover { border-color: var(--line-bright); background: color-mix(in srgb, var(--panel) 92%, transparent); }
     #v-chart .ch-legend .ttl { font-size: 16px; font-weight: 400; color: var(--ink); margin-right: 2px; }
     #v-chart .ch-legend .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px rgba(8,153,129,0.18); margin: 0 4px 0 2px; }
-    #v-chart .ch-legend .dot.off { background: #b2b5be; box-shadow: 0 0 0 3px rgba(120,123,134,0.15); }
+    #v-chart .ch-legend .dot.off { background: var(--faint); box-shadow: 0 0 0 3px color-mix(in srgb, var(--faint) 18%, transparent); }
     #v-chart .ch-legend .ohlc { display: inline-flex; gap: 2px; color: var(--ink); }
     #v-chart .ch-legend i { font-style: normal; }
     #v-chart .ch-legend .up, #v-chart .ch-legend i.up { color: var(--good); } #v-chart .ch-legend .down, #v-chart .ch-legend i.down { color: var(--bad); }
@@ -1179,9 +1187,11 @@
     .ch-dlg-nav .ch-links.in-nav button { text-align: left; background: none; border: 0; border-radius: 0; padding: 0 20px; height: 34px; font: inherit; font-size: 13px; color: var(--faint); cursor: pointer; }
     .ch-dlg-nav .ch-links.in-nav button:hover { color: var(--ink); background: var(--panel-2); }
     .ch-dlg-foot { display: flex; justify-content: flex-end; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--line); flex-shrink: 0; }
-    .ch-dlg-foot .ok { min-width: 72px; height: 34px; padding: 0 16px; border: 0; border-radius: 6px; background: #131722; color: #fff; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.12s ease; }
-    .ch-dlg-foot .ok:hover { background: #2a2e39; }
-    .ch-dlg-search { width: 100%; box-sizing: border-box; height: 40px; margin: 6px 0 8px; padding: 0 12px 0 38px; border: 1px solid var(--line-bright); border-radius: 6px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23787b86' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E") 12px 50% / 18px no-repeat; color: var(--ink); font: inherit; font-size: 14px; text-transform: none; }
+    .ch-dlg-foot .ok { min-width: 76px; height: 34px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--acc); color: var(--acc-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 8px 20px -8px var(--acc); transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.16s ease; }
+    .ch-dlg-foot .ok:hover { filter: brightness(1.08); } .ch-dlg-foot .ok:active { transform: scale(0.96); }
+    .ch-dlg-foot .ghost { margin-right: auto; height: 34px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--faint); font: inherit; font-size: 13px; cursor: pointer; transition: color 0.16s ease, background 0.16s ease; }
+    .ch-dlg-foot .ghost:hover { color: var(--ink); background: var(--panel-2); }
+    .ch-dlg-search { width: 100%; box-sizing: border-box; height: 40px; margin: 6px 0 8px; padding: 0 12px 0 38px; border: 1px solid var(--line-bright); border-radius: 9px; background: var(--field) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23787b86' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E") 12px 50% / 18px no-repeat; color: var(--ink); font: inherit; font-size: 14px; text-transform: none; }
     .ch-dlg-search:focus { outline: none; border-color: var(--tv-blue); box-shadow: 0 0 0 1px var(--tv-blue); }
     .ch-dlg-empty { padding: 28px 8px; color: var(--faint); text-align: center; }
     .ch-symlist { margin: 0 -20px; }
@@ -1203,27 +1213,27 @@
     #v-chart .ch-menu[data-kind="dlg"] .ch-prow { grid-template-columns: auto 1fr auto; column-gap: 12px; border-bottom: 0; padding: 6px 0; min-height: 36px; font-size: 14px; }
     #v-chart .ch-menu[data-kind="dlg"] .ch-prow .tgl { order: -1; } #v-chart .ch-menu[data-kind="dlg"] .ch-prow .c { grid-column: auto; }
     #v-chart .ch-menu[data-which="ind"] .ch-row { padding: 8px 20px; margin: 0 -20px; cursor: default; } #v-chart .ch-menu[data-which="ind"] .ch-row:hover { background: var(--panel-2); }
-    #v-chart .ch-menu .tgl.sm { width: 18px; height: 18px; flex-shrink: 0; }
-    #v-chart .ch-menu .tgl.sm .track { position: absolute; inset: 0; border-radius: 3px; border: 1px solid #9598a1; background: #fff; box-shadow: none; transition: background 0.12s ease, border-color 0.12s ease; }
-    #v-chart .ch-menu .tgl.sm:hover .track { border-color: #50535e; }
-    #v-chart .ch-menu .tgl.sm .track::before { content: ''; position: absolute; left: 5px; top: 1.5px; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; border-radius: 0; background: none; box-shadow: none; transform: rotate(45deg) scale(0); transition: transform 0.12s ease; }
-    #v-chart .ch-menu .tgl.sm input:checked + .track { background: var(--tv-blue); border-color: var(--tv-blue); }
-    #v-chart .ch-menu .tgl.sm input:checked + .track::before { transform: rotate(45deg) scale(1); }
-    #v-chart .ch-menu .tgl.sm input:focus-visible + .track { outline: 2px solid rgba(41,98,255,0.4); outline-offset: 2px; }
-    #v-chart .ch-color input[type="color"] { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; padding: 3px; border: 1px solid var(--line-bright); border-radius: 4px; background: #fff; }
+    /* the switch: a pill, the thumb springs across, the accent glows behind it */
+    #v-chart .ch-menu .tgl.sm { width: 38px; height: 22px; flex-shrink: 0; }
+    #v-chart .ch-menu .tgl.sm .track { position: absolute; inset: 0; border-radius: 999px; border: 0; background: var(--panel-3); box-shadow: inset 0 0 0 1px var(--line-bright); transition: background 0.22s ease, box-shadow 0.22s ease; }
+    #v-chart .ch-menu .tgl.sm:hover .track { box-shadow: inset 0 0 0 1px var(--faint); }
+    #v-chart .ch-menu .tgl.sm .track::before { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--ink); opacity: 0.85; box-shadow: 0 1px 3px rgba(0,0,0,0.35); transform: none; transition: transform 0.32s cubic-bezier(0.34, 1.4, 0.64, 1), background 0.2s ease, opacity 0.2s ease; }
+    #v-chart .ch-menu .tgl.sm input:checked + .track { background: var(--acc); box-shadow: inset 0 0 0 1px var(--acc), 0 0 0 4px var(--tv-tint); }
+    #v-chart .ch-menu .tgl.sm input:checked + .track::before { transform: translateX(16px); background: var(--acc-ink); opacity: 1; }
+    #v-chart .ch-menu .tgl.sm input:focus-visible + .track { outline: 2px solid var(--acc); outline-offset: 2px; }
+    #v-chart .ch-color input[type="color"] { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; padding: 3px; border: 1px solid var(--line-bright); border-radius: 6px; background: var(--field); }
     #v-chart .ch-color input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; } #v-chart .ch-color input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
     #v-chart .ch-color input[type="color"]::-moz-color-swatch { border: 0; border-radius: 2px; }
     #v-chart .ch-color input[type="color"]:hover { border-color: #9598a1; }
     #v-chart .ch-wsel button { width: 34px; height: 28px; border-color: var(--line-bright); } #v-chart .ch-wsel button:first-child { border-radius: 4px 0 0 4px; } #v-chart .ch-wsel button:last-child { border-radius: 0 4px 4px 0; }
     #v-chart .ch-wsel button.on { color: var(--tv-blue); background: var(--tv-tint); } #v-chart .ch-wsel i { width: 18px; }
     #v-chart .ch-range { accent-color: var(--tv-blue); width: 110px; }
-    #v-chart .ch-menu .inp, #v-chart .ch-menu select { height: 32px; box-sizing: border-box; border: 1px solid var(--line-bright); border-radius: 4px; background: #fff; color: var(--ink); font: inherit; font-size: 14px; }
-    #v-chart .ch-menu .inp:focus, #v-chart .ch-menu select:focus { outline: none; border-color: var(--tv-blue); box-shadow: 0 0 0 1px var(--tv-blue); }
+    #v-chart .ch-menu .inp, #v-chart .ch-menu select { height: 30px; box-sizing: border-box; border: 1px solid var(--line-bright); border-radius: 8px; background: var(--field); color: var(--ink); font: inherit; font-size: 13.5px; font-variant-numeric: tabular-nums; transition: border-color 0.16s ease, box-shadow 0.16s ease; }
+    #v-chart .ch-menu .inp:focus, #v-chart .ch-menu select:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px var(--tv-tint); }
     #v-chart .ch-menu .seg { background: none; border: 1px solid var(--line-bright); border-radius: 4px; padding: 0; gap: 0; box-shadow: none; overflow: hidden; }
     #v-chart .ch-menu .seg button { height: 30px; padding: 0 12px; border: 0; border-right: 1px solid var(--line-bright); border-radius: 0; background: none; box-shadow: none; color: var(--ink); font: inherit; font-size: 13px; font-weight: 400; }
     #v-chart .ch-menu .seg button:last-child { border-right: 0; } #v-chart .ch-menu .seg button::before, #v-chart .ch-menu .seg button::after { display: none; }
     #v-chart .ch-menu .seg button:hover { background: var(--panel-2); } #v-chart .ch-menu .seg button.on { background: var(--tv-tint); color: var(--tv-blue); font-weight: 500; }
-    #v-chart .ch-preset { border-radius: 6px; } #v-chart .ch-preset.on { border-color: var(--tv-blue); color: var(--tv-blue); }
     #v-chart .ch-gear { width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 4px; color: var(--ink); } #v-chart .ch-gear svg { width: 17px; height: 17px; }
     #v-chart .ch-reset { color: var(--tv-blue); text-decoration: none; font-size: 12px; }
     #v-chart .rowbtn { border-radius: 6px; }
@@ -1231,10 +1241,107 @@
     #v-chart .ch-foot .ch-sp { order: 0; display: block; }
 
     .ch-tpl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 0 2px; }
-    .ch-tpl-l { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); margin-right: 4px; }
+    .ch-tpl-l { font-size: 12.5px; font-weight: 600; color: var(--faint); margin-right: 4px; }
     .ch-tpl-b { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px 0 10px; border: 1px solid var(--line-bright); border-radius: 6px; background: var(--panel); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease; }
     .ch-tpl-b:hover { background: var(--panel-2); border-color: var(--ink); } .ch-tpl-b i { font-style: normal; color: var(--faint); font-size: 15px; line-height: 1; padding: 0 2px; border-radius: 4px; } .ch-tpl-b i:hover { color: #f23645; }
     .ch-tpl-b.add { padding: 0 10px; color: var(--tv-blue); border-style: dashed; }
+
+    /* ── Chart chrome, refined: motion on every button, dialogs that rise and
+       settle, section rules instead of caps, pill switches, sliding segments,
+       colour pills that open one shared picker. Sits before the phone block. */
+    @keyframes ch-pop { from { opacity: 0; transform: translateY(-4px) scale(0.985); } }
+    @keyframes ch-dlg-out { to { opacity: 0; transform: translate(-50%, calc(-50% + 6px)) scale(0.985); } }
+    @keyframes ch-fade-out { to { opacity: 0; } }
+    @keyframes ch-sw { from { opacity: 0; transform: translateY(5px); } }
+    #v-chart .ch-wrap, #v-chart .ch-bar, #v-chart .ch-tools, #v-chart .ch-foot, #v-chart .ch-legend .ln, #v-chart .ch-selbar, #v-chart .ch-latest { transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease; }
+    #v-chart .ch-ib, #v-chart .ch-tools button, #v-chart .ch-tfs button, #v-chart .ch-foot .ch-axl button, #v-chart .ch-foot .ch-tz, .ch-fb, #v-chart .ch-symbtn { transition: background 0.16s ease, color 0.16s ease, transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    #v-chart .ch-ib:active:not(:disabled), #v-chart .ch-tools button:active, #v-chart .ch-tfs button:active, #v-chart .ch-foot .ch-axl button:active, .ch-fb:active { transform: scale(0.92); transition-duration: 0.06s; }
+    #v-chart .ch-tfs button.on { background: var(--tv-tint); }
+    #ch-side { display: none; }
+    #v-chart #ch-side.on { color: var(--acc); background: var(--tv-tint); }
+    #v-chart .ch-fly, #v-chart .ch-ctx, #v-chart .ch-pop, #v-chart .ch-int { border: 1px solid var(--line-bright); border-radius: 10px; box-shadow: var(--shadow); animation: ch-pop 0.16s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    #v-chart .ch-fly button { border-radius: 6px; margin: 0 6px; width: calc(100% - 12px); }
+    #v-chart .ch-selbar, #v-chart .ch-replay, #v-chart .ch-latest { border: 1px solid var(--line-bright); box-shadow: var(--shadow); }
+    /* the dialog */
+    .ch-scrim.dim.out { animation: ch-fade-out 0.15s ease forwards; pointer-events: none; }
+    #v-chart .ch-menu { background: var(--panel); border-color: var(--line-bright); transition: background-color 0.25s ease, border-color 0.25s ease; }
+    #v-chart .ch-menu.out { animation: ch-fade-out 0.15s ease forwards; pointer-events: none; }
+    #v-chart .ch-menu-head { min-height: 58px; padding: 0 12px 0 22px; }
+    #v-chart .ch-menu-head b { font-size: 17px; }
+    #v-chart .ch-menu-head button { color: var(--muted); border-radius: 8px; transition: background 0.16s ease, color 0.16s ease; }
+    #v-chart .ch-menu-head button:hover { color: var(--ink); background: var(--panel-2); }
+    @media (min-width: 841px) {
+      #v-chart .ch-menu[data-kind="dlg"] { border: 1px solid var(--line-bright); border-radius: 14px; box-shadow: var(--shadow); animation: ch-dlg-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+      #v-chart .ch-menu[data-kind="dlg"].out { animation: ch-dlg-out 0.15s ease forwards; }
+      #v-chart .ch-menu[data-kind="dlg"][data-size="wide"] { grid-template-columns: 196px minmax(0, 1fr); width: min(780px, calc(100% - 32px)); height: min(660px, calc(100% - 32px)); }
+      #v-chart .ch-menu[data-kind="pop"] { border: 1px solid var(--line-bright); border-radius: 10px; box-shadow: var(--shadow); animation: ch-pop 0.16s cubic-bezier(0.2, 0.8, 0.2, 1); }
+      #v-chart .ch-menu[data-kind="side"] { border-left: 1px solid var(--line-bright); box-shadow: var(--shadow); }
+      #v-chart .ch-dlg-nav.vert { padding: 10px 8px; gap: 2px; background: color-mix(in srgb, var(--panel-2) 45%, var(--panel)); }
+      #v-chart .ch-dlg-nav.vert button[data-t] { position: relative; height: 38px; padding: 0 12px 0 16px; border-radius: 9px; font-size: 13.5px; color: var(--muted); transition: background 0.16s ease, color 0.16s ease; }
+      #v-chart .ch-dlg-nav.vert button[data-t]::before { content: ''; position: absolute; left: 4px; top: 11px; bottom: 11px; width: 3px; border-radius: 3px; background: var(--acc); opacity: 0; transform: scaleY(0.4); transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
+      #v-chart .ch-dlg-nav.vert button[data-t]:hover { background: var(--panel-2); color: var(--ink); }
+      #v-chart .ch-dlg-nav.vert button[data-t].on { background: var(--tv-tint); color: var(--ink); font-weight: 600; box-shadow: none; }
+      #v-chart .ch-dlg-nav.vert button[data-t].on::before { opacity: 1; transform: scaleY(1); }
+      #v-chart .ch-dlg-nav .ch-links.in-nav { padding: 10px 0 0; margin-top: auto; }
+      #v-chart .ch-dlg-nav .ch-links.in-nav button { padding: 0 16px; height: 32px; border-radius: 8px; font-size: 12.5px; }
+      #v-chart .ch-menu[data-kind="dlg"] .ch-menu-body { padding: 6px 22px 18px; }
+    }
+    .ch-dlg-nav button[data-t].on { box-shadow: inset 0 -2px 0 var(--acc); }
+    #v-chart .ch-menu-body.sw > * { animation: ch-sw 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    #v-chart .ch-menu[data-kind="dlg"] .ch-h { display: flex; align-items: center; gap: 10px; font-size: 12.5px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink); padding: 20px 0 6px; }
+    #v-chart .ch-menu[data-kind="dlg"] .ch-h::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+    #v-chart .ch-menu[data-kind="dlg"] .ch-h:first-child { padding-top: 10px; }
+    #v-chart .ch-menu[data-kind="dlg"] .ch-row { flex-direction: row; justify-content: space-between; padding: 7px 0; min-height: 40px; font-size: 13.5px; color: var(--ink); }
+    #v-chart .ch-menu[data-kind="dlg"] .ch-row:has(> .tgl) { flex-direction: row; justify-content: space-between; }
+    #v-chart .ch-menu[data-kind="dlg"] .ch-row-t small, #v-chart .ch-menu[data-kind="dlg"] .ch-prow .t small { font-size: 12px; color: var(--faint); line-height: 1.4; margin-top: 2px; }
+    #v-chart .ch-menu[data-kind="dlg"] .ch-prow { grid-template-columns: 1fr auto auto; column-gap: 12px; padding: 7px 0; min-height: 40px; font-size: 13.5px; align-items: center; }
+    #v-chart .ch-menu[data-kind="dlg"] .ch-prow .tgl { order: 3; } #v-chart .ch-menu[data-kind="dlg"] .ch-prow .c { order: 2; grid-column: auto; }
+    #v-chart .ch-menu .ch-hint { font-size: 12.5px; color: var(--faint); line-height: 1.5; padding: 8px 0 4px; }
+    /* segmented control: equal cells and one thumb that slides to the choice (chSegSync sets --n and --i) */
+    #v-chart .ch-menu .seg, #v-chart .ch-wsel { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; margin: 0; padding: 3px; border: 0; border-left: 0; border-radius: 9px; background: var(--panel-3); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; isolation: isolate; }
+    #v-chart .ch-menu .seg::before, #v-chart .ch-wsel::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--n, 1)); border-radius: 6px; background: var(--panel); box-shadow: 0 1px 4px rgba(0,0,0,0.3), inset 0 0 0 1px var(--line-bright); transform: translateX(calc(var(--i, 0) * 100%)); transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); z-index: 0; }
+    #v-chart .ch-menu .seg:not([style*="--n"])::before, #v-chart .ch-wsel:not([style*="--n"])::before { display: none; }
+    #v-chart .ch-menu .seg button, #v-chart .ch-wsel button { position: relative; z-index: 1; height: 26px; min-width: 0; width: auto; padding: 0 10px; border: 0; border-radius: 6px; background: none; box-shadow: none; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 500; transition: color 0.16s ease; }
+    #v-chart .ch-menu .seg button:hover, #v-chart .ch-wsel button:hover { background: none; color: var(--ink); }
+    #v-chart .ch-menu .seg button.on, #v-chart .ch-wsel button.on { background: none; color: var(--ink); font-weight: 600; }
+    #v-chart .ch-menu .seg button::before, #v-chart .ch-menu .seg button::after { display: none; }
+    #v-chart .ch-wsel button { width: 34px; padding: 0; } #v-chart .ch-wsel i { width: 16px; } #v-chart .ch-wsel button.on i { background: var(--acc); }
+    /* colour pill and the shared picker */
+    .ch-cbtn { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 11px 0 5px; border: 1px solid var(--line-bright); border-radius: 999px; background: var(--field); color: var(--ink); font: inherit; font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; cursor: pointer; transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .ch-cbtn:hover { border-color: var(--faint); } .ch-cbtn.open { border-color: var(--acc); box-shadow: 0 0 0 3px var(--tv-tint); }
+    .ch-cbtn:active { transform: scale(0.97); }
+    .ch-cbtn .sw { width: 20px; height: 20px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgba(127,127,127,0.35); flex-shrink: 0; transition: background 0.16s ease; }
+    .ch-cbtn.auto .sw { box-shadow: inset 0 0 0 1px rgba(127,127,127,0.35), 0 0 0 2px var(--panel), 0 0 0 3px var(--line-bright); }
+    .ch-cbtn .hx { min-width: 54px; text-align: left; } .ch-cbtn.auto .hx { color: var(--faint); }
+    .ch-cpick { position: absolute; z-index: 20; width: 252px; padding: 10px; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 12px; box-shadow: var(--shadow); animation: ch-pop 0.16s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .ch-cpick .g { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
+    .ch-cpick .g button { aspect-ratio: 1; width: 100%; border: 0; border-radius: 6px; background: var(--c); cursor: pointer; padding: 0; box-shadow: inset 0 0 0 1px rgba(127,127,127,0.25); transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.14s ease; }
+    .ch-cpick .g button:hover { transform: scale(1.12); box-shadow: inset 0 0 0 1px rgba(127,127,127,0.25), 0 3px 8px rgba(0,0,0,0.3); }
+    .ch-cpick .g button.on { box-shadow: inset 0 0 0 2px var(--panel), 0 0 0 2px var(--acc); }
+    .ch-cpick .r { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+    .ch-cpick .nat { position: relative; width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; cursor: pointer; background: conic-gradient(#f23645, #ff9800, #ffeb3b, #4caf50, #089981, #2962ff, #673ab7, #e91e63, #f23645); box-shadow: inset 0 0 0 2px var(--panel), inset 0 0 0 3px var(--line-bright); overflow: hidden; transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .ch-cpick .nat:hover { transform: scale(1.08); }
+    .ch-cpick .nat input { position: absolute; inset: -10px; width: 60px; height: 60px; opacity: 0; cursor: pointer; }
+    .ch-cpick .hex { flex: 1; min-width: 0; height: 30px; padding: 0 10px; border: 1px solid var(--line-bright); border-radius: 8px; background: var(--field); color: var(--ink); font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; text-transform: uppercase; }
+    .ch-cpick .hex:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px var(--tv-tint); }
+    .ch-cpick .rs { height: 30px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--acc); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.16s ease; }
+    .ch-cpick .rs:hover { background: var(--tv-tint); } .ch-cpick .rs:disabled { color: var(--faint); background: none; cursor: default; opacity: 0.6; }
+    /* the rest of the controls */
+    #v-chart .ch-dlg-search:focus { border-color: var(--acc); box-shadow: 0 0 0 3px var(--tv-tint); }
+    #v-chart .ch-range { accent-color: var(--acc); }
+    #v-chart .ch-dlg-foot { padding: 12px 22px; align-items: center; }
+    #v-chart .rowbtn { background: var(--panel-2); border-color: var(--line-bright); color: var(--ink); font-size: 12.5px; border-radius: 8px; }
+    @media (hover: hover) { #v-chart .rowbtn:hover:not(:disabled) { border-color: var(--acc); color: var(--acc); } }
+    #v-chart .ch-gear { color: var(--muted); } #v-chart .ch-gear:hover { color: var(--ink); background: var(--panel-2); }
+    #v-chart .ch-reset { color: var(--acc); }
+    #v-chart .ch-menu[data-which="ind"] .ch-row { border-radius: 8px; margin: 0 -10px; padding: 8px 10px; transition: background 0.14s ease; }
+    #v-chart .ch-opt { border-radius: 8px; transition: background 0.14s ease; }
+    #v-chart .ch-menu[data-kind="pop"] .ch-opt { margin: 0 6px; width: calc(100% - 12px); padding: 8px 12px; }
+    #v-chart .ch-symrow, #v-chart .ch-obj { transition: background 0.14s ease; }
+    #v-chart .ch-tpl-b { border-radius: 999px; background: var(--field); } #v-chart .ch-tpl-b:hover { border-color: var(--acc); }
+    #v-chart .ch-part { border-radius: 999px; }
+    #v-chart .ch-key kbd { background: var(--field); }
+    @media (prefers-reduced-motion: reduce) { #v-chart .ch-menu, #v-chart .ch-menu.out, .ch-scrim.dim, #v-chart .ch-fly, #v-chart .ch-ctx, .ch-cpick, #v-chart .ch-menu-body.sw > * { animation: none; } #v-chart .ch-menu .seg::before, #v-chart .ch-wsel::before, #v-chart .ch-menu .tgl.sm .track::before, .app.on, body.in-chart .side { transition: none; } }
     @media (max-width: 840px), (max-width: 1000px) and (max-height: 500px) { #v-chart .ch-lb span:not(.ch-badge) { display: none; } #v-chart .ch-foot { height: 34px; overflow-x: auto; scrollbar-width: none; } #v-chart .ch-foot .ch-axl button[data-range] { display: inline-flex; } #v-chart #ch-adj, #v-chart #ch-autobtn { display: none; } }
     @media (max-width: 840px), (max-width: 1000px) and (max-height: 500px) {
       body.in-chart #v-chart { animation: none; }
@@ -1277,7 +1384,6 @@
       .ch-legend { font-size: 10.5px; gap: 7px; flex-direction: row; flex-wrap: wrap; width: auto; }
       .ch-axl button[data-range] { display: none; }
       .ch-selbar { top: auto; bottom: 8px; left: 8px; right: 8px; max-width: none; justify-content: center; }
-      .ch-presets { grid-template-columns: repeat(3, 1fr); }
       .ch-menu { width: 100%; }
       .ch-replay { left: 8px; right: 8px; transform: none; justify-content: center; flex-wrap: wrap; bottom: 12px; }
       .ch-latest { bottom: 12px; right: 66px; }
@@ -4194,6 +4300,7 @@
           <div class="ch-wrap">
             <div class="ch-bar">
               <button class="ch-ib" id="ch-back" type="button" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+              <button class="ch-ib" id="ch-side" type="button" title="Hide the sidebar" aria-label="Hide the sidebar" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16M5.5 8h1M5.5 11h1"/></svg></button>
               <div class="ch-sym"><button type="button" class="ch-symbtn" id="ch-sym-btn" title="Symbol search" aria-label="Symbol search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><b id="ch-sym-name">NQ</b></button><span class="ch-sess" id="ch-sess"></span></div>
               <span class="seg ch-tfs" id="ch-tf" role="group" aria-label="Timeframe"><button type="button" data-tf="1m">1m</button><button type="button" data-tf="3m">3m</button><button type="button" data-tf="5m">5m</button><button type="button" data-tf="15m">15m</button><button type="button" data-tf="30m">30m</button><button type="button" data-tf="1h">1h</button><button type="button" data-tf="4h">4h</button><button type="button" data-tf="D">D</button></span>
               <button class="ch-tfbtn" id="ch-tf-btn" type="button" aria-label="Interval">5m<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -12245,7 +12352,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       litPm: false, litNwog: false, litDr: false, litDrBack: 3, litSig: false, litSig1: false, litSigAnc: false, litDs: true, litDsWeek: true, litOpen22: false, litLdn: false, litWm: true, litAlerts: true,
       litPmC: '', litPmW: 2, litNwogC: '', litNwogF: 0.12, litDrC: '', litDrHlC: '', litDrW: 1, litSigC: '', litSigW: 1, litDsC: '', litOpen22C: '', litOpen22W: 1, litLdnC: '', litLdnF: 0.1, litWmC: '',
       // chart style (empty colour = the theme token)
-      magnet: 'off', borderUp: '', borderDown: '', wicks: true, bodyW: 'normal', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: true, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
+      accentC: '', magnet: 'off', borderUp: '', borderDown: '', wicks: true, bodyW: 'normal', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: true, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
       volUp: '', volDown: '', volA: 0.35, volSize: 'normal', volMa: false, volMaN: 20, volMaC: '',
       // indicators: moving averages are a list, VWAP has bands, LIT and GEX carry a colour and a width per part
       ma: null, vwapC: '', vwapW: 1.2, vwapStyle: 'dash', vwapBands: false, vwapBandC: '', vwapBandA: 0.08, prevDayC: '',
@@ -12272,14 +12379,84 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       axisInd: true, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true, gexSwing: true, gexRn: 10, gexBand: 6, gexPx: false }
     const CH_MA_DEFAULT = () => [{ t: 'ema', n: 20, c: '#c9a24a', w: 1.2, on: true }, { t: 'ema', n: 50, c: '#7aa2d9', w: 1.2, on: true }, { t: 'ema', n: 200, c: '#d97ab0', w: 1.2, on: true }]
     const CH_MA_COLORS = ['#c9a24a', '#7aa2d9', '#d97ab0', '#5fc39a', '#e08a4b']
-    // chart presets: a look in one click; every key not named falls back to the theme
-    const CH_PRESETS = {
-      echelon: { name: 'Echelon', hint: 'The theme, gold on ink', v: { up: '', down: '', wickUp: '', wickDown: '', borderUp: '', borderDown: '', bg: '', bg2: '', gridC: '', lineC: '', volUp: '', volDown: '', textC: '', sessC: '', crossC: '' } },
-      classic: { name: 'Classic', hint: 'Green and red, the platform look', v: { up: '#26a69a', down: '#ef5350', wickUp: '#26a69a', wickDown: '#ef5350', borderUp: '#26a69a', borderDown: '#ef5350', bg: '#131722', bg2: '', gridC: '#1e222d', lineC: '#2962ff', volUp: '#26a69a', volDown: '#ef5350', textC: '#9598a1', sessC: '', crossC: '#758696' } },
-      mono: { name: 'Mono', hint: 'Ink and paper, no colour', v: { up: '#e9e3d8', down: '#5a554d', wickUp: '#e9e3d8', wickDown: '#8a847a', borderUp: '#e9e3d8', borderDown: '#8a847a', bg: '#0b0a09', bg2: '', gridC: '#1c1a17', lineC: '#e9e3d8', volUp: '#e9e3d8', volDown: '#5a554d', textC: '', sessC: '', crossC: '' } },
-      ocean: { name: 'Ocean', hint: 'Teal and coral on deep blue', v: { up: '#2ec4b6', down: '#ff6b6b', wickUp: '#2ec4b6', wickDown: '#ff6b6b', borderUp: '#2ec4b6', borderDown: '#ff6b6b', bg: '#0a1520', bg2: '#0d1b2a', gridC: '#152535', lineC: '#5dd9ff', volUp: '#2ec4b6', volDown: '#ff6b6b', textC: '#7f9bb3', sessC: '', crossC: '#5dd9ff' } },
-      paper: { name: 'Paper', hint: 'Light, for a bright room', v: { up: '#089981', down: '#f23645', wickUp: '#089981', wickDown: '#f23645', borderUp: '#089981', borderDown: '#f23645', bg: '#ffffff', bg2: '', gridC: '#e6e8eb', lineC: '#2962ff', volUp: '#089981', volDown: '#f23645', textC: '#6a6d78', sessC: '', crossC: '#9598a1' } },
+    /* ── skin: the chart background decides the side everything else sits on ──
+       The canvas default follows the app theme. Every colour the member has not
+       set comes from chDefaults() for that side, and chSkin() stamps data-skin on
+       the view so the bar, rail, foot and dialogs (CSS tokens) match the canvas. */
+    const chBgDefault = (themeLight) => themeLight ? '#ffffff' : '#131722'
+    function chDefaults(T, light) {
+      const S = CH.s
+      return light
+        ? { bg: '#ffffff', bg2: S.bg || '#ffffff', up: T.good, down: '#ffffff', wickUp: S.up || T.good, wickDown: '#111111', borderUp: '#12823b', borderDown: '#111111', lineC: T.gold, gridC: T.line, crossC: T.ink, sessC: T.ink, textC: T.faint, lastC: T.good, volUp: S.up || T.good, volDown: '#8a929b', volMaC: T.gold, vwapC: T.ink, vwapBandC: T.gold, prevDayC: T.faint, accentC: '#2962ff' }
+        : { bg: '#131722', bg2: S.bg || '#131722', up: '#089981', down: '#f23645', wickUp: S.up || '#089981', wickDown: S.down || '#f23645', borderUp: S.up || '#089981', borderDown: S.down || '#f23645', lineC: T.gold, gridC: T.line, crossC: T.ink, sessC: T.ink, textC: T.faint, lastC: T.good, volUp: S.up || '#089981', volDown: S.down || '#f23645', volMaC: T.gold, vwapC: T.ink, vwapBandC: T.gold, prevDayC: T.faint, accentC: '#c9a24a' }
     }
+    function chSkin(light) {
+      const v = el('v-chart'); if (!v) return
+      const want = light ? 'light' : 'dark'; if (v.dataset.skin !== want) v.dataset.skin = want
+      const acc = /^#[0-9a-f]{6}$/i.test(CH.s.accentC || '') ? CH.s.accentC.toLowerCase() : ''
+      if ((v.style.getPropertyValue('--acc') || '') !== acc) {
+        if (acc) { v.style.setProperty('--acc', acc); v.style.setProperty('--acc-ink', chLum(acc) > 0.35 ? '#14110a' : '#ffffff') }
+        else { v.style.removeProperty('--acc'); v.style.removeProperty('--acc-ink') }
+      }
+    }
+    const chSkinNow = () => { const themeLight = document.documentElement.getAttribute('data-theme') === 'light'; chSkin(chBgLight(CH.s.bg || chBgDefault(themeLight), themeLight)) }
+    /* ── colour pills: one button per colour, a single popover picker they share ── */
+    const CH_PALETTE = ['#ffffff', '#e0e3eb', '#b2b5be', '#787b86', '#434651', '#2a2e39', '#131722', '#000000',
+      '#f23645', '#ff9800', '#ffeb3b', '#4caf50', '#089981', '#2962ff', '#673ab7', '#e91e63',
+      '#ffcdd2', '#ffe0b2', '#fff9c4', '#c8e6c9', '#b2dfdb', '#bbdefb', '#d1c4e9', '#f8bbd0',
+      '#ef5350', '#ffa726', '#fdd835', '#66bb6a', '#26a69a', '#42a5f5', '#7e57c2', '#ec407a',
+      '#b71c1c', '#e65100', '#f57f17', '#1b5e20', '#004d40', '#0d47a1', '#311b92', '#880e4f',
+      '#c9a24a', '#a8842c', '#e9e3d8', '#86b57f', '#d98b7a', '#7aa2d9', '#d97ab0', '#5fc39a']
+    const chHex6 = (v) => { v = String(v || '').trim(); if (v && v[0] !== '#') v = '#' + v; if (/^#[0-9a-f]{3}$/i.test(v)) v = '#' + [...v.slice(1)].map((c) => c + c).join(''); return /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null }
+    // opts: get() the stored value ('' = default), def the default hex, set(v) stores '' or a hex, autoLabel names the unset state
+    function chColorBtn(opts) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'ch-cbtn'; if (opts.key) b.dataset.key = opts.key
+      b.innerHTML = '<i class="sw"></i><span class="hx"></span>'; b._opts = opts
+      b._paint = () => { const v = opts.get(), c = chHex6(v) || chHex6(opts.def) || '#c9a24a'; b.style.setProperty('--c', c); b.classList.toggle('auto', !v); b.querySelector('.hx').textContent = v ? c.toUpperCase() : (opts.autoLabel || 'Auto'); b.title = (v ? c.toUpperCase() : `${opts.autoLabel || 'Auto'} (${c.toUpperCase()})`) + '. Click to change'; b.setAttribute('aria-label', (opts.label || 'Colour') + ': ' + (v ? c : opts.autoLabel || 'auto')) }
+      b._paint()
+      b.addEventListener('click', (e) => { e.stopPropagation(); if (CH.cpick?.anchor === b) chColorClose(); else chColorOpen(b) })
+      return b
+    }
+    function chColorClose() { const p = el('ch-cpick'); CH.cpick?.anchor?.classList.remove('open'); CH.cpick = null; if (p) p.hidden = true }
+    function chColorSet(v, typing) { const c = CH.cpick; if (!c) return; c.opts.set(v); c.anchor._paint?.(); chColorSync(typing) }
+    function chColorSync(typing) {
+      const c = CH.cpick, p = el('ch-cpick'); if (!c || !p) return
+      const v = c.opts.get(), cur = chHex6(v) || chHex6(c.opts.def) || '#c9a24a'
+      p.querySelectorAll('.g button').forEach((x) => x.classList.toggle('on', x.dataset.c === cur))
+      p.querySelector('.nat input').value = cur; if (!typing) p.querySelector('.hex').value = cur.toUpperCase()
+      const rs = p.querySelector('.rs'); rs.disabled = !v; rs.textContent = c.opts.autoLabel && c.opts.autoLabel !== 'Auto' ? c.opts.autoLabel : 'Default'
+    }
+    function chColorOpen(b) {
+      chColorClose()
+      const m = el('ch-menu'); let p = el('ch-cpick')
+      if (!p) {
+        p = document.createElement('div'); p.className = 'ch-cpick'; p.id = 'ch-cpick'; p.hidden = true; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', 'Pick a colour')
+        p.innerHTML = `<div class="g">${CH_PALETTE.map((c) => `<button type="button" data-c="${c}" style="--c:${c}" title="${c.toUpperCase()}" aria-label="${c.toUpperCase()}"></button>`).join('')}</div><div class="r"><label class="nat" title="Any colour"><input type="color" aria-label="Any colour"></label><input class="hex" type="text" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex colour" placeholder="#000000"><button type="button" class="rs">Default</button></div>`
+        p.addEventListener('click', (e) => e.stopPropagation())
+        p.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') chColorClose() })
+        p.querySelector('.g').addEventListener('click', (e) => { const c = e.target.closest('button[data-c]'); if (c) chColorSet(c.dataset.c) })
+        p.querySelector('.nat input').addEventListener('input', (e) => chColorSet(e.target.value))
+        const hx = p.querySelector('.hex')
+        hx.addEventListener('input', () => { const v = chHex6(hx.value); if (v) chColorSet(v, true) })
+        hx.addEventListener('change', () => { const v = chHex6(hx.value); if (v) chColorSet(v); else chColorSync() })
+        p.querySelector('.rs').addEventListener('click', () => chColorSet(''))
+        m.appendChild(p)
+      }
+      CH.cpick = { anchor: b, opts: b._opts }; b.classList.add('open')
+      chColorSync(); p.hidden = false; chColorPlace()
+    }
+    // below the pill, right edges aligned, always inside the dialog (which clips); the body scroll re-places it
+    function chColorPlace() {
+      const c = CH.cpick, p = el('ch-cpick'), m = el('ch-menu'); if (!c || !p || p.hidden) return
+      if (!c.anchor.isConnected) return chColorClose()
+      const mr = m.getBoundingClientRect(), br = c.anchor.getBoundingClientRect(), pw = p.offsetWidth, ph = p.offsetHeight
+      let left = br.right - mr.left - pw, top = br.bottom - mr.top + 6
+      left = Math.max(8, Math.min(left, m.clientWidth - pw - 8))
+      if (top + ph > m.clientHeight - 8) top = Math.max(8, br.top - mr.top - ph - 6)
+      p.style.left = left + 'px'; p.style.top = top + 'px'
+    }
+    // a segmented control's thumb: --n cells, slide to cell --i
+    const chSegSync = (s) => { if (!s) return; const bs = [...s.querySelectorAll(':scope > button')], i = bs.findIndex((b) => b.classList.contains('on')); if (bs.length && i >= 0) { s.style.setProperty('--n', bs.length); s.style.setProperty('--i', i) } else { s.style.removeProperty('--n'); s.style.removeProperty('--i') } }
     const CH = {
       on: false, raf: 0, timer: null, err: null, busy: 0, wired: false,
       sym: 'NQ', stores: {},
@@ -14018,7 +14195,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       else { T.ink = '#f4f2ee'; T.muted = '#9d978c'; T.faint = '#8f887c'; T.line = 'rgba(255,255,255,0.12)'; T.lineB = 'rgba(255,255,255,0.22)'; T.panel = '#131211'; T.panel2 = '#1a1817'; T.good = '#86b57f'; T.bad = '#d98b7a'; T.gold = '#c9a24a' }
     }
     function chSurfaceTokens(T, light) {
-      T.line = light ? '#e5e8ef' : '#252b38'; T.faint = light ? '#7b8595' : '#788397'; T.muted = light ? '#596579' : '#a1aabd'; T.good = '#16a34a'; T.bad = light ? '#111111' : '#dce1eb'
+      T.line = light ? '#e5e8ef' : '#252b38'; T.faint = light ? '#7b8595' : '#788397'; T.muted = light ? '#596579' : '#a1aabd'; T.good = '#16a34a'; T.bad = light ? '#111111' : '#f23645'
       T.panel = light ? '#f8f9fc' : '#171c28'; T.panel2 = light ? '#edf0f5' : '#222938'; T.ink = light ? '#202735' : '#dce1eb'
     }
     function chPaint() {
@@ -14028,14 +14205,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (cv.width !== Math.round(L.W * dpr) || cv.height !== Math.round(L.H * dpr)) { cv.width = Math.round(L.W * dpr); cv.height = Math.round(L.H * dpr) }
       const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       const T = gexTokens(), S = CH.s, themeLight = document.documentElement.getAttribute('data-theme') === 'light'
-      const BG = S.bg || '#ffffff'; CH.bgNow = BG
-      const light = chBgLight(BG, themeLight); CH.lightBg = light
+      const BG = S.bg || chBgDefault(themeLight); CH.bgNow = BG
+      const light = chBgLight(BG, themeLight); CH.lightBg = light; chSkin(light)
       if (light !== themeLight) chAdaptTokens(T, light)   // a custom background on the other side of the theme
       chSurfaceTokens(T, light)
       if (S.textC) { T.faint = S.textC; T.muted = S.textC }
       if (S.gridC) T.line = S.gridC
-      const C = { up: S.up || T.good, down: S.down || '#ffffff', wickUp: S.wickUp || S.up || T.good, wickDown: S.wickDown || '#111111', line: S.lineC || T.gold, cross: S.crossC || T.ink }
-      C.borderUp = S.borderUp || '#12823b'; C.borderDown = S.borderDown || '#111111'; C.volUp = S.volUp || C.up; C.volDown = S.volDown || '#8a929b'
+      const D = chDefaults(T, light), C = { up: S.up || D.up, down: S.down || D.down, wickUp: S.wickUp || S.up || D.wickUp, wickDown: S.wickDown || D.wickDown, line: S.lineC || D.lineC, cross: S.crossC || D.crossC }
+      C.borderUp = S.borderUp || D.borderUp; C.borderDown = S.borderDown || D.borderDown; C.volUp = S.volUp || C.up; C.volDown = S.volDown || D.volDown
       const col = (c) => ({ good: T.good, bad: T.bad, gold: T.gold, faint: T.faint, muted: T.muted, ink: T.ink })[c] || c
       if (S.bg2) { const gr = ctx.createLinearGradient(0, 0, 0, L.H); gr.addColorStop(0, BG); gr.addColorStop(1, S.bg2); ctx.fillStyle = gr } else ctx.fillStyle = BG
       ctx.fillRect(0, 0, L.W, L.H)
@@ -15359,6 +15536,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-back').addEventListener('click', () => { if (el('v-chart').classList.contains('ch-fullscreen')) el('ch-full').click(); showView(CH_FROM && CH_FROM !== 'chart' && tabOf(CH_FROM) ? CH_FROM : 'overview') })
       el('ch-full').addEventListener('click', () => { const full = el('v-chart').classList.toggle('ch-fullscreen'); el('ch-full').setAttribute('aria-pressed', String(full)); el('ch-full').setAttribute('aria-label', full ? 'Exit fullscreen' : 'Fullscreen'); chFit(); setTimeout(chDraw, 50) })
       el('ch-menu-close').addEventListener('click', () => chMenu(null)); chDlgWire()
+      // the sidebar folds on request and stays folded for the next visit
+      { const b = el('ch-side')
+        const apply = (hid) => { document.body.classList.toggle('side-hid', hid); b.classList.toggle('on', hid); b.setAttribute('aria-pressed', String(hid)); b.title = hid ? 'Show the sidebar' : 'Hide the sidebar'; b.setAttribute('aria-label', b.title) }
+        b.addEventListener('click', () => { const hid = !document.body.classList.contains('side-hid'); try { localStorage.setItem('echelon-chart-side', hid ? '1' : '0') } catch {} apply(hid) })
+        apply(localStorage.getItem('echelon-chart-side') === '1') }
+      // every segmented control in a dialog keeps its thumb under the chosen cell
+      el('ch-menu-body').addEventListener('click', (e) => { const s = e.target.closest('.seg, .ch-wsel'); if (s) chSegSync(s) })
+      el('ch-menu-body').addEventListener('scroll', () => chColorPlace(), { passive: true })
+      document.addEventListener('click', (e) => { if (CH.cpick && !e.composedPath().some((n) => n.id === 'ch-cpick' || n === CH.cpick.anchor)) chColorClose() })
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && CH.cpick) { chColorClose(); e.stopPropagation() } }, true)
       el('ch-rp-play').addEventListener('click', () => chReplayPlay(!CH.replay.playing))
       el('ch-rp-back').addEventListener('click', () => chReplayStep(-1))
       el('ch-rp-fwd').addEventListener('click', () => chReplayStep(1))
@@ -15434,25 +15621,26 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* the drawers: chart type, indicators (with a style sub-panel per indicator), settings (presets and every colour) */
     function chMenu(which) {
       const m = el('ch-menu'); CH.menu = which
-      if (!which) { m.hidden = true; const sc = el('ch-scrim'); if (sc) sc.hidden = true; return }
+      if (!which) { chColorClose(); chMenuHide(m); return }
+      chColorClose(); clearTimeout(CH.menuOutT); m.classList.remove('out'); el('ch-scrim')?.classList.remove('out')
       const body = el('ch-menu-body'); body.textContent = ''
       const [root, sub] = which.split(':')
       const S = CH.s, T = gexTokens(), light = document.documentElement.getAttribute('data-theme') === 'light'
-      chSurfaceTokens(T, chBgLight(S.bg || '#ffffff', light))
+      const bgLight = chBgLight(S.bg || chBgDefault(light), light); chSurfaceTokens(T, bgLight)
       const titles = { sym: 'Symbol search', 'ind:smt': 'SMT divergence', 'ind:cmp': 'Compare', type: 'Chart type', ind: 'Indicators', settings: 'Settings', 'ind:ma': 'Moving averages', 'ind:vwap': 'VWAP', 'ind:bb': 'Bollinger Bands', 'ind:rsi': 'RSI', 'ind:macd': 'MACD', 'ind:atr': 'ATR', keys: 'Keyboard shortcuts', 'ind:lit': 'D1 LIT', 'ind:gex': 'D1 GEX', 'ind:prev': 'Prior day', 'ind:sess': 'Sessions', 'ind:vol': 'Volume', alerts: 'Alerts', objects: 'Objects', draw: CH.sel ? (CH_TOOL_NAMES[CH.sel.type] || 'Drawing') : 'Drawing' }
       if (which === 'draw' && !CH.sel) { m.hidden = true; CH.menu = null; return }
       el('ch-menu-title').textContent = titles[which] || 'Settings'
       const back = el('ch-menu-back'); back.hidden = !sub; back.onclick = () => chMenu(root)
       const hex = (c) => /^#[0-9a-f]{6}$/i.test(c) ? c : '#c9a24a'
-      const defC = (key) => ({ bg: '#ffffff', bg2: S.bg || '#ffffff', up: T.good, down: '#ffffff', wickUp: S.up || T.good, wickDown: '#111111', borderUp: '#12823b', borderDown: '#111111', lineC: T.gold, gridC: T.line, crossC: T.ink, sessC: T.ink, textC: T.faint, lastC: T.good, volUp: S.up || T.good, volDown: '#8a929b', volMaC: T.gold, vwapC: T.ink, vwapBandC: T.gold, prevDayC: T.faint, cmpC: '#ff9800', bbC: '#2962ff', bbMidC: '#ff9800', rsiC: '#7e57c2', macdC: '#2962ff', macdSigC: '#ff6d00', atrC: '#26a69a', ...CH_LIT_DEF(light), ...CH_GEX_DEF })[key] || T.gold
+      const defC = (key) => ({ ...chDefaults(T, bgLight), cmpC: '#ff9800', bbC: '#2962ff', bbMidC: '#ff9800', rsiC: '#7e57c2', macdC: '#2962ff', macdSigC: '#ff6d00', atrC: '#26a69a', ...CH_LIT_DEF(bgLight), ...CH_GEX_DEF })[key] || T.gold
       const row = (label, control, hint) => { const r = document.createElement('div'); r.className = 'ch-row'; const t = document.createElement('div'); t.className = 'ch-row-t'; t.textContent = label; if (hint) { const h = document.createElement('small'); h.textContent = hint; t.appendChild(h) } r.append(t, control); body.appendChild(r); return r }
       const header = (text) => { const h = document.createElement('div'); h.className = 'ch-h'; h.textContent = text; body.appendChild(h) }
       const hint = (text) => { const h = document.createElement('div'); h.className = 'ch-hint'; h.textContent = text; body.appendChild(h) }
       const tglEl = (key, after) => { const l = document.createElement('label'); l.className = 'tgl sm'; const i = document.createElement('input'); i.type = 'checkbox'; i.checked = !!S[key]; i.addEventListener('change', () => { S[key] = i.checked; chSave(); after?.(); chDraw() }); const tr = document.createElement('span'); tr.className = 'track'; l.append(i, tr); return l }
       const toggle = (key, label, hint, after) => row(label, tglEl(key, after), hint)
-      const colorEl = (key, resetLabel = 'theme') => { const w = document.createElement('div'); w.className = 'ch-color sm'; const i = document.createElement('input'); i.type = 'color'; i.value = hex(S[key] || defC(key)); const r = document.createElement('button'); r.type = 'button'; r.className = 'ch-reset'; r.textContent = resetLabel; r.title = 'Back to the default'; r.hidden = !S[key]; i.addEventListener('input', () => { S[key] = i.value; r.hidden = false; chSave(); chDraw() }); r.addEventListener('click', () => { S[key] = ''; i.value = hex(defC(key)); r.hidden = true; chSave(); chDraw() }); w.append(i, r); return w }
+      const colorEl = (key, resetLabel = 'theme', label = '') => chColorBtn({ key, label, get: () => S[key] || '', def: defC(key), set: (v) => { S[key] = v; chSave(); chDraw() }, autoLabel: { theme: 'Auto', skin: 'Auto', default: 'Default', candle: 'Candle', none: 'None' }[resetLabel] || 'Auto' })
       const partRow = (label, hintText, controls, tgl) => { const r = document.createElement('div'); r.className = 'ch-prow'; const t = document.createElement('div'); t.className = 't'; t.textContent = label; if (hintText) { const h = document.createElement('small'); h.textContent = hintText; t.appendChild(h) } const c = document.createElement('div'); c.className = 'c'; c.append(...controls); r.append(t, tgl, c); body.appendChild(r); return r }
-      const color = (key, label, hint, resetLabel) => row(label, colorEl(key, resetLabel), hint)
+      const color = (key, label, hint, resetLabel) => row(label, colorEl(key, resetLabel, label), hint)
       const segEl = (key, opts, after) => { const s = document.createElement('span'); s.className = 'seg'; for (const [v, t] of opts) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.classList.toggle('on', S[key] === v); b.addEventListener('click', () => { S[key] = v; s.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); chSave(); after?.(); chDraw() }); s.appendChild(b) } return s }
       const seg = (key, opts, after) => segEl(key, opts, after)
       const wselEl = (key, def = 1, onSet) => { const s = document.createElement('span'); s.className = 'ch-wsel'; for (const w of [1, 2, 3, 4]) { const b = document.createElement('button'); b.type = 'button'; b.title = `Width ${w}`; b.innerHTML = `<i style="height:${w}px"></i>`; b.classList.toggle('on', (+S[key] || def) === w); b.addEventListener('click', () => { S[key] = w; s.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); chSave(); onSet?.(); chDraw() }); s.appendChild(b) } return s }
@@ -15543,8 +15731,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             const on = document.createElement('label'); on.className = 'tgl sm'; const oi = document.createElement('input'); oi.type = 'checkbox'; oi.checked = mA.on !== false; oi.addEventListener('change', () => { mA.on = oi.checked; chSave(); chDraw() }); const tr = document.createElement('span'); tr.className = 'track'; on.append(oi, tr)
             const type = document.createElement('span'); type.className = 'seg'; for (const [v, t] of [['ema', 'EMA'], ['sma', 'SMA']]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.classList.toggle('on', (mA.t || 'ema') === v); b.addEventListener('click', () => { mA.t = v; type.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); chSave(); chDraw() }); type.appendChild(b) }
             const n = document.createElement('input'); n.type = 'number'; n.className = 'inp'; n.min = 1; n.max = 500; n.value = mA.n; n.setAttribute('aria-label', 'Length'); n.addEventListener('change', () => { mA.n = Math.max(1, Math.min(500, +n.value || 1)); n.value = mA.n; chSave(); chDraw() })
-            const c = document.createElement('input'); c.type = 'color'; c.value = hex(mA.c || CH_MA_COLORS[k % 5]); c.setAttribute('aria-label', 'Colour'); c.addEventListener('input', () => { mA.c = c.value; chSave(); chDraw() })
-            const cw = document.createElement('span'); cw.className = 'ch-color sm'; cw.appendChild(c)
+            const cw = chColorBtn({ label: 'Colour', get: () => mA.c || '', def: CH_MA_COLORS[k % 5], set: (v) => { mA.c = v; chSave(); chDraw() } })
             const w = document.createElement('span'); w.className = 'ch-wsel'; for (const wv of [1, 2, 3]) { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `<i style="height:${wv}px"></i>`; b.classList.toggle('on', Math.round(mA.w || 1.2) === wv || (wv === 1 && (mA.w || 1.2) < 1.5)); b.addEventListener('click', () => { mA.w = wv === 1 ? 1.2 : wv; w.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); chSave(); chDraw() }); w.appendChild(b) }
             const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'rm'; rm.textContent = '×'; rm.title = 'Remove'; rm.addEventListener('click', () => { S.ma.splice(k, 1); chSave(); chDraw(); list() })
             const l1 = document.createElement('div'); l1.className = 'l1'; l1.append(on, type, n, rm)
@@ -15796,19 +15983,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const links = document.createElement('div'); links.className = 'ch-links'
         for (const [t, w] of [['Objects', 'objects'], ['Alerts', 'alerts'], ['Indicators', 'ind'], ['Shortcuts', 'keys']]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', () => chMenu(w)); links.appendChild(b) }
         body.appendChild(links)
-        header('Presets')
-        const pr = document.createElement('div'); pr.className = 'ch-presets'
-        for (const [k, p] of Object.entries(CH_PRESETS)) {
-          const b = document.createElement('button'); b.type = 'button'; b.className = 'ch-preset'
-          const bg = p.v.bg || cssVar('--bg') || '#0b0a09', up = p.v.up || T.good, dn = p.v.down || T.bad
-          const on = ['up', 'down', 'bg', 'lineC'].every((kk) => (S[kk] || '') === (p.v[kk] || ''))
-          b.classList.toggle('on', on)
-          b.innerHTML = `<span class="pv" style="--pbg:${bg}">${[[4, 18, 10, up], [12, 10, 12, dn], [20, 6, 14, up], [28, 12, 9, up], [36, 8, 12, dn], [44, 4, 16, up]].map(([x, y, h, c]) => `<i style="left:${x}px;top:${y}px;height:${h}px;background:${c}"></i>`).join('')}</span>${p.name}`
-          b.title = p.hint
-          b.addEventListener('click', () => { Object.assign(S, p.v); chSave(); chDraw(); chMenu('settings') })
-          pr.appendChild(b)
-        }
-        body.appendChild(pr)
         header('Chart type')
         const typeRow = document.createElement('div'); typeRow.className = 'ch-row ch-row-wide'; typeRow.appendChild(seg('type', [['candles', 'Candles'], ['hollow', 'Hollow'], ['heikin', 'HA'], ['bars', 'Bars'], ['line', 'Line'], ['area', 'Area']])); body.appendChild(typeRow)
         header('Candles')
@@ -15817,7 +15991,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         header('Line and area')
         color('lineC', 'Line colour'); row('Line width', segEl('lineW', [[1.2, 'Thin'], [1.6, 'Normal'], [2.4, 'Bold'], [3.2, 'Heavy']]))
         header('Background')
-        color('bg', 'Background'); color('bg2', 'Gradient to', 'A second colour fades in toward the bottom', 'none'); toggle('watermark', 'NQ watermark')
+        color('bg', 'Background', 'Dark or light, the bar, rail and dialogs follow it'); color('bg2', 'Gradient to', 'A second colour fades in toward the bottom', 'none'); toggle('watermark', 'NQ watermark')
+        header('Accent')
+        color('accentC', 'Accent colour', 'Buttons, tabs, switches and everything active around the chart', 'skin')
         header('Grid')
         toggle('grid', 'Grid'); color('gridC', 'Grid colour'); row('Style', segEl('gridStyle', [['solid', 'Solid'], ['dash', 'Dashed'], ['dot', 'Dotted']])); toggle('gridV', 'Vertical lines')
         header('Crosshair')
@@ -15830,14 +16006,26 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         row('Magnet', segEl('magnet', [['off', 'Off'], ['weak', 'Weak'], ['strong', 'Strong']], chMagnetUi), 'Snap points to O H L C. Hold Ctrl for strong.')
         header('Time')
         { const sel = document.createElement('select'); sel.className = 'inp'; sel.style.padding = '6px 8px'; sel.style.fontSize = '12.5px'; for (const [k, name] of CH_ZONES) { const o = document.createElement('option'); o.value = k; o.textContent = name; o.selected = S.tz === k; sel.appendChild(o) } sel.addEventListener('change', () => { S.tz = sel.value; chZoneCache.clear(); chSave(); chTzLabel(); chDraw() }); row('Timezone', sel, 'The clock on the time scale; sessions still bucket on New York') }
-        button('Reset everything to the defaults', () => { const keep = { tz: S.tz }; CH.s = { ...CH_DEFAULTS, ...keep, ma: CH_MA_DEFAULT() }; chSave(); chMagnetUi(); chDraw(); chMenu('settings') })
       }
+      body.querySelectorAll('.seg, .ch-wsel').forEach(chSegSync)
       chDlgShape(m, body, which)
       m.hidden = false; body.scrollTop = 0
     }
+    // closing plays out (150ms) before the node hides; reopening inside that window cancels it
+    function chMenuHide(m) {
+      const sc = el('ch-scrim')
+      if (m.hidden) { if (sc) sc.hidden = true; return }
+      m.classList.add('out'); if (sc && !sc.hidden) sc.classList.add('out')
+      clearTimeout(CH.menuOutT)
+      CH.menuOutT = setTimeout(() => { if (CH.menu) return; m.hidden = true; m.classList.remove('out'); if (sc) { sc.hidden = true; sc.classList.remove('out') } }, 150)
+    }
+    function chSettingsReset() {
+      const S = CH.s, keep = { tz: S.tz, customTfs: S.customTfs, indTemplates: S.indTemplates, toolDef: S.toolDef }
+      CH.s = { ...CH_DEFAULTS, ...keep, ma: CH_MA_DEFAULT() }; chSave(); chMagnetUi(); chAdjUi(); chSkinNow(); chBuild(); chDraw(); chMenu('settings'); toast('Chart settings reset.', 1800)
+    }
     /* the drawer becomes what TradingView would show: a centred dialog with tabs, a popover under
        its button, or a side panel (objects, alerts) */
-    const CH_SET_TABS = { Symbol: ['Presets', 'Chart type', 'Candles', 'Line and area'], 'Scales and lines': ['Axes and labels', 'Time'], Canvas: ['Background', 'Grid', 'Crosshair', 'Sessions'], Volume: ['Volume'], Drawing: ['Drawing'] }
+    const CH_SET_TABS = { Symbol: ['Chart type', 'Candles', 'Line and area'], Canvas: ['Background', 'Accent', 'Grid', 'Crosshair', 'Sessions'], 'Scales and lines': ['Axes and labels', 'Time'], Volume: ['Volume'], Drawing: ['Drawing'] }
     function chDlgShape(m, body, which) {
       const kind = which === 'type' ? 'pop' : which === 'objects' || which === 'alerts' ? 'side' : 'dlg'
       const size = which === 'settings' ? 'wide' : which === 'ind' || which === 'sym' ? 'list' : 'std'
@@ -15859,12 +16047,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (which === 'settings') { const used = new Set(tabs.flatMap((x) => x.groups)); const rest = named.filter((g) => !used.has(g)); if (rest.length) tabs.push({ t: 'More', groups: rest }) }
         const nav = document.createElement('div'); nav.className = 'ch-dlg-nav' + (which === 'settings' ? ' vert' : '')
         const key = 'tab:' + which; CH.tabs = CH.tabs || {}
-        const show = (t) => { CH.tabs[key] = t; nav.querySelectorAll('button[data-t]').forEach((b) => b.classList.toggle('on', b.dataset.t === t)); for (const x of tabs) for (const g of x.groups) for (const n of g.nodes) n.hidden = x.t !== t || (x.solo && n.classList.contains('ch-h')); body.scrollTop = 0 }
+        const show = (t) => { const was = CH.tabs[key]; CH.tabs[key] = t; nav.querySelectorAll('button[data-t]').forEach((b) => b.classList.toggle('on', b.dataset.t === t)); for (const x of tabs) for (const g of x.groups) for (const n of g.nodes) n.hidden = x.t !== t || (x.solo && n.classList.contains('ch-h')); body.scrollTop = 0; chColorClose(); if (was && was !== t) { body.classList.remove('sw'); void body.offsetWidth; body.classList.add('sw') } }
         for (const x of tabs) { const b = document.createElement('button'); b.type = 'button'; b.dataset.t = x.t; b.textContent = x.t; b.addEventListener('click', (e) => { e.stopPropagation(); show(x.t) }); nav.appendChild(b) }
         if (which === 'settings' && window.innerWidth > 840) { const links = body.querySelector('.ch-links'); if (links) { links.classList.add('in-nav'); nav.appendChild(links) } }
         m.insertBefore(nav, body); show(tabs.some((x) => x.t === CH.tabs[key]) ? CH.tabs[key] : tabs[0].t)
       }
-      if (which !== 'sym' && which !== 'ind') { const ft = document.createElement('div'); ft.className = 'ch-dlg-foot'; const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'ok'; ok.textContent = 'Ok'; ok.addEventListener('click', (e) => { e.stopPropagation(); chMenu(null) }); ft.appendChild(ok); m.appendChild(ft) }
+      if (which !== 'sym' && which !== 'ind') {
+        const ft = document.createElement('div'); ft.className = 'ch-dlg-foot'
+        if (which === 'settings') { const rs = document.createElement('button'); rs.type = 'button'; rs.className = 'ghost'; rs.id = 'ch-set-reset'; rs.textContent = 'Reset to defaults'; rs.addEventListener('click', (e) => { e.stopPropagation(); if (confirm('Reset every chart setting to the defaults? Drawings, alerts and templates stay.')) chSettingsReset() }); ft.appendChild(rs) }
+        const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'ok'; ok.textContent = 'Done'; ok.addEventListener('click', (e) => { e.stopPropagation(); chMenu(null) }); ft.appendChild(ok); m.appendChild(ft)
+      }
     }
     function chDlgWire() {
       const m = el('ch-menu'), head = m.querySelector('.ch-menu-head')
@@ -15919,7 +16111,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chCtx(CH_ZONES.map(([k, name]) => ({ label: name, check: CH.s.tz === k, fn: () => { CH.s.tz = k; chZoneCache.clear(); chSave(); chTzLabel(); chDraw(); if (CH.menu === 'settings') chMenu('settings') } })), b.left - st.left - 150, b.top - st.top - 12 * CH_ZONES.length - 60)
     }
     async function chartShown() {
-      CH.on = true; chWire(); chFit(); chTzLabel(); chSymUi(); if (CH.s.lit && CH.s.litSig !== false) chVixLoad()
+      CH.on = true; chWire(); chSkinNow(); chFit(); chTzLabel(); chSymUi(); if (CH.s.lit && CH.s.litSig !== false) chVixLoad()
       if (CH.s.gex) chGexWarm()
       if (CH.s.htf) chHtfWarm()
       clearInterval(CH.clock); CH.clock = setInterval(() => { if (CH.on && !document.hidden) chDraw() }, 1000)
