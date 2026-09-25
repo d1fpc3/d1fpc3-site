@@ -809,6 +809,90 @@
     @media (prefers-reduced-motion: reduce) {
       .cal-d, .cal-day, .cal-book .track u { transition: none; animation: none; }
     }
+
+    /* ════ redesign 2026-09-25: hierarchy ═══════════════════════════════════════════
+       The page answers four questions in the first 120px, then shows the calendar,
+       then the rule beside its calls. Everything else is a disclosure. */
+    .wrap { gap: 18px; padding-top: 18px; }
+    .panel { --pad: 20px; padding: 16px var(--pad) var(--pad); border: 1px solid var(--line); }
+    .panel-head { margin-bottom: 12px; align-items: center; }
+    .panel-head h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.01em; color: var(--ink); }
+    .stat .v { font-size: 24px; }
+    .stat .k { font-size: 11.5px; color: var(--faint); }
+    /* the Calls panel shows today, open, and the fill rate; the all-time and duplicate
+       account totals still load (the loader writes them) but stay out of sight */
+    .acct-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; margin: 0 0 14px; }
+    .acct-stats .stat:nth-child(1), .acct-stats .stat:nth-child(2), .acct-stats .stat:nth-child(6), .acct-stats .stat:nth-child(7) { display: none; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    .strip {
+      display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px;
+      background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+    }
+    .strip .cell { background: var(--panel); padding: 13px 16px 14px; min-width: 0; }
+    .strip .k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+    .strip .v { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; margin-top: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .strip .v.up { color: var(--good); } .strip .v.down { color: var(--bad); } .strip .v.gold { color: var(--gold); } .strip .v.dim { color: var(--muted); }
+    .strip .m { font-size: 11.5px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .row2 { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: start; }
+    .pill { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+    .pill.live { color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, var(--line)); } .pill.live::before { background: var(--good); }
+    .pill.halted { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); } .pill.halted::before { background: var(--bad); }
+    .pill.off { color: var(--muted); }
+    .pill.quiet::before { display: none; }
+
+    .rule-dl { display: grid; gap: 7px; margin: 2px 0 16px; }
+    .rule-dl > div { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 12px; font-size: 13px; line-height: 1.45; }
+    .rule-dl dt { color: var(--faint); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding-top: 3px; }
+    .rule-dl dd { color: var(--ink); } .rule-dl dd b { color: var(--gold); font-weight: 600; }
+    .hstat-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; padding: 12px 0 10px; border-top: 1px solid var(--line); }
+    .hstat .v { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .hstat .v.up { color: var(--good); } .hstat .v.down { color: var(--bad); }
+    .hstat .k { font-size: 11px; color: var(--faint); margin-top: 2px; }
+    .rl-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin: 0 0 14px; max-width: 56ch; }
+    #s-rule .risk { margin: 0 0 12px; }
+    details.evidence { border-top: 1px solid var(--line); padding-top: 10px; }
+    details.evidence summary { cursor: pointer; list-style: none; font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    details.evidence summary::-webkit-details-marker { display: none; }
+    details.evidence summary::before { content: ''; width: 6px; height: 6px; border-right: 1.5px solid var(--faint); border-bottom: 1.5px solid var(--faint); transform: rotate(-45deg); transition: transform 160ms; }
+    details.evidence[open] summary::before { transform: rotate(45deg); }
+    .evidence-body { padding-top: 14px; }
+    .evidence-body .hero5 { margin-bottom: 14px; } .evidence-body .hero5 .v { font-size: 22px; }
+    .evidence-body .edge-grid { grid-template-columns: 1fr; gap: 18px; margin-top: 16px; }
+    .evidence-body .egate { margin-top: 0; }
+
+    #s-calls .why { color: var(--faint); font-size: 12px; max-width: 18ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #s-calls .book-h { display: none; }
+
+    .rs-extras:empty { display: none; }
+    .rs-extras { display: grid; gap: 10px; margin: 0 0 14px; }
+
+    details.engine { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+    details.engine > summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: 12px; padding: 14px 20px; }
+    details.engine > summary::-webkit-details-marker { display: none; }
+    details.engine > summary::before { content: ''; width: 7px; height: 7px; margin-right: 2px; align-self: center; border-right: 1.5px solid var(--faint); border-bottom: 1.5px solid var(--faint); transform: rotate(-45deg); transition: transform 160ms; }
+    details.engine[open] > summary::before { transform: rotate(45deg); }
+    .eng-t { font-size: 14px; font-weight: 600; } .eng-s { font-size: 12.5px; color: var(--faint); }
+    .engine-body { display: grid; gap: 14px; padding: 0 14px 14px; }
+    .sub-panel { background: var(--panel-2); border-color: transparent; }
+
+    @media (max-width: 1100px) {
+      .row2 { grid-template-columns: 1fr; }
+      .strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .strip .cell:nth-child(4), .strip .cell:nth-child(5) { border-top: 1px solid var(--line); }
+    }
+    @media (max-width: 640px) {
+      .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 12px; }
+      .strip .cell { padding: 11px 13px 12px; } .strip .v { font-size: 19px; }
+      .strip .cell:nth-child(5) { grid-column: 1 / -1; }
+      .acct-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .hstat-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .rule-dl > div { grid-template-columns: 50px minmax(0, 1fr); }
+      .engine-body { padding: 0 8px 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) { details summary::before { transition: none; } }
   </style>
 </head>
 <body>
@@ -840,14 +924,11 @@
   <nav class="sectionnav" id="sectionnav" aria-label="Desk sections">
     <span class="sn-thumb" id="sn-thumb"></span>
     <a href="#s-calendar">Calendar</a>
-    <a href="#s-bots">Bots</a>
-    <a href="#s-rules">Rules</a>
+    <a href="#s-rule">The rule</a>
+    <a href="#s-calls">Calls</a>
     <a href="#s-research">Research</a>
-    <a href="#s-index">Index markets</a>
-    <a href="#s-book">Book</a>
-    <a href="#s-thesis">The edge</a>
-    <a href="#s-live">Live board</a>
-    <a href="#s-collector">Collector</a>
+    <a href="#s-index">Index</a>
+    <a href="#s-engine">Engine room</a>
     <span class="sn-sep" aria-hidden="true"></span>
     <a class="sn-page" href="terminal.html">Terminal</a>
     <a class="sn-page" href="weather.html">Weather</a>
@@ -855,13 +936,21 @@
   </div>
 
   <main class="wrap">
+    <!-- status: the four things D1 asks every time, in one row, before anything else -->
+    <section id="s-status" class="strip span-12" aria-label="Status">
+      <div class="cell"><div class="k">Bot</div><div class="v" id="st-bot">–</div><div class="m" id="st-bot-m">reading the switch</div></div>
+      <div class="cell"><div class="k">Today</div><div class="v" id="st-today">–</div><div class="m" id="st-today-m">since the stop line</div></div>
+      <div class="cell"><div class="k">Win rate, 7 days</div><div class="v" id="st-win">–</div><div class="m" id="st-win-m">against break-even</div></div>
+      <div class="cell"><div class="k">Edge check</div><div class="v" id="st-edge">–</div><div class="m" id="st-edge-m">daily, with the spread</div></div>
+      <div class="cell"><div class="k">Next look</div><div class="v" id="st-next">–</div><div class="m" id="st-next-m">nine minutes before the close</div></div>
+    </section>
+
     <!-- calendar: the rule's whole record, one cell per day, rescaled to any clip.
          This is first on the page because it is the only panel that answers the
          question the desk exists to answer: did the money go up. -->
     <section id="s-calendar" class="panel span-12">
       <div class="panel-head">
         <h2>Calendar</h2>
-        <span class="sub">Every day the rule has book data for, held to settlement, fees paid, priced at whatever you risk per call. Change the clip and the whole history re-prices. A gold dot marks a day real money actually traded, and that day shows both what the account booked and what the rule modelled.</span>
       </div>
 
       <div class="cal-ctl">
@@ -893,29 +982,90 @@
       <div class="cal-all" id="cal-all"></div>
     </section>
 
-    <!-- bots: every bot on this desk, side by side, from the shared desk_* tables (CONTRACT.md) -->
-    <section id="s-bots" class="panel span-12">
-      <div class="panel-head">
-        <h2>Bots</h2>
-        <span class="sub">Every bot that reports to this desk, and only the calls it made in public. These are not whole-strategy books: the printer's silent paper calls, every rule including the cold ones, are in <a href="#s-book" style="color: var(--muted); border-bottom: 1px solid var(--line-bright)">Book</a> below, which is why that panel's numbers are larger. Each bot writes only its own rows.</span>
+    <div class="row2 span-12">
+      <!-- the rule: what is live right now, read from the switch, its guards, its daily health, the risk editor -->
+      <section id="s-rule" class="panel">
+        <div class="panel-head"><h2>The rule</h2><div class="right"><span class="pill" id="rl-mode">–</span></div></div>
+        <dl class="rule-dl">
+          <div><dt>Buys</dt><dd>the favourite side, priced <b id="rl-band">80 to 95c</b>, at the touch</dd></div>
+          <div><dt>When</dt><dd>nine minutes before the round closes</dd></div>
+          <div><dt>Books</dt><dd>BTC, ETH, SOL, XRP, DOGE</dd></div>
+          <div><dt>Holds</dt><dd>to settlement, no exits</dd></div>
+          <div><dt>Guards</dt><dd>follows the ask up inside the band; skips if it fell under the floor by send time; skips past 95c</dd></div>
+        </dl>
+        <div class="hstat-row">
+          <div class="hstat"><div class="v" id="rl-edge7">–</div><div class="k">edge, 7 days</div></div>
+          <div class="hstat"><div class="v" id="rl-win7">–</div><div class="k">won, 7 days</div></div>
+          <div class="hstat"><div class="v" id="rl-pay7">–</div><div class="k">paid</div></div>
+          <div class="hstat"><div class="v" id="rl-spread7">–</div><div class="k">spread</div></div>
+          <div class="hstat"><div class="v" id="rl-edge14">–</div><div class="k">edge, 14 days</div></div>
+        </div>
+        <p class="rl-note" id="rl-note">The edge is the favourite's mispricing at the mid minus half the spread. It clears once the spread is near a cent, and not before.</p>
+      <div class="risk" id="risk" title="What the executor obeys on the account. It reads this row on every pass, so a change lands within a minute.">
+        <div class="risk-h">Risk</div>
+        <label class="rf"><span class="rk">per call</span><span class="ri"><i>$</i><input id="r-clip" type="number" min="1" max="500" step="1" inputmode="decimal"></span></label>
+        <label class="rf"><span class="rk">stop for the day</span><span class="ri"><i>-$</i><input id="r-stop" type="number" min="0" max="5000" step="1" inputmode="decimal"></span></label>
+        <label class="rf"><span class="rk">cap for the day</span><span class="ri"><i>$</i><input id="r-cap" type="number" min="1" max="10000" step="1" inputmode="decimal"></span></label>
+        <label class="rf"><span class="rk">open at once</span><span class="ri"><input id="r-open" type="number" min="1" max="50" step="1" inputmode="numeric"></span></label>
+        <label class="rf"><span class="rk">lowest price</span><span class="ri"><input id="r-min" type="number" min="1" max="99" step="1" inputmode="numeric"><i>¢</i></span></label>
+        <button class="risk-save" id="r-save" disabled>Save</button>
+        <span class="note" id="risk-note"></span>
       </div>
-      <p class="dropnote" id="bots-drop" hidden></p>
-      <div class="bots" id="bots"><div class="skel" style="height: 120px"></div></div>
-      <div class="tbl-scroll capped" data-cap="feed"><table id="feed"><thead><tr>
-        <th>When</th><th>Bot</th><th>Series</th><th>Rule</th><th>Buy</th><th class="n">Price</th><th class="n">Size</th><th>Book</th><th>What happened</th><th class="n" title="The exit book: what the call actually realised, selling early when the model sold. The money on the cards above is held to close, so a rule that exits well reads better here than it does up there.">P&amp;L, exits</th>
-      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
-    </section>
+        <details class="evidence">
+          <summary>Evidence, recomputed nightly</summary>
+          <div class="evidence-body">
+            <div class="stat-row hero5" id="edge-hero">
+        <div class="stat"><div class="v" id="eh-pay">–</div><div class="k">we pay</div></div>
+        <div class="stat"><div class="v" id="eh-win">–</div><div class="k">it wins</div></div>
+        <div class="stat"><div class="v" id="eh-be">–</div><div class="k">break-even with fee</div></div>
+        <div class="stat"><div class="v gold" id="eh-edge">–</div><div class="k">edge per contract</div></div>
+        <div class="stat"><div class="v" id="eh-day">–</div><div class="k">setups a day</div></div>
+      </div>
+            <div class="egate" id="edge-gate"><span class="g"><em>Loading the live gate.</em></span></div>
+            <div class="edge-grid">
+              <div><p class="basis-h">Proof, per book</p>
+          <p class="basis-note">Recomputed from the tape every night, not pasted in. The error bar clusters on the
+            expiry instant, because rounds that settle together lose together: five simultaneous positions are worth
+            about 1.7 independent bets, so an unclustered figure overstates by roughly 1.7 times.</p>
+          <div class="tbl-scroll"><table class="basis"><thead><tr>
+            <th>Scope</th><th class="n">Wins</th><th class="n">Pays</th><th class="n" title="win rate minus price minus fee">Edge</th><th class="n" title="cluster-robust t on the mean return">t</th><th class="n">Rounds</th>
+          </tr></thead><tbody id="proof-rows"><tr><td colspan="6"><div class="skel"></div></td></tr></tbody></table></div>
+          <p class="basis-note" id="proof-foot" style="margin-top: 10px"></p></div>
+              <div><p class="basis-h" style="margin-top: 22px">The settlement basis</p>
+          <p class="basis-note">Kalshi settles on the CF Benchmarks index averaged over the final sixty seconds. The
+            desk records Coinbase, which runs below it. Each round's strike is the previous round's settlement value,
+            so the gap is re-estimated from the last seven days and added to the distance before the gate reads it.</p>
+          <div class="tbl-scroll"><table class="basis"><thead><tr>
+            <th>Asset</th><th class="n">Basis</th><th class="n"></th><th class="n">t</th><th class="n">Rounds</th>
+          </tr></thead><tbody id="basis-rows"><tr><td colspan="5"><div class="skel"></div></td></tr></tbody></table></div>
+          <p class="basis-note" id="basis-foot" style="margin-top: 10px"></p></div>
+            </div>
+          </div>
+        </details>
+      </section>
 
-    <!-- rules: which rule is earning its place, per bot -->
-    <section id="s-rules" class="panel span-12">
-      <div class="panel-head">
-        <h2>Rules</h2>
-        <span class="sub">Every rule's last 20 graded calls. A rule posts and trades while it is net positive over its last 20 with at least 10 graded; below that it keeps calling on paper.</span>
+      <!-- calls: the account's own orders from the rule, newest first -->
+      <section id="s-calls" class="panel">
+        <div class="panel-head"><h2>Calls</h2><div class="right"><span class="pill quiet" id="calls-count"></span></div></div>
+      <h3 class="book-h">Account <span>real money</span></h3>
+      <div class="stat-row acct-stats">
+        <div class="stat"><div class="v gold" id="a-acct">–</div><div class="k" id="a-acct-k" title="Every settlement on the Kalshi account today, bot orders and hand trades alike, from the exchange">your account, settled today</div></div>
+        <div class="stat"><div class="v gold" id="a-real">–</div><div class="k">bot orders, all time</div></div>
+        <div class="stat"><div class="v" id="a-today">–</div><div class="k" title="The exchange's day runs midnight to midnight UTC, 8pm to 8pm Eastern. The strip at the top counts from the stop line instead.">realized, UTC day</div></div>
+        <div class="stat"><div class="v" id="a-open">–</div><div class="k">open orders</div></div>
+        <div class="stat"><div class="v" id="a-sent">–</div><div class="k" id="a-sent-k">sent, of intents in 24 h</div></div>
+        <div class="stat"><div class="v" id="a-won">–</div><div class="k" id="a-won-k">won of settled</div></div>
+        <div class="stat"><div class="v" id="a-switch">–</div><div class="k" id="a-switch-k">signals switch</div></div>
       </div>
-      <div class="tbl-scroll"><table id="rules"><thead><tr>
-        <th>Bot</th><th>Rule</th><th>State</th><th class="n">Last 20</th><th class="n" title="held to close">Net 20</th><th class="n" title="with the bot's exit rule">Net 20, exits</th><th class="n">All time</th><th class="n">Net, held</th><th class="n">Net, exits</th><th class="n" title="Calls graded today. Calls still open are not counted, which is why this column runs below the Book panel's calls today.">Graded today</th>
-      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
-    </section>
+        <div class="visually-hidden" aria-hidden="true">      <p class="reading quiet" id="acct-reading">Loading.</p>
+</div>
+      <div class="tbl-scroll capped" data-cap="orders"><table id="orders"><thead><tr>
+        <th>When</th><th>Note</th><th>Book</th><th>Buy</th><th class="n">Price</th><th class="n" title="contracts asked for; filled of asked once sent">Size</th><th>What happened</th><th class="n">P&amp;L</th>
+      </tr></thead><tbody><tr><td colspan="8"><div class="skel"></div></td></tr></tbody></table></div>
+      </section>
+    </div>
+
+
 
 
     <!-- research: the ledger of every hypothesis tested, so nothing is run twice. Written by
@@ -923,7 +1073,6 @@
     <section id="s-research" class="panel span-12">
       <div class="panel-head">
         <h2>Research</h2>
-        <span class="sub">Every hypothesis tested on Kalshi and its neighbours, with the number that killed or kept it. Search before you run anything: if it is here, it has been done.</span>
         <div class="right">
           <input class="rs-search" id="rs-search" type="search" placeholder="Search rule, angle, kill shot" aria-label="Search the research ledger">
           <div class="seg scroll" id="rs-market"></div>
@@ -931,6 +1080,7 @@
         </div>
       </div>
       <div class="rs-tally" id="rs-tally"></div>
+      <div class="rs-extras" id="rs-extras"></div>
       <div class="tbl-scroll capped" style="--cap: 560px"><table id="research"><thead><tr>
         <th></th><th>Tested</th><th>Market</th><th>Angle</th><th>Finding</th><th>Verdict</th><th title="fitting period">Fit</th><th title="out of sample">Holdout</th><th class="n" title="edge with a one-cent-worse fill">1c worse</th><th class="n" title="at the clip named in the notes">$/day</th>
       </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
@@ -942,7 +1092,6 @@
     <section id="s-index" class="panel span-12">
       <div class="panel-head">
         <h2>Index markets</h2>
-        <span class="sub">The hourly S&amp;P 500 and Nasdaq-100 up/down markets. Seven registered rules re-scored every night on every candle since July, and a paper book sized to what actually rested at the touch. Nothing here has traded.</span>
         <div class="right"><span class="ix-mono" id="ix-asof"></span></div>
       </div>
       <div class="ix-stats" id="ix-stats">
@@ -962,33 +1111,21 @@
       <div class="ix-note" id="ix-note"></div>
     </section>
 
-    <!-- account: the real book. Every source's intents and what the one executor did with them. -->
-    <section id="s-book" class="panel span-12 acct">
+
+
+
+
+
+
+
+    <details id="s-engine" class="engine span-12">
+      <summary><span class="eng-t">Engine room</span><span class="eng-s">retired paper bots, the paper switch, live books, collector ticks</span></summary>
+      <div class="engine-body">
+        <section id="s-book" class="panel sub-panel acct">
       <div class="panel-head">
-        <h2>Book</h2>
-        <span class="sub" id="acct-sub" title="The exit rule: every minute the model's fair value of the held side is recomputed from spot, strike, volatility and time left; the position is sold the minute the market bid, after the exit fee, pays 2c more than that expected value. Otherwise it rides to close.">Live sends every call shown in Discord to the account at the per-call size below; Paper logs them and sends nothing. Exits are the model's call: sell when the market pays more than the expected value of holding.</span>
+        <h2>Paper switch</h2>
+        <span class="sub" id="acct-sub" title="The exit rule: every minute the model's fair value of the held side is recomputed from spot, strike, volatility and time left; the position is sold the minute the market bid, after the exit fee, pays 2c more than that expected value. Otherwise it rides to close." hidden></span>
         <div class="right"><span class="mode-note" id="mode-note"></span><div class="seg" id="mode-seg"></div><div class="seg" id="exit-seg" title="The model's exit rule on the account: sell an open position the minute the market pays 2c more than the model's expected value of holding it. Off means every position rides to close."></div></div>
-      </div>
-      <h3 class="book-h">Account <span>real money</span></h3>
-      <div class="stat-row acct-stats">
-        <div class="stat"><div class="v gold" id="a-acct">–</div><div class="k" id="a-acct-k" title="Every settlement on the Kalshi account today, bot orders and hand trades alike, from the exchange">your account, settled today</div></div>
-        <div class="stat"><div class="v gold" id="a-real">–</div><div class="k">bot orders, all time</div></div>
-        <div class="stat"><div class="v" id="a-today">–</div><div class="k">realized today</div></div>
-        <div class="stat"><div class="v" id="a-open">–</div><div class="k">open orders</div></div>
-        <div class="stat"><div class="v" id="a-sent">–</div><div class="k" id="a-sent-k">sent, of intents in 24 h</div></div>
-        <div class="stat"><div class="v" id="a-won">–</div><div class="k" id="a-won-k">won of settled</div></div>
-        <div class="stat"><div class="v" id="a-switch">–</div><div class="k" id="a-switch-k">signals switch</div></div>
-      </div>
-      <p class="reading quiet" id="acct-reading">Loading.</p>
-      <div class="risk" id="risk" title="What the executor obeys on the account. It reads this row on every pass, so a change lands within a minute.">
-        <div class="risk-h">Risk</div>
-        <label class="rf"><span class="rk">per call</span><span class="ri"><i>$</i><input id="r-clip" type="number" min="1" max="500" step="1" inputmode="decimal"></span></label>
-        <label class="rf"><span class="rk">stop for the day</span><span class="ri"><i>-$</i><input id="r-stop" type="number" min="0" max="5000" step="1" inputmode="decimal"></span></label>
-        <label class="rf"><span class="rk">cap for the day</span><span class="ri"><i>$</i><input id="r-cap" type="number" min="1" max="10000" step="1" inputmode="decimal"></span></label>
-        <label class="rf"><span class="rk">open at once</span><span class="ri"><input id="r-open" type="number" min="1" max="50" step="1" inputmode="numeric"></span></label>
-        <label class="rf"><span class="rk">lowest price</span><span class="ri"><input id="r-min" type="number" min="1" max="99" step="1" inputmode="numeric"><i>¢</i></span></label>
-        <button class="risk-save" id="r-save" disabled>Save</button>
-        <span class="note" id="risk-note"></span>
       </div>
       <h3 class="book-h">Paper <span>every rule, $10 a call, nothing sent</span></h3>
       <div class="stat-row acct-stats paper-stats">
@@ -1000,92 +1137,34 @@
         <div class="stat"><div class="v" id="p-won">–</div><div class="k" id="p-won-k">won today</div></div>
       </div>
       <p class="reading quiet" id="paper-reading">Loading.</p>
-      <div class="tbl-scroll capped" data-cap="orders"><table id="orders"><thead><tr>
-        <th>When</th><th>From</th><th>Series</th><th>Buy</th><th class="n">Price</th><th class="n" title="contracts asked for; filled of asked once sent">Size</th><th>What happened</th><th class="n">P&amp;L</th>
-      </tr></thead><tbody><tr><td colspan="8"><div class="skel"></div></td></tr></tbody></table></div>
-    </section>
-    <!-- the edge: what it is, where it lives, and what the bot requires before it pays for it -->
-    <section id="s-thesis" class="panel span-12">
+        </section>
+    <!-- bots: every bot on this desk, side by side, from the shared desk_* tables (CONTRACT.md) -->
+    <section id="s-bots" class="panel sub-panel">
       <div class="panel-head">
-        <h2>The edge</h2>
-        <span class="sub">What the bot trades, and the evidence for it. One row per round, priced at the touch, net of the real taker fee, over the last 31 days. Recomputed nightly from the tape.</span>
+        <h2>Bots</h2>
       </div>
-
-      <p class="thesis">The market prices these at about <b>90 cents</b>. They win about
-        <b>94% of the time</b>. Break-even after the fee is 90.5 cents, so the gap is the edge. It
-        exists because the book prices more movement than a fifteen-minute round actually
-        delivers, which leaves the side that is already ahead too cheap.</p>
-
-      <div class="stat-row hero5" id="edge-hero">
-        <div class="stat"><div class="v" id="eh-pay">–</div><div class="k">we pay</div></div>
-        <div class="stat"><div class="v" id="eh-win">–</div><div class="k">it wins</div></div>
-        <div class="stat"><div class="v" id="eh-be">–</div><div class="k">break-even with fee</div></div>
-        <div class="stat"><div class="v gold" id="eh-edge">–</div><div class="k">edge per contract</div></div>
-        <div class="stat"><div class="v" id="eh-day">–</div><div class="k">setups a day</div></div>
-      </div>
-
-      <div class="edge-grid">
-        <div>
-          <p class="basis-h">What we take</p>
-          <ul class="rulelist">
-            <li><span>Book</span> BTC, ETH, SOL, XRP or DOGE. The other five run 2 to 5 cent spreads that eat the whole edge.</li>
-            <li><span>Clock</span> Nine minutes before the round closes.</li>
-            <li><span>Distance</span> Spot at least 15 basis points clear of the strike, on the side we are buying. A favourite sitting on its strike is a coin flip wearing a favourite's price.</li>
-            <li><span>Price</span> The leading side quoted between 85 and 95 cents. Bought at the ask, held to settlement.</li>
-            <li><span>A plus</span> Off. Narrowing to this cell raises the edge to 3.8 cents but drops to 30 setups a day, which earns about half as much. It is also the one cut chosen by searching, so its significance is the softest number here.</li>
-          </ul>
-
-          <div class="egate" id="edge-gate"><span class="g"><em>Loading the live gate.</em></span></div>
-
-          <p class="basis-h" style="margin-top: 22px">Why it is there</p>
-          <div class="m2">
-            <div class="cnr"></div>
-            <div class="ch">Book pricing less movement than the hour delivered</div>
-            <div class="ch">Book pricing more movement than the hour delivered</div>
-            <div class="rh">Tape has moved</div>
-            <div class="cell"><div class="r">+1.99%</div><div class="meta">946 rounds · t 1.83</div></div>
-            <div class="cell take"><div class="r">+3.81%</div><div class="meta">946 rounds · t 4.83</div><div class="tag">The A plus cell</div></div>
-            <div class="rh">Tape is quiet</div>
-            <div class="cell dead"><div class="r">-0.42%</div><div class="meta">858 rounds · t -0.35</div><div class="tag">A coin flip paying a toll</div></div>
-            <div class="cell"><div class="r">+2.67%</div><div class="meta">691 rounds · t 2.40</div></div>
-          </div>
-          <p class="basis-note" style="margin-top: 11px; max-width: 64ch">Both cuts carry signal independently, and the
-            edge is flat zero only where the tape is quiet and the book is pricing no more movement than it delivered.
-            The effect is indifferent to which way the tape moved, which is what rules out a slow book and a plain taste
-            for favourites, and leaves a volatility risk premium as the explanation.</p>
-        </div>
-
-        <div>
-          <p class="basis-h">Proof, per book</p>
-          <p class="basis-note">Recomputed from the tape every night, not pasted in. The error bar clusters on the
-            expiry instant, because rounds that settle together lose together: five simultaneous positions are worth
-            about 1.7 independent bets, so an unclustered figure overstates by roughly 1.7 times.</p>
-          <div class="tbl-scroll"><table class="basis"><thead><tr>
-            <th>Scope</th><th class="n">Wins</th><th class="n">Pays</th><th class="n" title="win rate minus price minus fee">Edge</th><th class="n" title="cluster-robust t on the mean return">t</th><th class="n">Rounds</th>
-          </tr></thead><tbody id="proof-rows"><tr><td colspan="6"><div class="skel"></div></td></tr></tbody></table></div>
-          <p class="basis-note" id="proof-foot" style="margin-top: 10px"></p>
-
-          <p class="basis-h" style="margin-top: 22px">The settlement basis</p>
-          <p class="basis-note">Kalshi settles on the CF Benchmarks index averaged over the final sixty seconds. The
-            desk records Coinbase, which runs below it. Each round's strike is the previous round's settlement value,
-            so the gap is re-estimated from the last seven days and added to the distance before the gate reads it.</p>
-          <div class="tbl-scroll"><table class="basis"><thead><tr>
-            <th>Asset</th><th class="n">Basis</th><th class="n"></th><th class="n">t</th><th class="n">Rounds</th>
-          </tr></thead><tbody id="basis-rows"><tr><td colspan="5"><div class="skel"></div></td></tr></tbody></table></div>
-          <p class="basis-note" id="basis-foot" style="margin-top: 10px"></p>
-        </div>
-      </div>
+      <p class="dropnote" id="bots-drop" hidden></p>
+      <div class="bots" id="bots"><div class="skel" style="height: 120px"></div></div>
+      <div class="tbl-scroll capped" data-cap="feed"><table id="feed"><thead><tr>
+        <th>When</th><th>Bot</th><th>Series</th><th>Rule</th><th>Buy</th><th class="n">Price</th><th class="n">Size</th><th>Book</th><th>What happened</th><th class="n" title="The exit book: what the call actually realised, selling early when the model sold. The money on the cards above is held to close, so a rule that exits well reads better here than it does up there.">P&amp;L, exits</th>
+      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
 
-
-
-
+    <!-- rules: which rule is earning its place, per bot -->
+    <section id="s-rules" class="panel sub-panel">
+      <div class="panel-head">
+        <h2>Rules</h2>
+      </div>
+      <div class="tbl-scroll"><table id="rules"><thead><tr>
+        <th>Bot</th><th>Rule</th><th>State</th><th class="n">Last 20</th><th class="n" title="held to close">Net 20</th><th class="n" title="with the bot's exit rule">Net 20, exits</th><th class="n">All time</th><th class="n">Net, held</th><th class="n">Net, exits</th><th class="n" title="Calls graded today. Calls still open are not counted, which is why this column runs below the Book panel's calls today.">Graded today</th>
+      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
+    </section>
 
     <!-- live board -->
-    <section id="s-live" class="panel span-12">
+    <section id="s-live" class="panel sub-panel">
       <div class="panel-head">
         <h2>Live board</h2>
-        <span class="sub" id="live-sub">Every series' current round as the collector last saw it.</span>
+        <span class="sub" id="live-sub" hidden></span>
       </div>
       <div class="tbl-scroll capped" data-cap="live"><table id="live"><thead><tr>
         <th>Series</th><th>Closes in</th><th class="n">Strike</th><th class="n" title="Coinbase, PAXG for gold">Spot</th><th class="n" title="basis points from the same feed's price at the round's open minute">vs open</th><th class="n">Yes bid</th><th class="n">Yes ask</th><th class="n">Mid</th><th class="n">Spread</th><th class="n" title="contracts resting in the five best yes-bid levels">Depth yes</th><th class="n" title="contracts resting in the five best no-bid levels">Depth no</th><th class="n" title="the last full minute of tape: trades, then contracts">Last minute</th><th class="n" title="share of last-minute contracts where the taker bought yes">Taker yes</th>
@@ -1093,15 +1172,17 @@
     </section>
 
     <!-- collector -->
-    <section id="s-collector" class="panel span-12">
+    <section id="s-collector" class="panel sub-panel">
       <div class="panel-head">
         <h2>Collector</h2>
-        <span class="sub">One row per run. Silence here means the Worker did not run, never that it ran and hid it.</span>
       </div>
       <div class="tbl-scroll capped" data-cap="ticks"><table id="ticks"><thead><tr>
         <th>Ran at</th><th>From</th><th class="n">Rounds</th><th class="n">Snaps</th><th class="n">Tape</th><th class="n">Settled</th><th class="n">Took</th><th>Errors</th>
       </tr></thead><tbody><tr><td colspan="8"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
+
+      </div>
+    </details>
   </main>
 
   <div class="tip" id="tip"></div>
@@ -1436,7 +1517,7 @@
       // kalshi_executor_state is one row the executor upserts at the end of every pass: the
       // switch as it is NOW, not as it was when the last intent went through.
       const [orders, book, stateRows, swRows, settlements] = await Promise.all([
-        q('kalshi_live_orders', (b) => b.select('ticker,created_at,series,cell,side,price,contracts,filled,source,status,mode,live_switch,halted,processed_at,won,pnl,exit_price,exit_filled').order('created_at', { ascending: false }).limit(60)),
+        q('kalshi_live_orders', (b) => b.select('ticker,created_at,series,cell,side,price,contracts,filled,source,status,mode,live_switch,halted,processed_at,won,pnl,exit_price,exit_filled,reason').eq('source', 'fav').order('created_at', { ascending: false }).limit(60)),
         q('kalshi_live_daily', (b) => b.select('*').order('day', { ascending: true })),
         q('kalshi_executor_state', (b) => b.select('*').eq('id', 1)).catch(() => []),
         q('kalshi_switch', (b) => b.select('signals,updated_at,clip').eq('id', 1)).catch(() => []),
@@ -1498,7 +1579,7 @@
       }
       tb.innerHTML = orders.length ? orders.slice(0, 30).map((o) => `<tr>
         <td title="${o.created_at}">${ago(o.created_at)}</td>
-        <td><span class="src">${o.source === 'signals' ? 'rule' : 'cell'}</span> ${o.cell}</td>
+        <td class="why" title="${(o.reason ?? '').replace(/"/g, '&quot;')}">${(() => { const r = o.reason ?? ''; const m = /chased [0-9.]+ -> ([0-9.]+)/.exec(r); return m ? 'chased to ' + m[1] : /fell to/.test(r) ? 'fell under floor' : /ran to/.test(r) ? 'ran past 95c' : /cut from/.test(r) ? 'cut to fit' : /out of cash/.test(r) ? 'out of cash' : '' })()}</td>
         <td><span class="ser">${short(o.series)}</span></td>
         <td><span class="buy ${o.side}">${o.side.toUpperCase()}</span></td>
         <td class="n">${p2(o.price)}</td>
@@ -1931,7 +2012,13 @@
 
     async function loadCalendar() {
       const [buckets, orders] = await Promise.all([
-        calFetchAll('kalshi_fav_day_price', 'dt,asset,price,legs,wins'),
+        // one round trip for the whole table. Paging 1,000 rows at a time was 8 requests at 69
+        // days and 32 at 285, and the grid paints only after the last page: on 2026-09-25 that
+        // overran 30 s and the month showed empty. The RPC hands back compact arrays.
+        supabase.rpc('kalshi_fav_calendar_desk').then((r) => {
+          if (r.error || !Array.isArray(r.data)) throw r.error ?? new Error('no calendar rpc')
+          return r.data.map(([dt, asset, price, legs, wins]) => ({ dt, asset, price, legs, wins }))
+        }).catch(() => calFetchAll('kalshi_fav_day_price', 'dt,asset,price,legs,wins')),
         calFetchAll('kalshi_live_orders', 'close_time,created_at,price,pnl,filled,source', (q) =>
           q.eq('source', 'fav').not('pnl', 'is', null).gt('filled', 0)),
       ])
@@ -1950,6 +2037,7 @@
       }
       calPrice()
       renderCalendar()
+      syncCalClip()
     }
 
     /** Re-price every day from the raw buckets. Runs on any clip or floor change. */
@@ -2029,7 +2117,6 @@
           <span class="num">${dd}</span>${real ? '<span class="real" title="real money traded this day"></span>' : ''}
           <span class="val ${d.pnl > 0 ? 'up' : d.pnl < 0 ? 'down' : ''}">${money(d.pnl)}</span>
           <span class="val-s ${d.pnl > 0 ? 'up' : d.pnl < 0 ? 'down' : ''}">${(d.pnl < 0 ? '-' : '')}$${Math.round(Math.abs(d.pnl))}</span>
-          <span class="sub">${d.legs} call${d.legs === 1 ? '' : 's'}</span>
         </button>`)
       }
       el('cal-grid').innerHTML = cells.join('')
@@ -2137,10 +2224,75 @@
       })
     }
 
+
+    /* ── status strip + the rule's health: the switch, the executor, today's calls, the daily check ── */
+    async function loadStatus() {
+      const et = (d) => new Date(d).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
+      const [sw, st, h] = await Promise.all([
+        q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
+        q('kalshi_executor_state', (b) => b.select('at,halted,realized_today').eq('id', 1)).then((r) => r[0] ?? null).catch(() => null),
+        supabase.rpc('kalshi_edge_health_desk').then((r) => r.data ?? null).catch(() => null),
+      ])
+      const since = sw.stop_from ?? new Date().toISOString().slice(0, 10) + 'T00:00:00Z'
+      const today = await q('kalshi_live_orders', (b) => b.select('pnl,filled,status').eq('source', 'fav').gte('created_at', since)).catch(() => [])
+      const done = today.filter((o) => Number(o.filled) > 0 && o.pnl != null)
+      const w = done.filter((o) => Number(o.pnl) > 0).length, pnl = done.reduce((t, o) => t + Number(o.pnl), 0)
+      const fresh = st && (Date.now() - Date.parse(st.at)) / 1000 < 180
+      const armed = sw.fav_rule === true
+      const halted = !!st?.halted
+      const bot = el('st-bot'), botM = el('st-bot-m')
+      bot.textContent = !armed ? 'Off' : halted ? 'Halted' : !fresh ? 'Silent' : 'Live'
+      bot.className = 'v ' + (!armed ? 'dim' : halted ? 'down' : !fresh ? 'down' : 'up')
+      botM.textContent = !armed ? 'fav_rule is off' : `$${Number(sw.clip)} a call · stop -$${Math.abs(Number(sw.daily_stop))}${halted ? ' · stopped for the day' : ''}${st ? ' · pass ' + ago(st.at) : ''}`
+      const t = el('st-today'); t.textContent = done.length ? money(pnl) : '$0.00'; t.className = 'v ' + (pnl > 0 ? 'up' : pnl < 0 ? 'down' : 'dim')
+      el('st-today-m').textContent = done.length ? `${w} won of ${done.length}${sw.stop_from ? ' since ' + et(sw.stop_from) : ''}` : (sw.stop_from ? 'nothing settled since ' + et(sw.stop_from) : 'nothing settled yet')
+      const d7 = h?.d7 ?? null, d14 = h?.d14 ?? null
+      const win = el('st-win'); win.textContent = d7 ? `${Number(d7.win_pct).toFixed(1)}%` : '–'
+      win.className = 'v ' + (d7 ? (Number(d7.win_pct) >= Number(d7.pay_cents) ? 'up' : 'down') : 'dim')
+      el('st-win-m').textContent = d7 ? `needs ${Number(d7.pay_cents).toFixed(1)}% · ${fmt.format(d7.n)} rounds` : 'no reading'
+      const spread = d7 ? Number(d7.spread_cents) : null, e7 = d7 ? Number(d7.edge_cents) : null, e14 = d14 ? Number(d14.edge_cents) : null
+      const verdict = !d7 ? '–' : (e7 < 0 && e14 < 0 && Number(d14.n) >= 500) ? 'Decay' : Number(d7.pay_cents) >= 88.5 ? 'Crowded' : spread >= 2 ? 'Wide' : 'Healthy'
+      const eg = el('st-edge'); eg.textContent = verdict; eg.className = 'v ' + (verdict === 'Healthy' ? 'up' : verdict === '–' ? 'dim' : 'down')
+      el('st-edge-m').textContent = d7 ? `${e7 >= 0 ? '+' : ''}${e7.toFixed(2)}c a contract · spread ${spread.toFixed(2)}c` : 'daily, with the spread'
+      // the rule panel
+      const mode = el('rl-mode'); mode.textContent = !armed ? 'off' : halted ? 'halted for the day' : `live · $${Number(sw.clip)} a call`; mode.className = 'pill ' + (!armed ? 'off' : halted ? 'halted' : 'live')
+      if (sw.min_price) el('rl-band').textContent = `${Math.round(Number(sw.min_price) * 100)} to 95c`
+      const setH = (id, v, cls) => { const e = el(id); e.textContent = v; e.className = 'v ' + (cls ?? '') }
+      setH('rl-edge7', e7 == null ? '–' : `${e7 >= 0 ? '+' : ''}${e7.toFixed(2)}c`, e7 == null ? '' : e7 >= 0 ? 'up' : 'down')
+      setH('rl-win7', d7 ? `${Number(d7.win_pct).toFixed(1)}%` : '–')
+      setH('rl-pay7', d7 ? `${Number(d7.pay_cents).toFixed(1)}c` : '–')
+      setH('rl-spread7', spread == null ? '–' : `${spread.toFixed(2)}c`, spread == null ? '' : spread >= 2 ? 'down' : '')
+      setH('rl-edge14', e14 == null ? '–' : `${e14 >= 0 ? '+' : ''}${e14.toFixed(2)}c`, e14 == null ? '' : e14 >= 0 ? 'up' : 'down')
+      const cc = el('calls-count'); cc.textContent = done.length ? `${w} of ${done.length} today` : ''
+      // the calendar opens at the clip the bot is actually running, once; after that the
+      // segment is the reader's to move
+      cal.liveClip = Number(sw.clip)
+      syncCalClip()
+    }
+    // runs from loadStatus (which knows the clip) and from loadCalendar (which knows when the
+    // grid exists), whichever lands second
+    function syncCalClip() {
+      if (cal.synced || !cal.loaded || !cal.liveClip || !CAL_CLIPS.includes(cal.liveClip)) return
+      cal.synced = true
+      const b = el('cal-clip').querySelector(`button[data-v="${cal.liveClip}"]`)
+      if (b && !b.classList.contains('on')) b.click()
+    }
+    // the next decision point: nine minutes before a quarter-hour close, i.e. :06 :21 :36 :51
+    function tickNext() {
+      const now = new Date(), m = now.getUTCMinutes(), sec = now.getUTCSeconds()
+      const marks = [6, 21, 36, 51]
+      let next = marks.find((x) => x > m || (x === m && sec < 20))
+      let mins = next == null ? (66 - m) : (next - m)
+      const total = mins * 60 - sec
+      const mm = Math.max(0, Math.floor(total / 60)), ss = Math.max(0, total % 60)
+      el('st-next').textContent = `${mm}:${String(ss).padStart(2, '0')}`
+    }
+    tickNext(); setInterval(tickNext, 1000)
+
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadCalendar(), loadBots(), loadRules(), loadResearch(), loadIndex(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadStatus(), loadCalendar(), loadBots(), loadRules(), loadResearch(), loadIndex(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
-    setInterval(() => { loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive(); loadIndex() }, 30_000)
+    setInterval(() => { loadStatus(); loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive(); loadIndex() }, 30_000)
     setInterval(() => { loadTheEdge(); loadCalendar() }, 5 * 60_000)
   </script>
 </body>

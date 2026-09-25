@@ -91,7 +91,9 @@ for (const name of VPS) {
   const allAt = async () => Number((await page.$eval('#cal-all b', (n) => n.textContent)).replace(/[^0-9.-]/g, ''))
   const monthLabel = () => page.$eval('#cal-month', (n) => n.textContent.trim().replace(/\s+/g, ' '))
 
-  // ── clip: $16 is the default, $8 must roughly halve it
+  // ── clip: the calendar opens at whatever the bot is running, so pin $16 first; $8 must roughly halve it
+  await page.click('#cal-clip button[data-v="16"]')
+  await page.waitForTimeout(260)
   const at16 = await allAt()
   at16 > 0 ? pass(`all-time at $16 = $${at16.toFixed(2)}`) : fail(name, `all-time at $16 reads ${at16}`)
   await page.click('#cal-clip button[data-v="8"]')
@@ -110,7 +112,10 @@ for (const name of VPS) {
   await page.click('#cal-floor button[data-v="0.85"]')
   await page.waitForTimeout(260)
   const at85 = await allAt()
-  at85 < at16 ? pass(`85c floor = $${at85.toFixed(2)}, below the 80c $${at16.toFixed(2)}`) : fail(name, `85c floor reads $${at85.toFixed(2)}, not below 80c $${at16.toFixed(2)}`)
+  // the two floors must re-price the history to different totals. Which is larger depends on
+  // the window: over 69 days the 80c band earned more, over the 285-day archive the 80-85c
+  // slice is net negative in Dec-May and the 85c floor comes out ahead. Assert the mechanism.
+  Math.abs(at85 - at16) > 0.01 ? pass(`85c floor = $${at85.toFixed(2)} vs 80c $${at16.toFixed(2)}, re-priced`) : fail(name, `changing the floor did not change the total ($${at85.toFixed(2)})`)
   await page.click('#cal-floor button[data-v="0.8"]')
   await page.waitForTimeout(260)
 
@@ -170,6 +175,11 @@ for (const name of VPS) {
 
   await page.click('#cal-today')
   await page.waitForTimeout(400)
+  // the top of the page at scroll 0: the status strip lives above the calendar, and a full-page
+  // capture taken while scrolled paints the sticky bar over it
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await page.waitForTimeout(250)
+  await page.screenshot({ path: join(OUT, `top-${name}-${THEME}.png`) })
   await page.$eval('#s-calendar', (n) => n.scrollIntoView())
   await page.waitForTimeout(250)
   await page.screenshot({ path: join(OUT, `calendar-${name}-${THEME}.png`) })
