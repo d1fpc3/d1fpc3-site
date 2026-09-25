@@ -289,6 +289,47 @@
     .reading { color: var(--ink); font-size: 15px; line-height: 1.5; max-width: 62ch; }
     .reading.quiet { color: var(--muted); }
     .empty { color: var(--muted); font-size: 14px; padding: 28px 0; text-align: center; }
+
+    /* ════ research ledger ═══════════════════════════════════
+       Every hypothesis ever tested, with the number that killed or kept it. The point of the
+       panel is the search box: type the idea before you run it. */
+    .rs-tally { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 14px; }
+    .rs-tally span { padding: 3px 10px; border-radius: 999px; background: var(--panel-2); color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+    .rs-tally span b { color: var(--ink); font-weight: 600; }
+    .rs-tally span.alive b { color: var(--good); }
+    .rs-tally span.dead b { color: var(--bad); }
+    .rs-tally span.open b { color: var(--gold); }
+    .rs-search { height: 30px; padding: 0 11px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); font-size: 12.5px; min-width: 220px; transition: border-color 160ms, box-shadow 160ms; }
+    .rs-search::placeholder { color: var(--muted); }
+    .rs-search:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,162,74,0.14); }
+    #research th.n, #research td.n { text-align: right; font-variant-numeric: tabular-nums; }
+    #research td.txt { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #research td .vd { display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel-2); color: var(--muted); white-space: nowrap; }
+    #research td .vd.survived, #research td .vd.promising { color: var(--good); background: color-mix(in srgb, var(--good) 14%, var(--panel-2)); }
+    #research td .vd.shipped { color: var(--gold); background: color-mix(in srgb, var(--gold) 18%, var(--panel-2)); }
+    #research td .vd.killed { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, var(--panel-2)); }
+    #research td .vd.null { opacity: 0.7; }
+    #research td .vd.running::before, #research td .vd.queued::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+    #research td .vd.running::before { animation: rs-pulse 1.6s ease-in-out infinite; }
+    #research td .vd.queued::before { background: var(--muted); }
+    @keyframes rs-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+    #research tr.rs-row { cursor: pointer; }
+    #research tr.rs-row td { transition: background 140ms; }
+    #research tr.rs-row:hover td { background: color-mix(in srgb, var(--panel-2) 70%, transparent); }
+    #research td.chev { width: 22px; color: var(--muted); text-align: center; }
+    #research td.chev svg { transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1); vertical-align: middle; }
+    #research tr.rs-row.open td.chev svg { transform: rotate(90deg); }
+    #research tr.rs-detail td { padding: 0 0 10px; }
+    #research .rs-body { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 7px 14px; padding: 13px 14px 15px; background: var(--panel-2); border-radius: 10px; margin: 2px 0 0; font-size: 13px; line-height: 1.45; position: sticky; left: 0; max-width: calc(100vw - 2 * var(--pad) - 16px); box-sizing: border-box; }
+    #research .rs-body dt { color: var(--muted); }
+    #research .rs-body dd { white-space: pre-wrap; word-break: break-word; margin: 0; }
+    #research .rs-body dd.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--muted); }
+    @media (max-width: 700px) {
+      #research td.txt { max-width: 170px; }
+      .rs-search { min-width: 0; width: 100%; }
+      #research .rs-body { grid-template-columns: 1fr; gap: 2px 0; }
+      #research .rs-body dt { margin-top: 6px; }
+    }
     .empty b { color: var(--ink); font-weight: 500; }
 
     /* ════ charts ════════════════════════════════════════════ */
@@ -762,6 +803,7 @@
     <a href="#s-calendar">Calendar</a>
     <a href="#s-bots">Bots</a>
     <a href="#s-rules">Rules</a>
+    <a href="#s-research">Research</a>
     <a href="#s-book">Book</a>
     <a href="#s-thesis">The edge</a>
     <a href="#s-live">Live board</a>
@@ -835,6 +877,24 @@
       </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
     </section>
 
+
+    <!-- research: the ledger of every hypothesis tested, so nothing is run twice. Written by
+         D1's research scripts (kalshi_research, desk-v7); the desk only reads it. -->
+    <section id="s-research" class="panel span-12">
+      <div class="panel-head">
+        <h2>Research</h2>
+        <span class="sub">Every hypothesis tested on Kalshi and its neighbours, with the number that killed or kept it. Search before you run anything: if it is here, it has been done.</span>
+        <div class="right">
+          <input class="rs-search" id="rs-search" type="search" placeholder="Search rule, angle, kill shot" aria-label="Search the research ledger">
+          <div class="seg scroll" id="rs-market"></div>
+          <div class="seg" id="rs-verdict"></div>
+        </div>
+      </div>
+      <div class="rs-tally" id="rs-tally"></div>
+      <div class="tbl-scroll capped" style="--cap: 560px"><table id="research"><thead><tr>
+        <th></th><th>Tested</th><th>Market</th><th>Angle</th><th>Finding</th><th>Verdict</th><th title="fitting period">Fit</th><th title="out of sample">Holdout</th><th class="n" title="edge with a one-cent-worse fill">1c worse</th><th class="n" title="at the clip named in the notes">$/day</th>
+      </tr></thead><tbody><tr><td colspan="10"><div class="skel"></div></td></tr></tbody></table></div>
+    </section>
 
     <!-- account: the real book. Every source's intents and what the one executor did with them. -->
     <section id="s-book" class="panel span-12 acct">
@@ -1505,6 +1565,53 @@
       </tr>`).join('') : '<tr><td colspan="10" class="empty">No graded calls yet.</td></tr>'
     }
 
+    /* ── research ledger: kalshi_research, one row per hypothesis ever tested ── */
+    const rs = { rows: [], market: 'all', verdict: 'all', query: '', open: new Set() }
+    const RS_ALIVE = new Set(['survived', 'shipped', 'promising']), RS_OPEN = new Set(['queued', 'running'])
+    const esc = (x) => String(x ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+    const rsClip = (x, n) => { const t = String(x ?? ''); return t.length > n ? t.slice(0, n - 1) + '…' : t }
+    function rsRender() {
+      const qq = rs.query.trim().toLowerCase()
+      const list = rs.rows.filter((r) => (rs.market === 'all' || r.market === rs.market)
+        && (rs.verdict === 'all' || (rs.verdict === 'alive' ? RS_ALIVE.has(r.verdict) : rs.verdict === 'open' ? RS_OPEN.has(r.verdict) : !RS_ALIVE.has(r.verdict) && !RS_OPEN.has(r.verdict)))
+        && (!qq || [r.angle, r.name, r.rule, r.kill_shot, r.notes, r.market].some((t) => String(t ?? '').toLowerCase().includes(qq))))
+      const all = rs.rows, alive = all.filter((r) => RS_ALIVE.has(r.verdict)).length, open = all.filter((r) => RS_OPEN.has(r.verdict)).length
+      el('rs-tally').innerHTML = [`<span><b>${fmt.format(all.length)}</b> tested</span>`, `<span class="alive"><b>${alive}</b> alive</span>`, `<span class="dead"><b>${all.length - alive - open}</b> dead</span>`, `<span class="open"><b>${open}</b> open</span>`, list.length !== all.length ? `<span><b>${fmt.format(list.length)}</b> shown</span>` : ''].join('')
+      const tb = el('research').querySelector('tbody')
+      const cents = (x) => (x == null ? '–' : (Number(x) > 0 ? '+' : '') + Number(x).toFixed(2) + 'c')
+      const chev = '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 6.5 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      tb.innerHTML = list.length ? list.map((r) => `<tr class="rs-row${rs.open.has(r.id) ? ' open' : ''}" data-id="${r.id}">
+        <td class="chev">${chev}</td>
+        <td>${esc(r.tested_at)}</td>
+        <td><span class="bot-tag">${esc(r.market)}</span></td>
+        <td class="txt" title="${esc(r.angle)}">${esc(rsClip(r.angle, 48))}</td>
+        <td class="txt" title="${esc(r.name)}"><span class="ser">${esc(rsClip(r.name, 72))}</span></td>
+        <td><span class="vd ${esc(r.verdict)}">${esc(r.verdict)}${r.total_votes ? ` ${r.total_votes - r.refuted_votes}/${r.total_votes}` : ''}</span></td>
+        <td class="txt" title="${esc(r.fit)}">${esc(rsClip(r.fit, 44))}</td>
+        <td class="txt" title="${esc(r.holdout)}">${esc(rsClip(r.holdout, 44))}</td>
+        <td class="n ${r.cents_at_1c_worse > 0 ? 'pos' : r.cents_at_1c_worse < 0 ? 'neg' : ''}">${cents(r.cents_at_1c_worse)}</td>
+        <td class="n">${r.dollars_per_day == null ? '–' : money(r.dollars_per_day)}</td>
+      </tr>${rs.open.has(r.id) ? `<tr class="rs-detail"><td colspan="10"><dl class="rs-body">
+        ${r.rule ? `<dt>Rule</dt><dd>${esc(r.rule)}</dd>` : ''}
+        ${r.across_units ? `<dt>Across units</dt><dd>${esc(r.across_units)}</dd>` : ''}
+        ${r.kill_shot ? `<dt>Verification</dt><dd>${esc(r.kill_shot)}</dd>` : ''}
+        ${r.notes ? `<dt>Notes</dt><dd>${esc(r.notes)}</dd>` : ''}
+        ${r.evidence ? `<dt>Evidence</dt><dd class="mono">${esc(r.evidence)}</dd>` : ''}
+        ${r.session ? `<dt>Session</dt><dd class="mono">${esc(r.session)}</dd>` : ''}
+      </dl></td></tr>` : ''}`).join('') : '<tr><td colspan="10" class="empty">Nothing matches. Which means it has not been tested: write it down here when you do.</td></tr>'
+      tb.querySelectorAll('tr.rs-row').forEach((tr) => tr.addEventListener('click', () => { const id = Number(tr.dataset.id); rs.open.has(id) ? rs.open.delete(id) : rs.open.add(id); rsRender() }))
+    }
+    async function loadResearch() {
+      rs.rows = await q('kalshi_research', (b) => b.select('id,tested_at,market,angle,name,rule,fit,holdout,across_units,cents_at_1c_worse,dollars_per_day,verdict,refuted_votes,total_votes,kill_shot,evidence,session,notes').order('tested_at', { ascending: false }).order('id', { ascending: false }).limit(3000))
+      const markets = ['all', ...[...new Set(rs.rows.map((r) => r.market))].sort()]
+      if (!el('rs-market').childElementCount) {
+        segment(el('rs-market'), markets.map((m) => ({ v: m, label: m === 'all' ? 'All' : m })), 'all', (v) => { rs.market = v; rsRender() })
+        segment(el('rs-verdict'), [{ v: 'all', label: 'All' }, { v: 'alive', label: 'Alive' }, { v: 'dead', label: 'Dead' }, { v: 'open', label: 'Open' }], 'all', (v) => { rs.verdict = v; rsRender() })
+        el('rs-search').addEventListener('input', (e) => { rs.query = e.target.value; rsRender() })
+      }
+      rsRender()
+    }
+
     /* ── paper: the signal bot's book by day, written by the bot after every grading pass ── */
     async function loadPaper() {
       const rows = await q('kalshi_signal_paper', (b) => b.select('*').order('day', { ascending: true }))
@@ -1902,7 +2009,7 @@
     }
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadCalendar(), loadBots(), loadRules(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadCalendar(), loadBots(), loadRules(), loadResearch(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
     setInterval(() => { loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive() }, 30_000)
     setInterval(() => { loadTheEdge(); loadCalendar() }, 5 * 60_000)
