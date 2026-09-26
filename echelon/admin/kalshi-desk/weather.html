@@ -171,6 +171,8 @@ tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover td { background: var(--panel-2); }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .dim { color: var(--muted); }
+/* "3 of 22": the offer stays legible beside what filled without competing with it */
+.of { color: var(--faint); font-size: 11.5px; }
 .pos { color: var(--gold); } .neg { color: var(--bad); }
 .empty { color: var(--faint); padding: 18px 10px; font-size: 13px; white-space: normal; }
 .skel { height: 15px; border-radius: 4px; background: linear-gradient(90deg, var(--panel-2), var(--line), var(--panel-2)); background-size: 200% 100%; animation: sh 1.4s linear infinite; }
@@ -233,9 +235,17 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   <section class="panel">
     <div class="panel-head"><h2>The books</h2><span class="meta">one row per policy, both fill models across</span></div>
     <p class="reading">
-      Two fill models bracket the truth. <b>Strict</b> fills only when the tape printed through the resting price,
-      so it keeps the adverse half by construction. <b>Front of queue</b> assumes we were first every time. Both now
-      respect the size of each print and the contracts ahead of us, which earlier versions did not.
+      Two fill models bracket the price test. <b>Strict</b> fills only when the tape printed through the resting
+      price, so it keeps the adverse half by construction. <b>Front of queue</b> counts a print at the price too.
+      Since 2026-09-26 both pay on the contracts that actually printed through us, not on the whole offer: before
+      that, one contract trading against a twenty-two contract ask booked twenty-two.
+    </p>
+    <p class="reading">
+      <b>At the touch</b> is the floor, and it is the column to read. A resting order trades after everything
+      priced better than it, and we never recorded the depth at our own price, so no number here can say for
+      certain that a quote would have filled. This one counts only the quotes that were the best price on their
+      side when we placed them. Where the two columns disagree in sign, the profit is an assumption about the
+      queue rather than a measurement.
     </p>
     <div class="scroll">
       <table id="books"><thead>
@@ -244,8 +254,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
           <th colspan="3" class="edge">Strict</th><th colspan="3">Front of queue</th>
         </tr>
         <tr class="sub">
-          <th class="num edge">Fills</th><th class="num">Graded</th><th class="num">P&amp;L</th>
-          <th class="num edge">Fills</th><th class="num">Graded</th><th class="num">P&amp;L</th>
+          <th class="num edge">Graded</th><th class="num">P&amp;L</th><th class="num">At the touch</th>
+          <th class="num edge">Graded</th><th class="num">P&amp;L</th><th class="num">At the touch</th>
         </tr>
       </thead><tbody><tr><td colspan="7"><div class="skel"></div></td></tr></tbody></table>
     </div>
@@ -299,6 +309,9 @@ const money = (x) => {
   return (Number(x) < 0 ? '-' : '+') + '$' + body
 }
 const p2 = (x) => (x == null ? DASH : Number(x).toFixed(2))
+/* Contracts, which Kalshi reports as a decimal (count_fp), so a partial fill is routinely
+   fractional. Whole numbers stay whole rather than growing a pointless ".00". */
+const size = (x) => (x == null ? DASH : Number.isInteger(Number(x)) ? String(Number(x)) : Number(x).toFixed(2))
 const ago = (iso) => { const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); return s < 90 ? Math.round(s) + 's ago' : s < 5400 ? Math.round(s / 60) + ' min ago' : (s / 3600).toFixed(1) + ' h ago' }
 const tone = (x) => (Number(x) > 0 ? 'pos' : Number(x) < 0 ? 'neg' : '')
 
@@ -380,10 +393,14 @@ async function load() {
     const e = byPolicy.get(r.policy) ?? {}
     e[r.fill_model] = r; byPolicy.set(r.policy, e)
   }
+  /* Graded, the headline, and the floor under it. The floor carries its own count in a title,
+     because "of 254" is the whole reason a reader should believe one column over the other. */
   const cells = (r) => r
-    ? '<td class="num edge">' + n0.format(r.fills) + '</td>' +
-      '<td class="num">' + n0.format(r.graded) + '</td>' +
-      '<td class="num ' + (r.graded ? tone(r.pnl) : '') + '">' + (r.graded ? money(r.pnl) : DASH) + '</td>'
+    ? '<td class="num edge">' + n0.format(r.graded) + '</td>' +
+      '<td class="num ' + (r.graded ? tone(r.pnl) : '') + '">' + (r.graded ? money(r.pnl) : DASH) + '</td>' +
+      '<td class="num ' + (r.at_touch_fills ? tone(r.at_touch_pnl) : '') + '"' +
+        (r.at_touch_fills ? ' title="' + n0.format(r.at_touch_fills) + ' of ' + n0.format(r.graded) + ' graded fills were the best price on their side when placed"' : '') + '>' +
+        (r.at_touch_pnl == null ? DASH : money(r.at_touch_pnl)) + '</td>'
     : '<td class="num edge">' + DASH + '</td><td class="num">' + DASH + '</td><td class="num">' + DASH + '</td>'
   const policies = [...byPolicy.keys()].sort((a, b) => rank(a) - rank(b))
   el('books').querySelector('tbody').innerHTML = policies.length ? policies.map((p) => '<tr>' +
@@ -407,7 +424,10 @@ function drawFills(model) {
         '<td class="dim">' + f.bucket + '</td>' +
         '<td>' + f.side + '</td>' +
         '<td class="num">' + p2(f.price) + '</td>' +
-        '<td class="num">' + f.contracts + '</td>' +
+        // filled of offered: a partial fill has to read as one, or the page is back to showing
+        // an offer as though the whole of it traded
+        '<td class="num"' + (f.quoted != null && f.quoted > f.contracts ? ' title="' + f.contracts + ' of ' + f.quoted + ' offered"' : '') + '>' +
+          size(f.contracts) + (f.quoted != null && f.quoted > f.contracts ? '<span class="of"> of ' + size(f.quoted) + '</span>' : '') + '</td>' +
         '<td class="dim">' + (f.settled_yes == null ? 'open' : f.settled_yes ? 'yes' : 'no') + '</td>' +
         '<td class="num ' + tone(f.pnl) + '">' + (f.pnl == null ? DASH : money(f.pnl)) + '</td>' +
     '</tr>').join('')
