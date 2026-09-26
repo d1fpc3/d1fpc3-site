@@ -698,10 +698,14 @@
     #v-gex .gex-sheetcard:not(.open) .gex-sheet { display: none; }
     #v-gex .gex-sheet { border-top: 1px solid var(--line); padding: 14px 20px 18px; max-height: none; }
 
+    #v-gex .gex-pxage { color: var(--muted); }
+    #v-gex .gx-up { animation: gx-up 1.1s ease-out; } #v-gex .gx-dn { animation: gx-dn 1.1s ease-out; }
+    @keyframes gx-up { 0%, 25% { color: var(--good); text-shadow: 0 0 14px color-mix(in srgb, var(--good) 45%, transparent); } }
+    @keyframes gx-dn { 0%, 25% { color: var(--bad); text-shadow: 0 0 14px color-mix(in srgb, var(--bad) 45%, transparent); } }
     /* motion: a fresh print rises in, staggered */
     #v-gex .gx-rise { animation: gx-rise .55s var(--gx-ease) both; animation-delay: calc(var(--i, 0) * 45ms); }
     @keyframes gx-rise { from { opacity: 0; transform: translateY(8px); } }
-    @media (prefers-reduced-motion: reduce) { #v-gex .gx-rise, #v-gex .lv-bar s i, #v-gex .gex-sess .sp-line { animation: none; stroke-dashoffset: 0; } #v-gex .gex-pin, #v-gex .gex-rail-zone, #v-gex .gex-rail-band { transition: none; } #v-gex .gex-live.on i, #v-gex .gex-pin.spot.live .dot::after { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { #v-gex .gx-up, #v-gex .gx-dn, #v-gex .gx-rise, #v-gex .lv-bar s i, #v-gex .gex-sess .sp-line { animation: none; stroke-dashoffset: 0; } #v-gex .gex-pin, #v-gex .gex-rail-zone, #v-gex .gex-rail-band { transition: none; } #v-gex .gex-live.on i, #v-gex .gex-pin.spot.live .dot::after { animation: none; } }
 
     @media (max-width: 1100px) { #v-gex .gex-hero-top.has-sess { grid-template-columns: minmax(0, 1fr); } }
     @media (max-width: 900px) {
@@ -4606,7 +4610,7 @@
             <span class="gex-daynav gex-nav"><button class="gex-arrow" id="gex-prev" type="button" title="Earlier day" aria-label="Earlier day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><span class="gex-dayl" id="gex-day">today</span><button class="gex-arrow" id="gex-next" type="button" title="Later day" aria-label="Later day" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></span>
             <select class="gex-time" id="gex-time" aria-label="Print" hidden></select>
             <span class="gex-bar-sp"></span>
-            <span class="gex-live" id="gex-live"><i aria-hidden="true"></i><span class="gex-stamp" id="gex-stamp"></span></span>
+            <span class="gex-live" id="gex-live"><i aria-hidden="true"></i><span class="gex-stamp" id="gex-stamp"></span><span class="gex-pxage" id="gex-pxage" hidden></span></span>
             <button class="gex-ibtn" id="gex-refresh" type="button" title="Fetch the newest print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg><span>Refresh</span></button>
             <button class="gex-ibtn ghost" id="gex-whatis" type="button">What is GEX?</button>
           </div>
@@ -16514,22 +16518,27 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!d) return
       if (!GEX.hist) ntGexRegime(d.regime)
       // a new print (or a new book) rises in; the 5-minute re-render of the same print stays still
-      const key = `${GEX.book}|${d.generatedAt}`, fresh = GEX.shownKey !== key
+      // the rise plays when a book or a day comes on screen; a new print on the same board
+      // (every minute while the session runs) only flashes the numbers that moved
+      const key = `${GEX.book}|${GEX.hist?.day ?? ''}|${GEX.hist?.t ?? ''}`, fresh = GEX.shownKey !== key
       GEX.shownKey = key
-      const rd = el('gex-read'); rd.textContent = ''
+      const rd = el('gex-read'), before = [...rd.querySelectorAll('.v')].map((n) => n.textContent); rd.textContent = ''
       const fig = (k, v, cls, desc) => {
         const w = document.createElement('div')
         if (fresh) { w.className = 'gx-rise'; w.style.setProperty('--i', rd.children.length + 2) }
         const a = document.createElement('div'); a.className = 'label'; a.textContent = k
         const b = document.createElement('div'); b.className = 'v' + (cls ? ' ' + cls : ''); b.textContent = v
+        const was = before[rd.children.length]
+        if (!fresh && was != null && was !== v) gexFlash(b, gexNum(v) >= gexNum(was))
         const c = document.createElement('div'); c.className = 'd'; c.textContent = desc
         w.append(a, b, c); rd.appendChild(w)
+        return w
       }
       const z = d.zdte, s = d.swing
       fig('0DTE net GEX', fmtM(z.netGexM), z.netGexM >= 0 ? 'pos' : 'neg', `${expLabel(z.expiry)} · ${z.dte} DTE · ${d.regime}`)
       fig('Swing net GEX', s ? fmtM(s.netGexM) : '–', s && s.netGexM >= 0 ? 'pos' : 'neg', s ? `${s.expiries} expiries out to 60d` : 'no swing horizon')
       fig(`${d.undName ?? 'QQQ'} spot`, d.spot.toFixed(2), '', GEX.hist ? 'archived print' : d.marketOpen ? 'market open · CBOE ~15 min delayed' : 'market closed · last snapshot')
-      fig(d.futName ?? 'NQ', Math.round(d.nq).toLocaleString(), '', `= ${d.undName ?? 'QQQ'} × ${d.conversion.divisor} + ${d.conversion.basis} (as of ${d.conversion.asOf ?? '–'})`)
+      fig(d.futName ?? 'NQ', Math.round(d.nq).toLocaleString(), '', `= ${d.undName ?? 'QQQ'} × ${d.conversion.divisor} + ${d.conversion.basis} (as of ${d.conversion.asOf ?? '–'})`).id = 'gex-fut-fig'
       renderRegime(d, fresh)
       renderGexSess(d, fresh)
       renderGexRail(d)
@@ -16538,8 +16547,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('gex-sheet').hidden = !d.levelsText
       el('gex-sheetcard').hidden = !d.levelsText
       el('gex-stamp').textContent = GEX.hist ? `Viewing the ${etStamp(d.generatedAt)} print` : `Updated ${etStamp(d.generatedAt)}`
-      // green and breathing only while prints are actually landing (a Friday close print still says marketOpen)
-      el('gex-live').classList.toggle('on', !GEX.hist && !!d.marketOpen && Date.now() - new Date(d.generatedAt) < 40 * 60 * 1000)
+      gexLivePaint()
       // The member is looking at this print: clear the new-levels dot.
       if (!GEX.hist && el('v-gex').classList.contains('on')) gexMarkSeen(d.generatedAt)
       // Dynamic bits of the "How GEX works" breakdown.
@@ -16650,7 +16658,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const tlab = (i, anchor) => `<text class="ax" x="${X(i).toFixed(1)}" y="${H - 3}" text-anchor="${anchor}">${pts[i].t}</text>`
       const lblS = Y(lastS), lblF = lastF == null ? null : Y(lastF)
       const apart = lblF == null || Math.abs(lblS - lblF) >= 13 ? 0 : (lblS <= lblF ? -1 : 1) * (13 - Math.abs(lblS - lblF)) / 2
-      fig.innerHTML = `<div class="gex-sess-head"><span>Today's tape</span><span>${fut} spot <b>${lastS.toLocaleString()}</b>${lastF != null ? ` · flip <b>${lastF.toLocaleString()}</b>` : ''}</span></div>
+      fig.innerHTML = `<div class="gex-sess-head"><span>Today's tape</span><span>${fut} spot <b class="gex-sess-spot">${lastS.toLocaleString()}</b>${lastF != null ? ` · flip <b>${lastF.toLocaleString()}</b>` : ''}</span></div>
         <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${fut} spot against the gamma flip through the session">
           <line x1="0" x2="${W - padR}" y1="${plotB + 0.5}" y2="${plotB + 0.5}" stroke="${t.line}"/>
           ${fills}${bars}
@@ -16671,7 +16679,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function renderGexRail(d) {
       const card = el('gex-railcard'), box = el('gex-rail')
       const fut = d.futName ?? 'NQ'
-      const spot = Math.round(d.nq)
+      const lq = gexLiveSpot(d), spot = Math.round(lq.px)
       const nqOf = (lvl) => lvl ? Math.round(lvl.nq ?? gexNQ(lvl.qqq)) : null
       const raw = []
       const add = (id, name, nq, cls) => { if (nq != null && isFinite(nq)) raw.push({ id, name, nq, cls }) }
@@ -16700,7 +16708,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!track) { track = document.createElement('div'); track.className = 'gex-rail-track'; track.innerHTML = '<i class="gex-rail-zone neg"></i><i class="gex-rail-zone pos"></i>'; box.appendChild(track) }
       let band = box.querySelector('.gex-rail-band')
       if (!band) { band = document.createElement('div'); band.className = 'gex-rail-band'; box.appendChild(band) }
-      const items = [{ id: 'spot', name: `${fut} spot`, nq: spot, cls: 'spot' }, ...pts]
+      const items = [{ id: 'spot', name: lq.live ? `${fut} live` : `${fut} spot`, nq: spot, cls: 'spot' }, ...pts]
       const live = new Set()
       for (const it of items) {
         let p = pinMap.get(it.id)
@@ -16709,9 +16717,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           p.style.opacity = '0'; box.appendChild(p); pinMap.set(it.id, p)
           requestAnimationFrame(() => { p.style.opacity = '' })
         }
-        p.className = `gex-pin ${it.cls}` + (it.id === 'spot' && el('gex-live').classList.contains('on') ? ' live' : '')
+        p.className = `gex-pin ${it.cls}` + (it.id === 'spot' && lq.live ? ' live' : '')
         const tag = p.querySelector('.tag')
-        tag.innerHTML = it.id === 'spot' ? `<b>${spot.toLocaleString()}</b>${it.name}` : `<b>${it.nq.toLocaleString()}</b>${it.name}<em>${gexPts(it.nq - spot)}</em>`
+        tag.innerHTML = it.id === 'spot' ? `<b>${lq.live ? gexPx(lq.px) : spot.toLocaleString()}</b>${it.name}` : `<b>${it.nq.toLocaleString()}</b>${it.name}<em>${gexPts(it.nq - spot)}</em>`
         it.el = p; it.tag = tag; it.x = X(it.nq); live.add(it.id)
       }
       for (const [id, p] of pinMap) if (!live.has(id)) { p.remove(); pinMap.delete(id) }
@@ -16758,6 +16766,93 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     }
 
+    /* ── live price: the futures quote from the Chart's own feed (tape, 2 s cache), polled every
+       3 s while the board is open and the market trades. The walls come from the minute print
+       (CBOE's chain, ~15 min behind); the price they are measured from is live. ── */
+    const GEXLIVE = { px: null, sym: null, barT: 0, at: 0, timer: 0, busy: false }
+    const gexPx = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    const gexNum = (t) => parseFloat(String(t).replace(/[^0-9.\-−]/g, '').replace('−', '-')) || 0
+    function gexFlash(node, up) {
+      node.classList.remove('gx-up', 'gx-dn'); void node.offsetWidth
+      node.classList.add(up ? 'gx-up' : 'gx-dn')
+    }
+    // live = the quote belongs to the book on screen, a past day is not being browsed, and the
+    // feed's newest minute bar is recent (Yahoo stalls; a stalled quote is not "live")
+    function gexLiveSpot(d) {
+      const ok = GEXLIVE.px != null && GEXLIVE.sym === (d.futName ?? 'NQ') && !GEX.hist && Date.now() - GEXLIVE.at < 20000 && Date.now() / 1000 - GEXLIVE.barT < 180
+      return { px: ok ? GEXLIVE.px : d.nq, live: ok }
+    }
+    function gexLivePaint() {
+      const d = GEX.data; if (!d) return
+      const lv = gexLiveSpot(d)
+      const printFresh = !!d.marketOpen && Date.now() - new Date(d.generatedAt) < 20 * 60 * 1000
+      el('gex-live').classList.toggle('on', !GEX.hist && (lv.live || printFresh))
+      const age = el('gex-pxage'), fut = d.futName ?? 'NQ'
+      const trading = gexTrading()
+      const lag = GEXLIVE.barT ? Math.floor((Date.now() / 1000 - GEXLIVE.barT) / 60) : 0
+      age.hidden = !!GEX.hist || GEXLIVE.px == null || GEXLIVE.sym !== fut
+      age.textContent = lv.live ? `· ${fut} live` : trading && lag >= 3 ? `· ${fut} feed ${lag}m behind` : `· ${fut} closed`
+    }
+    // push the live price into everything measured from spot, without re-rendering the board
+    function gexApplyLive() {
+      const d = GEX.data; if (!d || GEX.hist || !el('v-gex').classList.contains('on')) { gexLivePaint(); return }
+      const lv = gexLiveSpot(d)
+      const fig = el('gex-fut-fig')
+      if (fig) {
+        const v = fig.querySelector('.v'), lab = fig.querySelector('.label'), desc = fig.querySelector('.d'), fut = d.futName ?? 'NQ'
+        const txt = lv.live ? gexPx(lv.px) : Math.round(d.nq).toLocaleString()
+        if (v.textContent !== txt) { if (lv.live && v.textContent) gexFlash(v, gexNum(txt) >= gexNum(v.textContent)); v.textContent = txt }
+        lab.textContent = lv.live ? `${fut} live` : fut
+        desc.textContent = lv.live ? `futures, live · walls from the ${etStamp(d.generatedAt).replace(/^.*, /, '')} print` : `= ${d.undName ?? 'QQQ'} × ${d.conversion.divisor} + ${d.conversion.basis} (as of ${d.conversion.asOf ?? '–'})`
+      }
+      for (const em of el('gex-table').querySelectorAll('em[data-fut]')) em.textContent = gexPts(+em.dataset.fut - lv.px)
+      const ss = el('gex-sess').querySelector('.gex-sess-spot'); if (ss && lv.live) ss.textContent = gexPx(lv.px)
+      if (!el('gex-railcard').hidden) renderGexRail(d)
+      gexLivePaint()
+    }
+    async function gexLiveTick() {
+      clearTimeout(GEXLIVE.timer)
+      if (!el('v-gex').classList.contains('on')) { GEXLIVE.timer = 0; return }
+      const trading = gexTrading()
+      if (!document.hidden && !GEX.hist && !GEXLIVE.busy) {
+        const sym = gexBookCfg().fut
+        GEXLIVE.busy = true
+        try {
+          const j = await chFetch('range=1d&tail=2', sym)
+          const bar = j.bars?.[j.bars.length - 1]
+          const px = j.last ?? bar?.[4]
+          if (px != null && sym === gexBookCfg().fut) { GEXLIVE.px = +px; GEXLIVE.sym = sym; GEXLIVE.barT = bar?.[0] ?? 0; GEXLIVE.at = Date.now() }
+        } catch {}
+        finally { GEXLIVE.busy = false }
+        gexApplyLive()
+      }
+      GEXLIVE.timer = setTimeout(gexLiveTick, trading ? 3000 : 60000)
+    }
+    // the board's own clock (ET weekday + minute). window.__GEX_CLOCK (ms) lets a harness put
+    // the board in a session on a weekend without faking Date, which would expire the sign-in.
+    function gexEt() {
+      const p = {}; for (const x of new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(window.__GEX_CLOCK ?? Date.now()))) p[x.type] = x.value
+      return { wd: p.weekday, min: ((+p.hour) % 24) * 60 + +p.minute }
+    }
+    // CME futures: Sunday 18:00 to Friday 17:00 ET, with the daily 17:00 to 18:00 break
+    function gexTrading() {
+      const { wd, min } = gexEt()
+      if (wd === 'Sat' || (wd === 'Sun' && min < 18 * 60) || (wd === 'Fri' && min >= 17 * 60)) return false
+      return !(min >= 17 * 60 && min < 18 * 60)
+    }
+    // new prints: the worker reprints every minute from 09:15 to 16:20 ET on weekdays
+    function gexPrintHours() {
+      const { wd, min } = gexEt()
+      return !['Sat', 'Sun'].includes(wd) && min >= 9 * 60 + 15 && min <= 16 * 60 + 22
+    }
+    function gexPrintPoll() {
+      clearTimeout(GEX.timer)
+      if (!el('v-gex').classList.contains('on')) { GEX.timer = null; return }
+      if (!document.hidden && !GEX.hist) loadGex().catch(() => {})
+      GEX.timer = setTimeout(gexPrintPoll, gexPrintHours() ? 60 * 1000 : 5 * 60 * 1000)
+    }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && el('v-gex')?.classList.contains('on')) { gexLiveTick(); if (gexPrintHours()) gexPrintPoll() } })
+
     function syncGexControls() {
       el('gex-book').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.b === GEX.book))
       el('gex-view').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === GEX.view))
@@ -16784,7 +16879,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function renderGexTable() {
       const d = GEX.data
       const r0 = gexRows('zdte'), rs = gexRows('swing')
-      const fut = d.futName ?? 'NQ', und = d.undName ?? 'QQQ', spot = d.nq
+      const fut = d.futName ?? 'NQ', und = d.undName ?? 'QQQ', spot = gexLiveSpot(d).px
       const mk = (name, lvl, gex) => lvl ? { name, und: lvl.qqq, fut: Math.round(lvl.nq ?? gexNQ(lvl.qqq)), gex, tier: lvl.tier || 0 } : null
       const groups = [['Today, 0DTE', [mk('Call wall', d.zdte.callWall, gexAtStrike(r0, d.zdte.callWall?.qqq)), mk('Put wall', d.zdte.putWall, gexAtStrike(r0, d.zdte.putWall?.qqq)), mk('Gamma flip', d.zdte.flip, null)]]]
       if (d.swing) groups.push(['Swing, out to 60 days', [mk('Call wall', d.swing.callWall, gexAtStrike(rs, d.swing.callWall?.qqq)), mk('Put wall', d.swing.putWall, gexAtStrike(rs, d.swing.putWall?.qqq)), mk('Gamma flip', d.swing.flip, null)]])
@@ -16809,7 +16904,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           n.append(tier, us)
           const f = document.createElement('td'); f.className = 'lv-fut r'
           const fb = document.createElement('b'); fb.textContent = r.fut.toLocaleString()
-          const fe = document.createElement('em'); fe.textContent = gexPts(r.fut - spot)
+          const fe = document.createElement('em'); fe.dataset.fut = r.fut; fe.textContent = gexPts(r.fut - spot)
           f.append(fb, fe)
           const gcell = document.createElement('td'); gcell.className = 'lv-gex r'
           if (r.gex == null) gcell.textContent = '–'
@@ -17249,6 +17344,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('gex-book').addEventListener('click', (e) => {
         const b = e.target.closest('button'); if (!b || b.dataset.b === GEX.book) return
         GEX.book = b.dataset.b; localStorage.setItem('echelon-gex-book', GEX.book)
+        GEXLIVE.px = null; GEXLIVE.sym = null; setTimeout(gexLiveTick, 0)
         GEX.hover = null; el('gex-tip').hidden = true
         syncGexControls(); syncGexNav()
         const st = gexStoreFor(GEX.book)
@@ -17299,11 +17395,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         loadGex().catch((err) => { const e = el('gex-empty'); e.hidden = false; e.textContent = `Could not reach gex-worker: ${err.message}` })
       } else drawGex()
       if (!GEX.days.length) loadGexHistory()
-      clearInterval(GEX.timer)
-      GEX.timer = setInterval(() => {
-        if (!el('v-gex').classList.contains('on')) { clearInterval(GEX.timer); GEX.timer = null; return }
-        loadGex().catch(() => {})
-      }, 5 * 60 * 1000)
+      clearTimeout(GEX.timer)
+      GEX.timer = setTimeout(gexPrintPoll, gexPrintHours() ? 60 * 1000 : 5 * 60 * 1000)
+      gexLiveTick()
       // The "What is GEX?" explainer covers the introduction; the pointer tour is retired.
     }
     // Completion lives in member_onboarding.flags; localStorage is only the
