@@ -1198,6 +1198,8 @@
     .ch-int input { width: 74px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; padding: 4px 8px; text-align: center; }
     .ch-int small { font-size: 10px; color: var(--faint); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
     .ch-tfs button.custom { color: var(--gold); opacity: 0.8; } .ch-tfs button.custom.on { opacity: 1; }
+    /* the + is a door, not a timeframe: quieter than the intervals beside it */
+    .ch-tfs button.tf-any { color: var(--faint); font-weight: 600; opacity: 0.75; } .ch-tfs button.tf-any:hover { color: var(--acc); opacity: 1; }
     .ch-obj { display: flex; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid var(--line); cursor: pointer; border-radius: 6px; }
     .ch-obj:hover { background: var(--panel-2); } .ch-obj.on { background: rgba(201,162,74,0.08); } .ch-obj.hid .t { opacity: 0.45; }
     .ch-obj .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
@@ -4613,7 +4615,7 @@
               <button class="ch-ib" id="ch-back" type="button" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
               <button class="ch-ib" id="ch-side" type="button" title="Hide the sidebar" aria-label="Hide the sidebar" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16M5.5 8h1M5.5 11h1"/></svg></button>
               <div class="ch-sym"><button type="button" class="ch-symbtn" id="ch-sym-btn" title="Symbol search" aria-label="Symbol search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><b id="ch-sym-name">NQ</b></button><span class="ch-sess" id="ch-sess"></span></div>
-              <span class="seg ch-tfs" id="ch-tf" role="group" aria-label="Timeframe"><button type="button" data-tf="1m">1m</button><button type="button" data-tf="3m">3m</button><button type="button" data-tf="5m">5m</button><button type="button" data-tf="15m">15m</button><button type="button" data-tf="30m">30m</button><button type="button" data-tf="1h">1h</button><button type="button" data-tf="4h">4h</button><button type="button" data-tf="D">D</button></span>
+              <span class="seg ch-tfs" id="ch-tf" role="group" aria-label="Timeframe"><button type="button" data-tf="1m">1m</button><button type="button" data-tf="3m">3m</button><button type="button" data-tf="5m">5m</button><button type="button" data-tf="15m">15m</button><button type="button" data-tf="30m">30m</button><button type="button" data-tf="1h">1h</button><button type="button" data-tf="4h">4h</button><button type="button" data-tf="D">D</button><button type="button" class="tf-any" id="ch-tf-any" title="Any interval: type 15, 2h, 1d">+</button></span>
               <button class="ch-tfbtn" id="ch-tf-btn" type="button" aria-label="Interval">5m<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
               <span class="ch-sp"></span>
               <button class="ch-ib ch-phone" id="ch-tools-btn" type="button" title="Drawing tools" aria-label="Drawing tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
@@ -12945,7 +12947,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* D1's chart, as the chart's own look: grey canvas, white up, muted red
        down, no grid. Named so the defaults below read as one decision rather
        than six unexplained hex codes. */
-    const D1_BG = '#8f8f8f', D1_UP = '#ffffff', D1_DN = '#c2534f'
+    const D1_BG = '#808080', D1_UP = '#ffffff', D1_DN = '#c2534f'
     const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP, wickDown: D1_DN, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
       // LIT ships curated, not complete: the levels price reacts to are on, the ten
       // busier parts are one toggle away in the LIT menu. litV stamps the migration.
@@ -13083,9 +13085,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* Saved settings hold every key, so a new default never reaches anyone who has
        touched the chart once. This flips the ten busy LIT parts off a single time,
        stamps litV, and never runs again. Colours, widths and the rest are left alone. */
-    if (CH.s.lookV !== 1) {
+    if (CH.s.lookV !== 2) {
       CH.s.bg = ''; CH.s.bg2 = ''; CH.s.up = D1_UP; CH.s.down = D1_DN; CH.s.wickUp = D1_UP; CH.s.wickDown = D1_DN
-      CH.s.borderUp = D1_UP; CH.s.borderDown = D1_DN; CH.s.grid = false; CH.s.gridV = false; CH.s.lookV = 1
+      CH.s.borderUp = D1_UP; CH.s.borderDown = D1_DN; CH.s.grid = false; CH.s.gridV = false; CH.s.textC = ''; CH.s.lookV = 2
       try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {}
     }
     if (CH.s.litV !== 2) { for (const k of ['litMarks', 'litKo', 'litPo3', 'litEighths', 'litPm', 'litNwog', 'litDr', 'litSig', 'litOpen22', 'litLdn']) CH.s[k] = false; CH.s.litV = 2; try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {} }
@@ -14836,7 +14838,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chDraw() { cancelAnimationFrame(CH.raf); CH.raf = requestAnimationFrame(chPaint) }
     // relative luminance of a hex colour; a background above 0.2 reads as light and wants dark ink
     const chLum = (hex) => { if (!/^#[0-9a-f]{6}$/i.test(hex)) return null; const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * b }
-    const chBgLight = (bg, themeLight) => { const l = chLum(bg); return l == null ? themeLight : l > 0.2 }
+    const chBgLight = (bg, themeLight) => { const l = chLum(bg); return l == null ? themeLight : l > 0.5 }
     function chAdaptTokens(T, light) {
       if (light) { T.ink = '#141311'; T.muted = '#2b2925'; T.faint = '#45413b'; T.line = 'rgba(0,0,0,0.16)'; T.lineB = 'rgba(0,0,0,0.3)'; T.panel = '#f8f6f2'; T.panel2 = '#ffffff'; T.good = '#3f7a38'; T.bad = '#b4543c'; T.gold = '#8a6a1e' }
       else { T.ink = '#f4f2ee'; T.muted = '#9d978c'; T.faint = '#8f887c'; T.line = 'rgba(255,255,255,0.12)'; T.lineB = 'rgba(255,255,255,0.22)'; T.panel = '#131211'; T.panel2 = '#1a1817'; T.good = '#86b57f'; T.bad = '#d98b7a'; T.gold = '#c9a24a' }
@@ -15049,7 +15051,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       ctx.font = `11px ${GEX_FONT}`
       // the bar-close countdown under the last price, like the platform does
-      if (S.lastLine && S.countdown !== false && lastBar && !CH.replay.on && CH.tfSec < 86400 * 7) {
+      // the countdown is to the close of the CURRENT bar, so it only means
+      // something while bars are forming. CH.cdOn is the harness's window onto it.
+      const tradingNow = ['open', 'pre', 'globex'].includes(chSession().key)
+      CH.cdOn = false
+      if (S.lastLine && S.countdown !== false && lastBar && !CH.replay.on && tradingNow && CH.tfSec < 86400 * 7) {
         const y = chY(lastBar.c, L)
         if (y >= 0 && y <= L.mainH - 18) {
           const nowS = Date.now() / 1000, wallNow = chWall(nowS) - (CH.s.tz === 'local' ? 0 : 0)
@@ -15059,6 +15065,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             const txt = left >= 3600 ? `${Math.floor(left / 3600)}:${String(Math.floor(left % 3600 / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}` : `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`
             ctx.fillStyle = T.panel2; ctx.fillRect(L.plotW + 2, y + 9, L.ax - 4, 15)
             ctx.fillStyle = T.muted; ctx.textAlign = 'left'; ctx.font = `10.5px ${GEX_FONT}`; ctx.fillText(txt, L.plotW + 7, y + 17); ctx.font = `11px ${GEX_FONT}`
+            CH.cdOn = true
           }
         }
       }
@@ -15247,6 +15254,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       sh.hidden = false; scrim.hidden = false; body.scrollTop = 0
     }
     function chTfBtn() { const b = el('ch-tf-btn'); if (b) b.firstChild.textContent = CH.tf }
+    // the + on the interval row opens the same box typing a digit opens
+    el('ch-tf-any')?.addEventListener('click', (e) => {
+      e.stopPropagation()
+      const ib = el('ch-int'), i = ib?.querySelector('input'); if (!ib || !i) return
+      i.value = ''; ib.hidden = false; i.focus()
+    })
     function chHistUi() { const u = el('ch-undo-btn'), r = el('ch-redo-btn'); if (u) u.disabled = !CH.hist.length; if (r) r.disabled = !CH.redo.length }
     function chStayUi() { const b = el('ch-stay'); if (b) b.classList.toggle('on', !!CH.s.stay) }
     function chLockAllUi() { const b = el('ch-lockall'); if (b) { const all = CH.drawings.length > 0 && CH.drawings.every((d) => d.lock); b.classList.toggle('on', all); b.title = all ? 'Unlock all drawings' : 'Lock all drawings' } }
