@@ -2406,6 +2406,13 @@
       .news-fp { gap: 10px; }
       .news-fp .v { min-width: 58px; }
       .news-row.has-a .news-fp .v.prev { display: none; }
+      /* On a phone the one-line title cut the release name in half: "Wholesale Inventories …",
+         "Retail Inventories Ex Autos M…", "GDP Price Index QoQ Fi…". There is no tooltip on the
+         name, so the row stopped saying which release it was. It wraps instead and the row
+         grows; every real calendar name fits in two lines. */
+      .news-title { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.35; }
+      .news-row { align-items: flex-start; }
+      .news-when, .news-fp, .news-q { margin-top: 1px; }
     }
     .news-tip .res { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--ink); }
     .news-tip .res.beat b, .news-tip .res.miss b { display: inline; margin: 0; }
@@ -2704,7 +2711,9 @@
       .bnav button[hidden] { display: none; }
       /* reading: the dock steps out of the way on a scroll down and returns on the first scroll up */
       body.nu-away .bnav { transform: translateY(calc(100% + 28px)); }
-      .pane { padding-bottom: calc(28px + var(--bnav)) !important; }
+      /* --nu-h is the measured height of the What's next pill (0 when it is not showing),
+         written by nextupPlace. Without it the pill covered the last row of the page. */
+      .pane { padding-bottom: calc(28px + var(--bnav) + var(--nu-h, 0px)) !important; }
       .chat { height: calc(calc(100 * var(--dvh)) - 118px - var(--bnav) - var(--segrow, 0px)); }
       /* inside a conversation the composer takes the bottom, like a DM thread */
       body:has(.chat.open-convo) .bnav { transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom))); }
@@ -5439,8 +5448,21 @@
       const b = el('tb-search'), r = b ? R(b) : null
       if (r && r.width) document.documentElement.style.setProperty('--nu-right', Math.round(VW() - r.left + 20) + 'px')
       else document.documentElement.style.removeProperty('--nu-right')
+      nextupReserve()
+    }
+    // On a phone the pill floats over the page just above the dock. Nothing reserved its
+    // height, so it sat on the last row of Prop firms, on the journal sheet and over the
+    // video card on Today. Measured rather than guessed: it is one line or two depending on
+    // the copy, and it is not there at all on chat, feed, the chart or once it is dismissed.
+    function nextupReserve() {
+      const n = el('nextup'), root = document.documentElement
+      const shown = n && !n.hidden && getComputedStyle(n).display !== 'none' && n.offsetHeight > 0
+      if (!shown) { root.style.removeProperty('--nu-h'); return }
+      // offsetHeight is already LAYOUT px under the root zoom, so it needs no conversion
+      root.style.setProperty('--nu-h', n.offsetHeight + 12 + 'px')
     }
     addEventListener('resize', () => requestAnimationFrame(nextupPlace))
+    if ('ResizeObserver' in window) { const n = el('nextup'); if (n) new ResizeObserver(() => nextupReserve()).observe(n) }
     { let lastY = 0; addEventListener('scroll', () => { const y = window.scrollY; if (performance.now() - (globalThis.__navJumpAt || 0) < 500) { lastY = y; return }; if (Math.abs(y - lastY) < 8) return; document.body.classList.toggle('nu-away', y > lastY && y > 120); lastY = y }, { passive: true }) }
     function showView(view) {
       const prev = curView()

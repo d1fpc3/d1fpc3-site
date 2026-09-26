@@ -92,8 +92,12 @@
   .specs { margin: 16px 0 0; padding: 0; list-style: none; }
   .specs li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 12.5px; }
   .specs li span { color: var(--faint); flex: 0 0 auto; }
-  .specs li b { font-weight: 500; text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .specs li b.wrap { white-space: normal; }
+  /* These wrap. They used to be one clipped line, which on the widest screen still cut
+     "100% of approved payouts (no split), but p…" and four other values dead, and a spec
+     sheet that hides the spec is worth nothing. The label holds its line; the value takes
+     the room it needs. */
+  .specs li b { font-weight: 500; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+  .specs li span { padding-top: 1px; }
   .more { display: flex; gap: 16px; margin-top: 14px; }
   .more button { background: none; border: 0; padding: 0; color: var(--gold); font: 13px var(--font); cursor: pointer; }
   .more button:hover { text-decoration: underline; text-underline-offset: 2px; }
@@ -102,7 +106,7 @@
   .plans[hidden], .fine[hidden] { display: none; }
   .plans .row { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 7px 0; border-top: 1px solid var(--line); }
   .plans .row .l { min-width: 0; }
-  .plans .row .l b { display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .plans .row .l b { display: block; font-weight: 500; overflow-wrap: anywhere; }
   .plans .row .l span { color: var(--faint); }
   .plans .row .r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .plans .row .r span { display: block; color: var(--faint); font-size: 11.5px; }
@@ -223,15 +227,21 @@
           ['Target', usd(best.target)],
           ['Drawdown', dd],
           ['Daily loss', best.daily_loss == null ? 'none' : usd(best.daily_loss)],
-          ['Consistency', short(best.consistency ?? s.consistency, 40)],
+          // The caps used to be 40 and 44 characters, chosen when a row was one clipped line.
+          // Real values run to 234 (payout schedules) and 144 (splits), so the sheet was cutting
+          // "100% of approved payouts (no split), but pe…" and four others mid-word on every
+          // firm at every width. Rows wrap now, so the cap only has to stop a paragraph.
+          ['Consistency', short(best.consistency ?? s.consistency, 88), best.consistency ?? s.consistency],
           ['Min days', best.min_days != null ? String(best.min_days) : ''],
-          ['Activation', short(best.activation, 40)],
+          ['Activation', short(best.activation, 88), best.activation],
           ['Reset', best.reset != null ? usd(best.reset) : ''],
-          ['Contracts', short(best.contracts, 40)],
-          ['Split', short(best.split ?? s.payout_split, 44)],
-          ['Payouts', short(best.payout ?? s.payout_schedule, 44)],
+          ['Contracts', short(best.contracts, 88), best.contracts],
+          ['Split', short(best.split ?? s.payout_split, 120), best.split ?? s.payout_split],
+          ['Payouts', short(best.payout ?? s.payout_schedule, 120), best.payout ?? s.payout_schedule],
         ].filter(([, v]) => v)
-        h += `<ul class="specs">${rows.map(([l, v]) => `<li><span>${esc(l)}</span><b title="${esc(v)}">${esc(v)}</b></li>`).join('')}</ul>`
+        // the hover carries the WHOLE value, not the shortened one it used to repeat, so
+        // anything the cap still trims is one hover (and the fine print) away
+        h += `<ul class="specs">${rows.map(([l, v, full]) => `<li><span>${esc(l)}</span><b title="${esc(full || v)}">${esc(v)}</b></li>`).join('')}</ul>`
       }
       const pk = f.slug + ':' + size
       h += `<div class="more">${plans.length ? `<button type="button" data-toggle="plans" data-key="${esc(pk)}" aria-expanded="${open.plans.has(pk)}">${open.plans.has(pk) ? 'Hide plans' : `All ${plans.length} plans at ${k(size)}`}</button>` : ''}<button type="button" data-toggle="fine" data-key="${esc(f.slug)}" aria-expanded="${open.fine.has(f.slug)}">${open.fine.has(f.slug) ? 'Hide fine print' : 'Fine print'}</button></div>`
