@@ -64,22 +64,33 @@ const seed = (ctx) => ctx.addInitScript(([k, v]) => {
   check(s.skin === 'dark', `and it does NOT flip the app to the light skin (${s.skin})`)
   check(s.up === '#ffffff' && !s.grid, `white bars up, no grid (up ${s.up}, grid ${s.grid})`)
 
-  // the prices on the scale: read the canvas, not the settings
+  // The prices on the scale, read off the canvas as a CONTRAST RATIO against the
+  // background. Counting light pixels was not enough and passed while the prices
+  // were invisible: the last-price tag and the white bars bleed into that strip,
+  // so the count was bright while the labels themselves were #7c8189 on #808080,
+  // a ratio of 1.02. This finds the ink the labels are actually drawn in.
   const scale = await page.evaluate(() => {
     const cv = document.querySelector('#v-chart canvas'); const g = cv.getContext('2d')
     const r = cv.getBoundingClientRect(), dpr = cv.width / r.width
-    const x0 = Math.round((r.width - 66) * dpr), w = cv.width - x0
-    const d = g.getImageData(x0, Math.round(cv.height * 0.15), w, Math.round(cv.height * 0.6)).data
-    let bright = 0, dark = 0
+    const x0 = Math.round((r.width - 58) * dpr), w = Math.round(46 * dpr)
+    const y0 = Math.round(cv.height * 0.18), h = Math.round(cv.height * 0.5)
+    const d = g.getImageData(x0, y0, w, h).data
+    const lum = ([R, G, B]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }; return 0.2126 * f(R) + 0.7152 * f(G) + 0.0722 * f(B) }
+    const count = new Map()
     for (let i = 0; i < d.length; i += 4) {
-      const R = d[i], G = d[i + 1], B = d[i + 2]
-      if (Math.abs(R - 128) < 6 && Math.abs(G - 128) < 6 && Math.abs(B - 128) < 6) continue   // the canvas itself
-      if (R > 210 && G > 210 && B > 210) bright++
-      if (R < 70 && G < 70 && B < 70) dark++
+      const k = d[i] + ',' + d[i + 1] + ',' + d[i + 2]
+      count.set(k, (count.get(k) || 0) + 1)
     }
-    return { bright, dark }
+    const rows = [...count.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ c: k.split(',').map(Number), n }))
+    const bg = rows[0].c                               // the scale's own background
+    // the ink is the most common colour that is not the background and not a
+    // filled tag (tags are wide runs; labels are thin), so: most common of the rest
+    const ink = rows.slice(1).find((r2) => Math.abs(lum(r2.c) - lum(bg)) > 0.02) || rows[1]
+    const hi = Math.max(lum(ink.c), lum(bg)), lo = Math.min(lum(ink.c), lum(bg))
+    const hex = (c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('')
+    return { bg: hex(bg), ink: hex(ink.c), ratio: +((hi + 0.05) / (lo + 0.05)).toFixed(2) }
   })
-  check(scale.bright > scale.dark * 2, `the prices are written in white, not black (${scale.bright} light px vs ${scale.dark} dark)`)
+  check(scale.ratio >= 3, `the prices can actually be read: ${scale.ink} on ${scale.bg} is ${scale.ratio}:1`)
   await page.screenshot({ path: `${OUT}/look.png` })
 
   // ── any interval ──

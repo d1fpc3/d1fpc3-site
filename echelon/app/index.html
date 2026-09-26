@@ -14858,6 +14858,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const light = chBgLight(BG, themeLight); CH.lightBg = light; chSkin(light)
       if (light !== themeLight) chAdaptTokens(T, light)   // a custom background on the other side of the theme
       chSurfaceTokens(T, light)
+      // The prices, the clock and every quiet label are painted ON the canvas, so
+      // their ink has to beat the CANVAS, not the theme. The dark side's slate
+      // (#788397) happens to be the same luminance as a mid grey, so on D1's
+      // #808080 the price scale came out literally unreadable: the labels were
+      // there, in #7c8189, on #808080. A canvas that is actually dark keeps the
+      // slate; anything lighter than that gets white.
+      const bgLum = chLum(BG)
+      const midBg = !light && bgLum != null && bgLum > 0.05   // dark chrome, but a canvas that is not dark
+      if (midBg) { T.faint = '#ffffff'; T.muted = '#ffffff'; T.line = 'rgba(255,255,255,0.22)' }
       if (S.textC) { T.faint = S.textC; T.muted = S.textC }
       if (S.gridC) T.line = S.gridC
       const D = chDefaults(T, light), C = { up: S.up || D.up, down: S.down || D.down, wickUp: S.wickUp || S.up || D.wickUp, wickDown: S.wickDown || D.wickDown, line: S.lineC || D.lineC, cross: S.crossC || D.crossC }
@@ -14874,7 +14883,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (S.litWm !== false) { const handle = '@' + (state.profile?.username || 'd1fpc3'), d = new Date(), tfl = /^(\d+)m$/.test(CH.tf) ? CH.tf : CH.tf === 'D' ? '1D' : CH.tf; const line2 = `${CH.sym}1! | ${tfl} | ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`; const c = S.litWmC || (light ? '#1a1815' : '#e9e3d8'); const phone = window.innerWidth < 600; ctx.save(); ctx.textAlign = 'center'; ctx.fillStyle = alpha(c, 0.5); ctx.font = `700 ${phone ? 15 : 22}px ${GEX_FONT}`; ctx.fillText(handle, L.plotW / 2, phone ? 26 : 34); ctx.fillStyle = alpha(c, 0.38); ctx.font = `500 ${phone ? 10 : 12.5}px ${GEX_FONT}`; ctx.fillText(line2, L.plotW / 2, phone ? 44 : 56); ctx.restore() }
       // sessions: shade everything outside 9:30 to 16:00 ET, hairline at each open
       if (S.sessions && CH.tfSec < 86400) {
-        ctx.fillStyle = S.sessC ? alpha(S.sessC, 0.1) : alpha(T.ink, light ? 0.035 : 0.045)
+        // A shade has to move AWAY from the canvas. On a dark canvas that means
+        // adding light; on a mid grey it means taking light away, which is what
+        // D1's own chart does (his out-of-session blocks read #6d6d6d against
+        // #808080). Lightening a mid grey by 4.5% is a shade nobody can see.
+        ctx.fillStyle = S.sessC ? alpha(S.sessC, 0.1) : (midBg ? alpha('#000000', 0.12) : alpha(T.ink, light ? 0.035 : 0.045))
         let runStart = null
         for (let i = i0; i <= i1 + 1; i++) {
           const b = bars[i]; const m = b ? chMin(b.t) : null; const rth = m != null && m >= 570 && m < 960
