@@ -13003,7 +13003,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        down, no grid. Named so the defaults below read as one decision rather
        than six unexplained hex codes. */
     const D1_BG = '#808080', D1_UP = '#ffffff', D1_DN = '#c2534f'
-    const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP, wickDown: D1_DN, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
+    const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP, wickDown: D1_DN, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, legendOhlc: true, legendInds: true, legendVals: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
       // LIT ships curated, not complete: the levels price reacts to are on, the ten
       // busier parts are one toggle away in the LIT menu. litV stamps the migration.
       lit: true, litV: 2, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: false, litKo: false, litPo3: false, litEighths: false, litGold: true, litVector: true, litDays: 3,
@@ -13926,23 +13926,35 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
          where you look; a plate behind just their own box, not the full height,
          separates them from the newest candles without hiding any. */
       if (S.litPo3 && lit.po3.length) {
-        const cw = Math.max(9, Math.min(20, CH.barW * 3)), gap = Math.max(10, cw * 0.7)
-        const total = lit.po3.length * cw + (lit.po3.length - 1) * gap
-        let x = L.plotW - 8 - total
+        // The Pine draws these in the space to the RIGHT OF THE LAST BAR, each at
+        // its own bar offset (20, 35, 50) and its own width in bars (4, 6, 6).
+        // The port kept those numbers on every candle and then ignored them,
+        // pinning the group to the pane's right edge instead, so they sat against
+        // the scale however far the chart was scrolled. They ride the bars now,
+        // and only fall back to the edge when there is no room out there.
+        const lastX = X(n - 1)
+        const wOf = (c) => Math.max(6, Math.min(26, c.width * CH.barW))
+        const want = lit.po3.map((c) => ({ c, x: lastX + c.offset * CH.barW, w: wOf(c) }))
+        const right = Math.max(...want.map((p) => p.x + p.w))
+        const shift = right > L.plotW - 8 ? right - (L.plotW - 8) : 0
+        for (const p of want) p.x -= shift
+        const cw = wOf(lit.po3[0]), gap = Math.max(10, cw * 0.7)
+        const total = right - shift - want[0].x
+        let x = want[0].x
         if (x > 40) {
           if (x < X(n - 1) + CH.barW && /^#[0-9a-f]{6}$/i.test(CH.bgNow || '')) {
             let t = Infinity, b = -Infinity
             for (const c of lit.po3) { t = Math.min(t, Y(c.h)); b = Math.max(b, Y(c.l)) }
             ctx.fillStyle = alpha(CH.bgNow, 0.78); ctx.fillRect(x - 7, Math.max(0, t - 16), L.plotW - x + 7, Math.min(L.mainH, b + 5) - Math.max(0, t - 16))
           }
-          for (const c of lit.po3) {
+          for (const p of want) {
+            const c = p.c, cw = p.w; x = p.x
             const mid = x + cw / 2, up = c.c >= c.o, body = up ? cc('litPo3Up') : cc('litPo3Dn')
             const top = Math.min(Y(c.o), Y(c.c)), hgt = Math.max(1, Math.abs(Y(c.c) - Y(c.o)))
             ctx.strokeStyle = cc('litPo3Dn'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Math.round(mid) + 0.5, Y(c.h)); ctx.lineTo(Math.round(mid) + 0.5, Y(c.l)); ctx.stroke()
             ctx.fillStyle = body; ctx.fillRect(x, top, cw, hgt)
             ctx.strokeStyle = light ? '#000' : 'rgba(0,0,0,0.6)'; ctx.strokeRect(Math.round(x) + 0.5, Math.round(top) + 0.5, Math.round(cw), Math.round(hgt))
             tag(c.label.replace(' PO3', ''), mid, Y(c.h) - 7, T.faint, 'center', 9.5, 40)
-            x += cw + gap
           }
         }
       }
@@ -15193,6 +15205,22 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // latest button
       const lb = el('ch-latest'); if (lb) lb.hidden = CH.offset >= -2
     }
+    /* What the chart says about itself is the member's call. On a shared screen
+       the list of indicators is a giveaway, the numbers beside each one are noise
+       once you know what you are running, and the OHLC row is four prices you can
+       already read off the bar. Each can go, and the legend keeps working: the eye
+       and gear stay, so nothing becomes unreachable. */
+    function chLegendTrim(lg) {
+      const S = CH.s
+      if (S.legendOhlc === false) lg.querySelectorAll('.ohlc').forEach((n) => n.remove())
+      if (S.legendInds === false) { lg.querySelectorAll('.ln[data-ind]').forEach((n) => n.remove()); return }
+      if (S.legendVals === false) {
+        for (const row of lg.querySelectorAll('.ln[data-ind]')) {
+          const keep = row.querySelector('.nm') || row.firstElementChild   // the ma row names itself in its first span
+          for (const n of [...row.children]) if (n !== keep && !n.classList.contains('ic')) n.remove()
+        }
+      }
+    }
     function chLegend(b, i) {
       const lg = el('ch-legend'); if (!lg) return
       lg.hidden = !CH.s.legend
@@ -15200,8 +15228,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const bars = chVisible(); const prev = bars[i - 1]; const d = b.c - b.o; const chg = prev ? b.c - prev.c : d
       const up = d >= 0
       const inds = `${CH.s.lit ? '<span class="ind">D1 LIT</span>' : ''}${CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin) ? '<span class="ind">D1 GEX</span>' : ''}`
-      if (window.innerWidth < 520 && !CH.hover) { lg.innerHTML = `<b>${CH.sym}</b><span class="tf">${CH.tf}</span><span>C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)} (${(d / b.o * 100).toFixed(2)}%)</span>${inds}`; return }
-      if (window.innerWidth < 520) { lg.innerHTML = `<b>${CH.sym}</b><span class="tf">${CH.tf}</span><span>O <i>${chPx(b.o)}</i></span><span>H <i>${chPx(b.h)}</i></span><span>L <i>${chPx(b.l)}</i></span><span>C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)}</span>${CH.s.volume ? `<span>V <i>${b.v.toLocaleString()}</i></span>` : ''}`; return }
+      if (window.innerWidth < 520 && !CH.hover) { lg.innerHTML = `<b>${CH.sym}</b><span class="tf">${CH.tf}</span><span class="ohlc">C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)} (${(d / b.o * 100).toFixed(2)}%)</span>${inds}`; return }
+      if (window.innerWidth < 520) { lg.innerHTML = `<b>${CH.sym}</b><span class="tf">${CH.tf}</span><span class="ohlc">O <i>${chPx(b.o)}</i></span><span class="ohlc">H <i>${chPx(b.h)}</i></span><span class="ohlc">L <i>${chPx(b.l)}</i></span><span>C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)}</span>${CH.s.volume ? `<span>V <i>${b.v.toLocaleString()}</i></span>` : ''}`; return }
       const eye = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>', gearI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>'
       const ic = (key, menu) => `<span class="ic"><button type="button" data-act="eye" data-key="${key}" title="Hide">${eye}</button><button type="button" data-act="gear" data-menu="${menu}" title="Settings">${gearI}</button></span>`
       const dir = up ? 'up' : 'down', cdir = chg >= 0 ? 'up' : 'down', tfl = /^(\d+)m$/.test(CH.tf) ? CH.tf.slice(0, -1) : CH.tf
@@ -15222,7 +15250,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.s.smt) rows.push(`<div class="ln" data-ind="smt"><span class="nm">SMT</span><span>${chSmtPeer()} ${CH.s.smtLen || 5}</span>${ic('smt', 'ind:smt')}</div>`)
       if (CH.s.prevDay && !CH.s.lit) rows.push(`<div class="ln" data-ind="prev"><span class="nm">PDH / PDL</span>${ic('prevDay', 'ind:prev')}</div>`)
       if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${chGexRead(g, last)}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${ic('gex', 'ind:gex')}</div>`) }
-      const html = rows.join(''); if (lg._html !== html) { lg._html = html; lg.innerHTML = html }
+      const html = rows.join('')
+      const shape = (CH.s.legendOhlc === false ? 'o' : '') + (CH.s.legendInds === false ? 'i' : '') + (CH.s.legendVals === false ? 'v' : '')
+      if (lg._html !== html || lg._shape !== shape) { lg._html = html; lg._shape = shape; lg.innerHTML = html; chLegendTrim(lg) }
     }
 
     /* ── drawings: horizontal, vertical, trendline, ray, rectangle, fib, positions, text, measure ──
@@ -16971,7 +17001,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         color('crossC', 'Colour'); row('Style', segEl('crossStyle', [['dash', 'Dashed'], ['dot', 'Dotted'], ['solid', 'Solid']]))
         header('Sessions'); sessionsUi()
         header('Axes and labels'); toggle('badj', 'Adjust for contract rollovers', 'Lifts every bar before a roll onto the current contract, so levels and averages read on one price line (the ADJ button)', () => { chAdjUi(); chBuild(); CH.auto = true }); toggle('rollMarks', 'Mark rollovers', 'An R flag on the time axis where the front month changed')
-        color('textC', 'Axis text'); toggle('legend', 'OHLC legend', '', () => chDraw()); toggle('lastLine', 'Last price line'); color('lastC', 'Last price colour', 'Empty follows the candle', 'candle'); toggle('countdown', 'Bar countdown', 'Under the last price'); toggle('axisInd', 'Indicator values on the scale', 'Averages and VWAP tagged at their last value')
+        color('textC', 'Axis text')
+        toggle('legend', 'Legend', 'The block in the top left corner', () => chDraw())
+        toggle('legendOhlc', 'Open, high, low, close', 'The four prices beside the symbol', () => chDraw())
+        toggle('legendInds', 'Indicator names', 'Off keeps what you are running to yourself on a shared screen', () => chDraw())
+        toggle('legendVals', 'Indicator values', 'The numbers each indicator prints beside its name', () => chDraw())
+        ; toggle('lastLine', 'Last price line'); color('lastC', 'Last price colour', 'Empty follows the candle', 'candle'); toggle('countdown', 'Bar countdown', 'Under the last price'); toggle('axisInd', 'Indicator values on the scale', 'Averages and VWAP tagged at their last value')
         header('Volume'); volumeUi()
         header('Drawing')
         row('Magnet', segEl('magnet', [['off', 'Off'], ['weak', 'Weak'], ['strong', 'Strong']], chMagnetUi), 'Snap points to O H L C. Hold Ctrl for strong.')

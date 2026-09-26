@@ -94,15 +94,15 @@ const seed = (ctx) => ctx.addInitScript(([k, v]) => {
   await page.screenshot({ path: `${OUT}/look.png` })
 
   // ── any interval ──
-  const tfs = await page.evaluate(() => [...document.querySelectorAll('#ch-tf button')].map((b) => b.textContent))
-  check(tfs.includes('+'), `the interval row says any interval is available (${tfs.join(' ')})`)
+  // the row's chevron opens the whole list; app-chart-ux-visual.mjs walks it
+  check(await page.evaluate(() => !!document.getElementById('ch-tf-any')), 'the interval row opens onto every interval')
   await page.evaluate(() => document.getElementById('ch-tf-any').click())
-  await page.waitForTimeout(400)
-  check(await page.evaluate(() => !document.getElementById('ch-int').hidden), 'the + opens the interval box')
-  await page.evaluate(() => { const i = document.getElementById('ch-int').querySelector('input'); i.value = '45'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
+  await page.waitForTimeout(600)
+  const ivn = await page.evaluate(() => document.querySelectorAll('#ch-menu-body .ch-ivs button').length)
+  check(ivn > 15, `and that list is the full one (${ivn} intervals)`)
+  await page.evaluate(() => [...document.querySelectorAll('#ch-menu-body .ch-ivs button')].find((b2) => b2.textContent === '45m')?.click())
   await page.waitForTimeout(2600)
-  check(await page.evaluate(() => window.__CH.tf) === '45m', `typing 45 gives a 45 minute chart (${await page.evaluate(() => window.__CH.tf)})`)
-  check(await page.evaluate(() => [...document.querySelectorAll('#ch-tf button')].some((b) => b.textContent === '45m')), 'and it keeps the interval on the row')
+  check(await page.evaluate(() => window.__CH.tf) === '45m', `picking 45m gives a 45 minute chart (${await page.evaluate(() => window.__CH.tf)})`)
   await page.screenshot({ path: `${OUT}/interval-45m.png` })
   await ctx.close()
 }
