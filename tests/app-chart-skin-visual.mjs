@@ -2,7 +2,7 @@
 //   1. from the repo root:  python -m http.server 8123
 //   2. node tests/app-chart-skin-visual.mjs        (APP_URL / OUT / EMAIL / THEME env)
 // Signs in, opens the Chart and proves: the chrome follows the canvas
-// background (dark by default in the dark theme, light the moment the
+// background (D1's grey by default, light or dark the moment the
 // background is set light), the sidebar folds away from the bar button with a
 // real transition and stays folded on the next visit, the settings dialog has
 // no presets, every colour is a pill that opens the shared picker (swatches,
@@ -74,7 +74,7 @@ async function run(vpName) {
 
   // 1. the chrome sits on the same side as the canvas
   let sk = await skin(page);
-  check(sk.skin === "dark" && sk.panel === "#131722" && sk.bar === rgb("#131722") && sk.foot === rgb("#131722") && sk.bgNow === "#131722", `dark by default: skin ${sk.skin}, panel ${sk.panel}, bar ${sk.bar}, canvas ${sk.bgNow} (pixel ${sk.px} under the session shade)`);
+  check(sk.skin === "light" && sk.bgNow === "#8f8f8f" && sk.bar === rgb("#ffffff"), `D1's grey by default: skin ${sk.skin}, canvas ${sk.bgNow}, bar ${sk.bar} (pixel ${sk.px} under the session shade)`);
   await page.screenshot({ path: `${OUT}/${tag}-chart.png` });
 
   if (vpName !== "phone") {
@@ -130,7 +130,7 @@ async function run(vpName) {
 
   // 6. switch and segment
   const wicks = await page.evaluate(() => { const r = [...document.querySelectorAll("#ch-menu-body .ch-row")].find((x) => x.querySelector(".ch-row-t")?.firstChild?.textContent === "Wicks"); const t = r.querySelector(".tgl.sm .track"); t.click(); const a = window.__CH.s.wicks; const bg = getComputedStyle(t).backgroundColor; t.click(); return { a, b: window.__CH.s.wicks, bg, on: getComputedStyle(t).backgroundColor }; });
-  check(wicks.a === false && wicks.b === true && wicks.on === rgb("#c9a24a"), `pill switch toggles wicks (off then on, accent ${wicks.on})`);
+  check(wicks.a === false && wicks.b === true && wicks.on === rgb("#8a6a1e"), `pill switch toggles wicks (off then on, accent ${wicks.on})`);
   const seg = await page.evaluate(() => { const r = [...document.querySelectorAll("#ch-menu-body .ch-row")].find((x) => x.querySelector(".ch-row-t")?.firstChild?.textContent === "Body width"); const sg = r.querySelector(".seg"); sg.querySelectorAll("button")[2].click(); const i = sg.style.getPropertyValue("--i"), n = sg.style.getPropertyValue("--n"), tf = getComputedStyle(sg, "::before").transform; const v = window.__CH.s.bodyW; sg.querySelectorAll("button")[1].click(); return { v, i, n, tf, back: window.__CH.s.bodyW, i2: sg.style.getPropertyValue("--i") }; });
   check(seg.v === "wide" && seg.i === "2" && seg.n === "3" && seg.tf !== "none" && seg.back === "normal" && seg.i2 === "1", `segment thumb slides: wide (cell ${seg.i} of ${seg.n}) then normal`);
 
@@ -144,7 +144,7 @@ async function run(vpName) {
   await page.screenshot({ path: `${OUT}/${tag}-settings-light.png` });
   await page.click("#ch-cpick .rs"); await page.waitForTimeout(400);
   sk = await skin(page);
-  check(sk.skin === "dark" && sk.bar === rgb("#131722"), "and back to dark on Default");
+  check(sk.skin === "light" && sk.bgNow === "#8f8f8f", "and back to the grey on Default");
   // 8. the accent is a colour too
   await page.click('#ch-menu-body .ch-cbtn[data-key="accentC"]'); await page.waitForTimeout(200);
   await page.click('#ch-cpick .g button[data-c="#ff9800"]'); await page.waitForTimeout(350);
@@ -152,7 +152,7 @@ async function run(vpName) {
   check(ac.acc === "#ff9800" && ac.ink === "#14110a" && ac.done === rgb("#ff9800") && (vpName === "phone" || ac.nav === rgb("#ff9800")) && ac.tf === rgb("#ff9800"), `accent recolours the chrome: Done ${ac.done}, active timeframe ${ac.tf}`);
   await page.screenshot({ path: `${OUT}/${tag}-accent.png` });
   await page.click("#ch-cpick .rs"); await page.waitForTimeout(300);
-  check(await page.evaluate(() => document.getElementById("v-chart").style.getPropertyValue("--acc") === "" && getComputedStyle(document.querySelector("#ch-tf button.on")).color === "rgb(201, 162, 74)"), "accent back to gold");
+  check(await page.evaluate(() => document.getElementById("v-chart").style.getPropertyValue("--acc") === "" && getComputedStyle(document.querySelector("#ch-tf button.on")).color === "rgb(138, 106, 30)"), "accent back to gold");
 
   // 9. Done plays the dialog out
   await page.click(".ch-dlg-foot .ok"); await page.waitForTimeout(40);

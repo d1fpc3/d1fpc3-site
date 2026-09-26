@@ -1282,7 +1282,7 @@
        side as the chart. --acc is the accent (gold on dark, TradingView blue on
        light) and can be any colour from Settings. */
     #v-chart { --acc: #c9a24a; --acc-ink: #14110a; --bg: #131722; --panel: #131722; --panel-2: #1e222d; --panel-3: #2a2e39; --field: #1a1f2b; --line: #2a2e39; --line-bright: #363a45; --ink: #d1d4dc; --muted: #b2b5be; --faint: #787b86; --good: #089981; --bad: #f23645; --gold: var(--acc); --tv-blue: var(--acc); --tv-tint: color-mix(in srgb, var(--acc) 14%, transparent); --shadow: 0 24px 64px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.4); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif; }
-    #v-chart[data-skin="light"] { --acc: #2962ff; --acc-ink: #ffffff; --bg: #ffffff; --panel: #ffffff; --panel-2: #f0f3fa; --panel-3: #e6e9f0; --field: #ffffff; --line: #e0e3eb; --line-bright: #d1d4dc; --ink: #131722; --muted: #434651; --faint: #787b86; --good: #089981; --bad: #f23645; --tv-tint: color-mix(in srgb, var(--acc) 11%, transparent); --shadow: 0 16px 48px rgba(19,23,34,0.22), 0 2px 4px rgba(0,0,0,0.18); }
+    #v-chart[data-skin="light"] { --acc: #8a6a1e; --acc-ink: #ffffff; --bg: #ffffff; --panel: #ffffff; --panel-2: #f0f3fa; --panel-3: #e6e9f0; --field: #ffffff; --line: #e0e3eb; --line-bright: #d1d4dc; --ink: #131722; --muted: #434651; --faint: #787b86; --good: #089981; --bad: #f23645; --tv-tint: color-mix(in srgb, var(--acc) 11%, transparent); --shadow: 0 16px 48px rgba(19,23,34,0.22), 0 2px 4px rgba(0,0,0,0.18); }
     #v-chart .ch-ib.on, #v-chart .ch-tools button.on, #v-chart .ch-selbar button.on, #v-chart #ch-stay.on, #v-chart #ch-lockall.on { color: var(--tv-blue); background: var(--tv-tint); }
     #v-chart .ch-part.on { color: var(--tv-blue); border-color: rgba(41,98,255,0.45); background: rgba(41,98,255,0.07); }
     #v-chart .ch-selbar .lbl:focus { border-color: var(--tv-blue); }
@@ -12942,14 +12942,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        every colour and toggle. One canvas, redrawn on demand. */
     const CH_TF = { '1m': ['1m', 1], '3m': ['1m', 3], '5m': ['5m', 5], '15m': ['5m', 15], '30m': ['5m', 30], '1h': ['60m', 60], '4h': ['60m', 240], 'D': ['1d', 1440] }
     const CH_SPAN = { '1m': 32, '5m': 200, '60m': 2800, '1d': 9800 }   // days each source reaches back, at most (the archive holds Databento history from 2019; the read keeps the newest 60k bars)
-    const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: '', down: '', wickUp: '', wickDown: '', border: true, grid: true, volume: true, sessions: true, lastLine: true, legend: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
+    /* D1's chart, as the chart's own look: grey canvas, white up, muted red
+       down, no grid. Named so the defaults below read as one decision rather
+       than six unexplained hex codes. */
+    const D1_BG = '#8f8f8f', D1_UP = '#ffffff', D1_DN = '#c2534f'
+    const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP, wickDown: D1_DN, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
       // LIT ships curated, not complete: the levels price reacts to are on, the ten
       // busier parts are one toggle away in the LIT menu. litV stamps the migration.
       lit: true, litV: 2, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: false, litKo: false, litPo3: false, litEighths: false, litGold: true, litVector: true, litDays: 3,
       litPm: false, litNwog: false, litDr: false, litDrBack: 3, litSig: false, litSig1: false, litSigAnc: false, litDs: true, litDsWeek: true, litOpen22: false, litLdn: false, litWm: true, litAlerts: true,
       litPmC: '', litPmW: 2, litNwogC: '', litNwogF: 0.12, litDrC: '', litDrHlC: '', litDrW: 1, litSigC: '', litSigW: 1, litDsC: '', litOpen22C: '', litOpen22W: 1, litLdnC: '', litLdnF: 0.1, litWmC: '',
       // chart style (empty colour = the theme token)
-      accentC: '', magnet: 'off', borderUp: '', borderDown: '', wicks: true, bodyW: 'normal', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: true, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
+      accentC: '', magnet: 'off', borderUp: D1_UP, borderDown: D1_DN, wicks: true, bodyW: 'normal', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: false, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
       volUp: '', volDown: '', volA: 0.35, volSize: 'normal', volMa: false, volMaN: 20, volMaC: '',
       // indicators: moving averages are a list, VWAP has bands, LIT and GEX carry a colour and a width per part
       ma: null, vwapC: '', vwapW: 1.2, vwapStyle: 'dash', vwapBands: false, vwapBandC: '', vwapBandA: 0.08, prevDayC: '',
@@ -12980,11 +12984,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        The canvas default follows the app theme. Every colour the member has not
        set comes from chDefaults() for that side, and chSkin() stamps data-skin on
        the view so the bar, rail, foot and dialogs (CSS tokens) match the canvas. */
-    const chBgDefault = (themeLight) => themeLight ? '#ffffff' : '#131722'
+    const chBgDefault = (themeLight) => themeLight ? '#ffffff' : D1_BG
     function chDefaults(T, light) {
       const S = CH.s
       return light
-        ? { bg: '#ffffff', bg2: S.bg || '#ffffff', up: T.good, down: '#ffffff', wickUp: S.up || T.good, wickDown: '#111111', borderUp: '#12823b', borderDown: '#111111', lineC: T.gold, gridC: T.line, crossC: T.ink, sessC: T.ink, textC: T.faint, lastC: T.good, volUp: S.up || T.good, volDown: '#8a929b', volMaC: T.gold, vwapC: T.ink, vwapBandC: T.gold, prevDayC: T.faint, accentC: '#2962ff' }
+        ? { bg: '#ffffff', bg2: S.bg || '#ffffff', up: T.good, down: '#ffffff', wickUp: S.up || T.good, wickDown: '#111111', borderUp: '#12823b', borderDown: '#111111', lineC: T.gold, gridC: T.line, crossC: T.ink, sessC: T.ink, textC: T.faint, lastC: T.good, volUp: S.up || T.good, volDown: '#8a929b', volMaC: T.gold, vwapC: T.ink, vwapBandC: T.gold, prevDayC: T.faint, accentC: '#8a6a1e' }   // gold, not TradingView blue: the app is gold and the chart sits inside it
         : { bg: '#131722', bg2: S.bg || '#131722', up: '#089981', down: '#f23645', wickUp: S.up || '#089981', wickDown: S.down || '#f23645', borderUp: S.up || '#089981', borderDown: S.down || '#f23645', lineC: T.gold, gridC: T.line, crossC: T.ink, sessC: T.ink, textC: T.faint, lastC: T.good, volUp: S.up || '#089981', volDown: S.down || '#f23645', volMaC: T.gold, vwapC: T.ink, vwapBandC: T.gold, prevDayC: T.faint, accentC: '#c9a24a' }
     }
     function chSkin(light) {
@@ -13079,6 +13083,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* Saved settings hold every key, so a new default never reaches anyone who has
        touched the chart once. This flips the ten busy LIT parts off a single time,
        stamps litV, and never runs again. Colours, widths and the rest are left alone. */
+    if (CH.s.lookV !== 1) {
+      CH.s.bg = ''; CH.s.bg2 = ''; CH.s.up = D1_UP; CH.s.down = D1_DN; CH.s.wickUp = D1_UP; CH.s.wickDown = D1_DN
+      CH.s.borderUp = D1_UP; CH.s.borderDown = D1_DN; CH.s.grid = false; CH.s.gridV = false; CH.s.lookV = 1
+      try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {}
+    }
     if (CH.s.litV !== 2) { for (const k of ['litMarks', 'litKo', 'litPo3', 'litEighths', 'litPm', 'litNwog', 'litDr', 'litSig', 'litOpen22', 'litLdn']) CH.s[k] = false; CH.s.litV = 2; try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {} }
     try { CH.drawings = JSON.parse(localStorage.getItem(chDrKey()) || '[]') } catch { CH.drawings = [] }
     CH.drawings.forEach((d) => { if (!d.id) d.id = Math.random().toString(36).slice(2, 9) })   // older drawings predate ids; undo tracks selection by id
@@ -14860,7 +14869,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ctx.font = `11px ${GEX_FONT}`; ctx.textBaseline = 'middle'
       if (!n) { ctx.fillStyle = T.faint; ctx.textAlign = 'center'; ctx.fillText(CH.err ? `The tape is not answering: ${CH.err}` : 'Loading the archive…', L.plotW / 2, L.mainH / 2); return }
       if (S.watermark) { ctx.save(); ctx.font = `700 ${Math.min(160, L.mainH * 0.42)}px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = alpha(T.ink.length === 7 ? T.ink : (light ? '#000000' : '#ffffff'), light ? 0.045 : 0.05); ctx.fillText(CH.sym, L.plotW / 2, L.mainH / 2); ctx.restore() }
-      if (S.lit && S.litWm !== false) { const handle = '@' + (state.profile?.username || 'd1fpc3'), d = new Date(), tfl = /^(\d+)m$/.test(CH.tf) ? CH.tf : CH.tf === 'D' ? '1D' : CH.tf; const line2 = `${CH.sym}1! | ${tfl} | ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`; const c = S.litWmC || (light ? '#1a1815' : '#e9e3d8'); ctx.save(); ctx.textAlign = 'center'; ctx.fillStyle = alpha(c, 0.55); ctx.font = `700 ${window.innerWidth < 600 ? 13 : 18}px ${GEX_FONT}`; ctx.fillText(handle, L.plotW / 2, L.mainH - 34); ctx.fillStyle = alpha(c, 0.45); ctx.font = `500 ${window.innerWidth < 600 ? 10 : 12.5}px ${GEX_FONT}`; ctx.fillText(line2, L.plotW / 2, L.mainH - 16); ctx.restore() }
+      if (S.litWm !== false) { const handle = '@' + (state.profile?.username || 'd1fpc3'), d = new Date(), tfl = /^(\d+)m$/.test(CH.tf) ? CH.tf : CH.tf === 'D' ? '1D' : CH.tf; const line2 = `${CH.sym}1! | ${tfl} | ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`; const c = S.litWmC || (light ? '#1a1815' : '#e9e3d8'); const phone = window.innerWidth < 600; ctx.save(); ctx.textAlign = 'center'; ctx.fillStyle = alpha(c, 0.5); ctx.font = `700 ${phone ? 15 : 22}px ${GEX_FONT}`; ctx.fillText(handle, L.plotW / 2, phone ? 26 : 34); ctx.fillStyle = alpha(c, 0.38); ctx.font = `500 ${phone ? 10 : 12.5}px ${GEX_FONT}`; ctx.fillText(line2, L.plotW / 2, phone ? 44 : 56); ctx.restore() }
       // sessions: shade everything outside 9:30 to 16:00 ET, hairline at each open
       if (S.sessions && CH.tfSec < 86400) {
         ctx.fillStyle = S.sessC ? alpha(S.sessC, 0.1) : alpha(T.ink, light ? 0.035 : 0.045)
