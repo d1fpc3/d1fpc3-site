@@ -288,7 +288,33 @@
     /* Under 380 the clock loses its words and keeps its colour. On a 320px SE the bar was
        still taking two rows and 28% of the screen; the dot alone still says live, stale or
        dead, which is the part that is actually watched. */
-    @media (max-width: 380px) { .pulse-short { display: none; } .pulse { gap: 0; } .title { font-size: 14.5px; } }
+    @media (max-width: 380px) { .pulse { gap: 7px; } .title { font-size: 14px; } }
+
+    /* ════ the header on a phone ═════════════════════════════
+       It used to wrap to two rows: the back link and the title on one, the collector clock,
+       the refresh and a boxed SIGN OUT on another. That is 190px, 22% of an iPhone, spent
+       before a single number. One row now: back, title, the clock, sign out. The clock is
+       the thing worth watching, so it is the only thing in the bar with any colour. */
+    @media (max-width: 760px) {
+      .topbar { flex-wrap: nowrap; min-height: 52px; padding: 6px 14px; gap: 10px; }
+      .topbar { padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px)); }
+      /* the chevron alone: "Admin" is a text node, so zeroing the font hides it and the svg
+         keeps its own width */
+      .back { font-size: 0; gap: 0; padding: 9px 8px; margin-left: -6px; }
+      .back svg { width: 17px; height: 17px; }
+      .title { font-size: 15.5px; }
+      .status { gap: 12px; }
+      .pulse { font-size: 12.5px; }
+      .pulse .dot { width: 7px; height: 7px; }
+      /* sign out is the least-pressed control on the page and it was the loudest thing in the
+         bar. Plain text, no box, and the username drops: this desk has one user. */
+      .who .dsk-out, .who .dsk-out-inline { padding: 9px 2px; border: 0 !important; background: none !important; font-size: 12.5px; color: var(--faint); letter-spacing: 0; text-transform: none; border-radius: 8px; }
+      .who .dsk-who, .who .dsk-sep { display: none !important; }
+    }
+    /* A pull from the top already refreshes on a touch screen, so the button is a second way
+       to do the same thing taking room in a bar that has none. It stays on pointer devices,
+       which have no pull. The clock beside it is what D1 actually reads, and that stays. */
+    @media (hover: none) { #refresh { display: none; } }
 
     .panel-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
     .panel-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
@@ -936,7 +962,10 @@
     }
     @media (max-width: 640px) {
       .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 12px; }
-      .strip .cell { padding: 11px 13px 12px; } .strip .v { font-size: 19px; }
+      .strip .cell { padding: 11px 13px 12px; display: flex; flex-direction: column; } .strip .v { font-size: 19px; }
+      /* these read "$12 a call · stop -$15 · pass …" and "$47.83 cash + $10.32 in ope…" on a
+         phone: the line under each number is the line that says what the number means */
+      .strip .m { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.35; margin-top: 4px; }
 
       .acct-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .hstat-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }

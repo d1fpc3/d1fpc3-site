@@ -86,7 +86,8 @@ async function run(vpName) {
   page.on('pageerror', (e) => errs.push(e.message))
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|404/.test(m.text())) errs.push(m.text()) })
   await page.goto(URL, { waitUntil: 'domcontentloaded' })
-  await page.waitForSelector('#refresh', { timeout: 30000 })
+  // attached, not visible: on a touch screen the button is deliberately hidden
+  await page.waitForSelector('#refresh', { state: 'attached', timeout: 30000 })
   // the boot is done when the desk has stamped its own clock, not when the label happens to
   // read "now": the markup must not claim the desk is current before a read has landed
   await page.waitForFunction(() => window.__desk?.RF?.at > 0, null, { timeout: 45000 })
@@ -101,11 +102,18 @@ async function run(vpName) {
   check(reads0 > 5, `the first load read the database ${reads0} times`)
   await page.screenshot({ path: `${OUT}/${tag}-bar.png`, clip: { x: 0, y: 0, width: VP[vpName].viewport.width, height: 150 } })
 
-  // 2. the button actually re-reads, and says so while it is working
-  await page.click('#refresh')
+  // 2. it actually re-reads, and says so while it is working. On a touch screen the button
+  // is deliberately not there (the pull does it), so the phone calls the same path.
+  if (vpName === 'phone') {
+    check(await page.evaluate(() => getComputedStyle(document.getElementById('refresh')).display === 'none'), 'no refresh button on a touch screen: the pull is the way')
+    check(await page.evaluate(() => { const p = document.getElementById('pulse'); return !!p && p.offsetHeight > 0 }), 'the collector clock stays in the bar')
+    page.evaluate(() => window.__desk.refresh())
+  } else {
+    await page.click('#refresh')
+  }
   await page.waitForTimeout(120)
   const mid = await state(page)
-  check(mid.busy, 'the button spins while it is reading')
+  check(mid.busy, 'it spins while it is reading')
   await page.waitForFunction(() => !document.getElementById('refresh').classList.contains('busy'), null, { timeout: 30000 })
   const after = await state(page)
   check(after.at - reads0 >= 10, `the click re-read every panel (${after.at - reads0} reads)`)
@@ -231,6 +239,21 @@ async function run(vpName) {
     check(await page.evaluate(() => getComputedStyle(document.getElementById('refresh')).display !== 'none'), 'the refresh button shows on desktop')
     const lbl = await page.evaluate(() => getComputedStyle(document.querySelector('#refresh .rt')).display)
     check(lbl !== 'none', 'the age label is spelled out on desktop')
+  }
+  if (vpName === 'phone') {
+    // one row, not two: the bar used to wrap and spend 22% of the screen before a number
+    const bar = await page.evaluate(() => {
+      const t = document.querySelector('.topbar'), st = document.getElementById('topstick')
+      // centres, not tops: the children are different heights on one centred row, so raw
+      // tops differ by a few px even when nothing has wrapped
+      const rows = new Set([...t.children].filter((c) => c.offsetParent).map((c) => { const r = c.getBoundingClientRect(); return Math.round((r.top + r.bottom) / 2 / 8) }))
+      return { h: Math.round(t.getBoundingClientRect().height), top: Math.round(st.getBoundingClientRect().height), rows: rows.size }
+    })
+    check(bar.rows === 1 && bar.h <= 64, 'the header is one row, ' + bar.h + 'px tall (sticky region ' + bar.top + 'px)')
+    const cut = await page.evaluate(() => [...document.querySelectorAll('.strip .m')].filter((n) => n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent.trim().slice(0, 40)))
+    check(cut.length === 0, 'no status cell cuts its own subtitle' + (cut.length ? ': ' + cut.slice(0, 2).join(' | ') : ''))
+    const so = await page.evaluate(() => { const b = document.querySelector('.who .dsk-out'); if (!b) return null; const cs = getComputedStyle(b); return { txt: b.textContent.trim(), border: cs.borderTopWidth, w: Math.round(b.getBoundingClientRect().width) } })
+    check(so && !/@/.test(so.txt) && so.border === '0px' && so.w < 110, 'sign out is plain text in the bar, not a box: "' + (so && so.txt) + '" ' + (so && so.w) + 'px')
   }
 
   await page.screenshot({ path: `${OUT}/${tag}-top.png`, fullPage: false })
