@@ -29,7 +29,11 @@ const fails = []; const ok = (c, w) => { console.log((c ? "ok   " : "FAIL ") + w
 const vis = (sel) => page.evaluate((s) => { const n = document.querySelector(s); return !!n && n.offsetParent !== null && n.getBoundingClientRect().height > 0 }, sel);
 await go("course");
 const m = await page.evaluate(() => ({ cards: [...document.querySelectorAll("#study-map .sm-card")].map((c) => c.querySelector(".sm-num").textContent), cur: document.querySelectorAll("#study-map .sm-card.cur").length, go: document.querySelector("#study-map .sm-go")?.textContent, text: document.getElementById("study-map").innerText }));
-ok(m.cards.join() === "01,02,03,04,05,06,07", "Study opens on seven numbered chapters: " + m.cards.join(" "));
+// The invariant is "numbered in order with no gaps", not a count frozen when this was
+// written: MSNR shipped as chapter 08 in September and the old 01..07 list then failed on a
+// course that had simply grown.
+const want = Array.from({ length: m.cards.length }, (_, i) => String(i + 1).padStart(2, "0")).join();
+ok(m.cards.length >= 7 && m.cards.join() === want, `Study opens on ${m.cards.length} chapters, numbered in order: ` + m.cards.join(" "));
 ok(!(await vis("#lesson-block")) && !(await vis("#index")), "no lesson list and no lesson on the map");
 ok(m.cur === 1 && /Continue|Start/.test(m.go || ""), "one chapter is marked as where you are: " + m.go);
 ok(!/BASICS|INTERMEDIATE|ADVANCED|The trap|The cycle|Sessions and timing|The daily playbook|Managing the trade/.test(m.text), "numbers only, no level or chapter names: ok");
