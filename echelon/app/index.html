@@ -10366,9 +10366,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (n.actor_id) av.addEventListener('click', (e) => { e.stopPropagation(); openChatProfile(n.actor_id) })
         row.addEventListener('click', () => {
           if (n.kind === 'ann') { showView('chat'); if (n.channel_id) openConversation('channel', n.channel_id); return }
-          if (n.kind === 'news') { showView('news'); return }
+          if (n.kind === 'news') { showView('news'); newsOpenAt(n.created_at); return }
           { const mm = /^mentioned you in #([a-z0-9_-]+)/i.exec(n.body || ''); if (n.kind === 'system' && mm) { const slug = mm[1].toLowerCase(); showView('chat'); (async () => { let c = chat.channels?.find((x) => x.slug === slug); if (!c) { const { data } = await supabase.from('channels').select('id').eq('slug', slug).maybeSingle(); c = data } for (let i = 0; i < 30 && !chat.loaded; i++) await new Promise((r) => setTimeout(r, 100)); if (c) openConversation('channel', c.id) })(); return } }
-          if (n.kind === 'gex') { showView('gex'); return }
+          if (n.kind === 'gex') { showView('gex'); gexOpenAt(n.created_at); return }
           if (n.recap_id) { openSharedPost(n.recap_id); return }
           if (n.actor_id) openChatProfile(n.actor_id)
         })
@@ -10378,6 +10378,37 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const unreadIds = rows.filter((n) => !n.read_at).map((n) => n.id)
       if (unreadIds.length) { await supabase.from('notifications').update({ read_at: new Date().toISOString() }).in('id', unreadIds); if (host === el('inbox')) setBell(0); else refreshBell() }
       else refreshBell()
+    }
+
+    /* A notification is about one moment, so tapping it should land on that moment. Both of
+       these used to call showView() and stop, which opened the board or the calendar on
+       TODAY: a GEX alert from Tuesday showed Friday's market, which is a different market.
+       Both fail quiet. Landing on the right page and the wrong day is a bad outcome; landing
+       on the right page is not, so nothing here is allowed to throw and swallow the tap. */
+    const ET_YMD = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' })
+    const ET_HM = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false })
+    async function gexOpenAt(iso) {
+      try {
+        const when = new Date(iso); if (isNaN(when)) return
+        const day = ET_YMD.format(when)
+        if (day === ET_YMD.format(new Date())) { showGexDay(null); return }   // live already is that day
+        if (!GEX.days.length) await loadGexHistory()
+        const entry = GEX.days.find((d) => d.date === day)
+        if (!entry) return            // older than the archive keeps; the live board is the honest fallback
+        // the print it was written from: the last one at or before its own clock
+        const hhmm = ET_HM.format(when).replace(':', '')
+        const times = entry.times || []
+        const t = times.filter((x) => x <= hhmm).pop() || times[times.length - 1] || null
+        showGexDay(day, t)
+      } catch {}
+    }
+    function newsOpenAt(iso) {
+      try {
+        const when = new Date(iso); if (isNaN(when)) return
+        const wk = newsSunday(when)
+        if (wk === newsCurrent()) { if (NEWS.key) showNewsWeek(null); return }
+        if (NEWS.weeks.includes(wk)) showNewsWeek(wk)
+      } catch {}
     }
 
     /* ── web push: this browser / the home-screen app ── */
