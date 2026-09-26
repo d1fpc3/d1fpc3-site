@@ -35,7 +35,10 @@ const server = createServer((req, res) => {
   res.end(readFileSync(file))
 })
 await new Promise((r) => server.listen(PORT, '127.0.0.1', r))
-const URL = process.env.URL || `http://127.0.0.1:${PORT}/echelon/admin/kalshi/`
+// /echelon/admin/kalshi/ has never existed here: the desk publishes to kalshi-desk/. Pointed
+// at the old path this harness loaded a 404 and reported every panel as empty, which reads
+// exactly like a broken desk.
+const URL = process.env.URL || `http://127.0.0.1:${PORT}/echelon/admin/kalshi-desk/`
 
 // admin session: management token (file, else env) -> service key -> magic link -> verify
 const REF = 'cqdignbleethroyxxvzr', SB = `https://${REF}.supabase.co`
@@ -71,38 +74,47 @@ for (const name of VPS) {
     !/Checking/.test(document.getElementById('pulse-text')?.textContent || '') &&
     document.querySelectorAll('.skel').length === 0, null, { timeout: 25000 }).then(() => true).catch(() => false)
   if (!loaded) findings.push(`${name}: page did not finish loading (gate hidden: ${await page.evaluate(() => document.getElementById('gate')?.hidden)}, skeletons: ${await page.evaluate(() => document.querySelectorAll('.skel').length)}, pulse: "${await page.evaluate(() => document.getElementById('pulse-text')?.textContent)}")`)
-  await page.waitForTimeout(1100) // the hero line draw-in
+  await page.waitForTimeout(1100) // the calendar and the sparklines settle
 
+  // The panels this used to measure (hero-chart, coverage, cells, weights, e-pnl) were
+  // deleted in "out with the model-era panels". It went on asking for them for weeks without
+  // anyone noticing, because it was loading a 404 the whole time and every panel reads empty
+  // on a 404. What follows is the desk that exists: status strip, calendar, the rule, calls,
+  // research, index, engine room.
   const m = await page.evaluate(() => ({
     overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
     pulse: document.getElementById('pulse-text')?.textContent,
     pulseClass: document.getElementById('pulse')?.className,
     liveRows: document.querySelectorAll('#live tbody .ser').length,
     tickRows: document.querySelectorAll('#ticks tbody tr').length,
-    coverageCells: document.querySelectorAll('#coverage .cell').length,
-    edgeRows: document.querySelectorAll('#cells tbody tr').length,
-    weightRows: document.querySelectorAll('#weights tbody tr').length,
-    edgePnl: document.getElementById('e-pnl')?.textContent,
-    heroEmpty: Boolean(document.querySelector('#hero-chart .empty')),
-    heroSvg: Boolean(document.querySelector('#hero-chart svg')),
-    stats: ['s-rounds', 's-minutes', 's-settled', 's-days'].map((id) => document.getElementById(id)?.textContent),
-    reading: document.getElementById('reading')?.textContent,
+    calDays: document.querySelectorAll('#cal-grid [data-k]').length,
+    ruleRows: document.querySelectorAll('#rules tbody tr, #rules .row').length,
+    botRows: document.querySelectorAll('#bots tbody tr, #bots .row').length,
+    researchRows: document.querySelectorAll('#research tbody tr, #research .row').length,
+    // the six answers along the top: every one of them should read something
+    status: ['st-bot', 'st-today', 'st-win', 'st-edge', 'st-next', 'st-bal'].map((id) => (document.getElementById(id)?.textContent || '').trim()),
+    sections: [...document.querySelectorAll('.panel[id^="s-"]')].map((p) => p.id),
+    // a panel that is present but rendered nothing at all is the failure this catches
+    blank: [...document.querySelectorAll('.panel[id^="s-"]')].filter((p) => (p.textContent || '').replace(/\s+/g, '').length < 40).map((p) => p.id),
+    refresh: document.getElementById('refresh-age')?.textContent,
   }))
+  const dashes = m.status.filter((v) => !v || v === '–').length
   if (m.overflow > 0) findings.push(`${name}: horizontal page overflow ${m.overflow}px`)
   if (!m.liveRows) findings.push(`${name}: live board has no rows`)
   if (!m.tickRows) findings.push(`${name}: collector table empty`)
-  if (!m.coverageCells) findings.push(`${name}: coverage grid empty`)
-  if (!m.edgeRows) findings.push(`${name}: edge table rendered nothing (not even its empty state)`)
-  if (!m.weightRows) findings.push(`${name}: weights table rendered nothing (not even its empty state)`)
-  if (!m.heroEmpty && !m.heroSvg) findings.push(`${name}: hero rendered neither a chart nor its empty state`)
+  if (!m.calDays) findings.push(`${name}: the calendar drew no days`)
+  if (dashes > 2) findings.push(`${name}: ${dashes} of 6 status cells never filled in: ${m.status.join(' / ')}`)
+  if (m.blank.length) findings.push(`${name}: panel(s) rendered nothing at all: ${m.blank.join(', ')}`)
+  if (!m.refresh || m.refresh === ' ') findings.push(`${name}: the bar never said how old the numbers are`)
   if (errors.length) findings.push(`${name}: ${errors.length} page/console errors: ${errors.slice(0, 3).join(' | ')}`)
-  console.log(`${name}: pulse "${m.pulse}" [${m.pulseClass}] live ${m.liveRows} ticks ${m.tickRows} cells ${m.coverageCells} hero ${m.heroSvg ? 'chart' : m.heroEmpty ? 'empty state' : 'NOTHING'} stats ${m.stats.join(' / ')} edge ${m.edgeRows} rows, P&L ${m.edgePnl}`)
-  console.log(`  reading: ${m.reading}`)
+  console.log(`${name}: pulse "${m.pulse}" [${m.pulseClass}] · live ${m.liveRows} · ticks ${m.tickRows} · calendar ${m.calDays} days · rules ${m.ruleRows} · bots ${m.botRows} · research ${m.researchRows} · updated ${m.refresh}`)
+  console.log(`  status: ${m.status.join(' / ')}`)
+  console.log(`  sections: ${m.sections.join(' ')}`)
 
   await page.screenshot({ path: join(OUT, `${name}-${THEME}-top.png`) })
   await page.screenshot({ path: join(OUT, `${name}-${THEME}-full.png`), fullPage: true })
-  // one hover: the first coverage cell, to see the tooltip
-  const cell = page.locator('#coverage .cell[data-l]:not([data-l="0"])').first()
+  // one hover: a day on the calendar, to see the tooltip
+  const cell = page.locator('#cal-grid button[data-k]').first()
   if (await cell.count() && name !== 'phone') {
     await cell.hover()
     await page.waitForTimeout(200)

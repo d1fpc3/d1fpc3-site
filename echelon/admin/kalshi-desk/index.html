@@ -154,6 +154,51 @@
 
     .who { display: inline-flex; align-items: center; flex: 0 0 auto; }
 
+    /* Refresh. The desk polls itself every 30s, but a phone suspends its timers the moment
+       it locks, so a desk picked back up is as old as the pocket it was in and nothing on
+       the page said so. The button re-reads everything, the label says how old the numbers
+       are, and the same thing happens on a pull or on coming back to the tab. */
+    .refresh {
+      display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto;
+      height: 30px; padding: 0 10px 0 8px; border: 1px solid var(--line-bright); border-radius: 999px;
+      background: none; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer;
+      transition: color 160ms, border-color 160ms, background 160ms, transform 120ms cubic-bezier(.2,.8,.2,1);
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    }
+    .refresh svg { width: 15px; height: 15px; flex: 0 0 auto; }
+    @media (hover: hover) { .refresh:hover { color: var(--ink); border-color: var(--faint); background: var(--panel-2); } }
+    .refresh:active { transform: scale(0.94); transition-duration: 40ms; }
+    .refresh:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .refresh.busy { color: var(--gold); border-color: rgba(201,162,74,0.45); }
+    .refresh.busy svg { animation: spin 700ms linear infinite; }
+    /* stale is not an error, so it is the same warm gold the rest of the desk uses for "look" */
+    .refresh.old { color: var(--gold); border-color: rgba(201,162,74,0.35); }
+    .refresh .rt { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .refresh.busy svg { animation: none; opacity: 0.6; } }
+    @media (max-width: 900px) { .refresh .rt { display: none; } .refresh { padding: 0 7px; } }
+
+    /* The pull. It lives under the bar and is revealed by the drag itself, so nothing moves
+       on the page until the gesture commits. */
+    /* It rests just under the bar and is pulled further down, rather than starting at the top
+       of the window: at top: 0 it drew UNDER .topstick (z-index 5 against 4) and the whole
+       gesture was invisible. --top-h is the measured height of the sticky region. */
+    .ptr {
+      position: fixed; left: 0; right: 0; top: var(--top-h, 104px); z-index: 4;
+      display: flex; justify-content: center;
+      pointer-events: none; opacity: 0; transform: translateY(-14px);
+    }
+    .ptr i {
+      display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+      border-radius: 50%; background: var(--panel-2); border: 1px solid var(--line-bright);
+      box-shadow: 0 8px 22px -10px rgba(0,0,0,0.9); color: var(--muted);
+    }
+    .ptr svg { width: 15px; height: 15px; }
+    .ptr.ready i { color: var(--gold); border-color: rgba(201,162,74,0.5); }
+    .ptr.run i { color: var(--gold); } .ptr.run svg { animation: spin 700ms linear infinite; transform: none !important; }
+    .ptr.ease svg { transition: transform 200ms ease; }
+    .ptr.ease { transition: opacity 200ms ease, transform 260ms cubic-bezier(.2,.8,.2,1); }
+
     /* ════ section nav ═══════════════════════════════════════
        A sliding thumb rather than ten separate hover boxes: one moving element
        reads as a control, ten outlined buttons read as a toolbar someone gave up on. */
@@ -937,6 +982,7 @@
 
   <!-- One sticky wrapper, so the bar and the section nav can never drift apart or onto
        each other however tall the bar grows at a given width. -->
+  <div class="ptr" id="ptr" aria-hidden="true"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3.2-6.9"/><path d="M21 4v5h-5"/></svg></i></div>
   <div class="topstick" id="topstick">
   <header class="topbar">
     <a class="back" href="/echelon/admin/" title="Back to Echelon admin">
@@ -946,6 +992,10 @@
     <div class="title">Kalshi desk</div>
     <div class="status">
       <div class="pulse" id="pulse"><span class="dot"></span><span class="pulse-long" id="pulse-text">Checking the collector</span><span class="pulse-short" id="pulse-short"></span></div>
+      <button class="refresh" id="refresh" type="button" aria-label="Refresh the desk">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3.2-6.9"/><path d="M21 4v5h-5"/></svg>
+        <span class="rt" id="refresh-age">&nbsp;</span>
+      </button>
       <div class="who" data-desk-signout></div>
     </div>
   </header>
@@ -2434,11 +2484,98 @@
     }
     tickNext(); setInterval(tickNext, 1000)
 
+    /* ── refresh ────────────────────────────────────────────
+       Every read on the page, in one list. The three init* calls are NOT in it: they bind
+       the save buttons and the segments, so running them again would double every listener.
+       Everything here is read-only and safe to run as often as asked. */
+    const LOADERS = [loadStatus, loadCalendar, loadBots, loadRules, loadResearch, loadV2Paper, loadCollectors, loadIndex, loadTicks, loadAccount, loadPaper, loadTheEdge, loadLive]
+    // the cheap set the 30s poll uses: the panels that move inside a session
+    const FAST = [loadStatus, loadBots, loadRules, loadTicks, loadAccount, loadPaper, loadLive, loadIndex, loadV2Paper, loadCollectors]
+    const RF = { at: 0, busy: false }
+    async function refresh(list = LOADERS, { quiet = false } = {}) {
+      if (RF.busy) return RF.busy
+      const btn = el('refresh')
+      if (!quiet) btn?.classList.add('busy')
+      RF.busy = Promise.allSettled(list.map((f) => f()))
+        .then((rs) => { rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)); RF.at = Date.now() })
+        .finally(() => { RF.busy = false; btn?.classList.remove('busy'); paintAge() })
+      return RF.busy
+    }
+    // "now" for the first minute, then minutes, then hours. Gold past 5 minutes, which is
+    // the point at which the 30s poll has certainly stopped running.
+    function paintAge() {
+      const t = el('refresh-age'), btn = el('refresh'); if (!t || !RF.at) return
+      const s = Math.max(0, Math.round((Date.now() - RF.at) / 1000))
+      const m = Math.floor(s / 60), h = Math.floor(m / 60)
+      t.textContent = s < 45 ? 'now' : h ? h + 'h ago' : m + 'm ago'
+      btn.classList.toggle('old', s > 300)
+      btn.setAttribute('aria-label', s < 45 ? 'Refresh the desk, updated just now' : `Refresh the desk, updated ${h ? h + ' hours' : m + ' minutes'} ago`)
+      btn.title = 'Refresh (R)'
+    }
+    el('refresh').addEventListener('click', () => refresh())
+    setInterval(paintAge, 15_000)
+    window.__desk = { refresh, paintAge, RF, LOADERS, FAST }
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'r' && e.key !== 'R') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const t = e.target
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return
+      e.preventDefault(); refresh()
+    })
+    // A phone freezes its timers when it locks, so the desk in your pocket stops polling.
+    // Coming back to it re-reads rather than showing whatever was true when you put it down.
+    let hidAt = 0
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { hidAt = Date.now(); return }
+      if (Date.now() - hidAt > 20_000) refresh()
+    })
+
+    /* Pull to refresh. The desk is a standalone page on his phone, where there is no browser
+       chrome to pull on, and the native gesture is gone anyway once the page owns the scroll.
+       Engages only from the very top and only when the drag is clearly vertical, so the wide
+       tables still scroll sideways under a thumb. */
+    ;(function pullToRefresh() {
+      const ind = el('ptr'); if (!ind || !matchMedia('(hover: none)').matches) return
+      const TRIG = 72, MAX = 116, REST = -14   // where it hides: tucked up under the bar
+      let y0 = null, x0 = 0, on = false, pull = 0
+      const at = (px, o) => { ind.style.transform = `translateY(${px}px)`; ind.style.opacity = String(o) }
+      const glyph = ind.querySelector('svg')
+      const place = (p) => {
+        at(REST + p * 0.5, Math.min(1, p / 46))
+        glyph.style.transform = `rotate(${Math.round(Math.min(1, p / TRIG) * 270)}deg)`
+        ind.classList.toggle('ready', p >= TRIG)
+      }
+      const reset = (run) => {
+        ind.classList.add('ease'); ind.classList.toggle('run', !!run); ind.classList.remove('ready')
+        if (!run) { at(REST, 0); glyph.style.transform = 'rotate(0deg)'; setTimeout(() => ind.classList.remove('ease'), 300); return }
+        at(16, 1)
+        refresh().finally(() => { at(REST, 0); setTimeout(() => { ind.classList.remove('run', 'ease'); glyph.style.transform = 'rotate(0deg)' }, 300) })
+      }
+      addEventListener('touchstart', (e) => {
+        if (RF.busy || e.touches.length !== 1 || (window.scrollY || document.documentElement.scrollTop) > 0) { y0 = null; return }
+        y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; on = false; pull = 0
+      }, { passive: true })
+      addEventListener('touchmove', (e) => {
+        if (y0 == null || e.touches.length !== 1) return
+        const dy = e.touches[0].clientY - y0, dx = Math.abs(e.touches[0].clientX - x0)
+        if (!on) {
+          if (dy < 8 || dy < dx * 1.5) { if (dy < -4 || dx > 10) y0 = null; return }
+          on = true; ind.classList.remove('ease')
+        }
+        pull = Math.min(MAX, dy)
+        place(pull)
+        e.preventDefault()
+      }, { passive: false })
+      const end = () => { if (y0 == null) return; const fire = on && pull >= TRIG; y0 = null; if (on) reset(fire); on = false }
+      addEventListener('touchend', end); addEventListener('touchcancel', end)
+    })()
+
     /* ── boot ── */
     const boot = () => Promise.allSettled([loadStatus(), initNotify(), loadCalendar(), loadBots(), loadRules(), loadResearch(), loadV2Paper(), loadCollectors(), loadIndex(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
-    setInterval(() => { loadStatus(); loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive(); loadIndex(); loadV2Paper(); loadCollectors() }, 30_000)
-    setInterval(() => { loadTheEdge(); loadCalendar() }, 5 * 60_000)
+    RF.at = Date.now(); paintAge()
+    setInterval(() => refresh(FAST, { quiet: true }), 30_000)
+    setInterval(() => refresh([loadTheEdge, loadCalendar], { quiet: true }), 5 * 60_000)
   </script>
 </body>
 </html>
