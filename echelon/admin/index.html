@@ -167,6 +167,94 @@
     .app { display: none; min-height: calc(100 * var(--dvh)); }
     .app.on { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); }
 
+    /* ── the grouped rail ─────────────────────────────────
+       Sixteen rows and four captions is a list, not navigation: nothing is
+       findable when everything is present. The sixteen views are still exactly
+       the views they were, but the rail holds seven places and the one you are
+       in opens its own row of pages underneath the title. */
+    .side-nav { display: none; }              /* the real buttons, driven from the groups */
+    .side-groups { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; overflow-y: auto; }
+    .grp {
+      display: flex; align-items: center; gap: 11px; width: 100%;
+      padding: 9px 12px; border: 0; border-radius: 10px; background: none;
+      color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 500; text-align: left;
+      cursor: pointer; text-decoration: none; position: relative;
+      transition: background 0.16s ease, color 0.16s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .grp .ic { width: 17px; height: 17px; flex: 0 0 auto; }
+    @media (hover: hover) { .grp:hover { background: var(--panel-2); color: var(--ink); } }
+    .grp.on { background: var(--tint, rgba(201,162,74,0.12)); color: var(--ink); font-weight: 650; }
+    .grp.on::before { content: ''; position: absolute; left: 3px; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--gold, #c9a24a); }
+    .grp .gc { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--faint); font-variant-numeric: tabular-nums; }
+    .grp .gc.hot { color: var(--gold, #c9a24a); }
+    .grp-sep { height: 1px; margin: 8px 12px; background: var(--line); }
+    .app.rail .grp { justify-content: center; padding: 10px 0; }
+    .app.rail .grp span:not(.gc), .app.rail .grp .gc { display: none; }
+
+    /* the pages inside a place: a segmented control with one moving thumb, not
+       a row of outlined boxes */
+    .subnav { padding: 0 28px 14px; }
+    .sub-seg {
+      position: relative; display: inline-flex; gap: 2px; padding: 3px;
+      border: 1px solid var(--line); border-radius: 11px; background: var(--panel-2);
+      max-width: 100%; overflow-x: auto; scrollbar-width: none;
+    }
+    .sub-seg::-webkit-scrollbar { display: none; }
+    .sub-seg .thumb {
+      position: absolute; top: 3px; bottom: 3px; left: 3px; border-radius: 8px;
+      background: var(--panel); box-shadow: 0 1px 3px rgba(0,0,0,0.28);
+      width: var(--w, 0px); transform: translateX(var(--x, 0px));
+      transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+      pointer-events: none;
+    }
+    .sub-seg button {
+      position: relative; z-index: 1; border: 0; background: none; cursor: pointer;
+      font: inherit; font-size: 12.5px; font-weight: 550; color: var(--faint);
+      padding: 7px 14px; border-radius: 8px; white-space: nowrap;
+      transition: color 0.16s ease; -webkit-tap-highlight-color: transparent;
+    }
+    .sub-seg button.on { color: var(--ink); }
+    @media (hover: hover) { .sub-seg button:not(.on):hover { color: var(--muted); } }
+    .sub-seg .sc { margin-left: 6px; font-size: 11px; font-weight: 700; color: var(--faint); }
+    .sub-seg button.on .sc { color: var(--gold, #c9a24a); }
+    @media (prefers-reduced-motion: reduce) { .sub-seg .thumb { transition: none; } }
+    @media (max-width: 900px) { .subnav { padding: 0 16px 12px; } }
+
+    /* ── the bell ── */
+    .tb-bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 10px; background: none; color: var(--muted); cursor: pointer; flex-shrink: 0; transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease; }
+    .tb-bell svg { width: 17px; height: 17px; }
+    @media (hover: hover) { .tb-bell:hover { color: var(--ink); border-color: var(--line-bright); background: var(--panel-2); } }
+    .tb-bell.on { color: var(--ink); border-color: var(--line-bright); background: var(--panel-2); }
+    .bell-dot { position: absolute; top: 6px; right: 6px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; background: var(--gold, #c9a24a); color: #14110a; font-size: 10px; font-weight: 800; line-height: 15px; text-align: center; }
+    .notes {
+      position: absolute; top: 100%; right: 0; margin-top: 8px; width: min(380px, calc(100vw - 32px));
+      background: var(--panel); border: 1px solid var(--line-bright); border-radius: 14px;
+      box-shadow: 0 24px 60px -20px rgba(0,0,0,0.6); z-index: 60; overflow: hidden;
+      animation: notes-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    @keyframes notes-in { from { opacity: 0; transform: translateY(-6px); } }
+    .notes-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 16px 11px; border-bottom: 1px solid var(--line); }
+    .notes-head b { font-size: 13.5px; }
+    .notes-head button { border: 0; background: none; color: var(--faint); font: inherit; font-size: 12px; cursor: pointer; padding: 4px 2px; }
+    @media (hover: hover) { .notes-head button:hover { color: var(--ink); } }
+    .notes-list { max-height: min(60vh, 460px); overflow-y: auto; }
+    .note {
+      display: flex; gap: 11px; align-items: flex-start; width: 100%; padding: 12px 16px;
+      border: 0; border-bottom: 1px solid var(--line); background: none; color: inherit;
+      font: inherit; text-align: left; cursor: pointer; transition: background 0.14s ease;
+    }
+    @media (hover: hover) { .note:hover { background: var(--panel-2); } }
+    .note:last-child { border-bottom: 0; }
+    .note .nd { width: 7px; height: 7px; border-radius: 50%; background: var(--gold, #c9a24a); margin-top: 6px; flex: 0 0 auto; }
+    .note .nd.seen { background: var(--line-bright); }
+    .note .nt { flex: 1; min-width: 0; }
+    .note .nt b { display: block; font-size: 13px; font-weight: 600; }
+    .note .nt span { display: block; font-size: 11.5px; color: var(--faint); margin-top: 2px; }
+    .note .na { font-size: 11px; color: var(--faint); flex: 0 0 auto; white-space: nowrap; margin-top: 1px; }
+    .notes-empty { padding: 26px 16px; text-align: center; color: var(--faint); font-size: 13px; }
+    .tb-wrap { position: relative; flex-shrink: 0; }
+
     /* ── sidebar ─────────────────────────────────────────── */
 
     .side {
@@ -1436,7 +1524,8 @@
         </button>
       </div>
 
-      <nav class="side-nav" id="tabs" aria-label="Sections">
+      <div class="side-groups" id="side-groups" aria-label="Sections"></div>
+      <nav class="side-nav" id="tabs" aria-label="Sections" hidden>
         <div class="side-cap">Business</div>
         <button class="tab on" data-view="overview" data-title="Overview" data-crumb="At a glance">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
@@ -1534,9 +1623,17 @@
           <h2 id="pane-title">Overview</h2>
           <div class="crumb" id="pane-crumb">At a glance</div>
         </div>
+        <div class="tb-wrap">
+          <button class="tb-bell" id="bell" type="button" aria-label="What needs you" title="What needs you">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="bell-dot" id="bell-dot" hidden></span>
+          </button>
+        </div>
         <button class="tb-ghost" id="admin-tour-btn" type="button" title="Replay the guided walkthrough"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Walkthrough</button>
         <a class="tb-open" href="/echelon/app/">Open Echelon<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></a>
       </div>
+
+      <div class="subnav" id="subnav" hidden></div>
 
       <div class="pane">
         <!-- OVERVIEW -->
@@ -2307,6 +2404,210 @@
       else if (PLAYBOOKS[view]) playbookShown(view)
     }))
 
+    /* ── seven places, not sixteen pages ──────────────────────────────────
+       Every view below is untouched: the buttons that switch them still exist
+       in #tabs, hidden, and this drives them. So each view keeps its own lazy
+       load, its title, its crumb and its count, and the rail is a place to
+       stand rather than a list to read. */
+    const GROUPS = [
+      { id: 'overview', label: 'Overview', views: ['overview'] },
+      { id: 'members', label: 'Members', views: ['users', 'applications', 'stats', 'codes', 'access'] },
+      { id: 'money', label: 'Money', views: ['billing', 'growth'] },
+      { id: 'course', label: 'Course', views: ['content', 'homework', 'library'] },
+      { id: 'community', label: 'Community', views: ['community', 'perms'] },
+      { id: 'desk', label: 'Desk', views: ['gex', 'memes'] },
+      { id: 'settings', label: 'Settings', views: ['settings'] },
+    ]
+    const GRP_KEY = 'echelon-admin-group'
+    const tabFor = (v) => tabs.find((t) => t.dataset.view === v)
+    const groupOf = (v) => GROUPS.find((g) => g.views.includes(v))
+    const lastIn = (g) => { try { return localStorage.getItem(GRP_KEY + ':' + g.id) || g.views[0] } catch { return g.views[0] } }
+    let activeView = 'overview'
+
+    function buildRail() {
+      const host = el('side-groups'); if (!host) return
+      host.textContent = ''
+      for (const g of GROUPS) {
+        const lead = tabFor(g.views[0]); if (!lead) continue
+        if (g.id === 'settings') { const sep = document.createElement('div'); sep.className = 'grp-sep'; host.appendChild(sep) }
+        const b = document.createElement('button')
+        b.type = 'button'; b.className = 'grp'; b.dataset.grp = g.id; b.title = g.label
+        const svg = lead.querySelector('svg')
+        if (svg) b.appendChild(svg.cloneNode(true))
+        const lab = document.createElement('span'); lab.textContent = g.label; b.appendChild(lab)
+        const c = document.createElement('span'); c.className = 'gc'; c.dataset.gc = g.id; b.appendChild(c)
+        b.addEventListener('click', () => { openView(lastIn(g)); el('app').classList.remove('nav-open') })
+        host.appendChild(b)
+      }
+      // the Kalshi desk is a different page, so it stays a link, under Desk
+      const kal = [...document.querySelectorAll('#tabs a.tab')][0]
+      if (kal) {
+        const a = document.createElement('a')
+        a.className = 'grp'; a.href = kal.getAttribute('href'); a.title = kal.title || 'Kalshi'
+        const svg = kal.querySelector('svg'); if (svg) a.appendChild(svg.cloneNode(true))
+        const lab = document.createElement('span'); lab.textContent = 'Kalshi'; a.appendChild(lab)
+        const before = [...host.children].find((n) => n.classList?.contains('grp-sep'))
+        host.insertBefore(a, before ?? null)
+      }
+    }
+
+    function renderSub(view) {
+      const g = groupOf(view), host = el('subnav'); if (!host) return
+      if (!g || g.views.length < 2) { host.hidden = true; host.textContent = ''; return }
+      host.hidden = false; host.textContent = ''
+      const seg = document.createElement('div'); seg.className = 'sub-seg'
+      const thumb = document.createElement('span'); thumb.className = 'thumb'; seg.appendChild(thumb)
+      for (const v of g.views) {
+        const t = tabFor(v); if (!t) continue
+        const b = document.createElement('button')
+        b.type = 'button'; b.dataset.view = v; b.classList.toggle('on', v === view)
+        b.appendChild(document.createTextNode((t.dataset.title || v).replace(/^TradingView /, 'TV ')))
+        const src = t.querySelector('.count')
+        if (src && src.textContent.trim() && src.textContent.trim() !== '–' && src.textContent.trim() !== '0') {
+          const c = document.createElement('span'); c.className = 'sc'; c.dataset.mirror = src.id; c.textContent = src.textContent
+          b.appendChild(c)
+        }
+        b.addEventListener('click', () => openView(v))
+        seg.appendChild(b)
+      }
+      host.appendChild(seg)
+      // the thumb sits on the live button, so it cannot drift from the label
+      requestAnimationFrame(() => {
+        const on = seg.querySelector('button.on'); if (!on) return
+        thumb.style.setProperty('--w', on.offsetWidth + 'px')
+        thumb.style.setProperty('--x', (on.offsetLeft - 3) + 'px')
+      })
+    }
+
+    // Marking is separate from switching on purpose: on boot the Overview view is
+    // already the open one, and clicking its tab here would run a handler that
+    // reaches for consts declared further down this file (temporal dead zone).
+    function markActive(view) {
+      activeView = view
+      const g = groupOf(view)
+      if (g) { try { localStorage.setItem(GRP_KEY + ':' + g.id, view) } catch {} }
+      document.querySelectorAll('.grp[data-grp]').forEach((b) => b.classList.toggle('on', b.dataset.grp === g?.id))
+      renderSub(view)
+    }
+    function openView(view) {
+      const t = tabFor(view); if (!t) return
+      t.click()                       // the real switch, with its own lazy load
+      markActive(view)
+    }
+
+    // The counts live on the hidden buttons; mirror them onto the rail and the
+    // segment rather than moving them, so every writer keeps working untouched.
+    function syncCounts() {
+      for (const g of GROUPS) {
+        let total = 0, hot = false
+        for (const v of g.views) {
+          const c = tabFor(v)?.querySelector('.count'); if (!c) continue
+          const n = parseInt(c.textContent, 10)
+          if (Number.isFinite(n)) total += n
+          if (c.classList.contains('hot')) hot = true
+        }
+        const badge = document.querySelector('.gc[data-gc="' + g.id + '"]')
+        if (badge) { badge.textContent = total ? String(total) : ''; badge.classList.toggle('hot', hot) }
+      }
+      document.querySelectorAll('.sub-seg .sc[data-mirror]').forEach((m) => {
+        const src = document.getElementById(m.dataset.mirror); if (src) m.textContent = src.textContent
+      })
+    }
+
+    buildRail()
+    markActive('overview')
+    new MutationObserver(syncCounts).observe(el('tabs'), { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] })
+    syncCounts()
+    addEventListener('resize', () => renderSub(activeView))
+
+    /* ── what needs you ───────────────────────────────────────────────────
+       D1's own queue. Not a feed of everything that happened: only the things
+       that are waiting on him, built from the rows the admin has already
+       loaded, so opening it costs nothing. Seen state is a timestamp, so a row
+       that arrived while he was looking at another page still shows up new. */
+    const NOTES_SEEN = 'echelon-admin-notes-seen'
+    let notesOpen = false
+    const seenAt = () => { try { return localStorage.getItem(NOTES_SEEN) || '' } catch { return '' } }
+    const ago = (iso) => {
+      const s = (Date.now() - new Date(iso).getTime()) / 1000
+      if (!Number.isFinite(s)) return ''
+      if (s < 90) return 'now'
+      if (s < 3600) return Math.round(s / 60) + 'm'
+      if (s < 86400) return Math.round(s / 3600) + 'h'
+      return Math.round(s / 86400) + 'd'
+    }
+    // Everything this reads is declared further down the file, so it must never
+    // run during the first pass: `typeof` does NOT save you on a let, it throws
+    // the same "cannot access before initialization", and a throw here kills the
+    // rest of the script (every view's data with it).
+    function adminNotes() {
+      const out = []
+      for (const a of (APPS || [])) {
+        if (a.status !== 'new') continue
+        out.push({ at: a.created_at, title: (a.name || a.email || 'Someone') + ' applied', sub: INVEST[a.invest] || 'From the landing page', view: 'applications' })
+      }
+      for (const r of (window.__tvPending || [])) {
+        out.push({ at: r.requested_at || r.created_at, title: (r.tv_username || 'A member') + ' needs TradingView access', sub: r.state === 'pending_revoke' ? 'Waiting to be removed' : 'Waiting to be added', view: 'access' })
+      }
+      if (window.__hwWaiting > 0) out.push({ at: window.__hwWaitingAt || new Date().toISOString(), title: window.__hwWaiting + ' markup' + (window.__hwWaiting === 1 ? '' : 's') + ' waiting on review', sub: 'Approved in the members app', view: 'homework' })
+      const week = Date.now() - 7 * 864e5
+      for (const p of (PEOPLE || []).slice(0, 12)) {
+        if (!p.last_at || new Date(p.last_at).getTime() < week) continue
+        out.push({ at: p.last_at, title: (p.name || p.email || 'A member') + ' joined', sub: (p.products || []).join(', ') || 'Access granted', view: 'users' })
+      }
+      return out.filter((n) => n.at).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 40)
+    }
+    function paintBell() {
+      let list = []; try { list = adminNotes() } catch { return }   // nothing loaded yet
+      const seen = seenAt()
+      const fresh = list.filter((n) => String(n.at) > seen).length
+      const dot = el('bell-dot'); if (!dot) return
+      dot.hidden = fresh === 0
+      dot.textContent = fresh > 9 ? '9+' : String(fresh)
+    }
+    function closeNotes() {
+      notesOpen = false
+      el('bell')?.classList.remove('on')
+      document.getElementById('notes')?.remove()
+      try { localStorage.setItem(NOTES_SEEN, new Date().toISOString()) } catch {}
+      paintBell()
+    }
+    function openNotes() {
+      notesOpen = true
+      el('bell').classList.add('on')
+      const seen = seenAt(), list = adminNotes()
+      const box = document.createElement('div'); box.className = 'notes'; box.id = 'notes'
+      const head = document.createElement('div'); head.className = 'notes-head'
+      const b = document.createElement('b'); b.textContent = 'What needs you'
+      const clear = document.createElement('button'); clear.type = 'button'; clear.textContent = 'Mark all seen'
+      clear.addEventListener('click', (e) => { e.stopPropagation(); closeNotes() })
+      head.append(b, clear); box.appendChild(head)
+      const ul = document.createElement('div'); ul.className = 'notes-list'
+      if (!list.length) {
+        const e2 = document.createElement('div'); e2.className = 'notes-empty'; e2.textContent = 'Nothing is waiting on you.'
+        ul.appendChild(e2)
+      }
+      for (const n of list) {
+        const row = document.createElement('button'); row.type = 'button'; row.className = 'note'
+        const d = document.createElement('span'); d.className = 'nd' + (String(n.at) > seen ? '' : ' seen')
+        const t = document.createElement('span'); t.className = 'nt'
+        const tb = document.createElement('b'); tb.textContent = n.title
+        const ts = document.createElement('span'); ts.textContent = n.sub || ''
+        t.append(tb, ts)
+        const a = document.createElement('span'); a.className = 'na'; a.textContent = ago(n.at)
+        row.append(d, t, a)
+        row.addEventListener('click', () => { closeNotes(); openView(n.view) })
+        ul.appendChild(row)
+      }
+      box.appendChild(ul)
+      el('bell').parentElement.appendChild(box)
+    }
+    el('bell')?.addEventListener('click', (e) => { e.stopPropagation(); notesOpen ? closeNotes() : openNotes() })
+    document.addEventListener('click', (e) => { if (notesOpen && !e.target.closest('#notes') && !e.target.closest('#bell')) closeNotes() })
+    addEventListener('keydown', (e) => { if (e.key === 'Escape' && notesOpen) closeNotes() })
+    setInterval(paintBell, 60000)
+    setTimeout(paintBell, 0)   // after this script has finished declaring what it reads
+
     /* ── standing page help: one quiet note atop every view ── */
     const PAGE_HELP = {
       growth: 'The shape of the business over time. Members is every active entitlement counted the day it was granted, so the line only goes up when someone new arrives. Revenue is what Stripe actually took, by month. Arrivals splits paid from comped and moderator seats, and member activity is trades logged and messages sent, week by week.',
@@ -2929,6 +3230,7 @@
       let rows = []
       try { rows = (await adminAction({ action: 'tv_list' })).rows ?? [] } catch { rows = [] }
       const toAction = rows.filter((r) => r.state === 'pending_grant' || r.state === 'pending_revoke')
+      window.__tvPending = toAction   // the bell reads this rather than re-asking
       const rest = rows.filter((r) => r.state !== 'pending_grant' && r.state !== 'pending_revoke')
 
       const cnt = el('c-access'); cnt.textContent = ''
@@ -4206,6 +4508,7 @@
       const withHw = LESSONS.filter((l) => l.homework).length
       const pendingAll = HW_SUBS.filter((s) => s.status === 'pending').length
       el('c-hw').textContent = String(withHw)
+      window.__hwWaiting = withHw; window.__hwWaitingAt = window.__hwWaitingAt || new Date().toISOString()
       el('hw-total').textContent = LESSONS.length
         ? `${withHw} of ${LESSONS.length} lessons have homework · ${pendingAll} waiting for review`
         : ''
