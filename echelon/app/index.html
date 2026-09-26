@@ -544,6 +544,10 @@
     #v-gex .gex-arrow:hover:not(:disabled) { background: var(--tbseg-pill); color: var(--ink); box-shadow: var(--tbseg-pill-shadow); }
     #v-gex .gex-arrow:active:not(:disabled) { transform: scale(0.9); }
     #v-gex .gex-arrow:disabled { opacity: 0.28; cursor: default; }
+    /* 28px is a miss on a phone. The pill stays 28px so the bar keeps its density; the
+       hit area around it does not, which is the part a thumb cares about. */
+    #v-gex .gex-arrow { position: relative; }
+    #v-gex .gex-arrow::after { content: ''; position: absolute; inset: -7px -6px; }
     #v-gex .gex-dayl { min-width: 104px; text-align: center; font-size: 13px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
     #v-gex .gex-time { height: 34px; border-radius: 999px; padding: 0 12px; background: var(--tbseg-track); border: 0; font-size: 12.5px; color: var(--ink); }
     #v-gex .gex-live { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -3002,6 +3006,44 @@
       position: relative; overflow: hidden;
       background: var(--panel-2); border-radius: 6px; min-height: 8px;
     }
+    /* ── skeletons, one variant per surface ──────────────────
+       A skeleton stands in for a specific surface, so it is built from that surface's real
+       markup: the same chrome, the same block count, the same proportions. A generic stack
+       of grey lines tells you the page is one shape and then it turns out to be another,
+       and the layout jumps when the data lands. Library and Notifications used to show
+       nothing at all while they loaded; the Levels table showed an empty card. */
+    .sk-card { display: grid; }
+    .sk-card .sk-thumb { aspect-ratio: 16 / 9; border-radius: 12px; }
+    .sk-card .sk-t { height: 15px; margin-top: 11px; border-radius: 5px; }
+    .sk-card .sk-t2 { height: 15px; width: 62%; margin-top: 6px; border-radius: 5px; }
+    .sk-card .sk-m { height: 12px; width: 44%; margin-top: 9px; border-radius: 5px; }
+    /* notifications: the day heading, then avatar + two lines, on the .nb-row box */
+    .sk-nb-day { height: 11px; width: 78px; margin: 4px 2px 8px; border-radius: 5px; }
+    .sk-nb { display: flex; align-items: center; gap: 12px; padding: 11px 10px; margin: 0 -8px; }
+    .sk-nb .sk-av { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+    .sk-nb .sk-tx { flex: 1; min-width: 0; display: grid; gap: 7px; }
+    .sk-nb .sk-tx i { display: block; height: 13px; border-radius: 5px; }
+    .sk-nb .sk-tx i + i { width: 46%; height: 11px; }
+    /* the levels table reserves its rows so the card does not open empty and then grow */
+    #gex-table .sk-row td { padding: 10px 10px; }
+    #gex-table .sk-row i { display: block; height: 12px; border-radius: 5px; }
+    #gex-table .sk-row td:first-child i { width: 82%; }
+    /* the filter row arrives with the data, so without this the whole grid slid 60px down
+       the moment the chips appeared */
+    .sk-chip { height: 13px; margin: 8px 10px 13px; border-radius: 5px; }
+    .sk-chip:first-child { margin-left: 2px; }
+    /* chat: the rail rows and a thread. Empty headings under "Channels" and "Direct
+       messages" read as "you have none", which is a different thing from "loading". */
+    .sk-cr { display: flex; align-items: center; gap: 9px; padding: 8px 10px; }
+    .sk-cr .sk-ic { width: 18px; height: 18px; border-radius: 6px; flex-shrink: 0; }
+    .sk-cr .sk-nm { height: 13px; border-radius: 5px; flex: 1; max-width: 132px; }
+    .sk-log { display: grid; gap: 16px; padding: 18px 14px; align-content: end; }
+    .sk-msg { display: flex; align-items: flex-start; gap: 10px; }
+    .sk-msg .sk-av2 { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; }
+    .sk-msg .sk-b { display: grid; gap: 7px; flex: 1; min-width: 0; }
+    .sk-msg .sk-b i { display: block; height: 12px; border-radius: 5px; }
+    .sk-msg .sk-b i:first-child { width: 96px; height: 10px; }
+    #gex-table .sk-row td + td i { width: 58%; margin-left: auto; }
 
     /* risk calculator: a quiet icon up top, three inputs, one honest sentence */
     .ov-hero { position: relative; }
@@ -10217,7 +10259,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         drag = false
       }, { passive: true })
     }
+    const NB_SKEL = '<div class="sk-nb"><div class="skel sk-av"></div><div class="sk-tx"><i class="skel"></i><i class="skel"></i></div></div>'
     async function loadInbox(host = el('inbox'), limit = 60) {
+      // the popover and the full page share this, so the skeleton goes into whichever host
+      if (host && !host.children.length) host.innerHTML = '<div class="skel sk-nb-day"></div>' + NB_SKEL.repeat(host === el('inbox') ? 6 : 4)
       const { data } = await supabase.from('notifications').select('id, kind, actor_id, recap_id, body, created_at, read_at').order('created_at', { ascending: false }).limit(limit)
       const rows = data ?? []
       // announcements ride along with the notifications, newest first
@@ -17469,7 +17514,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function gexShown() {
       const stale = Date.now() - GEX.loadedAt > 5 * 60 * 1000
       if (!GEX.data || stale) {
-        if (!GEX.data) el('gex-empty').hidden = false
+        if (!GEX.data) {
+          el('gex-empty').hidden = false
+          // the board grew 78% in height when the data landed, because the Levels card sat
+          // empty until then. Eight rows is what the 0DTE set shows.
+          const t = el('gex-table')
+          if (t && !t.rows.length) t.innerHTML = '<tbody>' + '<tr class="sk-row"><td><i class="skel"></i></td><td><i class="skel"></i></td><td><i class="skel"></i></td></tr>'.repeat(8) + '</tbody>'
+        }
         loadGex().catch((err) => { const e = el('gex-empty'); e.hidden = false; e.textContent = `Could not reach gex-worker: ${err.message}` })
       } else drawGexSoon()
       if (!GEX.days.length) loadGexHistory()
@@ -17907,7 +17958,22 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       document.querySelectorAll('.online-count').forEach((n) => { n.textContent = on ? `${on} online` : ''; n.hidden = !on })
     }
 
+    // The rail rows mirror .cr-item and the thread mirrors a message; widths vary so it
+    // reads as a conversation rather than a stack of identical bars.
+    const CHAT_SKEL = () => {
+      const cr = (w) => '<div class="sk-cr"><i class="skel sk-ic"></i><i class="skel sk-nm" style="max-width:' + w + 'px"></i></div>'
+      const chn = el('chat-channels'), dm = el('chat-dms'), log = el('chat-log')
+      if (chn && !chn.children.length) chn.innerHTML = cr(78) + cr(96)
+      if (dm && !dm.children.length) dm.innerHTML = cr(108) + cr(86) + cr(122)
+      if (log && !log.children.length) {
+        const msg = (a, b) => '<div class="sk-msg"><i class="skel sk-av2"></i><div class="sk-b"><i class="skel"></i><i class="skel" style="width:' + a + '%"></i>' + (b ? '<i class="skel" style="width:' + b + '%"></i>' : '') + '</div></div>'
+        // a wrapper, NOT a class on the log itself: the real render replaces the log's
+        // children but never its className, so sk-log would have outlived the skeleton
+        log.innerHTML = '<div class="sk-log">' + msg(72, 44) + msg(54) + msg(84, 38) + msg(62) + '</div>'
+      }
+    }
     async function loadChat() {
+      CHAT_SKEL()
       chat.byUser = Object.fromEntries((state.members || []).map((m) => [m.user_id, m]))
       if (state.profile) chat.byUser[state.user.id] = { user_id: state.user.id, username: state.profile.username, avatar_url: state.profile.avatar_url }
       const [{ data: ch }, { data: mods }, { data: staff }, { data: dms }, { data: perms }, { data: unread }, { data: previews }] = await Promise.all([
@@ -18893,8 +18959,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // loadLibrary keeps its promise on LIB.ready so a deep link or the home card can wait for the rows
     function loadLibrary() { LIB.ready = loadLibraryNow(); return LIB.ready }
     const libReady = () => LIB.ready || loadLibrary()
+    // Six cards, the count the grid shows above the fold at every width it uses.
+    const LIB_SKEL = '<div class="sk-card"><div class="skel sk-thumb"></div><div class="skel sk-t"></div><div class="skel sk-t2"></div><div class="skel sk-m"></div></div>'
     async function loadLibraryNow() {
       LIB.loaded = true
+      { const list = el('lib-list'); if (list && !list.children.length) { list.className = 'lib-grid'; list.innerHTML = LIB_SKEL.repeat(6) }
+        const chips = el('lib-chips')
+        if (chips && !chips.children.length) chips.innerHTML = [26, 72, 88, 56].map((w) => '<i class="skel sk-chip" style="width:' + w + 'px"></i>').join('') }
       const { data } = await supabase.from('library_videos')
         .select('id, title, summary, category, created_at, is_published, thumb_path, created_by, audience')
         .order('created_at', { ascending: false })

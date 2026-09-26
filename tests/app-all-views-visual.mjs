@@ -82,7 +82,25 @@ for (const vpName of VIEWPORTS) {
         // text cut by its own box without an ellipsis or a scroll
         const cs = getComputedStyle(el);
         if (el.children.length === 0 && el.textContent.trim().length > 3 && cs.overflow !== "visible" && cs.textOverflow !== "ellipsis" && cs.whiteSpace === "nowrap" && el.scrollWidth > el.clientWidth + 2 && !scrolls(el)) { const d = desc(el); if (clipped.length < 6 && !clipped.some((o) => o.startsWith(d))) clipped.push(`${d} "${el.textContent.trim().slice(0, 30)}"`); }
-        if (innerWidth < 500 && (el.tagName === "BUTTON" || el.tagName === "A") && el.offsetParent && r.height < 30 && r.width < 30 && el.textContent.trim().length === 0 && !el.closest(".seg, .news-row, .pb-toc")) { const d = desc(el); if (small.length < 6 && !small.some((o) => o.startsWith(d))) small.push(`${d} ${Math.round(r.width)}x${Math.round(r.height)}`); }
+        // The HIT AREA, not the border box. An ::after that grows the clickable region
+        // leaves getBoundingClientRect exactly where it was, so measuring the rect reports a
+        // control as tiny forever and the only way to "fix" it is to redraw it bigger.
+        // a disabled control is not a tap target: it takes no pointer events, so elementFromPoint
+        // never returns it and the hit test below would silently fall back to the border box
+        if (innerWidth < 500 && (el.tagName === "BUTTON" || el.tagName === "A") && el.offsetParent && !el.disabled && el.getAttribute("aria-disabled") !== "true" && r.height < 30 && r.width < 30 && el.textContent.trim().length === 0 && !el.closest(".seg, .news-row, .pb-toc")) {
+          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          const mine = (x, y) => { const h = document.elementFromPoint(x, y); return !!h && (h === el || el.contains(h)); };
+          let gw = r.width, gh = r.height;
+          if (mine(cx, cy)) {
+            let l = 0, rr = 0, u = 0, dn = 0;
+            while (l < 16 && mine(r.left - l - 1, cy)) l++;
+            while (rr < 16 && mine(r.right + rr + 1, cy)) rr++;
+            while (u < 16 && mine(cx, r.top - u - 1)) u++;
+            while (dn < 16 && mine(cx, r.bottom + dn + 1)) dn++;
+            gw = r.width + l + rr; gh = r.height + u + dn;
+          }
+          if (gh < 30 && gw < 30) { const d = desc(el); if (small.length < 6 && !small.some((o) => o.startsWith(d))) small.push(`${d} ${Math.round(r.width)}x${Math.round(r.height)} (hit ${Math.round(gw)}x${Math.round(gh)})`); }
+        }
         if (out.length > 6) break;
       }
       const title = document.getElementById("pane-title")?.textContent;
