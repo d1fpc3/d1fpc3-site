@@ -98,6 +98,25 @@ for (const name of VPS) {
     blank: [...document.querySelectorAll('.panel[id^="s-"]')].filter((p) => (p.textContent || '').replace(/\s+/g, '').length < 40).map((p) => p.id),
     refresh: document.getElementById('refresh-age')?.textContent,
   }))
+  // Touch targets, phone only. The desk's own touch pass sat ABOVE the rules it overrode, so
+  // at equal specificity the later ones won and every segmented chip stayed 29px while the
+  // block looked like it had handled them. Inline links inside prose are exempt: you do not
+  // pad a word in a sentence to 40px.
+  if (name === 'phone') {
+    const small = await page.evaluate(() => {
+      const out = []
+      for (const n of document.querySelectorAll('button, a[href], select, [role="button"]')) {
+        if (!n.offsetParent) continue
+        const inProse = n.tagName === 'A' && getComputedStyle(n).display.startsWith('inline') && n.parentElement && (n.parentElement.textContent || '').trim().length > (n.textContent || '').trim().length + 20
+        if (inProse) continue
+        const b = n.getBoundingClientRect()
+        if (b.width > 0 && b.height > 0 && b.height < 34) out.push(`${(n.textContent || n.getAttribute('aria-label') || n.tagName).trim().slice(0, 20)} ${Math.round(b.width)}x${Math.round(b.height)}`)
+      }
+      return [...new Set(out)]
+    })
+    if (small.length) findings.push(`${name}: ${small.length} control(s) under 34px tall: ${small.slice(0, 4).join(', ')}`)
+    else console.log('  every control is at least 34px tall on a phone')
+  }
   const dashes = m.status.filter((v) => !v || v === '–').length
   if (m.overflow > 0) findings.push(`${name}: horizontal page overflow ${m.overflow}px`)
   if (!m.liveRows) findings.push(`${name}: live board has no rows`)

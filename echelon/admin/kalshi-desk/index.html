@@ -238,25 +238,8 @@
     .panel[id^="s-"] { scroll-margin-top: calc(var(--top-h, 104px) + 16px); }
     @media (prefers-reduced-motion: reduce) { .sn-thumb { transition: none; } }
 
-    /* ════ touch ═════════════════════════════════════════════
-       Every control on this page was built for a cursor: 47 of 47 came in under the 40px
-       touch minimum and the nav chips sat 2px apart, so on a phone the wrong one is what you
-       hit. Only the padding and the spacing change, so the desktop density is untouched. */
-    @media (pointer: coarse) {
-      .sectionnav { gap: 6px; padding: 10px 24px; }
-      .sectionnav a { padding: 10px 13px; }
-      .sn-thumb { top: 10px; height: 37px; }
-      .jumps { gap: 6px; }
-      .jumps a { padding: 9px 13px; }
-      .back { padding: 10px 13px 10px 10px; }
-      .seg { padding: 4px; }
-      .seg button { padding: 10px 13px; }
-      .seg .thumb { top: 4px; bottom: 4px; }
-      .ri { height: 42px; padding: 0 11px; }
-      .ri input { font-size: 16px; }
-      .risk-save { height: 42px; }
-      .bot .last a { display: inline-block; padding: 6px 0; }
-    }
+    /* The touch pass used to live here. It is at the BOTTOM of this stylesheet now: see the
+       note down there for why sitting above .seg made half of it a no-op. */
 
     /* ════ layout ════════════════════════════════════════════ */
     .wrap { max-width: 1720px; margin: 0 auto; padding: 24px max(24px, env(safe-area-inset-right, 0px)) 24px max(24px, env(safe-area-inset-left, 0px)); display: grid; gap: 24px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
@@ -998,6 +981,41 @@
     .notify.locked .nf input, .notify.locked .nf-quiet input { pointer-events: none; }
     @media (max-width: 620px) { .nf-grid { grid-template-columns: 1fr; } }
     @media (prefers-reduced-motion: reduce) { .nf input, .nf input::after { transition: none; } }
+
+    /* ════ touch, and it has to be last ══════════════════════
+       Every control here was built for a cursor: 47 of 47 came in under the 40px touch
+       minimum and the nav chips sat 2px apart, so on a phone the wrong one is what you hit.
+       Only padding and spacing change, so the desktop density is untouched.
+
+       THIS BLOCK MUST STAY AT THE END. It used to sit up by the section nav, which is above
+       the .seg rules, and a media query carries no extra specificity: ".seg button" at the
+       top lost to the identical ".seg button" further down, so every segmented chip on the
+       page stayed 29px tall on a phone while the block looked like it had handled them. The
+       calendar's own controls were written after the pass and were never in it at all. */
+    @media (pointer: coarse) {
+      .sectionnav { gap: 6px; padding: 10px 24px; }
+      .sectionnav a { padding: 10px 13px; }
+      .sn-thumb { top: 10px; height: 37px; }
+      .jumps { gap: 6px; }
+      .jumps a { padding: 9px 13px; }
+      .back { padding: 11px 12px 11px 10px; }
+      .seg { padding: 4px; }
+      .seg button { padding: 10px 13px; }
+      .seg .thumb { top: 4px; bottom: 4px; }
+      .ri { height: 42px; padding: 0 11px; }
+      .ri input { font-size: 16px; }
+      .risk-save { height: 42px; }
+      .bot .last a { display: inline-block; padding: 6px 0; }
+      /* the calendar block: month arrows, "This month", and the risked-per-call and
+         price-floor chips, none of which existed when the pass was written */
+      .cal-arrow { width: 40px; height: 40px; }
+      .cal-arrow svg { width: 17px; height: 17px; }
+      .cal-jump { padding: 11px 13px; font-size: 12.5px; }
+      .cal-nav { gap: 6px; }
+      .cal-knob > span { margin-bottom: 2px; }
+      /* the number input beside the chips, so it is not the one short control left */
+      .cal-knob input { min-height: 40px; font-size: 16px; }
+    }
   </style>
 </head>
 <body>
