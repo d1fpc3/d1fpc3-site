@@ -3182,6 +3182,33 @@
 
     /* ── video player: flat controls over the picture, gone when idle ── */
     .vp { position: absolute; inset: 0; background: #000; overflow: hidden; user-select: none; -webkit-user-select: none; outline: none; }
+    /* ── the video loader ─────────────────────────────────────
+       Two different waits, and neither used to show anything. Before the URL is signed the
+       player is a black rectangle (.lib-player sets background #000, which beat the .skel
+       shimmer underneath it), and once it is playing a stall shows the last frame frozen
+       with no sign the app is still working. */
+    .lib-player.skel { background: #0b0a09; }
+    .lib-player.skel::after {
+      content: ''; position: absolute; inset: 0; border-radius: inherit;
+      background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.05) 42%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.05) 58%, transparent 80%);
+      background-size: 220% 100%; animation: vp-sheen 1.5s linear infinite;
+    }
+    @keyframes vp-sheen { from { background-position: 140% 0; } to { background-position: -60% 0; } }
+    /* the ring, for the signing wait and for every stall after it */
+    .vp-load {
+      position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px;
+      border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.18); border-top-color: var(--gold);
+      animation: vp-spin 0.75s linear infinite; pointer-events: none; z-index: 3;
+      opacity: 0; transition: opacity 0.18s ease;
+    }
+    .vp.loading .vp-load { opacity: 1; }
+    /* while it is loading the big play glyph would be a lie: it is not waiting for you */
+    .vp.loading .vp-big { opacity: 0 !important; }
+    @keyframes vp-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .vp-load { animation-duration: 2s; }
+      .lib-player.skel::after { animation: none; background: rgba(255,255,255,0.05); }
+    }
     .vp video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
     .vp:fullscreen, .vp:-webkit-full-screen { width: calc(100 * var(--vw)); height: calc(100 * var(--vh)); }
     .vp .vp-tap { position: absolute; inset: 0; }
@@ -6862,10 +6889,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         video.appendChild(tr)
       }
       const tap = document.createElement('div'); tap.className = 'vp-tap'
+      // The ring is driven by the element's own events rather than a timer, so it is honest:
+      // it is up whenever the video cannot show the next frame, and only then.
+      const load = document.createElement('div'); load.className = 'vp-load'
+      const busy = (on) => wrap.classList.toggle('loading', on)
+      busy(true)
+      for (const ev of ['waiting', 'stalled', 'seeking', 'loadstart']) video.addEventListener(ev, () => busy(true))
+      for (const ev of ['canplay', 'playing', 'seeked', 'error', 'loadeddata'] ) video.addEventListener(ev, () => busy(false))
+      // a paused video that has buffered is not loading, whatever the last event said
+      video.addEventListener('pause', () => { if (video.readyState >= 3) busy(false) })
       const big = document.createElement('div'); big.className = 'vp-big'; big.innerHTML = VP_ICON.play
       const skipL = document.createElement('div'); skipL.className = 'vp-skip l'; skipL.textContent = '-10s'
       const skipR = document.createElement('div'); skipR.className = 'vp-skip r'; skipR.textContent = '+10s'
       const bar = document.createElement('div'); bar.className = 'vp-bar'
+      wrap.appendChild(load)
       const seek = document.createElement('div'); seek.className = 'vp-seek'
       const track = document.createElement('div'); track.className = 'track'
       const buf = document.createElement('div'); buf.className = 'buf'
@@ -9975,16 +10012,39 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     el('nu-skip')?.addEventListener('click', () => { el('nextup').hidden = true; saveOnbFlags({ nextup_hidden: true }) })
     el('fol-tab-followers')?.addEventListener('click', () => { FOL.kind = 'followers'; renderFollowsPage() })
     el('fol-tab-following')?.addEventListener('click', () => { FOL.kind = 'following'; renderFollowsPage() })
+    /* Following somebody used to take two round trips with the button dead in between: it
+       was disabled, the write went to Maryland and back (~280ms), the label flipped, and only
+       THEN a second call fetched the counts, so the follower number moved ~280ms after that.
+       Half a second of nothing, for a decision the app already knows the answer to.
+
+       It answers immediately now and reconciles behind you. The write still happens; if it
+       fails the button and the count go back to where they were and you get told. The guard
+       is a flag rather than the disabled attribute, so a double tap is dropped without the
+       button ever looking broken. */
+    const followBusy = new Set()
     async function toggleFollow(uid, btn) {
+      if (followBusy.has(uid)) return
+      followBusy.add(uid)
       const on = btn.classList.contains('on')
-      btn.disabled = true
+      const host = el('mm-follow')
+      // step the follower count by hand rather than asking for it: this client is the one
+      // that changed it, so it already knows which way it went
+      const line = host?.querySelector('span:first-child b')
+      const before = line ? Number(line.textContent) : null
+      const paint = (following, n) => {
+        btn.classList.toggle('on', following); btn.textContent = following ? 'Following' : 'Follow'
+        if (line && n != null && Number.isFinite(n)) line.textContent = String(Math.max(0, n))
+      }
+      paint(!on, before == null ? null : before + (on ? -1 : 1))
+      hap('light')
       const { error } = on
         ? await supabase.from('follows').delete().eq('follower_id', state.user.id).eq('followee_id', uid)
         : await supabase.from('follows').insert({ follower_id: state.user.id, followee_id: uid })
-      btn.disabled = false
-      if (error && !/duplicate/i.test(error.message)) { toast('Could not do that.'); return }
-      btn.classList.toggle('on', !on); btn.textContent = on ? 'Follow' : 'Following'
-      followCounts(uid).then((c) => followLine(el('mm-follow'), c, null, uid))
+      followBusy.delete(uid)
+      // a duplicate insert means the edge is already there, which is the state we just drew
+      if (error && !/duplicate/i.test(error.message)) { paint(on, before); toast('Could not do that.'); return }
+      // reconcile quietly, in case somebody else moved the number while we were writing
+      followCounts(uid).then((c) => { if (el('mm-follow') === host && host?.isConnected) followLine(host, c, null, uid) }).catch(() => {})
     }
 
     /* ── statistics: your contributions, then everyone's numbers ── */
