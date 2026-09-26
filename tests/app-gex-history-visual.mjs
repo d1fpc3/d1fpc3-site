@@ -48,7 +48,7 @@ const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
 await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
 const page = await ctx.newPage();
 page.on("pageerror", (e) => fails.push("pageerror: " + e.message));
-await page.route(/gex-worker\.frankiepc3\.workers\.dev\/(history\.json|gex\.json\?day=.*)/, (route) => {
+await page.route(/gex-worker\.(?:frankiepc3|d1fpc3)\.workers\.dev\/(history\.json|gex\.json\?day=.*)/, (route) => {
   const u = route.request().url();
   if (u.includes("history.json")) return route.fulfill(json(HISTORY));
   const m = u.match(/day=([\d-]+)(?:&t=(\d+))?/);
