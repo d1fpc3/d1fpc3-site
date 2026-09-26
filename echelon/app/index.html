@@ -13071,7 +13071,48 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     if (!['cross', 'dot', 'arrow'].includes(CH.s.cursor)) CH.s.cursor = 'cross'
     { const saved = localStorage.getItem('echelon-chart-tf'); for (const label of CH.s.customTfs || []) { const m = /^(\d+)([mhDW])$/.exec(label); if (m && !CH_TF[label]) { const mins = m[2] === 'h' ? +m[1] * 60 : m[2] === 'D' ? +m[1] * 1440 : m[2] === 'W' ? +m[1] * 10080 : +m[1]; CH_TF[label] = [mins >= 1440 ? '1d' : mins % 60 === 0 ? '60m' : mins % 5 === 0 ? '5m' : '1m', mins] } } if (saved && CH_TF[saved]) CH.tf = saved }
     const chSave = () => { try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)); localStorage.setItem(chDrKey(), JSON.stringify(CH.drawings, (k, v) => k.startsWith('_') ? undefined : v)) } catch {} }
+    /* ── layouts: a whole chart under a name ──────────────────
+       The chart already remembered ONE state, the last one you left it in. A layout is that
+       whole state saved under a name and switched between: the symbol, the interval, every
+       style and indicator setting, and the drawings on it. Same idea as a TradingView
+       layout, kept on this device like the rest of the chart's memory.
+       A drawing carries transient paint state on keys starting with "_"; those never go in,
+       the same rule chSave uses. */
+    const CH_LAY_KEY = 'echelon-chart-layouts'
+    const CH_LAY_MAX = 24
+    const chLayouts = () => { try { const v = JSON.parse(localStorage.getItem(CH_LAY_KEY) || '[]'); return Array.isArray(v) ? v : [] } catch { return [] } }
+    const chLayoutsSave = (list) => { try { localStorage.setItem(CH_LAY_KEY, JSON.stringify(list.slice(0, CH_LAY_MAX))) } catch { toast('No room left to save layouts on this device.', 2600) } }
+    const chLayoutNow = (name, id) => ({
+      id: id || chId(), name: String(name || '').slice(0, 48).trim() || 'Layout', at: Date.now(),
+      sym: CH.sym, tf: CH.tf,
+      s: JSON.parse(JSON.stringify(CH.s)),
+      dr: JSON.parse(JSON.stringify(CH.drawings, (k, v) => k.startsWith('_') ? undefined : v)),
+    })
+    function chLayoutApply(L) {
+      if (!L) return
+      if (CH.replay.on) chReplayExit()
+      // symbol first: chSetSymbol swaps the drawing set for the family, and the layout's own
+      // drawings have to land AFTER that or they are thrown away
+      if (L.sym && L.sym !== CH.sym && CH_SYMS[L.sym]) chSetSymbol(L.sym)
+      CH.s = { ...CH_DEFAULTS, ...(L.s || {}) }
+      if (!Array.isArray(CH.s.ma) || !CH.s.ma.length) CH.s.ma = CH_MA_DEFAULT()
+      CH.drawings = Array.isArray(L.dr) ? JSON.parse(JSON.stringify(L.dr)) : []
+      CH.drawings.forEach((d) => { if (!d.id) d.id = chId() })
+      CH.sel = null; CH.pending = null; CH.measure = null; CH.multi.clear()
+      CH.hist = []; CH.redo = []
+      chSave(); chHistUi(); chSelBar(); chLockAllUi(); chMagnetUi(); chAdjUi(); chSkinNow(); chTzLabel()
+      if (L.tf && CH_TF[L.tf]) chSetTf(L.tf); else { chBuild(); chDraw() }
+      if (CH.s.smt || CH.s.cmp) chSmtWarm()
+      if (CH.s.gex) chGexWarm()
+      if (CH.s.htf) chHtfWarm()
+      CH.layoutId = L.id
+      try { localStorage.setItem(CH_LAY_KEY + ':at', L.id) } catch {}
+      toast('Layout "' + L.name + '" loaded.', 1800)
+    }
+    // which layout is on screen, so the menu can mark it and Save can overwrite it
+    CH.layoutId = (() => { try { return localStorage.getItem(CH_LAY_KEY + ':at') || null } catch { return null } })()
     window.__CH = CH   // read-only peek for the console and the harness
+    CH.layouts = { list: chLayouts, save: chLayoutsSave, now: chLayoutNow, apply: chLayoutApply }
     CH.$ = { build: () => chBuild(), paint: () => chPaint(), pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck(), prev: () => chPrevDay(), smt: () => chSmt(), htfWarm: () => chHtfWarm(), eng: () => chLitEng(), ict: () => chIct(), sd: () => chSd(), pend: () => chPend(), amit: () => chAmit(), rolls: () => chRollsOf(chStoreFor(CH.sym)), setSym: (k) => chSetSymbol(k) }
     // undo and redo keep whole snapshots of the drawings; cheap at this size
     const chSnapshot = () => JSON.stringify(CH.drawings)
@@ -16205,7 +16246,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const [root, sub] = which.split(':')
       const S = CH.s, T = gexTokens(), light = document.documentElement.getAttribute('data-theme') === 'light'
       const bgLight = chBgLight(S.bg || chBgDefault(light), light); chSurfaceTokens(T, bgLight)
-      const titles = { sym: 'Symbol search', 'ind:smt': 'SMT divergence', 'ind:cmp': 'Compare', type: 'Chart type', ind: 'Indicators', settings: 'Settings', 'ind:ma': 'Moving averages', 'ind:vwap': 'VWAP', 'ind:bb': 'Bollinger Bands', 'ind:rsi': 'RSI', 'ind:macd': 'MACD', 'ind:atr': 'ATR', keys: 'Keyboard shortcuts', 'ind:lit': 'D1 LIT', 'ind:gex': 'D1 GEX', 'ind:prev': 'Prior day', 'ind:sess': 'Sessions', 'ind:vol': 'Volume', alerts: 'Alerts', objects: 'Objects', draw: CH.sel ? (CH_TOOL_NAMES[CH.sel.type] || 'Drawing') : 'Drawing' }
+      const titles = { sym: 'Symbol search', 'ind:smt': 'SMT divergence', 'ind:cmp': 'Compare', type: 'Chart type', ind: 'Indicators', settings: 'Settings', 'ind:ma': 'Moving averages', 'ind:vwap': 'VWAP', 'ind:bb': 'Bollinger Bands', 'ind:rsi': 'RSI', 'ind:macd': 'MACD', 'ind:atr': 'ATR', keys: 'Keyboard shortcuts', layouts: 'Layouts', 'ind:lit': 'D1 LIT', 'ind:gex': 'D1 GEX', 'ind:prev': 'Prior day', 'ind:sess': 'Sessions', 'ind:vol': 'Volume', alerts: 'Alerts', objects: 'Objects', draw: CH.sel ? (CH_TOOL_NAMES[CH.sel.type] || 'Drawing') : 'Drawing' }
       if (which === 'draw' && !CH.sel) { m.hidden = true; CH.menu = null; return }
       el('ch-menu-title').textContent = titles[which] || 'Settings'
       const back = el('ch-menu-back'); back.hidden = !sub; back.onclick = () => chMenu(root)
@@ -16479,6 +16520,46 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const rowA = (a) => { const r = document.createElement('div'); r.className = 'ch-row'; const t = document.createElement('div'); t.className = 'ch-row-t'; t.innerHTML = `<b class="${a.fired ? '' : 'gold'}">${chPx(a.price)}</b> <span class="dir">${a.above ? '▲ crossing up' : '▼ crossing down'}</span>${a.note ? ` <span class="dir">· ${escH(a.note)}</span>` : ''}`; const s = document.createElement('small'); s.textContent = a.fired ? `Fired ${new Date(a.fired).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : `Set ${new Date(a.created).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`; t.appendChild(s); const x = document.createElement('button'); x.type = 'button'; x.className = 'ch-gear'; x.title = 'Remove'; x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>'; x.addEventListener('click', () => { CH.alerts = CH.alerts.filter((y) => y !== a); chSaveAlerts(); chAlertsUi(); chDraw(); chMenu('alerts') }); r.append(t, x); body.appendChild(r) }
         live.sort((a, b) => b.price - a.price).forEach(rowA)
         if (done.length) { header(`Fired (${done.length})`); done.sort((a, b) => b.fired - a.fired).forEach(rowA); button('Clear fired alerts', () => { CH.alerts = CH.alerts.filter((a) => !a.fired); chSaveAlerts(); chAlertsUi(); chDraw(); chMenu('alerts') }) }
+      } else if (which === 'layouts') {
+        hint('A layout is this whole chart under a name: the symbol, the interval, every setting and every drawing on it. Saved on this device, like the rest of the chart.')
+        const list = chLayouts()
+        const cur = list.find((x) => x.id === CH.layoutId)
+        button(cur ? 'Save over "' + cur.name + '"' : 'Save this layout', () => {
+          const name = (prompt('Name this layout', cur ? cur.name : CH.sym + ' ' + CH.tf) || '').trim()
+          if (!name) return
+          const next = chLayouts().filter((x) => x.id !== (cur ? cur.id : null) && x.name !== name)
+          const L = chLayoutNow(name, cur && cur.name === name ? cur.id : null)
+          chLayoutsSave([L, ...next]); CH.layoutId = L.id
+          try { localStorage.setItem(CH_LAY_KEY + ':at', L.id) } catch {}
+          toast('Saved "' + L.name + '".', 1800); chMenu('layouts')
+        }, 8)
+        if (cur) button('Save as a new one', () => {
+          const name = (prompt('Name the new layout', cur.name + ' copy') || '').trim(); if (!name) return
+          const L = chLayoutNow(name)
+          chLayoutsSave([L, ...chLayouts().filter((x) => x.name !== name)]); CH.layoutId = L.id
+          try { localStorage.setItem(CH_LAY_KEY + ':at', L.id) } catch {}
+          toast('Saved "' + L.name + '".', 1800); chMenu('layouts')
+        }, 8)
+        header(list.length ? 'Saved (' + list.length + ')' : 'Saved')
+        if (!list.length) hint('None yet. Set the chart up the way you want it, then save it.')
+        const xI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>'
+        const pI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>'
+        for (const L of list) {
+          const r = document.createElement('div'); r.className = 'ch-obj' + (L.id === CH.layoutId ? ' on' : '')
+          const nDr = (L.dr || []).length
+          const inds = ['lit', 'gex', 'eng', 'ict', 'sd', 'pend', 'amit', 'htf', 'news', 'smt', 'cmp', 'vwap', 'bb', 'p_rsi', 'p_macd', 'p_atr'].filter((k) => L.s && L.s[k]).length + ((L.s && L.s.emaOn) ? 1 : 0)
+          r.innerHTML = '<span class="t"><b>' + escH(L.name) + '</b><small>' + escH((L.sym || '') + ' · ' + (L.tf || '') + ' · ' + inds + ' indicator' + (inds === 1 ? '' : 's') + ' · ' + nDr + ' drawing' + (nDr === 1 ? '' : 's')) + '</small></span><span class="acts"><button type="button" data-a="rename" title="Rename">' + pI + '</button><button type="button" data-a="x" class="danger" title="Remove">' + xI + '</button></span>'
+          r.addEventListener('click', (e) => {
+            const b = e.target.closest('button[data-a]')
+            if (b) {
+              if (b.dataset.a === 'rename') { const n2 = (prompt('Rename this layout', L.name) || '').trim(); if (!n2) return; chLayoutsSave(chLayouts().map((x) => x.id === L.id ? { ...x, name: n2.slice(0, 48) } : x)) }
+              else { if (!confirm('Remove the layout "' + L.name + '"?')) return; chLayoutsSave(chLayouts().filter((x) => x.id !== L.id)); if (CH.layoutId === L.id) CH.layoutId = null }
+              chMenu('layouts'); return
+            }
+            chLayoutApply(L); chMenu(null)
+          })
+          body.appendChild(r)
+        }
       } else if (which === 'keys') {
         const groups = [['Chart', [['← →', 'Scroll, Shift for more'], ['+ −', 'Zoom in and out'], ['Home', 'Back to the latest bar'], ['Alt+R', 'Reset the view'], ['Alt+G', 'Go to a date'], ['digits then Enter', 'Change the interval (15, 2h, 1D)'], ['Scroll wheel', 'Zoom at the cursor'], ['Shift+wheel', 'Scroll'], ['Drag the price scale', 'Scale the price, double-click resets'], ['Drag a pane edge', 'Resize the pane']]],
           ['Drawing', [['Alt+T', 'Trend line'], ['Alt+H', 'Horizontal line'], ['Alt+V', 'Vertical line'], ['Alt+F', 'Fib retracement'], ['Alt+R', 'Rectangle'], ['Alt+N', 'Text'], ['Alt+L', 'Long position'], ['Alt+M', 'Measure'], ['Shift+drag', 'Measure'], ['Shift while drawing', 'Snap a line to 45°'], ['Ctrl held', 'Strong magnet'], ['Ctrl+click', 'Add to the selection'], ['Double-click a tool', 'Keep it after each drawing'], ['Double-click a drawing', 'Properties'], ['Right-click', 'Menu']]],
@@ -16559,7 +16640,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       else {
         const links = document.createElement('div'); links.className = 'ch-links'
-        for (const [t, w] of [['Objects', 'objects'], ['Alerts', 'alerts'], ['Indicators', 'ind'], ['Shortcuts', 'keys']]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', () => chMenu(w)); links.appendChild(b) }
+        for (const [t, w] of [['Layouts', 'layouts'], ['Objects', 'objects'], ['Alerts', 'alerts'], ['Indicators', 'ind'], ['Shortcuts', 'keys']]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', () => chMenu(w)); links.appendChild(b) }
         body.appendChild(links)
         header('Chart type')
         const typeRow = document.createElement('div'); typeRow.className = 'ch-row ch-row-wide'; typeRow.appendChild(seg('type', [['candles', 'Candles'], ['hollow', 'Hollow'], ['heikin', 'HA'], ['bars', 'Bars'], ['line', 'Line'], ['area', 'Area']])); body.appendChild(typeRow)
@@ -16605,7 +16686,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        its button, or a side panel (objects, alerts) */
     const CH_SET_TABS = { Symbol: ['Chart type', 'Candles', 'Line and area'], Canvas: ['Background', 'Accent', 'Grid', 'Crosshair', 'Sessions'], 'Scales and lines': ['Axes and labels', 'Time'], Volume: ['Volume'], Drawing: ['Drawing'] }
     function chDlgShape(m, body, which) {
-      const kind = which === 'type' ? 'pop' : which === 'objects' || which === 'alerts' ? 'side' : 'dlg'
+      const kind = which === 'type' ? 'pop' : which === 'objects' || which === 'alerts' || which === 'layouts' ? 'side' : 'dlg'
       const size = which === 'settings' ? 'wide' : which === 'ind' || which === 'sym' ? 'list' : 'std'
       if (m.dataset.which?.split(':')[0] !== which.split(':')[0] || m.dataset.kind !== kind) { m.style.translate = ''; m._dx = 0; m._dy = 0 }
       m.dataset.kind = kind; m.dataset.size = size; m.dataset.which = which
