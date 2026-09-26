@@ -27,6 +27,7 @@ const mgmt = process.env.SUPABASE_ACCESS_TOKEN || (existsSync(tokenFile) ? readF
 const email = process.env.EMAIL || "appreview@d1fpc3.com";
 const theme = process.env.THEME || "dark";
 const SYM = process.env.SYM || "";   // NQ | MNQ | ES | MES; empty keeps whatever is saved
+const STALE = process.env.STALE === "1";   // fake a Monday 11:30 ET with only Friday's print on the feed: the legend must say how old it is
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
 const service = keys.find((k) => k.name === "service_role").api_key;
 const anon = keys.find((k) => k.name === "anon").api_key;
@@ -60,6 +61,7 @@ async function run(vpName) {
   const ctx = await browser.newContext(VP[vpName]);
   await ctx.addInitScript(([k, v, t, sy]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", t); if (!localStorage.getItem("echelon-chart-tf")) localStorage.setItem("echelon-chart-tf", "5m"); if (!localStorage.getItem("echelon-chart-settings")) localStorage.setItem("echelon-chart-settings", JSON.stringify({ gex: true })); if (sy) localStorage.setItem("echelon-chart-sym", sy); }, [`sb-${REF}-auth-token`, JSON.stringify(session), theme, SYM]);
   const page = await ctx.newPage();
+  if (STALE) await page.clock.setFixedTime(new Date("2026-09-28T15:30:00Z"));
   page.on("pageerror", (e) => { note("PAGEERROR " + e.message); fails.push(`${vpName} pageerror: ${e.message}`) });
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
   await openChart(page);
@@ -71,7 +73,12 @@ async function run(vpName) {
     const row = await page.evaluate(() => { const r = document.querySelector('#ch-legend .ln[data-ind="gex"]'); return r ? { text: r.textContent, title: r.getAttribute("title") } : null; });
     check(!!row, "legend has the D1 GEX row (the account owns d1-gex)");
     if (!row) { await page.screenshot({ path: `${OUT}/${vpName}-${theme}-gex-missing.png` }); await ctx.close(); return; }
-    check(/(Positive|Negative) gamma/.test(row.text) && /Flip\s?[\d,]+/.test(row.text), `legend row reads: ${row.text.trim().slice(0, 90)}`);
+    check(/(Dampening|Amplifying|Unsettled|Past the (call|put) wall)/.test(row.text) && /Flip\s?[\d,]+\s[+−]\d+/.test(row.text), `legend row reads: ${row.text.trim().slice(0, 110)}`);
+    check(STALE ? /data from \w{3} \d{1,2}:\d{2} [AP]M, \d+[mh] old/.test(row.text) : /as of (\w{3} )?\d{1,2}:\d{2}/.test(row.text), STALE ? "a quiet feed mid-session says how old the print is" : "legend says which print the levels came from");
+    const pill = await page.evaluate(() => { const p = document.querySelector("#ch-legend .gx-rg"); if (!p) return null; const cs = getComputedStyle(p); return { k: p.dataset.k, color: cs.color, bg: cs.backgroundColor, radius: cs.borderRadius }; });
+    check(!!pill && pill.bg !== "rgba(0, 0, 0, 0)" && parseFloat(pill.radius) > 8, `regime pill painted: ${JSON.stringify(pill)}`);
+    const lb = await page.locator('#ch-legend .ln[data-ind="gex"]').boundingBox();
+    if (lb) await page.screenshot({ path: `${OUT}/${vpName}-${theme}-gex-legend.png`, clip: { x: lb.x - 6, y: lb.y - 30, width: Math.min(760, lb.width + 40), height: lb.height + 40 } });
     check((row.title || "").length > 30 && !/undefined|null|NaN/.test(row.title), `hover read: ${row.title}`);
   }
 
