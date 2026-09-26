@@ -31,8 +31,15 @@ function cors(req) {
     'Vary': 'Origin'
   };
 }
-const TTL_SECONDS = 60 * 60 // long enough to watch a lesson, short enough to not be a link to share
+const TTL_SECONDS = 60 * 60 // captions, images and file downloads: fetched once, harmless if the link lingers
 ;
+// Video is the thing worth stealing, so its link is deliberately short-lived.
+// A signed storage URL carries no identity: whoever holds the string can pull
+// the file. Five minutes is too short a window to drag a lesson-length video
+// through and too short for a link pasted into a chat to still work by the time
+// anyone clicks it. The player re-signs itself in the background, so a long
+// video outlives its own URL without the viewer noticing.
+const VIDEO_TTL = 5 * 60;
 async function sha256Hex(input) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
   return [
@@ -40,7 +47,7 @@ async function sha256Hex(input) {
   ].map((b)=>b.toString(16).padStart(2, '0')).join('');
 }
 /** Bunny Stream embed token: sha256(tokenKey + videoId + expiry). */ async function bunnyEmbedUrl(videoId) {
-  const expires = Math.floor(Date.now() / 1000) + TTL_SECONDS;
+  const expires = Math.floor(Date.now() / 1000) + VIDEO_TTL;
   const token = await sha256Hex(`${BUNNY_TOKEN_KEY}${videoId}${expires}`);
   return `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${videoId}` + `?token=${token}&expires=${expires}&autoplay=false&preload=false`;
 }
@@ -108,7 +115,7 @@ Deno.serve(async (req)=>{
     if (!allowed) return json({
       error: 'no access'
     }, 403);
-    const { data: signed, error: signErr } = await admin.storage.from('lesson-files').createSignedUrl(vid.storage_path, TTL_SECONDS);
+    const { data: signed, error: signErr } = await admin.storage.from('lesson-files').createSignedUrl(vid.storage_path, VIDEO_TTL);
     if (signErr || !signed) {
       console.error('sign failed:', signErr?.message);
       return json({
@@ -131,7 +138,7 @@ Deno.serve(async (req)=>{
       provider: 'storage',
       url: signed.signedUrl,
       tracks,
-      expires_in: TTL_SECONDS
+      expires_in: VIDEO_TTL
     });
   }
   // Recap media: the recap id is the gate, exactly like lesson blocks — only
@@ -157,7 +164,7 @@ Deno.serve(async (req)=>{
     if (!isAdmin && !(recap.is_published && ent)) return json({
       error: 'no access'
     }, 403);
-    const { data: signed, error: signErr } = await admin.storage.from('lesson-files').createSignedUrl(blockPath, TTL_SECONDS);
+    const { data: signed, error: signErr } = await admin.storage.from('lesson-files').createSignedUrl(blockPath, VIDEO_TTL);
     if (signErr || !signed) {
       console.error('sign failed:', signErr?.message);
       return json({
@@ -168,7 +175,7 @@ Deno.serve(async (req)=>{
       kind: 'video',
       provider: 'storage',
       url: signed.signedUrl,
-      expires_in: TTL_SECONDS
+      expires_in: VIDEO_TTL
     });
   }
   if (!lessonId) return json({
@@ -203,7 +210,7 @@ Deno.serve(async (req)=>{
     if (!block) return json({
       error: 'no such media'
     }, 404);
-    const { data: signed, error: signErr } = await admin.storage.from('lesson-files').createSignedUrl(blockPath, TTL_SECONDS, block.type === 'file' ? {
+    const { data: signed, error: signErr } = await admin.storage.from('lesson-files').createSignedUrl(blockPath, block.type === 'video' ? VIDEO_TTL : TTL_SECONDS, block.type === 'file' ? {
       download: true
     } : undefined);
     if (signErr || !signed) {
@@ -216,14 +223,14 @@ Deno.serve(async (req)=>{
       kind: block.type === 'video' ? 'video' : block.type === 'image' ? 'image' : 'download',
       provider: 'storage',
       url: signed.signedUrl,
-      expires_in: TTL_SECONDS
+      expires_in: block.type === 'video' ? VIDEO_TTL : TTL_SECONDS
     });
   }
   if (lesson.kind === 'video') {
     // Self-hosted: the file sits in the private bucket and plays through a
     // signed URL in a plain <video> tag.
     if (lesson.video_provider === 'storage') {
-      const { data: signed, error: signErr } = await admin.storage.from('lesson-files').createSignedUrl(lesson.storage_path, TTL_SECONDS);
+      const { data: signed, error: signErr } = await admin.storage.from('lesson-files').createSignedUrl(lesson.storage_path, VIDEO_TTL);
       if (signErr || !signed) {
         console.error('sign failed:', signErr?.message);
         return json({
@@ -234,7 +241,7 @@ Deno.serve(async (req)=>{
         kind: 'video',
         provider: 'storage',
         url: signed.signedUrl,
-        expires_in: TTL_SECONDS
+        expires_in: VIDEO_TTL
       });
     }
     if (lesson.video_provider !== 'bunny') {

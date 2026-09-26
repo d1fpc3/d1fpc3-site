@@ -2938,6 +2938,15 @@
     .vp video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
     .vp:fullscreen, .vp:-webkit-full-screen { width: calc(100 * var(--vw)); height: calc(100 * var(--vh)); }
     .vp .vp-tap { position: absolute; inset: 0; }
+    /* the mark that says who is watching: quiet enough to forget, present
+       enough to survive a recording, and never in the same place twice */
+    .vp .vp-wm { position: absolute; left: 6%; top: 8%; z-index: 6; pointer-events: none; opacity: 0.19; transition: left 0.55s cubic-bezier(0.22, 1, 0.36, 1), top 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
+    .vp .vp-wm-t { display: block; white-space: nowrap; color: #fff; font-size: clamp(11px, calc(0.82 * var(--vw)), 15px); letter-spacing: 0.035em; text-shadow: 0 1px 4px rgba(0,0,0,0.75); transition: opacity 0.6s ease; }
+    .vp .vp-wm-t.out { opacity: 0; }
+    /* the player sits on black in both themes, so this never takes theme ink */
+    .vp .vp-stop { position: absolute; inset: 0; z-index: 9; display: grid; align-content: center; justify-items: center; gap: 8px; text-align: center; padding: 24px; background: rgba(0,0,0,0.94); }
+    .vp .vp-stop strong { font-size: 16px; font-weight: 600; color: #fff; letter-spacing: 0.01em; }
+    .vp .vp-stop span { font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.66); max-width: 34ch; }
     .vp .vp-big {
       position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
       background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.18); color: #fff; pointer-events: none;
@@ -6453,7 +6462,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error ?? `${res.status}`)
-      return body
+      // The payload rides along so the player can ask for the same thing again
+      // when its signature runs out, without every caller having to remember it.
+      return { ...body, payload }
     }
 
     // Lesson images open full size. Wide charts scroll sideways; on phones the
@@ -6476,7 +6487,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const libPosKey = (id) => 'echelon-lib-pos:' + id
     function libPos(id) { try { return JSON.parse(localStorage.getItem(libPosKey(id)) || 'null') } catch { return null } }
     function storageVideo(player, media, videoId, extra = {}) {
-      const video = mountPlayer(player, media.url, { tracks: media.tracks, ...extra })
+      // A video URL is signed for five minutes, which is shorter than most of
+      // these videos. The player asks for a fresh one in the background and
+      // only swaps it in if playback actually breaks on the stale one.
+      const resign = media.payload ? () => mediaSign(media.payload).then((m) => m.url) : null
+      const video = mountPlayer(player, media.url, { tracks: media.tracks, resign, ttl: media.expires_in, ...extra })
       video.addEventListener('loadeddata', () => {
         player.classList.remove('skel')
         const p = videoId ? libPos(videoId) : null
@@ -6501,11 +6516,76 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       unfull: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>',
       pip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="11" width="8" height="6" rx="1" fill="currentColor" stroke="none"/></svg>',
     }
+    /* ── the mark ──
+       A page cannot stop a screen recorder; no browser gives it the means. So
+       the video carries the name of whoever is watching instead. It drifts, so
+       it cannot be cropped off an edge, and if the node is torn out or hidden
+       the video stops: deleting it in devtools is the obvious move, and it
+       should not also be the easy one. A determined person still beats this.
+       What it buys is that a leaked recording names its leaker.               */
+    function vpMark(wrap, video) {
+      const who = state.profile?.username || state.user?.email?.split('@')[0] || 'member'
+      const tag = (state.user?.id || '').replace(/-/g, '').slice(-6)
+      const text = tag ? `${who} · ${tag}` : who
+      const wm = document.createElement('div'); wm.className = 'vp-wm'
+      const t = document.createElement('span'); t.className = 'vp-wm-t'; t.textContent = text
+      wm.appendChild(t); wrap.appendChild(wm)
+      // corners, edges and off-centre: nowhere a crop or a letterbox hides
+      const SPOTS = [[5, 7], [64, 7], [5, 79], [64, 79], [33, 44], [5, 44], [64, 26], [33, 79]]
+      let i = Math.floor(Math.random() * SPOTS.length)
+      let drifting = false
+      const place = () => { wm.style.left = SPOTS[i][0] + '%'; wm.style.top = SPOTS[i][1] + '%' }
+      place()
+      const drift = () => {
+        drifting = true; t.classList.add('out')
+        setTimeout(() => {
+          i = (i + 1 + Math.floor(Math.random() * (SPOTS.length - 1))) % SPOTS.length
+          place(); t.classList.remove('out')
+          setTimeout(() => { drifting = false }, 700)
+        }, 650)
+      }
+      let move = setInterval(drift, 20000)
+      let watch = 0, obs = null, tripped = false
+      const stop = () => { clearInterval(move); clearInterval(watch); obs?.disconnect() }
+      const tampered = () => {
+        if (wm.parentNode !== wrap) return true
+        const cw = getComputedStyle(wm)
+        if (cw.display === 'none' || cw.visibility === 'hidden' || Number(cw.opacity) < 0.05) return true
+        if (t.textContent !== text || !t.offsetWidth) return true
+        if (drifting) return false
+        const ct = getComputedStyle(t)
+        return ct.display === 'none' || ct.visibility === 'hidden' || Number(ct.opacity) < 0.05
+      }
+      const trip = () => {
+        if (tripped) return
+        tripped = true; stop()
+        try { video.pause() } catch {}
+        const n = document.createElement('div'); n.className = 'vp-stop'
+        const h = document.createElement('strong'); h.textContent = 'Playback stopped'
+        const p = document.createElement('span'); p.textContent = 'This video is marked with your name. Reload the page to watch it again.'
+        n.append(h, p); wrap.appendChild(n)
+      }
+      const check = () => { if (!wrap.isConnected) return stop(); if (tampered()) trip() }
+      watch = setInterval(check, 1500)
+      // narrow on purpose: watching the whole player would fire on every frame
+      // of the seek bar, and getComputedStyle that often is its own problem
+      obs = new MutationObserver(check)
+      obs.observe(wrap, { childList: true })
+      obs.observe(wm, { attributes: true, childList: true, characterData: true, subtree: true })
+      return stop
+    }
+
     function mountPlayer(host, url, opts = {}) {
       host.textContent = ''
       const wrap = document.createElement('div'); wrap.className = 'vp paused'; wrap.tabIndex = 0
       const video = document.createElement('video')
       video.src = url; video.playsInline = true; video.preload = 'metadata'
+      // Nothing here stops a screen recorder — no browser lets a page do that.
+      // What it stops is the easy copy: the download item in the native menu,
+      // the cast target, the picture-in-picture window that outlives the page.
+      video.controlsList = 'nodownload noplaybackrate noremoteplayback'
+      video.disablePictureInPicture = true
+      video.disableRemotePlayback = true
       if (opts.poster) video.poster = opts.poster
       // a caption file on another origin only loads through a CORS video
       if (opts.tracks?.length) video.crossOrigin = 'anonymous'
@@ -6546,6 +6626,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       bar.append(seek, row)
       wrap.append(video, tap, skipL, skipR, big, spin, bar)
       host.appendChild(wrap)
+      // no native video menu, and so no "Save video as" on any layer of it
+      wrap.addEventListener('contextmenu', (e) => e.preventDefault())
+      const markStop = vpMark(wrap, video)
 
       // state → chrome
       const paint = () => {
@@ -6679,6 +6762,43 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       for (const ev of ['mousemove', 'touchstart', 'pointerdown']) wrap.addEventListener(ev, wake, { passive: true })
       wrap.addEventListener('mouseleave', () => { if (!video.paused) wrap.classList.add('idle') })
       wake(); paint()
+
+      /* ── holding a five minute signature open across a forty minute video ──
+         Fetching a fresh URL is cheap. Spending it is not: assigning src makes
+         the browser drop its buffer and start again. So we hold the fresh one
+         and only swap when playback actually breaks on the stale one, which is
+         an error mid-stream or a seek past the buffer once the signature is
+         gone. Watched straight through, nobody ever sees this happen.         */
+      if (opts.resign) {
+        const ttl = Math.max(60, Number(opts.ttl) || 300) * 1000
+        let expiresAt = Date.now() + ttl
+        let fresh = null, swapping = false
+        const stale = () => Date.now() > expiresAt - 30000
+        const refresher = setInterval(() => {
+          if (!wrap.isConnected) { clearInterval(refresher); return }
+          opts.resign().then((u) => { if (u) { fresh = u; expiresAt = Date.now() + ttl } }, () => {})
+        }, Math.round(ttl * 0.8))
+        const swap = async () => {
+          if (swapping || !wrap.isConnected) return
+          swapping = true
+          try {
+            const u = fresh || await opts.resign()
+            fresh = null
+            if (!u || !wrap.isConnected) return
+            expiresAt = Date.now() + ttl   // before the src change, so restoring the position does not read as another stale seek
+            const at = video.currentTime, playing = !video.paused
+            video.addEventListener('loadedmetadata', () => {
+              if (at) video.currentTime = at
+              if (playing) video.play().catch(() => {})
+            }, { once: true })
+            video.src = u
+          } catch {} finally { swapping = false }
+        }
+        video.addEventListener('error', () => { if (stale()) swap() })
+        video.addEventListener('seeking', () => { if (stale()) swap() })
+        video.__resign = swap   // the harness drives this directly; there is no waiting five minutes in a test
+      }
+      video.__mark = markStop
       return video
     }
 
