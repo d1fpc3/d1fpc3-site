@@ -15,7 +15,7 @@ const { chromium } = require(PW_PATHS.find((p) => existsSync(p)) || "playwright"
 
 const OUT = process.env.OUT || `${tmpdir()}/admin-intro-shots`;
 mkdirSync(OUT, { recursive: true });
-const URL = process.env.ADMIN_URL || "http://127.0.0.1:8080/echelon/admin/";
+const URL = process.env.ADMIN_URL || "http://127.0.0.1:8123/echelon/admin/";
 const fails = [];
 const note = (s) => console.log("  " + s);
 const browser = await chromium.launch();

@@ -119,6 +119,14 @@
           animation: gl-drift 11s ease-in-out infinite alternate-reverse; }
     @keyframes gl-drift { to { transform: translate(30px, 24px) scale(1.14); } }
     @media (prefers-reduced-motion: reduce) { .orb { animation: none; } }
+    /* the three dots while the admin check is in flight: the card says what it is doing
+       instead of asking a signed-in admin to sign in again */
+    .gate-dots { display: inline-flex; gap: 3px; margin-left: 5px; vertical-align: 2px; }
+    .gate-dots i { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: 0.35; animation: gate-dot 1.1s ease-in-out infinite; }
+    .gate-dots i:nth-child(2) { animation-delay: 0.16s; } .gate-dots i:nth-child(3) { animation-delay: 0.32s; }
+    @keyframes gate-dot { 0%, 70%, 100% { opacity: 0.25; transform: translateY(0); } 35% { opacity: 0.9; transform: translateY(-2px); } }
+    #gate[data-state="answered"] .gate-dots { display: none; }
+    @media (prefers-reduced-motion: reduce) { .gate-dots i { animation: none; } }
 
     .glass {
       position: relative; width: 100%; max-width: 380px;
@@ -1404,13 +1412,16 @@
   </template>
 
   <!-- ════ LOGIN ════ -->
-  <div class="centre" id="gate">
+  <!-- The card opens as "checking", never as "sign in". boot() has to ask Postgres whether
+       you are an admin, and that is a round trip; this used to spend it telling a signed-in
+       admin to sign in, which on a slow connection reads as having been logged out. -->
+  <div class="centre" id="gate" data-state="checking">
     <span class="orb o1" aria-hidden="true"></span>
     <span class="orb o2" aria-hidden="true"></span>
     <div class="glass">
       <p class="label">Echelon</p>
       <h1 id="gate-title">Admin</h1>
-      <p class="body" id="gate-body">Sign in to manage the course.</p>
+      <p class="body" id="gate-body">Checking your access<span class="gate-dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
       <div id="gate-actions"></div>
     </div>
   </div>
@@ -2206,7 +2217,10 @@
     })
 
     /* ── login ── */
+    // Both screens below are the answer to "who are you", so either one ends the check.
+    const gateAnswered = () => { const g = el('gate'); if (g) g.dataset.state = 'answered' }
     function loginScreen(message) {
+      gateAnswered()
       el('gate-title').textContent = 'Admin'
       el('gate-body').textContent = 'Sign in to manage the course.'
       const host = el('gate-actions'); host.textContent = ''
@@ -2252,6 +2266,7 @@
     }
 
     function notAdminScreen(email) {
+      gateAnswered()
       el('gate-title').textContent = 'Not an admin.'
       el('gate-body').textContent = `${email} does not have admin access.`
       const host = el('gate-actions'); host.textContent = ''
@@ -2544,6 +2559,17 @@
       skelRows(el('recaps-table'), 4, 3)
       skelRows(el('codes-table'), 6, 3)
       skelIntg(el('integrations'), 4)
+      // Every table the dashboard fills on boot, not just the ones that happened to be
+      // listed when this was written: the library, access, applications, community and
+      // permissions tables were all added later and opened empty. Column counts match their
+      // real headers so the row widths do not jump when the data lands.
+      skelRows(el('lib-table'), 9, 4)
+      skelRows(el('access-table'), 5, 4)
+      skelRows(el('apps-table'), 5, 3)
+      skelRows(el('aff-table'), 5, 3)
+      skelRows(el('chan-table'), 4, 3)
+      skelRows(el('mod-table'), 4, 3)
+      skelRows(el('onb-table'), 4, 3)
       for (const id of ['c-users', 'c-content', 'c-codes']) {
         el(id).textContent = ''; el(id).appendChild(skel('14px', 8))
       }
@@ -6821,9 +6847,15 @@
     })
 
     async function boot() {
+      // If the answer never comes (offline, a stalled edge) the card cannot sit on
+      // "checking" indefinitely: after eight seconds it offers the form, which is the only
+      // thing the member can act on.
+      const giveUp = setTimeout(() => { if (el('gate')?.dataset.state === 'checking') loginScreen('Could not reach the server. Sign in to try again.') }, 8000)
+      const done = () => clearTimeout(giveUp)
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return loginScreen()
+      if (!session) { done(); return loginScreen() }
       const { data: isAdmin } = await supabase.rpc('is_admin')
+      done()
       if (!isAdmin) return notAdminScreen(session.user.email)
       // boot() is called once directly and once more when supabase-js announces the
       // session; only the first one past the gate gets to load the dashboard

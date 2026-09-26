@@ -18,7 +18,7 @@ const { chromium, devices } = require(PW_PATHS.find((p) => existsSync(p)) || "pl
 
 const OUT = process.env.OUT || `${tmpdir()}/admin-audit`;
 mkdirSync(OUT, { recursive: true });
-const URL = process.env.ADMIN_URL || "http://127.0.0.1:8080/echelon/admin/";
+const URL = process.env.ADMIN_URL || "http://127.0.0.1:8123/echelon/admin/";
 const REF = "cqdignbleethroyxxvzr";
 const SB = `https://${REF}.supabase.co`;
 // the owner is whoever public.admins says (frankiepc3@gmail.com is NOT the admin account)
