@@ -826,7 +826,7 @@
     .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
     .strip {
-      display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px;
+      display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px;
       background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
     }
     .strip .cell { background: var(--panel); padding: 13px 16px 14px; min-width: 0; }
@@ -887,12 +887,12 @@
     @media (max-width: 1100px) {
       .row2 { grid-template-columns: 1fr; }
       .strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .strip .cell:nth-child(4), .strip .cell:nth-child(5) { border-top: 1px solid var(--line); }
+      .strip .cell:nth-child(n+4) { border-top: 1px solid var(--line); }
     }
     @media (max-width: 640px) {
       .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 12px; }
       .strip .cell { padding: 11px 13px 12px; } .strip .v { font-size: 19px; }
-      .strip .cell:nth-child(5) { grid-column: 1 / -1; }
+
       .acct-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .hstat-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .rule-dl > div { grid-template-columns: 50px minmax(0, 1fr); }
@@ -974,6 +974,7 @@
       <div class="cell"><div class="k">Win rate, 7 days</div><div class="v" id="st-win">–</div><div class="m" id="st-win-m">against break-even</div></div>
       <div class="cell"><div class="k">Edge check</div><div class="v" id="st-edge">–</div><div class="m" id="st-edge-m">daily, with the spread</div></div>
       <div class="cell"><div class="k">Next look</div><div class="v" id="st-next">–</div><div class="m" id="st-next-m">nine minutes before the close</div></div>
+      <div class="cell"><div class="k">Balance</div><div class="v" id="st-bal">–</div><div class="m" id="st-bal-m">on the crypto venue</div></div>
     </section>
 
     <!-- calendar: the rule's whole record, one cell per day, rescaled to any clip.
@@ -2365,7 +2366,7 @@
       const et = (d) => new Date(d).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
       const [sw, st, h] = await Promise.all([
         q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
-        q('kalshi_executor_state', (b) => b.select('at,halted,realized_today').eq('id', 1)).then((r) => r[0] ?? null).catch(() => null),
+        q('kalshi_executor_state', (b) => b.select('at,halted,realized_today,cash,at_risk,equity').eq('id', 1)).then((r) => r[0] ?? null).catch(() => null),
         supabase.rpc('kalshi_edge_health_desk').then((r) => r.data ?? null).catch(() => null),
       ])
       const since = sw.stop_from ?? new Date().toISOString().slice(0, 10) + 'T00:00:00Z'
@@ -2398,6 +2399,15 @@
       setH('rl-pay7', d7 ? `${Number(d7.pay_cents).toFixed(1)}c` : '–')
       setH('rl-spread7', spread == null ? '–' : `${spread.toFixed(2)}c`, spread == null ? '' : spread >= 2 ? 'down' : '')
       setH('rl-edge14', e14 == null ? '–' : `${e14 >= 0 ? '+' : ''}${e14.toFixed(2)}c`, e14 == null ? '' : e14 >= 0 ? 'up' : 'down')
+      // the balance, from the same read the clip is sized off
+      const bal = el('st-bal'), balM = el('st-bal-m')
+      const eq = st?.equity == null ? null : Number(st.equity)
+      bal.textContent = eq == null ? '–' : money(eq).replace('+', '')
+      bal.className = 'v' + (eq == null ? ' dim' : '')
+      balM.textContent = eq == null ? 'the executor has not read it yet'
+        : Number(st.at_risk) > 0 ? `$${Number(st.cash).toFixed(2)} cash + $${Number(st.at_risk).toFixed(2)} in open rounds`
+        : 'all of it free, nothing open'
+
       const cc = el('calls-count'); cc.textContent = done.length ? `${w} of ${done.length} today` : ''
       // the calendar opens at the clip the bot is actually running, once; after that the
       // segment is the reader's to move
