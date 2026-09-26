@@ -899,6 +899,31 @@
       .engine-body { padding: 0 8px 8px; }
     }
     @media (prefers-reduced-motion: reduce) { details summary::before { transition: none; } }
+    /* notifications: the same chrome as the risk editor, because it is the same kind of
+       control, a thing D1 sets that the executor obeys */
+    .notify { padding: 12px 14px 13px; margin: 0 0 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 11px; }
+    .notify .risk-h { margin: 0 0 10px; }
+    .nf { display: flex; align-items: flex-start; gap: 9px; font-size: 12.5px; line-height: 1.35; cursor: pointer; min-width: 0; }
+    .nf input { appearance: none; width: 34px; height: 20px; flex: 0 0 34px; margin-top: 1px; border-radius: 999px; background: var(--line-bright); position: relative; cursor: pointer; transition: background 160ms; }
+    .nf input::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--panel); transition: transform 160ms; }
+    .nf input:checked { background: var(--gold-deep); }
+    .nf input:checked::after { transform: translateX(14px); }
+    .nf span { min-width: 0; }
+    .nf em { display: block; font-style: normal; color: var(--faint); font-size: 11px; margin-top: 1px; }
+    .nf.master { padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+    .nf.master input:checked { background: var(--gold); }
+    .nf.alarm em { color: var(--muted); }
+    .nf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px 18px; }
+    .notify.off .nf-grid, .notify.off .nf-quiet { opacity: 0.45; pointer-events: none; }
+    .nf-quiet { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--line); }
+    .nf-quiet input { width: 52px; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; color: var(--ink); font: inherit; font-size: 12.5px; font-variant-numeric: tabular-nums; padding: 4px 7px; outline: 0; text-align: center; }
+    .nf-quiet input:focus { border-color: var(--gold-deep); }
+    .nf-quiet .to { color: var(--faint); font-size: 12px; }
+    .notify .risk-save { margin-top: 12px; }
+    .notify.locked { opacity: 0.75; }
+    .notify.locked .nf input, .notify.locked .nf-quiet input { pointer-events: none; }
+    @media (max-width: 620px) { .nf-grid { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { .nf input, .nf input::after { transition: none; } }
   </style>
 </head>
 <body>
@@ -1017,6 +1042,29 @@
         <button class="risk-save" id="r-save" disabled>Save</button>
         <span class="note" id="risk-note"></span>
       </div>
+        <div class="notify" id="notify" title="What the Echelon app is allowed to buzz about. The bot reads this before every push.">
+          <div class="risk-h">Notifications</div>
+          <label class="nf master"><input type="checkbox" id="n-enabled"><span>Phone notifications</span></label>
+          <div class="nf-grid" id="n-grid">
+            <label class="nf"><input type="checkbox" id="n-fills"><span>Fills<em>what a win pays, what a loss costs</em></span></label>
+            <label class="nf"><input type="checkbox" id="n-settles"><span>Won and lost<em>each one as it settles</em></span></label>
+            <label class="nf"><input type="checkbox" id="n-rounds"><span>Round totals<em>one per 15 minutes instead</em></span></label>
+            <label class="nf"><input type="checkbox" id="n-exits"><span>Exits<em>a position closed early</em></span></label>
+            <label class="nf alarm"><input type="checkbox" id="n-halts"><span>Stopped for the day<em>the daily stop fired</em></span></label>
+            <label class="nf alarm"><input type="checkbox" id="n-broke"><span>Out of cash<em>nothing can place</em></span></label>
+            <label class="nf alarm"><input type="checkbox" id="n-health"><span>Edge turned<em>decay, crowding or a wide spread</em></span></label>
+            <label class="nf"><input type="checkbox" id="n-reports"><span>Daily report<em>the day, week and month</em></span></label>
+          </div>
+          <div class="nf-quiet">
+            <span class="rk">quiet hours</span>
+            <label><input id="n-qfrom" type="number" min="0" max="23" step="1" inputmode="numeric" placeholder="–"></label>
+            <span class="to">to</span>
+            <label><input id="n-qto" type="number" min="0" max="23" step="1" inputmode="numeric" placeholder="–"></label>
+            <span class="rk">your time. The three alarms ignore it.</span>
+          </div>
+          <button class="risk-save" id="n-save" disabled>Save</button>
+          <span class="note" id="n-note"></span>
+        </div>
         <details class="evidence">
           <summary>Evidence, recomputed nightly</summary>
           <div class="evidence-body">
@@ -2235,6 +2283,47 @@
       renderCalendar()
     }
 
+    /* ── notifications: what the phone is allowed to buzz about (kalshi_notify) ── */
+    async function initNotify() {
+      const host = el('notify'), note = el('n-note'), save = el('n-save')
+      const KINDS = ['fills', 'settles', 'rounds', 'exits', 'halts', 'broke', 'health', 'reports']
+      const box = Object.fromEntries([['enabled', el('n-enabled')], ...KINDS.map((k) => [k, el('n-' + k)])])
+      const qf = el('n-qfrom'), qt = el('n-qto')
+      const rows = await q('kalshi_notify', (b) => b.select('*').eq('id', 1)).catch(() => [])
+      const r = rows[0]
+      if (!r) { note.textContent = 'no settings row'; return }
+      const fill = () => {
+        box.enabled.checked = r.enabled !== false
+        for (const k of KINDS) box[k].checked = r[k] === true
+        qf.value = r.quiet_from == null ? '' : r.quiet_from
+        qt.value = r.quiet_to == null ? '' : r.quiet_to
+        host.classList.toggle('off', !box.enabled.checked)
+      }
+      fill()
+      let canEdit = false
+      if (DESK_USER) { const { data } = await supabase.rpc('is_admin'); canEdit = data === true }
+      host.classList.toggle('locked', !canEdit)
+      note.textContent = canEdit ? '' : 'sign in at /echelon/admin to change'
+      const read = () => {
+        const n = (v) => (String(v).trim() === '' ? null : Math.min(23, Math.max(0, Math.floor(Number(v)))))
+        return { enabled: box.enabled.checked, ...Object.fromEntries(KINDS.map((k) => [k, box[k].checked])), quiet_from: n(qf.value), quiet_to: n(qt.value) }
+      }
+      const dirty = () => JSON.stringify(read()) !== JSON.stringify({ enabled: r.enabled !== false, ...Object.fromEntries(KINDS.map((k) => [k, r[k] === true])), quiet_from: r.quiet_from ?? null, quiet_to: r.quiet_to ?? null })
+      const touch = () => { host.classList.toggle('off', !box.enabled.checked); save.disabled = !canEdit || !dirty() }
+      for (const e of [box.enabled, ...KINDS.map((k) => box[k]), qf, qt]) e.addEventListener('change', touch), e.addEventListener('input', touch)
+      save.addEventListener('click', async () => {
+        if (!canEdit) return
+        save.disabled = true; note.textContent = 'saving'
+        const v = read()
+        const { error } = await supabase.from('kalshi_notify').update({ ...v, updated_at: new Date().toISOString(), updated_by: DESK_USER?.email ?? null }).eq('id', 1)
+        if (error) { note.textContent = error.message; save.disabled = false; return }
+        Object.assign(r, v)
+        note.textContent = 'saved, the bot picks it up within a minute'
+        setTimeout(() => { note.textContent = '' }, 4000)
+        touch()
+      })
+    }
+
     /* ── controls ── */
     {
       const clipSeg = segment(el('cal-clip'), CAL_CLIPS.map((v) => ({ v, label: '$' + v })), cal.clip, (v) => {
@@ -2336,7 +2425,7 @@
     tickNext(); setInterval(tickNext, 1000)
 
     /* ── boot ── */
-    const boot = () => Promise.allSettled([loadStatus(), loadCalendar(), loadBots(), loadRules(), loadResearch(), loadV2Paper(), loadCollectors(), loadIndex(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
+    const boot = () => Promise.allSettled([loadStatus(), initNotify(), loadCalendar(), loadBots(), loadRules(), loadResearch(), loadV2Paper(), loadCollectors(), loadIndex(), loadTicks(), initSwitch(), initRisk(), loadAccount(), loadPaper(), loadTheEdge(), loadLive()]).then((rs) => rs.forEach((r) => r.status === 'rejected' && console.error(r.reason)))
     await boot()
     setInterval(() => { loadStatus(); loadBots(); loadRules(); loadTicks(); loadAccount(); loadPaper(); loadLive(); loadIndex(); loadV2Paper(); loadCollectors() }, 30_000)
     setInterval(() => { loadTheEdge(); loadCalendar() }, 5 * 60_000)
