@@ -105,6 +105,25 @@ if (engine === "chrome") {
   console.log("skip  playback checks: this browser has no H.264");
 }
 
+// ── 6b. the real thing: sit past the signature's own death and then seek ──
+// Only forced by SLOW=1, because there is no honest way to do it in under six
+// minutes. Nothing else proves the error/seeking path ever fires on its own.
+if (process.env.SLOW === "1" && engine === "chrome") {
+  console.log("     SLOW: playing past the five minute signature, ~5.5 min...");
+  const src0 = await page.evaluate(() => document.querySelector(".vp video").src);
+  await page.evaluate(() => { const v = document.querySelector(".vp video"); v.muted = true; v.currentTime = 0; return v.play().catch(() => {}) });
+  await page.waitForTimeout(315000);
+  const dead = await fetch(src0, { method: "HEAD" });
+  ok(!dead.ok, "the URL it started with is genuinely dead by now: " + dead.status);
+  await page.evaluate(() => { const v = document.querySelector(".vp video"); v.currentTime = Math.max(0, v.duration - 20) });
+  await page.waitForTimeout(8000);
+  const rec = await page.evaluate(() => { const v = document.querySelector(".vp video"); return { src: v.src, t: v.currentTime, playing: !v.paused, err: v.error?.code || 0 } });
+  ok(rec.src !== src0, "seeking after expiry swapped in a new signature on its own");
+  ok(!rec.err && rec.t > 0, "playback survived: t=" + rec.t.toFixed(1) + " err=" + rec.err);
+  ok(rec.playing, "and it is still playing");
+  await shot("04-survived-expiry");
+}
+
 // ── 4. tearing the mark out stops the video ──
 await page.evaluate(() => document.querySelector(".vp .vp-wm").remove());
 await page.waitForTimeout(2500);

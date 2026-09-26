@@ -6771,21 +6771,25 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
          gone. Watched straight through, nobody ever sees this happen.         */
       if (opts.resign) {
         const ttl = Math.max(60, Number(opts.ttl) || 300) * 1000
-        let expiresAt = Date.now() + ttl
-        let fresh = null, swapping = false
-        const stale = () => Date.now() > expiresAt - 30000
+        // Two clocks, not one. srcDies is when the URL actually in video.src
+        // runs out; holding a fresh URL must not move it, or the player would
+        // believe itself good while the thing it is playing has already died.
+        let srcDies = Date.now() + ttl
+        let fresh = null, freshDies = 0, swapping = false
+        const stale = () => Date.now() > srcDies - 30000
         const refresher = setInterval(() => {
           if (!wrap.isConnected) { clearInterval(refresher); return }
-          opts.resign().then((u) => { if (u) { fresh = u; expiresAt = Date.now() + ttl } }, () => {})
+          opts.resign().then((u) => { if (u) { fresh = u; freshDies = Date.now() + ttl } }, () => {})
         }, Math.round(ttl * 0.8))
         const swap = async () => {
           if (swapping || !wrap.isConnected) return
           swapping = true
           try {
             const u = fresh || await opts.resign()
+            const dies = fresh ? freshDies : Date.now() + ttl
             fresh = null
             if (!u || !wrap.isConnected) return
-            expiresAt = Date.now() + ttl   // before the src change, so restoring the position does not read as another stale seek
+            srcDies = dies   // set before the src change, so restoring the position does not read as another stale seek
             const at = video.currentTime, playing = !video.paused
             video.addEventListener('loadedmetadata', () => {
               if (at) video.currentTime = at
