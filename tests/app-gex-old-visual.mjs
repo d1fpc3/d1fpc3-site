@@ -63,7 +63,9 @@ async function board(name, { clock, gen, lastTrade, vp = "desk", theme = "dark",
     route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(d) });
   });
   await page.goto(APP_URL + "?start=gex", { waitUntil: "domcontentloaded" });
-  await page.waitForSelector("#td-h1", { timeout: 30000 });
+  // ?start=gex can land on the board before Today ever shows, so wait for the signed-in shell, not Today's heading
+  await page.waitForFunction(() => document.querySelector('.tab[data-view="gex"]') && document.getElementById("td-h1")?.textContent.trim(), null, { timeout: 30000 });
+  await page.waitForTimeout(1200);
   await page.evaluate(() => document.querySelector('.tab[data-view="gex"]').click());
   await page.waitForFunction(() => document.querySelectorAll("#gex-read .v").length >= 4, null, { timeout: 30000 }).catch(() => fails.push(`${name}: board never filled`));
   await page.waitForTimeout(900);
@@ -151,6 +153,8 @@ async function chart(vp, oldOn) {
   await page.evaluate(() => { const o = document.getElementById("onb"); if (o && !o.hidden) { o.hidden = true; document.body.classList.remove("onb-open") } });
   await page.waitForFunction(() => /C\s?[\d,]/.test(document.getElementById("ch-legend").textContent), null, { timeout: 30000 }).catch(() => {});
   await page.waitForTimeout(6000);
+  // zoom out so the walls and the flip are inside the price range, not just the last few candles
+  if (vp !== "phone") { const cv = await page.$("#ch-canvas"); const box = await cv.boundingBox(); await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.4); for (let i = 0; i < 3; i++) { await page.mouse.wheel(0, 600); await page.waitForTimeout(400); } await page.mouse.move(box.x + 5, box.y + box.height - 5); await page.waitForTimeout(800); }
   const px = await page.evaluate(() => { const cv = document.getElementById("ch-canvas"); const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data; const hit = (c, t = 60) => { let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - c[0]) + Math.abs(d[i + 1] - c[1]) + Math.abs(d[i + 2] - c[2]) < t) n++; return n }; return { call: hit([239, 83, 80]), put: hit([38, 166, 154]), flip: hit([41, 98, 255]) } });
   const lg = await page.evaluate(() => { const r = document.querySelector('#ch-legend .ln[data-ind="gex"]'); const p = r?.querySelector(".gx-at"); return { row: r?.textContent || "", at: p?.textContent || "", old: p?.classList.contains("old"), tip: p?.getAttribute("title") || "", bg: p ? getComputedStyle(p).backgroundColor : "", chip: document.querySelector("#ch-legend .ind.gx-old")?.textContent || "" } });
   return { page, ctx, browser, px, lg };
@@ -172,7 +176,9 @@ console.log("\nchart");
   await on.page.screenshot({ path: `${OUT}/chart-desk-fulllook.png` });
   note(`zone pixels, old look ${JSON.stringify(on.px)} vs switch off ${JSON.stringify(off)}`);
   const sum = (o) => o.call + o.put + o.flip;
-  check(sum(off) > 200 && sum(on.px) < sum(off) * 0.8, `old levels paint fainter (${sum(on.px)} strong-colour px vs ${sum(off)} with the switch off)`);
+  // the put wall and flip colours only come from GEX zones (the candles are red and white), so they carry the comparison
+  const zone = (o) => o.put + o.flip
+  check(zone(off) > 100 && zone(on.px) < zone(off) * 0.8, `old levels paint fainter (put + flip zone pixels ${zone(on.px)} faded vs ${zone(off)} with the switch off)`);
   // the gear lists the switch
   await on.page.evaluate(() => window.__CH.$.menu("ind:gex"));
   await on.page.waitForTimeout(500);
