@@ -189,6 +189,26 @@
     .bar { height: 6px; border-radius: 6px; background: var(--panel-3); overflow: hidden; min-width: 80px; }
     .bar i { display: block; height: 100%; border-radius: 6px; background: var(--gold); opacity: .8; }
 
+    /* launch radar */
+    .radar { background: var(--panel); border-radius: 14px; overflow: hidden; }
+    .ra {
+      display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 14px; align-items: start;
+      padding: 13px 16px; border-top: 1px solid var(--line); text-decoration: none; color: inherit; transition: background .15s;
+    }
+    .ra:first-child { border-top: 0; }
+    @media (hover: hover) { .ra:hover { background: var(--panel-2); } }
+    .ra .k { justify-self: start; }
+    .ra .who { font-weight: 600; font-size: 13.5px; }
+    .ra .txt { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 2px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .ra .ca { margin-top: 6px; font-size: 12.5px; color: var(--ink); }
+    .ra .ca code { font-family: 'IBM Plex Mono', ui-monospace, Consolas, monospace; font-size: 11.5px; color: var(--muted); }
+    .ra .meta { text-align: right; color: var(--faint); font-size: 12px; white-space: nowrap; line-height: 1.5; }
+    .pill.official { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+    .pill.launch { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); }
+    .pill.surge { background: color-mix(in srgb, #9b6bf2 18%, transparent); color: #a98af5; }
+    .pill.watched { background: var(--panel-3); color: var(--muted); }
+    @media (max-width: 700px) { .ra { grid-template-columns: minmax(0, 1fr) auto; } .ra .k { grid-column: 1 / -1; } }
+
     .two { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; align-items: start; }
 
     /* backtest */
@@ -282,6 +302,11 @@
       </div>
       <div class="curve" id="hero-curve"></div>
     </div>
+
+    <section>
+      <div class="sh"><h2>Launch radar</h2><p id="radar-say">Posts by watched accounts the second they get coined, contract addresses checked. Pings go to Discord #memecoin-radar.</p></div>
+      <div class="radar" id="radar"></div>
+    </section>
 
     <section>
       <div class="sh"><h2>Strategies on paper</h2><p id="bar-say">Live after 100 trades with the whole range above zero.</p></div>
@@ -400,16 +425,17 @@
       if (loading) return
       loading = true; $('refresh').classList.add('spin'); $('refresh').textContent = 'Refreshing'
       try {
-        const [paper, status, who, bt, tr, lab, j7] = await Promise.all([
+        const [paper, status, who, bt, tr, lab, j7, radar] = await Promise.all([
           latest('paper'), latest('status'), latest('who'), latest('backtest'),
           SB.from('memecoin_bot_trades').select('strategy, mint, label, kol, t_out, ret, pnl, peak, why').order('t_out', { ascending: false }).limit(300),
-          latest('lab'), latest('j7'),
+          latest('lab'), latest('j7'), latest('radar'),
         ])
         if (lab?.lines?.length) { $('lab').hidden = false; $('lab-text').textContent = lab.lines.join('\n'); $('lab-sum').textContent = ago(lab.at) }
         state.trades = tr.data || []
         renderHero(paper, status)
         renderCards(paper)
         renderWho(who, j7)
+        renderRadar(radar)
         renderSeg(paper)
         renderTrades()
         renderBacktest(bt)
@@ -442,9 +468,10 @@
       if (!big.querySelector('span')) big.innerHTML = '<span></span><small>SOL</small>'
       countUp(big.querySelector('span'), pnl, (v) => sol(v))
       const passing = S.filter((x) => x.verdict === 'passes').length
+      const killed = S.filter((x) => x.live && x.verdict === 'killed').length, live = S.filter((x) => x.live).length
       const since = paper?.body?.since ? new Date(paper.body.since).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : null
       $('hero-sub').innerHTML = `${n.toLocaleString()} paper trades${since ? ' since ' + esc(since) : ''}, 0.25 SOL each, priced off the live curve with fees. ` +
-        (passing ? `<b>${passing} ${passing === 1 ? 'strategy passes' : 'strategies pass'} the bar.</b>` : '<b>Nothing has passed the bar yet</b>, so nothing trades real money.')
+        (passing ? `<b>${passing} ${passing === 1 ? 'strategy passes' : 'strategies pass'} the bar.</b>` : killed && killed === live ? `<b>All ${live} strategies failed the bar</b> (95% range below zero), so the forward test is over and nothing trades.` : '<b>Nothing has passed the bar yet</b>, so nothing trades real money.')
       const C = paper?.body?.combined || []
       if (C.length > 1) {
         const vals = C.map((p) => p[1]), lo = Math.min(0, ...vals), hi = Math.max(0, ...vals), span = hi - lo || 1
@@ -460,7 +487,7 @@
           <div class="cap"><span>${esc(when(t0))}</span><span>${esc(when(t1))}</span></div>`
       }
       const W = status?.body?.workers || []
-      const label = { collector: 'Launches', tape: 'Tapes', 'kol-watch': 'KOL feed', 'dex-watch': 'Dex paid', 'lp-watch': 'LP pools', bot: 'Paper bot' }
+      const label = { collector: 'Launches', tape: 'Tapes', 'kol-watch': 'KOL feed', 'dex-watch': 'Dex paid', 'lp-watch': 'LP pools', radar: 'Radar', bot: 'Paper bot' }
       $('workers').innerHTML = W.map((w) => `<span class="w ${w.alive ? '' : 'dead'}" title="${esc(w.line || '')}"><i></i>${esc(label[w.worker] || w.worker)}${w.alive ? '' : ' down'}</span>`).join('')
     }
 
@@ -503,6 +530,19 @@
           <div class="foot"><span class="num ${cls(s.pnl)}">${sol(s.pnl)} SOL</span>${pill(s)}</div>
         </article>`
       }).join('')
+    }
+
+    const RADAR_LABEL = { official: 'Official CA', launch: 'Launch post', surge: 'Viral', watched: 'Watched' }
+    function renderRadar(radar) {
+      const A = radar?.body?.alerts || []
+      if (!A.length) { $('radar').innerHTML = '<div class="empty">No alerts yet. The radar posts here and to Discord the moment a watched account gets coined.</div>'; return }
+      const usd = (v) => (!v ? '' : v >= 1e6 ? '$' + (v / 1e6).toFixed(1) + 'M' : '$' + Math.round(v / 1e3) + 'k')
+      $('radar').innerHTML = A.slice(0, 12).map((a) => `<a class="ra" href="${esc(a.url)}" target="_blank" rel="noopener">
+          <span class="k"><span class="pill ${esc(a.kind)}">${esc(RADAR_LABEL[a.kind] || a.kind)}</span></span>
+          <span><span class="who">@${esc(a.author)}</span><span class="txt">${esc(a.text || 'Open the post to read it')}</span>
+            ${a.ca ? `<span class="ca">${a.ca.sym ? '$' + esc(a.ca.sym) + ' ' : ''}${usd(a.ca.mcap)} <code>${esc(a.ca.ca)}</code></span>` : ''}</span>
+          <span class="meta num">${esc(ago(new Date(a.at).toISOString()))}<br>${a.copies} ${a.copies === 1 ? 'copy' : 'copies'}</span>
+        </a>`).join('')
     }
 
     function renderWho(who, j7) {
