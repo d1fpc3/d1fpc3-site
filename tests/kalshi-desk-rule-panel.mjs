@@ -25,7 +25,7 @@ if (!session.access_token) throw new Error('verify failed')
 const truth = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, { method: 'POST', headers: { Authorization: `Bearer ${mgmt}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ query: 'select segment, fraction from kalshi_risk_table' }) })).json()
 const want = Object.fromEntries(truth.map((r) => [r.segment, Number(r.fraction) > 0 ? (100 * Number(r.fraction)).toFixed(1) + '%' : 'not traded']))
 const sql = async (query) => (await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, { method: 'POST', headers: { Authorization: `Bearer ${mgmt}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) })).json()
-const [hsw] = await sql('select hourly_rule, hourly_frac from kalshi_switch where id = 1'), [hp] = await sql('select count(*)::int n from kalshi_hourly_paper where won is not null')
+const [hsw] = await sql('select hourly_rule, hourly_frac from kalshi_switch where id = 1'), [hp] = await sql("select count(*)::int n from kalshi_hourly_paper where won is not null and mode = 'paper'")
 const SAY = { ':00 weekend': 'Sat/Sun, top of the hour', ':30/45 weekend': 'Sat/Sun, :30 and :45', ':15 weekend': 'Sat/Sun, :15', ':00 weekday': 'Mon-Fri, top of the hour', ':30/45 weekday': 'Mon-Fri, :30 and :45', ':15 weekday': 'Mon-Fri, :15' }
 const browser = await chromium.launch(), findings = []
 for (const [name, vp] of [['desk', { viewport: { width: 1440, height: 900 } }], ['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }]]) {
@@ -41,7 +41,7 @@ for (const [name, vp] of [['desk', { viewport: { width: 1440, height: 900 } }], 
   // the hourly row: the switch's mode and size, and the paper count straight from the table
   await page.waitForFunction(() => (document.querySelector('#rl-hourly')?.textContent ?? '').endsWith('.'), null, { timeout: 30000 }).catch(() => findings.push(`${name}: the hourly row never rendered`))
   got.hourly = await page.evaluate(() => document.querySelector('#rl-hourly')?.textContent)
-  if (hsw.hourly_rule === 'live' && !got.hourly?.includes(`live on the 02:00 New York close`)) findings.push(`${name}: hourly row "${got.hourly}" but the switch is live`)
+  if (hsw.hourly_rule === 'live' && !got.hourly?.includes(`live on weekends: 20 minutes before each top of the hour`)) findings.push(`${name}: hourly row "${got.hourly}" but the switch is live`)
   if (hsw.hourly_rule === 'live' && !got.hourly?.includes(`${(100 * Number(hsw.hourly_frac)).toFixed(0)}% of the account`)) findings.push(`${name}: hourly size is not ${hsw.hourly_frac}`)
   if (hp.n > 0 && !got.hourly?.includes(`${new Intl.NumberFormat('en-US').format(Math.min(hp.n, 5000))} legs graded`)) findings.push(`${name}: hourly paper count, database ${hp.n}: "${got.hourly}"`)
   // the sizing note states the table's own Kelly share and cap

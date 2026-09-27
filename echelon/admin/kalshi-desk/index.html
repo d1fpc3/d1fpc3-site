@@ -1149,7 +1149,7 @@
           <div><dt>Holds</dt><dd>to settlement, no exits</dd></div>
           <div><dt>Guards</dt><dd>follows the ask up inside the band; skips if it fell under the floor by send time; skips past 95c</dd></div>
           <div><dt>Skips</dt><dd id="rl-skips">the 9:45, 10:15 and 10:30 New York closes on stock-market days</dd></div>
-          <div><dt>Hourly</dt><dd id="rl-hourly">the 02:00 New York BTC and ETH hourly ladders</dd></div>
+          <div><dt>Hourly</dt><dd id="rl-hourly">the BTC and ETH hourly ladders</dd></div>
         </dl>
         <div class="hstat-row">
           <div class="hstat"><div class="v" id="rl-edge7">–</div><div class="k">edge, 7 days</div></div>
@@ -2346,7 +2346,7 @@
       const mp = g.length ? g.reduce((t, r) => t + Number(r.price), 0) / g.length : null, mc = g.length ? g.reduce((t, r) => t + Number(r.pnl_c ?? 0), 0) / g.length : null
       const lf = live.filter((o) => Number(o.filled) > 0 && o.pnl != null), lw = lf.filter((o) => Number(o.pnl) > 0).length, lp = lf.reduce((t, o) => t + Number(o.pnl), 0)
       const head = mode === 'off' ? 'off' : mode === 'live'
-        ? `live on the 02:00 New York close, BTC and ETH ladders, the 80 to 95c favourite, ${(100 * frac).toFixed(0)}% of the account, 2 legs at most, held to settlement; stops itself at -25% or when its own record says no edge`
+        ? `live on weekends: 20 minutes before each top of the hour, the BTC and ETH ladders, the 90 to 94c favourite, ${(100 * frac).toFixed(0)}% of the account, 2 legs at most, held to settlement; stops itself at -25% or when its own record says no edge, and goes back to paper if the January to July archive says it loses`
         : 'on paper on every hour, nothing live'
       const pp = g.length ? `. Paper, every hour: ${fmt.format(g.length)} legs graded, won ${(100 * w / g.length).toFixed(1)}% at ${(100 * mp).toFixed(1)}c (${mc >= 0 ? '+' : ''}${mc.toFixed(2)}c a leg)` : ''
       const lv = lf.length ? `. Live: ${lw} won of ${lf.length}, ${lp >= 0 ? '+' : '-'}${Math.abs(lp).toFixed(2)}` : mode === 'live' ? '. No live leg settled yet' : ''
@@ -2625,7 +2625,7 @@
       renderSkips(sw)
       renderSizing(sw, rt, st?.equity)
       Promise.all([
-        q('kalshi_hourly_paper', (b) => b.select('won,price,pnl_c').not('won', 'is', null).order('created_at', { ascending: false }).limit(5000)).catch(() => []),
+        q('kalshi_hourly_paper', (b) => b.select('won,price,pnl_c').eq('mode', 'paper').not('won', 'is', null).order('created_at', { ascending: false }).limit(5000)).catch(() => []),
         q('kalshi_live_orders', (b) => b.select('pnl,filled').eq('source', 'hourly')).catch(() => []),
       ]).then(([p, l]) => renderHourly(sw, p, l))
       const setH = (id, v, cls) => { const e = el(id); e.textContent = v; e.className = 'v ' + (cls ?? '') }
