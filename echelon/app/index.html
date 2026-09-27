@@ -2228,6 +2228,13 @@
     .td-gx-levels .v.flip { color: var(--gold); } .td-gx-levels .v.call { color: var(--good); } .td-gx-levels .v.put { color: var(--bad); }
     .td-gx-read { font-size: 13px; color: var(--muted); line-height: 1.55; margin-top: 12px; }
     .td-gx-read b { color: var(--ink); font-weight: 600; }
+    /* old levels on the home card (D1, 09-27): says which day they are from, amber, above the numbers */
+    .td-gx-old { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; padding: 9px 11px; border-radius: 11px; background: color-mix(in srgb, #eba444 10%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, #eba444 30%, transparent); color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+    .td-gx-old svg { flex: none; width: 15px; height: 15px; margin-top: 1px; color: #eba444; }
+    .td-gx-old b { color: #eba444; font-weight: 600; }
+    .td-gex.old .td-gx-levels .v { opacity: 0.62; }
+    .td-gx-stamp.old { color: #eba444; }
+    :root[data-theme="light"] .td-gx-old svg, :root[data-theme="light"] .td-gx-old b, :root[data-theme="light"] .td-gx-stamp.old { color: #a8620f; }
     /* the hard sell: the live board sits blurred behind a gold-framed pitch */
     .td-gex.locked { position: relative; overflow: hidden; border-color: rgba(201,162,74,0.45); box-shadow: 0 0 0 1px rgba(201,162,74,0.12), 0 24px 60px -34px rgba(201,162,74,0.5); }
     .td-gex.locked .td-gx-body { filter: blur(7px); opacity: 0.55; pointer-events: none; user-select: none; }
@@ -13259,7 +13266,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const TD_CACHE = 'echelon-today-cache'
     const tdCacheRead = () => { try { return JSON.parse(localStorage.getItem(TD_CACHE) || '{}') } catch { return {} } }
     const tdCacheWrite = (patch) => { try { localStorage.setItem(TD_CACHE, JSON.stringify({ ...tdCacheRead(), ...patch })) } catch {} }
-    const tdSlimGex = (d) => d ? { generatedAt: d.generatedAt, regime: d.regime, nq: d.nq, zdte: { flip: d.zdte?.flip, callWall: d.zdte?.callWall, putWall: d.zdte?.putWall, netGexM: d.zdte?.netGexM } } : null
+    const tdSlimGex = (d) => d ? { generatedAt: d.generatedAt, chain: { lastTrade: d.chain?.lastTrade }, regime: d.regime, nq: d.nq, zdte: { flip: d.zdte?.flip, callWall: d.zdte?.callWall, putWall: d.zdte?.putWall, netGexM: d.zdte?.netGexM } } : null
     // the calendar the home reads: the live feed once it is in, the snapshot until then
     const tdEvents = () => (newsEvents?.length ? newsEvents : (TD.newsCache || []))
     function tdPaintCached() {
@@ -13366,15 +13373,22 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const lvls = [['Flip', 'flip', flip], ['Call wall', 'call', call], ['Put wall', 'put', put]].filter((l) => l[2] != null && !isNaN(l[2]))
       const locked = !tdGexAllowed()
       const more = sec.querySelector('.td-more'); if (more) more.hidden = locked
+      // when the levels are from, by the board's rule (gexAge); try, since a cached paint can come before the helpers
+      let age = null; try { age = gexAge(d) } catch {}
+      const old = !!age?.old
+      const oldNote = !old ? '' : age.behind
+        ? `<b>Behind.</b> No new print since ${gexHm(age.min)} ET.`
+        : `<b>Old levels.</b> ${gexWkday(age.day, true)}'s ${age.close ? 'close' : gexHm(age.min) + ' ET print'}. ${gexNextWords(age.now).replace(/, and the board picks it up by itself\.$/, '.').replace(/ The board picks it up by itself\.$/, '')}`
       const html = `<div class="td-gx-body">
         <div class="td-gx-head"><span class="td-pill ${cls}">${label}</span><span class="t">${tagline}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+        ${oldNote ? `<div class="td-gx-old" role="status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>${oldNote}</span></div>` : ''}
         ${lvls.length ? `<div class="td-gx-levels" style="grid-template-columns:repeat(${lvls.length},1fr)">${lvls.map(([k, c, v]) => `<div><div class="k">${k}</div><div class="v ${c}">${tdInt(v)}</div></div>`).join("")}</div>` : ""}
         ${read ? `<p class="td-gx-read">${read}</p>` : ''}
-        ${d.generatedAt ? `<p class="td-gx-stamp">Updated ${new Date(d.generatedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}${ET_DAY.format(new Date(d.generatedAt)) === ET_DAY.format(new Date()) ? '' : ' · ' + new Date(d.generatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>` : ''}</div>
+        ${old && !age.behind ? `<p class="td-gx-stamp old">From ${gexDayLabel(age.day)}${age.close ? ' close' : `, ${gexHm(age.min)} ET`}</p>` : d.generatedAt ? `<p class="td-gx-stamp">Updated ${new Date(d.generatedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}${ET_DAY.format(new Date(d.generatedAt)) === ET_DAY.format(new Date()) ? '' : ' · ' + new Date(d.generatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>` : ''}</div>
         ${locked ? `<div class="td-lock"><i class="td-lock-tag">D1 GEX</i><b>See what dealers are doing before the bell.</b><span>The regime, the flip and both walls, read for you every morning, right here and on the full board.</span><button class="btn" type="button">Unlock D1 GEX</button><small>${tdGexPrice()}</small></div>` : ''}`
       if (host.dataset.html === html) return
       host.dataset.html = html
-      host.className = 'td-card td-gex' + (locked ? ' locked' : '')
+      host.className = 'td-card td-gex' + (locked ? ' locked' : '') + (old ? ' old' : '')
       host.innerHTML = html
       host.querySelector('.td-gx-head')?.addEventListener('click', () => { if (!locked) showView('gex') })
       host.querySelector('.td-lock .btn')?.addEventListener('click', () => { hap('light'); showView('indicators') })
@@ -14248,7 +14262,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       htf: false, htfPos: 'tr', htf5: true, htf15: true, htf60: true, htf240: true, htfD: true, htfRsiHi: 70, htfRsiLo: 30, htfVolHot: 1.5,
       news: false, newsPos: 'br', newsHigh: true, newsMed: true, newsHol: true, newsMax: 10, newsDim: true, newsMarks: true,
       badj: true, rollMarks: true, smt: false, smtPeer: 'auto', smtLen: 5, smtBack: 600, smtBearC: '', smtBullC: '', smtW: 2, smtLabels: true, smtPeerMark: true,
-      axisInd: true, indPresets: {}, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexLast: true, gexOld: true, sdDemand: true, sdSupply: true,
+      axisInd: true, indPresets: {}, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexLast: true, gexOld: true, gexHideClosed: true, sdDemand: true, sdSupply: true,
       wmL1: 'user', wmT1: '', wmL2: 'info', wmT2: '', wmSym: true, wmTf: true, wmDate: true, wmA: 0.5, wmSize: 1, wmPos: 'top', wmAlign: 'center', wmBold: true, wmBigT: '', wmBigC: '', wmBigSize: 1, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true, gexSwing: true, gexRn: 10, gexBand: 6, gexPx: false }
     const CH_MA_DEFAULT = () => [{ t: 'ema', n: 20, c: '#c9a24a', w: 1.2, on: true }, { t: 'ema', n: 50, c: '#7aa2d9', w: 1.2, on: true }, { t: 'ema', n: 200, c: '#d97ab0', w: 1.2, on: true }]
     const CH_MA_COLORS = ['#c9a24a', '#7aa2d9', '#d97ab0', '#5fc39a', '#e08a4b']
@@ -16151,9 +16165,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // the print the newest session is painted from: live while it trades, that session's morning print once the market is
     // shut. t is the newest bar, so the legend reads the same print chPaintGex draws on it.
     function chGexNow(t) { const live = chGexLiveFor(); if (!live || chSession().key === 'open') return live; return chGexPrint(t != null ? chGexDay(t) : live.generatedAt.slice(0, 10)) || live }
+    /* Is the market open at the moment the chart stands at: now, or in replay the replayed bar's close. Asked of
+       the moment, never of a bar's open: a 4h bar that opened at 14:00 runs to 18:00 (D1, 09-27: "it shows on
+       the four hour time frame ... it shouldn't be on during after hours"). 09:30 to 16:00 ET, weekdays. */
+    function chGexOpenNow() {
+      const ms = CH.replay?.on && CH.replay.cut != null ? Math.min(Date.now(), (CH.replay.cut + (CH.tfSec || 60)) * 1000 - 1) : Date.now()
+      const p = gexNy(ms)
+      return p.wd !== 'Sat' && p.wd !== 'Sun' && p.min >= 9 * 60 + 30 && p.min < 16 * 60
+    }
+    const chGexHidden = () => CH.s.gexHideClosed !== false && !chGexOpenNow()
     function chPaintGex(ctx, L, T, R) {
       if (!chGexBook()) return
       if (!(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return
+      if (chGexHidden()) return   // after hours, weekends: no levels on the chart (the legend says why)
       const { bars, n, i0, i1 } = R; if (!n) return
       const S = CH.s, X = (i) => chX(i, L), Y = (p) => chY(p, L), cc = (k) => S[k] || CH_GEX_DEF[k], lw = +S.gexW || 1, band = S.gexBand ?? 6
       // group visible bars by session day
@@ -16589,7 +16613,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.s.cmp) { const cmp = chCompare(); const cv = cmp?.v[i]; const c0 = cmp ? [...cmp.v].slice(0, Math.max(0, i)).reverse().find((x) => x != null) : null; rows.push(`<div class="ln" data-ind="cmp"><span class="nm" style="color:${CH.s.cmpC || '#ff9800'}">${cmp?.peer || chCmpSym()}</span><i>${cv != null ? chPx(cv) : '–'}</i>${cv != null && c0 != null ? `<span class="${cv >= c0 ? 'up' : 'down'}">${chPts(cv - c0)}</span>` : ''}${ic('cmp', 'ind:cmp')}</div>`) }
       if (CH.s.smt) rows.push(`<div class="ln" data-ind="smt"><span class="nm">SMT</span><span>${chSmtPeer()} ${CH.s.smtLen || 5}</span>${ic('smt', 'ind:smt')}</div>`)
       if (CH.s.prevDay && !CH.s.lit) rows.push(`<div class="ln" data-ind="prev"><span class="nm">PDH / PDL</span>${ic('prevDay', 'ind:prev')}</div>`)
-      if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(bars[bars.length - 1]?.t), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${[chGexRead(g, last), chVolRead(last)].filter(Boolean).join(' ')}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${chVolBits(last)}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${ic('gex', 'ind:gex')}</div>`) }
+      if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(bars[bars.length - 1]?.t), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${[chGexRead(g, last), chVolRead(last)].filter(Boolean).join(' ')}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${chVolBits(last)}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${chGexHidden() ? '<span class="gx-at">off after hours</span>' : ''}${ic('gex', 'ind:gex')}</div>`) }
       const html = rows.join('')
       const shape = (CH.s.legendOhlc === false ? 'o' : '') + (CH.s.legendInds === false ? 'i' : '') + (CH.s.legendVals === false ? 'v' : '')
       if (lg._html !== html || lg._shape !== shape) { lg._html = html; lg._shape = shape; lg.innerHTML = html; chLegendTrim(lg) }
@@ -18448,7 +18472,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         button('Reset every LIT colour', () => { for (const [, , cKey, wKey, fKey, c2Key] of CH_LIT_PARTS) { S[cKey] = ''; if (c2Key) S[c2Key] = ''; if (wKey) S[wKey] = CH_DEFAULTS[wKey]; if (fKey) S[fKey] = CH_DEFAULTS[fKey] } chSave(); chDraw(); chMenu('ind:lit') })
       } else if (which === 'ind:gex') {
         toggle('gex', 'Show D1 GEX', 'Per session from the 9:30 print', () => { if (S.gex) { chGexWarm(); chVolLoad() } })
-        row('Line width', wselEl('gexW', 1)); toggle('gexLast', 'Latest session only', 'Off draws each earlier session\'s levels too'); toggle('gexOld', 'Fade old levels', 'Levels from an earlier day draw faded with dashed borders, and the legend says when they are from'); toggle('gexLabels', 'Labels', 'Name on each zone'); toggle('gexPx', 'Price in labels', 'Adds the NQ price after the name'); toggle('gexSwing', 'Swing book', 'Walls and flip from the further-out expiries'); row('Zone height', rangeEl('gexBand', 0, 15, 0.5, 6), 'NQ points each side, 0 = lines'); row('Gamma levels shown', rangeEl('gexRn', 0, 10, 1, 10), 'Γ-1 is the biggest strike')
+        row('Line width', wselEl('gexW', 1)); toggle('gexLast', 'Latest session only', 'Off draws each earlier session\'s levels too'); toggle('gexOld', 'Fade old levels', 'Levels from an earlier day draw faded with dashed borders, and the legend says when they are from'); toggle('gexHideClosed', 'Hide when the market is closed', 'Levels show 9:30 AM to 4:00 PM ET on weekdays, like the TradingView indicator'); toggle('gexLabels', 'Labels', 'Name on each zone'); toggle('gexPx', 'Price in labels', 'Adds the NQ price after the name'); toggle('gexSwing', 'Swing book', 'Walls and flip from the further-out expiries'); row('Zone height', rangeEl('gexBand', 0, 15, 0.5, 6), 'NQ points each side, 0 = lines'); row('Gamma levels shown', rangeEl('gexRn', 0, 10, 1, 10), 'Γ-1 is the biggest strike')
         header('Levels')
         for (const [key, label, cKey] of CH_GEX_PARTS) { const els = [colorEl(cKey, 'default')]; if (key === 'gexGtbr') { const r = rangeEl('gexGtbrF', 0, 0.4, 0.01, 0.06); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) } partRow(label, '', els, tglEl(key), { key, colors: [cKey], fKey: key === 'gexGtbr' ? 'gexGtbrF' : key === 'gexMajor' ? null : key + 'F', fDef: key === 'gexGtbr' ? 0.06 : key === 'gexR' ? 0.12 : 0.15, fMax: 0.5, box: !['gexGtbr', 'gexMajor'].includes(key), noText: key === 'gexGtbr' }) }
         button('Reset every GEX colour', () => { for (const [key, , cKey] of CH_GEX_PARTS) { S[cKey] = ''; S[key] = true } S.gexGtbrF = 0.06; S.gexW = 1; chSave(); chDraw(); chMenu('ind:gex') })

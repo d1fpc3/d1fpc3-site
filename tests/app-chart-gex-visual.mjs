@@ -59,7 +59,7 @@ const openChart = async (page) => {
 async function run(vpName) {
   console.log(`\n${vpName} · ${theme} · ${email}`);
   const ctx = await browser.newContext(VP[vpName]);
-  await ctx.addInitScript(([k, v, t, sy]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", t); if (!localStorage.getItem("echelon-chart-tf")) localStorage.setItem("echelon-chart-tf", "5m"); if (!localStorage.getItem("echelon-chart-settings")) localStorage.setItem("echelon-chart-settings", JSON.stringify({ gex: true })); if (sy) localStorage.setItem("echelon-chart-sym", sy); }, [`sb-${REF}-auth-token`, JSON.stringify(session), theme, SYM]);
+  await ctx.addInitScript(([k, v, t, sy]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", t); if (!localStorage.getItem("echelon-chart-tf")) localStorage.setItem("echelon-chart-tf", "5m"); if (!localStorage.getItem("echelon-chart-settings")) localStorage.setItem("echelon-chart-settings", JSON.stringify({ gex: true, gexHideClosed: false, gexOld: false })); if (sy) localStorage.setItem("echelon-chart-sym", sy); }, [`sb-${REF}-auth-token`, JSON.stringify(session), theme, SYM]);
   const page = await ctx.newPage();
   if (STALE) await page.clock.setFixedTime(new Date("2026-09-28T15:30:00Z"));
   page.on("pageerror", (e) => { note("PAGEERROR " + e.message); fails.push(`${vpName} pageerror: ${e.message}`) });
@@ -89,8 +89,9 @@ async function run(vpName) {
 
   // frame the last two sessions so both the live zones and a past print are on screen
   if (vpName !== "phone") { const cv = await page.$("#ch-canvas"); const box = await cv.boundingBox(); await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.4); await page.mouse.wheel(0, 500); await page.waitForTimeout(1200); }
-  const red = await near(page, [239, 83, 80]), blue = await near(page, [41, 98, 255]), green = await near(page, [38, 166, 154]);
-  check(red + blue + green > 300, `zone colours on the canvas: call ${red}px, flip ${blue}px, put ${green}px`);
+  const red = await near(page, [239, 83, 80]), blue = await near(page, [41, 98, 255]), green = await near(page, [38, 166, 154]), gam = await near(page, [91, 141, 184], 50);
+  // a phone is zoomed in on the last candles, so on a quiet evening only the ranked gamma levels may sit in its price range
+  check(red + blue + green + gam > 300, `zone colours on the canvas: call ${red}px, flip ${blue}px, put ${green}px, ranked ${gam}px`);
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-gex.png` });
 
   if (vpName === "desk") {

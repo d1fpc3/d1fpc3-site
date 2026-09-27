@@ -139,11 +139,29 @@ for (const [vp, theme] of [["wide", "dark"], ["desk", "dark"], ["desk", "light"]
   await done(r);
 }
 
+// 6b. the home card says so too (D1, 09-27: "it's still not showing that the gamma levels on the home page are [old]")
+{
+  const ctx = await BROWSER.newContext(VP.desk);
+  await ctx.addInitScript(([k, v, c]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-theme", "dark"); window.__GEX_CLOCK = c; }, [`sb-${REF}-auth-token`, JSON.stringify(session), et("2026-09-27", "18:30")]);
+  const page = await ctx.newPage();
+  page.on("pageerror", (e) => fails.push(`home pageerror: ${e.message}`));
+  await page.route(/gex-worker\.d1fpc3\.workers\.dev\/gex\.json(\?book=es)?$/, (route) => { const d = structuredClone(snaps.nq); d.generatedAt = new Date(et("2026-09-27", "16:27")).toISOString(); d.chain = { ...(d.chain || {}), lastTrade: "2026-09-25T15:59:59" }; route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(d) }); });
+  await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#td-gex .td-gx-head", { timeout: 30000 }).catch(() => {});
+  await page.waitForTimeout(2500);
+  const h = await page.evaluate(() => ({ note: document.querySelector("#td-gex .td-gx-old")?.textContent || "", stamp: document.querySelector("#td-gex .td-gx-stamp")?.textContent || "", cls: document.getElementById("td-gex")?.className || "" }));
+  console.log("\nhome card"); note(JSON.stringify(h));
+  check(/^Old levels\. Friday's close\. Monday's first print lands from 8:00 AM ET\./.test(h.note) && h.stamp === "From Fri, Sep 25 close" && /\bold\b/.test(h.cls), `home card says the levels are old: "${h.note}" / "${h.stamp}"`);
+  const b = await page.locator("#td-gex").boundingBox();
+  if (b) await page.screenshot({ path: `${OUT}/home-card-old.png`, clip: { x: b.x - 16, y: b.y - 44, width: b.width + 32, height: b.height + 60 } });
+  await ctx.close();
+}
+
 // 7. the chart on the real feed and the real clock (today is a weekend, so the newest session is an earlier day's)
 async function chart(vp, oldOn) {
   const browser = await chromium.launch();
   const ctx = await browser.newContext(VP[vp]);
-  await ctx.addInitScript(([k, v, on]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", "dark"); localStorage.setItem("echelon-chart-tf", "5m"); localStorage.setItem("echelon-chart-sym", "NQ"); localStorage.setItem("echelon-chart-settings", JSON.stringify({ gex: true, gexOld: on })); }, [`sb-${REF}-auth-token`, JSON.stringify(session), oldOn]);
+  await ctx.addInitScript(([k, v, on]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", "dark"); localStorage.setItem("echelon-chart-tf", on === "hide" ? "4h" : "5m"); localStorage.setItem("echelon-chart-sym", "NQ"); localStorage.setItem("echelon-chart-settings", JSON.stringify(on === "hide" ? { gex: true } : { gex: true, gexOld: on, gexHideClosed: false })); }, [`sb-${REF}-auth-token`, JSON.stringify(session), oldOn]);
   const page = await ctx.newPage();
   page.on("pageerror", (e) => fails.push(`chart ${vp} pageerror: ${e.message}`));
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
@@ -186,6 +204,18 @@ console.log("\nchart");
   check(/Fade old levels/.test(drawer), "D1 GEX gear has Fade old levels");
   await on.page.screenshot({ path: `${OUT}/chart-desk-gear.png` });
   await on.browser.close();
+
+  // D1 GEX is off after hours by default, like the TradingView indicator's Hide when market closed; proven on the 4h chart D1 flagged
+  const etNow = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour12: false, weekday: "short", hour: "2-digit", minute: "2-digit" }).formatToParts(new Date()).reduce((o, x) => (o[x.type] = x.value, o), {});
+  const openNow = !["Sat", "Sun"].includes(etNow.weekday) && (+etNow.hour % 24) * 60 + +etNow.minute >= 570 && (+etNow.hour % 24) * 60 + +etNow.minute < 960;
+  const hid = await chart("desk", "hide");
+  // the GEX names in the label lane (canvas colours are shared with other overlays on a 4h chart, the names are not)
+  const zoneHid = await hid.page.evaluate(() => (window.__CH.lbl || []).filter((l) => /Γ|Wall|Flip|Session (Ceiling|Floor)/.test(l.t)).length);
+  note(`4h chart, hide on, market ${openNow ? "open" : "closed"}: ${zoneHid} GEX names drawn | legend "${hid.lg.row.slice(-40)}"`);
+  if (openNow) check(zoneHid > 0 && !/off after hours/.test(hid.lg.row), "in the session the levels draw with the default hide on");
+  else check(zoneHid === 0 && /off after hours/.test(hid.lg.row), `after hours the default hides the levels and the legend says why (${zoneHid} GEX names on the canvas)`);
+  await hid.page.screenshot({ path: `${OUT}/chart-desk-afterhours.png` });
+  await hid.browser.close();
 
   const ph = await chart("phone", true);
   note(JSON.stringify(ph.lg));

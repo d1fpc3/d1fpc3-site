@@ -36,7 +36,7 @@ const seed = (ctx) => ctx.addInitScript(([k, v]) => {
   sessionStorage.setItem('seeded', '1')
   localStorage.setItem(k, v); localStorage.setItem('echelon-splash-day', new Date().toDateString()); localStorage.setItem('echelon-theme', 'dark'); localStorage.setItem('echelon-gex-tour', '1')
   localStorage.setItem('echelon-chart-tf', '15m')
-  localStorage.setItem('echelon-chart-settings', JSON.stringify({ litV: 2, lit: true, litDr: true, litLdn: true, litNy: true, gex: true, litDays: 3 }))
+  localStorage.setItem('echelon-chart-settings', JSON.stringify({ litV: 2, lit: true, litDr: true, litLdn: true, litNy: true, gex: true, gexHideClosed: false, litDays: 3 }))   // GEX draws whatever the hour: these checks are about the parts
 }, [`sb-${REF}-auth-token`, JSON.stringify(session)])
 async function open(ctx) {
   const page = await ctx.newPage(); const errs = []; page.on('pageerror', (e) => errs.push(String(e.message)))
@@ -74,7 +74,8 @@ const partRow = (page, name) => page.evaluate((name) => { const r = [...document
   await page.evaluate(() => { window.__CH.s.gexLast = false; window.__CH.$.paint() }); await page.waitForTimeout(300)
   const gexAll = (await labels(page)).filter((l) => /Γ|Wall|Flip/.test(l.t))
   await page.evaluate(() => { window.__CH.s.gexLast = true; window.__CH.$.paint() }); await page.waitForTimeout(300)
-  ok(gex0.length > 0 && gexAll.length > gex0.length, `D1 GEX draws today's session only (${gex0.length} names), earlier sessions come back with the switch off (${gexAll.length})`)
+  // a session that has just opened (Sunday 18:00) can have every level outside the visible prices, so 0 names today is allowed
+  ok(gexAll.length > gex0.length, `D1 GEX draws today's session only (${gex0.length} names${gex0.length ? "" : ", its levels sit outside the visible prices"}), earlier sessions come back with the switch off (${gexAll.length})`)
   // the part panels
   await page.evaluate(() => window.__CH.$.menu('ind:lit')); await page.waitForTimeout(500)
   const gears = await page.evaluate(() => document.querySelectorAll('#ch-menu .ch-prow .ch-gear').length)
