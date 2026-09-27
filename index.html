@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="/echelon-favicon.svg">
   <link rel="apple-touch-icon" href="/echelon/assets/logo-mark.png">
   <meta name="description" content="Echelon is the training, the trade recaps, and the members in one piece of software. Learn to read NQ's context and intention, then study every session with the people who trade it.">
-  <meta name="theme-color" content="#0b0a09">
+  <meta name="theme-color" content="#0a0908">
   <meta name="color-scheme" content="dark">
   <link rel="canonical" href="https://d1fpc3.com/">
   <meta property="og:type" content="website">
@@ -21,6 +21,9 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Echelon by d1 · The NQ trading software">
   <meta name="twitter:image" content="https://d1fpc3.com/og.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
   <script async src="https://seenrank.com/pixel.js" data-sr-site="d19bf048-ec87-453a-aa7f-b264637a7360"></script>
   <script type="application/ld+json">
   {
@@ -44,6 +47,8 @@
         window.__uiz = z; document.documentElement.style.setProperty('--ui', String(z));
       }
       pick(); window.addEventListener('resize', pick);
+      /* the page animates in only when the script runs; without it everything simply shows */
+      document.documentElement.classList.add('js');
     })();
   </script>
   <style>
@@ -54,526 +59,620 @@
     /* ─────────────────────────────────────────────────────────
        d1fpc3.com | echelon (site root)
 
-       Flat typographic landing. D1's rule (8/24): no candle
-       charts and no dashboard mockups on the landing, the hero
-       is the words, real member screenshots carry the proof, and
-       the software is a single hairline band. Palette is the
-       dashboard's own; accent words go gold serif italic like
-       the logo's E.
+       The words are the hero (D1, 8/24): no candle charts and no
+       app screens up here, member trades carry the proof, and the
+       application is a pop-up over a blurred page (9/18). The
+       craft is the light: a gold horizon rising under the
+       headline, the logo's serif italic on the accent words, glass
+       on everything that floats, and motion that settles instead
+       of bouncing. Native scroll only (Lenis felt broken on D1's
+       trackpad).
        ───────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     [hidden] { display: none !important; }
 
     :root {
       color-scheme: dark;
-      --bg: #0b0a09; --panel: #131211; --panel-2: #1a1817;
-      --ink: #f4f2ee; --muted: #9d978c; --faint: #6b665e;
-      --line: #262321; --line-bright: #383431;
-      --gold: #c9a24a; --gold-deep: #a8842c;
+      --bg: #0a0908; --panel: #131110; --panel-2: #1a1715;
+      --ink: #f6f3ed; --ink-2: #d9d3c8; --muted: #a39c90; --faint: #6f695f;
+      --line: rgba(255, 238, 205, 0.08); --line-2: rgba(255, 238, 205, 0.15);
+      --gold: #c9a24a; --gold-2: #e5c679; --gold-3: #f5e4b3; --gold-deep: #a8842c;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --serif: 'Instrument Serif', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --gut: clamp(20px, calc(5 * var(--vw)), 48px);
+      --glass: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.014));
     }
 
-    html { -webkit-text-size-adjust: 100%; }
+    html { -webkit-text-size-adjust: 100%; background: var(--bg); }
     @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
-
     body {
       background: var(--bg); color: var(--ink);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+      font-family: var(--sans); font-size: 16px; line-height: 1.6; font-optical-sizing: auto;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
     }
     a { color: inherit; text-decoration: none; }
-    ::selection { background: rgba(201,162,74,0.25); }
+    img { display: block; max-width: 100%; }
+    ::selection { background: rgba(201, 162, 74, 0.3); color: var(--ink); }
     a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
-
-    .col { max-width: 1080px; margin: 0 auto; padding: 0 clamp(20px, calc(4 * var(--vw)), 40px); }
-    .label { font-size: 10.5px; letter-spacing: 0.02em; color: var(--faint); }
-
-    /* gold dust: fixed behind everything, panels occlude it naturally;
-       own compositor layer so scroll never waits on it */
-    #dust { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; transform: translateZ(0); }
-    h3, h4 { text-wrap: balance; }
+    h1, h2, h3 { text-wrap: balance; }
     p { text-wrap: pretty; }
-    #access { scroll-margin-top: 90px; }
 
+    .wrap { width: 100%; max-width: calc(1180px + 2 * var(--gut)); margin: 0 auto; padding: 0 var(--gut); }
+    .label { font-size: 12px; letter-spacing: 0.01em; color: var(--gold-2); }
+
+    /* gold dust: fixed behind everything, fades out past the hero */
+    #dust { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; transform: translateZ(0); }
+
+    /* the accent words: the logo's serif, italic, in a gold that catches the light */
+    .gt {
+      font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -0.012em;
+      padding-right: 0.08em; margin-right: -0.04em;
+      background-image: linear-gradient(100deg, transparent 38%, rgba(255, 248, 228, 0.95) 50%, transparent 62%), linear-gradient(180deg, #f6e4ae 0%, #e2c070 48%, #c49b45 78%, #a8842c 100%);
+      background-size: 260% 100%, 100% 100%; background-position: 140% 0, 0 0; background-repeat: no-repeat;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .gt.shine { animation: shine 8s cubic-bezier(0.45, 0, 0.25, 1) 1.7s infinite; }
+      @keyframes shine { 0% { background-position: 140% 0, 0 0; } 34%, 100% { background-position: -40% 0, 0 0; } }
+    }
+
+    /* ── buttons ─────────────────────────────────────────── */
     .btn {
-      position: relative; overflow: hidden;
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 13px 26px; background: linear-gradient(135deg, var(--gold), var(--gold-deep));
-      color: #1a1207; border: 0; border-radius: 10px;
-      font: 600 14px/1 inherit; font-family: inherit; cursor: pointer;
-      transition: filter 0.18s ease, transform 0.15s ease;
+      --h: 48px;
+      position: relative; overflow: hidden; isolation: isolate;
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      height: var(--h); padding: 0 24px; border: 0; border-radius: 999px;
+      font: 600 15px/1 var(--sans); letter-spacing: -0.006em; white-space: nowrap;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: transform 0.35s var(--ease), box-shadow 0.35s ease, background-position 0.7s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease, color 0.25s ease;
     }
-    .btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
-    /* the Get Echelon CTA: sweeping gold gradient pill (D1's pick, 9/2) */
-    .btn.gshift {
-      background: linear-gradient(110deg, #c9a24a, #e7c87b, #a8842c, #c9a24a);
-      background-size: 300% 100%;
-      background-position: 0% 0;
-      border-radius: 999px;
-      padding: 0 28px; height: 46px;
-      font-size: 14.5px; letter-spacing: 0.01em;
-      box-shadow: inset 0 1px 0 rgba(255, 244, 214, 0.55), inset 0 -1px 0 rgba(90, 64, 14, 0.35), 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 20px -10px rgba(201, 162, 74, 0.55);
-      transition: background-position 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease, box-shadow 0.3s ease;
+    .btn .arr { display: inline-block; transition: transform 0.35s var(--ease); }
+    .btn:hover .arr { transform: translateX(4px); }
+    .btn:active { transform: scale(0.97); transition-duration: 0.08s; }
+    /* the gold pill: a sweep of gold that moves under the cursor (D1's pick, 9/2) */
+    .btn-gold {
+      color: #1a1207;
+      background: linear-gradient(110deg, #c9a24a 0%, #ecd08a 32%, #b8913e 64%, #c9a24a 100%);
+      background-size: 300% 100%; background-position: 0% 0;
+      box-shadow: inset 0 1px 0 rgba(255, 246, 220, 0.65), inset 0 -1px 0 rgba(90, 64, 14, 0.38), 0 1px 2px rgba(0, 0, 0, 0.45), 0 12px 32px -14px rgba(201, 162, 74, 0.7);
     }
-    .btn.gshift .arr { display: inline-block; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
-    .btn.gshift:hover { background-position: 100% 0; transform: translateY(-2px); filter: none; box-shadow: inset 0 1px 0 rgba(255, 244, 214, 0.6), inset 0 -1px 0 rgba(90, 64, 14, 0.35), 0 2px 4px rgba(0, 0, 0, 0.4), 0 12px 28px -10px rgba(201, 162, 74, 0.75); }
-    .btn.gshift:hover .arr { transform: translateX(3px); }
-    .btn.gshift:active { transform: scale(0.97); }
+    .btn-gold:hover { background-position: 100% 0; transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255, 246, 220, 0.7), inset 0 -1px 0 rgba(90, 64, 14, 0.38), 0 2px 4px rgba(0, 0, 0, 0.45), 0 18px 44px -14px rgba(201, 162, 74, 0.85); }
+    .btn-gold:active { transform: scale(0.97); }
     /* one pass of light across the gold on hover, nothing on the way out */
-    .btn::after {
-      content: ""; position: absolute; top: 0; bottom: 0; left: -70%; width: 46%;
-      background: linear-gradient(105deg, transparent, rgba(255,255,255,0.4), transparent);
+    .btn-gold::after {
+      content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: -70%; width: 46%;
+      background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.45), transparent);
       transform: skewX(-18deg); opacity: 0; pointer-events: none;
     }
     @media (prefers-reduced-motion: no-preference) {
-      .btn:hover::after { animation: sheen 0.65s ease; }
+      .btn-gold:hover::after { animation: sheen 0.7s ease; }
       @keyframes sheen { 0% { left: -70%; opacity: 1; } 100% { left: 130%; opacity: 1; } }
     }
-    .btn:active { filter: brightness(0.98); transform: translateY(0); }
-    .btn[aria-disabled="true"] { filter: saturate(0.4) brightness(0.8); cursor: not-allowed; transform: none; }
-    .quiet { color: var(--muted); font-size: 13.5px; border-bottom: 1px solid var(--line-bright); padding-bottom: 2px; }
-    .quiet:hover { color: var(--gold); border-color: var(--gold); }
+    .btn-ghost {
+      color: var(--ink); background: rgba(255, 255, 255, 0.035);
+      box-shadow: inset 0 0 0 1px var(--line-2);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    }
+    .btn-ghost:hover { background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 0 0 1px rgba(229, 198, 121, 0.45); }
+    .btn.lg { --h: 58px; padding: 0 32px; font-size: 16.5px; }
+    .btn.sm { --h: 40px; padding: 0 18px; font-size: 14px; }
+    .btn[disabled] { filter: saturate(0.5) brightness(0.85); cursor: progress; transform: none; }
 
-    /* live counter */
-    .live { display: inline-flex; align-items: center; gap: 7px; color: var(--gold); font-weight: 600; }
-    .live .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+    /* live dot */
+    .live { display: inline-flex; align-items: center; gap: 8px; }
+    .live .dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--gold-2); box-shadow: 0 0 10px rgba(229, 198, 121, 0.8); }
     @media (prefers-reduced-motion: no-preference) {
-      .live .dot { animation: pulse 2s ease infinite; }
-      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+      .live .dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 1px solid var(--gold-2); animation: ping 2.4s var(--ease) infinite; }
+      @keyframes ping { 0% { transform: scale(0.4); opacity: 0.9; } 80%, 100% { transform: scale(1.8); opacity: 0; } }
     }
 
-    /* top bar, exactly the dashboard's voice; rides the scroll on glass */
-    .top {
-      position: sticky; top: 0; z-index: 50;
-      background: rgba(11,10,9,0.92);
-      border-bottom: 1px solid var(--line);
+    /* ── the nav: a glass capsule that tightens once you read ── */
+    .nav { position: fixed; top: 14px; left: 0; right: 0; z-index: 60; display: flex; justify-content: center; padding: 0 12px; pointer-events: none; }
+    .nav-in {
+      pointer-events: auto; width: 100%; max-width: 1100px; height: 62px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 0 10px 0 16px; border-radius: 999px;
+      background: rgba(16, 14, 12, 0.42);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+      box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgba(255, 244, 220, 0.06), 0 12px 34px -20px rgba(0, 0, 0, 0.9);
+      transition: max-width 0.6s var(--ease), height 0.5s var(--ease), background 0.4s ease, box-shadow 0.4s ease;
     }
-    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-      .top {
-        background: rgba(11,10,9,0.62);
-        -webkit-backdrop-filter: blur(14px) saturate(1.15);
-        backdrop-filter: blur(14px) saturate(1.15);
-      }
+    .nav.on .nav-in { max-width: 860px; height: 56px; background: rgba(16, 14, 12, 0.78); box-shadow: inset 0 0 0 1px var(--line-2), inset 0 1px 0 rgba(255, 244, 220, 0.07), 0 18px 44px -18px rgba(0, 0, 0, 0.95); }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.03em; }
+    .brand img { width: 30px; height: 30px; border-radius: 8px; box-shadow: 0 0 0 1px var(--line-2); }
+    .nav-r { display: flex; align-items: center; gap: 4px; }
+    .nav-link { height: 40px; padding: 0 15px; display: inline-flex; align-items: center; border-radius: 999px; color: var(--ink-2); font-size: 14.5px; font-weight: 500; transition: color 0.2s ease, background 0.2s ease; }
+    .nav-link:hover { color: var(--ink); background: rgba(255, 255, 255, 0.06); }
+    .nav-ic { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--muted); transition: color 0.2s ease, background 0.2s ease; }
+    .nav-ic svg { width: 19px; height: 19px; }
+    .nav-ic:hover { color: var(--gold-2); background: rgba(255, 255, 255, 0.06); }
+    .nav .btn { margin-left: 4px; }
+    @media (max-width: 520px) {
+      .nav { top: 10px; padding: 0 10px; }
+      .nav-in, .nav.on .nav-in { height: 54px; padding: 0 7px 0 12px; }
+      .nav-ic { display: none; }
+      .nav-link { padding: 0 12px; font-size: 14px; }
     }
-    .top .col { display: flex; align-items: center; justify-content: space-between; padding-top: 18px; padding-bottom: 18px; gap: 14px; }
-    .top.slim .col { padding-top: 9px; padding-bottom: 9px; }
-    .brand { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
-    .top.slim .brand { font-size: 15px; }
+
+    /* ── hero: the sentence, and a gold horizon rising under it ── */
+    .hero {
+      --arc: clamp(92px, calc(17 * var(--vh)), 190px);
+      --pw: max(900px, calc(240 * var(--vw)));
+      position: relative; isolation: isolate; overflow: hidden;
+      min-height: max(660px, calc(100 * var(--vh)));
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      padding: 120px 0 calc(var(--arc) + clamp(56px, calc(9 * var(--vh)), 110px));
+    }
+    .sky { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+    .sky::before {   /* a little warmth high up, where the eye starts */
+      content: ""; position: absolute; left: 50%; top: -30%; width: min(1100px, calc(110 * var(--vw))); height: 70%;
+      transform: translateX(-50%); background: radial-gradient(closest-side, rgba(201, 162, 74, 0.08), transparent 75%);
+    }
+    .sky::after {   /* the horizon sinks into the page: the arc's ends and the haze fade out before the hero does */
+      content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--arc) * 0.85);
+      background: linear-gradient(180deg, rgba(10, 9, 8, 0), var(--bg) 92%);
+    }
+    .hz { position: absolute; inset: 0; }
+    .hz-glow {
+      position: absolute; left: 50%; top: calc(100% - var(--arc) - 460px);
+      width: min(1700px, calc(130 * var(--vw))); height: 640px; transform: translateX(-50%);
+      background: radial-gradient(50% 60% at 50% 78%, rgba(201, 162, 74, 0.26), rgba(201, 162, 74, 0.07) 55%, transparent 76%);
+    }
+    .hz-planet {
+      position: absolute; left: 50%; top: calc(100% - var(--arc));
+      width: var(--pw); height: var(--pw); margin-left: calc(var(--pw) / -2); border-radius: 50%;
+      background: var(--bg);
+      box-shadow:
+        inset 0 1.5px 0 rgba(255, 234, 186, 0.95),
+        inset 0 30px 70px -36px rgba(229, 198, 121, 0.55),
+        0 -1px 18px rgba(229, 198, 121, 0.4),
+        0 -24px 110px -12px rgba(201, 162, 74, 0.34);
+    }
+    .hz-flare {
+      position: absolute; left: 50%; top: calc(100% - var(--arc) - 22px);
+      width: min(1000px, calc(84 * var(--vw))); height: 44px; transform: translateX(-50%);
+      background: radial-gradient(50% 50% at 50% 50%, rgba(255, 246, 224, 0.8), rgba(245, 228, 179, 0.28) 38%, transparent 70%);
+      filter: blur(5px); mix-blend-mode: screen;
+    }
+    .hero-in { position: relative; }
+    .h1 {
+      font-size: clamp(64px, calc(10 * var(--vw)), 164px); font-weight: 700;
+      letter-spacing: -0.052em; line-height: 0.94;
+    }
+    .h1 .w { display: inline-block; }
+    .h1 .w:not(.gt) { background: linear-gradient(180deg, #ffffff 10%, #e2dbcf 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .h1 .gt { font-size: 1.1em; line-height: 0.8; letter-spacing: -0.02em; }
+    .def {
+      margin: clamp(26px, calc(3.4 * var(--vh)), 38px) auto 0; max-width: 34em;
+      font-family: var(--serif); font-size: clamp(18px, calc(1.5 * var(--vw)), 22px); line-height: 1.5; color: var(--muted);
+    }
+    .def .hw { font-family: var(--sans); font-weight: 600; font-size: 0.8em; letter-spacing: -0.01em; color: var(--ink); }
+    .def .pos { font-style: italic; color: var(--gold-2); margin: 0 0.45em 0 0.3em; }
+    .def .dt { font-style: italic; }
+    .act { margin-top: clamp(30px, calc(4.4 * var(--vh)), 46px); display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .fine { margin-top: 22px; font-size: 13.5px; color: var(--faint); display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .fine .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--faint); }
+    .fine .live { color: var(--ink-2); }
+    @media (max-width: 520px) {
+      .act { flex-direction: column; align-items: stretch; max-width: 340px; margin-left: auto; margin-right: auto; }
+      .act .btn { width: 100%; }
+    }
+    /* the arrival: the horizon rises, then the words come out of the blur one at a time */
     @media (prefers-reduced-motion: no-preference) {
-      .top .col { transition: padding 0.25s ease; }
-      .brand { transition: font-size 0.25s ease; }
+      .js .hz { animation: rise 2.2s var(--ease) 0.05s both; }
+      @keyframes rise { from { transform: translateY(70px); opacity: 0; } }
+      .js .hz-flare { animation: flare 2.6s var(--ease) 0.5s both, breathe 7s ease-in-out 3.2s infinite; }
+      @keyframes flare { from { opacity: 0; transform: translateX(-50%) scaleX(0.2); } }
+      @keyframes breathe { 50% { opacity: 0.72; } }
+      .js .h1 .w { animation: word 1.25s var(--ease) both; animation-delay: calc(0.25s + var(--i) * 0.11s); }
+      @keyframes word { from { opacity: 0; transform: translateY(0.32em); filter: blur(14px); } }
+      .js .hero .up { animation: up 1.1s var(--ease) both; animation-delay: calc(0.25s + var(--i) * 0.11s); }
+      @keyframes up { from { opacity: 0; transform: translateY(16px); filter: blur(6px); } }
+      .js .nav-in { animation: navin 1s var(--ease) 0.15s both; }
+      @keyframes navin { from { opacity: 0; transform: translateY(-14px); } }
     }
-    .disc-ic { display: inline-flex; align-items: center; color: var(--muted); transition: color 0.15s ease; }
-    .disc-ic svg { width: 18px; height: 18px; }
-    .disc-ic:hover { color: var(--gold); }
-    /* phones: the hero button sells; the header stays quiet */
-    @media (max-width: 560px) { .top .btn { display: none; } }
 
-    /* hero: one sentence, then the product */
-    .hero { text-align: center; padding: clamp(48px, calc(8 * var(--vh)), 88px) 0 0; position: relative; }
-    /* the same warmth the gate orbs give the replica, up here, barely */
-    .hero::before {
-      content: ""; position: absolute; z-index: -1; left: 50%; top: -80px;
-      width: min(720px, calc(100 * var(--vw))); height: 400px; transform: translateX(-50%);
-      background: radial-gradient(closest-side, rgba(201,162,74,0.13), transparent 70%);
-      filter: blur(60px); pointer-events: none;
+    /* ── sections ─────────────────────────────────────────── */
+    .sec { position: relative; padding-top: clamp(100px, calc(15 * var(--vh)), 180px); }
+    .h2 { font-size: clamp(40px, calc(5.4 * var(--vw)), 80px); font-weight: 650; letter-spacing: -0.048em; line-height: 0.98; }
+    .h2 .gt { font-size: 1.08em; }
+    .sec-head { text-align: center; margin-bottom: clamp(40px, calc(6 * var(--vh)), 72px); }
+
+    /* reveals: things settle up into place as they arrive (opacity and transform only:
+       a blur on a block the size of the trade wall cost a 75ms frame the first time through) */
+    .js .rv { opacity: 0; transform: translateY(34px); transition: opacity 1.1s var(--ease), transform 1.3s var(--ease); transition-delay: var(--d, 0s); }
+    .js .rv.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .js .rv { opacity: 1; transform: none; transition: none; } }
+
+    /* glass panels, with light that follows the pointer */
+    .spot { position: relative; isolation: isolate; }
+    .spot::after {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+      background: radial-gradient(460px circle at var(--mx, 50%) var(--my, 50%), rgba(229, 198, 121, 0.1), transparent 46%);
+      opacity: 0; transition: opacity 0.4s ease;
     }
-    .hero h1 { font-size: clamp(34px, calc(6 * var(--vw)), 58px); font-weight: 700; letter-spacing: -0.035em; line-height: 1.04; text-wrap: balance; }
-    /* the accent word is set in the logo's own voice: gold serif, italic */
-    .hero h1 em { font-style: italic; color: var(--gold); font-family: Georgia, 'Times New Roman', serif; font-weight: 600; letter-spacing: -0.015em; padding-right: 0.06em; }
-    .hero .def {
-      margin: 16px auto 0; max-width: 42ch;
-      font-family: Georgia, 'Times New Roman', serif; font-style: italic;
-      font-size: clamp(13.5px, calc(1.35 * var(--vw)), 15.5px); line-height: 1.55; color: var(--muted); text-wrap: pretty;
+    @media (hover: hover) { .spot:hover::after { opacity: 1; } }
+
+    /* ── member trades: a wall of real screenshots, two rows drifting apart ── */
+    .proof { padding-top: clamp(28px, calc(4 * var(--vh)), 56px); }
+    .wall {
+      position: relative; overflow: hidden; perspective: 1700px; padding: 12px 0 30px;
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 11%, #000 89%, transparent);
+      mask-image: linear-gradient(90deg, transparent, #000 11%, #000 89%, transparent);
     }
-    .hero .def b { color: var(--ink); font-weight: 600; font-style: normal; }
-    .hero .def i { color: var(--gold); margin: 0 7px 0 3px; }
-    .hero .sub { margin: 16px auto 0; max-width: 46ch; color: var(--muted); font-size: clamp(14.5px, calc(1.4 * var(--vw)), 16.5px); text-wrap: pretty; }
-    .hero .act { margin-top: 28px; display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; }
-    .hero .fine { margin-top: 16px; font-size: 12.5px; color: var(--faint); }
-    .hero .fine span { white-space: nowrap; }
-
-
-    /* panel grammar: used by the member-reviews grid */
-    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-    @media (max-width: 760px) { .grid3 { grid-template-columns: 1fr; } }
-    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
-    .panel .k { font-size: 11px; letter-spacing: 0.02em; color: var(--faint); }
-    .panel .v { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-top: 8px; font-variant-numeric: tabular-nums; }
-    .panel p { margin-top: 8px; color: var(--muted); font-size: 13.5px; }
-
-    /* buy: the glass card from the gate */
-    .buy { padding: clamp(52px, calc(9 * var(--vh)), 92px) 0 0; display: flex; justify-content: center; position: relative; }
-    .glass {
-      position: relative; width: 100%; max-width: 400px; text-align: center;
-      background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 20px; padding: 30px 26px;
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 24px 60px -24px rgba(0,0,0,0.7);
+    .tr-car { display: flex; flex-direction: column; gap: 18px; transform: rotateX(11deg); transform-origin: 50% 0; }
+    .tr-track { overflow: visible; }
+    .tr-inner { display: flex; gap: 18px; will-change: transform; }
+    .tr-track img {
+      height: clamp(200px, calc(23 * var(--vw)), 330px); width: auto; max-width: none;
+      object-fit: contain; background: var(--panel); border-radius: 18px; flex-shrink: 0; user-select: none;
+      box-shadow: 0 0 0 1px var(--line-2), 0 26px 50px -26px rgba(0, 0, 0, 0.95);
     }
-    /* a single gold spark orbits the card border, slowly; browsers without
-       @property just see the plain border, which is fine */
-    @property --beam { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-    @media (prefers-reduced-motion: no-preference) {
-      .glass::before {
-        content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
-        background: conic-gradient(from var(--beam),
-          transparent 0deg, transparent 320deg,
-          rgba(201,162,74,0.85) 345deg, rgba(244,232,200,0.95) 352deg, transparent 360deg);
-        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor; mask-composite: exclude;
-        animation: beam 7s linear infinite; pointer-events: none;
-      }
-      @keyframes beam { to { --beam: 360deg; } }
-    }
-    .glass .label { color: var(--gold); }
-    .glass .price { font-size: 44px; font-weight: 700; letter-spacing: -0.03em; margin-top: 8px; }
-    .glass .per { color: var(--faint); font-size: 12px; margin-top: 2px; }
-    .glass p.t { margin-top: 14px; color: var(--muted); font-size: 13px; }
-    .glass .btn { width: 100%; justify-content: center; margin-top: 18px; }
-    .glass .fine { margin-top: 12px; font-size: 11.5px; color: var(--faint); }
 
-    /* faq: one dashboard block */
-    .faq-wrap { padding: clamp(52px, calc(9 * var(--vh)), 92px) 0 0; }
-    .faq-block { max-width: 760px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-    .faq-head { padding: 15px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 14px; }
-    .faq-head h3 { font-size: 14.5px; font-weight: 650; }
-    .faq details { border-top: 1px solid var(--line); }
-    .faq details:first-of-type { border-top: 0; }
+    /* ── what members say ── */
+    .ratesum { margin: 0 auto clamp(32px, calc(5 * var(--vh)), 52px); max-width: 440px; display: flex; gap: 24px; align-items: center; padding: 22px 24px; border-radius: 24px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
+    .ratesum .left { text-align: center; flex: none; }
+    .ratesum .big { font-size: 58px; font-weight: 700; letter-spacing: -0.05em; line-height: 0.9; }
+    .ratesum .rs-stars { color: var(--gold-2); font-size: 13px; letter-spacing: 3px; margin: 10px 0 4px; }
+    .ratesum .n { font-size: 12.5px; color: var(--faint); }
+    .ratesum .bars { flex: 1; display: grid; gap: 7px; }
+    .ratesum .r { display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: var(--faint); }
+    .ratesum .r b { width: 8px; font-weight: 600; color: var(--muted); }
+    .ratesum .track { flex: 1; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+    .ratesum .track i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--gold-deep), var(--gold-2)); width: 0; transition: width 1.3s cubic-bezier(0.77, 0, 0.175, 1); }
+    .ratesum.in .track i { width: var(--w); }
+    .ratesum .r:nth-child(2) i { transition-delay: 0.08s; } .ratesum .r:nth-child(3) i { transition-delay: 0.16s; } .ratesum .r:nth-child(4) i { transition-delay: 0.24s; } .ratesum .r:nth-child(5) i { transition-delay: 0.32s; }
+    @media (prefers-reduced-motion: reduce) { .ratesum .track i { transition: none; width: var(--w); } }
+    .rev-more { margin-top: 16px; text-align: center; }
+    .more-link { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 15px; font-weight: 500; }
+    .more-link .arr { transition: transform 0.35s var(--ease); color: var(--gold-2); }
+    .more-link:hover { color: var(--ink); } .more-link:hover .arr { transform: translateX(4px); }
+    .rev-cols { columns: 3; column-gap: 18px; }
+    .rev {
+      break-inside: avoid; margin-bottom: 18px; padding: 28px 28px 24px; border-radius: 26px; overflow: hidden;
+      background: var(--glass); box-shadow: inset 0 0 0 1px var(--line), 0 30px 60px -40px rgba(0, 0, 0, 0.9);
+      transition: box-shadow 0.4s ease, transform 0.5s var(--ease);
+    }
+    .rev::before { content: "\201D"; position: absolute; z-index: -1; top: 6px; right: 20px; font: italic 150px/1 var(--serif); color: rgba(229, 198, 121, 0.1); pointer-events: none; }
+    @media (hover: hover) { .rev:hover { box-shadow: inset 0 0 0 1px rgba(229, 198, 121, 0.28), 0 34px 70px -40px rgba(0, 0, 0, 0.95); transform: translateY(-3px); } }
+    .rev .stars { display: block; color: var(--gold-2); font-size: 13px; letter-spacing: 3px; }
+    .rev p { margin: 16px 0 22px; font-size: clamp(17px, calc(1.3 * var(--vw)), 19.5px); line-height: 1.5; letter-spacing: -0.012em; color: var(--ink-2); }
+    .rev .who { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--faint); }
+    .rev .ava {
+      width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+      background: linear-gradient(140deg, var(--gold-2), var(--gold-deep)); color: #1a1207;
+      font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 0 2px rgba(10, 9, 8, 0.9), 0 0 0 3px rgba(229, 198, 121, 0.35);
+    }
+    .rev .ava img { width: 100%; height: 100%; object-fit: cover; }
+    .rev .who b { color: var(--ink); font-weight: 600; }
+    @media (max-width: 1000px) { .rev-cols { columns: 2; } }
+    @media (max-width: 640px) { .rev-cols { columns: 1; } }
+
+    /* ── the application ── */
+    .cta {
+      position: relative; isolation: isolate; overflow: hidden; max-width: 960px; margin: 0 auto; text-align: center;
+      padding: clamp(64px, calc(10 * var(--vh)), 110px) clamp(24px, calc(6 * var(--vw)), 80px);
+      border-radius: 40px;
+      /* the horizon again, small, under the button: painted into the card's own background (a
+         separate 1400px circle cost a 50ms frame the first time it scrolled in) */
+      background:
+        radial-gradient(circle 700px at 50% calc(58% + 700px), rgba(6, 5, 4, 0.6) 0 99.25%, rgba(245, 228, 179, 0.55) 99.55%, rgba(245, 228, 179, 0) 100%),
+        radial-gradient(520px 150px at 50% 58%, rgba(201, 162, 74, 0.26), transparent 72%),
+        radial-gradient(120% 80% at 50% 0%, rgba(201, 162, 74, 0.16), transparent 58%),
+        var(--glass);
+      box-shadow: inset 0 0 0 1px var(--line-2), inset 0 1px 0 rgba(255, 244, 220, 0.06), 0 50px 120px -50px rgba(0, 0, 0, 0.95);
+    }
+    /* a single gold spark orbits the border, slowly (D1's, from the old card). The spark is a
+       conic gradient that ROTATES inside a ring-shaped mask, so the compositor moves it; animating
+       the gradient's angle instead repainted the whole card every frame. */
+    .cta-beam { position: absolute; inset: 0; border-radius: inherit; padding: 1px; overflow: hidden; pointer-events: none; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+    .cta-beam i { position: absolute; left: 50%; top: 50%; width: 150%; aspect-ratio: 1; margin: -75% 0 0 -75%; background: conic-gradient(from 0deg, transparent 0deg, transparent 318deg, rgba(201, 162, 74, 0.9) 344deg, rgba(248, 236, 204, 1) 352deg, transparent 360deg); }
+    @media (prefers-reduced-motion: no-preference) { .cta-beam i { animation: orbit 8s linear infinite; } @keyframes orbit { to { transform: rotate(360deg); } } }
+    @media (prefers-reduced-motion: reduce) { .cta-beam { display: none; } }
+    .cta .h2 { font-size: clamp(42px, calc(6.2 * var(--vw)), 92px); }
+    .cta-sub { margin: 22px auto 0; max-width: 46ch; color: var(--muted); font-size: clamp(16px, calc(1.3 * var(--vw)), 18.5px); }
+    .cta .btn { margin-top: 38px; }
+
+    /* ── questions ── */
+    .faq-grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: clamp(36px, calc(6 * var(--vw)), 96px); align-items: start; }
+    .faq-side { position: sticky; top: 118px; }
+    .faq-note { margin-top: 22px; color: var(--muted); font-size: 16px; }
+    .faq-note a { color: var(--ink); box-shadow: inset 0 -1px 0 var(--line-2); transition: color 0.2s ease, box-shadow 0.2s ease; }
+    .faq-note a:hover { color: var(--gold-2); box-shadow: inset 0 -1px 0 var(--gold-2); }
+    .faq { border-top: 1px solid var(--line); }
+    .faq details { border-bottom: 1px solid var(--line); }
     .faq summary {
-      list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
-      padding: 15px 20px; font-weight: 600; font-size: 14px; min-height: 48px;
+      list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 24px;
+      padding: 26px 2px; font-size: clamp(17px, calc(1.4 * var(--vw)), 20px); font-weight: 550; letter-spacing: -0.018em; color: var(--ink);
+      transition: color 0.25s ease; -webkit-tap-highlight-color: transparent;
     }
     .faq summary::-webkit-details-marker { display: none; }
-    .faq summary { transition: color 0.15s ease, background 0.15s ease; }
-    .faq summary:hover { color: var(--gold); background: rgba(201,162,74,0.06); }
-    .faq summary:hover .mk { color: var(--gold); }
-    .faq summary .mk { color: var(--faint); transition: color 0.15s ease; }
-    .faq details[open] summary .mk { color: var(--gold); }
-    .faq .a { padding: 0 20px 16px; color: var(--muted); font-size: 13.5px; max-width: 64ch; }
-
-    /* member trade proof: double marquee, top row drifts left, bottom row drifts right */
-    .trades-wrap { margin-top: clamp(52px, calc(9 * var(--vh)), 92px); }
-    .trades-wrap .label { display: block; margin-bottom: 16px; }
-    .tr-car { position: relative; display: flex; flex-direction: column; gap: 14px; }
-    .tr-track { overflow: hidden; }
-    .tr-inner { display: flex; gap: 14px; will-change: transform; }
-    .tr-track img {
-      height: clamp(180px, calc(26 * var(--vw)), 300px); width: auto; max-width: calc(86 * var(--vw));
-      object-fit: contain; background: var(--panel);
-      border: 1px solid var(--line); border-radius: 14px;
-      flex-shrink: 0; user-select: none;
+    @media (hover: hover) { .faq summary:hover { color: var(--gold-3); } }
+    .pm { position: relative; flex: 0 0 36px; height: 36px; border-radius: 50%; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line-2); transition: transform 0.5s var(--ease), background 0.3s ease, box-shadow 0.3s ease, color 0.3s ease; }
+    .pm::before, .pm::after { content: ""; position: absolute; left: 50%; top: 50%; width: 12px; height: 1.6px; margin: -0.8px 0 0 -6px; border-radius: 1px; background: currentColor; transition: transform 0.5s var(--ease); }
+    .pm::after { transform: rotate(90deg); }
+    .faq details[open] .pm { transform: rotate(180deg); color: var(--gold-2); background: rgba(201, 162, 74, 0.1); box-shadow: inset 0 0 0 1px rgba(229, 198, 121, 0.45); }
+    .faq details[open] .pm::after { transform: rotate(90deg) scaleX(0); }
+    .faq .a { padding: 0 2px 28px; max-width: 62ch; color: var(--muted); font-size: 16.5px; line-height: 1.7; }
+    @supports (interpolate-size: allow-keywords) {
+      .faq { interpolate-size: allow-keywords; }
+      .faq details::details-content { height: 0; overflow: clip; transition: height 0.55s var(--ease), content-visibility 0.55s allow-discrete; }
+      .faq details[open]::details-content { height: auto; }
     }
+    @media (max-width: 900px) { .faq-grid { grid-template-columns: 1fr; } .faq-side { position: static; } }
 
-    /* GEX teaser: a past session's surface, baked, the shape, not the levels */
-    .gexbar-wrap { margin-top: clamp(40px, calc(7 * var(--vh)), 64px); }
-    .btbar { display: flex; align-items: center; gap: 13px; padding: 14px 2px 15px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
-    .btbar img { border-radius: 8px; flex: none; }
-    .bt-copy { font-size: 13.5px; color: var(--muted); }
-    .bt-copy b { color: var(--ink); font-weight: 600; }
-    .bt-go { margin-left: auto; color: var(--muted); font-size: 12.5px; white-space: nowrap; transition: color 0.15s ease; }
-    .bt-copy a { color: inherit; text-decoration: none; }
-    .bt-go:hover { color: var(--gold); }
-    /* copy chip for the partner code: flat, hairline, gold on hover; flips to "Copied" for a moment */
+    /* ── keep going: the free Discord and the partner ── */
+    .more-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 18px; }
+    .card {
+      border-radius: 30px; padding: clamp(26px, calc(3 * var(--vw)), 38px); overflow: hidden;
+      background: var(--glass); box-shadow: inset 0 0 0 1px var(--line), 0 30px 60px -40px rgba(0, 0, 0, 0.9);
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .card .ic { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, rgba(229, 198, 121, 0.2), rgba(201, 162, 74, 0.05)); box-shadow: inset 0 0 0 1px rgba(229, 198, 121, 0.28); color: var(--gold-2); }
+    .card .ic svg { width: 24px; height: 24px; }
+    .card .ic img { width: 30px; height: 30px; border-radius: 7px; }
+    .card h3 { font-size: clamp(24px, calc(2.2 * var(--vw)), 32px); font-weight: 650; letter-spacing: -0.035em; line-height: 1.08; }
+    .card h3 .gt { font-size: 1.08em; }
+    .card .d { color: var(--muted); font-size: 16px; }
+    .card .d .live { color: var(--ink-2); }
+    .card .d.stack { display: flex; flex-direction: column; gap: 6px; }
+    .card .go { margin-top: auto; padding-top: 8px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
     .code-copy {
-      display: inline-flex; align-items: center; gap: 6px; vertical-align: baseline;
-      margin: 0 1px; padding: 2px 8px 2px 9px; border: 1px solid var(--line-bright); border-radius: 6px;
-      background: transparent; color: var(--ink); font: inherit; font-size: 12.5px; letter-spacing: 0.04em;
-      cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease;
+      display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px 0 14px;
+      border: 0; border-radius: 12px; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line-2);
+      color: var(--ink); font: 600 14px/1 var(--sans); letter-spacing: 0.06em; cursor: pointer;
+      transition: box-shadow 0.2s ease, color 0.2s ease, background 0.2s ease;
     }
-    .code-copy b { font-weight: 600; color: inherit; }
-    .code-copy svg { color: var(--muted); transition: color 0.15s ease; }
-    .code-copy:hover { border-color: var(--gold); color: var(--gold); }
-    .code-copy:hover svg { color: var(--gold); }
-    .code-copy .cc-done { display: none; color: var(--gold); font-size: 11.5px; letter-spacing: 0.02em; }
-    .code-copy.is-done { border-color: var(--gold); }
+    .code-copy svg { color: var(--muted); transition: color 0.2s ease; }
+    .code-copy:hover { box-shadow: inset 0 0 0 1px var(--gold-2); color: var(--gold-3); }
+    .code-copy:hover svg { color: var(--gold-2); }
+    .code-copy .cc-done { display: none; color: var(--gold-2); font-size: 12.5px; letter-spacing: 0.02em; }
+    .code-copy.is-done { box-shadow: inset 0 0 0 1px var(--gold-2); }
     .code-copy.is-done svg { display: none; }
     .code-copy.is-done .cc-done { display: inline; }
-    @media (max-width: 560px) { .bt-go { display: none; } }
+    .text-link { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 15px; font-weight: 500; }
+    .text-link .arr { color: var(--gold-2); transition: transform 0.35s var(--ease); }
+    .text-link:hover { color: var(--ink); } .text-link:hover .arr { transform: translateX(4px); }
 
-    /* the free room: one wide panel above the footer */
-    .disc-wrap { padding: clamp(52px, calc(9 * var(--vh)), 92px) 0 0; }
-    .disc {
-      background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-      padding: 22px 24px; display: flex; align-items: center; gap: 20px 28px; flex-wrap: wrap;
+    /* ── footer: dense, then the name, big and fading ── */
+    .foot { position: relative; margin-top: clamp(110px, calc(16 * var(--vh)), 190px); padding-top: 46px; border-top: 1px solid var(--line); overflow: hidden; }
+    .foot-top { display: flex; align-items: center; justify-content: space-between; gap: 22px 40px; flex-wrap: wrap; }
+    .foot-links { display: flex; flex-wrap: wrap; gap: 10px 26px; font-size: 14.5px; color: var(--muted); }
+    .foot-links a, .foot-links button { color: inherit; background: none; border: 0; font: inherit; cursor: pointer; transition: color 0.2s ease; }
+    .foot-links a:hover, .foot-links button:hover { color: var(--gold-2); }
+    .risk { margin-top: 34px; color: var(--faint); font-size: 12.5px; line-height: 1.8; max-width: 92ch; }
+    .base { margin-top: 16px; font-size: 12.5px; color: var(--faint); }
+    .mark {
+      margin: clamp(34px, calc(6 * var(--vh)), 70px) 0 -0.14em; text-align: center; white-space: nowrap; user-select: none; pointer-events: none;
+      font-weight: 800; font-size: clamp(92px, calc(24 * var(--vw)), 360px); letter-spacing: -0.075em; line-height: 0.8;
+      background: linear-gradient(180deg, rgba(245, 228, 179, 0.2) 0%, rgba(245, 228, 179, 0.04) 62%, rgba(245, 228, 179, 0) 90%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    .disc-copy { flex: 1; min-width: 240px; }
-    .disc-copy h3 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
-    .disc-copy .d { margin-top: 8px; color: var(--muted); font-size: 13.5px; }
-    .disc .btn { flex-shrink: 0; }
-    @media (max-width: 560px) { .disc .btn { width: 100%; justify-content: center; } }
 
-    /* the price on the card */
-    .glass .price { margin: 10px 0 14px; display: flex; align-items: baseline; justify-content: center; gap: 8px; }
-    .glass .price .amt { font-size: 36px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); }
-    .glass .price .once { font-size: 12.5px; color: var(--faint); }
-
-    /* member reviews: appears only once someone said something and d1
-       approved it for the landing (landing_reviews view) */
-    .rev-wrap { padding: clamp(48px, calc(8 * var(--vh)), 84px) 0 0; }
-    .rev-wrap .label { display: block; text-align: center; }
-    .rev-wrap .grid3 { margin-top: 16px; }
-    /* rating summary: big average + animated distribution bars */
-    .ratesum { display: flex; gap: 20px; align-items: center; max-width: 320px; margin: 18px auto 0; padding: 16px 18px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
-    .ratesum .left { text-align: center; flex: none; }
-    .ratesum .big { font-size: 34px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
-    .ratesum .rs-stars { color: var(--gold); font-size: 12px; letter-spacing: 2px; margin: 5px 0 3px; }
-    .ratesum .n { font-size: 11px; color: var(--faint); }
-    .ratesum .bars { flex: 1; display: grid; gap: 6px; }
-    .ratesum .r { display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: var(--faint); }
-    .ratesum .r b { width: 8px; font-weight: 500; color: var(--muted); }
-    .ratesum .track { flex: 1; height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
-    .ratesum .track i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--gold), var(--gold-deep)); width: 0; animation: rate-grow 1s cubic-bezier(0.77, 0, 0.175, 1) forwards; }
-    .ratesum .r:nth-child(1) i { animation-delay: 0.1s; }
-    .ratesum .r:nth-child(2) i { animation-delay: 0.2s; }
-    .ratesum .r:nth-child(3) i { animation-delay: 0.3s; }
-    .ratesum .r:nth-child(4) i { animation-delay: 0.4s; }
-    .ratesum .r:nth-child(5) i { animation-delay: 0.5s; }
-    @keyframes rate-grow { to { width: var(--w); } }
-    @media (prefers-reduced-motion: reduce) { .ratesum .track i { animation: none; width: var(--w); } }
-    /* review wall: masonry columns, real approved reviews only */
-    .rev-wrap .cols { margin-top: 18px; columns: 3; column-gap: 16px; }
-    @media (max-width: 900px) { .rev-wrap .cols { columns: 2; } }
-    @media (max-width: 640px) { .rev-wrap .cols { columns: 1; } }
-    .rev {
-      break-inside: avoid; margin-bottom: 16px; padding: 18px 20px;
-      border-radius: 14px; background: var(--panel); border: 1px solid var(--line);
-      transition: transform 0.22s ease, box-shadow 0.22s ease;
-    }
-    .rev:hover { transform: translateY(-3px); box-shadow: 0 16px 36px -22px rgba(0,0,0,0.65); }
-    .rev .stars { display: block; color: var(--gold); font-size: 11px; letter-spacing: 2px; margin-bottom: 8px; }
-    .rev p { margin: 0 0 12px; font-size: 13px; line-height: 1.55; color: var(--muted); }
-    .rev .who { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--faint); }
-    .rev .ava {
-      width: 24px; height: 24px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
-      background: linear-gradient(140deg, var(--gold), var(--gold-deep)); color: #1a1207;
-      font-weight: 700; font-size: 10px; display: flex; align-items: center; justify-content: center;
-    }
-    .rev .ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .rev .who b { color: var(--ink); font-weight: 600; }
-
-
-    /* the application: the card that used to hold the price */
-    .buy > .col { width: 100%; }
-    .glass.apply-cta { max-width: 400px; } .glass.apply-cta .ap-h { margin-bottom: 4px; }
-    /* the application opens over the page: everything behind it blurs and dims */
+    /* ── the application pop-up: everything behind it blurs and dims ── */
     .ap-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; overscroll-behavior: contain; }
-    .ap-back { position: fixed; inset: 0; background: rgba(6,5,4,0.62); backdrop-filter: blur(18px) saturate(0.9); -webkit-backdrop-filter: blur(18px) saturate(0.9); opacity: 0; transition: opacity 0.35s ease; }
-    .ap-modal .glass.apply { position: relative; margin: auto; background: rgba(22,20,18,0.86); opacity: 0; transform: translateY(18px) scale(0.965); transition: opacity 0.3s ease, transform 0.5s cubic-bezier(.2,.8,.2,1); outline: none; }
+    .ap-back { position: fixed; inset: 0; background: rgba(6, 5, 4, 0.62); -webkit-backdrop-filter: blur(20px) saturate(0.9); backdrop-filter: blur(20px) saturate(0.9); opacity: 0; transition: opacity 0.4s ease; }
+    .glass.apply {
+      position: relative; width: 100%; max-width: 480px; margin: auto; text-align: center;
+      padding: 36px 30px 28px; border-radius: 30px; outline: none;
+      background: linear-gradient(180deg, rgba(34, 31, 27, 0.92), rgba(20, 18, 16, 0.94));
+      box-shadow: inset 0 0 0 1px var(--line-2), inset 0 1px 0 rgba(255, 244, 220, 0.08), 0 50px 120px -30px rgba(0, 0, 0, 0.95);
+      opacity: 0; transform: translateY(22px) scale(0.965); transition: opacity 0.35s ease, transform 0.6s var(--ease);
+    }
     .ap-modal.on .ap-back { opacity: 1; }
     .ap-modal.on .glass.apply { opacity: 1; transform: none; }
-    .ap-x { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 10px; border: 0; background: none; color: var(--faint); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.2s ease, background 0.2s ease, transform 0.25s cubic-bezier(.2,.8,.2,1); z-index: 1; }
-    .ap-x svg { width: 17px; height: 17px; }
-    .ap-x:hover { color: var(--ink); background: rgba(255,255,255,0.08); } .ap-x:active { transform: scale(0.9); }
+    .ap-x { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.05); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.2s ease, background 0.2s ease, transform 0.3s var(--ease); z-index: 1; }
+    .ap-x svg { width: 16px; height: 16px; }
+    .ap-x:hover { color: var(--ink); background: rgba(255, 255, 255, 0.1); } .ap-x:active { transform: scale(0.9); }
     body.ap-open { overflow: hidden; }
-    @media (max-width: 560px) { .ap-modal { padding: 12px; align-items: flex-end; } .ap-modal .glass.apply { margin: auto 0 0; max-width: none; transform: translateY(40px); border-radius: 22px; } }
-    @media (prefers-reduced-motion: reduce) { .ap-back, .ap-modal .glass.apply { transition: none; } }
-    .glass.apply { max-width: 460px; padding: 30px 28px 26px; }
-    .ap-h { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; margin: 6px 0 20px; }
+    @media (max-width: 560px) { .ap-modal { padding: 10px; align-items: flex-end; } .glass.apply { margin: auto 0 0; max-width: none; transform: translateY(44px); border-radius: 28px; padding: 32px 20px 22px; } }
+    @media (prefers-reduced-motion: reduce) { .ap-back, .glass.apply { transition: none; } }
+    .ap-h { font-size: 30px; font-weight: 650; letter-spacing: -0.04em; line-height: 1.05; margin: 8px 0 22px; }
+    .ap-h .gt { font-size: 1.1em; }
     .ap-field { text-align: left; margin-top: 14px; border: 0; padding: 0; min-width: 0; }
-    .ap-field label, .ap-field legend { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 7px; padding: 0; }
+    .ap-field label, .ap-field legend { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; padding: 0; }
     .ap-field input[type="text"], .ap-field input[type="email"] {
-      width: 100%; background: rgba(0,0,0,0.28); color: var(--ink);
-      border: 1px solid rgba(255,255,255,0.14); border-radius: 11px; padding: 13px 14px;
-      font: 500 14.5px/1.2 inherit; font-family: inherit;
-      transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease;
+      width: 100%; height: 52px; background: rgba(0, 0, 0, 0.3); color: var(--ink);
+      border: 0; box-shadow: inset 0 0 0 1px var(--line-2); border-radius: 14px; padding: 0 16px;
+      font: 500 16px/1.2 var(--sans);
+      transition: box-shadow 0.25s ease, background 0.2s ease;
     }
     .ap-field input::placeholder { color: var(--faint); }
-    .ap-field input[type="text"]:focus, .ap-field input[type="email"]:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201,162,74,0.14); background: rgba(0,0,0,0.4); }
-    .ap-field.bad input, .ap-invest.bad .ap-opts span { border-color: #d08a7a; }
+    .ap-field input[type="text"]:focus, .ap-field input[type="email"]:focus { outline: none; box-shadow: inset 0 0 0 1px var(--gold-2), 0 0 0 4px rgba(201, 162, 74, 0.16); background: rgba(0, 0, 0, 0.42); }
+    .ap-field.bad input { box-shadow: inset 0 0 0 1px #d08a7a; }
+    .ap-invest.bad .ap-opts span { box-shadow: inset 0 0 0 1px #d08a7a; }
     .ap-invest { margin-top: 18px; }
     .ap-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .ap-opts label { margin: 0; cursor: pointer; position: relative; }
     .ap-opts label:last-child { grid-column: 1 / -1; }
     .ap-opts input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; cursor: pointer; margin: 0; }
     .ap-opts span {
-      display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 10px;
-      border: 1px solid rgba(255,255,255,0.14); border-radius: 11px; background: rgba(0,0,0,0.2);
-      font-size: 13.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; text-align: center;
-      transition: color 0.2s ease, border-color 0.2s ease, background 0.25s ease, transform 0.25s cubic-bezier(.2,.8,.2,1), box-shadow 0.25s ease;
+      display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 10px;
+      box-shadow: inset 0 0 0 1px var(--line-2); border-radius: 14px; background: rgba(0, 0, 0, 0.22);
+      font-size: 14px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; text-align: center;
+      transition: color 0.2s ease, background 0.3s ease, transform 0.3s var(--ease), box-shadow 0.3s ease;
     }
-    @media (hover: hover) { .ap-opts label:hover span { color: var(--ink); border-color: rgba(255,255,255,0.28); } }
+    @media (hover: hover) { .ap-opts label:hover span { color: var(--ink); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); } }
     .ap-opts label:active span { transform: scale(0.97); }
-    .ap-opts input:checked + span { color: #1a1207; background: linear-gradient(135deg, #e6c878, var(--gold)); border-color: transparent; box-shadow: 0 6px 18px -8px rgba(201,162,74,0.7); }
+    .ap-opts input:checked + span { color: #1a1207; background: linear-gradient(135deg, #ecd08a, var(--gold)); box-shadow: inset 0 1px 0 rgba(255, 246, 220, 0.6), 0 8px 22px -10px rgba(201, 162, 74, 0.8); }
     .ap-opts input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 3px; }
-    .glass.apply .btn { margin-top: 22px; height: 50px; }
-    .glass.apply .btn[disabled] { filter: saturate(0.5) brightness(0.85); cursor: progress; transform: none; }
-    .ap-msg { min-height: 0; margin-top: 0; font-size: 12.5px; color: #d08a7a; text-align: center; }
+    .glass.apply .btn { width: 100%; margin-top: 24px; --h: 54px; }
+    .ap-msg { margin-top: 0; font-size: 13px; color: #d08a7a; text-align: center; }
     .ap-msg:not(:empty) { margin-top: 12px; }
+    .ap-fine { margin-top: 14px; font-size: 12.5px; color: var(--faint); }
     .ap-done { padding: 18px 0 10px; }
-    .ap-done svg { width: 54px; height: 54px; color: var(--gold); }
+    .ap-done svg { width: 58px; height: 58px; color: var(--gold-2); margin: 0 auto; }
     .ap-done .tick { stroke-dasharray: 32; stroke-dashoffset: 32; }
-    .ap-done:not([hidden]) .tick { animation: ap-tick 0.6s 0.15s cubic-bezier(.2,.8,.2,1) forwards; }
+    .ap-done:not([hidden]) .tick { animation: ap-tick 0.6s 0.15s var(--ease) forwards; }
     @keyframes ap-tick { to { stroke-dashoffset: 0; } }
-    .ap-done .ap-h { margin: 14px 0 8px; }
-    .ap-sub { color: var(--muted); font-size: 13.5px; max-width: 34ch; margin: 0 auto; }
-    .ap-done:not([hidden]) { animation: ap-in 0.5s cubic-bezier(.2,.8,.2,1) both; }
+    .ap-done .ap-h { margin: 16px 0 10px; }
+    .ap-sub { color: var(--muted); font-size: 15px; max-width: 32ch; margin: 0 auto; }
+    .ap-done:not([hidden]) { animation: ap-in 0.55s var(--ease) both; }
     @keyframes ap-in { from { opacity: 0; transform: translateY(8px); } }
     @media (prefers-reduced-motion: reduce) { .ap-done:not([hidden]), .ap-done:not([hidden]) .tick { animation: none; stroke-dashoffset: 0; } .ap-opts span { transition: none; } }
-    @media (max-width: 420px) { .glass.apply { padding: 26px 18px 22px; } .ap-opts span { font-size: 13px; } }
-
-    /* have a code? */
-    .code-row { margin-top: 12px; }
-    .code-row .lnk {
-      font-size: 12px; color: var(--faint); background: none; border: 0;
-      border-bottom: 1px solid var(--line-bright); padding: 0 0 1px;
-      cursor: pointer; font-family: inherit;
-    }
-    .code-row .lnk:hover { color: var(--gold); border-color: var(--gold); }
-    .code-row input {
-      display: none; margin: 10px auto 0; width: 100%; max-width: 220px; text-align: center;
- letter-spacing: 0.02em;
-      background: var(--panel-2); color: var(--ink);
-      border: 1px solid var(--line-bright); border-radius: 10px; padding: 10px 12px;
-      font: 600 13px/1.2 inherit; font-family: inherit;
-    }
-    .code-row.open input { display: block; }
-    .code-row .cn { margin-top: 8px; font-size: 12px; color: var(--faint); }
-    .code-row .cn a { border-bottom: 1px solid var(--line-bright); }
-    .code-row .cn a:hover { color: var(--gold); border-color: var(--gold); }
-
-    footer { margin-top: clamp(52px, calc(9 * var(--vh)), 92px); border-top: 1px solid var(--line); padding: 26px 0 40px; }
-    .risk { color: var(--faint); font-size: 12px; line-height: 1.7; max-width: 88ch; }
-    .base { margin-top: 18px; display: flex; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; font-size: 11px; letter-spacing: 0.02em; color: var(--faint); }
-    .base a:hover { color: var(--gold); }
-
   </style>
 </head>
 <body>
 
   <canvas id="dust" aria-hidden="true"></canvas>
 
-  <header class="top"><div class="col">
-    <span class="brand"><img src="/echelon/assets/logo-mark.png" alt="" width="26" height="26" style="border-radius:6px;vertical-align:-7px;margin-right:9px">Echelon</span>
-    <nav style="display:flex;gap:22px;align-items:center;">
-      <a class="disc-ic" id="top-discord" href="#" target="_blank" rel="noopener" aria-label="Join the Discord" hidden>
+  <header class="nav" id="nav"><div class="nav-in">
+    <a class="brand" href="/" aria-label="Echelon"><img src="/echelon/assets/logo-mark.png" alt="" width="30" height="30"><span>Echelon</span></a>
+    <nav class="nav-r" aria-label="Site">
+      <a class="nav-ic" id="top-discord" href="#" target="_blank" rel="noopener" aria-label="Join the Discord" hidden>
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/></svg>
       </a>
-      <a class="quiet" href="/echelon/app/">Sign in</a>
-      <button class="btn gshift" data-apply type="button" style="height:38px;padding:0 20px;font-size:13px;">Apply</button>
+      <a class="nav-link" href="/echelon/app/">Sign in</a>
+      <button class="btn btn-gold sm" data-apply type="button">Apply</button>
     </nav>
   </div></header>
 
   <main>
-    <div class="hero"><div class="col">
-      <h1>Trade with <em>clarity.</em></h1>
-      <p class="def"><b>clarity</b> the quality of being clear and easy to understand; the state of seeing what the market is actually doing, not what you hope it will do.</p>
-      <div class="act">
-        <button class="btn gshift" data-apply type="button">Apply to Echelon <span class="arr" aria-hidden="true">&rarr;</span></button>
-        <a class="quiet" href="/echelon/app/">Members sign in</a>
+    <section class="hero">
+      <div class="sky" aria-hidden="true">
+        <div class="hz"><i class="hz-glow"></i><i class="hz-planet"></i><i class="hz-flare"></i></div>
       </div>
-      <p class="fine">by application · <span data-discord-count>members in the Discord</span></p>
-    </div></div>
-
-    <div class="trades-wrap" id="trades" hidden><div class="col">
-      <div class="tr-car">
-        <div class="tr-track" id="tr-track" aria-label="Member trade screenshots"></div>
-        <div class="tr-track" id="tr-track-2" aria-label="More member trade screenshots"></div>
-      </div>
-    </div></div>
-
-
-    <div class="rev-wrap" id="reviews" hidden><div class="col">
-      <span class="label">From the members</span>
-      <div class="ratesum" id="rev-sum" hidden></div>
-      <div class="cols" id="rev-grid"></div>
-      <p style="text-align:center;margin-top:22px;"><a class="quiet" href="/reviews/" style="font-size:12.5px;">All reviews &rarr;</a></p>
-    </div></div>
-
-
-
-    <div class="buy" id="access"><div class="col" style="display:flex;justify-content:center;">
-      <div class="glass apply-cta">
-        <p class="label">Applications</p>
-        <h2 class="ap-h">Apply to Echelon</h2>
-        <button class="btn gshift" data-apply type="button">Start the application <span class="arr" aria-hidden="true">&rarr;</span></button>
-      </div>
-    </div></div>
-
-    <div class="faq-wrap"><div class="col">
-      <div class="faq-block faq">
-        <details><summary>What happens after I apply?<span class="mk">+</span></summary><p class="a">I read every application myself. If it's a fit, you get an email with your way in. Nothing is charged on this page.</p></details>
-        <details><summary>Why are you selling this if you already make money trading?<span class="mk">+</span></summary><p class="a">I spent two years learning these concepts. If I put them out for free, nobody would find them valuable; nothing free gets studied. The price is what makes people take the work seriously.</p></details>
-        <details><summary>What model will you teach me?<span class="mk">+</span></summary><p class="a">I don't teach a mechanical model. I teach discretionary concepts that help you see NQ clearly. I don't believe price can be reduced to rigid rules; context and judgment matter, and discretionary interpretation is the better way to read the market.</p></details>
-        <details><summary>What exactly do I get?<span class="mk">+</span></summary><p class="a">The full training on reading NQ's context and intention, our session breakdowns, the private member chat, and the Echelon software itself: the app where all of it lives, on the web or the Windows desktop. The GEX board sits in there too, for its subscribers. The detailed concepts stay inside Echelon.</p></details>
-        <details><summary>Is this for beginners?<span class="mk">+</span></summary><p class="a">No. You should already understand futures mechanics and have screen time on NQ, or be actively getting it.</p></details>
-        <details><summary>Is this signals?<span class="mk">+</span></summary><p class="a">No. Nobody calls trades. Echelon teaches you how to interpret the market for yourself. The chat is for study and discussion, not a signal feed.</p></details>
-        <details><summary>Refunds?<span class="mk">+</span></summary><p class="a">No refunds. The product is information; once read, it can't be returned. One payment, access for good, updates included.</p></details>
-      </div>
-    </div></div>
-
-    <div class="gexbar-wrap" id="gexbar"><div class="col">
-      <div class="btbar">
-        <a href="https://www.backtrader.io/" target="_blank" rel="noopener" style="display:flex;flex:none;"><img src="/assets/partners/backtrader.png" alt="BackTrader" width="30" height="30" loading="lazy"></a>
-        <span class="bt-copy"><a href="https://www.backtrader.io/" target="_blank" rel="noopener"><b>BackTrader</b></a>, trade copier and analytics for futures. Code
-          <button class="code-copy" type="button" data-copy="D1FPC3" aria-label="Copy code D1FPC3"><b>D1FPC3</b><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg><span class="cc-done">Copied</span></button>
-          gets a discount.</span>
-        <a class="bt-go" href="https://www.backtrader.io/" target="_blank" rel="noopener">backtrader.io &rarr;</a>
-      </div>
-    </div></div>
-
-    <div class="disc-wrap" id="free-room" hidden><div class="col">
-      <div class="disc">
-        <div class="disc-copy">
-          <h3>Not ready? Join the free Discord.</h3>
-          <p class="d"><span class="live"><span class="dot" aria-hidden="true"></span><span data-discord-count>The Discord</span></span> · free information inside, no card.</p>
+      <div class="wrap hero-in">
+        <h1 class="h1"><span class="w" style="--i:0">Trade</span> <span class="w" style="--i:1">with</span> <em class="w gt shine" style="--i:2">clarity.</em></h1>
+        <p class="def up" style="--i:3"><span class="hw">clar·i·ty</span><span class="pos">noun</span><span class="dt">the quality of being clear and easy to understand; the state of seeing what the market is actually doing, not what you hope it will do.</span></p>
+        <div class="act up" style="--i:4">
+          <button class="btn btn-gold lg" data-apply type="button">Apply to Echelon <span class="arr" aria-hidden="true">&rarr;</span></button>
+          <a class="btn btn-ghost lg" href="/echelon/app/">Members sign in</a>
         </div>
-        <a class="btn" id="disc-join" href="#" target="_blank" rel="noopener">Join the Discord</a>
+        <p class="fine up" style="--i:5"><span>by application</span><i class="sep" aria-hidden="true"></i><span class="live"><span class="dot" aria-hidden="true"></span><span data-discord-count>members in the Discord</span></span></p>
       </div>
-    </div></div>
+    </section>
+
+    <section class="sec proof" id="trades" hidden>
+      <div class="wrap sec-head rv"><h2 class="h2">Member <em class="gt">trades.</em></h2></div>
+      <div class="wall rv" style="--d:.1s">
+        <div class="tr-car">
+          <div class="tr-track" id="tr-track" aria-label="Member trade screenshots"></div>
+          <div class="tr-track" id="tr-track-2" aria-label="More member trade screenshots"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="reviews" hidden>
+      <div class="wrap">
+        <div class="sec-head rv"><h2 class="h2">What members <em class="gt">say.</em></h2></div>
+        <div class="ratesum rv" id="rev-sum" hidden></div>
+        <div class="rev-cols" id="rev-grid"></div>
+        <p class="rev-more rv"><a class="more-link" href="/reviews/">All reviews <span class="arr" aria-hidden="true">&rarr;</span></a></p>
+      </div>
+    </section>
+
+    <section class="sec" id="access">
+      <div class="wrap">
+        <div class="cta spot rv">
+          <i class="cta-beam" aria-hidden="true"><i></i></i>
+          <h2 class="h2">Apply to <em class="gt">Echelon.</em></h2>
+          <p class="cta-sub">Every application is read by d1. Nothing is charged here.</p>
+          <button class="btn btn-gold lg" data-apply type="button">Start the application <span class="arr" aria-hidden="true">&rarr;</span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="wrap faq-grid">
+        <div class="faq-side rv">
+          <h2 class="h2"><em class="gt">Questions.</em></h2>
+          <p class="faq-note" id="faq-note" hidden>Anything else? <a id="faq-discord" href="#" target="_blank" rel="noopener">Ask in the Discord</a>.</p>
+        </div>
+        <div class="faq rv" style="--d:.08s">
+          <details><summary>What happens after I apply?<i class="pm" aria-hidden="true"></i></summary><p class="a">I read every application myself. If it's a fit, you get an email with your way in. Nothing is charged on this page.</p></details>
+          <details><summary>Why are you selling this if you already make money trading?<i class="pm" aria-hidden="true"></i></summary><p class="a">I spent two years learning these concepts. If I put them out for free, nobody would find them valuable; nothing free gets studied. The price is what makes people take the work seriously.</p></details>
+          <details><summary>What model will you teach me?<i class="pm" aria-hidden="true"></i></summary><p class="a">I don't teach a mechanical model. I teach discretionary concepts that help you see NQ clearly. I don't believe price can be reduced to rigid rules; context and judgment matter, and discretionary interpretation is the better way to read the market.</p></details>
+          <details><summary>What exactly do I get?<i class="pm" aria-hidden="true"></i></summary><p class="a">The full training on reading NQ's context and intention, our session breakdowns, the private member chat, and the Echelon software itself: the app where all of it lives, on the web or the Windows desktop. The GEX board sits in there too, for its subscribers. The detailed concepts stay inside Echelon.</p></details>
+          <details><summary>Is this for beginners?<i class="pm" aria-hidden="true"></i></summary><p class="a">No. You should already understand futures mechanics and have screen time on NQ, or be actively getting it.</p></details>
+          <details><summary>Is this signals?<i class="pm" aria-hidden="true"></i></summary><p class="a">No. Nobody calls trades. Echelon teaches you how to interpret the market for yourself. The chat is for study and discussion, not a signal feed.</p></details>
+          <details><summary>Refunds?<i class="pm" aria-hidden="true"></i></summary><p class="a">No refunds. The product is information; once read, it can't be returned. One payment, access for good, updates included.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="wrap more-grid">
+        <div class="card spot rv" id="free-room" hidden>
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/></svg></span>
+          <h3>Not ready? Join the free <em class="gt">Discord.</em></h3>
+          <p class="d stack"><span class="live"><span class="dot" aria-hidden="true"></span><span data-discord-count>The Discord</span></span><span>Free information inside, no card.</span></p>
+          <div class="go"><a class="btn btn-ghost" id="disc-join" href="#" target="_blank" rel="noopener">Join the Discord <span class="arr" aria-hidden="true">&rarr;</span></a></div>
+        </div>
+        <div class="card spot rv" id="partner" style="--d:.08s">
+          <a class="ic" href="https://www.backtrader.io/" target="_blank" rel="noopener" aria-label="BackTrader"><img src="/assets/partners/backtrader.png" alt="" width="30" height="30" loading="lazy"></a>
+          <h3>BackTrader</h3>
+          <p class="d">Trade copier and analytics for futures. The code gets you a discount.</p>
+          <div class="go">
+            <button class="code-copy" type="button" data-copy="D1FPC3" aria-label="Copy code D1FPC3">D1FPC3<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg><span class="cc-done">Copied</span></button>
+            <a class="text-link" href="https://www.backtrader.io/" target="_blank" rel="noopener">backtrader.io <span class="arr" aria-hidden="true">&rarr;</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <div class="ap-modal" id="apply-modal" hidden>
     <div class="ap-back" id="ap-back"></div>
-      <div class="glass apply" id="apply-card" role="dialog" aria-modal="true" aria-labelledby="ap-title" tabindex="-1">
-        <button class="ap-x" id="ap-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-        <form id="apply-form" novalidate>
-          <p class="label">Applications</p>
-          <h2 class="ap-h" id="ap-title">Apply to Echelon</h2>
-          <div class="ap-field">
-            <label for="ap-name">Name</label>
-            <input id="ap-name" name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your name" required>
-          </div>
-          <div class="ap-field">
-            <label for="ap-email">Email</label>
-            <input id="ap-email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" maxlength="160" placeholder="you@email.com" required>
-          </div>
-          <fieldset class="ap-field ap-invest">
-            <legend>How much are you willing to invest in your trading?</legend>
-            <div class="ap-opts" id="ap-opts" role="radiogroup" aria-label="Investment range">
-              <label><input type="radio" name="invest" value="under_500"><span>Under $500</span></label>
-              <label><input type="radio" name="invest" value="500_1000"><span>$500 to $1,000</span></label>
-              <label><input type="radio" name="invest" value="1000_2500"><span>$1,000 to $2,500</span></label>
-              <label><input type="radio" name="invest" value="2500_5000"><span>$2,500 to $5,000</span></label>
-              <label><input type="radio" name="invest" value="5000_plus"><span>$5,000+</span></label>
-            </div>
-          </fieldset>
-          <input id="ap-hp" name="company" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
-          <button class="btn gshift" id="ap-send" type="submit">Send application <span class="arr" aria-hidden="true">&rarr;</span></button>
-          <p class="ap-msg" id="ap-msg" role="status" aria-live="polite"></p>
-          <p class="fine">Nothing is charged here. Every application is read by d1.</p>
-        </form>
-        <div class="ap-done" id="ap-done" hidden>
-          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2" opacity="0.35"/><path class="tick" d="M14.5 24.5l6.5 6.5 12.5-13.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <h2 class="ap-h" id="ap-done-h">Application received.</h2>
-          <p class="ap-sub">The reply comes by email. Check spam if it has been a couple of days.</p>
+    <div class="glass apply" id="apply-card" role="dialog" aria-modal="true" aria-labelledby="ap-title" tabindex="-1">
+      <button class="ap-x" id="ap-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <form id="apply-form" novalidate>
+        <p class="label">Applications</p>
+        <h2 class="ap-h" id="ap-title">Apply to <em class="gt">Echelon.</em></h2>
+        <div class="ap-field">
+          <label for="ap-name">Name</label>
+          <input id="ap-name" name="name" type="text" autocomplete="name" maxlength="80" placeholder="Your name" required>
         </div>
+        <div class="ap-field">
+          <label for="ap-email">Email</label>
+          <input id="ap-email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" maxlength="160" placeholder="you@email.com" required>
+        </div>
+        <fieldset class="ap-field ap-invest">
+          <legend>How much are you willing to invest in your trading?</legend>
+          <div class="ap-opts" id="ap-opts" role="radiogroup" aria-label="Investment range">
+            <label><input type="radio" name="invest" value="under_500"><span>Under $500</span></label>
+            <label><input type="radio" name="invest" value="500_1000"><span>$500 to $1,000</span></label>
+            <label><input type="radio" name="invest" value="1000_2500"><span>$1,000 to $2,500</span></label>
+            <label><input type="radio" name="invest" value="2500_5000"><span>$2,500 to $5,000</span></label>
+            <label><input type="radio" name="invest" value="5000_plus"><span>$5,000+</span></label>
+          </div>
+        </fieldset>
+        <input id="ap-hp" name="company" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
+        <button class="btn btn-gold" id="ap-send" type="submit">Send application <span class="arr" aria-hidden="true">&rarr;</span></button>
+        <p class="ap-msg" id="ap-msg" role="status" aria-live="polite"></p>
+        <p class="ap-fine">Nothing is charged here. Every application is read by d1.</p>
+      </form>
+      <div class="ap-done" id="ap-done" hidden>
+        <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2" opacity="0.35"/><path class="tick" d="M14.5 24.5l6.5 6.5 12.5-13.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h2 class="ap-h" id="ap-done-h">Application received.</h2>
+        <p class="ap-sub">The reply comes by email. Check spam if it has been a couple of days.</p>
       </div>
+    </div>
   </div>
 
-  <footer><div class="col">
-    <p class="risk">Trading futures involves substantial risk of loss and is not suitable for every investor. Leverage works against you as well as for you. Past performance, yours or anyone else's, does not guarantee future results. Only risk capital you can afford to lose. Echelon is an educational product, not financial advice. The author is not a registered investment or commodity trading advisor. Most retail futures traders lose money.</p>
-    <div class="base">
-      <span>© 2026 Echelon · d1fpc3</span>
-      <span style="display:flex;gap:22px;flex-wrap:wrap;">
-        <a id="foot-discord" href="#" target="_blank" rel="noopener" hidden>Discord</a>
-        <a href="/echelon/gex/">GEX indicator</a>
-        <a href="https://www.tradingview.com/u/d1fpc3/" target="_blank" rel="noopener">TradingView</a>
-        <a href="/terms/">Terms</a>
-        <a href="/privacy/">Privacy</a>
-      </span>
+  <footer class="foot">
+    <div class="wrap">
+      <div class="foot-top">
+        <a class="brand" href="/" aria-label="Echelon"><img src="/echelon/assets/logo-mark.png" alt="" width="30" height="30"><span>Echelon</span></a>
+        <nav class="foot-links" aria-label="More">
+          <button type="button" data-apply>Apply</button>
+          <a href="/echelon/app/">Sign in</a>
+          <a href="/reviews/">Reviews</a>
+          <a href="/echelon/gex/">GEX indicator</a>
+          <a href="https://www.tradingview.com/u/d1fpc3/" target="_blank" rel="noopener">TradingView</a>
+          <a id="foot-discord" href="#" target="_blank" rel="noopener" hidden>Discord</a>
+          <a href="/terms/">Terms</a>
+          <a href="/privacy/">Privacy</a>
+        </nav>
+      </div>
+      <p class="risk">Trading futures involves substantial risk of loss and is not suitable for every investor. Leverage works against you as well as for you. Past performance, yours or anyone else's, does not guarantee future results. Only risk capital you can afford to lose. Echelon is an educational product, not financial advice. The author is not a registered investment or commodity trading advisor. Most retail futures traders lose money.</p>
+      <p class="base">© 2026 Echelon · d1fpc3</p>
     </div>
-  </div></footer>
+    <div class="mark" aria-hidden="true">Echelon</div>
+  </footer>
 
   <script>
   (function () {
@@ -581,8 +680,8 @@
 
     /* ═══════════════════════════════════════════════════════════
        CONFIG, the only things you edit.
-       discordUrl:  a PERMANENT Discord invite. Empty → the footer
-                    link hides and the live counter stays quiet.
+       discordUrl:  a PERMANENT Discord invite. Empty → the Discord
+                    links hide and the live counter stays quiet.
        ═══════════════════════════════════════════════════════════ */
     var CONFIG = { discordUrl: 'https://discord.gg/FAQD5Cr5p7' };
     /* An affiliate link (?aff=CODE) is remembered for 30 days; the pricing
@@ -591,6 +690,7 @@
       var _aff = new URLSearchParams(location.search).get('aff');
       if (_aff && /^[A-Za-z0-9]{4,12}$/.test(_aff)) localStorage.setItem('echelon-aff', JSON.stringify({ code: _aff.toUpperCase(), t: Date.now() }));
     } catch (e) {}
+    var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     /* Gold dust: a few dozen motes drifting slowly, barely there. The
        dust belongs to the hero: it fades with scroll and the loop stops
@@ -601,19 +701,19 @@
       var cv = document.getElementById('dust');
       if (!cv || !cv.getContext) return;
       var ctx = cv.getContext('2d');
-      var still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var still = reduced;
       var dpr = Math.min(1.5, window.devicePixelRatio || 1);
       var W = 0, H = 0, motes = [];
 
       function spawn() {
         motes = [];
-        var n = Math.min(56, Math.max(22, Math.round(W * H / 28000)));
+        var n = Math.min(64, Math.max(24, Math.round(W * H / 24000)));
         for (var i = 0; i < n; i++) {
           motes.push({
             x: Math.random() * W,
             y: Math.random() * H,
-            r: 0.5 + Math.random() * 1.1,
-            a: 0.05 + Math.random() * 0.2,
+            r: 0.5 + Math.random() * 1.2,
+            a: 0.05 + Math.random() * 0.22,
             v: 6 + Math.random() * 10,
             sway: 6 + Math.random() * 14,
             ph: Math.random() * Math.PI * 2,
@@ -650,7 +750,7 @@
           var a = still ? m.a : m.a * (0.7 + 0.3 * Math.sin(s * m.tw * 1.7 + m.ph));
           ctx.beginPath();
           ctx.arc(x, y, m.r, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(201,162,74,' + a.toFixed(3) + ')';
+          ctx.fillStyle = 'rgba(229,198,121,' + a.toFixed(3) + ')';
           ctx.fill();
         }
       }
@@ -675,7 +775,35 @@
       else wake();
     })();
 
-    /* The landing takes applications. Apply buttons walk to the card; the form goes to
+    /* Reveals: each block settles up out of a blur the first time it scrolls in.
+       Blocks inside a section that is still hidden are picked up when it shows. */
+    var reveal = (function () {
+      if (!('IntersectionObserver' in window)) { document.querySelectorAll('.rv').forEach(function (n) { n.classList.add('in'); }); return function (n) { n.classList.add('in'); }; }
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+      document.querySelectorAll('.rv').forEach(function (n) { io.observe(n); });
+      return function (n) { io.observe(n); };
+    })();
+
+    /* The nav tightens into a smaller capsule once you are reading */
+    (function () {
+      var nav = document.getElementById('nav'), on = false;
+      function check() { var want = scrollY > 40; if (want !== on) { on = want; nav.classList.toggle('on', want); } }
+      addEventListener('scroll', check, { passive: true }); check();
+    })();
+
+    /* Light follows the pointer across the glass panels */
+    if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      document.addEventListener('pointermove', function (e) {
+        var s = e.target.closest && e.target.closest('.spot'); if (!s) return;
+        var r = s.getBoundingClientRect(), z = window.__uiz || 1;
+        s.style.setProperty('--mx', ((e.clientX - r.left) / z) + 'px');
+        s.style.setProperty('--my', ((e.clientY - r.top) / z) + 'px');
+      }, { passive: true });
+    }
+
+    /* The landing takes applications. Apply buttons open the pop-up; the form goes to
        submit_application (validated, deduped by email, rate-limited in the database). */
     (function () {
       var SB = 'https://cqdignbleethroyxxvzr.supabase.co', KEY = 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x';
@@ -696,7 +824,7 @@
       }
       function closeApply() {
         modal.classList.remove('on'); document.body.classList.remove('ap-open');
-        closeT = setTimeout(function () { modal.hidden = true; }, 380);
+        closeT = setTimeout(function () { modal.hidden = true; }, 420);
         if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
       }
       document.querySelectorAll('[data-apply]').forEach(function (btn) { btn.addEventListener('click', openApply); });
@@ -740,50 +868,33 @@
       });
     })();
 
-    /* The header tightens once you're reading */
-    (function () {
-      var top = document.querySelector('.top');
-      var slim = false;
-      function check() {
-        var want = scrollY > 24;
-        if (want !== slim) { slim = want; top.classList.toggle('slim', want); }
-      }
-      addEventListener('scroll', check, { passive: true });
-      check();
-    })();
+    /* copy chips (partner codes): clipboard API, execCommand fallback, "Copied" for 1.6s */
+    document.querySelectorAll('[data-copy]').forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.preventDefault();
+        var code = b.getAttribute('data-copy');
+        var done = function () { b.classList.add('is-done'); clearTimeout(b._t); b._t = setTimeout(function () { b.classList.remove('is-done'); }, 1600); };
+        var fallback = function () {
+          var ta = document.createElement('textarea'); ta.value = code; ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+          try { document.execCommand('copy'); } catch (err) {}
+          document.body.removeChild(ta); done();
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, fallback);
+        else fallback();
+      });
+    });
 
     if (CONFIG.discordUrl) {
-      var fd = document.getElementById('foot-discord');
-      fd.href = CONFIG.discordUrl; fd.hidden = false;
-      var td = document.getElementById('top-discord');
-      td.href = CONFIG.discordUrl; td.hidden = false;
-      // copy chips (partner codes): clipboard API, execCommand fallback, "Copied" for 1.6s
-      document.querySelectorAll('[data-copy]').forEach(function (b) {
-        b.addEventListener('click', function (e) {
-          e.preventDefault();
-          var code = b.getAttribute('data-copy');
-          var done = function () { b.classList.add('is-done'); clearTimeout(b._t); b._t = setTimeout(function () { b.classList.remove('is-done'); }, 1600); };
-          var fallback = function () {
-            var ta = document.createElement('textarea'); ta.value = code; ta.setAttribute('readonly', '');
-            ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
-            try { document.execCommand('copy'); } catch (err) {}
-            document.body.removeChild(ta); done();
-          };
-          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, fallback);
-          else fallback();
-        });
-      });
-      var dj = document.getElementById('disc-join');
-      dj.href = CONFIG.discordUrl;
+      ['foot-discord', 'top-discord', 'disc-join', 'faq-discord'].forEach(function (id) { var a = document.getElementById(id); if (a) { a.href = CONFIG.discordUrl; a.hidden = false; } });
       document.getElementById('free-room').hidden = false;
+      document.getElementById('faq-note').hidden = false;
     }
 
     /* Two live counters, kept separate on purpose:
        Echelon members (people who own the course) come from the project's
-       public stats view; Discord members (the free room) come from the
+       public stats view; Discord members (the free Discord) come from the
        invite API. Both animate in and re-check every minute. */
-    var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     function makeCounter(attr, phrase) {
       var shown = 0;
       function paint(n) {
@@ -834,7 +945,7 @@
           var rated = (rows || []).filter(function (r) { return r.rating; });
           rows = (rows || []).filter(function (r) { return r.username && r.comment && r.comment.trim(); }).slice(0, 12);
           if (!rows.length) return;
-          // rating summary card above the quotes
+          // the rating summary under the heading
           if (rated.length) {
             var counts = [0, 0, 0, 0, 0], sum = 0;
             rated.forEach(function (r) {
@@ -858,12 +969,12 @@
               track.appendChild(fill); row.appendChild(bb); row.appendChild(track); bars.appendChild(row);
             }
             box.appendChild(bars);
-            box.hidden = false;
+            box.hidden = false;   // it reveals like every block, and its bars fill as it does
           }
           var grid = document.getElementById('rev-grid');
           grid.textContent = '';
-          rows.forEach(function (r) {
-            var card = document.createElement('div'); card.className = 'rev';
+          rows.forEach(function (r, i) {
+            var card = document.createElement('div'); card.className = 'rev spot rv'; card.style.setProperty('--d', (i % 4) * 0.08 + 's');
             var stars = document.createElement('span'); stars.className = 'stars';
             var n = Math.max(1, Math.min(5, r.rating | 0));
             stars.textContent = '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -881,6 +992,7 @@
             who.appendChild(ava); who.appendChild(u);
             card.appendChild(stars); card.appendChild(c); card.appendChild(who);
             grid.appendChild(card);
+            reveal(card);
           });
           document.getElementById('reviews').hidden = false;
         })
@@ -904,7 +1016,7 @@
   })();
   </script>
   <script>
-  // Member trade carousel. Photos are published to /echelon/trades/ by
+  // Member trade wall. Photos are published to /echelon/trades/ by
   // scripts/sync-trades.mjs (drop folder: Desktop\Echelon Trades). The whole
   // section stays hidden until the manifest lists at least one photo.
   (function () {
@@ -932,7 +1044,7 @@
               var img = document.createElement('img');
               img.src = '/echelon/trades/' + f;
               img.alt = c ? '' : 'Member trade screenshot';
-              img.draggable = false;
+              img.draggable = false; img.decoding = 'async';
               if (c) img.setAttribute('aria-hidden', 'true');
               inner.appendChild(img);
             });
