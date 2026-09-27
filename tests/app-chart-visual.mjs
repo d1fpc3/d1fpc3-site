@@ -67,16 +67,18 @@ async function run(vpName) {
   if (vpName === "phone") {
     const layout = await page.evaluate(() => {
       const r = document.querySelector('.ch-wrap').getBoundingClientRect();
-      const buttons = ['ch-back', 'ch-tf-btn', 'ch-full', 'ch-tools-btn', 'ch-alerts-btn', 'ch-type-btn', 'ch-ind-btn', 'ch-replay-btn', 'ch-settings-btn'].map(id => document.getElementById(id).getBoundingClientRect());
+      const buttons = ['ch-back', 'ch-full', 'ch-tools-btn', 'ch-alerts-btn', 'ch-type-btn', 'ch-ind-btn', 'ch-replay-btn', 'ch-settings-btn'].map(id => document.getElementById(id).getBoundingClientRect());
       return { full: r.x === 0 && r.y === 0 && Math.abs(r.height - innerHeight) < 2 && r.width === innerWidth, touch: buttons.every(b => b.width >= 44 && b.height >= 44 && b.right <= innerWidth), nav: getComputedStyle(document.getElementById('bnav')).display, overflow: document.documentElement.scrollWidth > innerWidth };
     });
     check(layout.full && layout.touch && layout.nav === 'none' && !layout.overflow, `phone edge-to-edge workspace and 44px controls: ${JSON.stringify(layout)}`);
-    await page.click('#ch-tf-btn');
-    check(await page.locator('#ch-sheet').isVisible(), 'phone interval sheet opens');
+    await page.click('#ch-tf-any');
+    check(await page.locator('#ch-sheet').isVisible(), 'phone interval sheet opens from the strip');
     await page.click('#ch-sheet-close');
     await page.click('#ch-tools-btn');
-    check(await page.locator('#ch-sheet').isVisible(), 'phone drawing sheet opens');
-    await page.click('#ch-sheet-close');
+    check(await page.locator('#ch-prail').isVisible(), 'phone pencil opens the drawing rail');
+    await page.click('#ch-pr-all');
+    check(await page.locator('#ch-sheet').isVisible(), 'and the rail opens every drawing tool');
+    await page.click('#ch-sheet-close'); await page.click('#ch-tools-btn');
   }
   const cv = await page.$("#ch-canvas"); const box = await cv.boundingBox();
   const cx = box.x + box.width * 0.5, cy = box.y + box.height * 0.45;

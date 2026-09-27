@@ -1727,11 +1727,11 @@
       .ch-cpick .nat { width: 40px; height: 40px; }
       #v-chart .ch-wsel button { width: 44px; }
       #v-chart .ch-range { height: 42px; width: 140px; }
-      #v-chart .ch-selbar .sw { width: 30px; height: 30px; }
+      #v-chart .ch-selbar .sw { width: 30px; height: 30px; flex-shrink: 0; }
       #v-chart .ch-selbar .swc { width: 32px; height: 32px; }
       #v-chart .ch-selbar .swc input { inset: 0; width: 100%; height: 100%; }
       #v-chart .ch-selbar .lbl { height: 40px; font-size: 16px; width: 120px; }
-      #v-chart .ch-selbar .sws { gap: 6px; }
+      #v-chart .ch-selbar .sws { gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 100%; }   /* nine swatches wrap on a narrow phone instead of losing the first one off the edge */
     }
 
     /* ── the chart on a phone: every panel is a sheet ─────────
@@ -1799,6 +1799,78 @@
       /* a legend row takes taps only where its words are, not across the chart */
       #v-chart .ch-legend .ln { width: max-content; max-width: 100%; }
       #v-chart .ch-stage canvas, #v-chart .ch-legend { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    }
+
+    /* ── the chart on a phone, TradingView's way ────────────────
+       The starred intervals are a strip on the bar you scroll with a thumb, the
+       pencil opens a rail of starred drawing tools down the left edge, and a
+       loupe rises above the finger while it places a point. */
+    .ch-prail, .ch-loupe { display: none; }
+    @keyframes ch-rail-in { from { opacity: 0; transform: translateX(-14px); } }
+    @media (max-width: 840px), (max-width: 1000px) and (max-height: 500px) {
+      /* the interval strip */
+      #v-chart #ch-tf-btn { display: none; }
+      #v-chart .ch-bar > .ch-tfs { display: flex !important; grid-row: 1; align-items: center; justify-content: flex-start; flex-wrap: nowrap; gap: 2px; min-width: 0; height: 44px; margin: 0; padding: 0 0 0 6px; border: 0; background: none; box-shadow: none; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding: 0 40px 0 6px; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px); mask-image: linear-gradient(90deg, transparent 0, #000 12px); }
+      #v-chart .ch-bar > .ch-tfs::-webkit-scrollbar { display: none; }
+      #v-chart .ch-bar > .ch-tfs::before { display: none; }
+      #v-chart .ch-bar > .ch-tfs button[data-tf] { flex: 0 0 auto; height: 38px; min-width: 42px; padding: 0 10px; border: 0; border-radius: 10px; background: none; color: var(--muted); font-size: 14px; font-weight: 600; letter-spacing: -0.01em; scroll-snap-align: center; transition: color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease; }
+      #v-chart .ch-bar > .ch-tfs button[data-tf]:active { transform: scale(0.92); }
+      #v-chart .ch-bar > .ch-tfs button[data-tf].on { color: var(--acc); background: color-mix(in srgb, var(--acc) 15%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--acc) 42%, transparent); }
+      #v-chart .ch-bar > .ch-tfs #ch-tf-any { position: sticky; right: 0; z-index: 1; flex: 0 0 38px; width: 38px; height: 40px; margin-left: auto; padding: 0; border: 0; border-radius: 10px; display: grid; place-items: center; background: var(--panel); color: var(--ink); opacity: 1; box-shadow: -14px 0 12px -2px var(--panel); }
+      #v-chart .ch-bar > .ch-tfs #ch-tf-any svg { width: 16px; height: 16px; }
+      /* the drawing rail */
+      #v-chart .ch-prail:not([hidden]) { display: flex; }
+      #v-chart .ch-prail { position: absolute; left: 6px; top: 50px; z-index: 6; flex-direction: column; align-items: center; gap: 2px; max-height: calc(100% - 60px); padding: 5px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; background: color-mix(in srgb, var(--panel) 94%, transparent); border: 1px solid var(--line-bright); border-radius: 16px; box-shadow: 0 10px 28px rgba(0,0,0,0.32); animation: ch-rail-in 0.26s cubic-bezier(0.2, 0.9, 0.25, 1); }
+      #v-chart .ch-prail::-webkit-scrollbar { display: none; }
+      #v-chart.pr-on .ch-selbar, #v-chart.pr-on .ch-replay { left: 62px; }
+      #v-chart .ch-prail button { position: relative; flex: 0 0 auto; width: 42px; height: 42px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 11px; background: none; color: var(--muted); -webkit-tap-highlight-color: transparent; transition: color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease, transform 0.12s ease, opacity 0.16s ease; }
+      #v-chart .ch-prail button svg { width: 21px; height: 21px; }
+      #v-chart .ch-prail button:active:not(:disabled) { transform: scale(0.9); }
+      #v-chart .ch-prail button.on { color: var(--acc); background: color-mix(in srgb, var(--acc) 15%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--acc) 42%, transparent); }
+      #v-chart .ch-prail button:disabled { opacity: 0.28; }
+      #v-chart .ch-prail button.danger:not(:disabled) { color: var(--bad); }
+      #v-chart .ch-prail .pr-all { color: var(--ink); }
+      #v-chart .ch-prail .pr-sep { flex: 0 0 1px; width: 26px; height: 1px; margin: 4px 0; background: var(--line-bright); }
+      #v-chart .ch-prail #ch-pr-mag[data-mode="W"]::after, #v-chart .ch-prail #ch-pr-mag[data-mode="S"]::after { content: attr(data-mode); position: absolute; right: 3px; bottom: 3px; min-width: 12px; padding: 2px 3px; border-radius: 4px; background: var(--acc); color: var(--acc-ink); font: 700 8.5px/1 inherit; letter-spacing: 0; }
+      /* the loupe */
+      #v-chart .ch-loupe:not([hidden]) { display: block; }
+      #v-chart .ch-loupe { position: absolute; left: 0; top: 0; z-index: 9; width: 112px; height: 112px; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 2px var(--acc), 0 10px 26px rgba(0,0,0,0.45); will-change: transform; }
+      /* stars on the sheets: the tile picks, the star keeps it on the bar or the rail */
+      /* a tile is the box; inside it the pick, and on its right edge a star with its own 40px column */
+      .ch-tile { position: relative; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); background: var(--panel-2); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; transition: border-color 0.16s ease, background-color 0.16s ease; }
+      .ch-tile.st { grid-template-columns: minmax(0, 1fr) 38px; }
+      .ch-tile.on { border-color: rgba(201,162,74,0.5); background: rgba(201,162,74,0.08); }
+      .ch-sheet-grid .ch-tile > button:first-child { width: 100%; border: 0; border-radius: 0; background: none; }
+      .ch-sheet-grid:not(.tf):not(.acts) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .ch-sheet-grid .ch-star { position: relative; width: 38px; min-height: 0; height: auto; padding: 0; display: grid; place-items: center; border: 0; border-left: 1px solid var(--line); border-radius: 0; background: none; color: var(--faint); }
+      .ch-sheet-grid .ch-star:active svg { transform: scale(0.8); }
+      .ch-sheet-grid .ch-star svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; transition: transform 0.2s cubic-bezier(0.3, 1.6, 0.5, 1), fill 0.16s ease; }
+      .ch-sheet-grid .ch-star.on { color: var(--gold); }
+      .ch-sheet-grid .ch-star.on svg { fill: currentColor; transform: scale(1.12); }
+      .ch-sheet-grid.tf .ch-tile > button:first-child { padding: 13px 4px; }
+      .ch-sheet-hint { display: flex; align-items: center; gap: 8px; padding: 10px 4px 2px; font-size: 12.5px; color: var(--faint); }
+      .ch-sheet-hint svg { flex: 0 0 auto; width: 14px; height: 14px; fill: var(--gold); stroke: none; }
+      /* section names in normal case, with a hairline, like the settings */
+      .ch-sheet .h { display: flex; align-items: center; gap: 10px; font-size: 12.5px; letter-spacing: 0; text-transform: none; color: var(--ink); padding: 16px 4px 8px; }
+      .ch-sheet .h::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+    }
+    @media (max-width: 840px) and (min-height: 501px) {
+      #v-chart .ch-bar { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+      /* the symbol is its own button here; its magnifier gives the strip another chip of room */
+      #v-chart .ch-sym { grid-column: 2; justify-content: center; }
+      #v-chart .ch-sym .ch-symbtn > svg { display: none; }
+      #v-chart .ch-bar > .ch-tfs { grid-column: 3 / 8; }
+      #v-chart #ch-full { grid-column: 8; }
+      #v-chart .ch-bar > #ch-tools-btn { grid-column: 1; } #v-chart .ch-bar > #ch-alerts-btn { grid-column: 2; } #v-chart .ch-bar > #ch-type-btn { grid-column: 3; } #v-chart .ch-bar > #ch-ind-btn { grid-column: 4; }
+      #v-chart .ch-bar > #ch-replay-btn { grid-column: 5; } #v-chart .ch-bar > #ch-layouts-btn { grid-column: 6; } #v-chart .ch-bar > #ch-snap-btn { grid-column: 7; grid-row: 2; border-top: 1px solid var(--line); border-radius: 0; } #v-chart .ch-bar > #ch-settings-btn { grid-column: 8; }
+      #v-chart.ch-fullscreen .ch-bar > #ch-snap-btn { display: none; }
+    }
+    @media (max-width: 1000px) and (max-height: 500px) {
+      #v-chart .ch-bar { grid-template-columns: 44px 84px minmax(0, 1fr) repeat(9, 46px); }
+      #v-chart #ch-back { grid-column: 1; } #v-chart .ch-sym { grid-column: 2; } #v-chart .ch-bar > .ch-tfs { grid-column: 3; }
+      #v-chart .ch-bar > #ch-tools-btn { grid-column: 4; } #v-chart .ch-bar > #ch-alerts-btn { grid-column: 5; } #v-chart .ch-bar > #ch-type-btn { grid-column: 6; } #v-chart .ch-bar > #ch-ind-btn { grid-column: 7; } #v-chart .ch-bar > #ch-replay-btn { grid-column: 8; }
+      #v-chart .ch-bar > #ch-layouts-btn { grid-column: 9; } #v-chart .ch-bar > #ch-snap-btn { grid-column: 10; } #v-chart .ch-bar > #ch-settings-btn { grid-column: 11; } #v-chart #ch-full { grid-column: 12; }
+      #v-chart .ch-prail { top: 36px; max-height: calc(100% - 44px); }
     }
 
     /* ── Today: the morning briefing ─────────────────────────
@@ -4822,6 +4894,8 @@
               <div class="ch-stage" id="ch-stage">
                 <canvas id="ch-canvas" aria-label="NQ chart"></canvas>
                 <div class="ch-legend" id="ch-legend"></div>
+                <div class="ch-prail" id="ch-prail" role="toolbar" aria-label="Drawing tools" aria-orientation="vertical" hidden></div>
+                <canvas class="ch-loupe" id="ch-loupe" aria-hidden="true" hidden></canvas>
                 <div class="ch-panels" id="ch-panels"></div>
                 <div class="ch-busy" id="ch-busy" hidden></div>
                 <div class="ch-pop" id="ch-goto-pop" hidden><label>Go to<input type="datetime-local" id="ch-goto-in"></label><button type="button" id="ch-goto-go" class="rowbtn">Go</button></div>
@@ -15431,6 +15505,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // latest button
       // only on a change: writing hidden every frame is a DOM mutation every frame, and it restyled the page mid-pan
       const lb = el('ch-latest'), lbHide = CH.offset >= -2; if (lb && lb.hidden !== lbHide) lb.hidden = lbHide
+      if (CH.loupeAt) chLoupeDraw()
     }
     /* What the chart says about itself is the member's call. On a shared screen
        the list of indicators is a giveaway, the numbers beside each one are noise
@@ -15570,6 +15645,88 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (window.innerWidth <= 840) { fly.style.left = Math.max(6, Math.min(bb.width - fly.offsetWidth - 6, gb.left - bb.left)) + 'px'; fly.style.top = (gb.top - bb.top - fly.offsetHeight - 6) + 'px' }
       else { fly.style.left = (gb.right - bb.left + 6) + 'px'; fly.style.top = Math.max(4, Math.min(bb.height - fly.offsetHeight - 4, gb.top - bb.top)) + 'px' }
     }
+    /* ── the phone's drawing rail ──
+       TradingView's app puts its drawing tools behind a menu you reopen every time.
+       Here the pencil opens a rail down the left edge of the chart: the cursor, the
+       tools you starred, every tool one tap further, then the magnet, stay, lock,
+       hide, undo, redo and delete. Starring happens in the Drawing tools sheet. */
+    const CH_TOOL_FAVS_DEF = ['trend', 'hline', 'fib', 'rect', 'long']
+    const chToolFavs = () => (Array.isArray(CH.s.toolFavs) ? CH.s.toolFavs : CH_TOOL_FAVS_DEF).filter((t) => CH_TOOLS[t] && !['cross', 'dot', 'arrow'].includes(t))
+    function chToolFavToggle(t) { const f = chToolFavs().slice(), at = f.indexOf(t); if (at >= 0) f.splice(at, 1); else f.push(t); CH.s.toolFavs = f; chSave(); chPrailBuild() }
+    const CH_STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.5l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></svg>'
+    const CH_PR = {
+      all: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><path d="M16.75 14v5.5M14 16.75h5.5"/>',
+      mag: '<path d="M6 4v7a6 6 0 0 0 12 0V4"/><path d="M6 4h4v7a2 2 0 0 0 4 0V4h4"/><path d="M6 8h4M14 8h4" opacity=".55"/>',
+      stay: '<path d="M12 17v5"/><path d="M8 3h8l-1 7 3 3v1H6v-1l3-3z"/>',
+      lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+      eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+      undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a5 5 0 0 1 0 10h-3"/>',
+      redo: '<path d="M15 14l5-5-5-5"/><path d="M20 9H10a5 5 0 0 0 0 10h3"/>',
+      del: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>',
+    }
+    function chPrailBuild() {
+      const r = el('ch-prail'); if (!r) return
+      const b = (id, cls, label, icon, attrs = '') => `<button type="button"${id ? ` id="${id}"` : ''} class="${cls}" aria-label="${label}" title="${label}"${attrs}>${CH_I(icon)}</button>`
+      r.innerHTML = b('', 'pr-tool', 'Cursor', CH_TOOLS.cross.icon, ' data-tool="cross"')
+        + chToolFavs().map((t) => b('', 'pr-tool', CH_TOOLS[t].name, CH_TOOLS[t].icon, ` data-tool="${t}"`)).join('')
+        + b('ch-pr-all', 'pr-all', 'All drawing tools', CH_PR.all) + '<i class="pr-sep"></i>'
+        + b('ch-pr-mag', 'pr-mag', 'Magnet', CH_PR.mag) + b('ch-pr-stay', '', 'Stay in drawing mode', CH_PR.stay) + b('ch-pr-lock', '', 'Lock all drawings', CH_PR.lock) + b('ch-pr-eye', '', 'Hide drawings', CH_PR.eye)
+        + '<i class="pr-sep"></i>' + b('ch-pr-undo', '', 'Undo', CH_PR.undo) + b('ch-pr-redo', '', 'Redo', CH_PR.redo) + b('ch-pr-del', 'danger', 'Delete the selected drawing', CH_PR.del)
+      if (!r.dataset.wired) {
+        r.dataset.wired = '1'
+        r.addEventListener('click', (e) => {
+          const x = e.target.closest('button'); if (!x || x.disabled) return
+          if (x.dataset.tool) { const t = x.dataset.tool; chSetTool(t); if (t !== 'cross' && t !== 'eraser') toast(`${CH_TOOLS[t].name}: tap the chart, or press and drag.`, 1800); return }
+          if (x.id === 'ch-pr-all') chSheet(CH.sheet === 'tools' ? null : 'tools')
+          else if (x.id === 'ch-pr-mag') { chMagnet(); toast(CH.s.magnet === 'off' ? 'Magnet off' : CH.s.magnet === 'weak' ? 'Magnet: weak, snaps to O H L C within reach' : 'Magnet: strong, every point lands on O H L C', 1600) }
+          else if (x.id === 'ch-pr-stay') { CH.s.stay = !CH.s.stay; chSave(); chStayUi(); toast(CH.s.stay ? 'Stays in the tool after each drawing' : 'Back to the cursor after each drawing', 1600) }
+          else if (x.id === 'ch-pr-lock') { if (!CH.drawings.length) return; chPush(); const all = CH.drawings.every((d) => d.lock); CH.drawings.forEach((d) => { d.lock = !all }); chSave(); chLockAllUi(); chSelBar(); chDraw() }
+          else if (x.id === 'ch-pr-eye') { CH.hideDr = !CH.hideDr; if (CH.hideDr) { CH.sel = null; chSelBar() } chEyeUi(); chDraw() }
+          else if (x.id === 'ch-pr-undo') chUndo()
+          else if (x.id === 'ch-pr-redo') chRedo()
+          else if (x.id === 'ch-pr-del') chDeleteSel()
+          chPrailSync()
+        })
+      }
+      chPrailSync()
+    }
+    function chPrailSync() {
+      const r = el('ch-prail'); if (!r || !r.firstElementChild) return
+      r.querySelectorAll('.pr-tool').forEach((x) => x.classList.toggle('on', x.dataset.tool === CH.tool))
+      const m = el('ch-pr-mag'); m.classList.toggle('on', CH.s.magnet !== 'off'); m.dataset.mode = CH.s.magnet === 'weak' ? 'W' : CH.s.magnet === 'strong' ? 'S' : ''; m.setAttribute('aria-label', 'Magnet: ' + CH.s.magnet)
+      el('ch-pr-stay').classList.toggle('on', !!CH.s.stay)
+      el('ch-pr-lock').classList.toggle('on', CH.drawings.length > 0 && CH.drawings.every((d) => d.lock))
+      el('ch-pr-eye').classList.toggle('on', !!CH.hideDr)
+      el('ch-pr-undo').disabled = !CH.hist.length; el('ch-pr-redo').disabled = !CH.redo.length; el('ch-pr-del').disabled = !chSelAll().length
+    }
+    function chPrailShow() {
+      const r = el('ch-prail'); if (!r) return
+      const on = !!CH.s.prail && chPhone(); if (on && !r.firstElementChild) chPrailBuild()
+      el('ch-tools-btn')?.classList.toggle('on', on)
+      if (r.hidden === !on) return
+      r.hidden = !on; el('v-chart')?.classList.toggle('pr-on', on); if (on) chPrailSync()
+    }
+    /* The loupe. Under a finger you cannot see the point you are placing, so while a finger
+       draws, drags a handle, measures or holds the crosshair, a circle above the thumb shows
+       the chart around it at twice the size, with the exact spot marked. */
+    function chLoupe(at) { CH.loupeAt = at || null; if (!at) { const lp = el('ch-loupe'); if (lp && !lp.hidden) lp.hidden = true } }
+    function chLoupeDraw() {
+      const at = CH.loupeAt, lp = el('ch-loupe'), cv = el('ch-canvas'); if (!at || !lp || !cv) return
+      const D = 112, Z = 2, dpr = cv.width / (cv.clientWidth || 1), px = Math.round(D * dpr)
+      if (lp.width !== px) { lp.width = px; lp.height = px }
+      const g = lp.getContext('2d'), c = CH.snap || at, src = D / Z
+      g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, px, px)
+      g.save(); g.beginPath(); g.arc(px / 2, px / 2, px / 2, 0, Math.PI * 2); g.clip()
+      g.fillStyle = CH.bgNow || '#808080'; g.fillRect(0, 0, px, px)
+      g.imageSmoothingEnabled = true; g.drawImage(cv, (c.x - src / 2) * dpr, (c.y - src / 2) * dpr, src * dpr, src * dpr, 0, 0, px, px)
+      g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = dpr; g.setLineDash([3 * dpr, 3 * dpr]); g.beginPath(); g.moveTo(px / 2, 0); g.lineTo(px / 2, px); g.moveTo(0, px / 2); g.lineTo(px, px / 2); g.stroke(); g.setLineDash([])
+      g.fillStyle = '#ffffff'; g.beginPath(); g.arc(px / 2, px / 2, (CH.snap ? 4 : 3) * dpr, 0, Math.PI * 2); g.fill()
+      g.restore()
+      const st = el('ch-stage'), W = st.clientWidth
+      let x = at.x - D / 2, y = at.y - D - 56; if (y < 6) y = at.y + 56
+      x = Math.max(6, Math.min(W - D - 6, x))
+      lp.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`; if (lp.hidden) lp.hidden = false
+    }
     /* the phone sheets: interval picker and the drawing tools, the way the mobile app does it */
     const CH_GROUP_NAMES = { cursor: 'Cursor', lines: 'Lines', fib: 'Fibonacci', patterns: 'Patterns', pos: 'Forecast and measure', shapes: 'Shapes', text: 'Annotations', measure: 'Measure' }
     function chSheet(kind) {
@@ -15578,12 +15735,25 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!kind) { sh.hidden = true; scrim.hidden = true; return }
       body.textContent = ''
       el('ch-sheet-title').textContent = kind === 'tf' ? 'Interval' : 'Drawing tools'
+      sh.dataset.kind = kind
       const h = (t) => { const x = document.createElement('div'); x.className = 'h'; x.textContent = t; body.appendChild(x) }
       if (kind === 'tf') {
-        const grid = document.createElement('div'); grid.className = 'ch-sheet-grid tf'
-        const std = ['1m', '3m', '5m', '15m', '30m', '1h', '4h', 'D'], custom = (CH.s.customTfs || []).filter((x) => !std.includes(x))
-        for (const tf of [...std, ...custom]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = tf; b.classList.toggle('on', CH.tf === tf); if (custom.includes(tf)) b.classList.add('custom'); b.addEventListener('click', () => { chSetTf(tf); chSheet(null) }); grid.appendChild(b) }
-        body.appendChild(grid)
+        // every interval the archive builds, each with a star: the starred ones are the strip on the bar
+        const listed = CH_IVS.flatMap(([, l]) => l), yours = (CH.s.customTfs || []).filter((x) => !listed.includes(x))
+        const hint = document.createElement('div'); hint.className = 'ch-sheet-hint'; hint.innerHTML = CH_STAR + '<span>Star an interval to keep it in the bar.</span>'; body.appendChild(hint)
+        for (const [group, labels] of [...CH_IVS, ...(yours.length ? [['Yours', yours]] : [])]) {
+          h(group)
+          const grid = document.createElement('div'); grid.className = 'ch-sheet-grid tf'
+          for (const tf of labels) {
+            chIvRegister(tf)
+            const w = document.createElement('div'); w.className = 'ch-tile st' + (CH.tf === tf ? ' on' : '')
+            const b = document.createElement('button'); b.type = 'button'; b.textContent = tf; b.classList.toggle('on', CH.tf === tf); b.addEventListener('click', () => { chSetTf(tf); chSheet(null) })
+            const st = document.createElement('button'); st.type = 'button'; st.className = 'ch-star' + (chFavs().includes(tf) ? ' on' : ''); st.innerHTML = CH_STAR; st.setAttribute('aria-label', 'Keep ' + tf + ' in the bar')
+            st.addEventListener('click', (e) => { e.stopPropagation(); chFavToggle(tf); st.classList.toggle('on', chFavs().includes(tf)) })
+            w.append(b, st); grid.appendChild(w)
+          }
+          body.appendChild(grid)
+        }
         h('Custom')
         const row = document.createElement('div'); row.className = 'ch-sheet-row'
         const i = document.createElement('input'); i.type = 'text'; i.inputMode = 'numeric'; i.className = 'inp'; i.placeholder = '10, 2h, 1D'; i.maxLength = 6
@@ -15595,9 +15765,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         for (const [g, ts] of CH_GROUPS) {
           h(CH_GROUP_NAMES[g] || g)
           const grid = document.createElement('div'); grid.className = 'ch-sheet-grid'
-          for (const t of ts) { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `${CH_I(CH_TOOLS[t].icon)}<span>${CH_TOOLS[t].name}</span>`; b.classList.toggle('on', (CH.tool === 'cross' ? CH.s.cursor : CH.tool) === t); b.addEventListener('click', () => { chSetTool(t); chSheet(null); if (t !== 'cross' && t !== 'dot' && t !== 'arrow') toast(`${CH_TOOLS[t].name}: tap the chart to place it.`, 1800) }); grid.appendChild(b) }
+          for (const t of ts) {
+            const w = document.createElement('div'); w.className = 'ch-tile' + ((CH.tool === 'cross' ? CH.s.cursor : CH.tool) === t ? ' on' : '')
+            const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `${CH_I(CH_TOOLS[t].icon)}<span>${CH_TOOLS[t].name}</span>`; b.classList.toggle('on', (CH.tool === 'cross' ? CH.s.cursor : CH.tool) === t); b.addEventListener('click', () => { chSetTool(t); chSheet(null); if (t !== 'cross' && t !== 'dot' && t !== 'arrow' && t !== 'eraser') toast(`${CH_TOOLS[t].name}: tap the chart, or press and drag.`, 1800) })
+            w.appendChild(b)
+            if (!['cross', 'dot', 'arrow'].includes(t)) { const st = document.createElement('button'); st.type = 'button'; st.className = 'ch-star' + (chToolFavs().includes(t) ? ' on' : ''); st.innerHTML = CH_STAR; st.setAttribute('aria-label', 'Keep ' + CH_TOOLS[t].name + ' on the rail'); st.addEventListener('click', (e) => { e.stopPropagation(); chToolFavToggle(t); st.classList.toggle('on', chToolFavs().includes(t)) }); w.appendChild(st); w.classList.add('st') }
+            grid.appendChild(w)
+          }
           body.appendChild(grid)
         }
+        if (chPhone()) { const hint = document.createElement('div'); hint.className = 'ch-sheet-hint'; hint.innerHTML = CH_STAR + '<span>Star a tool to keep it on the rail.</span>'; body.prepend(hint) }
         h('Actions')
         const acts = document.createElement('div'); acts.className = 'ch-sheet-grid acts'
         const act = (label, icon, fn, on) => { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `${CH_I(icon)}<span>${label}</span>`; b.classList.toggle('on', !!on); b.addEventListener('click', () => { fn(); chSheet('tools') }); acts.appendChild(b) }
@@ -15683,12 +15860,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       stage?.addEventListener('pointerdown', chTipHide)
       addEventListener('blur', chTipHide)
     }
-    el('ch-tf-any')?.addEventListener('click', (e) => { e.stopPropagation(); chMenu('tf') })
+    el('ch-tf-any')?.addEventListener('click', (e) => { e.stopPropagation(); if (chPhone()) chSheet(CH.sheet === 'tf' ? null : 'tf'); else chMenu('tf') })
       el('ch-layouts-btn')?.addEventListener('click', () => chMenu('layouts'))
       setTimeout(chTipsApply, 0)   // after the bar's own wiring has run
-    function chHistUi() { const u = el('ch-undo-btn'), r = el('ch-redo-btn'); if (u) u.disabled = !CH.hist.length; if (r) r.disabled = !CH.redo.length }
-    function chStayUi() { const b = el('ch-stay'); if (b) b.classList.toggle('on', !!CH.s.stay) }
-    function chLockAllUi() { const b = el('ch-lockall'); if (b) { const all = CH.drawings.length > 0 && CH.drawings.every((d) => d.lock); b.classList.toggle('on', all); b.title = all ? 'Unlock all drawings' : 'Lock all drawings' } }
+    function chHistUi() { const u = el('ch-undo-btn'), r = el('ch-redo-btn'); if (u) u.disabled = !CH.hist.length; if (r) r.disabled = !CH.redo.length; chPrailSync() }
+    function chStayUi() { const b = el('ch-stay'); if (b) b.classList.toggle('on', !!CH.s.stay); chPrailSync() }
+    function chLockAllUi() { const b = el('ch-lockall'); if (b) { const all = CH.drawings.length > 0 && CH.drawings.every((d) => d.lock); b.classList.toggle('on', all); b.title = all ? 'Unlock all drawings' : 'Lock all drawings' } chPrailSync() }
     const chLineW = (d, sel) => ({ 1: 1.2, 2: 2, 3: 3, 4: 4 }[d.w] || 1.2) + (sel ? 0.5 : 0)
     const chDashOf = (d) => d.dash === 'dash' ? [7, 5] : d.dash === 'dot' ? [2, 3] : []
     const chGold = () => { try { return getComputedStyle(el('v-chart')).getPropertyValue('--gold').trim() || '#2962ff' } catch { return '#2962ff' } }
@@ -16037,41 +16214,42 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // what is under the pointer: the drawing and which handle (-1 = the body). Handles first, then bodies, newest on top.
     function chHit(x, y, L) {
       if (CH.hideDr) return null
+      const H = 8 * (CH.tolK || 1), E = 6 * (CH.tolK || 1)   // handle and edge reach: wider under a finger
       for (let k = CH.drawings.length - 1; k >= 0; k--) {
         const d = CH.drawings[k]; const P = d.p.map((q) => ({ x: chX(chIofT(q.t), L), y: chY(q.p, L) }))
-        if (d.type === 'long' || d.type === 'short') { if (P.length < 2) continue; const g = chPosGeo(d, L), mid = (g.x0 + g.x1) / 2; if (Math.hypot(mid - x, g.yt - y) < 8) return { d, handle: 2 }; if (Math.hypot(mid - x, g.ys - y) < 8) return { d, handle: 3 }; if (Math.hypot(g.x1 - x, g.ye - y) < 8) return { d, handle: 1 }; if (Math.hypot(g.x0 - x, g.ye - y) < 8) return { d, handle: 0 }; continue }
+        if (d.type === 'long' || d.type === 'short') { if (P.length < 2) continue; const g = chPosGeo(d, L), mid = (g.x0 + g.x1) / 2; if (Math.hypot(mid - x, g.yt - y) < H) return { d, handle: 2 }; if (Math.hypot(mid - x, g.ys - y) < H) return { d, handle: 3 }; if (Math.hypot(g.x1 - x, g.ye - y) < H) return { d, handle: 1 }; if (Math.hypot(g.x0 - x, g.ye - y) < H) return { d, handle: 0 }; continue }
         if (d.hidden || (d.vis && d.vis[chVisGroup()] === false)) continue
-        if (CH_BOXES.includes(d.type) && P.length === 2) { for (const h of chBoxHandles(d, L)) if (Math.hypot(h.x - x, h.y - y) < 8) return { d, handle: 10 + h.id, cur: h.cur }; continue }
-        if ((d.type === 'regression' || d.type === 'daterange' || d.type === 'vprofile') && d._ends) { for (let h = 0; h < 2; h++) if (Math.hypot(d._ends[h].x - x, d._ends[h].y - y) < 8) return { d, handle: h }; continue }
-        if (!['text', 'plabel', 'brush', 'hilite', 'flag', 'markup', 'markdown', 'callout'].includes(d.type)) for (let h = 0; h < P.length; h++) if (Math.hypot(P[h].x - x, P[h].y - y) < 8) return { d, handle: h }
-        if (d.type === 'callout' && P.length === 2 && Math.hypot(P[0].x - x, P[0].y - y) < 8) return { d, handle: 0 }
+        if (CH_BOXES.includes(d.type) && P.length === 2) { for (const h of chBoxHandles(d, L)) if (Math.hypot(h.x - x, h.y - y) < H) return { d, handle: 10 + h.id, cur: h.cur }; continue }
+        if ((d.type === 'regression' || d.type === 'daterange' || d.type === 'vprofile') && d._ends) { for (let h = 0; h < 2; h++) if (Math.hypot(d._ends[h].x - x, d._ends[h].y - y) < H) return { d, handle: h }; continue }
+        if (!['text', 'plabel', 'brush', 'hilite', 'flag', 'markup', 'markdown', 'callout'].includes(d.type)) for (let h = 0; h < P.length; h++) if (Math.hypot(P[h].x - x, P[h].y - y) < H) return { d, handle: h }
+        if (d.type === 'callout' && P.length === 2 && Math.hypot(P[0].x - x, P[0].y - y) < H) return { d, handle: 0 }
       }
       for (let k = CH.drawings.length - 1; k >= 0; k--) {
         const d = CH.drawings[k]; const P = d.p.map((q) => ({ x: chX(chIofT(q.t), L), y: chY(q.p, L) }))
         if (d.hidden || (d.vis && d.vis[chVisGroup()] === false)) continue
-        if (d.type === 'hline' && Math.abs(P[0].y - y) < 6) return { d, handle: -1 }
-        if (d.type === 'hray' && Math.abs(P[0].y - y) < 6 && x >= P[0].x - 6) return { d, handle: -1 }
-        if (d.type === 'arrowline' && P.length === 2 && chDist(x, y, P[0].x, P[0].y, P[1].x, P[1].y) < 6) return { d, handle: -1 }
-        if (d.type === 'channel' && P.length >= 2) { const [A, B] = chLineEnds(d, P.slice(0, 2), L), off = chChannelOff(P); const A2 = { x: A.x + off.x, y: A.y + off.y }, B2 = { x: B.x + off.x, y: B.y + off.y }; if (chDist(x, y, A.x, A.y, B.x, B.y) < 6 || chDist(x, y, A2.x, A2.y, B2.x, B2.y) < 6) return { d, handle: -1 }; const inside = (px, py) => { const s1 = (B.x - A.x) * (py - A.y) - (B.y - A.y) * (px - A.x), s2 = (B2.x - A2.x) * (py - A2.y) - (B2.y - A2.y) * (px - A2.x); return s1 * s2 <= 0 && px >= Math.min(A.x, B.x) - 2 && px <= Math.max(A.x, B.x) + 2 }; if (inside(x, y)) return { d, handle: -1 } }
-        if (d.type === 'range' && P.length === 2) { const x0 = Math.min(P[0].x, P[1].x), x1 = Math.max(P[0].x, P[1].x), y0 = Math.min(P[0].y, P[1].y), y1 = Math.max(P[0].y, P[1].y); if (x >= x0 - 6 && x <= x1 + 6 && y >= y0 - 6 && y <= y1 + 6) return { d, handle: -1 } }
-        if (d.type === 'plabel' && d._box && x >= d._box.x - 6 && x <= d._box.x + d._box.w && y >= d._box.y && y <= d._box.y + d._box.h) return { d, handle: -1 }
-        if (d.type === 'xcross' && (Math.abs(P[0].y - y) < 6 || Math.abs(P[0].x - x) < 6)) return { d, handle: -1 }
-        if (d.type === 'regression' && d._ends && d._ends.length === 2) { const [a, b] = d._ends; if (chDist(x, y, a.x, a.y, b.x, b.y) < 8) return { d, handle: -1 } }
-        if (d.type === 'pitchfork' && d._ends && d._ends.length === 6) { const E = d._ends; for (let k = 0; k < 6; k += 2) if (chDist(x, y, E[k].x, E[k].y, E[k + 1].x, E[k + 1].y) < 6) return { d, handle: -1 } }
+        if (d.type === 'hline' && Math.abs(P[0].y - y) < E) return { d, handle: -1 }
+        if (d.type === 'hray' && Math.abs(P[0].y - y) < E && x >= P[0].x - E) return { d, handle: -1 }
+        if (d.type === 'arrowline' && P.length === 2 && chDist(x, y, P[0].x, P[0].y, P[1].x, P[1].y) < E) return { d, handle: -1 }
+        if (d.type === 'channel' && P.length >= 2) { const [A, B] = chLineEnds(d, P.slice(0, 2), L), off = chChannelOff(P); const A2 = { x: A.x + off.x, y: A.y + off.y }, B2 = { x: B.x + off.x, y: B.y + off.y }; if (chDist(x, y, A.x, A.y, B.x, B.y) < E || chDist(x, y, A2.x, A2.y, B2.x, B2.y) < E) return { d, handle: -1 }; const inside = (px, py) => { const s1 = (B.x - A.x) * (py - A.y) - (B.y - A.y) * (px - A.x), s2 = (B2.x - A2.x) * (py - A2.y) - (B2.y - A2.y) * (px - A2.x); return s1 * s2 <= 0 && px >= Math.min(A.x, B.x) - 2 && px <= Math.max(A.x, B.x) + 2 }; if (inside(x, y)) return { d, handle: -1 } }
+        if (d.type === 'range' && P.length === 2) { const x0 = Math.min(P[0].x, P[1].x), x1 = Math.max(P[0].x, P[1].x), y0 = Math.min(P[0].y, P[1].y), y1 = Math.max(P[0].y, P[1].y); if (x >= x0 - E && x <= x1 + E && y >= y0 - E && y <= y1 + E) return { d, handle: -1 } }
+        if (d.type === 'plabel' && d._box && x >= d._box.x - E && x <= d._box.x + d._box.w && y >= d._box.y && y <= d._box.y + d._box.h) return { d, handle: -1 }
+        if (d.type === 'xcross' && (Math.abs(P[0].y - y) < E || Math.abs(P[0].x - x) < E)) return { d, handle: -1 }
+        if (d.type === 'regression' && d._ends && d._ends.length === 2) { const [a, b] = d._ends; if (chDist(x, y, a.x, a.y, b.x, b.y) < H) return { d, handle: -1 } }
+        if (d.type === 'pitchfork' && d._ends && d._ends.length === 6) { const E = d._ends; for (let k = 0; k < E; k += 2) if (chDist(x, y, E[k].x, E[k].y, E[k + 1].x, E[k + 1].y) < E) return { d, handle: -1 } }
         if (d.type === 'triangle' && P.length === 3) { const s1 = (P[1].x - P[0].x) * (y - P[0].y) - (P[1].y - P[0].y) * (x - P[0].x), s2 = (P[2].x - P[1].x) * (y - P[1].y) - (P[2].y - P[1].y) * (x - P[1].x), s3 = (P[0].x - P[2].x) * (y - P[2].y) - (P[0].y - P[2].y) * (x - P[2].x); if ((s1 >= 0 && s2 >= 0 && s3 >= 0) || (s1 <= 0 && s2 <= 0 && s3 <= 0)) return { d, handle: -1 } }
-        if ((d.type === 'path' || d.type === 'xabcd') && P.length >= 2) { for (let k = 1; k < P.length; k++) if (chDist(x, y, P[k - 1].x, P[k - 1].y, P[k].x, P[k].y) < 6) return { d, handle: -1 } }
+        if ((d.type === 'path' || d.type === 'xabcd') && P.length >= 2) { for (let k = 1; k < P.length; k++) if (chDist(x, y, P[k - 1].x, P[k - 1].y, P[k].x, P[k].y) < E) return { d, handle: -1 } }
         if (d.type === 'callout' && d._box && x >= d._box.x && x <= d._box.x + d._box.w && y >= d._box.y && y <= d._box.y + d._box.h) return { d, handle: -1 }
         if ((d.type === 'flag' || d.type === 'markup' || d.type === 'markdown') && d._box && x >= d._box.x && x <= d._box.x + d._box.w && y >= d._box.y && y <= d._box.y + d._box.h) return { d, handle: -1 }
-        if (d.type === 'daterange' && P.length === 2 && Math.abs(P[0].y - y) < 8 && x >= Math.min(P[0].x, P[1].x) - 6 && x <= Math.max(P[0].x, P[1].x) + 6) return { d, handle: -1 }
+        if (d.type === 'daterange' && P.length === 2 && Math.abs(P[0].y - y) < H && x >= Math.min(P[0].x, P[1].x) - E && x <= Math.max(P[0].x, P[1].x) + E) return { d, handle: -1 }
         if (d.type === 'vprofile' && d._box && x >= d._box.x && x <= d._box.x + d._box.w && y >= d._box.y && y <= d._box.y + d._box.h) return { d, handle: -1 }
         if (d.type === 'ellipse' && P.length === 2) { const cx = (P[0].x + P[1].x) / 2, cy = (P[0].y + P[1].y) / 2, rx = Math.max(1, Math.abs(P[1].x - P[0].x) / 2), ry = Math.max(1, Math.abs(P[1].y - P[0].y) / 2); const r = Math.hypot((x - cx) / rx, (y - cy) / ry); if (r <= 1.06) return { d, handle: -1 } }
         if ((d.type === 'brush' || d.type === 'hilite') && P.length >= 2) { const tol = d.type === 'hilite' ? 9 + (d.w || 1) * 2 : 6; for (let k = 1; k < P.length; k++) if (chDist(x, y, P[k - 1].x, P[k - 1].y, P[k].x, P[k].y) < tol) return { d, handle: -1 } }
-        if (d.type === 'avwap') { const v = chAvwap(d); if (v) { const i = Math.round(chI(x, L)); if (i >= v.i0 && i < v.v.length && v.v[i] != null && Math.abs(chY(v.v[i], L) - y) < 6) return { d, handle: -1 } } }
-        if (d.type === 'fibext' && P.length === 3) { const [A, B, Cc] = d.p, xs = d.ext?.l ? 0 : P[2].x, xb = d.ext?.r === false ? Math.max(P[0].x, P[1].x, P[2].x) : L.plotW; if (x >= xs - 6 && x <= xb + 6) for (const l of [0, 0.382, 0.618, 1, 1.272, 1.618, 2, 2.618]) if (Math.abs(chY(Cc.p + (B.p - A.p) * l, L) - y) < 6) return { d, handle: -1 } }
-        if (d.type === 'vline' && Math.abs(P[0].x - x) < 6) return { d, handle: -1 }
-        if ((d.type === 'trend' || d.type === 'ray') && P.length === 2) { const [a, b] = chLineEnds(d, P, L); if (chDist(x, y, a.x, a.y, b.x, b.y) < 6) return { d, handle: -1 } }
-        if (d.type === 'rect' && P.length === 2) { let x0 = Math.min(P[0].x, P[1].x), x1 = Math.max(P[0].x, P[1].x); const y0 = Math.min(P[0].y, P[1].y), y1 = Math.max(P[0].y, P[1].y); if (d.ext?.l) x0 = 0; if (d.ext?.r) x1 = L.plotW; if (x >= x0 - 6 && x <= x1 + 6 && y >= y0 - 6 && y <= y1 + 6) return { d, handle: -1 } }
-        if (d.type === 'fib' && P.length === 2) { const xa = d.ext?.l ? 0 : Math.min(P[0].x, P[1].x), xb = d.ext?.r === false ? Math.max(P[0].x, P[1].x) : L.plotW; if (x >= xa - 6 && x <= xb + 6) for (const l of chFibLevels(d)) if (Math.abs(chY(chFibPrice(d, l), L) - y) < 6) return { d, handle: -1 } }
+        if (d.type === 'avwap') { const v = chAvwap(d); if (v) { const i = Math.round(chI(x, L)); if (i >= v.i0 && i < v.v.length && v.v[i] != null && Math.abs(chY(v.v[i], L) - y) < E) return { d, handle: -1 } } }
+        if (d.type === 'fibext' && P.length === 3) { const [A, B, Cc] = d.p, xs = d.ext?.l ? 0 : P[2].x, xb = d.ext?.r === false ? Math.max(P[0].x, P[1].x, P[2].x) : L.plotW; if (x >= xs - E && x <= xb + E) for (const l of [0, 0.382, 0.618, 1, 1.272, 1.618, 2, 2.618]) if (Math.abs(chY(Cc.p + (B.p - A.p) * l, L) - y) < E) return { d, handle: -1 } }
+        if (d.type === 'vline' && Math.abs(P[0].x - x) < E) return { d, handle: -1 }
+        if ((d.type === 'trend' || d.type === 'ray') && P.length === 2) { const [a, b] = chLineEnds(d, P, L); if (chDist(x, y, a.x, a.y, b.x, b.y) < E) return { d, handle: -1 } }
+        if (d.type === 'rect' && P.length === 2) { let x0 = Math.min(P[0].x, P[1].x), x1 = Math.max(P[0].x, P[1].x); const y0 = Math.min(P[0].y, P[1].y), y1 = Math.max(P[0].y, P[1].y); if (d.ext?.l) x0 = 0; if (d.ext?.r) x1 = L.plotW; if (x >= x0 - E && x <= x1 + E && y >= y0 - E && y <= y1 + E) return { d, handle: -1 } }
+        if (d.type === 'fib' && P.length === 2) { const xa = d.ext?.l ? 0 : Math.min(P[0].x, P[1].x), xb = d.ext?.r === false ? Math.max(P[0].x, P[1].x) : L.plotW; if (x >= xa - E && x <= xb + E) for (const l of chFibLevels(d)) if (Math.abs(chY(chFibPrice(d, l), L) - y) < E) return { d, handle: -1 } }
         if ((d.type === 'long' || d.type === 'short') && P.length === 2) { const g = chPosGeo(d, L); const top = Math.min(g.yt, g.ys, g.ye), bot = Math.max(g.yt, g.ys, g.ye); if (x >= g.x0 && x <= g.x1 && y >= top && y <= bot) return { d, handle: -1 } }
         if (d.type === 'text' && d._box && x >= d._box.x && x <= d._box.x + d._box.w && y >= d._box.y && y <= d._box.y + d._box.h) return { d, handle: -1 }
       }
@@ -16085,7 +16263,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (b && mode !== 'off' && y <= L.mainH) {
         let best = null, bd = Infinity
         for (const c of [b.o, b.h, b.l, b.c]) { const dy = Math.abs(chY(c, L) - y); if (dy < bd) { bd = dy; best = c } }
-        if (best != null && (mode === 'strong' || bd <= 12)) { p = best; t = b.t; sx = chX(i, L); sy = chY(best, L); snapped = true }
+        if (best != null && (mode === 'strong' || bd <= 12 * (CH.tolK || 1))) { p = best; t = b.t; sx = chX(i, L); sy = chY(best, L); snapped = true }
       }
       return { t, p, x: sx, y: sy, snapped }
     }
@@ -16107,7 +16285,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       document.querySelectorAll('#ch-tools .ch-tg').forEach((wrap) => { const main = wrap.querySelector('button[data-tool]'); const mine = wrap.dataset.group === g; if (mine && main.dataset.tool !== shown) { main.dataset.tool = shown; main.title = CH_TOOLS[shown].name + (CH_TOOLS[shown].key ? ` (${CH_TOOLS[shown].key})` : ''); main.innerHTML = CH_I(CH_TOOLS[shown].icon) } main.classList.toggle('on', mine); main.classList.toggle('lock', mine && CH.toolLock) })
       const fly = el('ch-fly'); if (fly && !fly.hidden) fly.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tool === shown))
       el('ch-canvas').style.cursor = chCursorCss()
-      chDraw()
+      chPrailSync(); chDraw()
     }
     const chCursorCss = () => CH.tool === 'cross' ? (CH.s.cursor === 'arrow' ? 'default' : 'crosshair') : CH.tool === 'text' ? 'text' : CH.tool === 'eraser' ? 'pointer' : 'cell'
     const chIsSel = (d) => d === CH.sel || CH.multi.has(d)
@@ -16116,11 +16294,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chDeleteSel() { const all = chSelAll(); if (!all.length) return; chPush(); CH.drawings = CH.drawings.filter((d) => !all.includes(d)); CH.sel = null; CH.multi.clear(); chSave(); chLockAllUi(); chDraw(); chSelBar() }
     function chDuplicateSel() { if (!CH.sel) return; chPush(); const c = JSON.parse(JSON.stringify(CH.sel)); c.id = chId(); delete c._box; const bump = CH.tfSec * 3; c.p = c.p.map((q) => ({ ...q, t: q.t + bump })); CH.drawings.push(c); CH.sel = c; chSave(); chSelBar(); chDraw() }
     function chMagnet(next) { const order = ['off', 'weak', 'strong']; CH.s.magnet = next || order[(order.indexOf(CH.s.magnet) + 1) % 3]; chSave(); chMagnetUi(); chDraw() }
-    function chMagnetUi() { const b = el('ch-magnet'); if (!b) return; b.classList.toggle('on', CH.s.magnet !== 'off'); b.classList.toggle('strong', CH.s.magnet === 'strong'); b.title = CH.s.magnet === 'off' ? 'Magnet: off. Click for weak, again for strong. Hold Ctrl to snap anytime.' : CH.s.magnet === 'weak' ? 'Magnet: weak, snaps to O H L C within reach' : 'Magnet: strong, every point lands on O H L C' }
-    function chEyeUi() { const b = el('ch-eye'); if (!b) return; b.classList.toggle('on', CH.hideDr); b.title = CH.hideDr ? 'Show drawings' : 'Hide drawings' }
+    function chMagnetUi() { chPrailSync(); const b = el('ch-magnet'); if (!b) return; b.classList.toggle('on', CH.s.magnet !== 'off'); b.classList.toggle('strong', CH.s.magnet === 'strong'); b.title = CH.s.magnet === 'off' ? 'Magnet: off. Click for weak, again for strong. Hold Ctrl to snap anytime.' : CH.s.magnet === 'weak' ? 'Magnet: weak, snaps to O H L C within reach' : 'Magnet: strong, every point lands on O H L C' }
+    function chEyeUi() { chPrailSync(); const b = el('ch-eye'); if (!b) return; b.classList.toggle('on', CH.hideDr); b.title = CH.hideDr ? 'Show drawings' : 'Hide drawings' }
     // the selection strip: swatches, width, style, and the options a type carries
     function chSelBarPlace() { const bar = el('ch-selbar'); if (!bar || bar.hidden || window.innerWidth <= 840) return; bar.style.top = ((el('ch-legend')?.offsetHeight || 0) + 14) + 'px' }
     function chSelBar() {
+      chPrailSync()   // the rail's delete follows the selection
       const bar = el('ch-selbar'); if (!bar) return
       const d = CH.sel; bar.hidden = !d; if (!d) { bar.textContent = ''; return }
       requestAnimationFrame(chSelBarPlace)
@@ -16214,17 +16393,28 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chSave(); chTfRow()
     }
     // the bar's row IS the favourites
+    // keep the chip on screen in the middle of the strip when it scrolls
+    function chTfStripSync(smooth = true) {
+      if (!chPhone()) return
+      const bar = el('ch-tf'), on = bar?.querySelector('button.on'); if (!on || !bar.clientWidth) return
+      const r = on.getBoundingClientRect(), br = bar.getBoundingClientRect(), dx = (r.left + r.width / 2) - (br.left + (br.width - 38) / 2)
+      if (Math.abs(dx) > 2) bar.scrollBy({ left: dx, behavior: smooth ? 'smooth' : 'auto' })
+    }
     function chTfRow() {
       const bar = el('ch-tf'); if (!bar) return
       const any = el('ch-tf-any')
       for (const b of [...bar.querySelectorAll('button[data-tf]')]) b.remove()
-      for (const label of chFavs()) {
+      // on a phone the interval on screen always has a chip, starred or not, so the strip never loses you
+      const order = CH_IVS.flatMap(([, l]) => l), rank = (x) => { const k = order.indexOf(x); return k < 0 ? (chIvMins(x) || 0) / 1e4 : k }
+      const labels = chPhone() && CH_TF[CH.tf] && !chFavs().includes(CH.tf) ? [...chFavs(), CH.tf].sort((a, b) => rank(a) - rank(b)) : chFavs()
+      for (const label of labels) {
         chIvRegister(label)
         const b = document.createElement('button'); b.type = 'button'; b.dataset.tf = label; b.textContent = label
-        b.classList.toggle('on', CH.tf === label)
+        b.classList.toggle('on', CH.tf === label); if (!chFavs().includes(label)) b.classList.add('loose')
         b.addEventListener('click', () => chSetTf(label))
         bar.insertBefore(b, any)
       }
+      chTfStripSync()
       setTimeout(chTipsApply, 0)
     }
     const CH_IVS = [
@@ -16548,18 +16738,23 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         CH.pointers.set(e.pointerId, p)
         if (CH.pointers.size === 2) { const [a, b] = [...CH.pointers.values()]; CH.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), barW: CH.barW, mid: (a.x + b.x) / 2, i: chI((a.x + b.x) / 2, L) }; CH.drag = null; return }
         const zone = p.x > L.plotW ? 'price' : p.y > L.H - L.tx ? 'time' : 'plot'
-        CH.kin = null; CH.pressOpen = false; el('ch-ctx').hidden = true; el('ch-goto-pop').hidden = true
+        CH.kin = null; CH.pressOpen = false; CH.tolK = e.pointerType === 'touch' ? 2.4 : 1; el('ch-ctx').hidden = true; el('ch-goto-pop').hidden = true
         if (e.button === 2) return
         // the pane closes and the AUTO chip are drawn small; a finger gets 10px of grace round each
         const g = e.pointerType === 'touch' ? 10 : 0, inBox = (z) => z && p.x >= z.x0 - g && p.x <= z.x1 + g && p.y >= z.y0 - g && p.y <= z.y1 + g
         if (inBox(CH.volX)) { CH.s.volume = false; chSave(); CH.drag = null; chDraw(); return }
         for (const [k, z] of Object.entries(CH.paneX || {})) if (inBox(z)) { CH.s['p_' + k] = false; chSave(); CH.drag = null; chDraw(); return }
         if (inBox(CH.autoChip)) { CH.auto = true; CH.drag = null; chDraw(); return }
-        // a long press on touch opens the context menu, the mobile habit
-        clearTimeout(CH.pressT); if (e.pointerType === 'touch' && zone === 'plot') { const px = p.x, py = p.y; CH.pressT = setTimeout(() => { if (CH.drag && !CH.drag.moved && CH.pointers.size === 1) { CH.drag = null; CH.pressOpen = true; CH.hover = { x: px, y: py }; chCtx(chCtxFor({ x: px, y: py }, chLayout(), e), px, py) } }, 550) }
+        // Press and hold, the phone habit: the crosshair comes up under the finger and follows it to read
+        // any bar (with the loupe above the thumb); let go without moving and the chart's menu opens.
+        // On a drawing it opens that drawing's menu straight away.
+        clearTimeout(CH.pressT); if (e.pointerType === 'touch' && zone === 'plot' && CH.tool === 'cross') { const px = p.x, py = p.y; CH.pressT = setTimeout(() => { const dg = CH.drag; if (!dg || dg.moved || CH.pointers.size !== 1) return; CH.pressOpen = true
+          if (dg.move) { CH.drag = null; CH.hover = { x: px, y: py }; chCtx(chCtxFor({ x: px, y: py }, chLayout(), e), px, py); return }
+          dg.scrub = { x: px, y: py, moved: false }; CH.kin = null; CH.hover = { x: px, y: py }; chLoupe({ x: px, y: py }); chDraw() }, 420) }
         if (zone === 'price') { const a = chAlertHitAxis(p.y); if (a) { CH.drag = null; chMenu('alerts'); return } }
         if (zone === 'plot' && CH.tool === 'cross' && !CH.replay.arm && !chHit(p.x, p.y, L)) { const a = chAlertHitPlot(p.y, L); if (a) { CH.drag = { x0: p.x, y0: p.y, zone, moved: false, alert: a, t0: Date.now() }; return } }
         CH.drag = { x0: p.x, y0: p.y, x: p.x, y: p.y, offset: CH.offset, barW: CH.barW, pMin: CH.pMin, pMax: CH.pMax, zone, moved: false, t0: Date.now() }
+        if (e.pointerType === 'touch' && zone === 'plot' && CH.tool !== 'cross' && CH.tool !== 'eraser') chLoupe(p)
         if (zone === 'plot' && CH.tool === 'cross') { const sep = chSepAt(p.y, L); if (sep) { CH.drag.sep = sep; CH.drag.frac0 = sep === 'vol' ? (CH.s.volFrac || { small: 0.1, normal: 0.16, tall: 0.24 }[CH.s.volSize] || 0.16) : (CH.s.paneFrac || (L.W < 520 ? 0.13 : 0.15)); CH.drag.plotH = L.plotH; return } }
         if (zone !== 'plot') return
         if (CH.replay.arm) { const i = Math.round(chI(p.x, L)); const b = CH.bars[Math.max(0, Math.min(CH.bars.length - 1, i))]; if (b) { CH.replay.arm = false; CH.replay.on = true; CH.replay.cut = b.t; chSetVis(); chReplayUi(); CH.offset = 6; CH.auto = true; chDraw() } CH.drag = null; return }
@@ -16605,6 +16800,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (CH.pinch && CH.pointers.size === 2) { CH.hover = null; const [a, b] = [...CH.pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); const bw = Math.max(CH_MIN_BW, Math.min(60, CH.pinch.barW * d / Math.max(CH.pinch.d, 1))); const mid = (a.x + b.x) / 2; CH.barW = bw; const n = chVisible().length; CH.offset = CH.pinch.i - (n - 1) + (L.plotW - mid) / bw - 0.5; chDraw(); return }
         // A finger panning the chart is not pointing at a bar: the crosshair and the legend's hovered
         // bar stay put (TradingView's phone habit), which also stops the legend rewriting itself every frame
+        if (CH.drag && CH.drag.scrub) { const sc = CH.drag.scrub; if (Math.hypot(p.x - sc.x, p.y - sc.y) > 6) sc.moved = true; CH.hover = p; chLoupe(p); chDraw(); return }
         const panning = e.pointerType === 'touch' && CH.drag && CH.drag.zone === 'plot' && CH.tool === 'cross' && !CH.drag.move && !CH.drag.alert && !CH.drag.sep
         CH.hover = panning ? null : p
         const dg = CH.drag
@@ -16636,11 +16832,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             else if (handle >= 0 && CH.shift && (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') && p0.length === 2) { const snapped = chSnapAngleFrom(p0[1 - handle], p, L); d.p = p0.map((q, k) => k === handle ? snapped : q) }
             else if (handle >= 0) d.p = p0.map((q, k) => k === handle ? { t: now.t, p: now.p } : q)
             else d.p = p0.map((q) => ({ t: q.t + dt, p: +(q.p + dp).toFixed(2) }))
+            if (e.pointerType === 'touch' && handle !== -1) chLoupe(p)
             chDraw(); return
           }
-          if (dg.measure && CH.measure?.live) { CH.measure.b = chPoint(p.x, p.y, L); chDraw(); return }
+          if (dg.measure && CH.measure?.live) { CH.measure.b = chPoint(p.x, p.y, L); if (e.pointerType === 'touch') chLoupe(p); chDraw(); return }
           if (dg.brush && CH.pending) { const q = CH.pending.p[CH.pending.p.length - 1], qx = chX(chIofT(q.t), L), qy = chY(q.p, L); if (Math.hypot(p.x - qx, p.y - qy) >= 3) CH.pending.p.push({ t: chTofI(chI(p.x, L)), p: +chP(p.y, L).toFixed(2) }); chDraw(); return }
-          if (dg.pend && CH.pending) { CH.pending.p[CH.pending.p.length - 1] = CH.shift && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L); chDraw(); return }
+          if (dg.pend && CH.pending) { CH.pending.p[CH.pending.p.length - 1] = CH.shift && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L); if (e.pointerType === 'touch') chLoupe(p); chDraw(); return }
           if (CH.tool === 'cross' && !CH.replay.arm) { CH.offset = dg.offset - dx / CH.barW; chClampOffset(L); if (!CH.auto) { const shift = dy / L.mainH * (dg.pMax - dg.pMin); CH.pMin = dg.pMin + shift; CH.pMax = dg.pMax + shift } cv.style.cursor = 'grabbing'; chDraw(); return }
         }
         if (CH.pending && !CH.pending.free) CH.pending.p[CH.pending.p.length - 1] = CH.shift && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)
@@ -16654,7 +16851,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const up = (e) => {
         CH.pointers.delete(e.pointerId)
         if (CH.pointers.size < 2) CH.pinch = null
-        const dg = CH.drag; CH.drag = null; clearTimeout(CH.pressT)
+        const dg = CH.drag; CH.drag = null; clearTimeout(CH.pressT); chLoupe(null)
+        if (dg?.scrub) { if (!dg.scrub.moved) chCtx(chCtxFor(dg.scrub, chLayout(), e), dg.scrub.x, dg.scrub.y); chDraw(); return }   // moved: the crosshair stays parked where the finger left it
         if (dg?.alert) { chSaveAlerts(); chAlertsUi(); chDraw(); return }
         if (dg?.sep) { chSave(); chDraw(); return }
         if (dg?.move) { chSave(); CH.snap = null }
@@ -16683,6 +16881,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       function chPendingAdvance(pt) { const d = CH.pending; if (!d) return; d.p[d.p.length - 1] = pt; if (d.p.length < (d.need || 2)) { d.p.push({ ...pt }); chDraw(); return } chPendingCommit() }
       function chPendingCommit() { const d = CH.pending; if (!d) return; delete d.need; CH.pending = null; if (d.p.length >= 2) { chPush(); CH.drawings.push(d); CH.sel = d; chSave() } chAfterDraw(); chSelBar(); chDraw() }
       cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up)
+      // iOS hands the lift to whatever now sits under the finger (the selection bar, when a tap on a
+      // drawing brings it up there) and only tells the canvas it lost the capture. Treated as the lift,
+      // once: without it the press timer ran on and opened the menu a moment after the tap.
+      cv.addEventListener('lostpointercapture', (e) => { if (CH.pointers.has(e.pointerId)) up(e) })
       // the lift after a press-and-hold is not a tap: on Android it arrives as a click, and the
       // outside-click closer took it as a tap elsewhere, so the menu it had just opened was gone
       cv.addEventListener('click', (e) => { if (CH.pressOpen) { CH.pressOpen = false; e.stopPropagation() } }, true)
@@ -16794,7 +16996,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-axl').querySelectorAll('button[data-range]').forEach((b) => b.addEventListener('click', () => chQuickRange(b.dataset.range)))
       el('ch-alerts-btn').addEventListener('click', () => chMenu(CH.menu === 'alerts' ? null : 'alerts')); chAlertsUi()
       el('ch-tf-btn').addEventListener('click', () => chSheet(CH.sheet === 'tf' ? null : 'tf')); chTfBtn()
-      el('ch-tools-btn').addEventListener('click', () => chSheet(CH.sheet === 'tools' ? null : 'tools'))
+      el('ch-tools-btn').addEventListener('click', () => { if (chPhone()) { CH.s.prail = !CH.s.prail; chSave(); chPrailShow(); if (!CH.s.prail) chSetTool('cross') } else chSheet(CH.sheet === 'tools' ? null : 'tools') })
       el('ch-sheet-close').addEventListener('click', () => chSheet(null)); el('ch-sheet-scrim').addEventListener('click', () => chSheet(null))
       el('ch-snap-btn').addEventListener('click', (e) => { e.stopPropagation(); const r = el('ch-snap-btn').getBoundingClientRect(), st = el('ch-stage').getBoundingClientRect(); chCtx([{ label: 'Post to the feed', fn: () => chShot('post') }, { label: 'Send in chat', fn: () => chShot('chat') }, { sep: true }, { label: 'Save image', kbd: 'Alt+S', fn: () => chShot('save') }, { label: 'Copy image', fn: () => chShot('copy') }], r.left - st.left - 140, 4) })
       const ib = el('ch-int'), ibi = ib.querySelector('input')
@@ -16883,7 +17085,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // keep the time under the right edge where it is
       const L = chLayout(); const tRight = chTofI(chVisible().length - 1 + CH.offset)
       CH.tf = tf; localStorage.setItem('echelon-chart-tf', tf); chTfBtn()
-      el('ch-tf').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tf === tf))
+      if (chPhone()) chTfRow(); else el('ch-tf').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tf === tf))
       chBuild()
       const [src] = CH_TF[tf]; if (src !== '1m' && !CH.have[src]) chLoad(src)
       if (CH.s.smt || CH.s.cmp) chSmtWarm()
@@ -17361,7 +17563,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* the drawer becomes what TradingView would show: a centred dialog with tabs, a popover under
        its button, or a side panel (objects, alerts) */
     const CH_SET_TABS = { Symbol: ['Chart type', 'Candles', 'Line and area'], Canvas: ['Background', 'Accent', 'Grid', 'Crosshair', 'Sessions'], 'Scales and lines': ['Axes and labels', 'Time'], Volume: ['Volume'], Drawing: ['Drawing'] }
-    const chPhone = () => matchMedia('(max-width: 840px), (max-width: 1000px) and (max-height: 500px)').matches
+    // a declaration, not a const: the bar and the strip ask it during the script's first pass
+    function chPhone() { return matchMedia('(max-width: 840px), (max-width: 1000px) and (max-height: 500px)').matches }
     function chDlgShape(m, body, which) {
       const kind = which === 'type' || which === 'tf' ? 'pop' : which === 'objects' || which === 'alerts' || which === 'layouts' ? 'side' : 'dlg'
       const size = which === 'settings' ? 'wide' : which === 'ind' || which === 'sym' ? 'list' : 'std'
@@ -17444,7 +17647,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const bnav = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bnav')) || 0
       w.style.height = Math.max(240, window.innerHeight - top - pad - bnav) + 'px'
     }
-    window.addEventListener('resize', () => { if (CH.on) { chFit(); chDraw() } })
+    window.addEventListener('resize', () => { if (CH.on) { chFit(); chPrailShow(); chDraw() } })
     function chTzLabel() {
       const b = el('ch-tz'); if (!b) return
       if (!CH_ZONES.some((z) => z[0] === CH.s.tz)) CH.s.tz = 'ET'
@@ -17459,7 +17662,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chCtx(CH_ZONES.map(([k, name]) => ({ label: name, check: CH.s.tz === k, fn: () => { CH.s.tz = k; chZoneCache.clear(); chSave(); chTzLabel(); chDraw(); if (CH.menu === 'settings') chMenu('settings') } })), b.left - st.left - 150, b.top - st.top - 12 * CH_ZONES.length - 60)
     }
     async function chartShown() {
-      CH.on = true; chWire(); chSkinNow(); chFit(); chTzLabel(); chSymUi(); if (CH.s.lit && CH.s.litSig !== false) chVixLoad()
+      CH.on = true; chWire(); chSkinNow(); chFit(); chTzLabel(); chSymUi(); chPrailShow(); chTfRow(); requestAnimationFrame(() => chTfStripSync(false)); if (CH.s.lit && CH.s.litSig !== false) chVixLoad()
       if (CH.s.gex) chGexWarm()
       clearInterval(CH.volT); if (CH.s.gex) chVolLoad(); CH.volT = setInterval(() => { if (CH.on && CH.s.gex) chVolLoad() }, 30_000)
       if (CH.s.htf) chHtfWarm()
