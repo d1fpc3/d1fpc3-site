@@ -132,13 +132,14 @@ for (const [name, engine, dev] of PHONES) {
     return out
   })
   check(lay.sw <= lay.vw, `no sideways scroll (${lay.sw} in ${lay.vw})`)
-  const want = ['ch-back', 'ch-sym-btn', 'ch-tf-any', 'ch-snap-btn', 'ch-full', 'ch-tools-btn', 'ch-alerts-btn', 'ch-type-btn', 'ch-ind-btn', 'ch-replay-btn', 'ch-layouts-btn', 'ch-settings-btn', 'ch-goto', 'ch-tz']
+  const want = ['ch-back', 'ch-sym-btn', 'ch-tf-any', 'ch-snap-btn', 'ch-full', 'ch-tools-btn', 'ch-alerts-btn', 'ch-type-btn', 'ch-ind-btn', 'ch-replay-btn', 'ch-layouts-btn', 'ch-settings-btn', ...(lay.vw >= 390 ? ['ch-goto'] : []), 'ch-tz']   // under 390 wide Go to date lives in the press-and-hold menu
   check(want.every((w) => lay.ids.includes(w)), `every chart control is there (${want.filter((w) => !lay.ids.includes(w)).join(', ') || 'all ' + want.length})`)
   check(!lay.bad.length, `bar and foot controls on screen with a 38px+ hit area${lay.bad.length ? ' (' + lay.bad.join('; ') + ')' : ''}`)
   check(lay.stage[1] >= (name === 'landscape' ? 200 : 380), `the chart gets the room (${lay.stage.join('x')})`)
 
   // ── every panel ──
   for (const [btn, sel, label] of [['#ch-sym-btn', '#ch-menu', 'Symbol search'], ['#ch-tf-any', '#ch-sheet', 'Interval'], ['#ch-tools-btn', '#ch-prail', 'Drawing rail'], ['#ch-pr-all', '#ch-sheet', 'Drawing tools'], ['#ch-alerts-btn', '#ch-menu', 'Alerts'], ['#ch-type-btn', '#ch-menu', 'Chart type'], ['#ch-ind-btn', '#ch-menu', 'Indicators'], ['#ch-layouts-btn', '#ch-menu', 'Layouts'], ['#ch-settings-btn', '#ch-menu', 'Settings'], ['#ch-snap-btn', '#ch-ctx', 'Snapshot'], ['#ch-tz', '#ch-ctx', 'Timezone'], ['#ch-goto', '#ch-goto-pop', 'Go to date']]) {
+    if (btn === '#ch-goto' && !(await page.locator(btn).isVisible())) continue
     await tapSel(btn); await wait(250)
     judge(label, await surface(page, sel))
     await shot('p-' + label.replace(/\W+/g, '-').toLowerCase())
@@ -339,6 +340,7 @@ for (const [name, engine, dev] of PHONES) {
     await touch('touchStart', [[cx, cy]]); await wait(800); await touch('touchEnd', []); await wait(400)
     const held = await surface(page, '#ch-ctx')
     judge('Press-and-hold menu', held); await shot('press-hold')
+    check(await CH(() => /Go to date/.test(document.getElementById('ch-ctx').textContent)), 'and it offers Go to date')
     await closeAll()
   }
 

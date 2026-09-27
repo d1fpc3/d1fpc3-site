@@ -140,7 +140,7 @@ async function run(vpName) {
   await page.click('#ch-menu-body .ch-cbtn[data-key="bg"]'); await page.waitForTimeout(200);
   await page.click('#ch-cpick .g button[data-c="#ffffff"]'); await page.waitForTimeout(400);
   sk = await skin(page);
-  check(sk.skin === "light" && sk.panel === "#ffffff" && sk.bar === rgb("#ffffff") && sk.menu === rgb("#ffffff") && sk.bgNow === "#ffffff", `light background flips the chrome: skin ${sk.skin}, bar ${sk.bar}, dialog ${sk.menu}`);
+  check(sk.skin === "light" && sk.panel === "#ffffff" && (sk.bar === rgb("#ffffff") || vpName === "phone" && sk.bar === rgb("#f2f2f7")) && sk.menu === rgb("#ffffff") && sk.bgNow === "#ffffff",   /* a phone wears iOS light chrome: #f2f2f7 bars round white cells */ `light background flips the chrome: skin ${sk.skin}, bar ${sk.bar}, dialog ${sk.menu}`);
   await page.screenshot({ path: `${OUT}/${tag}-settings-light.png` });
   await page.click("#ch-cpick .rs"); await page.waitForTimeout(400);
   sk = await skin(page);
