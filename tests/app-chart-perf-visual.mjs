@@ -112,14 +112,16 @@ await ctx.close()
   // The first Settings open of a session compiles the panel code and rasterises its glyphs for
   // the first time (~26ms of script and layout here, then the GPU). Reported on its own; the
   // opens after it are what a trader feels all day.
-  const first = await frames(async () => { await pg.locator('#ch-settings-btn').tap(); await pg.waitForTimeout(450); await pg.evaluate(() => window.__CH.$.menu(null)) })
+  // upright the phone chart has TradingView's layout (D1, 09-27): Settings sits under More, so the tap path is More, then Settings
+  const openSettings = async () => { await pg.locator('#ch-more-btn').tap(); await pg.waitForTimeout(380); await pg.locator('#ch-sheet .ch-more-row', { hasText: 'Settings' }).first().tap(); await pg.waitForTimeout(450); await pg.evaluate(() => window.__CH.$.menu(null)) }
+  const first = await frames(openSettings)
   check(first.max < 160, `phone, first Settings open of the session: worst frame ${first.max}ms, ${first.long} over 20ms`)
   for (const rate of [1, 4, 6]) {
     await pcdp.send('Emulation.setCPUThrottlingRate', { rate })
     const r = await frames(fingers)
     // the first pass pays for compiling the gesture code, so full speed allows two
     check(r.long <= (rate === 1 ? 2 : rate === 4 ? 5 : 14), `phone, fingers, CPU ${rate}x: ${r.frames} frames, p95 ${r.p95}ms, worst ${r.max}ms, ${r.long} over 20ms`)
-    const s = await frames(async () => { await pg.locator('#ch-settings-btn').tap(); await pg.waitForTimeout(450); await pg.evaluate(() => window.__CH.$.menu(null)) })
+    const s = await frames(openSettings)
     // 6x is a phone from years ago: building Settings is one long task there (about 120ms) and the
     // glass slide can drop a few more, so it is held to 6; full speed and 4x stay strict
     check(s.long <= (rate === 1 ? 1 : rate === 4 ? 3 : 6), `phone, Settings sheet up and down, CPU ${rate}x: p95 ${s.p95}ms, worst ${s.max}ms, ${s.long} over 20ms`)

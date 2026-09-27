@@ -46,6 +46,14 @@ const VP = {
 const painted = (page) => page.evaluate(() => { const cv = document.getElementById("ch-canvas"); const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data; let n = 0; const bg = [d[0], d[1], d[2]]; for (let i = 0; i < d.length; i += 4 * 61) if (Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]) > 40) n++; return n; });
 const state = (page) => page.evaluate(() => ({ legend: document.getElementById("ch-legend").textContent, tf: document.querySelector("#ch-tf button.on")?.dataset.tf, latest: !document.getElementById("ch-latest").hidden, replay: !document.getElementById("ch-replay").hidden, at: document.getElementById("ch-rp-at").textContent, menu: !document.getElementById("ch-menu").hidden, menuTitle: document.getElementById("ch-menu-title").textContent, sel: !document.getElementById("ch-selbar").hidden, full: document.getElementById("v-chart").classList.contains("ch-fullscreen"), sess: document.getElementById("ch-sess").textContent, drawings: JSON.parse(localStorage.getItem("echelon-chart-drawings") || "[]").length }));
 
+// upright on a phone the chart has TradingView's layout (D1, 09-27): what the bar has no room for sits under More
+const MORE = { '#ch-type-btn': 'Chart type', '#ch-tz': 'Timezone', '#ch-settings-btn': 'Settings', '#ch-full': 'Full screen', '#ch-snap-btn': 'Snapshot', '#ch-layouts-btn': 'Layouts' };
+const press = async (page, sel) => {
+  if (MORE[sel] && !(await page.locator(sel).isVisible())) { await page.click('#ch-more-btn'); await page.waitForTimeout(250); await page.locator('#ch-sheet .ch-more-row', { hasText: MORE[sel] }).first().click(); await page.waitForTimeout(150); }
+  else if (sel === '#ch-sym-btn' && !(await page.locator(sel).isVisible())) await page.click('#ch-symw button.on');
+  else await page.click(sel);
+};
+
 async function run(vpName) {
   console.log(`\n${vpName} · ${theme} · ${email}`);
   const ctx = await browser.newContext(VP[vpName]);
@@ -67,12 +75,13 @@ async function run(vpName) {
   if (vpName === "phone") {
     const layout = await page.evaluate(() => {
       const r = document.querySelector('.ch-wrap').getBoundingClientRect();
-      const buttons = ['ch-back', 'ch-full', 'ch-tools-btn', 'ch-alerts-btn', 'ch-type-btn', 'ch-ind-btn', 'ch-replay-btn', 'ch-settings-btn'].map(id => document.getElementById(id).getBoundingClientRect());
+      // upright, TradingView's layout (D1, 09-27): the symbol and interval wheels and five tools on one bar under the chart
+      const buttons = ['ch-symw', 'ch-tfw', 'ch-tools-btn', 'ch-ind-btn', 'ch-alerts-btn', 'ch-replay-btn', 'ch-more-btn'].map(id => document.getElementById(id).getBoundingClientRect());
       return { full: r.x === 0 && r.y === 0 && Math.abs(r.height - innerHeight) < 2 && r.width === innerWidth, touch: buttons.every(b => b.width >= 44 && b.height >= 44 && b.right <= innerWidth), nav: getComputedStyle(document.getElementById('bnav')).display, overflow: document.documentElement.scrollWidth > innerWidth };
     });
-    check(layout.full && layout.touch && layout.nav === 'none' && !layout.overflow, `phone edge-to-edge workspace and 44px controls: ${JSON.stringify(layout)}`);
-    await page.click('#ch-tf-any');
-    check(await page.locator('#ch-sheet').isVisible(), 'phone interval sheet opens from the strip');
+    check(layout.full && layout.touch && layout.nav === 'grid' && !layout.overflow, `phone edge-to-edge workspace, the tab bar under it and 44px controls: ${JSON.stringify(layout)}`);
+    await page.click('#ch-tfw button.on');
+    check(await page.locator('#ch-sheet').isVisible(), 'phone interval sheet opens from the interval wheel');
     await page.click('#ch-sheet-close');
     await page.click('#ch-tools-btn');
     check(await page.locator('#ch-prail').isVisible(), 'phone pencil opens the drawing rail');
@@ -360,7 +369,7 @@ async function run(vpName) {
     check(/O\s?[\d,]/.test((await state(page)).legend), "tap shows the crosshair legend");
   }
   // menus: type, indicators, settings
-  await page.click("#ch-type-btn"); await page.waitForTimeout(200);
+  await press(page, "#ch-type-btn"); await page.waitForTimeout(200);
   st = await state(page); check(st.menu && st.menuTitle === "Chart type", "chart type menu opens");
   await page.evaluate(() => [...document.querySelectorAll("#ch-menu-body .ch-opt")].find((b) => /Area/.test(b.textContent)).click()); await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-area.png` });
@@ -414,15 +423,15 @@ async function run(vpName) {
   await page.click("#ch-menu-close");
   await page.evaluate(() => document.querySelector('#ch-tf button[data-tf="5m"]').click()); await page.waitForTimeout(600);
   await page.evaluate(() => { const s2 = JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}"); s2.type = "candles"; localStorage.setItem("echelon-chart-settings", JSON.stringify(s2)); });
-  await page.click("#ch-type-btn"); await page.evaluate(() => [...document.querySelectorAll("#ch-menu-body .ch-opt")].find((b) => /^Candles/.test(b.textContent)).click()); await page.waitForTimeout(400);
+  await press(page, "#ch-type-btn"); await page.evaluate(() => [...document.querySelectorAll("#ch-menu-body .ch-opt")].find((b) => /^Candles/.test(b.textContent)).click()); await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-indicators.png` });
   // timezone corner flips the clock
   const tz0 = await page.evaluate(() => document.getElementById("ch-tz").textContent);
-  await page.click("#ch-tz"); await page.waitForTimeout(200);   // the corner opens the timezone list
+  await press(page, "#ch-tz"); await page.waitForTimeout(200);   // the corner opens the timezone list
   await page.evaluate(() => [...document.querySelectorAll("#ch-ctx .it")].find((x) => /London/.test(x.textContent)).click()); await page.waitForTimeout(200);
   const tz1 = await page.evaluate(() => document.getElementById("ch-tz").textContent);
   check(tz0 !== tz1 && /LON/.test(tz1), `timezone corner: "${tz0}" -> "${tz1}"`);
-  await page.click("#ch-tz"); await page.waitForTimeout(150); await page.evaluate(() => [...document.querySelectorAll("#ch-ctx .it")].find((x) => /New York/.test(x.textContent)).click()); await page.waitForTimeout(150);
+  await press(page, "#ch-tz"); await page.waitForTimeout(150); await page.evaluate(() => [...document.querySelectorAll("#ch-ctx .it")].find((x) => /New York/.test(x.textContent)).click()); await page.waitForTimeout(150);
   // the volume pane closes from its own ×
   {
     const b2 = await (await page.$("#ch-canvas")).boundingBox();
@@ -433,7 +442,7 @@ async function run(vpName) {
     check(vol === false, "volume × closes the pane");
     await page.evaluate(() => { const s2 = JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}"); s2.volume = true; localStorage.setItem("echelon-chart-settings", JSON.stringify(s2)); });
   }
-  await page.click("#ch-settings-btn"); await page.waitForTimeout(200);
+  await press(page, "#ch-settings-btn"); await page.waitForTimeout(200);
   st = await state(page); check(st.menu && st.menuTitle === "Settings", "settings drawer opens");
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-settings-top.png` });
   const pills = await page.evaluate(() => ({ presets: document.querySelectorAll("#ch-menu-body .ch-preset").length, pills: document.querySelectorAll("#ch-menu-body .ch-cbtn").length }));
@@ -455,7 +464,7 @@ async function run(vpName) {
     await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-prevday.png` });
     await page.evaluate(() => { const C = window.__CH; C.s.prevDay = false; C.s.lit = true });
     // symbol search: MNQ shares NQ's drawings, ES is its own price family
-    await page.click("#ch-sym-btn"); await page.waitForTimeout(300);
+    await press(page, "#ch-sym-btn"); await page.waitForTimeout(300);
     check(await page.locator(".ch-symrow").count() === 4, "symbol search lists NQ, MNQ, ES, MES");
     await page.fill(".ch-dlg-search", "micro"); await page.waitForTimeout(150);
     check(await page.locator(".ch-symrow").count() === 2, "symbol search filters as you type");
@@ -486,12 +495,12 @@ async function run(vpName) {
     await page.evaluate(() => { window.__CH.s.smt = false; document.querySelector('#ch-tf button[data-tf="5m"]').click() }); await page.waitForTimeout(500);
   }
   // fullscreen
-  await page.click("#ch-full"); await page.waitForTimeout(300);
+  await press(page, "#ch-full"); await page.waitForTimeout(300);
   st = await state(page);
   const fb = await (await page.$("#ch-canvas")).boundingBox();
   check(st.full && fb.width > VP[vpName].viewport.width * 0.85, `fullscreen fills the viewport (${Math.round(fb.width)}x${Math.round(fb.height)})`);
   await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-full.png` });
-  await page.click("#ch-full");
+  await press(page, "#ch-full");
   if (vpName === "phone") {
     for (const size of [{width: 320, height: 568}, {width: 844, height: 390}]) {
       await page.setViewportSize(size); await page.waitForTimeout(350);
@@ -500,8 +509,8 @@ async function run(vpName) {
       await page.screenshot({path: `${OUT}/phone-${theme}-${size.width}.png`});
     }
     await page.setViewportSize(VP.phone.viewport); await page.waitForTimeout(200);
-    await page.click('#ch-back');
-    check(await page.evaluate(() => !document.body.classList.contains('in-chart') && getComputedStyle(document.getElementById('bnav')).display !== 'none'), 'back restores the app navigation');
+    await page.click('#bnav button.on');   // the tab the chart was opened from stays lit and takes you back
+    check(await page.evaluate(() => !document.body.classList.contains('in-chart') && getComputedStyle(document.getElementById('bnav')).display !== 'none'), 'the lit tab takes you back to the app');
   } else await page.evaluate(() => document.querySelector('.tab[data-view="overview"]').click());
   await ctx.close();
 }

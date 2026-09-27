@@ -23,8 +23,14 @@
 // tap. Then what D1 asked for next (09-27, "TradingView's app is way better"):
 // the scrollable strip of starred intervals, the drawing rail of starred tools
 // with the magnet on it, starring from both sheets, the loupe over a finger
-// placing a point, and press-and-hold to read the chart. Lag lives in
-// app-chart-perf-visual (its phone pass).
+// placing a point, and press-and-hold to read the chart. Then D1's screenshot
+// of TradingView's iPhone app (09-27, "build something similar just like it"):
+// held upright the chart runs from the top to one toolbar under the time axis
+// (symbol and interval wheels, pencil, indicators, alerts, replay, More), the
+// rail sits flush with the left edge, the app's tab bar stays under it with the
+// tab it came from lit, and the date ranges are gone from phones ("on mobile,
+// just take that off"). What the bar has no room for is driven through More.
+// Lag lives in app-chart-perf-visual (its phone pass).
 import { createRequire } from 'module'
 import { existsSync, mkdirSync, readFileSync } from 'fs'
 import { tmpdir, homedir } from 'os'
@@ -116,12 +122,17 @@ for (const [name, engine, dev] of PHONES) {
   const tapSel = async (sel) => { await page.locator(sel).first().tap({ timeout: 5000 }); await wait(450) }
   const railOff = async () => { if (await CH(() => !document.getElementById('ch-prail').hidden)) await tapSel('#ch-tools-btn') }
   const closeAll = async () => { await CH(() => { window.__CH.$.menu(null); document.getElementById('ch-ctx').hidden = true; document.getElementById('ch-goto-pop').hidden = true; if (!document.getElementById('ch-sheet').hidden) document.getElementById('ch-sheet-close').click() }); await wait(350) }
+  // upright the chart has TradingView's layout; on its side the one-row bar it had
+  const upright = name !== 'landscape'
+  const open = async (sel) => { if (sel.startsWith('more:')) { await tapSel('#ch-more-btn'); await page.locator('#ch-sheet .ch-more-row').filter({ hasText: sel.slice(5) }).first().tap({ timeout: 5000 }); await wait(500) } else await tapSel(sel) }
+  // a wheel row by where it shows: the middle one, or the one peeking out below it (a locator tap would scroll the drum itself)
+  const wheelTap = async (id, below) => { const wb = await page.locator(id).boundingBox(); await page.touchscreen.tap(wb.x + 22, wb.y + wb.height / 2 + (below ? 23 : 0)); await wait(below ? 1300 : 500) }
   await shot('00-chart')
 
   // ── the page itself ──
   const lay = await CH(() => {
     const vw = innerWidth, out = { sw: document.documentElement.scrollWidth, vw, bad: [], ids: [] }
-    for (const e of document.querySelectorAll('#v-chart .ch-bar > button, #v-chart .ch-bar .ch-symbtn, #v-chart .ch-bar .ch-tfs button, #v-chart .ch-foot button')) {
+    for (const e of document.querySelectorAll('#v-chart .ch-bar > button, #v-chart .ch-bar > .ch-wheel, #v-chart .ch-bar .ch-symbtn, #v-chart .ch-bar .ch-tfs button, #v-chart .ch-foot button')) {
       if (e.closest('.ch-tfs') && e.dataset.tf) { const sr = e.closest('.ch-tfs').getBoundingClientRect(), r0 = e.getBoundingClientRect(); if (r0.left < sr.left + 12 || r0.right > sr.right - 40) continue }   // strip chips scrolled out of view are judged when scrolled in
       const cs = getComputedStyle(e), r = e.getBoundingClientRect(); if (cs.display === 'none' || !r.width) continue
       out.ids.push(e.id || e.textContent.trim())
@@ -132,21 +143,28 @@ for (const [name, engine, dev] of PHONES) {
     return out
   })
   check(lay.sw <= lay.vw, `no sideways scroll (${lay.sw} in ${lay.vw})`)
-  const want = ['ch-back', 'ch-sym-btn', 'ch-tf-any', 'ch-snap-btn', 'ch-full', 'ch-tools-btn', 'ch-alerts-btn', 'ch-type-btn', 'ch-ind-btn', 'ch-replay-btn', 'ch-layouts-btn', 'ch-settings-btn', ...(lay.vw >= 390 ? ['ch-goto'] : []), 'ch-tz']   // under 390 wide Go to date lives in the press-and-hold menu
+  const want = upright
+    ? ['ch-symw', 'ch-tfw', 'ch-tools-btn', 'ch-ind-btn', 'ch-alerts-btn', ...(lay.vw >= 380 ? ['ch-replay-btn'] : []), 'ch-more-btn']   // under 380 wide replay steps into More
+    : ['ch-back', 'ch-sym-btn', 'ch-tf-any', 'ch-snap-btn', 'ch-full', 'ch-tools-btn', 'ch-alerts-btn', 'ch-type-btn', 'ch-ind-btn', 'ch-replay-btn', 'ch-layouts-btn', 'ch-settings-btn', 'ch-more-btn']
+  const via = (id, label) => upright ? 'more:' + label : id
+  const OPEN = { sym: upright ? '#ch-symw button.on' : '#ch-sym-btn', tf: upright ? '#ch-tfw button.on' : '#ch-tf-any', type: via('#ch-type-btn', 'Chart type'), layouts: via('#ch-layouts-btn', 'Layouts'), settings: via('#ch-settings-btn', 'Settings'), snap: via('#ch-snap-btn', 'Snapshot'), full: via('#ch-full', 'Full screen'), replay: upright && lay.vw < 380 ? 'more:Replay' : '#ch-replay-btn', tz: 'more:Timezone', goto: 'more:Go to date' }
   check(want.every((w) => lay.ids.includes(w)), `every chart control is there (${want.filter((w) => !lay.ids.includes(w)).join(', ') || 'all ' + want.length})`)
   check(!lay.bad.length, `bar and foot controls on screen with a 38px+ hit area${lay.bad.length ? ' (' + lay.bad.join('; ') + ')' : ''}`)
   check(lay.stage[1] >= (name === 'landscape' ? 200 : 380), `the chart gets the room (${lay.stage.join('x')})`)
+  check(await CH(() => getComputedStyle(document.getElementById('ch-foot')).display === 'none'), 'no date ranges on a phone (D1: "on mobile, just take that off")')
+  const nav = await CH(() => ({ shown: getComputedStyle(document.getElementById('bnav')).display !== 'none', lit: document.querySelector('#bnav button.on')?.dataset.view || null, bar: Math.round(document.querySelector('#v-chart .ch-bar').getBoundingClientRect().bottom), top: Math.round(document.getElementById('bnav').getBoundingClientRect().top) }))
+  if (upright) check(nav.shown && nav.lit === 'overview' && nav.bar <= nav.top, `the tab bar stays under the toolbar with the tab the chart came from lit (${JSON.stringify(nav)})`)
+  else check(!nav.shown, 'on its side the chart keeps the whole screen, no tab bar')
 
   // ── every panel ──
-  for (const [btn, sel, label] of [['#ch-sym-btn', '#ch-menu', 'Symbol search'], ['#ch-tf-any', '#ch-sheet', 'Interval'], ['#ch-tools-btn', '#ch-prail', 'Drawing rail'], ['#ch-pr-all', '#ch-sheet', 'Drawing tools'], ['#ch-alerts-btn', '#ch-menu', 'Alerts'], ['#ch-type-btn', '#ch-menu', 'Chart type'], ['#ch-ind-btn', '#ch-menu', 'Indicators'], ['#ch-layouts-btn', '#ch-menu', 'Layouts'], ['#ch-settings-btn', '#ch-menu', 'Settings'], ['#ch-snap-btn', '#ch-ctx', 'Snapshot'], ['#ch-tz', '#ch-ctx', 'Timezone'], ['#ch-goto', '#ch-goto-pop', 'Go to date']]) {
-    if (btn === '#ch-goto' && !(await page.locator(btn).isVisible())) continue
-    await tapSel(btn); await wait(250)
+  for (const [btn, sel, label] of [[OPEN.sym, '#ch-menu', 'Symbol search'], [OPEN.tf, '#ch-sheet', 'Interval'], ['#ch-tools-btn', '#ch-prail', 'Drawing rail'], ['#ch-pr-all', '#ch-sheet', 'Drawing tools'], ['#ch-alerts-btn', '#ch-menu', 'Alerts'], [OPEN.type, '#ch-menu', 'Chart type'], ['#ch-ind-btn', '#ch-menu', 'Indicators'], [OPEN.layouts, '#ch-menu', 'Layouts'], [OPEN.settings, '#ch-menu', 'Settings'], [OPEN.snap, '#ch-ctx', 'Snapshot'], [OPEN.tz, '#ch-ctx', 'Timezone'], [OPEN.goto, '#ch-goto-pop', 'Go to date'], ['#ch-more-btn', '#ch-sheet', 'More']]) {
+    await open(btn); await wait(250)
     judge(label, await surface(page, sel))
     await shot('p-' + label.replace(/\W+/g, '-').toLowerCase())
     if (label !== 'Drawing rail') { await closeAll(); if (label === 'Drawing tools') await railOff() }
   }
   // the settings tabs, each one's content judged in turn
-  await tapSel('#ch-settings-btn')
+  await open(OPEN.settings)
   const tabs = await CH(() => [...document.querySelectorAll('#ch-menu .ch-dlg-nav button[data-t]')].map((b) => b.dataset.t))
   check(tabs.length >= 5, `settings has its tabs (${tabs.join(', ')})`)
   for (const t of tabs) {
@@ -170,6 +188,25 @@ for (const [name, engine, dev] of PHONES) {
 
   // ── what the controls do ──
   // interval
+  if (upright) {
+    // the interval wheel: the row peeking out under the middle one rolls in on a tap, and the chart follows
+    const next = await CH(() => document.querySelector('#ch-tfw button.on')?.nextElementSibling?.dataset.v)
+    await wheelTap('#ch-tfw', true)
+    check(await CH(() => window.__CH.tf) === next, `Interval wheel: a tap on ${next} under the middle rolls to it (${await CH(() => window.__CH.tf)})`)
+    const rows = await CH(() => document.querySelectorAll('#ch-tfw button').length)
+    check(rows >= 7, `the wheel carries the starred intervals (${rows} rows)`)
+    const onWheel = (tf) => CH((tf) => { const w = document.getElementById('ch-tfw'), bs = [...w.querySelectorAll('button')], k = bs.findIndex((b) => b.classList.contains('on')); return bs[k]?.dataset.v === tf && Math.abs(w.scrollTop - k * 26) < 2 }, tf)
+    await wheelTap('#ch-tfw'); check(await CH(() => !document.getElementById('ch-sheet').hidden && document.getElementById('ch-sheet').dataset.kind === 'tf'), 'a tap on the middle row opens every interval')
+    await tapSel('#ch-sheet-body button:text-is("2h")')
+    check(await CH(() => window.__CH.tf) === '2h', `Interval sheet: 2h from the full list (${await CH(() => window.__CH.tf)})`)
+    check(await onWheel('2h'), 'and the wheel sits on 2h, starred or not')
+    await wheelTap('#ch-tfw'); await page.locator('#ch-sheet-body .ch-tile').filter({ has: page.locator('button:text-is("45m")') }).locator('.ch-star').tap(); await wait(300)
+    check(await CH(() => window.__CH.s.tfFavs?.includes('45m') && !!document.querySelector('#ch-tfw button[data-v="45m"]')), 'a star in the sheet puts 45m on the wheel')
+    await page.locator('#ch-sheet-body .ch-tile').filter({ has: page.locator('button:text-is("45m")') }).locator('.ch-star').tap(); await wait(300)
+    check(await CH(() => !window.__CH.s.tfFavs?.includes('45m')), 'and again takes it back out')
+    await tapSel('#ch-sheet-body button:text-is("5m")')
+    check(await onWheel('5m'), 'and the wheel rolls back to 5m')
+  } else {
   await tapSel('#ch-tf button[data-tf="15m"]')
   check(await CH(() => window.__CH.tf) === '15m', `Interval strip: a tap on 15m sets it (${await CH(() => window.__CH.tf)})`)
   const strip = await CH(() => { const b = document.getElementById('ch-tf'); return { scrolls: b.scrollWidth > b.clientWidth, chips: b.querySelectorAll('button[data-tf]').length } })
@@ -182,12 +219,19 @@ for (const [name, engine, dev] of PHONES) {
   await page.locator('#ch-sheet-body .ch-tile').filter({ has: page.locator('button:text-is("45m")') }).locator('.ch-star').tap(); await wait(300)
   check(await CH(() => !window.__CH.s.tfFavs?.includes('45m')), 'and again takes it back out')
   await tapSel('#ch-sheet-body button:text-is("5m")')
+  }
   // symbol
-  await tapSel('#ch-sym-btn'); await tapSel('#ch-menu .ch-symrow[data-sym="MNQ"]'); await wait(1500)
+  await open(OPEN.sym); await tapSel('#ch-menu .ch-symrow[data-sym="MNQ"]'); await wait(1500)
   check(await CH(() => window.__CH.sym) === 'MNQ', `Symbol: MNQ from the list (${await CH(() => window.__CH.sym)})`)
-  await tapSel('#ch-sym-btn'); await tapSel('#ch-menu .ch-symrow[data-sym="NQ"]'); await wait(1200)
+  await open(OPEN.sym); await tapSel('#ch-menu .ch-symrow[data-sym="NQ"]'); await wait(1200)
+  if (upright) {
+    await wheelTap('#ch-symw', true)
+    check(await CH(() => window.__CH.sym) === 'MNQ', `Symbol wheel: a tap on MNQ under NQ rolls to it (${await CH(() => window.__CH.sym)})`)
+    await open(OPEN.sym); await tapSel('#ch-menu .ch-symrow[data-sym="NQ"]'); await wait(1200)
+    check(await CH(() => document.querySelector('#ch-symw button.on')?.dataset.v === 'NQ' && document.getElementById('ch-symw').scrollTop < 2), 'and the list puts the wheel back on NQ')
+  }
   // chart type
-  await tapSel('#ch-type-btn')
+  await open(OPEN.type)
   await page.locator('#ch-menu .ch-opt').filter({ has: page.locator('b', { hasText: /^Bars$/ }) }).first().tap(); await wait(400)
   check(await CH(() => window.__CH.s.type) === 'bars', `Chart type: Bars (${await CH(() => window.__CH.s.type)})`)
   await CH(() => { window.__CH.s.type = 'candles'; window.__CH.$.paint() }); await closeAll()
@@ -205,7 +249,7 @@ for (const [name, engine, dev] of PHONES) {
   judge('D1 LIT panel', await surface(page, '#ch-menu')); await shot('ind-lit')
   await CH(() => { window.__CH.s.vwap = false; window.__CH.$.paint() }); await closeAll()
   // layouts: save one, it lists, apply it
-  await tapSel('#ch-layouts-btn')
+  await open(OPEN.layouts)
   const saveBtn = page.locator('#ch-menu button').filter({ hasText: /save/i }).first()
   if (await saveBtn.count()) { await saveBtn.tap(); await wait(500) }
   const lays = await CH(() => JSON.parse(localStorage.getItem('echelon-chart-layouts') || '[]').length)
@@ -220,7 +264,7 @@ for (const [name, engine, dev] of PHONES) {
   judge('Alerts with one set', await surface(page, '#ch-menu')); await shot('alerts-set')
   await CH(() => { window.__CH.alerts.length = 0; localStorage.removeItem('echelon-chart-alerts'); window.__CH.$.paint() }); await closeAll()
   // replay: arm, pick a bar, step, the bar of controls fits, exit
-  await tapSel('#ch-replay-btn')
+  await open(OPEN.replay)
   const box = await page.locator('#ch-canvas').boundingBox()
   await page.touchscreen.tap(box.x + box.width * 0.4, box.y + box.height * 0.6); await wait(500)   // below the legend, which takes taps of its own
   check(await CH(() => window.__CH.replay.on) === true, 'Replay: tap the chart to start from that bar')
@@ -268,21 +312,18 @@ for (const [name, engine, dev] of PHONES) {
   await railOff()
   check(await CH(() => document.getElementById('ch-prail').hidden), 'the pencil closes the rail again')
   // timezone
-  await tapSel('#ch-tz'); await page.locator('#ch-ctx .it').filter({ hasText: 'Chicago' }).first().tap(); await wait(300)
+  await open(OPEN.tz); await page.locator('#ch-ctx .it').filter({ hasText: 'Chicago' }).first().tap(); await wait(300)
   check(await CH(() => window.__CH.s.tz) === 'America/Chicago', `Timezone: Chicago from the sheet (${await CH(() => window.__CH.s.tz)})`)
-  await tapSel('#ch-tz'); await page.locator('#ch-ctx .it').filter({ hasText: 'New York' }).first().tap(); await wait(300)
-  // ranges
-  const bw0 = await CH(() => window.__CH.barW)
-  await tapSel('#ch-foot button[data-range="1M"]')
-  check(await CH(() => window.__CH.barW) !== bw0, `Ranges: 1M refits the view (bar width ${bw0} to ${(await CH(() => window.__CH.barW)).toFixed(2)})`)
-  await tapSel('#ch-foot button[data-range="1D"]')
-  // fullscreen: the tools row folds away and comes back
+  await open(OPEN.tz); await page.locator('#ch-ctx .it').filter({ hasText: 'New York' }).first().tap(); await wait(300)
+  // (the date ranges are desktop only now: checked gone with the layout above)
+  // fullscreen: upright the tab bar steps away, on its side the bar folds to one button
   const h0 = await CH(() => document.getElementById('ch-stage').getBoundingClientRect().height)
-  await tapSel('#ch-full')
+  await open(OPEN.full)
   const h1 = await CH(() => document.getElementById('ch-stage').getBoundingClientRect().height)
   check(h1 > h0 + 20, `Fullscreen gives the chart more room (${Math.round(h0)} to ${Math.round(h1)})`)
   await shot('fullscreen')
-  await tapSel('#ch-full')
+  await open(OPEN.full)
+  check(await CH(() => !document.getElementById('v-chart').classList.contains('ch-fullscreen')), 'and it comes back out of fullscreen')
   // the volume pane's ×
   const vx = await CH(() => window.__CH.volX)
   if (vx) { await page.touchscreen.tap(box.x + (vx.x0 + vx.x1) / 2, box.y + (vx.y0 + vx.y1) / 2); await wait(350) }
@@ -294,6 +335,14 @@ for (const [name, engine, dev] of PHONES) {
     const cdp = await ctx.newCDPSession(page)
     const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], id) => ({ x, y, id, radiusX: 4, radiusY: 4, force: 1 })) })
     const cx = box.x + box.width * 0.45, cy = box.y + box.height * 0.45
+    if (upright) {
+      // a real flick on the interval wheel: the drum rolls a row and the chart follows when it settles
+      const wb = await page.locator('#ch-tfw').boundingBox(), t0 = await CH(() => window.__CH.tf), wx = wb.x + wb.width / 2, wy = wb.y + wb.height / 2
+      await touch('touchStart', [[wx, wy]]); for (let k = 1; k <= 8; k++) { await touch('touchMove', [[wx, wy - k * 4]]); await wait(16) } await touch('touchEnd', []); await wait(1000)
+      const t1 = await CH(() => window.__CH.tf)
+      check(t1 !== t0, `a flick up on the interval wheel rolls the chart on (${t0} to ${t1})`)
+      await CH((t) => document.querySelector(`#ch-tf button[data-tf="${t}"]`)?.click(), t0); await wait(600)
+    }
     // pan, and let go moving: the chart glides (from the default view, so there is history to glide into)
     await CH(() => { window.__CH.barW = 9; window.__CH.offset = 6; window.__CH.auto = true; window.__CH.$.paint() }); await wait(300)
     const o0 = await CH(() => window.__CH.offset)
@@ -344,6 +393,10 @@ for (const [name, engine, dev] of PHONES) {
     await closeAll()
   }
 
+  if (upright) {
+    await tapSel('#bnav button.on'); await wait(700)
+    check(await CH(() => !document.body.classList.contains('in-chart') && document.querySelector('.view.on')?.id === 'v-overview'), 'the lit tab under the chart takes you back where you came from')
+  }
   check(!errs.length, `no page errors${errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''}`)
   await browser.close()
 }

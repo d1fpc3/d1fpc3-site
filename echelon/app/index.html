@@ -1632,7 +1632,7 @@
     @media (max-width: 840px), (max-width: 1000px) and (max-height: 500px) {
       body.in-chart #v-chart { animation: none; }
       body.in-chart { overflow: hidden; overscroll-behavior: none; }
-      body.in-chart .bnav, body.in-chart .topbar { display: none !important; }
+      body.in-chart .topbar { display: none !important; }
       body.in-chart #v-chart .ch-wrap { position: fixed; inset: 0; z-index: 100; width: 100%; height: calc(100 * var(--dvh)); min-height: 0; border: 0; border-radius: 0; box-sizing: border-box; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
       body.in-chart #v-chart.ch-fullscreen .ch-wrap { z-index: 300; }
       #v-chart .ch-bar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0; padding: 0 6px 4px; }
@@ -1760,6 +1760,7 @@
       #v-chart .ch-ctx .it { border-radius: 10px; }
     }
     @media (max-width: 1000px) and (max-height: 500px) {
+      body.in-chart .bnav { display: none !important; }   /* on its side the chart keeps the whole screen */
       /* one row of tools on its side: two rows left the chart a strip */
       #v-chart .ch-bar { grid-template-columns: repeat(13, minmax(0, 1fr)); padding-bottom: 0; }
       #v-chart .ch-bar > * { grid-row: 1 !important; }
@@ -2066,6 +2067,88 @@
     @media (prefers-reduced-transparency: reduce) and (max-width: 840px), (prefers-reduced-transparency: reduce) and (max-width: 1000px) and (max-height: 500px) {
       #v-chart .ch-menu[data-kind], #v-chart .ch-sheet, #v-chart .ch-ctx, #v-chart .ch-prail, #v-chart .ch-selbar, #v-chart .ch-replay, #v-chart .ch-latest, .ch-cpick, body.in-chart .co-toast { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--i-cell, #1c1c1e); }
     }
+
+    /* ── the chart on a phone, laid out like TradingView's app ─────
+       D1's reference is TradingView's iPhone app (Sept 2026): the chart runs from
+       the status bar down to one toolbar under the time axis, the drawing tools are
+       a rail flush with the left edge for the full height of the plot, and the app's
+       own tab bar stays underneath. On the toolbar the symbol and the interval are
+       small wheels (flick one and the chart follows when it settles, tap it for the
+       whole list), then the pencil, indicators, alerts, replay and More. The tab the
+       chart was opened from stays lit, the way a pushed page keeps its tab on iOS,
+       so the tab bar is also the way back. The date ranges and the clock row are
+       desktop furniture: a phone never shows them, Go to date and the timezone live
+       under More. */
+    .ch-wheel, #ch-more-btn { display: none; }
+    @keyframes ch-rail-edge { from { transform: translateX(-100%); } }
+    @media (max-width: 840px), (max-width: 1000px) and (max-height: 500px) {
+      #v-chart .ch-foot { display: none !important; }
+    }
+    @media (max-width: 1000px) and (max-height: 500px) {
+      #v-chart .ch-bar { grid-template-columns: 44px 84px minmax(0, 1fr) repeat(10, 46px); }
+      #v-chart .ch-bar > #ch-more-btn { display: inline-flex; grid-column: 13; grid-row: 1; }
+      /* fullscreen on its side: the bar steps away to one glass button over the chart that brings it back */
+      #v-chart.ch-fullscreen .ch-bar { position: absolute; z-index: 20; top: calc(env(safe-area-inset-top) + 8px); right: calc(env(safe-area-inset-right) + 84px); display: block; width: 44px; height: 44px; padding: 0; border: 0; background: none; box-shadow: none; overflow: visible; }
+      #v-chart.ch-fullscreen .ch-bar > :not(#ch-full) { display: none !important; }
+      #v-chart.ch-fullscreen .ch-bar > #ch-full { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--i-glass-hi); -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); box-shadow: var(--i-rim), var(--i-float); }
+    }
+    @media (max-width: 840px) and (min-height: 501px) {
+      body.in-chart #v-chart .ch-wrap { padding-bottom: calc(68px + env(safe-area-inset-bottom)); background: var(--i-bg); }
+      body.in-chart .bnav { z-index: 101; }
+      /* a sheet covers the tab bar, the way iOS's do: it tucks under the chart while one is up */
+      body.in-chart.ch-over .bnav { z-index: 55; }
+      body.in-chart.ch-fs .bnav { display: none !important; }
+      body.in-chart.ch-fs #v-chart .ch-wrap { padding-bottom: env(safe-area-inset-bottom); }
+      body.in-chart .co-toast { top: calc(env(safe-area-inset-top) + 14px); }
+
+      /* the toolbar, under the time axis */
+      #v-chart .ch-body { order: 1; }
+      #v-chart .ch-bar { order: 2; display: flex; align-items: center; gap: 0; height: 56px; min-height: 56px; padding: 0 4px 0 12px; border: 0; background: var(--i-bg); box-shadow: inset 0 0.5px 0 var(--i-sep); overflow: hidden; }
+      #v-chart .ch-bar > :not(.ch-wheel):not(#ch-tools-btn):not(#ch-ind-btn):not(#ch-alerts-btn):not(#ch-replay-btn):not(#ch-more-btn) { display: none !important; }
+      #v-chart .ch-bar > #ch-tools-btn, #v-chart .ch-bar > #ch-ind-btn, #v-chart .ch-bar > #ch-alerts-btn, #v-chart .ch-bar > #ch-replay-btn, #v-chart .ch-bar > #ch-more-btn { display: grid; place-items: center; flex: 0 0 auto; width: 46px; height: 46px; min-height: 46px; margin: 0; padding: 0; border: 0; border-radius: 14px; background: none; box-shadow: none; color: var(--i-label); -webkit-tap-highlight-color: transparent; transition: color 0.18s ease, background-color 0.18s ease, transform 0.14s var(--i-spring); }
+      #v-chart .ch-bar > #ch-tools-btn { order: 3; margin-left: auto; }
+      #v-chart .ch-bar > #ch-ind-btn { order: 4; } #v-chart .ch-bar > #ch-alerts-btn { order: 5; } #v-chart .ch-bar > #ch-replay-btn { order: 6; } #v-chart .ch-bar > #ch-more-btn { order: 7; }
+      #v-chart .ch-bar > #ch-tools-btn svg, #v-chart .ch-bar > #ch-ind-btn svg, #v-chart .ch-bar > #ch-alerts-btn svg, #v-chart .ch-bar > #ch-replay-btn svg, #v-chart .ch-bar > #ch-more-btn svg { width: 25px; height: 25px; stroke-width: 1.7; }
+      #v-chart .ch-bar > #ch-more-btn svg { stroke-width: 2; }
+      #v-chart .ch-bar > #ch-tools-btn.on, #v-chart .ch-bar > #ch-ind-btn.on, #v-chart .ch-bar > #ch-alerts-btn.on, #v-chart .ch-bar > #ch-replay-btn.on, #v-chart .ch-bar > #ch-more-btn.on { color: var(--acc); background: color-mix(in srgb, var(--acc) 18%, transparent); }
+      #v-chart .ch-bar > #ch-tools-btn:active, #v-chart .ch-bar > #ch-ind-btn:active, #v-chart .ch-bar > #ch-alerts-btn:active, #v-chart .ch-bar > #ch-replay-btn:active, #v-chart .ch-bar > #ch-more-btn:active { transform: scale(0.86); }
+      #v-chart .ch-bar > #ch-alerts-btn .ch-badge { position: absolute; top: 5px; right: 4px; }
+
+      /* the wheels: a drum of three rows, the middle one is what the chart shows */
+      #v-chart .ch-bar > .ch-wheel { display: block; position: relative; flex: 0 0 auto; height: 56px; padding: 15px 0; box-sizing: border-box; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scroll-snap-type: y mandatory; scrollbar-width: none; touch-action: pan-y; -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0, #000 17px, #000 39px, rgba(0, 0, 0, 0.3) 56px); mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0, #000 17px, #000 39px, rgba(0, 0, 0, 0.3) 56px); }
+      #v-chart .ch-bar > .ch-wheel::-webkit-scrollbar { display: none; }
+      #v-chart .ch-bar > #ch-symw { order: 1; width: 72px; }
+      #v-chart .ch-bar > #ch-tfw { order: 2; width: 60px; margin-left: 6px; }
+      #v-chart .ch-wheel > button { display: block; width: 100%; height: 26px; margin: 0; padding: 0; border: 0; background: none; color: var(--i-label); font: 600 17px/26px var(--i-font); letter-spacing: -0.02em; text-align: left; white-space: nowrap; overflow: hidden; scroll-snap-align: center; transform-origin: 0 50%; font-variant-numeric: tabular-nums; -webkit-tap-highlight-color: transparent; cursor: pointer; }
+      #v-chart .ch-wheel > button:not(.on) { font-weight: 500; }
+
+      /* the drawing rail: flush with the left edge, the full height of the plot */
+      #v-chart .ch-prail { left: 0; top: 8px; bottom: 28px; max-height: none; width: 56px; box-sizing: border-box; padding: 2px 6px 6px; border-radius: 0 22px 22px 0; animation: ch-rail-edge 0.34s var(--i-spring); }
+      #v-chart .ch-prail .pr-grip { flex: 0 0 38px; width: 44px; height: 38px; border-radius: 12px; color: var(--i-label3); }
+      #v-chart .ch-prail .pr-grip svg { width: 18px; height: 8px; }
+      #v-chart.pr-on .ch-legend { left: 64px; max-width: calc(100% - 64px - 72px); }
+      #v-chart.pr-on .ch-selbar, #v-chart.pr-on .ch-replay, #v-chart.pr-on .ch-pop { left: 64px; }
+
+      /* More: what the toolbar has no room for, as grouped rows */
+      #v-chart .ch-more .ios-grp + .ios-grp { margin-top: 14px; }
+      #v-chart .ch-more-row { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 46px; margin: 0; padding: 0 16px 0 14px; border: 0; border-radius: 0; background: none; color: var(--i-label); font: 400 17px/1.2 var(--i-font); letter-spacing: -0.02em; text-align: left; -webkit-tap-highlight-color: transparent; }
+      #v-chart .ios-grp > .ch-more-row + .ch-more-row::before { left: 58px; }
+      #v-chart .ch-more-row:active { background: var(--i-fill4); }
+      #v-chart .ch-more-row .mi { flex: 0 0 30px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: color-mix(in srgb, var(--acc) 20%, var(--i-cell)); color: var(--acc); }
+      #v-chart .ch-more-row .mi svg { width: 18px; height: 18px; }
+      #v-chart .ch-more-row .mt { flex: 1; min-width: 0; }
+      #v-chart .ch-more-row .mv { flex: 0 0 auto; color: var(--i-label2); }
+      #v-chart .ch-more-row .mc { flex: 0 0 auto; width: 8px; height: 13px; color: var(--i-label3); }
+    }
+    /* a narrow phone: replay steps into More so the wheels keep their room */
+    @media (max-width: 379px) and (min-height: 501px) { #v-chart .ch-bar > #ch-replay-btn { display: none !important; } }
+    /* the 320 wide phones: everything a little tighter, still a thumb each */
+    @media (max-width: 359px) and (min-height: 501px) {
+      #v-chart .ch-bar { padding-left: 8px; }
+      #v-chart .ch-bar > #ch-symw { width: 62px; } #v-chart .ch-bar > #ch-tfw { width: 50px; margin-left: 2px; }
+      #v-chart .ch-bar > #ch-tools-btn, #v-chart .ch-bar > #ch-ind-btn, #v-chart .ch-bar > #ch-alerts-btn, #v-chart .ch-bar > #ch-more-btn { width: 44px; height: 44px; min-height: 44px; }
+    }
+    @media (prefers-reduced-motion: reduce) { #v-chart .ch-prail { animation: none; } }
 
     /* ── Today: the morning briefing ─────────────────────────
        The session clock leads, the tape sits under it, then a two-column
@@ -3155,6 +3238,8 @@
     .nu-step.done span { color: var(--faint); text-decoration: line-through; }
     .nu-skip { display: block; width: 100%; background: none; border: 0; padding: 9px 0 7px; color: var(--faint); font: inherit; font-size: 11.5px; cursor: pointer; }
     .rowbtn.fol-back { background: none; border: 0; border-radius: 0; padding: 0; font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; -webkit-tap-highlight-color: transparent; }
+    .rowbtn.fol-back { display: inline-flex; align-items: center; gap: 3px; }
+    .rowbtn.fol-back svg { width: 14px; height: 14px; }
     .rowbtn.fol-back:hover, .rowbtn.fol-back:active { background: none; box-shadow: none; color: var(--gold); }
     .fol-row { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 11px 2px; cursor: pointer; color: var(--ink); font: inherit; text-align: left; -webkit-tap-highlight-color: transparent; }
     .fol-row .av { width: 38px; height: 38px; border-radius: 50%; font-size: 13px; flex-shrink: 0; }
@@ -4445,6 +4530,167 @@
     }
     .crop-vp img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; user-select: none; pointer-events: none; }
     .crop-zoom { width: 260px; max-width: 100%; accent-color: var(--gold); }
+    /* ── the whole app on a phone in Apple's iOS 27 language ──────
+       The chart got it first (see "the chart on a phone in Apple's iOS 27
+       language"); this carries it everywhere else on a phone. The app's own
+       tokens are remapped to iOS's neutral system greys and label shades, so
+       every surface follows without being rewritten; then the shapes: the
+       system font, bold titles, glass circle buttons, a compact floating glass
+       tab bar of icons, capsule segmented controls, 51x31 switches, inset grouped
+       lists with hairlines, capsule buttons, filled fields, glass sheets with a
+       grabber. Gold stays the tint. Desktop is untouched. */
+    @media (max-width: 840px) {
+      :root {
+        --bg: #000000; --panel: #1c1c1e; --panel-2: #2c2c2e; --ink: #ffffff; --muted: #a1a1a6; --faint: #7c7c82; --line: #38383a; --line-bright: #48484a;
+        --i-font: -apple-system, BlinkMacSystemFont, system-ui, 'Inter', 'Segoe UI', Roboto, sans-serif;
+        --i-fill: rgba(120, 120, 128, 0.36); --i-fill3: rgba(118, 118, 128, 0.24); --i-fill4: rgba(118, 118, 128, 0.18); --i-thumb: #636366;
+        --i-glass: rgba(30, 30, 32, 0.72); --i-blur: blur(20px) saturate(1.8);
+        --i-rim: inset 0 0 0 0.5px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+        --i-float: 0 12px 34px rgba(0, 0, 0, 0.45);
+        --i-spring: cubic-bezier(0.32, 1.28, 0.54, 1);
+        --tbseg-track: var(--i-fill3); --tbseg-pill: var(--i-thumb); --tbseg-pill-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), inset 0 0.5px 0 rgba(255, 255, 255, 0.14);
+      }
+      :root[data-theme="light"] {
+        --bg: #f2f2f7; --panel: #ffffff; --panel-2: #e5e5ea; --ink: #000000; --muted: #6c6c70; --faint: #8e8e93; --line: #d8d8dc; --line-bright: #c6c6c8;
+        --i-fill: rgba(120, 120, 128, 0.2); --i-fill3: rgba(118, 118, 128, 0.12); --i-fill4: rgba(116, 116, 128, 0.08); --i-thumb: #ffffff;
+        --i-glass: rgba(249, 249, 251, 0.78);
+        --i-rim: inset 0 0 0 0.5px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        --i-float: 0 12px 30px rgba(0, 0, 0, 0.14);
+        --tbseg-pill-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+      }
+      body { font-family: var(--i-font); -webkit-font-smoothing: antialiased; }
+
+      /* the bar: a bold title, the buttons as glass circles, material once content runs under it */
+      .topbar { padding-top: calc(env(safe-area-inset-top) + 6px); padding-bottom: 8px; gap: 10px; }
+      .topbar h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.12; }
+      body.scrolled .topbar { background: color-mix(in srgb, var(--bg) 70%, transparent); -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); border-bottom-color: transparent; box-shadow: 0 0.5px 0 var(--line); }
+      .topbar .tb-search, .topbar .tb-bell, .topbar .tb-gear { width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: var(--i-fill3); box-shadow: var(--i-rim); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; position: relative; }
+      .topbar .tb-search::after, .topbar .tb-bell::after, .topbar .tb-gear::after { content: ''; position: absolute; inset: -2px; }
+      .topbar .tb-search + .tb-bell { margin-left: 0; }
+      .topbar .tb-search svg, .topbar .tb-bell svg { width: 19px; height: 19px; }
+      .topbar .tb-bell .bcount { top: -2px; right: -2px; }
+
+      /* segmented controls: a capsule track and a thumb that slides */
+      .tbseg { padding: 2px; }
+      .tbseg button { height: 34px; padding: 0 16px; font-size: 14px; font-weight: 600; color: var(--ink); }
+      .tbseg .tbseg-ind { top: 2px; height: 34px; }
+      .seg { background: var(--i-fill3); border: 0; border-radius: 999px; padding: 2px; box-shadow: none; }
+      .seg > button { border-radius: 999px; }
+      .seg-thumb { top: 2px; bottom: auto; height: calc(100% - 4px); border-radius: 999px; background: var(--i-thumb); box-shadow: var(--tbseg-pill-shadow); z-index: 0; }
+      .seg > button { position: relative; z-index: 1; }
+
+      /* the tab bar: iOS 27's floating glass capsule, icons only and compact (D1, 09-27: no words, smaller), the lit tab in gold */
+      :root { --bnav: calc(62px + env(safe-area-inset-bottom)); }
+      .bnav { left: 0; right: 0; width: min(320px, calc(100% - 40px)); margin: 0 auto; height: 52px; padding: 0 4px; border: 0; border-radius: 26px; background: var(--i-glass); -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); box-shadow: var(--i-rim), var(--i-float); }
+      .bnav .bnav-ind { top: 4px; height: 44px; border-radius: 22px; background: var(--i-fill3); box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.12); }
+      .bnav button { color: var(--ink); }
+      .bnav button .ic { width: 23px; height: 23px; }
+      .bnav button .av { width: 25px; height: 25px; }
+      .bnav button.on { color: var(--gold); }
+      .bnav button .bdot { top: 10px; right: calc(50% - 16px); }
+      .bnav button .bcount { top: 5px; }
+
+      /* cards and grouped lists: iOS's inset grouped rows */
+      .block { border: 0; border-radius: 22px; background: var(--panel); }
+      .block-head { border-bottom: 0.5px solid var(--line); padding: 14px 16px; }
+      .block-head h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+      .td-card { border: 0; border-radius: 22px; }
+      .label { font-size: 13px; letter-spacing: -0.005em; color: var(--muted); }
+      .set-index { background: var(--panel); border-radius: 22px; overflow: hidden; padding: 0; }
+      .set-index .set-row { position: relative; min-height: 52px; padding: 10px 16px; border-radius: 0; gap: 14px; }
+      .set-index .set-row + .set-row::before { content: ''; position: absolute; left: 60px; right: 0; top: 0; height: 0.5px; background: var(--line); }
+      .set-row .ico { width: 30px; height: 30px; border-radius: 8px; background: color-mix(in srgb, var(--gold) 20%, var(--panel-2)); color: var(--gold); }
+      .set-row .ico svg { width: 18px; height: 18px; }
+      .set-row .txt b { font-size: 17px; font-weight: 400; letter-spacing: -0.02em; }
+      .set-row .txt small { font-size: 13px; color: var(--muted); }
+      .nb-day { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; text-transform: none; color: var(--muted); padding: 20px 16px 7px; }
+      .nb-row { position: relative; margin: 0; padding: 11px 16px; border-radius: 0; background: var(--panel); }
+      .nb-row + .nb-row::before { content: ''; position: absolute; left: 66px; right: 0; top: 0; height: 0.5px; background: var(--line); }
+      .nb-day + .nb-row, .inbox > .nb-row:first-child { border-radius: 22px 22px 0 0; }
+      .nb-row:has(+ .nb-day), .nb-row:last-child { border-radius: 0 0 22px 22px; }
+      .nb-day + .nb-row:has(+ .nb-day), .nb-day + .nb-row:last-child { border-radius: 22px; }
+      .news-day { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; color: var(--muted); padding: 20px 2px 7px; }
+      .mcard { border-radius: 0; padding: 10px 16px; }
+      .member-grid { background: var(--panel); border-radius: 22px; overflow: hidden; }
+      .member-grid .mcard + .mcard { box-shadow: inset 0 0.5px 0 var(--line); }
+      .cr-cap { padding: 18px 6px 7px; }
+      .cr-item { min-height: 54px; padding: 10px 14px; border-radius: 0; background: var(--panel); color: var(--ink); }
+      .cr-group .cr-item:first-of-type { border-radius: 22px 22px 0 0; }
+      .cr-group .cr-item:last-of-type { border-radius: 0 0 22px 22px; }
+      .cr-group .cr-item:first-of-type:last-of-type { border-radius: 22px; }
+      .cr-group .cr-item + .cr-item::after, .cr-group .cr-item.rich + .cr-item.rich::after { left: 58px; background: var(--line); height: 0.5px; }
+
+      /* controls */
+      .tgl { width: 51px; height: 31px; }
+      .tgl .track { background: var(--i-fill); }
+      .tgl .track::before { width: 27px; height: 27px; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18), 0 1px 1px rgba(0, 0, 0, 0.16); transition: transform 0.32s var(--i-spring), width 0.18s ease; }
+      .tgl input:checked + .track { background: var(--gold); }
+      .tgl input:checked + .track::before { transform: translateX(20px); }
+      .tgl:active .track::before { width: 33px; }
+      .tgl:active input:checked + .track::before { transform: translateX(14px); }
+      .btn { min-height: 44px; padding: 0 22px; border-radius: 22px; background: var(--gold); color: #14110a; font-size: 16px; font-weight: 600; justify-content: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+      .rowbtn { min-height: 40px; border: 0; border-radius: 20px; background: var(--i-fill3); color: var(--ink); font-size: 15px; font-weight: 500; padding: 0 16px; }
+      .inp, select.inp, textarea.inp { min-height: 44px; border: 0; border-radius: 12px; background: var(--i-fill3); color: var(--ink); font-size: 16px; padding: 10px 14px; }
+      .inp:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 70%, transparent); }
+      .td-chip { height: 40px; border: 0; border-radius: 20px; background: var(--i-fill3); box-shadow: var(--i-rim); color: var(--ink); font-size: 15px; font-weight: 500; }
+
+      /* floating things: glass */
+      .nu-pill { border: 0; background: var(--i-glass); -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); box-shadow: var(--i-rim), var(--i-float); font-size: 14px; padding: 10px 18px; }
+      .co-toast { border: 0 !important; border-radius: 24px !important; background: var(--i-glass) !important; -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); box-shadow: var(--i-rim), var(--i-float) !important; color: var(--ink) !important; font-size: 15px !important; font-weight: 500; padding: 12px 18px !important; }
+      .cm-box, .rv-sheet, .pedit-sheet, .pal-box, .keys-box, .vcard-box { border: 0; border-radius: 34px 34px 0 0; background: var(--i-glass); -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); box-shadow: var(--i-rim), 0 -10px 30px rgba(0, 0, 0, 0.3); }
+    }
+    @media (max-width: 840px) and (prefers-reduced-transparency: reduce) {
+      .bnav, .nu-pill, .co-toast, .cm-box, .rv-sheet, .pedit-sheet, .pal-box, .keys-box, .vcard-box, body.scrolled .topbar { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: var(--panel) !important; }
+    }
+    /* ── the pages under Settings, and the last flat views, as iOS lists ──
+       A settings page on a phone reads like the iPhone's own Settings app: a gold
+       back chevron to where it came from, the switches in rounded groups with
+       hairlines between rows and the group names above them in small grey, and
+       each form (account, affiliate, Discord, invite, statistics) in one card.
+       Followers, the library's filters and the news week use iOS capsules, and each
+       indicator on Indicators is its own card. */
+    @media (max-width: 840px) {
+      button.rowbtn.set-back, button.rowbtn.fol-back { display: inline-flex; align-items: center; gap: 1px; min-height: 44px; margin-left: -8px; padding: 0 12px 0 2px; border: 0; border-radius: 0; background: none; color: var(--gold); font-size: 17px; font-weight: 400; letter-spacing: -0.02em; text-decoration: none; }
+      button.rowbtn.set-back svg, button.rowbtn.fol-back svg { width: 22px; height: 22px; stroke-width: 2.4; }
+      button.rowbtn.set-back:hover:not(:disabled), button.rowbtn.set-back:active, button.rowbtn.fol-back:hover, button.rowbtn.fol-back:active { color: var(--gold); background: none; opacity: 0.6; }
+      /* switches in groups */
+      .setpage .block:has(.setgrid > .filters > .tgl) { background: none; padding: 0; }
+      .setpage .setgrid > .filters:has(> .tgl), .setpage .nt-device:not([hidden]) { position: relative; margin: 0; padding: 10px 16px; min-height: 50px; box-sizing: border-box; background: var(--panel); border: 0; border-radius: 0; }
+      .setpage .setgrid > .filters:has(> .tgl) + .filters:has(> .tgl)::before { content: ''; position: absolute; left: 16px; right: 0; top: 0; height: 0.5px; background: var(--line); }
+      .setpage .setgrid > :not(:has(> .tgl)) + .filters:has(> .tgl), .setpage .setgrid > .filters:has(> .tgl):first-child { border-top-left-radius: 22px; border-top-right-radius: 22px; }
+      .setpage .setgrid > .filters:has(> .tgl):not(:has(+ .filters > .tgl)) { border-bottom-left-radius: 22px; border-bottom-right-radius: 22px; }
+      .setpage .setgrid > .filters:has(> .tgl) .label { font-size: 17px; font-weight: 400; letter-spacing: -0.02em; }
+      .setpage .setgrid:has(> .filters > .tgl) > p.label { margin: 26px 16px 7px !important; font-size: 13px; font-weight: 400; color: var(--muted); }
+      .setpage .nt-device:not([hidden]) { border-radius: 22px; margin-bottom: 26px; }
+      /* forms in one card */
+      .setpage .block:not(:has(.setgrid > .filters > .tgl)) { background: var(--panel); border: 0; border-radius: 22px; padding: 14px 16px; }
+      .setpage .block:not(:has(.setgrid > .filters > .tgl)) .block-head { border-bottom: 0; }
+      .setpage .inv, .setpage .stx { background: var(--panel); border-radius: 22px; padding: 16px; }
+      /* the gold back chevron already says where the page sits, so the grey line under the title steps out */
+      body:has(.view.setpage.on) .topbar .crumb { display: none; }
+      /* Followers | Following as a segmented capsule */
+      #v-follows .feed-scopes { display: inline-flex; gap: 0; margin-bottom: 16px; padding: 2px; border: 0; border-radius: 999px; background: var(--i-fill3); }
+      #v-follows .feed-scopes .fs { height: 32px; padding: 0 18px; border-radius: 999px; color: var(--ink); font-size: 14px; font-weight: 600; letter-spacing: -0.01em; text-transform: none; }
+      #v-follows .feed-scopes .fs.on { background: var(--i-thumb); color: var(--ink); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); }
+      /* the library's filters as capsule chips that scroll */
+      .lib-chips { flex-wrap: nowrap; gap: 8px; margin: 0 -16px 16px; padding: 2px 16px; border-bottom: 0; overflow-x: auto; scrollbar-width: none; }
+      .lib-chips::-webkit-scrollbar { display: none; }
+      .lib-bar .lib-chips { margin-bottom: 0; }
+      .lib-chip, .lib-chip:first-child { flex: 0 0 auto; height: 34px; margin: 0; padding: 0 15px; border: 0; border-radius: 17px; background: var(--i-fill4); color: var(--ink); font-size: 14px; font-weight: 600; line-height: 34px; letter-spacing: -0.01em; }
+      .lib-chip.on { background: var(--ink); color: var(--bg); }
+      /* the news week as a capsule */
+      .news-nav { gap: 0; padding: 2px; border-radius: 999px; background: var(--i-fill4); }
+      .news-arrow { width: 38px; height: 34px; padding: 0 0 2px; border-radius: 17px; color: var(--ink); }
+      .news-nav .label { min-width: 96px; font-size: 13px; font-weight: 600; color: var(--ink); text-transform: none; letter-spacing: 0; }
+      /* Indicators: the username and each indicator as a card */
+      #store-tv { background: var(--panel); border: 0; border-radius: 22px; padding: 16px; margin-bottom: 14px; }
+      #store-tv .tvu-row { padding: 0; }
+      #store-tv .tvu-form { width: 100%; }
+      #store-tv .tvu-form .inp { flex: 1; min-width: 0; }
+      .st-row { margin-bottom: 14px; padding: 18px 16px; border: 0; border-radius: 22px; background: var(--panel); }
+      .p-rev-link { color: var(--gold); font-size: 15px; text-decoration: none; min-height: 36px; }
+      .p-link { font-size: 15px; }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 </head>
@@ -5063,6 +5309,7 @@
         <section class="view" id="v-chart">
           <div class="ch-wrap">
             <div class="ch-bar">
+              <div class="ch-wheel" id="ch-symw" role="listbox" aria-label="Symbol"></div><div class="ch-wheel" id="ch-tfw" role="listbox" aria-label="Interval"></div>
               <button class="ch-ib" id="ch-back" type="button" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
               <button class="ch-ib" id="ch-side" type="button" title="Hide the sidebar" aria-label="Hide the sidebar" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16M5.5 8h1M5.5 11h1"/></svg></button>
               <div class="ch-sym"><button type="button" class="ch-symbtn" id="ch-sym-btn" title="Symbol search" aria-label="Symbol search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><b id="ch-sym-name">NQ</b></button><span class="ch-sess" id="ch-sess"></span></div>
@@ -5081,6 +5328,7 @@
               <button class="ch-ib" id="ch-layouts-btn" type="button" aria-label="Layouts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
               <button class="ch-ib" id="ch-settings-btn" type="button" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
               <button class="ch-ib" id="ch-full" type="button" title="Fullscreen" aria-label="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+              <button class="ch-ib" id="ch-more-btn" type="button" title="More" aria-label="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
             </div>
             <div class="ch-body">
               <div class="ch-tools" id="ch-tools" aria-label="Drawing tools"></div>
@@ -5407,7 +5655,7 @@
         </section>
 
         <section class="view setpage" id="v-follows">
-          <div style="max-width:640px;margin-bottom:14px;"><button class="rowbtn fol-back" id="follows-back" type="button">&larr; Back</button></div>
+          <div style="max-width:640px;margin-bottom:14px;"><button class="rowbtn fol-back" id="follows-back" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Back</button></div>
           <div class="feed-scopes" style="max-width:640px;">
             <button class="label fs on" id="fol-tab-followers" type="button">Followers</button>
             <button class="label fs" id="fol-tab-following" type="button">Following</button>
@@ -6284,7 +6532,7 @@
       if (view === 'chat' && !chat.loaded) loadChat()
       if (view === 'library') { if (!LIB.loaded) loadLibrary(); markRead('recaps') }
       if (view === 'gex') gexShown()
-      if (view === 'chart' && prev !== 'chart') CH_FROM = prev
+      if (view === 'chart' && prev !== 'chart') { CH_FROM = prev; syncBnav(view) }
       if (view === 'chart') chartShown(); else chartHidden()
       if (view === 'feed') feedShown()
       if (view === 'overview') tdShown(); else tdHidden()
@@ -6462,7 +6710,7 @@
     }
     function syncBnav(view) {
       const nav = el('bnav'); if (!nav) return
-      const slot = dockSlot(view ?? curView())
+      const v = view ?? curView(), slot = dockSlot(v === 'chart' ? (CH_FROM || 'overview') : v)   // the chart is pushed over the tab it came from
       nav.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.view === slot))
       // the pill slides under whichever slot is lit (first placement is silent)
       const ind = nav.querySelector('.bnav-ind'), lit = nav.querySelector('button.on')
@@ -15844,7 +16092,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        Here the pencil opens a rail down the left edge of the chart: the cursor, the
        tools you starred, every tool one tap further, then the magnet, stay, lock,
        hide, undo, redo and delete. Starring happens in the Drawing tools sheet. */
-    const CH_TOOL_FAVS_DEF = ['trend', 'hline', 'fib', 'rect', 'long']
+    const CH_TOOL_FAVS_DEF = ['long', 'rect', 'short', 'trend', 'brush', 'hray', 'hline', 'text', 'range', 'fib']
     const chToolFavs = () => (Array.isArray(CH.s.toolFavs) ? CH.s.toolFavs : CH_TOOL_FAVS_DEF).filter((t) => CH_TOOLS[t] && !['cross', 'dot', 'arrow'].includes(t))
     function chToolFavToggle(t) { const f = chToolFavs().slice(), at = f.indexOf(t); if (at >= 0) f.splice(at, 1); else f.push(t); CH.s.toolFavs = f; chSave(); chPrailBuild() }
     const CH_STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.5l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></svg>'
@@ -15861,7 +16109,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chPrailBuild() {
       const r = el('ch-prail'); if (!r) return
       const b = (id, cls, label, icon, attrs = '') => `<button type="button"${id ? ` id="${id}"` : ''} class="${cls}" aria-label="${label}" title="${label}"${attrs}>${CH_I(icon)}</button>`
-      r.innerHTML = b('', 'pr-tool', 'Cursor', CH_TOOLS.cross.icon, ' data-tool="cross"')
+      r.innerHTML = '<button type="button" id="ch-pr-grip" class="pr-grip" aria-label="Hide the drawing tools" title="Hide the drawing tools"><svg viewBox="0 0 18 8" fill="currentColor" aria-hidden="true"><circle cx="3" cy="2" r="1.3"/><circle cx="9" cy="2" r="1.3"/><circle cx="15" cy="2" r="1.3"/><circle cx="3" cy="6" r="1.3"/><circle cx="9" cy="6" r="1.3"/><circle cx="15" cy="6" r="1.3"/></svg></button>'
+        + b('', 'pr-tool', 'Cursor', CH_TOOLS.cross.icon, ' data-tool="cross"')
         + chToolFavs().map((t) => b('', 'pr-tool', CH_TOOLS[t].name, CH_TOOLS[t].icon, ` data-tool="${t}"`)).join('')
         + b('ch-pr-all', 'pr-all', 'All drawing tools', CH_PR.all) + '<i class="pr-sep"></i>'
         + b('ch-pr-mag', 'pr-mag', 'Magnet', CH_PR.mag) + b('ch-pr-stay', '', 'Stay in drawing mode', CH_PR.stay) + b('ch-pr-lock', '', 'Lock all drawings', CH_PR.lock) + b('ch-pr-eye', '', 'Hide drawings', CH_PR.eye)
@@ -15871,6 +16120,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         r.addEventListener('click', (e) => {
           const x = e.target.closest('button'); if (!x || x.disabled) return
           if (x.dataset.tool) { const t = x.dataset.tool; chSetTool(t); if (t !== 'cross' && t !== 'eraser') toast(`${CH_TOOLS[t].name}: tap the chart, or press and drag.`, 1800); return }
+          if (x.id === 'ch-pr-grip') { CH.s.prail = false; chSave(); chPrailShow(); chSetTool('cross'); return }
           if (x.id === 'ch-pr-all') chSheet(CH.sheet === 'tools' ? null : 'tools')
           else if (x.id === 'ch-pr-mag') { chMagnet(); toast(CH.s.magnet === 'off' ? 'Magnet off' : CH.s.magnet === 'weak' ? 'Magnet: weak, snaps to O H L C within reach' : 'Magnet: strong, every point lands on O H L C', 1600) }
           else if (x.id === 'ch-pr-stay') { CH.s.stay = !CH.s.stay; chSave(); chStayUi(); toast(CH.s.stay ? 'Stays in the tool after each drawing' : 'Back to the cursor after each drawing', 1600) }
@@ -15928,7 +16178,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       CH.sheet = kind || null
       if (!kind) { sh.hidden = true; scrim.hidden = true; return }
       body.textContent = ''
-      el('ch-sheet-title').textContent = kind === 'tf' ? 'Interval' : 'Drawing tools'
+      el('ch-sheet-title').textContent = kind === 'tf' ? 'Interval' : kind === 'more' ? 'More' : 'Drawing tools'
       sh.dataset.kind = kind
       const h = (t) => { const x = document.createElement('div'); x.className = 'h'; x.textContent = t; body.appendChild(x) }
       if (kind === 'tf') {
@@ -15955,6 +16205,27 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const apply = () => { if (!i.value.trim()) return; chIntervalApply(i.value); chSheet(null) }
         go.addEventListener('click', apply); i.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') apply() })
         row.append(i, go); body.appendChild(row)
+      } else if (kind === 'more') {
+        // everything the toolbar has no room for, as grouped rows; each one does what its desktop button does
+        const svgOf = (id) => el(id)?.querySelector('svg')?.outerHTML || ''
+        const CHEV = '<svg class="mc" viewBox="0 0 8 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 1.5l5 5-5 5"/></svg>'
+        const ic = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+        const wrap = document.createElement('div'); wrap.className = 'ch-more'
+        const grp = (rows) => {
+          const g = document.createElement('div'); g.className = 'ios-grp'
+          for (const [label, icon, fn, val] of rows) {
+            const b = document.createElement('button'); b.type = 'button'; b.className = 'ch-more-row'
+            b.innerHTML = `<span class="mi">${icon}</span><span class="mt">${label}</span>${val ? `<span class="mv">${val}</span>` : ''}${CHEV}`
+            b.addEventListener('click', () => { chSheet(null); setTimeout(fn, 0) })
+            g.appendChild(b)
+          }
+          wrap.appendChild(g)
+        }
+        const full = el('v-chart').classList.contains('ch-fullscreen'), tz = el('ch-tz')?.firstChild?.textContent || ''
+        grp([['Chart type', svgOf('ch-type-btn'), () => chMenu('type')], ['Layouts', svgOf('ch-layouts-btn'), () => chMenu('layouts')], ['Replay', svgOf('ch-replay-btn'), () => el('ch-replay-btn').click()]])
+        grp([['Go to date', svgOf('ch-goto'), () => el('ch-goto').click()], ['Timezone', ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'), () => chTzMenu(), tz], [full ? 'Exit full screen' : 'Full screen', svgOf('ch-full'), () => el('ch-full').click()]])
+        grp([['Snapshot', svgOf('ch-snap-btn'), () => el('ch-snap-btn').click()], ['Objects', ic('<path d="M4 6h16M4 12h16M4 18h10"/>'), () => chMenu('objects')], ['Settings', svgOf('ch-settings-btn'), () => chMenu('settings')]])
+        body.appendChild(wrap)
       } else {
         for (const [g, ts] of CH_GROUPS) {
           h(CH_GROUP_NAMES[g] || g)
@@ -16588,8 +16859,63 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     // the bar's row IS the favourites
     // keep the chip on screen in the middle of the strip when it scrolls
+    function chTfLabels() {
+      const order = CH_IVS.flatMap(([, l]) => l), rank = (x) => { const k = order.indexOf(x); return k < 0 ? (chIvMins(x) || 0) / 1e4 : k }
+      return chPhone() && CH_TF[CH.tf] && !chFavs().includes(CH.tf) ? [...chFavs(), CH.tf].sort((a, b) => rank(a) - rank(b)) : chFavs()
+    }
+    /* ── the symbol and interval wheels ──
+       Upright, the phone's toolbar carries the symbol and the interval as two small
+       picker wheels, the way TradingView's app does: flick one and the chart follows
+       when it settles, tap the middle row for the whole list. The neighbours sit
+       faded above and below so a flick shows where it will land. Rows are 26px. */
+    function chWheels() {
+      const sw = el('ch-symw'), tw = el('ch-tfw'); if (!sw || !tw) return
+      if (!sw.dataset.wired) {
+        sw.dataset.wired = '1'
+        chWheelWire(sw, (v) => { if (v !== CH.sym && CH_SYMS[v]) { hap('light'); chSetSymbol(v) } }, () => el('ch-sym-btn').click())
+        chWheelWire(tw, (v) => { if (v !== CH.tf && CH_TF[v]) { hap('light'); chSetTf(v) } }, () => chSheet(CH.sheet === 'tf' ? null : 'tf'))
+      }
+      chWheelSet(sw, Object.keys(CH_SYMS), CH.sym)
+      chWheelSet(tw, chTfLabels(), CH.tf)
+    }
+    function chWheelSet(w, vals, cur) {
+      const key = vals.join(' ')
+      if (w.dataset.k !== key) { w.dataset.k = key; w.innerHTML = vals.map((v) => `<button type="button" role="option" data-v="${v}">${v}</button>`).join('') }
+      for (const b of w.children) { const on = b.dataset.v === cur; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)) }
+      if (!w.clientHeight || w._touch || w._moving) return
+      const top = Math.max(0, vals.indexOf(cur)) * 26
+      if (Math.abs(w.scrollTop - top) > 1) w.scrollTop = top
+      chWheelPaint(w)
+    }
+    // the rows turn away from the middle like a drum: smaller and fainter the further off they sit
+    function chWheelPaint(w) {
+      const c = w.scrollTop / 26; let k = 0
+      for (const b of w.children) { const d = Math.min(Math.abs(k - c), 1.5); b.style.opacity = (1 - d * 0.46).toFixed(3); b.style.transform = `scale(${(1 - Math.min(d, 1) * 0.18).toFixed(3)})`; k++ }
+    }
+    function chWheelWire(w, commit, open) {
+      let t = 0, raf = 0
+      const settle = () => {
+        clearTimeout(t); if (w._touch) return
+        w._moving = false
+        const b = w.children[Math.max(0, Math.min(w.children.length - 1, Math.round(w.scrollTop / 26)))]
+        if (b && !b.classList.contains('on')) commit(b.dataset.v)
+      }
+      const later = () => { clearTimeout(t); t = setTimeout(settle, 160) }
+      w.addEventListener('scroll', () => { w._moving = true; if (!raf) raf = requestAnimationFrame(() => { raf = 0; chWheelPaint(w) }); later() }, { passive: true })
+      w.addEventListener('scrollend', settle)
+      // a finger resting on the drum holds it: nothing commits until it lifts
+      w.addEventListener('touchstart', () => { w._touch = true }, { passive: true })
+      const up = () => { w._touch = false; later() }
+      w.addEventListener('touchend', up, { passive: true }); w.addEventListener('touchcancel', up, { passive: true })
+      w.addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b) return
+        if (b.classList.contains('on')) open()
+        else w.scrollTo({ top: [...w.children].indexOf(b) * 26, behavior: 'smooth' })
+      })
+    }
     function chTfStripSync(smooth = true) {
       if (!chPhone()) return
+      chWheels()
       const bar = el('ch-tf'), on = bar?.querySelector('button.on'); if (!on || !bar.clientWidth) return
       const r = on.getBoundingClientRect(), br = bar.getBoundingClientRect(), dx = (r.left + r.width / 2) - (br.left + (br.width - 38) / 2)
       const th = bar.querySelector(':scope > .seg-thumb'); if (th) { th.style.opacity = '1'; th.style.width = on.offsetWidth + 'px'; th.style.transform = `translateX(${on.offsetLeft}px)` }
@@ -16600,8 +16926,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const any = el('ch-tf-any')
       for (const b of [...bar.querySelectorAll('button[data-tf]')]) b.remove()
       // on a phone the interval on screen always has a chip, starred or not, so the strip never loses you
-      const order = CH_IVS.flatMap(([, l]) => l), rank = (x) => { const k = order.indexOf(x); return k < 0 ? (chIvMins(x) || 0) / 1e4 : k }
-      const labels = chPhone() && CH_TF[CH.tf] && !chFavs().includes(CH.tf) ? [...chFavs(), CH.tf].sort((a, b) => rank(a) - rank(b)) : chFavs()
+      const labels = chTfLabels()
       for (const label of labels) {
         chIvRegister(label)
         const b = document.createElement('button'); b.type = 'button'; b.dataset.tf = label; b.textContent = label
@@ -17196,6 +17521,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-tf-btn').addEventListener('click', () => chSheet(CH.sheet === 'tf' ? null : 'tf')); chTfBtn()
       el('ch-tools-btn').addEventListener('click', () => { if (chPhone()) { CH.s.prail = !CH.s.prail; chSave(); chPrailShow(); if (!CH.s.prail) chSetTool('cross') } else chSheet(CH.sheet === 'tools' ? null : 'tools') })
       el('ch-sheet-close').addEventListener('click', () => chSheet(null)); el('ch-sheet-scrim').addEventListener('click', () => chSheet(null))
+      el('ch-more-btn').addEventListener('click', () => chSheet(CH.sheet === 'more' ? null : 'more'))
+      // while a sheet, a panel or the press-and-hold menu is up, the tab bar tucks under the chart so it is covered like on iOS
+      { const ids = ['ch-sheet', 'ch-menu', 'ch-ctx'], sync = () => document.body.classList.toggle('ch-over', ids.some((i) => !el(i).hidden)), mo = new MutationObserver(sync); for (const i of ids) mo.observe(el(i), { attributes: true, attributeFilter: ['hidden'] }) }
+      window.addEventListener('resize', () => { if (CH.on && chPhone()) chWheels() })
       el('ch-snap-btn').addEventListener('click', (e) => { e.stopPropagation(); const r = el('ch-snap-btn').getBoundingClientRect(), st = el('ch-stage').getBoundingClientRect(); chCtx([{ label: 'Post to the feed', fn: () => chShot('post') }, { label: 'Send in chat', fn: () => chShot('chat') }, { sep: true }, { label: 'Save image', kbd: 'Alt+S', fn: () => chShot('save') }, { label: 'Copy image', fn: () => chShot('copy') }], r.left - st.left - 140, 4) })
       const ib = el('ch-int'), ibi = ib.querySelector('input')
       ibi.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { chIntervalApply(ibi.value); ib.hidden = true } else if (e.key === 'Escape') ib.hidden = true })
@@ -17208,7 +17537,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-settings-btn').addEventListener('click', () => chMenu('settings'))
       el('ch-replay-btn').addEventListener('click', () => { if (CH.replay.on) chReplayExit(); else { CH.replay.arm = !CH.replay.arm; chReplayUi(); toast(CH.replay.arm ? (matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click') + ' the bar to start replaying from.' : 'Replay cancelled.', 2500) } })
       el('ch-back').addEventListener('click', () => { if (el('v-chart').classList.contains('ch-fullscreen')) el('ch-full').click(); showView(CH_FROM && CH_FROM !== 'chart' && tabOf(CH_FROM) ? CH_FROM : 'overview') })
-      el('ch-full').addEventListener('click', () => { const full = el('v-chart').classList.toggle('ch-fullscreen'); el('ch-full').setAttribute('aria-pressed', String(full)); el('ch-full').setAttribute('aria-label', full ? 'Exit fullscreen' : 'Fullscreen'); chFit(); setTimeout(chDraw, 50) })
+      el('ch-full').addEventListener('click', () => { const full = el('v-chart').classList.toggle('ch-fullscreen'); document.body.classList.toggle('ch-fs', full); el('ch-full').setAttribute('aria-pressed', String(full)); el('ch-full').setAttribute('aria-label', full ? 'Exit fullscreen' : 'Fullscreen'); chFit(); setTimeout(chDraw, 50) })
       el('ch-menu-close').addEventListener('click', () => chMenu(null)); chDlgWire()
       // the sidebar folds on request and stays folded for the next visit
       { const b = el('ch-side')
@@ -17259,6 +17588,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function chSymUi() {
       const b = el('ch-sym-name'); if (b) b.textContent = CH.sym
+      if (chPhone()) chWheels()
       const cv = el('ch-canvas'); if (cv) cv.setAttribute('aria-label', CH.sym + ' chart')
     }
     function chSetSymbol(sym) {

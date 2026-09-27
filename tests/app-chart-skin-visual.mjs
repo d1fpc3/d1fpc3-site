@@ -104,7 +104,10 @@ async function run(vpName) {
   }
 
   // 4. settings: no presets, tabs, footer
-  await page.click("#ch-settings-btn"); await page.waitForTimeout(350);
+  // upright on a phone Settings sits under More (TradingView's layout, D1 09-27)
+  if (vpName === "phone") { await page.click("#ch-more-btn"); await page.waitForTimeout(250); await page.locator("#ch-sheet .ch-more-row", { hasText: "Settings" }).first().click(); }
+  else await page.click("#ch-settings-btn");
+  await page.waitForTimeout(350);
   const dlg = await page.evaluate(() => ({ open: !document.getElementById("ch-menu").hidden, title: document.getElementById("ch-menu-title").textContent, presets: document.querySelectorAll(".ch-preset").length, tabs: [...document.querySelectorAll(".ch-dlg-nav button[data-t]")].map((b) => b.textContent), reset: !!document.getElementById("ch-set-reset"), done: document.querySelector(".ch-dlg-foot .ok")?.textContent, pills: document.querySelectorAll("#ch-menu-body .ch-cbtn").length, caps: [...document.querySelectorAll("#ch-menu-body .ch-h")].some((h) => getComputedStyle(h).textTransform === "uppercase") }));
   check(dlg.open && dlg.title === "Settings" && dlg.presets === 0 && dlg.tabs.join("|") === "Symbol|Canvas|Scales and lines|Volume|Drawing" && dlg.reset && dlg.done === "Done" && dlg.pills > 10 && !dlg.caps, `settings: no presets, tabs ${dlg.tabs.join(", ")}, ${dlg.pills} colour pills, Done`);
   await page.screenshot({ path: `${OUT}/${tag}-settings.png` });
