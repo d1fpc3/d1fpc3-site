@@ -77,6 +77,11 @@ async function run(vpName) {
     check(STALE ? /data from \w{3} \d{1,2}:\d{2} [AP]M, \d+[mh] old/.test(row.text) : /as of (\w{3} )?\d{1,2}:\d{2}/.test(row.text), STALE ? "a quiet feed mid-session says how old the print is" : "legend says which print the levels came from");
     const pill = await page.evaluate(() => { const p = document.querySelector("#ch-legend .gx-rg"); if (!p) return null; const cs = getComputedStyle(p); return { k: p.dataset.k, color: cs.color, bg: cs.backgroundColor, radius: cs.borderRadius }; });
     check(!!pill && pill.bg !== "rgba(0, 0, 0, 0)" && parseFloat(pill.radius) > 8, `regime pill painted: ${JSON.stringify(pill)}`);
+    // the vol side (worker /vol.json): direction pill, VXN with its change, the session 1 sd in points
+    await page.waitForFunction(() => !!document.querySelector("#ch-legend .gx-vol"), null, { timeout: 15000 }).catch(() => {});
+    const vol = await page.evaluate(() => { const r = document.querySelector('#ch-legend .ln[data-ind="gex"]'); const p = r?.querySelector(".gx-vol"); return p ? { k: p.dataset.k, text: r.textContent, title: r.getAttribute("title"), bg: getComputedStyle(p).backgroundColor } : null; });
+    check(!!vol && /Vol (rising|falling|steady)/.test(vol.text) && /VXN\s?\d+\.\d\d/.test(vol.text) && /1σ\s?±[\d,]+/.test(vol.text), `vol read: ${vol ? vol.text.replace(/^.*?(Vol)/, "$1").slice(0, 60) : "missing"}`);
+    check(!!vol && /Implied vol is (rising|falling|steady)/.test(vol.title) && /standard deviation for a session is about ±\d+ points/.test(vol.title), "hover explains the vol read");
     const lb = await page.locator('#ch-legend .ln[data-ind="gex"]').boundingBox();
     if (lb) await page.screenshot({ path: `${OUT}/${vpName}-${theme}-gex-legend.png`, clip: { x: lb.x - 6, y: lb.y - 30, width: Math.min(760, lb.width + 40), height: lb.height + 40 } });
     check((row.title || "").length > 30 && !/undefined|null|NaN/.test(row.title), `hover read: ${row.title}`);

@@ -1407,6 +1407,17 @@
     .ch-legend .gx-d { font-style: normal; font-size: 11.5px; color: var(--ink); opacity: 0.72; font-variant-numeric: tabular-nums; }
     .ch-legend i.gx-at.old { display: inline-flex; align-items: center; height: 19px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; color: #e6c677; background: #2a2416; box-shadow: inset 0 0 0 1px rgba(201,162,74,0.5); }
     @media (prefers-reduced-motion: reduce) { .ch-legend i.gx-rg::before { animation: none; } }
+    /* the vol side of the read (VXN): which way implied vol is going today, on the same plate as the pill */
+    .ch-legend i.gx-vol {
+      --c: #8f96a3; display: inline-flex; align-items: center; gap: 5px; height: 19px; padding: 0 8px 0 7px; border-radius: 999px;
+      font-size: 11.5px; font-weight: 600; color: color-mix(in srgb, var(--c) 70%, #ffffff);
+      background: color-mix(in srgb, var(--c) 18%, #111317); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 42%, transparent);
+    }
+    .ch-legend i.gx-vol::before { content: ''; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; }
+    .ch-legend i.gx-vol[data-k="rising"] { --c: #ef5350; } .ch-legend i.gx-vol[data-k="rising"]::before { border-bottom: 6px solid var(--c); }
+    .ch-legend i.gx-vol[data-k="falling"] { --c: #22b35a; } .ch-legend i.gx-vol[data-k="falling"]::before { border-top: 6px solid var(--c); }
+    .ch-legend i.gx-vol[data-k="steady"]::before { width: 7px; height: 2px; border: 0; border-radius: 1px; background: var(--c); }
+    .ch-legend i.gx-vol[data-k="stress"] { --c: #e0a13a; } .ch-legend i.gx-vol[data-k="stress"]::before { display: none; }
     /* the bar under the time axis */
     .ch-foot { display: flex; align-items: center; height: 38px; flex-shrink: 0; padding: 0 6px; border-top: 1px solid var(--line); background: var(--panel); gap: 1px; }
     #v-chart .ch-foot .ch-axl { position: static; height: auto; border: 0; background: none; align-items: center; gap: 1px; }
@@ -13035,15 +13046,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* D1's chart, as the chart's own look: grey canvas, white up, muted red
        down, no grid. Named so the defaults below read as one decision rather
        than six unexplained hex codes. */
-    const D1_BG = '#808080', D1_UP = '#ffffff', D1_DN = '#808080'   // down = the canvas, outlined in white below
-    const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP, wickDown: D1_UP, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, legendOhlc: true, legendInds: true, legendVals: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
+    const D1_BG = '#808080', D1_UP = '#ffffff', D1_DN = '#faa1a4'
+    const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP, wickDown: D1_DN, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, legendOhlc: true, legendInds: true, legendVals: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
       // LIT ships curated, not complete: the levels price reacts to are on, the ten
       // busier parts are one toggle away in the LIT menu. litV stamps the migration.
       lit: true, litV: 2, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: false, litKo: false, litPo3: false, litEighths: false, litGold: true, litVector: true, litDays: 3,
       litPm: false, litNwog: false, litDr: false, litDrBack: 3, litSig: false, litSig1: false, litSigAnc: false, litDs: true, litDsWeek: true, litOpen22: false, litLdn: false, litWm: true, litAlerts: true,
       litPmC: '', litPmW: 2, litNwogC: '', litNwogF: 0.12, litDrC: '', litDrHlC: '', litDrW: 1, litSigC: '', litSigW: 1, litDsC: '', litOpen22C: '', litOpen22W: 1, litLdnC: '', litLdnF: 0.1, litWmC: '',
       // chart style (empty colour = the theme token)
-      accentC: '', magnet: 'off', borderUp: D1_UP, borderDown: D1_UP, wicks: true, bodyW: 'wide', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: false, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
+      accentC: '', magnet: 'off', borderUp: D1_UP, borderDown: D1_DN, wicks: true, bodyW: 'wide', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: false, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
       volUp: '', volDown: '', volA: 0.35, volSize: 'normal', volMa: false, volMaN: 20, volMaC: '',
       // indicators: moving averages are a list, VWAP has bands, LIT and GEX carry a colour and a width per part
       ma: null, vwapC: '', vwapW: 1.2, vwapStyle: 'dash', vwapBands: false, vwapBandC: '', vwapBandA: 0.08, prevDayC: '',
@@ -13173,10 +13184,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* Saved settings hold every key, so a new default never reaches anyone who has
        touched the chart once. This flips the ten busy LIT parts off a single time,
        stamps litV, and never runs again. Colours, widths and the rest are left alone. */
-    if (CH.s.lookV !== 3) {
+    if (CH.s.lookV !== 4) {
       CH.s.bg = ''; CH.s.bg2 = ''; CH.s.up = D1_UP; CH.s.down = D1_DN; CH.s.wickUp = D1_UP; CH.s.wickDown = D1_DN
-      CH.s.borderUp = D1_UP; CH.s.borderDown = D1_UP; CH.s.wickDown = D1_UP; CH.s.grid = false; CH.s.gridV = false; CH.s.textC = ''
-      CH.s.bodyW = 'wide'; CH.s.lookV = 3
+      CH.s.borderUp = D1_UP; CH.s.borderDown = D1_DN; CH.s.wickDown = D1_DN; CH.s.grid = false; CH.s.gridV = false; CH.s.textC = ''
+      CH.s.bodyW = 'wide'; CH.s.lookV = 4
       try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {}
     }
     if (CH.s.litV !== 2) { for (const k of ['litMarks', 'litKo', 'litPo3', 'litEighths', 'litPm', 'litNwog', 'litDr', 'litSig', 'litOpen22', 'litLdn']) CH.s[k] = false; CH.s.litV = 2; try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {} }
@@ -14906,6 +14917,28 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (chSession().key === 'open' && mins > 35) return `<i class="gx-at old">data from ${when}, ${mins < 120 ? mins + 'm' : Math.round(mins / 60) + 'h'} old</i>`
       return `<span class="gx-at">as of ${when}</span>`
     }
+    // the vol side: VXN and the VIX curve from the worker's /vol.json, which pulls on request and
+    // holds a read 20 seconds, so a 30 second poll is as fresh as the source gets
+    CH.vol = null
+    async function chVolLoad() {
+      if (!(state.owned.has('d1-gex') || state.isMod || state.isAdmin) || document.hidden) return
+      try { const r = await fetch(`${GEX_URL}/vol.json`, { cache: 'no-store' }); if (r.ok) { CH.vol = await r.json(); chDraw() } } catch {}
+    }
+    function chVolBits(last) {
+      const v = CH.vol, q = v?.vxn; if (!q || q.last == null) return ''
+      const k = v.trend || 'steady', lab = k === 'rising' ? 'Vol rising' : k === 'falling' ? 'Vol falling' : 'Vol steady'
+      const sd = v.dailySd && last ? Math.round(last * v.dailySd) : null
+      return `<i class="gx-vol" data-k="${k}">${lab}</i><span>VXN <i>${q.last.toFixed(2)}</i>${q.chg != null ? ` <em class="gx-d">${q.chg >= 0 ? '+' : '−'}${Math.abs(q.chg).toFixed(2)}</em>` : ''}</span>${sd ? `<span>1σ <i>±${sd.toLocaleString()}</i></span>` : ''}${v.term?.state === 'stressed' ? '<i class="gx-vol" data-k="stress">Curve inverted</i>' : ''}`
+    }
+    // context in words for the hover, mechanism only
+    function chVolRead(last) {
+      const v = CH.vol, q = v?.vxn; if (!q || q.last == null) return ''
+      const t = v.trend === 'falling' ? 'Implied vol is falling: puts dealers are short carry less delta, so their short hedge shrinks and they buy futures back (vanna).'
+        : v.trend === 'rising' ? 'Implied vol is rising: puts dealers are short carry more delta, so they sell futures into it (vanna).' : 'Implied vol is steady.'
+      const sd = v.dailySd && last ? ` One standard deviation for a session is about ±${Math.round(last * v.dailySd)} points (VXN ${q.last.toFixed(2)}).` : ''
+      const term = v.term?.state === 'stressed' ? ' The VIX sits above the 3-month VIX: the market is paying more for protection now than later.' : v.term?.state === 'flat' ? ' The VIX curve is flat.' : ''
+      return t + sd + term
+    }
     // the print the newest session is painted from: live while it trades, its morning print once the market is shut
     function chGexNow() { const live = chGexLiveFor(); if (!live || chSession().key === 'open') return live; return chGexPrint(live.generatedAt.slice(0, 10)) || live }
     function chPaintGex(ctx, L, T, R) {
@@ -15295,7 +15328,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.s.cmp) { const cmp = chCompare(); const cv = cmp?.v[i]; const c0 = cmp ? [...cmp.v].slice(0, Math.max(0, i)).reverse().find((x) => x != null) : null; rows.push(`<div class="ln" data-ind="cmp"><span class="nm" style="color:${CH.s.cmpC || '#ff9800'}">${cmp?.peer || chCmpSym()}</span><i>${cv != null ? chPx(cv) : '–'}</i>${cv != null && c0 != null ? `<span class="${cv >= c0 ? 'up' : 'down'}">${chPts(cv - c0)}</span>` : ''}${ic('cmp', 'ind:cmp')}</div>`) }
       if (CH.s.smt) rows.push(`<div class="ln" data-ind="smt"><span class="nm">SMT</span><span>${chSmtPeer()} ${CH.s.smtLen || 5}</span>${ic('smt', 'ind:smt')}</div>`)
       if (CH.s.prevDay && !CH.s.lit) rows.push(`<div class="ln" data-ind="prev"><span class="nm">PDH / PDL</span>${ic('prevDay', 'ind:prev')}</div>`)
-      if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${chGexRead(g, last)}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${ic('gex', 'ind:gex')}</div>`) }
+      if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${[chGexRead(g, last), chVolRead(last)].filter(Boolean).join(' ')}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${chVolBits(last)}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${ic('gex', 'ind:gex')}</div>`) }
       const html = rows.join('')
       const shape = (CH.s.legendOhlc === false ? 'o' : '') + (CH.s.legendInds === false ? 'i' : '') + (CH.s.legendVals === false ? 'v' : '')
       if (lg._html !== html || lg._shape !== shape) { lg._html = html; lg._shape = shape; lg.innerHTML = html; chLegendTrim(lg) }
@@ -16886,7 +16919,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
         button('Reset every LIT colour', () => { for (const [, , cKey, wKey, fKey, c2Key] of CH_LIT_PARTS) { S[cKey] = ''; if (c2Key) S[c2Key] = ''; if (wKey) S[wKey] = CH_DEFAULTS[wKey]; if (fKey) S[fKey] = CH_DEFAULTS[fKey] } chSave(); chDraw(); chMenu('ind:lit') })
       } else if (which === 'ind:gex') {
-        toggle('gex', 'Show D1 GEX', 'Per session from the 9:30 print', () => { if (S.gex) chGexWarm() })
+        toggle('gex', 'Show D1 GEX', 'Per session from the 9:30 print', () => { if (S.gex) { chGexWarm(); chVolLoad() } })
         row('Line width', wselEl('gexW', 1)); toggle('gexLabels', 'Labels', 'Name on each zone'); toggle('gexPx', 'Price in labels', 'Adds the NQ price after the name'); toggle('gexSwing', 'Swing book', 'Walls and flip from the further-out expiries'); row('Zone height', rangeEl('gexBand', 0, 15, 0.5, 6), 'NQ points each side, 0 = lines'); row('Gamma levels shown', rangeEl('gexRn', 0, 10, 1, 10), 'Γ-1 is the biggest strike')
         header('Levels')
         for (const [key, label, cKey] of CH_GEX_PARTS) { const els = [colorEl(cKey, 'default')]; if (key === 'gexGtbr') { const r = rangeEl('gexGtbrF', 0, 0.4, 0.01, 0.06); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) } partRow(label, '', els, tglEl(key)) }
@@ -17267,6 +17300,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function chartShown() {
       CH.on = true; chWire(); chSkinNow(); chFit(); chTzLabel(); chSymUi(); if (CH.s.lit && CH.s.litSig !== false) chVixLoad()
       if (CH.s.gex) chGexWarm()
+      clearInterval(CH.volT); if (CH.s.gex) chVolLoad(); CH.volT = setInterval(() => { if (CH.on && CH.s.gex) chVolLoad() }, 30_000)
       if (CH.s.htf) chHtfWarm()
       clearInterval(CH.clock); CH.clock = setInterval(() => { if (CH.on && !document.hidden) chDraw() }, 1000)
       if (CH.s.smt || CH.s.cmp) chSmtWarm()
@@ -17277,7 +17311,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       else chTail(true)
       chSchedule()
     }
-    function chartHidden() { CH.on = false; clearTimeout(CH.timer); CH.timer = null; clearInterval(CH.clock); CH.clock = null; chMenu(null) }
+    function chartHidden() { CH.on = false; clearTimeout(CH.timer); CH.timer = null; clearInterval(CH.clock); CH.clock = null; clearInterval(CH.volT); CH.volT = null; chMenu(null) }
     // where the clock is in the futures week, for the poll cadence and the pill
     function chSession() {
       const p = {}; for (const x of new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date())) p[x.type] = x.value
