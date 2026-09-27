@@ -4186,6 +4186,10 @@
         </div>
         <div class="grp grp-tools">
           <div class="side-cap">Tools</div>
+        <button class="tab" data-view="lab" data-title="Tape and gamma" data-crumb="">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M7 15V9"/><path d="M12 15V5"/><path d="M17 15v-3"/><path d="M5 8c3 0 4 4 7 4s4-6 7-6"/></svg>
+          Tape and gamma
+        </button>
         <button class="tab" data-view="indicators" data-title="Indicators" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           Indicators
@@ -4731,6 +4735,11 @@
             <p class="hint" id="news-note" hidden>What has been released so far. It fills in as the week is published.</p>
             <div class="news-tip" id="news-tip" role="tooltip" hidden></div>
           </div>
+        </section>
+
+        <!-- TAPE AND GAMMA: the interactive lessons at /echelon/lab/, embedded -->
+        <section class="view" id="v-lab">
+          <iframe class="pf-frame" id="lab-frame" title="Tape and gamma lessons" loading="lazy"></iframe>
         </section>
 
         <!-- PROP FIRMS: the comparison dashboard at /echelon/propfirms/, embedded -->
@@ -5895,6 +5904,7 @@
       if (view === 'inbox') loadInbox()
       if (view === 'news') loadNews()
       if (view === 'propfirms') pfShown()
+      if (view === 'lab') labShown()
       if (view === 'notifs') ntRenderChannels()
       if (view === 'set-profile') renderProfilePage()
       if (view === 'set-invite') renderInvitePage()
@@ -8562,6 +8572,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       f.style.height = Math.max(420, VH() - R(f).top - pad) + 'px'
     }
     window.addEventListener('resize', pfSize)
+    /* ── tape and gamma: the lessons page (/echelon/lab/), embedded the same way ── */
+    function labShown() {
+      const f = el('lab-frame'); if (!f) return
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark'
+      if (!f.dataset.loaded) { f.dataset.loaded = '1'; f.src = `/echelon/lab/?embed=1&theme=${theme}` }
+      labSize()
+    }
+    function labSize() {
+      const f = el('lab-frame'); if (!f || !el('v-lab').classList.contains('on')) return
+      const pad = parseFloat(getComputedStyle(document.querySelector('.pane')).paddingBottom) || 24
+      f.style.height = Math.max(420, VH() - R(f).top - pad) + 'px'
+    }
+    window.addEventListener('resize', labSize)
+    new MutationObserver(() => el('lab-frame')?.contentWindow?.postMessage({ echelonTheme: document.documentElement.getAttribute('data-theme') }, location.origin)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
     new MutationObserver(() => el('pf-frame')?.contentWindow?.postMessage({ echelonTheme: document.documentElement.getAttribute('data-theme') }, location.origin))
       .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 
@@ -12871,7 +12895,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ['Keyboard shortcuts', 'the sheet', () => keysToggle()],
       ['Sign out', '', () => el('signout')?.click()],
     ]
-    const PAL_PLACES = [['overview', 'Today', 'the morning briefing'], ['chart', 'Chart', 'NQ, MNQ, ES, MES'], ['feed', 'Feed', 'trades from members'], ['journal', 'Journal', 'your session notes'], ['course', 'Study', 'the lessons'], ['chat', 'Chat', 'channels and messages'], ['library', 'Video library', 'recaps and breakdowns'], ['news', 'News', 'the USD calendar'], ['gex', 'D1 GEX', 'the gamma board'], ['propfirms', 'Prop firms', 'the comparison sheet'], ['indicators', 'Indicators', 'the store'], ['members', 'Members', 'everyone here'], ['set-profile', 'Profile', 'your page'], ['inbox', 'Notifications', ''], ['settings', 'Settings', '']]
+    const PAL_PLACES = [['overview', 'Today', 'the morning briefing'], ['chart', 'Chart', 'NQ, MNQ, ES, MES'], ['feed', 'Feed', 'trades from members'], ['journal', 'Journal', 'your session notes'], ['course', 'Study', 'the lessons'], ['chat', 'Chat', 'channels and messages'], ['library', 'Video library', 'recaps and breakdowns'], ['news', 'News', 'the USD calendar'], ['gex', 'D1 GEX', 'the gamma board'], ['propfirms', 'Prop firms', 'the comparison sheet'], ['lab', 'Tape and gamma', 'order book, stops, absorption, dealer gamma'], ['indicators', 'Indicators', 'the store'], ['members', 'Members', 'everyone here'], ['set-profile', 'Profile', 'your page'], ['inbox', 'Notifications', ''], ['settings', 'Settings', '']]
     function palEl() {
       let m = el('palette'); if (m) return m
       m = document.createElement('div'); m.className = 'pal'; m.id = 'palette'; m.hidden = true

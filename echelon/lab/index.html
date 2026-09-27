@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <!-- zoom-lock: the page is an app, not a document. The meta stops pinch in WKWebView and Chromium; Safari ignores it, so the gesture guard below does the same job there. touch-action: manipulation removes double-tap zoom everywhere. -->
+  <style>html{touch-action:manipulation;-webkit-text-size-adjust:100%}</style>
+  <script>(function(){var p=function(e){e.preventDefault()};['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,p,{passive:false})});document.addEventListener('touchmove',function(e){if(typeof e.scale==='number'&&e.scale!==1)p(e)},{passive:false});window.__zoomLock=true})()</script>
+<title>Tape and gamma · Echelon</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/echelon-favicon.svg">
+<script>
+  /* members only: no Echelon session in this browser, go sign in first */
+  (function () { var ok = false; try { ok = !!localStorage.getItem('sb-cqdignbleethroyxxvzr-auth-token') } catch (e) {} if (!ok) location.replace('https://d1fpc3.com/echelon/app/') })();
+  /* theme: the app passes its own (query + live messages), otherwise the system's */
+  (function () {
+    var q = new URLSearchParams(location.search), t = q.get('theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+    document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark')
+    window.addEventListener('message', function (e) { if (e.origin === location.origin && e.data && e.data.echelonTheme) document.documentElement.setAttribute('data-theme', e.data.echelonTheme === 'light' ? 'light' : 'dark') })
+    if (q.get('embed') === '1') document.documentElement.classList.add('embed')
+  })();
+</script>
+<script>
+    /* Interface scale: on a big monitor the page is drawn larger, the way browser zoom would.
+       Chromium only, desktop only, never inside the app's own frame (the app already scales). */
+    (function () {
+      function pick() {
+        var ok = window.top === window && /Chrome\/\d+/.test(navigator.userAgent) && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+        var pref = 'auto'; try { pref = localStorage.getItem('echelon-ui-scale') || 'auto' } catch (e) {}
+        var w = window.innerWidth, z = 1;
+        if (ok && w >= 1500) z = pref === 'auto' ? Math.min(1.6, Math.max(1, Math.round(w / 1500 * 20) / 20)) : (parseFloat(pref) || 1);
+        if (ok && w / z < 1180) z = Math.max(1, Math.floor(w / 1180 * 20) / 20);
+        window.__uiz = z; document.documentElement.style.setProperty('--ui', String(z));
+      }
+      pick(); window.addEventListener('resize', pick);
+    })();
+  </script>
+  <style>
+    :root { --ui: 1; --vh: calc(1vh / var(--ui)); --dvh: calc(1dvh / var(--ui)); --vw: calc(1vw / var(--ui)); }
+    html { zoom: var(--ui); }
+  </style>
+</head>
+<body>
+<style>
+  :root {
+    --bg: #0b0a09; --panel: #131211; --panel2: #1a1817; --line: #262321; --ink: #f4f2ee; --muted: #9d978c; --faint: #6b665e;
+    --gold: #c9a24a; --gold-soft: rgba(201,162,74,0.13); --bid: #3fae84; --ask: #e0685a; --flip: #6f96e8;
+    --bid-soft: rgba(63,174,132,0.16); --ask-soft: rgba(224,104,90,0.15); --shadow: none;
+    --display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; --body: var(--display);
+    --mono: 'IBM Plex Mono', 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #f6f4f0; --panel: #ffffff; --panel2: #efece6; --line: #e4e0d8; --ink: #1a1815; --muted: #5f5a51; --faint: #8a847a;
+    --gold: #a8842c; --gold-soft: rgba(168,132,44,0.12); --bid: #2c8a63; --ask: #b8483a; --flip: #3d68c4;
+    --bid-soft: rgba(44,138,99,0.14); --ask-soft: rgba(184,72,58,0.13);
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; } body { background: var(--bg); color: var(--ink); font: 14.5px/1.6 var(--body); padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .embed .wrap { padding-block: 8px 60px; } .embed header.top h1 { display: none; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-block: 36px 80px; display: flex; flex-direction: column; gap: 56px; }
+  h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.015em; font-weight: 600; }
+  h1 { font-size: clamp(28px, 4.4vw, 40px); line-height: 1.08; }
+  h2 { font-size: clamp(20px, 2.6vw, 25px); line-height: 1.2; }
+  h3 { font-size: 15px; }
+  p { margin: 0; max-width: 68ch; }
+  .muted { color: var(--muted); }
+  .mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  button { font: inherit; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  header.top { display: flex; flex-direction: column; gap: 14px; }
+  .lede { font-size: 17px; color: var(--muted); max-width: 62ch; }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  nav.toc a { color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); transition: border-color .15s, color .15s; }
+  nav.toc a:hover { border-color: var(--gold); color: var(--gold); }
+  nav.toc a b { font-family: var(--mono); color: var(--faint); font-weight: 500; margin-right: 6px; }
+
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 20px; }
+  .sec-head { display: flex; flex-direction: column; gap: 8px; }
+  .sec-head .step { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+
+  /* segmented control */
+  .seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; background: var(--panel2); border-radius: 11px; border: 1px solid var(--line); }
+  .seg button { border: 0; background: none; color: var(--muted); font-size: 13px; font-weight: 600; padding: 7px 12px; border-radius: 8px; transition: background .18s, color .18s, box-shadow .18s; }
+  .seg button:hover { color: var(--ink); }
+  .seg button.on { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.12), inset 0 0 0 1px var(--line); }
+
+  /* order book lab */
+  .lab { display: grid; grid-template-columns: minmax(300px, 440px) 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .lab { grid-template-columns: 1fr; } }
+  .ladder { padding: 10px; overflow: hidden; }
+  .lhead, .lrow { display: grid; grid-template-columns: 50px 1fr 92px 1fr 50px; align-items: center; }
+  .lhead { font-size: 11.5px; color: var(--faint); font-weight: 600; padding: 2px 0 8px; }
+  .lhead span:nth-child(2) { text-align: right; padding-right: 8px; } .lhead span:nth-child(3) { text-align: center; } .lhead span:nth-child(4) { padding-left: 8px; }
+  .lhead span:last-child, .lhead span:first-child { text-align: center; }
+  .lrow { height: 26px; font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; position: relative; border-top: 1px solid transparent; }
+  .lrow + .lrow { border-top-color: color-mix(in srgb, var(--line) 55%, transparent); }
+  .lrow.low { border-top: 1.5px dashed var(--gold); }
+  .lrow.low::before { content: "prior low"; position: absolute; left: 50%; top: -9px; transform: translateX(-50%); font: 600 10.5px var(--body); color: var(--gold); background: var(--panel); padding: 0 5px; }
+  .cell { position: relative; height: 100%; display: flex; align-items: center; }
+  .bid { justify-content: flex-end; padding-right: 8px; } .ask { padding-left: 8px; }
+  .bar { position: absolute; top: 3px; bottom: 3px; border-radius: 4px; transition: width .16s ease; }
+  .bid .bar { right: 2px; background: var(--bid-soft); } .ask .bar { left: 2px; background: var(--ask-soft); }
+  .bid .v { color: var(--bid); position: relative; font-weight: 600; } .ask .v { color: var(--ask); position: relative; font-weight: 600; }
+  .px { justify-content: center; color: var(--muted); border-radius: 6px; }
+  .lrow.last .px { background: var(--gold); color: var(--bg); font-weight: 700; }
+  .tr { justify-content: center; font-size: 11.5px; }
+  .tr.s { color: var(--ask); } .tr.b { color: var(--bid); }
+  .tr .tb { position: absolute; top: 5px; bottom: 5px; border-radius: 3px; opacity: .25; }
+  .tr.s .tb { right: 3px; background: var(--ask); } .tr.b .tb { left: 3px; background: var(--bid); }
+  .tr span { position: relative; }
+  .hit { animation: hit .35s ease; }
+  @keyframes hit { from { background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold); } to { background: transparent; box-shadow: none; } }
+  .chip { position: absolute; z-index: 2; font: 700 10px var(--body); letter-spacing: .02em; padding: 2px 6px; border-radius: 5px; white-space: nowrap; }
+  .chip.stop { left: 4px; border: 1.5px dashed var(--ask); color: var(--ask); background: var(--panel); }
+  .chip.ice { left: 4px; background: var(--flip); color: #fff; }
+  .banner { position: absolute; left: 50%; top: 44px; transform: translateX(-50%); z-index: 3; background: var(--ask); color: #fff; font-weight: 700; font-size: 12.5px; padding: 6px 12px; border-radius: 999px; box-shadow: var(--shadow); white-space: nowrap; }
+  .ladder-wrap { position: relative; }
+
+  .side { display: flex; flex-direction: column; gap: 14px; }
+  .narr { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .narr .count { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+  .narr .say { font-size: 15.5px; min-height: 5.5em; }
+  .narr .say b { color: var(--gold); font-weight: 700; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .btn { border: 1px solid var(--line); background: var(--panel2); color: var(--ink); font-size: 13.5px; font-weight: 600; padding: 9px 14px; border-radius: 9px; transition: border-color .15s, background .15s, transform .1s; }
+  .btn:hover { border-color: var(--gold); } .btn:active { transform: translateY(1px); }
+  .btn.go { background: var(--gold); border-color: var(--gold); color: var(--bg); }
+  .btn.go:hover { filter: brightness(1.08); }
+  .btn.buy { color: var(--bid); } .btn.sell { color: var(--ask); }
+  .btn:disabled { opacity: .45; cursor: default; transform: none; }
+  .trace { padding: 12px 14px 8px; }
+  .trace .t { font-size: 12px; color: var(--faint); font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+  svg text { font-family: var(--mono); font-size: 10.5px; fill: var(--faint); }
+  svg .lbl { font-family: var(--body); font-weight: 700; font-size: 11px; }
+  .grid-l { stroke: var(--line); stroke-width: 1; }
+
+  /* gamma sections */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+  .panel { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .ctrl { display: flex; flex-direction: column; gap: 6px; }
+  .ctrl label { font-size: 12.5px; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; }
+  .ctrl label output { font-family: var(--mono); color: var(--ink); }
+  input[type=range] { width: 100%; accent-color: var(--gold); }
+  .read { font-size: 15px; background: var(--panel2); border-radius: 10px; padding: 12px 14px; }
+  .read b { font-weight: 700; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 12px 0 10px; border-radius: 999px; font-weight: 700; font-size: 13px; --c: var(--gold); color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent); transition: color .3s, background .3s, box-shadow .3s; }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+  .pill.damp { --c: var(--bid); } .pill.amp { --c: var(--ask); }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13px; color: var(--muted); }
+  .stats b { font-family: var(--mono); color: var(--ink); }
+
+  /* quiz */
+  .quiz { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 860px) { .quiz { grid-template-columns: 1fr; } }
+  .q { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .q .n { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+  .q .opts { display: flex; flex-direction: column; gap: 6px; }
+  .q .opts button { text-align: left; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); padding: 9px 12px; border-radius: 9px; font-size: 14px; transition: border-color .15s, background .15s; }
+  .q .opts button:hover:not(:disabled) { border-color: var(--gold); }
+  .q .opts button.right { border-color: var(--bid); background: var(--bid-soft); }
+  .q .opts button.wrong { border-color: var(--ask); background: var(--ask-soft); }
+  .q .opts button:disabled { cursor: default; }
+  .q .why { font-size: 14px; color: var(--muted); border-left: 2px solid var(--gold); padding-left: 10px; }
+  .score { font-family: var(--display); font-size: 20px; font-weight: 700; }
+  @media (prefers-reduced-motion: reduce) { .hit { animation: none; } .bar { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Tape and Gamma Lab</h1>
+    <p class="lede">How price actually moves, one order at a time. Then see why dealer hedging makes some days pin and other days run. Press the buttons, drag the sliders.</p>
+    <nav class="toc">
+      <a href="#book"><b>1</b>The order book</a>
+      <a href="#delta"><b>2</b>Delta and gamma</a>
+      <a href="#hedge"><b>3</b>Dealer hedging</a>
+      <a href="#gex"><b>4</b>The GEX map</a>
+      <a href="#quiz"><b>5</b>Check yourself</a>
+    </nav>
+  </header>
+
+  <!-- 1. ORDER BOOK -->
+  <section id="book">
+    <div class="sec-head">
+      <div class="step">1 of 5</div>
+      <h2>The order book: what actually moves price</h2>
+      <p class="muted">Green bids wait to buy. Red offers wait to sell. The gold row is the last trade, which is what your chart shows. Price only moves when market orders eat a level empty. Go through the lessons in order, then use free play.</p>
+    </div>
+    <div class="seg" id="scen" role="tablist" aria-label="Lesson">
+      <button data-s="0" class="on">A. A level empties</button>
+      <button data-s="1">B. Stop run</button>
+      <button data-s="2">C. Sweep and absorb</button>
+      <button data-s="3">Free play</button>
+    </div>
+    <div class="lab">
+      <div class="ladder-wrap">
+        <div class="card ladder" id="ladder" aria-live="polite"></div>
+      </div>
+      <div class="side">
+        <div class="card narr">
+          <div class="count" id="count"></div>
+          <div class="say" id="say"></div>
+          <div class="row" id="controls"></div>
+        </div>
+        <div class="card trace">
+          <div class="t">Last price</div>
+          <svg id="trace" viewBox="0 0 440 130" width="100%" role="img" aria-label="Last traded price over time"></svg>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--ask)"></i>Sold: aggressive sellers hit the bid here</span>
+          <span><i style="background:var(--bid)"></i>Bought: aggressive buyers lifted the offer here</span>
+          <span><i style="border:1.5px dashed var(--ask);background:transparent"></i>Hidden stops (you never see these on a real DOM)</span>
+          <span><i style="background:var(--flip)"></i>Iceberg bid: shows a little, refills from a big hidden size</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. DELTA & GAMMA -->
+  <section id="delta">
+    <div class="sec-head">
+      <div class="step">2 of 5</div>
+      <h2>Delta and gamma: why hedging changes as price moves</h2>
+      <p class="muted">A 20,000 call. Delta is how many NQ contracts one option acts like. Gamma is how fast delta changes as price moves. Drag the price across the strike, then shrink the time left and watch gamma turn into a spike.</p>
+    </div>
+    <div class="two">
+      <div class="card panel">
+        <svg id="dg" viewBox="0 0 520 380" width="100%" role="img" aria-label="Delta and gamma of a 20,000 call across prices"></svg>
+      </div>
+      <div class="card panel">
+        <div class="ctrl"><label for="dgS">NQ price <output id="dgSo"></output></label><input id="dgS" type="range" min="19500" max="20500" step="5" value="20050"></div>
+        <div class="ctrl"><span style="font-size:12.5px;font-weight:600;color:var(--muted)">Time to expiry</span>
+          <div class="seg" id="dgT"><button data-t="0" class="on">0DTE, 2h left</button><button data-t="1">1 day</button><button data-t="2">5 days</button><button data-t="3">30 days</button></div>
+        </div>
+        <div class="read" id="dgRead"></div>
+        <p class="muted" style="font-size:14px">The takeaway: gamma is biggest <b style="color:var(--ink)">at the strike</b> and <b style="color:var(--ink)">near expiry</b>. That is where dealers have to trade the most futures for each point price moves, so that is where their hedging pushes price the hardest.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. HEDGING -->
+  <section id="hedge">
+    <div class="sec-head">
+      <div class="step">3 of 5</div>
+      <h2>Same news, two regimes</h2>
+      <p class="muted">Both charts get the exact same random news shocks (the faint dashed line is price with no dealers). On the left, dealers are long gamma, so they sell rallies and buy dips. On the right, they are short gamma, so they chase. Nothing else differs.</p>
+    </div>
+    <div class="row">
+      <button class="btn go" id="hgNew">New random day</button>
+      <div class="ctrl" style="flex:1;min-width:220px"><label for="hgG">Dealer gamma size <output id="hgGo"></output></label><input id="hgG" type="range" min="0" max="3" step="0.1" value="1.6"></div>
+    </div>
+    <div class="two">
+      <div class="card panel">
+        <div class="row" style="justify-content:space-between"><h3>Dealers long gamma</h3><span class="pill damp">Dampening</span></div>
+        <svg id="hgL" viewBox="0 0 440 220" width="100%" role="img" aria-label="Price path with dealers long gamma"></svg>
+        <div class="stats" id="hgLs"></div>
+      </div>
+      <div class="card panel">
+        <div class="row" style="justify-content:space-between"><h3>Dealers short gamma</h3><span class="pill amp">Amplifying</span></div>
+        <svg id="hgS" viewBox="0 0 440 220" width="100%" role="img" aria-label="Price path with dealers short gamma"></svg>
+        <div class="stats" id="hgSs"></div>
+      </div>
+    </div>
+    <p class="muted">Long gamma: price rises, the dealer's calls gain delta, so the dealer <b style="color:var(--ink)">sells futures</b> into the rally and buys them back on the dip. That pushes against every move and pins price near the big strike. Short gamma is the mirror image: the dealer <b style="color:var(--ink)">sells into drops and buys into rips</b>, which stretches every move.</p>
+  </section>
+
+  <!-- 4. GEX MAP -->
+  <section id="gex">
+    <div class="sec-head">
+      <div class="step">4 of 5</div>
+      <h2>The GEX map: walls, flip, and the regime pill</h2>
+      <p class="muted">A model book for one day. Customers sold calls above (dealers long those, green) and bought puts below (dealers short those, red). Drag price through it. The flip is where the net total crosses zero, and the pill is the same one on your Echelon chart.</p>
+    </div>
+    <div class="two">
+      <div class="card panel">
+        <div class="row" style="justify-content:space-between"><h3>Gamma by strike</h3><span class="pill" id="gxPill">Dampening</span></div>
+        <svg id="gxBars" viewBox="0 0 440 470" width="100%" role="img" aria-label="Dealer gamma at each strike"></svg>
+      </div>
+      <div class="card panel">
+        <div class="ctrl"><label for="gxS">NQ price <output id="gxSo"></output></label><input id="gxS" type="range" min="19650" max="20350" step="5" value="20080"></div>
+        <h3>Net dealer gamma if price were here</h3>
+        <svg id="gxNet" viewBox="0 0 440 240" width="100%" role="img" aria-label="Net dealer gamma across prices"></svg>
+        <div class="read" id="gxRead"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. QUIZ -->
+  <section id="quiz">
+    <div class="sec-head">
+      <div class="step">5 of 5</div>
+      <h2>Check yourself</h2>
+      <p class="muted">Pick an answer. The explanation opens either way.</p>
+    </div>
+    <div class="quiz" id="qz"></div>
+    <div class="score" id="qScore"></div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+  const $ = (s) => document.querySelector(s)
+  const sleep = (ms) => new Promise((r) => setTimeout(r, reduce ? 15 : ms))
+  const NS = 'http://www.w3.org/2000/svg'
+  const mk = (tag, a = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (parent) parent.appendChild(e); return e }
+  const T = (p) => Math.round(p * 4)
+  const fmt = (t) => (t / 4).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const n0 = (x) => Math.round(x).toLocaleString('en-US')
+
+  /* ───────── order book engine ───────── */
+  const B = { bids: new Map(), asks: new Map(), last: 0, stops: [], ice: null, low: null, traded: new Map(), hist: [], center: 0, start: 0, flash: null, banner: '' }
+  const tr = (p) => B.traded.get(p) || (B.traded.set(p, { s: 0, b: 0 }), B.traded.get(p))
+  function setBook({ last, bids, asks, stops = [], ice = null, low = null }) {
+    B.bids = new Map(Object.entries(bids).map(([p, s]) => [T(+p), s]))
+    B.asks = new Map(Object.entries(asks).map(([p, s]) => [T(+p), s]))
+    B.last = T(last); B.start = B.last; B.center = B.last
+    B.stops = stops.map((s) => ({ p: T(s.p), size: s.size, side: s.side || 'sell', fired: false }))
+    B.ice = ice ? { p: T(ice.p), show: ice.show, reserve: ice.reserve, refills: 0 } : null
+    if (B.ice) B.bids.set(B.ice.p, ice.show)
+    B.low = low != null ? T(low) : null
+    B.traded = new Map(); B.hist = [B.last]; B.flash = null; B.banner = ''
+    render()
+  }
+  const best = (m, f) => { const l = [...m.entries()].filter(([, s]) => s > 0).map(([p]) => p); return l.length ? f(...l) : null }
+  async function marketSell(qty) {
+    while (qty > 0) {
+      const p = best(B.bids, Math.max); if (p == null) break
+      let size = B.bids.get(p); const take = Math.min(qty, size)
+      size -= take; qty -= take
+      if (size === 0 && B.ice && B.ice.p === p && B.ice.reserve > 0) { const r = Math.min(B.ice.show, B.ice.reserve); B.ice.reserve -= r; size = r; B.ice.refills++ }
+      B.bids.set(p, size); tr(p).s += take; B.last = p; B.hist.push(p); B.flash = p
+      render(); await sleep(150)
+      await checkStops()
+    }
+  }
+  async function marketBuy(qty) {
+    while (qty > 0) {
+      const p = best(B.asks, Math.min); if (p == null) break
+      let size = B.asks.get(p); const take = Math.min(qty, size)
+      size -= take; qty -= take
+      B.asks.set(p, size); tr(p).b += take; B.last = p; B.hist.push(p); B.flash = p
+      render(); await sleep(150)
+      await checkStops()
+    }
+  }
+  async function checkStops() {
+    for (const s of B.stops) {
+      if (s.fired) continue
+      if (s.side === 'sell' && B.last <= s.p) { s.fired = true; B.banner = `${s.size} sell stops just fired`; render(); await sleep(500); await marketSell(s.size); B.banner = ''; render() }
+      else if (s.side === 'buy' && B.last >= s.p) { s.fired = true; B.banner = `${s.size} buy stops just fired`; render(); await sleep(500); await marketBuy(s.size); B.banner = ''; render() }
+    }
+  }
+  function makers() {   // market makers requote around the last price after each order (free play)
+    const rnd = () => 8 + Math.floor(Math.random() * 42)
+    for (let i = 1; i <= 10; i++) { const p = B.last + i; if (!(B.asks.get(p) > 0) && !(B.bids.get(p) > 0)) B.asks.set(p, rnd()) }
+    for (let i = 1; i <= 10; i++) { const p = B.last - i; if (!(B.bids.get(p) > 0) && !(B.asks.get(p) > 0)) B.bids.set(p, rnd()) }
+    render()
+  }
+
+  const ROWS = 18
+  function render() {
+    // keep the whole move in view when it fits (the absorption row must stay on screen after the reclaim)
+    const hLo = Math.min(...B.hist), hHi = Math.max(...B.hist)
+    if (hHi - hLo <= ROWS - 5) B.center = Math.round((hHi + hLo) / 2)
+    else if (B.last > B.center + ROWS / 2 - 3 || B.last < B.center - ROWS / 2 + 3) B.center = B.last
+    const top = B.center + Math.floor(ROWS / 2)
+    const rows = []; let maxS = 1, maxT = 1
+    for (let i = 0; i < ROWS; i++) { const p = top - i; maxS = Math.max(maxS, B.bids.get(p) || 0, B.asks.get(p) || 0); const t = B.traded.get(p); if (t) maxT = Math.max(maxT, t.s, t.b) }
+    for (let i = 0; i < ROWS; i++) {
+      const p = top - i, bid = B.bids.get(p) || 0, ask = B.asks.get(p) || 0, t = B.traded.get(p) || { s: 0, b: 0 }
+      const stop = B.stops.find((s) => s.p === p && !s.fired)
+      const ice = B.ice && B.ice.p === p && (bid > 0)
+      const cls = ['lrow', p === B.last ? 'last' : '', B.low != null && p === B.low - 1 ? 'low' : ''].join(' ')
+      const w = (v) => `${Math.max(v ? 6 : 0, (v / maxS) * 100)}%`
+      rows.push(`<div class="${cls}">
+        <div class="cell tr s ${B.flash === p && t.s ? 'hit' : ''}">${t.s ? `<i class="tb" style="width:${(t.s / maxT) * 44}px"></i><span>${t.s}</span>` : ''}</div>
+        <div class="cell bid">${bid ? `<i class="bar" style="width:${w(bid)}"></i><span class="v">${bid}</span>` : ''}${ice ? `<span class="chip ice">iceberg${B.ice.refills ? ' ×' + B.ice.refills : ''}</span>` : ''}${stop && stop.side === 'sell' ? `<span class="chip stop">${stop.size} stops</span>` : ''}</div>
+        <div class="cell px">${fmt(p)}</div>
+        <div class="cell ask">${ask ? `<i class="bar" style="width:${w(ask)}"></i><span class="v">${ask}</span>` : ''}</div>
+        <div class="cell tr b ${B.flash === p && t.b ? 'hit' : ''}">${t.b ? `<i class="tb" style="width:${(t.b / maxT) * 44}px"></i><span>${t.b}</span>` : ''}</div>
+      </div>`)
+    }
+    $('#ladder').innerHTML = `<div class="lhead"><span>Sold</span><span>Bids</span><span>Price</span><span>Offers</span><span>Bought</span></div>${rows.join('')}${B.banner ? `<div class="banner">${B.banner}</div>` : ''}`
+    drawTrace()
+  }
+  function drawTrace() {
+    const s = $('#trace'); s.innerHTML = ''
+    const h = B.hist, W = 440, H = 130, padL = 58, padR = 8, padT = 10, padB = 12
+    let lo = Math.min(...h), hi = Math.max(...h); if (B.low != null) { lo = Math.min(lo, B.low); hi = Math.max(hi, B.low) } lo -= 2; hi += 2
+    const x = (i) => padL + (h.length < 2 ? 0 : (i / (h.length - 1)) * (W - padL - padR)), y = (p) => padT + (1 - (p - lo) / (hi - lo)) * (H - padT - padB)
+    for (const p of [hi - 2, lo + 2]) { mk('line', { x1: padL, x2: W - padR, y1: y(p), y2: y(p), class: 'grid-l' }, s); mk('text', { x: padL - 6, y: y(p) + 3.5, 'text-anchor': 'end' }, s).textContent = fmt(p) }
+    if (B.low != null) { mk('line', { x1: padL, x2: W - padR, y1: y(B.low), y2: y(B.low), stroke: 'var(--gold)', 'stroke-dasharray': '4 3', 'stroke-width': 1.5 }, s); mk('text', { x: W - padR, y: y(B.low) - 4, 'text-anchor': 'end', class: 'lbl', fill: 'var(--gold)' }, s).textContent = 'prior low' }
+    const pts = h.map((p, i) => `${x(i)},${y(p)}`).join(' ')
+    mk('polyline', { points: pts, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, s)
+    mk('circle', { cx: x(h.length - 1), cy: y(h[h.length - 1]), r: 4, fill: 'var(--gold)' }, s)
+  }
+
+  /* ───────── lessons ───────── */
+  const book1 = () => setBook({
+    last: 20001.25,
+    asks: { 20001.5: 10, 20001.75: 25, 20002: 40, 20002.25: 35, 20002.5: 60, 20002.75: 45, 20003: 80, 20003.25: 50, 20003.5: 70, 20003.75: 65 },
+    bids: { 20001.25: 12, 20001: 30, 20000.75: 55, 20000.5: 40, 20000.25: 60, 20000: 70, 19999.75: 45, 19999.5: 50, 19999.25: 65 },
+  })
+  const thinBelow = { 19999.75: 8, 19999.5: 6, 19999.25: 10, 19999: 5, 19998.75: 7 }
+  const book2 = (withIce) => setBook({
+    last: 20001, low: 20000,
+    asks: { 20001.25: 30, 20001.5: 40, 20001.75: 35, 20002: 50, 20002.25: 45, 20002.5: 60, 20002.75: 55, 20003: 70 },
+    bids: Object.assign({ 20000.75: 20, 20000.5: 15, 20000.25: 18, 20000: 25 }, thinBelow,
+      withIce ? { 19998.25: 40, 19998: 60, 19997.75: 50 } : { 19998.5: 6, 19998.25: 9, 19998: 12, 19997.75: 10, 19997.5: 14, 19997.25: 8, 19997: 20, 19996.75: 25, 19996.5: 30, 19996.25: 40, 19996: 60, 19995.75: 80, 19995.5: 90 }),
+    stops: [{ p: 19999.75, size: 300 }],
+    ice: withIce ? { p: 19998.5, show: 30, reserve: 600 } : null,
+  })
+  const L = [
+    { setup: book1, steps: [
+      { t: () => `The best offer is <b>10 at 20,001.50</b>. The best bid is <b>12 at 20,001.25</b>. The gap between them is the spread, one tick. Press <b>Run</b> to send a market buy for 30.` },
+      { act: () => marketBuy(30), t: () => `The buyer took all <b>10 at .50</b>, then <b>20 of the 25 at .75</b>. The .50 level is empty, so the last trade is a tick higher. <b>That is the only way price moves.</b> Next: a bigger order into the same thin book.` },
+      { act: () => marketBuy(120), t: () => `120 contracts ate through <b>four more levels</b>. Last price is now <b>${fmt(B.last)}</b>. Thin book, big order, big move. Next: the same 120 into a thick book.` },
+      { act: async () => { setBook({ last: 20001.25, asks: { 20001.5: 400, 20001.75: 420, 20002: 380, 20002.25: 410, 20002.5: 400, 20002.75: 390, 20003: 450 }, bids: { 20001.25: 380, 20001: 410, 20000.75: 400, 20000.5: 390, 20000.25: 420, 20000: 450 } }); await sleep(600); await marketBuy(120) },
+        t: () => `Same 120 contracts, but 400 sit at every price. It all filled at <b>20,001.50</b> and price did not move a tick. <b>Size against depth decides everything.</b> A thick level stalls price. A thin book lets it slide.` },
+    ] },
+    { setup: () => book2(false), steps: [
+      { t: () => `Price sits just above an <b>obvious low at 20,000.00</b>. Everyone long has a stop just under it: <b>300 contracts of sell stops at 19,999.75</b>. On a real DOM you cannot see these. The bids below the low are thin.` },
+      { act: () => marketSell(60), t: () => `Sellers push price down onto the low. Last trade <b>${fmt(B.last)}</b>. One more tick lower and the stops trigger.` },
+      { act: () => marketSell(30), t: () => `A small sell order tagged 19,999.75. The <b>300 stops became market sells all at once</b>, and the thin bids could not hold them. Price fell from 20,000.00 to <b>${fmt(B.last)}</b>, <b>${((T(20000) - B.last) / 4).toFixed(2)} points</b> in a second. That is a stop run.` },
+    ] },
+    { setup: () => book2(true), steps: [
+      { t: () => `Same low, same 300 stops. This time a big buyer waits at <b>19,998.50</b> with an <b>iceberg bid</b>. It only shows 30, but it has hundreds more behind it. The big buyer wants those stops: they are the sellers it needs.` },
+      { act: () => marketSell(60), t: () => `Price is pushed onto the low. The stops sit one tick under.` },
+      { act: () => marketSell(30), t: () => `The stops fired: 300 contracts of selling. Price dropped to <b>19,998.50</b> and <b>stopped dead</b>. Look at the Sold column: <b>${(B.traded.get(T(19998.5)) || { s: 0 }).s} contracts</b> sold at one price, and the bid refilled <b>${B.ice.refills} times</b>. Heavy selling, no progress. <b>That is absorption.</b>` },
+      { act: () => marketSell(80), t: () => `Late sellers try again. Still absorbed at 19,998.50, now <b>${(B.traded.get(T(19998.5)) || { s: 0 }).s} sold</b> there. Each push gets less done. That is exhaustion. The sellers are running out.` },
+      { act: async () => { const s = [12, 15, 10, 18, 14, 20, 16, 22, 25, 30]; for (let i = 1; i <= 10; i++) if (!(B.asks.get(B.ice.p + i) > 0)) B.asks.set(B.ice.p + i, s[i - 1]); render(); await sleep(500); await marketBuy(160) },
+        t: () => `With the sellers used up, buyers lift the offers. Price is back to <b>${fmt(B.last)}</b>, above the low. <b>That is the reclaim, your LIT trigger.</b> Everyone who sold under 20,000 is now trapped short. The big buyer filled hundreds of contracts cheaply, using their stops.` },
+    ] },
+  ]
+
+  let cur = 0, idx = 0, busy = false
+  function setControls() {
+    const c = $('#controls')
+    if (cur === 3) {
+      $('#count').textContent = 'Free play'
+      $('#say').innerHTML = `Send your own orders. Market makers requote after each one. Add stops under the price, then sell into them and watch the cascade.`
+      c.innerHTML = `<button class="btn buy" data-a="b10">Buy 10</button><button class="btn buy" data-a="b60">Buy 60</button><button class="btn sell" data-a="s10">Sell 10</button><button class="btn sell" data-a="s60">Sell 60</button><button class="btn" data-a="stops">Add 250 stops 3 ticks down</button><button class="btn" data-a="reset">Reset</button>`
+      return
+    }
+    const l = L[cur], st = l.steps[idx]
+    $('#count').textContent = `Step ${idx + 1} of ${l.steps.length}`
+    $('#say').innerHTML = st.t()
+    const nxt = l.steps[idx + 1]
+    c.innerHTML = nxt ? `<button class="btn go" data-a="next">${idx === 0 ? 'Run' : 'Next step'}</button><button class="btn" data-a="restart">Restart</button>` : `<button class="btn go" data-a="restart">Run it again</button>${cur < 2 ? `<button class="btn" data-a="nextlesson">Next lesson</button>` : `<button class="btn" data-a="free">Free play</button>`}`
+  }
+  function startLesson(i) {
+    cur = i; idx = 0
+    document.querySelectorAll('#scen button').forEach((b) => b.classList.toggle('on', +b.dataset.s === i))
+    if (i === 3) { book1(); B.low = null; render() } else L[i].setup()
+    setControls()
+  }
+  $('#scen').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || busy) return; startLesson(+b.dataset.s) })
+  $('#controls').addEventListener('click', async (e) => {
+    const b = e.target.closest('button'); if (!b || busy) return
+    const a = b.dataset.a
+    if (a === 'restart') return startLesson(cur)
+    if (a === 'nextlesson') return startLesson(cur + 1)
+    if (a === 'free') return startLesson(3)
+    busy = true; document.querySelectorAll('#controls button, #scen button').forEach((x) => (x.disabled = true))
+    try {
+      if (a === 'next') { idx++; $('#say').innerHTML = '<span class="muted">Running…</span>'; await L[cur].steps[idx].act(); }
+      else if (a === 'b10') { await marketBuy(10); makers() } else if (a === 'b60') { await marketBuy(60); makers() }
+      else if (a === 's10') { await marketSell(10); makers() } else if (a === 's60') { await marketSell(60); makers() }
+      else if (a === 'stops') { B.stops.push({ p: B.last - 3, size: 250, side: 'sell', fired: false }); render() }
+      else if (a === 'reset') { book1(); B.low = null; render() }
+    } finally { busy = false; setControls(); document.querySelectorAll('#scen button').forEach((x) => (x.disabled = false)) }
+  })
+
+  /* ───────── option math ───────── */
+  const erf = (x) => { const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y }
+  const Ncdf = (x) => 0.5 * (1 + erf(x / Math.SQRT2))
+  const npdf = (x) => Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI)
+  function bs(S, K, Ty, sig) { const v = sig * Math.sqrt(Ty), d1 = (Math.log(S / K) + 0.5 * v * v) / v; return { delta: Ncdf(d1), gamma: npdf(d1) / (S * v) } }
+
+  /* ───────── 2. delta & gamma ───────── */
+  const DTE = [{ l: '0DTE (2h left)', y: (2 / 6.5) / 252 }, { l: '1 day', y: 1 / 252 }, { l: '5 days', y: 5 / 252 }, { l: '30 days', y: 30 / 252 }]
+  let dgT = 0
+  function drawDG() {
+    const S = +$('#dgS').value, K = 20000, sig = 0.2, s = $('#dg'); s.innerHTML = ''
+    $('#dgSo').textContent = n0(S)
+    const W = 520, padL = 46, padR = 12, x0 = 19400, x1 = 20600
+    const x = (p) => padL + ((p - x0) / (x1 - x0)) * (W - padL - padR)
+    const panes = [{ top: 26, h: 140, lo: 0, hi: 1, key: 'delta', title: 'Delta (contracts per option)', ticks: [0, 0.5, 1], f: (v) => v.toFixed(1) },
+                   { top: 214, h: 140, lo: 0, hi: 0.3, key: 'g100', title: 'Gamma (delta change per 100 pts)', ticks: [0, 0.1, 0.2, 0.3], f: (v) => v.toFixed(1) }]
+    for (const pn of panes) {
+      const y = (v) => pn.top + (1 - (v - pn.lo) / (pn.hi - pn.lo)) * pn.h
+      mk('text', { x: padL, y: pn.top - 10, class: 'lbl', fill: 'var(--muted)' }, s).textContent = pn.title
+      for (const t of pn.ticks) { mk('line', { x1: padL, x2: W - padR, y1: y(t), y2: y(t), class: 'grid-l' }, s); mk('text', { x: padL - 6, y: y(t) + 3.5, 'text-anchor': 'end' }, s).textContent = pn.f(t) }
+      mk('line', { x1: x(K), x2: x(K), y1: pn.top, y2: pn.top + pn.h, stroke: 'var(--faint)', 'stroke-dasharray': '3 3' }, s)
+      DTE.forEach((d, i) => {
+        const pts = []; for (let p = x0; p <= x1; p += 5) { const r = bs(p, K, d.y, sig); const v = pn.key === 'delta' ? r.delta : r.gamma * 100; pts.push(`${x(p)},${y(Math.min(pn.hi, v))}`) }
+        mk('polyline', { points: pts.join(' '), fill: 'none', stroke: i === dgT ? 'var(--gold)' : 'var(--faint)', 'stroke-width': i === dgT ? 2.6 : 1, opacity: i === dgT ? 1 : 0.45 }, s)
+      })
+      const r = bs(S, K, DTE[dgT].y, sig), v = pn.key === 'delta' ? r.delta : r.gamma * 100
+      mk('circle', { cx: x(S), cy: y(Math.min(pn.hi, v)), r: 5, fill: 'var(--gold)', stroke: 'var(--panel)', 'stroke-width': 2 }, s)
+    }
+    mk('line', { x1: x(S), x2: x(S), y1: 26, y2: 354, stroke: 'var(--ink)', 'stroke-width': 1, opacity: 0.35 }, s)
+    for (const p of [19500, 19750, 20000, 20250, 20500]) mk('text', { x: x(p), y: 372, 'text-anchor': 'middle' }, s).textContent = n0(p)
+    mk('text', { x: x(K) + 5, y: 38, class: 'lbl', fill: 'var(--faint)' }, s).textContent = 'strike 20,000'
+    const r = bs(S, K, DTE[dgT].y, sig), g100 = r.gamma * 100
+    $('#dgRead').innerHTML = `At <b>${n0(S)}</b> with <b>${DTE[dgT].l}</b>, one call acts like <b>${r.delta.toFixed(2)}</b> NQ. A 100 point rally changes that by about <b>${g100.toFixed(2)}</b>. A dealer who is short 1,000 of these calls has to <b>buy about ${n0(g100 * 1000)} NQ</b> during that rally just to stay hedged.`
+  }
+  $('#dgS').addEventListener('input', drawDG)
+  $('#dgT').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; dgT = +b.dataset.t; document.querySelectorAll('#dgT button').forEach((x) => x.classList.toggle('on', x === b)); drawDG() })
+
+  /* ───────── 3. hedging paths ───────── */
+  let seed = 7
+  const rng = () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
+  const gauss = () => { let u = 0; while (!u) u = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rng()) }
+  let X = [], anim = 0
+  function newDay() { X = [20000]; for (let i = 1; i < 130; i++) X.push(X[i - 1] + gauss() * 9); playHedge() }
+  function paths() {
+    const g = +$('#hgG').value, K = 20000, w = (x) => Math.exp(-(((x - K) / 260) ** 2))
+    return { X, Lg: X.map((x) => K + (x - K) / (1 + g * w(x))), Sg: X.map((x) => K + (x - K) * (1 + g * w(x))) }
+  }
+  function drawPath(svgId, statsId, path, color, upto, lo, hi, regime) {
+    const s = $(svgId); s.innerHTML = ''
+    const W = 440, H = 220, padL = 48, padR = 10, padT = 10, padB = 14, n = X.length
+    const x = (i) => padL + (i / (n - 1)) * (W - padL - padR), y = (p) => padT + (1 - (p - lo) / (hi - lo)) * (H - padT - padB)
+    const step = Math.max(25, Math.round((hi - lo) / 4 / 25) * 25)
+    for (let p = Math.ceil(lo / step) * step; p <= hi; p += step) { mk('line', { x1: padL, x2: W - padR, y1: y(p), y2: y(p), class: 'grid-l' }, s); mk('text', { x: padL - 6, y: y(p) + 3.5, 'text-anchor': 'end' }, s).textContent = n0(p) }
+    mk('line', { x1: padL, x2: W - padR, y1: y(20000), y2: y(20000), stroke: 'var(--gold)', 'stroke-dasharray': '5 4', 'stroke-width': 1.2 }, s)
+    mk('text', { x: W - padR, y: y(20000) - 5, 'text-anchor': 'end', class: 'lbl', fill: 'var(--gold)' }, s).textContent = 'big strike 20,000'
+    mk('polyline', { points: X.slice(0, upto).map((p, i) => `${x(i)},${y(p)}`).join(' '), fill: 'none', stroke: 'var(--faint)', 'stroke-width': 1.3, 'stroke-dasharray': '3 3' }, s)
+    mk('polyline', { points: path.slice(0, upto).map((p, i) => `${x(i)},${y(p)}`).join(' '), fill: 'none', stroke: color, 'stroke-width': 2.4, 'stroke-linejoin': 'round' }, s)
+    const k = upto - 1; mk('circle', { cx: x(k), cy: y(path[k]), r: 4.5, fill: color, stroke: 'var(--panel)', 'stroke-width': 2 }, s)
+    const d = k > 0 ? X[k] - X[k - 1] : 0
+    const act = regime === 'L' ? (d > 0 ? 'price up, dealer SELLS' : 'price down, dealer BUYS') : (d > 0 ? 'price up, dealer BUYS' : 'price down, dealer SELLS')
+    const rng2 = (a) => Math.max(...a.slice(0, upto)) - Math.min(...a.slice(0, upto))
+    $(statsId).innerHTML = `<span>Day range <b>${n0(rng2(path))} pts</b></span><span>No dealers <b>${n0(rng2(X))} pts</b></span><span>Now: <b style="color:${color}">${act}</b></span>`
+  }
+  function playHedge() {
+    cancelAnimationFrame(anim)
+    const { Lg, Sg } = paths(), all = [...X, ...Lg, ...Sg], lo = Math.min(...all) - 10, hi = Math.max(...all) + 10
+    const n = X.length, t0 = performance.now(), dur = reduce ? 0 : 2600
+    const frame = (now) => {
+      const u = dur ? Math.min(1, (now - t0) / dur) : 1, upto = Math.max(2, Math.round(u * n))
+      drawPath('#hgL', '#hgLs', Lg, 'var(--bid)', upto, lo, hi, 'L'); drawPath('#hgS', '#hgSs', Sg, 'var(--ask)', upto, lo, hi, 'S')
+      if (u < 1) anim = requestAnimationFrame(frame)
+    }
+    anim = requestAnimationFrame(frame)
+  }
+  $('#hgNew').addEventListener('click', () => { seed = Math.floor(Math.random() * 1e9); newDay() })
+  $('#hgG').addEventListener('input', () => { $('#hgGo').textContent = (+$('#hgG').value).toFixed(1); cancelAnimationFrame(anim); const { Lg, Sg } = paths(), all = [...X, ...Lg, ...Sg], lo = Math.min(...all) - 10, hi = Math.max(...all) + 10; drawPath('#hgL', '#hgLs', Lg, 'var(--bid)', X.length, lo, hi, 'L'); drawPath('#hgS', '#hgSs', Sg, 'var(--ask)', X.length, lo, hi, 'S') })
+
+  /* ───────── 4. GEX map ───────── */
+  const STRIKES = []; for (let k = 19650; k <= 20350; k += 50) STRIKES.push(k)
+  const callOI = (k) => 300 + 2200 * Math.exp(-(((k - 20200) / 170) ** 2)) + (k === 20250 ? 1800 : 0)
+  const putOI = (k) => 300 + 2800 * Math.exp(-(((k - 19800) / 170) ** 2)) + (k === 19750 ? 1500 : 0)
+  const GT = 1 / 252, GS = 0.18
+  const gAt = (S, k) => bs(S, k, GT, GS).gamma
+  const netAt = (S) => STRIKES.reduce((a, k) => a + gAt(S, k) * (callOI(k) - putOI(k)), 0)
+  const grid = []; for (let S = 19650; S <= 20350; S += 5) grid.push([S, netAt(S)])
+  let FLIP = null; for (let i = 1; i < grid.length; i++) { const [a, fa] = grid[i - 1], [b, fb] = grid[i]; if (fa <= 0 && fb > 0) { FLIP = a + (b - a) * (-fa / (fb - fa)); break } }
+  function drawGex() {
+    const S = +$('#gxS').value; $('#gxSo').textContent = n0(S)
+    const bars = $('#gxBars'); bars.innerHTML = ''
+    const W = 440, top = 16, rowH = 28, cx = 250, half = 150
+    const cg = STRIKES.map((k) => gAt(S, k) * callOI(k)), pg = STRIKES.map((k) => gAt(S, k) * putOI(k))
+    const mx = Math.max(...cg, ...pg)
+    const ys = (k) => top + (STRIKES.length - 1 - STRIKES.indexOf(k)) * rowH + rowH / 2
+    const yP = (p) => top + ((STRIKES[STRIKES.length - 1] - p) / 50) * rowH + rowH / 2
+    const above = STRIKES.filter((k) => k >= S), below = STRIKES.filter((k) => k <= S)
+    const cw = above.length ? above.reduce((a, k) => (cg[STRIKES.indexOf(k)] > cg[STRIKES.indexOf(a)] ? k : a), above[0]) : null
+    const pw = below.length ? below.reduce((a, k) => (pg[STRIKES.indexOf(k)] > pg[STRIKES.indexOf(a)] ? k : a), below[0]) : null
+    mk('line', { x1: cx, x2: cx, y1: top, y2: top + STRIKES.length * rowH, stroke: 'var(--line)' }, bars)
+    STRIKES.forEach((k, i) => {
+      const y = ys(k), wc = (cg[i] / mx) * half * 0.95, wp = (pg[i] / mx) * half * 0.95
+      mk('text', { x: 50, y: y + 3.5, 'text-anchor': 'end', fill: k === cw || k === pw ? 'var(--ink)' : 'var(--faint)' }, bars).textContent = n0(k)
+      mk('rect', { x: cx, y: y - 9, width: Math.max(1, wc), height: 18, rx: 3, fill: 'var(--bid)', opacity: k === cw ? 1 : 0.55 }, bars)
+      mk('rect', { x: cx - Math.max(1, wp), y: y - 9, width: Math.max(1, wp), height: 18, rx: 3, fill: 'var(--ask)', opacity: k === pw ? 1 : 0.55 }, bars)
+      if (k === cw) mk('text', { x: cx - wp - 6, y: y + 4, class: 'lbl', fill: 'var(--bid)', 'text-anchor': 'end' }, bars).textContent = 'Call wall'
+      if (k === pw) mk('text', { x: cx + wc + 6, y: y + 4, class: 'lbl', fill: 'var(--ask)' }, bars).textContent = 'Put wall'
+    })
+    if (FLIP) { mk('line', { x1: 56, x2: W - 4, y1: yP(FLIP), y2: yP(FLIP), stroke: 'var(--flip)', 'stroke-dasharray': '6 4', 'stroke-width': 1.5 }, bars); mk('text', { x: W - 4, y: yP(FLIP) - 5, 'text-anchor': 'end', class: 'lbl', fill: 'var(--flip)' }, bars).textContent = `flip ${n0(FLIP)}` }
+    mk('line', { x1: 56, x2: W - 4, y1: yP(S), y2: yP(S), stroke: 'var(--gold)', 'stroke-width': 2 }, bars)
+    mk('rect', { x: 56, y: yP(S) - 9, width: 64, height: 18, rx: 4, fill: 'var(--gold)' }, bars)
+    mk('text', { x: 88, y: yP(S) + 3.5, 'text-anchor': 'middle', fill: 'var(--bg)', style: 'font-weight:700' }, bars).textContent = n0(S)
+    mk('text', { x: cx + 6, y: top + STRIKES.length * rowH + 16, class: 'lbl', fill: 'var(--bid)' }, bars).textContent = 'dealers long (calls)'
+    mk('text', { x: cx - 6, y: top + STRIKES.length * rowH + 16, class: 'lbl', fill: 'var(--ask)', 'text-anchor': 'end' }, bars).textContent = 'dealers short (puts)'
+
+    // net curve
+    const s = $('#gxNet'); s.innerHTML = ''
+    const Wn = 440, Hn = 240, pl = 16, pr = 12, pt = 14, pb = 26
+    const nmax = Math.max(...grid.map((g) => Math.abs(g[1])))
+    const x = (p) => pl + ((p - 19650) / 700) * (Wn - pl - pr), y = (v) => pt + (1 - (v + nmax) / (2 * nmax)) * (Hn - pt - pb)
+    const area = (f) => `${x(19650)},${y(0)} ` + grid.map(([p, v]) => `${x(p)},${y(f(v))}`).join(' ') + ` ${x(20350)},${y(0)}`
+    mk('polygon', { points: area((v) => Math.max(0, v)), fill: 'var(--bid)', opacity: 0.22 }, s)
+    mk('polygon', { points: area((v) => Math.min(0, v)), fill: 'var(--ask)', opacity: 0.22 }, s)
+    mk('polyline', { points: grid.map(([p, v]) => `${x(p)},${y(v)}`).join(' '), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.8 }, s)
+    mk('line', { x1: pl, x2: Wn - pr, y1: y(0), y2: y(0), stroke: 'var(--faint)' }, s)
+    mk('text', { x: x(19680), y: y(nmax * 0.8), class: 'lbl', fill: 'var(--bid)' }, s).textContent = 'above zero: dampening'
+    mk('text', { x: x(20320), y: y(-nmax * 0.8), 'text-anchor': 'end', class: 'lbl', fill: 'var(--ask)' }, s).textContent = 'below zero: amplifying'
+    if (FLIP) { mk('line', { x1: x(FLIP), x2: x(FLIP), y1: pt, y2: Hn - pb, stroke: 'var(--flip)', 'stroke-dasharray': '5 4', 'stroke-width': 1.5 }, s); mk('text', { x: x(FLIP) + 5, y: pt + 10, class: 'lbl', fill: 'var(--flip)' }, s).textContent = `flip ${n0(FLIP)}` }
+    const nv = netAt(S); mk('circle', { cx: x(S), cy: y(nv), r: 6, fill: 'var(--gold)', stroke: 'var(--panel)', 'stroke-width': 2 }, s)
+    for (const p of [19700, 19900, 20100, 20300]) mk('text', { x: x(p), y: Hn - 8, 'text-anchor': 'middle' }, s).textContent = n0(p)
+
+    const pill = $('#gxPill'), d = S - FLIP
+    let k = 'damp', label = 'Dampening', txt
+    if (Math.abs(d) < 12) { k = ''; label = 'Unsettled'; txt = `Price is sitting <b>on the flip</b> (${n0(FLIP)}). Dealer hedging is close to zero either way, so neither playbook has the wind behind it. <b>Skip or size down.</b>` }
+    else if (d > 0) txt = `Price is <b>${n0(d)} pts above the flip</b>. Dealers are net long gamma here, so they sell rallies and buy dips. Expect ranges and failed breakouts. The call wall at <b>${n0(cw)}</b> is the ceiling to fade into. <b>Playbook A: fade the edges, after absorption.</b>`
+    else { k = 'amp'; label = 'Amplifying'; txt = `Price is <b>${n0(-d)} pts below the flip</b>. Dealers are net short gamma here, so they sell into drops and buy into rips. Moves stretch. Do not catch the put wall at <b>${n0(pw)}</b> blind. <b>Playbook B: follow the break, enter on the retest.</b>` }
+    pill.className = 'pill ' + k; pill.textContent = label
+    $('#gxRead').innerHTML = txt
+  }
+  $('#gxS').addEventListener('input', drawGex)
+
+  /* ───────── 5. quiz ───────── */
+  const Q = [
+    { q: 'The best offer shows 5 contracts. The next price up shows 200. A market buy for 20 arrives. What happens?', o: ['Price jumps several ticks', 'Price moves up one tick and stalls there', 'Price does not move at all'], a: 1, w: 'The buyer takes the 5, then fills the other 15 from the 200 one tick higher. That level still has 185 left, so price stalls there.' },
+    { q: 'Why is the area just under an obvious low a good place for a big player to buy?', o: ['The stops there turn into market sells, which are the sellers a big buyer needs', 'Price is cheaper there', 'Support lines always hold'], a: 0, w: 'A big buyer needs a lot of sellers at once. Sell stops under the low are exactly that. Push price into them and they fill the buyer.' },
+    { q: 'At the put wall, 600 contracts of aggressive selling print in two minutes and price does not drop a tick. What is happening?', o: ['Sellers are winning, short it', 'Absorption: a passive buyer is soaking it up. Wait for the reclaim', 'Nothing, volume does not matter'], a: 1, w: 'Heavy aggression with no progress means someone large is refilling the bid. It is a reason to watch, and the entry is the close back above the level.' },
+    { q: 'A dealer is long calls and price rallies. What do they do?', o: ['Buy futures, which speeds the rally up', 'Nothing', 'Sell futures, which slows the rally down'], a: 2, w: 'The calls gain delta as price rises, so the dealer is too long and sells futures to rebalance. That pushes against the rally. This is the Dampening regime.' },
+    { q: 'The pill says Amplifying. Price breaks the put wall with no absorption. What do you do?', o: ['Fade it, walls always hold', 'Stay out of the way, then trade with the break on the retest', 'Buy more at the wall'], a: 1, w: 'In negative gamma, dealers sell into drops. With no absorption there is no buyer. Fading here is how accounts blow up.' },
+    { q: 'Why do 0DTE options have so much gamma near the current price?', o: ['With little time left, delta swings from near 0 to near 1 over a small move', 'Because they have more volume', 'The exchange sets it'], a: 0, w: 'Drag the time slider in section 2 to 0DTE. The gamma curve becomes a spike at the strike, so small moves force big hedges.' },
+  ]
+  const ans = new Map()
+  $('#qz').innerHTML = Q.map((x, i) => `<div class="card q" data-i="${i}"><div class="n">Question ${i + 1}</div><div>${x.q}</div><div class="opts">${x.o.map((o, j) => `<button data-j="${j}">${o}</button>`).join('')}</div><div class="why" hidden>${x.w}</div></div>`).join('')
+  $('#qz').addEventListener('click', (e) => {
+    const b = e.target.closest('.opts button'); if (!b) return
+    const card = b.closest('.q'), i = +card.dataset.i, j = +b.dataset.j
+    if (ans.has(i)) return
+    ans.set(i, j === Q[i].a)
+    card.querySelectorAll('.opts button').forEach((x, k) => { x.disabled = true; if (k === Q[i].a) x.classList.add('right'); else if (k === j) x.classList.add('wrong') })
+    card.querySelector('.why').hidden = false
+    const right = [...ans.values()].filter(Boolean).length
+    $('#qScore').textContent = `${right} of ${ans.size} right${ans.size === Q.length ? (right === Q.length ? '. Clean sheet.' : '. Go back to the sections you missed and run them again.') : ''}`
+  })
+
+  /* boot */
+  $('#hgGo').textContent = (+$('#hgG').value).toFixed(1)
+  startLesson(0); drawDG(); newDay(); drawGex()
+})()
+</script>
+
+</body>
+</html>
