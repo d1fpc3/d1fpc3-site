@@ -74,6 +74,22 @@ const ivs = await page.evaluate(() => [...document.querySelectorAll('#ch-menu-bo
 const want = ['1m', '2m', '3m', '4m', '5m', '10m', '15m', '30m', '45m', '1h', '2h', '4h', 'D', 'W', 'M']
 check(want.every((x) => ivs.includes(x)), `the list holds every interval (${ivs.length}: ${ivs.join(' ')})`)
 await page.screenshot({ path: `${OUT}/intervals.png` })
+
+// the list has to FIT: 23 intervals hung off a popover built for six was the
+// complaint, and "cut off" is measurable
+const fit = await page.evaluate(() => {
+  const m = document.getElementById('ch-menu'), st = document.getElementById('ch-stage').getBoundingClientRect()
+  const r = m.getBoundingClientRect(), btns = [...m.querySelectorAll('.ch-ivs button')]
+  return { inside: r.right <= st.right + 1 && r.bottom <= st.bottom + 1 && r.top >= st.top - 1, clipped: btns.filter((x) => { const q = x.getBoundingClientRect(); return q.bottom > r.bottom + 1 || q.right > r.right + 1 }).length }
+})
+check(fit.inside && fit.clipped === 0, `the list fits on the stage with nothing cut off (${fit.clipped} clipped)`)
+
+// and a star keeps one on the bar
+const rowBefore = await page.evaluate(() => [...document.querySelectorAll('#ch-tf button[data-tf]')].map((b2) => b2.textContent))
+await page.evaluate(() => { const b2 = [...document.querySelectorAll('.ch-ivs button')].find((x) => x.querySelector('span')?.textContent === '45m'); b2.querySelector('.fav').click() })
+await page.waitForTimeout(500)
+const rowAfter = await page.evaluate(() => [...document.querySelectorAll('#ch-tf button[data-tf]')].map((b2) => b2.textContent))
+check(!rowBefore.includes('45m') && rowAfter.includes('45m'), `starring an interval keeps it on the bar (${rowAfter.join(' ')})`)
 await page.evaluate(() => [...document.querySelectorAll('#ch-menu-body .ch-ivs button')].find((b) => b.textContent === '45m')?.click())
 await page.waitForTimeout(2600)
 check(await page.evaluate(() => window.__CH.tf) === '45m', 'picking 45m from the list sets it')

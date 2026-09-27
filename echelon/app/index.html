@@ -1109,12 +1109,17 @@
     /* every interval there is, grouped, the way the platform lists them */
     .ch-ivs { display: grid; grid-template-columns: repeat(4, minmax(56px, 1fr)); gap: 4px; padding: 2px 0 6px; }
     .ch-ivs button {
-      height: 32px; border: 1px solid transparent; border-radius: 7px; background: var(--panel-2);
+      position: relative; height: 36px; border: 1px solid transparent; border-radius: 7px; background: var(--panel-2);
       color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 550; cursor: pointer;
       transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
     }
     @media (hover: hover) { .ch-ivs button:hover { border-color: var(--acc); } }
     .ch-ivs button.on { background: var(--tv-tint, rgba(201,162,74,0.16)); color: var(--acc); border-color: var(--acc); }
+    .ch-ivs .fav { position: absolute; top: 1px; right: 1px; width: 15px; height: 15px; display: grid; place-items: center; color: var(--faint); opacity: 0; transition: opacity 0.14s ease, color 0.14s ease; cursor: pointer; }
+    .ch-ivs .fav svg { width: 11px; height: 11px; fill: none; }
+    .ch-ivs .fav.on { opacity: 1; color: var(--acc); } .ch-ivs .fav.on svg { fill: currentColor; }
+    @media (hover: hover) { .ch-ivs button:hover .fav { opacity: 0.55; } .ch-ivs .fav:hover { opacity: 1 !important; color: var(--acc); } }
+    @media (hover: none) { .ch-ivs .fav { opacity: 0.45; } }
 
     .ch-opt-ty { display: flex; align-items: center; gap: 12px; }
     .ch-opt-ty .ch-ty-art { flex: 0 0 auto; border-radius: 5px; background: var(--panel-2); }
@@ -1435,6 +1440,9 @@
       #v-chart .ch-menu[data-kind="dlg"] .ch-menu-body { padding: 8px 20px 16px; }
       #v-chart .ch-menu[data-kind="pop"] { right: auto; bottom: auto; width: 240px; border: 0; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2), 0 8px 24px rgba(19,23,34,0.16); }
       #v-chart .ch-menu[data-kind="pop"] .ch-menu-head { display: none; }
+      #v-chart .ch-menu[data-kind="pop"][data-which="tf"] { width: 330px; display: flex; flex-direction: column; }
+      #v-chart .ch-menu[data-kind="pop"][data-which="tf"] .ch-menu-head { display: flex; }
+      #v-chart .ch-menu[data-kind="pop"][data-which="tf"] .ch-menu-body { padding: 4px 14px 14px; overflow-y: auto; min-height: 0; }
       #v-chart .ch-menu[data-kind="pop"] .ch-menu-body { padding: 6px 0; }
       #v-chart .ch-menu[data-kind="pop"] .ch-opt { border: 0; padding: 9px 16px; } #v-chart .ch-menu[data-kind="pop"] .ch-opt small { display: none; }
       #v-chart .ch-menu[data-kind="pop"] .ch-opt b { font-size: 14px; font-weight: 400; } #v-chart .ch-menu[data-kind="pop"] .ch-opt:hover { background: var(--panel-2); }
@@ -13002,21 +13010,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* D1's chart, as the chart's own look: grey canvas, white up, muted red
        down, no grid. Named so the defaults below read as one decision rather
        than six unexplained hex codes. */
-    const D1_BG = '#808080', D1_UP = '#ffffff', D1_DN = '#c2534f'
-    const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP, wickDown: D1_DN, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, legendOhlc: true, legendInds: true, legendVals: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
+    const D1_BG = '#808080', D1_UP = '#ffffff', D1_DN = '#808080'   // down = the canvas, outlined in white below
+    const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP, wickDown: D1_UP, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, legendOhlc: true, legendInds: true, legendVals: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
       // LIT ships curated, not complete: the levels price reacts to are on, the ten
       // busier parts are one toggle away in the LIT menu. litV stamps the migration.
       lit: true, litV: 2, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: false, litKo: false, litPo3: false, litEighths: false, litGold: true, litVector: true, litDays: 3,
       litPm: false, litNwog: false, litDr: false, litDrBack: 3, litSig: false, litSig1: false, litSigAnc: false, litDs: true, litDsWeek: true, litOpen22: false, litLdn: false, litWm: true, litAlerts: true,
       litPmC: '', litPmW: 2, litNwogC: '', litNwogF: 0.12, litDrC: '', litDrHlC: '', litDrW: 1, litSigC: '', litSigW: 1, litDsC: '', litOpen22C: '', litOpen22W: 1, litLdnC: '', litLdnF: 0.1, litWmC: '',
       // chart style (empty colour = the theme token)
-      accentC: '', magnet: 'off', borderUp: D1_UP, borderDown: D1_DN, wicks: true, bodyW: 'normal', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: false, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
+      accentC: '', magnet: 'off', borderUp: D1_UP, borderDown: D1_UP, wicks: true, bodyW: 'wide', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: false, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
       volUp: '', volDown: '', volA: 0.35, volSize: 'normal', volMa: false, volMaN: 20, volMaC: '',
       // indicators: moving averages are a list, VWAP has bands, LIT and GEX carry a colour and a width per part
       ma: null, vwapC: '', vwapW: 1.2, vwapStyle: 'dash', vwapBands: false, vwapBandC: '', vwapBandA: 0.08, prevDayC: '',
       bb: false, bbN: 20, bbK: 2, bbC: '', bbMidC: '', bbF: 0.06, bbW: 1,
       p_rsi: false, rsiN: 14, rsiC: '', rsiHi: 70, rsiLo: 30, rsiFill: true, p_macd: false, macdF: 12, macdS: 26, macdSig: 9, macdC: '', macdSigC: '', p_atr: false, atrN: 14, atrC: '',
-      litPdC: '', litPdW: 1, litPwC: '', litPwW: 1, litWoC: '', litWoW: 2, litAsiaC: '', litAsiaF: 0.15, litNyC: '', litNyF: 0.1, litOpenC: '', litOpenW: 1, litMarksC: '', litKoC: '', litPo3Up: '', litPo3Dn: '', litEighthsC: '', litGoldC: '', litGoldW: 1, litVecUp: '', litVecDn: '', litLabels: true,
+      litPdC: '', litPdW: 1, litPwC: '', litPwW: 1, litWoC: '', litWoW: 2, litAsiaC: '', litAsiaF: 0.15, litNyC: '', litNyF: 0.1, litOpenC: '', litOpenW: 1, litMarksC: '', litKoC: '', litPo3Up: '', litPo3Dn: '', litPo3Lab: '', litEighthsC: '', litGoldC: '', litGoldW: 1, litVecUp: '', litVecDn: '', litLabels: true,
       cmp: false, cmpSym: 'auto', cmpC: '', cmpW: 1.4, cmpLabel: true,
       // D1 LIT Engine: the mechanical IDM/BoS structure engine, opt in
       eng: false, engBack: 3000, engStruct: true, engIdm: true, engSweeps: true, engEq: true, engLabels: true,
@@ -13034,7 +13042,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       htf: false, htfPos: 'tr', htf5: true, htf15: true, htf60: true, htf240: true, htfD: true, htfRsiHi: 70, htfRsiLo: 30, htfVolHot: 1.5,
       news: false, newsPos: 'br', newsHigh: true, newsMed: true, newsHol: true, newsMax: 10, newsDim: true, newsMarks: true,
       badj: true, rollMarks: true, smt: false, smtPeer: 'auto', smtLen: 5, smtBack: 600, smtBearC: '', smtBullC: '', smtW: 2, smtLabels: true, smtPeerMark: true,
-      axisInd: true, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true, gexSwing: true, gexRn: 10, gexBand: 6, gexPx: false }
+      axisInd: true, indPresets: {}, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true, gexSwing: true, gexRn: 10, gexBand: 6, gexPx: false }
     const CH_MA_DEFAULT = () => [{ t: 'ema', n: 20, c: '#c9a24a', w: 1.2, on: true }, { t: 'ema', n: 50, c: '#7aa2d9', w: 1.2, on: true }, { t: 'ema', n: 200, c: '#d97ab0', w: 1.2, on: true }]
     const CH_MA_COLORS = ['#c9a24a', '#7aa2d9', '#d97ab0', '#5fc39a', '#e08a4b']
     /* ── skin: the chart background decides the side everything else sits on ──
@@ -13140,9 +13148,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* Saved settings hold every key, so a new default never reaches anyone who has
        touched the chart once. This flips the ten busy LIT parts off a single time,
        stamps litV, and never runs again. Colours, widths and the rest are left alone. */
-    if (CH.s.lookV !== 2) {
+    if (CH.s.lookV !== 3) {
       CH.s.bg = ''; CH.s.bg2 = ''; CH.s.up = D1_UP; CH.s.down = D1_DN; CH.s.wickUp = D1_UP; CH.s.wickDown = D1_DN
-      CH.s.borderUp = D1_UP; CH.s.borderDown = D1_DN; CH.s.grid = false; CH.s.gridV = false; CH.s.textC = ''; CH.s.lookV = 2
+      CH.s.borderUp = D1_UP; CH.s.borderDown = D1_UP; CH.s.wickDown = D1_UP; CH.s.grid = false; CH.s.gridV = false; CH.s.textC = ''
+      CH.s.bodyW = 'wide'; CH.s.lookV = 3
       try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {}
     }
     if (CH.s.litV !== 2) { for (const k of ['litMarks', 'litKo', 'litPo3', 'litEighths', 'litPm', 'litNwog', 'litDr', 'litSig', 'litOpen22', 'litLdn']) CH.s[k] = false; CH.s.litV = 2; try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {} }
@@ -13784,8 +13793,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         let o = null, h = -Infinity, l = Infinity
         const lastKeyOf = (t) => anchorMidnight ? Math.floor((t + chEtOff(t)) / 86400) : Math.floor((t + chEtOff(t)) / secs)
         const k = lastKeyOf(lastT)
-        for (let i = n - 1; i >= 0; i--) { const b = bars[i]; if (lastKeyOf(b.t) !== k) break; o = b.o; if (b.h > h) h = b.h; if (b.l < l) l = b.l }
-        if (o != null) v.po3.push({ o, h, l, c: bars[n - 1].c, offset, width, label })
+        let openT = null
+        for (let i = n - 1; i >= 0; i--) { const b = bars[i]; if (lastKeyOf(b.t) !== k) break; o = b.o; openT = b.t; if (b.h > h) h = b.h; if (b.l < l) l = b.l }
+        if (o != null) v.po3.push({ o, h, l, c: bars[n - 1].c, offset, width, label, openAt: openT })
       }
       po3(1800, false, 20, 4, '30m PO3', tf <= 1800); po3(14400, false, 35, 6, '4H PO3', tf <= 14400); po3(86400, true, 50, 6, 'D1 PO3', tf <= 86400)
       // golden Tue 01:00 to Wed 23:00 window: the highest high, floated 0.05% up, from the window start
@@ -13834,7 +13844,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chVecCache = { key, v }; return v
     }
     // every LIT part has a colour (empty = the Pine default), lines a width, boxes a fill
-    const CH_LIT_DEF = (light) => ({ litPmC: light ? '#7b1fa2' : '#ce93d8', litNwogC: light ? '#7b8595' : '#9aa4b5', litDrC: light ? '#1a1815' : '#e9e3d8', litDrHlC: light ? '#5a5a5a' : '#a0a0a0', litSigC: light ? '#000000' : '#e9e3d8', litDsC: light ? '#1a1815' : '#e9e3d8', litOpen22C: light ? '#1a1815' : '#e9e3d8', litLdnC: light ? '#808080' : '#9d978c', litWmC: light ? '#1a1815' : '#e9e3d8', litPdC: light ? '#5a5a5a' : '#a0a0a0', litPwC: light ? '#5a5a5a' : '#a0a0a0', litWoC: light ? '#1a1815' : '#e9e3d8', litAsiaC: '#ab47bc', litNyC: light ? '#1e222d' : '#b4c8ff', litOpenC: light ? '#1a1815' : '#e9e3d8', litMarksC: light ? '#1a1815' : '#e9e3d8', litKoC: light ? '#1a1815' : '#e9e3d8', litPo3Up: '#4caf50', litPo3Dn: light ? '#000000' : '#e9e3d8', litEighthsC: light ? '#5a5a5a' : '#a0a0a0', litGoldC: '#d4af37', litVecUp: '#008f47', litVecDn: '#ffffff' })
+    const CH_LIT_DEF = (light) => ({ litPmC: light ? '#7b1fa2' : '#ce93d8', litNwogC: light ? '#7b8595' : '#9aa4b5', litDrC: light ? '#1a1815' : '#e9e3d8', litDrHlC: light ? '#5a5a5a' : '#a0a0a0', litSigC: light ? '#000000' : '#e9e3d8', litDsC: '#000000', litOpen22C: light ? '#1a1815' : '#e9e3d8', litLdnC: '#000000', litWmC: light ? '#1a1815' : '#e9e3d8', litPdC: light ? '#5a5a5a' : '#a0a0a0', litPwC: light ? '#5a5a5a' : '#a0a0a0', litWoC: light ? '#1a1815' : '#e9e3d8', litAsiaC: '#faa1a4', litNyC: '#000000', litOpenC: '#000000', litMarksC: '#080502', litKoC: '#080502', litPo3Up: '#4caf50', litPo3Dn: '#000000', litPo3Lab: '#9e9e9e', litEighthsC: light ? '#5a5a5a' : '#a0a0a0', litGoldC: '#d4af37', litVecUp: '#008f47', litVecDn: '#ffffff' })
     const CH_LIT_PARTS = [['litPd', 'PDH / PDL', 'litPdC', 'litPdW'], ['litPw', 'PWH / PWL', 'litPwC', 'litPwW'], ['litWo', 'Weekly open', 'litWoC', 'litWoW'], ['litAsia', 'Asia box', 'litAsiaC', null, 'litAsiaF'], ['litNy', 'NYT box', 'litNyC', null, 'litNyF'], ['litOpen', '18:00 open', 'litOpenC', 'litOpenW'], ['litMarks', 'FF LO MM1 MM2 LC', 'litMarksC'], ['litKo', 'Key opens', 'litKoC'], ['litPo3', 'PO3 candles', 'litPo3Up', null, null, 'litPo3Dn'], ['litEighths', 'Weekly eighths', 'litEighthsC'], ['litGold', 'Golden Tue/Wed', 'litGoldC', 'litGoldW'], ['litVector', 'Vector candles', 'litVecUp', null, null, 'litVecDn'],
       ['litPm', 'PMH / PML', 'litPmC', 'litPmW'], ['litNwog', 'Liquidity voids (NWOG)', 'litNwogC', null, 'litNwogF'], ['litDr', 'Daily reset levels', 'litDrC', 'litDrW', null, 'litDrHlC'], ['litSig', 'σ bands (expected move)', 'litSigC', 'litSigW'], ['litDs', 'Day separators', 'litDsC'], ['litOpen22', '22:00 open', 'litOpen22C', 'litOpen22W'], ['litLdn', 'London box', 'litLdnC', null, 'litLdnF'], ['litWm', 'Watermark tag', 'litWmC']]
     /* ── the label lane ──
@@ -13954,7 +13964,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             ctx.strokeStyle = cc('litPo3Dn'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Math.round(mid) + 0.5, Y(c.h)); ctx.lineTo(Math.round(mid) + 0.5, Y(c.l)); ctx.stroke()
             ctx.fillStyle = body; ctx.fillRect(x, top, cw, hgt)
             ctx.strokeStyle = light ? '#000' : 'rgba(0,0,0,0.6)'; ctx.strokeRect(Math.round(x) + 0.5, Math.round(top) + 0.5, Math.round(cw), Math.round(hgt))
-            tag(c.label.replace(' PO3', ''), mid, Y(c.h) - 7, T.faint, 'center', 9.5, 40)
+            tag(c.openAt ? CH_ET_HM.format(new Date(c.openAt * 1000)) : c.label.replace(' PO3', ''), mid, Y(c.h) - 7, cc('litPo3Lab'), 'center', 9.5, 40)
           }
         }
       }
@@ -15973,6 +15983,31 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* Every interval, grouped. D1 asked for the list rather than a box that
        invents one: the typing shortcut still works, but nobody should have to
        know it exists to reach 45 minutes. */
+    const CH_TF_FAVS_DEF = ['1m', '5m', '15m', '30m', '1h', '4h', 'D']
+    const chFavs = () => (Array.isArray(CH.s.tfFavs) && CH.s.tfFavs.length ? CH.s.tfFavs : CH_TF_FAVS_DEF)
+    function chFavToggle(label) {
+      const f = chFavs().slice()
+      const at = f.indexOf(label)
+      if (at >= 0) { if (f.length > 1) f.splice(at, 1) } else f.push(label)
+      // keep them in the order the list shows them, so the row reads like a scale
+      const order = CH_IVS.flatMap(([, l]) => l)
+      CH.s.tfFavs = f.sort((a, b) => order.indexOf(a) - order.indexOf(b))
+      chSave(); chTfRow()
+    }
+    // the bar's row IS the favourites
+    function chTfRow() {
+      const bar = el('ch-tf'); if (!bar) return
+      const any = el('ch-tf-any')
+      for (const b of [...bar.querySelectorAll('button[data-tf]')]) b.remove()
+      for (const label of chFavs()) {
+        chIvRegister(label)
+        const b = document.createElement('button'); b.type = 'button'; b.dataset.tf = label; b.textContent = label
+        b.classList.toggle('on', CH.tf === label)
+        b.addEventListener('click', () => chSetTf(label))
+        bar.insertBefore(b, any)
+      }
+      setTimeout(chTipsApply, 0)
+    }
     const CH_IVS = [
       ['Minutes', ['1m', '2m', '3m', '4m', '5m', '10m', '15m', '20m', '30m', '45m']],
       ['Hours', ['1h', '2h', '3h', '4h', '6h', '8h', '12h']],
@@ -15991,7 +16026,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const grid = document.createElement('div'); grid.className = 'ch-ivs'
         for (const label of labels) {
           chIvRegister(label)
-          const b = document.createElement('button'); b.type = 'button'; b.textContent = label
+          const b = document.createElement('button'); b.type = 'button'
+          const t = document.createElement('span'); t.textContent = label; b.appendChild(t)
+          const star = document.createElement('i'); star.className = 'fav' + (chFavs().includes(label) ? ' on' : '')
+          star.title = 'Keep this one on the bar'
+          star.innerHTML = '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"/></svg>'
+          star.addEventListener('click', (e) => { e.stopPropagation(); chFavToggle(label); star.classList.toggle('on') })
+          b.appendChild(star)
           b.classList.toggle('on', CH.tf === label)
           b.addEventListener('click', () => { chSetTf(label); chMenu(null) })
           grid.appendChild(b)
@@ -16001,7 +16042,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function chTfCustomButtons() {
       const bar = el('ch-tf'); if (!bar) return
-      setTimeout(chTipsApply, 0)   // the custom buttons are new elements; they want tips too
+      chTfRow()
+      setTimeout(chTipsApply, 0)   // the row's buttons are new elements; they want tips too
       bar.querySelectorAll('button.custom').forEach((b) => b.remove())
       for (const label of CH.s.customTfs || []) {
         if (!CH_TF[label]) { const m = /^(\d+)([mhDW])$/.exec(label) || (label === 'D' ? [null, 1, 'D'] : null); if (!m) continue; const mins = m[2] === 'h' ? +m[1] * 60 : m[2] === 'D' ? +m[1] * 1440 : m[2] === 'W' ? +m[1] * 10080 : +m[1]; CH_TF[label] = [mins >= 1440 ? '1d' : mins % 60 === 0 ? '60m' : mins % 5 === 0 ? '5m' : '1m', mins] }
@@ -16071,6 +16113,62 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     // the settings dialog repaints the chart on every change, so ride that
     function chCandlePreviewSync() { const cv = el('ch-cprev-cv'); if (cv && cv.isConnected) chCandleArt(cv, 116, 66, CH.s.type) }
+
+    /* ── indicator presets ───────────────────────────────────────────────
+       One indicator's settings, under a name. The whole-set Templates row above
+       answers a different question ("put my chart back"); this one answers "use
+       my RSI the way I like it" without touching anything else.
+       The keys that belong to an indicator are its own prefix, which is how the
+       settings object is already organised. */
+    const CH_IND_KEYS = {
+      lit: /^lit/, gex: /^gex/, eng: /^eng/, ict: /^ict/, sd: /^sd/, pend: /^pend/, amit: /^amit/,
+      htf: /^htf/, news: /^news/, smt: /^smt/, cmp: /^cmp/, ma: /^(ma$|emaOn)/, vwap: /^vwap/,
+      bb: /^bb/, rsi: /^rsi|^p_rsi/, macd: /^macd|^p_macd/, atr: /^atr|^p_atr/, vol: /^vol/,
+    }
+    const chIndPick = (ind) => {
+      const re = CH_IND_KEYS[ind]; if (!re) return null
+      const out = {}
+      for (const k of Object.keys(CH.s)) if (re.test(k)) out[k] = JSON.parse(JSON.stringify(CH.s[k]))
+      return out
+    }
+    const chPresets = (ind) => (CH.s.indPresets && CH.s.indPresets[ind]) || []
+    function chPresetSave(ind, name) {
+      const v = chIndPick(ind); if (!v) return
+      CH.s.indPresets = CH.s.indPresets || {}
+      const list = (CH.s.indPresets[ind] || []).filter((p) => p.name !== name)
+      CH.s.indPresets[ind] = [{ name: String(name).slice(0, 40), v }, ...list].slice(0, 8)
+      chSave()
+    }
+    function chPresetApply(ind, p) {
+      Object.assign(CH.s, JSON.parse(JSON.stringify(p.v)))
+      if (!Array.isArray(CH.s.ma) || !CH.s.ma.length) CH.s.ma = CH_MA_DEFAULT()
+      chSave(); chBuild(); chDraw()
+      toast('"' + p.name + '" applied.', 1600)
+    }
+    function chPresetRow(ind, reopen) {
+      const wrap = document.createElement('div'); wrap.className = 'ch-tpl'
+      const lbl = document.createElement('span'); lbl.className = 'ch-tpl-l'; lbl.textContent = 'Presets'
+      wrap.appendChild(lbl)
+      for (const p of chPresets(ind)) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'ch-tpl-b'
+        const sp = document.createElement('span'); sp.textContent = p.name
+        const x = document.createElement('i'); x.textContent = '\u00d7'; x.title = 'Remove'
+        b.append(sp, x)
+        b.addEventListener('click', (e) => {
+          if (e.target === x) { CH.s.indPresets[ind] = chPresets(ind).filter((q) => q !== p); chSave(); reopen(); return }
+          chPresetApply(ind, p); reopen()
+        })
+        wrap.appendChild(b)
+      }
+      const add = document.createElement('button'); add.type = 'button'; add.className = 'ch-tpl-b add'; add.textContent = '+ Save these settings'
+      add.addEventListener('click', () => {
+        const name = (prompt('Name these settings', chPresets(ind).length ? '' : 'Mine') || '').trim()
+        if (!name) return
+        chPresetSave(ind, name); reopen(); toast('Saved "' + name + '".', 1600)
+      })
+      wrap.appendChild(add)
+      return wrap
+    }
 
     let chHaCache = { key: '', v: [] }
     function chHeikin() {
@@ -16579,6 +16677,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const titles = { sym: 'Symbol search', 'ind:smt': 'SMT divergence', 'ind:cmp': 'Compare', type: 'Chart type', ind: 'Indicators', settings: 'Settings', 'ind:ma': 'Moving averages', 'ind:vwap': 'VWAP', 'ind:bb': 'Bollinger Bands', 'ind:rsi': 'RSI', 'ind:macd': 'MACD', 'ind:atr': 'ATR', keys: 'Keyboard shortcuts', layouts: 'Layouts', tf: 'Interval', 'ind:lit': 'D1 LIT', 'ind:gex': 'D1 GEX', 'ind:prev': 'Prior day', 'ind:sess': 'Sessions', 'ind:vol': 'Volume', alerts: 'Alerts', objects: 'Objects', draw: CH.sel ? (CH_TOOL_NAMES[CH.sel.type] || 'Drawing') : 'Drawing' }
       if (which === 'draw' && !CH.sel) { m.hidden = true; CH.menu = null; return }
       el('ch-menu-title').textContent = titles[which] || 'Settings'
+      m.dataset.which = which
       const back = el('ch-menu-back'); back.hidden = !sub; back.onclick = () => chMenu(root)
       const hex = (c) => /^#[0-9a-f]{6}$/i.test(c) ? c : '#c9a24a'
       const defC = (key) => ({ ...chDefaults(T, bgLight), cmpC: '#ff9800', bbC: '#2962ff', bbMidC: '#ff9800', rsiC: '#7e57c2', macdC: '#2962ff', macdSigC: '#ff6d00', atrC: '#26a69a', ...CH_LIT_DEF(bgLight), ...CH_GEX_DEF })[key] || T.gold
@@ -16604,6 +16703,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // shared sections
       const sessionsUi = () => { toggle('eth', 'Extended hours', 'Globex and the pre-market; off shows 9:30 to 4:00 ET only', () => { chBuild(); CH.offset = 6; CH.auto = true }); toggle('sessions', 'Shade off-hours', 'Everything outside 9:30 to 4:00 ET'); color('sessC', 'Shade colour'); toggle('sessLines', 'Hairline at each open') }
       const volumeUi = () => { toggle('volume', 'Volume pane', 'Its × closes it too'); color('volUp', 'Up bars'); color('volDown', 'Down bars'); row('Opacity', rangeEl('volA', 0.1, 1, 0.05, 0.35)); row('Height', segEl('volSize', [['small', 'Small'], ['normal', 'Normal'], ['tall', 'Tall']])); toggle('volMa', 'Volume average', 'A simple average over the pane'); row('Length', numEl('volMaN', 2, 500, 20)); color('volMaC', 'Average colour') }
+      // Every indicator panel opens with its own presets: this indicator's
+      // settings under a name, separate from the whole-set Templates on the
+      // Indicators page, which answers a different question.
+      if (sub && CH_IND_KEYS[sub]) body.appendChild(chPresetRow(sub, () => chMenu(which)))
       if (which === 'sym') {
         const q = document.createElement('input'); q.type = 'text'; q.className = 'ch-dlg-search'; q.placeholder = 'Search'; q.setAttribute('aria-label', 'Search symbols'); q.autocomplete = 'off'; q.spellcheck = false; q.value = CH.symSeed || ''; CH.symSeed = ''
         const list = document.createElement('div'); list.className = 'ch-symlist'
@@ -17039,7 +17142,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       m.dataset.kind = kind; m.dataset.size = size; m.dataset.which = which
       const sc = el('ch-scrim'); if (sc) { sc.hidden = kind !== 'dlg'; sc.classList.toggle('dim', which === 'ind' || which === 'sym') }
       m.querySelector('.ch-dlg-nav')?.remove(); m.querySelector('.ch-dlg-foot')?.remove(); m.style.left = ''; m.style.top = ''
-      if (kind === 'pop') { const st = el('ch-stage').getBoundingClientRect(), b = el('ch-type-btn').getBoundingClientRect(); m.style.left = Math.max(4, b.left - st.left) + 'px'; m.style.top = '4px'; return }
+      if (kind === 'pop') {
+        const st = el('ch-stage').getBoundingClientRect()
+        const anchor = el(CH.menu === 'tf' ? 'ch-tf-any' : 'ch-type-btn') || el('ch-type-btn')
+        const b = anchor.getBoundingClientRect()
+        const w = m.offsetWidth || 240
+        // keep it inside the stage on both sides, and hang it under its button
+        m.style.left = Math.round(Math.max(4, Math.min(b.left - st.left, st.width - w - 8))) + 'px'
+        m.style.top = Math.round(Math.max(4, b.bottom - st.top + 6)) + 'px'
+        m.style.maxHeight = Math.round(st.height - (b.bottom - st.top) - 18) + 'px'
+        return
+      }
       if (kind !== 'dlg') return
       // group the body by its headers into tabs
       const groups = []; let cur = { name: null, nodes: [] }
@@ -17140,7 +17253,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (min >= 17 * 60 && min < 18 * 60) return { key: 'closed', label: 'Closed' }
       return { key: min < 570 && min >= 240 ? 'pre' : 'globex', label: min < 570 && min >= 240 ? 'Pre-market' : 'Globex' }
     }
-    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const lag = trading && CH.feedAt ? Math.floor((Date.now() / 1000 - CH.feedAt) / 60) : 0; sp.textContent = lag >= 3 ? (window.innerWidth < 520 ? `${lag}m behind` : `${st.label} · feed ${lag}m behind`) : st.label; sp.className = 'ch-sess' + (lag >= 3 ? ' lag' : st.key === 'open' ? ' open' : ''); sp.title = lag >= 3 ? 'Yahoo\x27s feed has stalled; it backfills when it catches up.' : '' } const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const ms = trading ? 3000 : st.key === 'weekend' ? 5 * 60 * 1000 : 60 * 1000; CH.timer = setTimeout(chTick, ms) }
+    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const lag = trading && CH.feedAt ? Math.floor((Date.now() / 1000 - CH.feedAt) / 60) : 0; sp.textContent = lag >= 3 ? (window.innerWidth < 520 ? `${lag}m behind` : `feed ${lag}m behind`) : ''; sp.hidden = lag < 3; sp.className = 'ch-sess' + (lag >= 3 ? ' lag' : ''); sp.title = lag >= 3 ? 'Yahoo\x27s feed has stalled; it backfills when it catches up.' : '' } const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const ms = trading ? 3000 : st.key === 'weekend' ? 5 * 60 * 1000 : 60 * 1000; CH.timer = setTimeout(chTick, ms) }
     async function chTick() { if (!CH.on) return; if (document.hidden) { chSchedule(); return } await chTail(Date.now() - (CH.fullAt || 0) > 5 * 60 * 1000); for (const peer of new Set([CH.s.smt ? chSmtPeer() : null, CH.s.cmp ? chCmpSym() : null].filter(Boolean))) { const ps = chStoreFor(peer); if (ps.have['1m'] === true) chTail(Date.now() - (ps.fullAt || 0) > 5 * 60 * 1000, peer) } chSchedule() }
 
     function renderGex() {

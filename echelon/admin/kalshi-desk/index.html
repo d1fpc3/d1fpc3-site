@@ -906,6 +906,22 @@
     .hstat .v.up { color: var(--good); } .hstat .v.down { color: var(--bad); }
     .hstat .k { font-size: 11px; color: var(--faint); margin-top: 2px; }
     .rl-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin: 0 0 14px; max-width: 56ch; }
+    .sizing { margin: 4px 0 14px; }
+    .sizing-now { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+      padding: 11px 14px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 10px;
+      background: linear-gradient(180deg, rgba(212,175,55,.09), rgba(212,175,55,.02)); }
+    .sn-k { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+    .sn-v { font-size: 21px; font-weight: 650; color: var(--gold); font-variant-numeric: tabular-nums; }
+    .sn-d { font-size: 12.5px; color: var(--muted); }
+    .sizing-t { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .sizing-t th { text-align: left; font-weight: 500; font-size: 11px; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--muted); padding: 0 10px 7px 0; border-bottom: 1px solid var(--line); }
+    .sizing-t td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+    .sizing-t tr:last-child td { border-bottom: 0; }
+    .sizing-t tr.on td { background: rgba(212,175,55,.07); }
+    .sizing-t tr.on td:first-child { box-shadow: inset 2px 0 0 var(--gold); padding-left: 8px; }
+    .sizing-t td:nth-child(4) { color: var(--muted); font-size: 12px; }
+    @media (max-width: 640px) { .sizing-t td:nth-child(4), .sizing-t th:nth-child(4) { display: none; } }
     #s-rule .risk { margin: 0 0 12px; }
     details.evidence { border-top: 1px solid var(--line); padding-top: 10px; }
     details.evidence summary { cursor: pointer; list-style: none; font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
@@ -1130,6 +1146,23 @@
           <div class="hstat"><div class="v" id="rl-edge14">–</div><div class="k">edge, 14 days</div></div>
         </div>
         <p class="rl-note" id="rl-note">The edge is the favourite's mispricing at the mid minus half the spread. It clears once the spread is near a cent, and not before.</p>
+        <!-- D1, 2026-09-26: "put it inside of my Echelon dashboard so I remember. Be like
+             currently yada yada times risk." The clip is no longer one number: it is weighted by
+             which of four cells the round falls in, and the top line says which one is live RIGHT
+             NOW so he never has to work it out from a fill. -->
+        <div class="sizing" id="s-sizing">
+          <div class="sizing-now"><span class="sn-k">Right now</span><span class="sn-v" id="sz-now">–</span><span class="sn-d" id="sz-desc"></span></div>
+          <table class="sizing-t">
+            <thead><tr><th>Round</th><th>Risk</th><th>Stake</th><th>Edge behind it</th></tr></thead>
+            <tbody>
+              <tr data-cell="hour-weekend"><td>Sat/Sun, top of the hour</td><td><b>3.57x</b></td><td id="sz-hw">–</td><td>+3.59c a contract</td></tr>
+              <tr data-cell="hour-weekday"><td>Mon-Fri, top of the hour</td><td><b>2.38x</b></td><td id="sz-hd">–</td><td>+1.34c</td></tr>
+              <tr data-cell="rest-weekend"><td>Sat/Sun, off the hour</td><td><b>1.78x</b></td><td id="sz-rw">–</td><td>+0.08c</td></tr>
+              <tr data-cell="rest-weekday"><td>Mon-Fri, off the hour</td><td><b>not traded</b></td><td>–</td><td>-0.80c, loses in both regimes</td></tr>
+            </tbody>
+          </table>
+          <p class="rl-note">Raw preference is 2x on the hour and 1.5x at the weekend, divided by how often each cell comes up. So the money staked across a week is unchanged: this moves it, it does not add any. "Top of the hour" is the round closing at :00, all 24 of them, not the first hour of the day.</p>
+        </div>
       <div class="risk" id="risk" title="What the executor obeys on the account. It reads this row on every pass, so a change lands within a minute.">
         <div class="risk-h">Risk</div>
         <label class="rf"><span class="rk">per call</span><span class="ri"><i>$</i><input id="r-clip" type="number" min="1" max="500" step="1" inputmode="decimal"></span></label>
@@ -2252,6 +2285,35 @@
     const CAL_MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
       'August', 'September', 'October', 'November', 'December']
 
+    // Which of the four cells is live RIGHT NOW, and what each one stakes at today's clip.
+    // Mirrors worker/src/cell-weight.mjs; the weights are the raw 2x on the hour and 1.5x at the
+    // weekend divided by how often each cell comes up, so the week's total stake is unchanged.
+    const CELL_W = { 'hour-weekend': 3.57, 'hour-weekday': 2.38, 'rest-weekend': 1.78, 'rest-weekday': 0 }
+    const CELL_SAY = {
+      'hour-weekend': 'a weekend round closing on the hour, the best cell there is',
+      'hour-weekday': 'a weekday round closing on the hour',
+      'rest-weekend': 'a weekend round closing off the hour',
+      'rest-weekday': 'weekday, off the hour. Nothing trades until the next :00 close.',
+    }
+    function cellNow(at = new Date()) {
+      // the NEXT 15m close, judged on the New York clock like the executor does
+      const next = new Date(Math.ceil(at.getTime() / 900000) * 900000)
+      const et = new Date(next.toLocaleString('en-US', { timeZone: 'America/New_York' }))
+      const weekend = et.getDay() === 0 || et.getDay() === 6
+      return `${next.getUTCMinutes() === 0 ? 'hour' : 'rest'}-${weekend ? 'weekend' : 'weekday'}`
+    }
+    function renderSizing(sw) {
+      const clip = Number(sw?.clip)
+      const now = cellNow()
+      const w = CELL_W[now]
+      el('sz-now').textContent = w > 0 ? `${w.toFixed(2)}x risk` : 'not trading'
+      el('sz-desc').textContent = (w > 0 && clip > 0 ? `$${(clip * w).toFixed(2)} on the next close · ` : '') + CELL_SAY[now]
+      for (const [key, id] of [['hour-weekend', 'sz-hw'], ['hour-weekday', 'sz-hd'], ['rest-weekend', 'sz-rw']]) {
+        el(id).textContent = clip > 0 ? `$${(clip * CELL_W[key]).toFixed(2)}` : '–'
+      }
+      for (const tr of document.querySelectorAll('.sizing-t tr[data-cell]')) tr.classList.toggle('on', tr.dataset.cell === now)
+    }
+
     function renderCalendar() {
       if (!cal.loaded) return
       const y = cal.month.getUTCFullYear(), m = cal.month.getUTCMonth()
@@ -2490,6 +2552,7 @@
       // the rule panel
       const mode = el('rl-mode'); mode.textContent = !armed ? 'off' : halted ? 'halted for the day' : `live · $${Number(sw.clip)} a call`; mode.className = 'pill ' + (!armed ? 'off' : halted ? 'halted' : 'live')
       if (sw.min_price) el('rl-band').textContent = `${Math.round(Number(sw.min_price) * 100)} to 95c`
+      renderSizing(sw)
       const setH = (id, v, cls) => { const e = el(id); e.textContent = v; e.className = 'v ' + (cls ?? '') }
       setH('rl-edge7', e7 == null ? '–' : `${e7 >= 0 ? '+' : ''}${e7.toFixed(2)}c`, e7 == null ? '' : e7 >= 0 ? 'up' : 'down')
       setH('rl-win7', d7 ? `${Number(d7.win_pct).toFixed(1)}%` : '–')
