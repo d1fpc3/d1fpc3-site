@@ -2840,7 +2840,10 @@
     .mm-followbtn { flex: 1; border: 1px solid var(--line-bright); border-radius: 11px; background: var(--panel-2); color: var(--ink); padding: 12px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
     .mm-followbtn.on { background: none; color: var(--muted); }
     .mm-followbtn:not(.on) { background: linear-gradient(135deg, var(--gold), var(--gold-deep)); color: #1a1207; border-color: transparent; }
-    .mm-actions .mm-msg { flex: 1; }
+    /* not known yet (only before the first sign-in load lands): a quiet pill, never a Follow that turns into Following */
+    .mm-followbtn.pending, .mm-followbtn.pending:not(.on) { background: var(--panel-2); border-color: var(--line); color: transparent; pointer-events: none; }
+    .pro-follow.pending b { display: inline-block; width: 1.5em; height: 0.95em; margin-right: 5px; vertical-align: -2px; border-radius: 4px; color: transparent; background: var(--panel-2); }
+    .mm-actions .mm-msg { flex: 1; } .mm-actions .mm-msg, .mm-actions .mm-followbtn { font-family: inherit; }   /* WebKit gave buttons its own serif */
     /* invite code */
     .stx { max-width: 640px; }
     .stx .heat { margin-top: 12px; }
@@ -2944,7 +2947,15 @@
     .pal-box { width: min(640px, 100%); max-height: min(calc(70 * var(--vh)), 620px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line-bright); border-radius: 16px; box-shadow: 0 30px 90px rgba(0,0,0,0.5); overflow: hidden; transform: translateY(-8px) scale(0.985); transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1); }
     .pal.on .pal-box { transform: none; }
     .pal-in { display: flex; align-items: center; gap: 12px; padding: 6px 16px; border-bottom: 1px solid var(--line); } .pal-in svg { width: 20px; height: 20px; color: var(--faint); flex-shrink: 0; }
-    .pal-in input { flex: 1; min-width: 0; height: 48px; background: none; border: 0; color: var(--ink); font: inherit; font-size: 16px; outline: none; } .pal-in input::placeholder { color: var(--faint); }
+    .pal-in input { flex: 1; min-width: 0; height: 48px; background: none; border: 0; color: var(--ink); font: inherit; font-size: 16px; outline: none; -webkit-appearance: none; appearance: none; } .pal-in input::placeholder { color: var(--faint); }
+    .pal-in input::-webkit-search-cancel-button, .pal-in input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+    .pal-field { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
+    .pal-clear { flex: none; width: 26px; height: 26px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--faint); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .pal-clear svg { width: 17px; height: 17px; } .pal-clear:hover { color: var(--muted); }
+    .pal-cancel { display: none; }
+    .pal-wait { display: flex; align-items: center; gap: 10px; padding: 12px 14px; color: var(--faint); font-size: 13px; }
+    .pal-wait i { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--line-bright); border-top-color: var(--gold); animation: pal-spin 0.7s linear infinite; }
+    @keyframes pal-spin { to { transform: rotate(360deg); } }
     .pal-in kbd, .pal-foot kbd { font: inherit; font-size: 10.5px; color: var(--faint); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
     .pal-list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; overscroll-behavior: contain; }
     .pal-h { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); padding: 10px 12px 4px; }
@@ -2966,7 +2977,35 @@
     .keys-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
     .keys-k { display: inline-flex; gap: 4px; flex-shrink: 0; } .keys-k kbd { font: inherit; font-size: 11px; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-bright); border-bottom-width: 2px; border-radius: 6px; padding: 2px 7px; min-width: 24px; text-align: center; }
     @media (max-width: 640px) { .keys-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 640px) { .pal { padding: 12px; align-items: flex-start; } .pal-box { max-height: calc(calc(100 * var(--dvh)) - 24px); } .pal-foot { display: none; } }
+    /* search on a phone (D1, 09-27: "search tool on echelon doesn't work well on mobile"): a full-screen iOS search
+       page instead of the desktop box. Opaque (the glass sheet let the page read straight through the results), a
+       rounded field with a clear button and Cancel, results in grouped lists with 56px rows, the page held to the
+       space above the keyboard so no result hides under it, and dragging the list puts the keyboard away. */
+    @media (max-width: 640px) {
+      html.pal-open, html.pal-open body { overflow: hidden; }
+      .pal { padding: 0; top: var(--pal-top, 0px); bottom: auto; height: var(--pal-h, calc(100 * var(--dvh))); align-items: stretch; background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; transition: opacity 0.18s ease; }
+      .pal-box { width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; background: var(--bg); box-shadow: none; transform: translateY(18px); transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+      .pal-in { gap: 14px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 8px; border-bottom: 0; }
+      .pal-in > kbd { display: none; }
+      .pal-field { height: 40px; gap: 7px; padding: 0 6px 0 10px; border-radius: 12px; background: var(--panel-2); }
+      .pal-field > svg { width: 17px; height: 17px; }
+      .pal-in input { height: 40px; font-size: 17px; letter-spacing: -0.02em; }
+      .pal-cancel { display: inline-flex; flex: none; align-items: center; min-height: 40px; padding: 0 2px; border: 0; background: none; color: var(--gold); font: inherit; font-size: 17px; letter-spacing: -0.02em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+      .pal-cancel:active { opacity: 0.55; }
+      .pal-list { padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 28px); -webkit-overflow-scrolling: touch; }
+      .pal-h { padding: 18px 32px 7px; font-size: 13px; font-weight: 600; letter-spacing: -0.005em; text-transform: none; color: var(--muted); }
+      .pal-g { margin: 0 16px; background: var(--panel); border-radius: 14px; overflow: hidden; }
+      .pal-it { position: relative; min-height: 56px; padding: 9px 14px; gap: 12px; border-radius: 0; -webkit-tap-highlight-color: transparent; transition: background 0.12s ease; }
+      .pal-it + .pal-it::before { content: ''; position: absolute; left: 58px; right: 0; top: 0; height: 0.5px; background: var(--line); }
+      .pal-it.on { background: none; } .pal-it:active { background: var(--panel-2); }
+      .pal-it .ic { width: 32px; height: 32px; border-radius: 9px; background: color-mix(in srgb, var(--gold) 16%, var(--panel-2)); color: var(--gold); } .pal-it.on .ic { background: color-mix(in srgb, var(--gold) 16%, var(--panel-2)); }
+      .pal-it .ic svg { width: 17px; height: 17px; } .pal-it .ic .av { width: 32px; height: 32px; border-radius: 50%; }
+      .pal-it b { font-size: 16px; font-weight: 500; letter-spacing: -0.015em; } .pal-it small { font-size: 13px; color: var(--muted); }
+      .pal-empty { padding: 56px 32px; font-size: 15px; }
+      .pal-wait { padding: 16px 32px; }
+      .pal-foot { display: none; }
+    }
+    @media (max-width: 640px) and (prefers-reduced-motion: reduce) { .pal-box { transform: none; transition: none; } }
     .tb-bell svg { width: 21px; height: 21px; }
     .tb-bell:hover { color: var(--ink); background: var(--panel-2); }
     .tb-bell .bcount { position: absolute; top: 7px; right: 7px; display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); font-size: 0; }
@@ -3047,6 +3086,110 @@
       .rv-top { padding-top: max(10px, env(safe-area-inset-top)); }
       .rv-scroll { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
     }
+    /* ── edit profile (D1, 09-27): one sheet, Cancel / Edit profile / Save ──
+       Full screen on a phone, a centred card on a desktop. The photo is the hero; the fields sit in one grouped
+       card; a live card at the bottom shows how members will see you. */
+    .pfe { position: fixed; inset: 0; z-index: 215; display: flex; flex-direction: column; background: var(--bg); }
+    .pfe[hidden] { display: none; }
+    .pfe { transition: opacity 0.26s ease; } .pfe.dim { opacity: 0; }
+    .pfe-sheet:focus { outline: none; }
+    .pfe-sheet { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--bg); will-change: transform; }
+    .pfe-top { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: 54px; padding: 6px 10px; padding-top: max(6px, env(safe-area-inset-top)); flex-shrink: 0; }
+    .pfe-top::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 0.5px; background: var(--line); opacity: 0; transition: opacity 0.2s ease; }
+    .pfe.scrolled .pfe-top::after { opacity: 1; }
+    .pfe-title { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+    .pfe-tbtn { justify-self: start; min-height: 44px; padding: 0 10px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 16px; letter-spacing: -0.01em; cursor: pointer; border-radius: 12px; -webkit-tap-highlight-color: transparent; transition: color 0.15s ease, opacity 0.15s ease; }
+    .pfe-tbtn:hover { color: var(--ink); } .pfe-tbtn:active { opacity: 0.6; }
+    .pfe-save { justify-self: end; position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 76px; min-height: 36px; padding: 0 18px; border-radius: 999px; background: linear-gradient(135deg, var(--gold), var(--gold-deep)); color: #1a1207; font-weight: 650; box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 6px 18px -8px color-mix(in srgb, var(--gold) 70%, transparent); transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.18s ease; }
+    .pfe-save:hover:not(:disabled) { color: #1a1207; filter: brightness(1.06); } .pfe-save:active:not(:disabled) { transform: scale(0.95); opacity: 1; }
+    .pfe-save:disabled { opacity: 0.38; cursor: default; box-shadow: none; }
+    .pfe-save i { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity 0.15s ease; }
+    .pfe-save i::before { content: ''; width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(26,18,7,0.3); border-top-color: #1a1207; animation: pal-spin 0.7s linear infinite; }
+    .pfe-save.busy span { opacity: 0; } .pfe-save.busy i { opacity: 1; } .pfe-save.busy { opacity: 1; }
+    .pfe-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 8px 16px calc(32px + env(safe-area-inset-bottom)); }
+    .pfe-in { max-width: 520px; margin: 0 auto; }
+    .pfe-hero { display: flex; flex-direction: column; align-items: center; padding: 14px 0 22px; }
+    .pfe-av { position: relative; width: 112px; height: 112px; padding: 0; border: 0; font: inherit; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .pfe-av:hover { transform: scale(1.03); } .pfe-av:active { transform: scale(0.97); }
+    .pfe-av-img { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(140deg, var(--gold), var(--gold-deep)); color: #1a1207; font-weight: 700; font-size: 38px; letter-spacing: -0.02em; box-shadow: 0 0 0 3px var(--bg), 0 0 0 4.5px color-mix(in srgb, var(--gold) 55%, transparent), 0 18px 40px -18px rgba(0,0,0,0.7); }
+    .pfe-av-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pfe-av-img.pop { animation: pfe-pop 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    @keyframes pfe-pop { 0% { transform: scale(0.86); opacity: 0.4; } 60% { transform: scale(1.04); opacity: 1; } 100% { transform: none; } }
+    .pfe-cam { position: absolute; right: 2px; bottom: 2px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--panel-2); color: var(--ink); box-shadow: 0 0 0 3px var(--bg), 0 4px 12px rgba(0,0,0,0.35); }
+    .pfe-cam svg { width: 17px; height: 17px; }
+    .pfe-photo-acts { display: flex; gap: 6px; margin-top: 12px; }
+    .pfe-link { min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--gold); font: inherit; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background 0.15s ease; }
+    .pfe-link:hover { background: color-mix(in srgb, var(--gold) 10%, transparent); } .pfe-link:active { opacity: 0.6; }
+    .pfe-link.muted { color: var(--muted); font-weight: 500; } .pfe-link.muted:hover { background: var(--panel-2); }
+    /* the cropper: a round window over the photo, drag to place, slide to zoom */
+    .pfe-crop { display: flex; flex-direction: column; align-items: center; margin: -6px 0 24px; animation: gx-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    .pfe-crop-vp { position: relative; width: 240px; height: 240px; overflow: hidden; border-radius: 22px; background: #000; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+    .pfe-crop-vp:active { cursor: grabbing; }
+    .pfe-crop-vp img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; pointer-events: none; }
+    .pfe-crop-vp::after { content: ''; position: absolute; inset: 0; border-radius: 22px; pointer-events: none; background: radial-gradient(circle at center, transparent 119px, rgba(0,0,0,0.55) 120px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+    .pfe-crop-vp::before { content: ''; position: absolute; inset: 0; margin: auto; width: 238px; height: 238px; border-radius: 50%; box-shadow: 0 0 0 1.5px rgba(255,255,255,0.75); z-index: 1; pointer-events: none; }
+    .pfe-crop-hint { margin: 10px 0 0; font-size: 12.5px; color: var(--faint); }
+    .pfe-zoom { display: flex; align-items: center; gap: 12px; width: 240px; margin-top: 12px; color: var(--faint); }
+    .pfe-zoom svg { width: 16px; height: 16px; flex: none; }
+    /* the zoom slider, drawn the same on every engine (WebKit showed a bare white dot) */
+    .pfe-zoom input { --p: 0%; flex: 1; height: 28px; margin: 0; background: none; -webkit-appearance: none; appearance: none; cursor: pointer; }
+    .pfe-zoom input::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--gold) var(--p), var(--panel-2) var(--p)); }
+    .pfe-zoom input::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--gold) var(--p), var(--panel-2) var(--p)); }
+    .pfe-zoom input::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(0,0,0,0.1); transition: transform 0.15s ease; }
+    .pfe-zoom input::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+    .pfe-zoom input:active::-webkit-slider-thumb { transform: scale(1.12); }
+    .pfe-crop-acts { display: flex; gap: 10px; margin-top: 16px; }
+    .pfe-pill { min-height: 40px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--gold); color: #1a1207; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.15s ease; }
+    .pfe-pill:hover { filter: brightness(1.06); } .pfe-pill:active { transform: scale(0.96); }
+    .pfe-pill.ghost { background: var(--panel-2); color: var(--ink); }
+    /* the fields: one grouped card, a hairline between rows */
+    .pfe-group { background: var(--panel); border-radius: 18px; overflow: hidden; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line) 70%, transparent); }
+    .pfe-row { position: relative; display: block; padding: 12px 16px 13px; cursor: text; transition: background 0.18s ease; }
+    .pfe-row + .pfe-row::before { content: ''; position: absolute; left: 16px; right: 0; top: 0; height: 0.5px; background: var(--line); }
+    .pfe-row::after { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 2.5px; border-radius: 0 3px 3px 0; background: var(--gold); transform: scaleY(0); transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .pfe-row:focus-within::after { transform: none; }
+    .pfe-row.bad::after { background: var(--bad); transform: none; }
+    .pfe-label { display: block; margin-bottom: 3px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+    .pfe-line { display: flex; align-items: center; gap: 1px; }
+    .pfe-at { font-size: 17px; color: var(--faint); letter-spacing: -0.02em; }
+    .pfe-row input, .pfe-row textarea { flex: 1; min-width: 0; width: 100%; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: 17px; letter-spacing: -0.02em; line-height: 1.45; outline: none; caret-color: var(--gold); }
+    .pfe-row input { height: 30px; }
+    .pfe-row textarea { display: block; resize: none; min-height: 50px; max-height: 180px; overflow-y: auto; }
+    .pfe-row input::placeholder, .pfe-row textarea::placeholder { color: var(--faint); }
+    .pfe-state { flex: none; width: 22px; height: 22px; display: grid; place-items: center; }
+    .pfe-state svg { width: 18px; height: 18px; }
+    .pfe-state.ok { color: var(--good); } .pfe-state.bad { color: var(--bad); }
+    .pfe-state.ok svg, .pfe-state.bad svg { animation: pfe-pop 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .pfe-help { margin: 5px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--faint); min-height: 1.4em; transition: color 0.15s ease; }
+    .pfe-help.ok { color: var(--good); } .pfe-help.bad { color: var(--bad); }
+    .pfe-count { text-align: right; font-variant-numeric: tabular-nums; } .pfe-count.low { color: var(--gold); } .pfe-count.out { color: var(--bad); }
+    .pfe-row.shake { animation: pfe-shake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+    @keyframes pfe-shake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+    /* the live card */
+    .pfe-sec { margin: 26px 4px 8px; font-size: 13px; font-weight: 600; letter-spacing: -0.005em; color: var(--muted); }
+    .pfe-preview { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 18px; background: var(--panel); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line) 70%, transparent); }
+    .pfe-pv-av { width: 46px; height: 46px; flex: none; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(140deg, var(--gold), var(--gold-deep)); color: #1a1207; font-weight: 700; font-size: 16px; }
+    .pfe-pv-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pfe-pv-tx { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .pfe-pv-tx b { display: flex; align-items: center; gap: 5px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .pfe-pv-tx b .vcheck { width: 15px; height: 15px; color: var(--gold); flex: none; }
+    .pfe-pv-tx small { font-size: 13px; color: var(--muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .pfe-pv-tx small:empty::before { content: 'No bio yet'; color: var(--faint); }
+    .pfe-msg { margin: 14px 4px 0; font-size: 13px; color: var(--bad); min-height: 0; }
+    .pfe-msg:empty { display: none; }
+    .pfe-kbd { margin: 18px 4px 0; font-size: 12px; color: var(--faint); text-align: center; }
+    .pfe-kbd kbd { font: inherit; font-size: 11px; border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+    @media (min-width: 841px) {
+      .pfe { align-items: center; justify-content: center; padding: 24px; background: rgba(6,5,4,0.62); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+      .pfe-sheet { flex: none; width: 100%; max-width: 560px; max-height: calc(90 * var(--vh)); background: var(--panel); border-radius: 22px; box-shadow: 0 0 0 1px var(--line-bright), 0 40px 100px -30px rgba(0,0,0,0.75); overflow: hidden; }
+      .pfe-top { padding: 10px 14px; }
+      .pfe-scroll { padding: 6px 28px 28px; }
+      .pfe-group, .pfe-preview { background: var(--panel-2); box-shadow: none; }
+      .pfe-cam { background: var(--panel); box-shadow: 0 0 0 3px var(--panel), 0 4px 12px rgba(0,0,0,0.35); }
+      .pfe-av-img { box-shadow: 0 0 0 3px var(--panel), 0 0 0 4.5px color-mix(in srgb, var(--gold) 55%, transparent), 0 18px 40px -18px rgba(0,0,0,0.7); }
+    }
+    @media (max-width: 840px) { .pfe-kbd { display: none; } }
+    @media (prefers-reduced-motion: reduce) { .pfe, .pfe-crop, .pfe-av-img.pop, .pfe-row.shake, .pfe-state svg { transition: none; animation: none; } }
     .setpage .block-head { padding-left: 0; padding-right: 0; }
     .setpage .setgrid { padding-left: 0; padding-right: 0; }
     /* settings craft pass (2026-09-18): one 640 column, readable switch rows, a real back
@@ -4678,10 +4821,10 @@
       /* floating things: glass */
       .nu-pill { border: 0; background: var(--i-glass); -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); box-shadow: var(--i-rim), var(--i-float); font-size: 14px; padding: 10px 18px; }
       .co-toast { border: 0 !important; border-radius: 24px !important; background: var(--i-glass) !important; -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); box-shadow: var(--i-rim), var(--i-float) !important; color: var(--ink) !important; font-size: 15px !important; font-weight: 500; padding: 12px 18px !important; }
-      .cm-box, .rv-sheet, .pedit-sheet, .pal-box, .keys-box, .vcard-box { border: 0; border-radius: 34px 34px 0 0; background: var(--i-glass); -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); box-shadow: var(--i-rim), 0 -10px 30px rgba(0, 0, 0, 0.3); }
+      .cm-box, .rv-sheet, .pedit-sheet, .keys-box, .vcard-box { border: 0; border-radius: 34px 34px 0 0; background: var(--i-glass); -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); box-shadow: var(--i-rim), 0 -10px 30px rgba(0, 0, 0, 0.3); }
     }
     @media (max-width: 840px) and (prefers-reduced-transparency: reduce) {
-      .bnav, .nu-pill, .co-toast, .cm-box, .rv-sheet, .pedit-sheet, .pal-box, .keys-box, .vcard-box, body.scrolled .topbar { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: var(--panel) !important; }
+      .bnav, .nu-pill, .co-toast, .cm-box, .rv-sheet, .pedit-sheet, .keys-box, .vcard-box, body.scrolled .topbar { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: var(--panel) !important; }
     }
     /* ── the pages under Settings, and the last flat views, as iOS lists ──
        A settings page on a phone reads like the iPhone's own Settings app: a gold
@@ -6113,6 +6256,46 @@
     </div>
   </div>
 
+  <div class="pfe" id="pfe" role="dialog" aria-modal="true" aria-labelledby="pfe-title" hidden>
+    <div class="pfe-sheet" tabindex="-1">
+      <div class="pfe-top">
+        <button class="pfe-tbtn" id="pfe-cancel" type="button">Cancel</button>
+        <h2 class="pfe-title" id="pfe-title">Edit profile</h2>
+        <button class="pfe-tbtn pfe-save" id="pfe-save" type="button" disabled><span>Save</span><i aria-hidden="true"></i></button>
+      </div>
+      <div class="pfe-scroll" id="pfe-scroll">
+        <div class="pfe-in">
+          <div class="pfe-hero">
+            <button class="pfe-av" id="pfe-av" type="button" aria-label="Change photo"><span class="pfe-av-img" id="pfe-av-img"></span><span class="pfe-cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span></button>
+            <div class="pfe-photo-acts"><button class="pfe-link" id="pfe-photo" type="button">Change photo</button><button class="pfe-link muted" id="pfe-rmphoto" type="button" hidden>Remove</button></div>
+            <input type="file" id="pfe-file" accept="image/*" hidden>
+          </div>
+          <div class="pfe-crop" id="pfe-crop" hidden>
+            <div class="pfe-crop-vp" id="pfe-crop-vp"><img id="pfe-crop-img" alt="" draggable="false"></div>
+            <p class="pfe-crop-hint">Drag to place, slide to zoom</p>
+            <div class="pfe-zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M8 11h6M16 16l4.5 4.5"/></svg><input type="range" id="pfe-zoom" min="1" max="3" step="0.01" value="1" aria-label="Zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M8 11h6M11 8v6M16 16l4.5 4.5"/></svg></div>
+            <div class="pfe-crop-acts"><button class="pfe-pill ghost" id="pfe-crop-cancel" type="button">Cancel</button><button class="pfe-pill" id="pfe-crop-use" type="button">Use photo</button></div>
+          </div>
+          <div class="pfe-group">
+            <label class="pfe-row" id="pfe-user-row" for="pfe-user">
+              <span class="pfe-label">Username</span>
+              <span class="pfe-line"><span class="pfe-at" aria-hidden="true">@</span><input id="pfe-user" maxlength="20" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-describedby="pfe-user-help"><span class="pfe-state" id="pfe-user-state" aria-hidden="true"></span></span>
+              <p class="pfe-help" id="pfe-user-help" role="status"></p>
+            </label>
+            <label class="pfe-row" for="pfe-bio">
+              <span class="pfe-label">Bio</span>
+              <textarea id="pfe-bio" maxlength="200" rows="2" placeholder="A line about you and how you trade" aria-describedby="pfe-bio-count"></textarea>
+              <p class="pfe-help pfe-count" id="pfe-bio-count" aria-live="polite"></p>
+            </label>
+          </div>
+          <p class="pfe-sec">How members see you</p>
+          <div class="pfe-preview" aria-hidden="true"><span class="pfe-pv-av" id="pfe-pv-av"></span><span class="pfe-pv-tx"><b id="pfe-pv-name"></b><small id="pfe-pv-bio"></small></span></div>
+          <p class="pfe-msg" id="pfe-msg" role="alert"></p>
+          <p class="pfe-kbd"><kbd>Ctrl</kbd> <kbd>Enter</kbd> saves · <kbd>Esc</kbd> cancels</p>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="mm-scrim" id="mm-scrim" role="dialog" aria-modal="true" aria-label="Member">
     <div class="mm-card">
       <button class="mm-x" id="mm-x" type="button" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
@@ -6496,6 +6679,7 @@
       const s = e.state || { view: 'overview' }
       navSilent = true
       try {
+        if (s.layer !== 'pfe') closeProfileEditor(true)
         if (s.layer !== 'comments') closeComments(true)
         if (s.layer !== 'editor' && s.layer !== 'comments') closePostEditor(true)
         if (s.layer !== 'rv' && s.layer !== 'editor' && s.layer !== 'comments') closeRecapView(true)
@@ -10724,7 +10908,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* ── follows ── */
     async function followCounts(uid) {
       const { data } = await supabase.rpc('follow_counts', { p_user: uid })
-      return data?.[0] ?? { followers: 0, following: 0, is_following: false }
+      const c = data?.[0] ?? { followers: 0, following: 0, is_following: false }
+      FOLLOW_C.set(uid, c)
+      return c
+    }
+    /* What a member card already knows before it asks (D1, 09-27: "when i click on someone's profile it glitches and
+       says follow for a second"). The card drew Follow, asked the server, then flipped to Following. Who you follow is
+       now loaded once at sign-in and kept in step with every tap, and each member's counts are remembered from the
+       last look, so a card opens already right and the server only confirms it. */
+    const MY_FOLLOWS = { set: null, p: null }
+    const FOLLOW_C = new Map()
+    function myFollowsLoad() {
+      if (MY_FOLLOWS.set || MY_FOLLOWS.p || !state.user) return MY_FOLLOWS.p
+      MY_FOLLOWS.p = supabase.from('follows').select('followee_id').eq('follower_id', state.user.id).limit(10000)
+        .then(({ data, error }) => { MY_FOLLOWS.p = null; if (!error) MY_FOLLOWS.set = new Set((data ?? []).map((r) => r.followee_id)) })
+      return MY_FOLLOWS.p
     }
     function followLine(host, c, invited, uid) {
       host.textContent = ''
@@ -10840,6 +11038,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const paint = (following, n) => {
         btn.classList.toggle('on', following); btn.textContent = following ? 'Following' : 'Follow'
         if (line && n != null && Number.isFinite(n)) line.textContent = String(Math.max(0, n))
+        if (MY_FOLLOWS.set) MY_FOLLOWS.set[following ? 'add' : 'delete'](uid)
+        const c = FOLLOW_C.get(uid); if (c) FOLLOW_C.set(uid, { ...c, is_following: following, followers: n != null && Number.isFinite(n) ? Math.max(0, n) : c.followers })
       }
       paint(!on, before == null ? null : before + (on ? -1 : 1))
       hap('light')
@@ -11544,7 +11744,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       recapTiles(el('pro-grid'), state.memberRecaps, el('pro-empty'), (r, t) => openRecapView(r, state.memberRecaps, t))
     }
     el('pro-settings').addEventListener('click', () => showView('settings'))
-    el('pro-edit').addEventListener('click', () => { el('pro-edit-wrap').hidden = !el('pro-edit-wrap').hidden; if (!el('pro-edit-wrap').hidden) el('set-username').focus() })
+    el('pro-edit').addEventListener('click', () => openProfileEditor())
     el('pro-share').addEventListener('click', async () => {
       const u = state.profile?.username; if (!u) return
       const url = `${location.origin}${location.pathname}?u=${encodeURIComponent(u)}`
@@ -11562,7 +11762,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       fillSettings(); el('pro-edit-wrap').hidden = true; renderProfilePage()
     })
     // Tapping your photo opens edit profile at the photo, not the camera roll.
-    el('pro-av').addEventListener('click', () => { el('pro-edit-wrap').hidden = false; el('pfp-preview').scrollIntoView({ block: 'center', behavior: 'smooth' }) })
+    el('pro-av').addEventListener('click', () => openProfileEditor())
     el('pro-av').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el('pro-av').click() } })
 
     el('mr-extra-toggle').addEventListener('click', () => { el('mr-extra').hidden = !el('mr-extra').hidden })
@@ -11749,27 +11949,39 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (fresh) animIn(sc.querySelector('.mm-card'), 'right', sc)
       mmOpenId = m.user_id
       {
-        const fb = el('mm-followbtn'), fl = el('mm-follow')
-        fl.textContent = ''
-        fb.hidden = isSelf; fb.disabled = true; fb.textContent = 'Follow'; fb.classList.remove('on')
-        followCounts(m.user_id).then((c) => {
-          if (mmOpenId !== m.user_id) return
-          followLine(fl, c, null, m.user_id)
-          fb.classList.toggle('on', c.is_following); fb.textContent = c.is_following ? 'Following' : 'Follow'; fb.disabled = false
-        })
-        fb.onclick = () => toggleFollow(m.user_id, fb)
+        // drawn from what this client already knows; the server call only confirms it
+        const fb = el('mm-followbtn'), fl = el('mm-follow'), uid = m.user_id
+        const paintBtn = (on) => { fb.classList.remove('pending'); fb.classList.toggle('on', on); fb.textContent = on ? 'Following' : 'Follow' }
+        const known = MY_FOLLOWS.set ? MY_FOLLOWS.set.has(uid) : null, seen = FOLLOW_C.get(uid)
+        fb.hidden = isSelf; fb.disabled = false
+        if (known != null) paintBtn(known); else { fb.classList.add('pending'); fb.classList.remove('on'); fb.textContent = 'Follow' }
+        fl.classList.toggle('pending', !seen)
+        followLine(fl, seen || { followers: 0, following: 0 }, null, uid)
+        if (known == null) myFollowsLoad()?.then(() => { if (mmOpenId === uid && MY_FOLLOWS.set && fb.classList.contains('pending')) paintBtn(MY_FOLLOWS.set.has(uid)) })
+        followCounts(uid).then((c) => {
+          if (mmOpenId !== uid) return
+          fl.classList.remove('pending'); followLine(fl, c, null, uid)
+          if (!followBusy.has(uid)) paintBtn(c.is_following)
+        }).catch(() => {})
+        fb.onclick = () => { if (!fb.classList.contains('pending')) toggleFollow(uid, fb) }
       }
-      // Their trades: everyone can read member_recaps, so the grid is live.
-      el('mm-stats').textContent = ''; el('mm-grid').textContent = ''; el('mm-empty').hidden = true
+      // Their trades: everyone can read member_recaps, so the grid is live. The last look draws at once, then refreshes.
+      const seenTiles = MM_RECAPS.get(m.user_id)
+      el('mm-stats').textContent = ''; el('mm-empty').hidden = true
+      if (seenTiles) recapTiles(el('mm-grid'), seenTiles, el('mm-empty'), (r, t) => openRecapView(r, seenTiles, t)); else el('mm-grid').textContent = ''
       el('mm-scrim').scrollTop = 0
       supabase.from('member_recaps').select('id, user_id, title, body, media, outcome, r, created_at')
         .eq('user_id', m.user_id).order('created_at', { ascending: false }).limit(60)
         .then(({ data }) => {
+          const rows = data ?? []
+          MM_RECAPS.set(m.user_id, rows)
           if (mmOpenId !== m.user_id) return   // a different card opened meanwhile
-          recapTiles(el('mm-grid'), data ?? [], el('mm-empty'), (r, t) => openRecapView(r, data ?? [], t))
+          if (seenTiles && seenTiles.length === rows.length && seenTiles.every((x, i) => x.id === rows[i].id)) return   // nothing new: leave the grid as drawn
+          recapTiles(el('mm-grid'), rows, el('mm-empty'), (r, t) => openRecapView(r, rows, t))
         })
     }
     let mmOpenId = null
+    const MM_RECAPS = new Map()
     function closeMemberProfile(fromPop) {
       const sc = el('mm-scrim')
       if (!sc.classList.contains('on') || sc.classList.contains('closing')) return
@@ -11797,6 +12009,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && el('mm-scrim').classList.contains('on')) closeMemberProfile() })
 
     async function loadMembers() {
+      myFollowsLoad()   // who you follow, before any member card opens
       const { data } = await supabase.from('member_directory').select('*')
         .order('is_admin', { ascending: false })
         .order('is_premium', { ascending: false })
@@ -11852,6 +12065,195 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.profile = data; proPaint()
       msg.className = 'msg ok'; msg.textContent = 'Saved.'
       renderSidebarUser(); loadMembers()
+    })
+
+    /* ── edit profile (D1, 09-27: "make the edit ur profile flow a lot lot better") ──
+       It was a block that unfolded under the header: a second, square copy of your photo, two bare boxes, a Save
+       and a Done that did different things, and on a phone the Save sat under the tab bar. It is one sheet now:
+       Cancel, Edit profile, Save. The photo is the hero; a new one is placed in a round window and only uploads
+       with Save, so Cancel means cancel. The username says whether it is free as you type (everyone's names are
+       already loaded, the server still has the last word), the bio grows with its text and counts down, and a
+       card at the bottom shows how members will see you. */
+    const PFE = { photo: undefined, blob: null, blobUrl: null, busy: false, touchedUser: false }
+    const PFE_VP = 240
+    const pfeCrop = { url: null, iw: 0, ih: 0, scale: 1, min: 1, x: 0, y: 0 }
+    const PFE_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5" stroke-width="1.8" opacity=".35"/><path d="M8 12.4l2.7 2.7L16.2 9.4"/></svg>'
+    const PFE_BAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9.5" stroke-width="1.8" opacity=".35"/><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"/></svg>'
+    // the photo the sheet shows: a staged new one, a staged removal, or what you have
+    const pfePhoto = () => PFE.blobUrl ? PFE.blobUrl : PFE.photo === null ? null : (state.profile?.avatar_url || null)
+    function pfeUserCheck() {
+      const v = el('pfe-user').value.trim(), mine = (state.profile?.username || '').toLowerCase()
+      if (!v) return { ok: false, msg: 'Pick a username.' }
+      if (v.length < 3) return { ok: false, msg: `${3 - v.length} more ${3 - v.length === 1 ? 'character' : 'characters'}. Usernames are 3 to 20.`, soft: true }
+      if (!USERNAME_RE.test(v)) return { ok: false, msg: 'Letters, numbers, dots and underscores only.' }
+      if (v.toLowerCase() === mine) return { ok: true, same: true, msg: "That's you." }
+      if ((state.members || []).some((m) => m.user_id !== state.user?.id && (m.username || '').toLowerCase() === v.toLowerCase())) return { ok: false, msg: `@${v} is taken.` }
+      return { ok: true, msg: `@${v} is free.` }
+    }
+    const pfeDirty = () => el('pfe-user').value.trim() !== (state.profile?.username ?? '') || el('pfe-bio').value.trim() !== (state.profile?.bio ?? '') || !!PFE.blob || PFE.photo === null
+    function pfePaint() {
+      const u = el('pfe-user').value.trim(), bio = el('pfe-bio').value
+      const c = pfeUserCheck(), row = el('pfe-user-row'), st = el('pfe-user-state'), help = el('pfe-user-help')
+      // the verdict shows once you have changed the name; a half-typed one is not scolded until you leave it
+      const show = PFE.touchedUser && !c.same && (c.ok || !c.soft || document.activeElement !== el('pfe-user'))
+      row.classList.toggle('bad', show && !c.ok)
+      st.className = 'pfe-state' + (show ? (c.ok ? ' ok' : ' bad') : '')
+      const icon = show ? (c.ok ? 'ok' : 'bad') : ''
+      if (st.dataset.icon !== icon) { st.dataset.icon = icon; st.innerHTML = icon === 'ok' ? PFE_OK : icon === 'bad' ? PFE_BAD : '' }
+      help.className = 'pfe-help' + (show ? (c.ok ? ' ok' : ' bad') : '')
+      help.textContent = show ? c.msg : '3 to 20 characters: letters, numbers, dots and underscores.'
+      const left = 200 - bio.length, cnt = el('pfe-bio-count')
+      cnt.textContent = left === 200 ? 'Up to 200 characters' : `${left} left`
+      cnt.className = 'pfe-help pfe-count' + (left <= 0 ? ' out' : left <= 20 ? ' low' : '')
+      const ta = el('pfe-bio'); ta.style.height = 'auto'; ta.style.height = Math.min(180, Math.max(50, ta.scrollHeight)) + 'px'
+      // the live card
+      const photo = pfePhoto(), pv = el('pfe-pv-av')
+      avatarInto(pv, { avatar_url: photo, username: u || state.profile?.username }, state.user?.email)
+      const nm = el('pfe-pv-name'); nm.textContent = '@' + (u || state.profile?.username || 'you')
+      if (state.isAdmin || state.isMod) nm.insertAdjacentHTML('beforeend', CHECK_SVG)
+      el('pfe-pv-bio').textContent = bio.trim()
+      el('pfe-rmphoto').hidden = !photo
+      el('pfe-photo').textContent = photo ? 'Change photo' : 'Add a photo'
+      el('pfe-save').disabled = PFE.busy || !pfeDirty() || !c.ok
+    }
+    function pfeAvatar(pop) {
+      const host = el('pfe-av-img')
+      avatarInto(host, { avatar_url: pfePhoto(), username: el('pfe-user').value.trim() || state.profile?.username }, state.user?.email)
+      if (pop && !MOTION_OFF) { host.classList.remove('pop'); host.getBoundingClientRect(); host.classList.add('pop') }
+    }
+    function openProfileEditor() {
+      const m = el('pfe'); if (!m || !state.user) return
+      if (PFE.blobUrl) URL.revokeObjectURL(PFE.blobUrl)
+      Object.assign(PFE, { photo: undefined, blob: null, blobUrl: null, busy: false, touchedUser: false })
+      el('pfe-user').value = state.profile?.username ?? ''
+      el('pfe-bio').value = state.profile?.bio ?? ''
+      el('pfe-crop').hidden = true; el('pfe-msg').textContent = ''
+      el('pfe-save').classList.remove('busy')
+      pfeAvatar(false); pfePaint()
+      const wasHidden = m.hidden || m.classList.contains('closing')
+      if (wasHidden) navPush({ view: curView(), layer: 'pfe' })
+      m.classList.remove('closing', 'scrolled'); m.hidden = false; document.body.style.overflow = 'hidden'
+      el('pfe-scroll').scrollTop = 0
+      if (wasHidden) animIn(m.querySelector('.pfe-sheet'), innerWidth > 840 ? 'center' : 'up', m)
+      m.querySelector('.pfe-sheet').focus({ preventScroll: true })   // a dialog takes the focus with it
+      hap('light')
+    }
+    function closeProfileEditor(fromPop) {
+      const m = el('pfe'); if (!m || m.hidden || m.classList.contains('closing')) return
+      if (!fromPop && navPopLayer('pfe')) return
+      m.classList.add('closing'); document.activeElement?.blur?.()
+      animOut(m.querySelector('.pfe-sheet'), innerWidth > 840 ? 'center' : 'up', m, () => { m.classList.remove('closing'); m.hidden = true; document.body.style.overflow = '' })
+    }
+    async function pfeCancel() {
+      if (PFE.busy) return
+      if (pfeDirty() && !(await askConfirm({ title: 'Discard changes?', body: 'Your edits to your profile are not saved.', yes: 'Discard', no: 'Keep editing', danger: true }))) return
+      closeProfileEditor()
+    }
+    async function pfeSave() {
+      if (PFE.busy || !pfeDirty()) return
+      const c = pfeUserCheck()
+      if (!c.ok) {
+        PFE.touchedUser = true; pfePaint()
+        const row = el('pfe-user-row'); row.classList.remove('shake'); row.getBoundingClientRect(); row.classList.add('shake'); el('pfe-user').focus(); hap('warning')
+        return
+      }
+      PFE.busy = true; el('pfe-save').classList.add('busy'); el('pfe-save').disabled = true; el('pfe-msg').textContent = ''
+      try {
+        const patch = { username: el('pfe-user').value.trim(), bio: el('pfe-bio').value.trim() || null }
+        if (PFE.blob) {
+          const path = `${state.user.id}/avatar.jpg`
+          const { error: upErr } = await supabase.storage.from('avatars').upload(path, PFE.blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '3600' })
+          if (upErr) throw upErr
+          const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+          patch.avatar_url = `${publicUrl}?v=${Date.now()}`
+        } else if (PFE.photo === null) patch.avatar_url = null
+        const { data, error } = await supabase.from('profiles').update(patch).eq('user_id', state.user.id).select().single()
+        if (error) throw error
+        state.profile = data
+        renderSidebarUser(); fillSettings(); loadMembers()
+        if (el('v-set-profile').classList.contains('on')) renderProfilePage()
+        PFE.busy = false; el('pfe-save').classList.remove('busy')
+        if (PFE.blobUrl) { URL.revokeObjectURL(PFE.blobUrl); PFE.blobUrl = null } PFE.blob = null; PFE.photo = undefined
+        hap('success'); toast('✓ Profile saved')
+        closeProfileEditor()
+      } catch (err) {
+        PFE.busy = false; el('pfe-save').classList.remove('busy')
+        const taken = /duplicate|unique|23505/i.test(`${err.message} ${err.code}`)
+        el('pfe-msg').textContent = taken ? `@${el('pfe-user').value.trim()} was just taken. Try another.` : `Could not save: ${err.message || 'the connection dropped'}. Your edits are still here.`
+        if (taken) { PFE.touchedUser = true; el('pfe-user').focus() }
+        pfePaint(); hap('error')
+      }
+    }
+    // the photo: pick, place in the round window, stage
+    function pfeApplyCrop() {
+      pfeCrop.x = Math.min(0, Math.max(PFE_VP - pfeCrop.iw * pfeCrop.scale, pfeCrop.x))
+      pfeCrop.y = Math.min(0, Math.max(PFE_VP - pfeCrop.ih * pfeCrop.scale, pfeCrop.y))
+      el('pfe-crop-img').style.transform = `translate(${pfeCrop.x}px, ${pfeCrop.y}px) scale(${pfeCrop.scale})`
+    }
+    const pfePick = () => el('pfe-file').click()
+    el('pfe-av').addEventListener('click', pfePick)
+    el('pfe-photo').addEventListener('click', pfePick)
+    el('pfe-rmphoto').addEventListener('click', () => { if (PFE.blobUrl) URL.revokeObjectURL(PFE.blobUrl); PFE.blob = null; PFE.blobUrl = null; PFE.photo = null; el('pfe-crop').hidden = true; pfeAvatar(true); pfePaint(); hap('light') })
+    el('pfe-file').addEventListener('change', () => {
+      const file = el('pfe-file').files[0]; el('pfe-file').value = ''
+      if (!file) return
+      if (pfeCrop.url) URL.revokeObjectURL(pfeCrop.url)
+      pfeCrop.url = URL.createObjectURL(file)
+      const img = el('pfe-crop-img')
+      img.onload = () => {
+        pfeCrop.iw = img.naturalWidth; pfeCrop.ih = img.naturalHeight
+        if (!pfeCrop.iw || !pfeCrop.ih) { el('pfe-msg').textContent = 'That image could not be read. Try a JPG or PNG.'; return }
+        pfeCrop.min = PFE_VP / Math.min(pfeCrop.iw, pfeCrop.ih); pfeCrop.scale = pfeCrop.min
+        pfeCrop.x = (PFE_VP - pfeCrop.iw * pfeCrop.scale) / 2; pfeCrop.y = (PFE_VP - pfeCrop.ih * pfeCrop.scale) / 2
+        el('pfe-zoom').value = '1'; el('pfe-zoom').style.setProperty('--p', '0%'); el('pfe-msg').textContent = ''
+        el('pfe-crop').hidden = false; pfeApplyCrop()
+        el('pfe-crop').scrollIntoView({ block: 'nearest', behavior: MOTION_OFF ? 'auto' : 'smooth' })
+      }
+      img.onerror = () => { el('pfe-msg').textContent = 'That image could not be read. Try a JPG or PNG.' }
+      img.src = pfeCrop.url
+    })
+    el('pfe-zoom').addEventListener('input', () => {
+      const next = pfeCrop.min * Number(el('pfe-zoom').value)
+      const cx = (PFE_VP / 2 - pfeCrop.x) / pfeCrop.scale, cy = (PFE_VP / 2 - pfeCrop.y) / pfeCrop.scale   // zoom about the centre
+      pfeCrop.scale = next; pfeCrop.x = PFE_VP / 2 - cx * next; pfeCrop.y = PFE_VP / 2 - cy * next
+      el('pfe-zoom').style.setProperty('--p', ((Number(el('pfe-zoom').value) - 1) / 2 * 100) + '%')
+      pfeApplyCrop()
+    })
+    {
+      let px = 0, py = 0, drag = false
+      const vp = el('pfe-crop-vp')
+      vp.addEventListener('pointerdown', (e) => { drag = true; px = e.clientX; py = e.clientY; vp.setPointerCapture(e.pointerId) })
+      vp.addEventListener('pointermove', (e) => { if (!drag) return; pfeCrop.x += (e.clientX - px) / UIZ(); pfeCrop.y += (e.clientY - py) / UIZ(); px = e.clientX; py = e.clientY; pfeApplyCrop() })
+      const stop = () => { drag = false }
+      vp.addEventListener('pointerup', stop); vp.addEventListener('pointercancel', stop)
+      vp.addEventListener('wheel', (e) => { e.preventDefault(); const z = el('pfe-zoom'); z.value = String(Math.min(3, Math.max(1, Number(z.value) - e.deltaY * 0.002))); z.dispatchEvent(new Event('input')) }, { passive: false })
+    }
+    el('pfe-crop-cancel').addEventListener('click', () => { el('pfe-crop').hidden = true })
+    el('pfe-crop-use').addEventListener('click', async () => {
+      try {
+        const canvas = document.createElement('canvas'); canvas.width = canvas.height = 512
+        canvas.getContext('2d').drawImage(el('pfe-crop-img'), -pfeCrop.x / pfeCrop.scale, -pfeCrop.y / pfeCrop.scale, PFE_VP / pfeCrop.scale, PFE_VP / pfeCrop.scale, 0, 0, 512, 512)
+        const blob = await new Promise((res, rej) => canvas.toBlob((b) => b ? res(b) : rej(new Error('Could not encode the image')), 'image/jpeg', 0.88))
+        if (PFE.blobUrl) URL.revokeObjectURL(PFE.blobUrl)
+        PFE.blob = blob; PFE.blobUrl = URL.createObjectURL(blob); PFE.photo = undefined
+        el('pfe-crop').hidden = true
+        pfeAvatar(true); pfePaint(); hap('light')
+        el('pfe-scroll').scrollTo({ top: 0, behavior: MOTION_OFF ? 'auto' : 'smooth' })
+      } catch (err) { el('pfe-msg').textContent = err.message }
+    })
+    el('pfe-user').addEventListener('input', () => { PFE.touchedUser = true; pfeAvatar(false); pfePaint() })
+    el('pfe-user').addEventListener('blur', pfePaint)
+    el('pfe-user').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); el('pfe-bio').focus() } })
+    el('pfe-bio').addEventListener('input', pfePaint)
+    el('pfe-cancel').addEventListener('click', pfeCancel)
+    el('pfe-save').addEventListener('click', pfeSave)
+    el('pfe-scroll').addEventListener('scroll', () => el('pfe').classList.toggle('scrolled', el('pfe-scroll').scrollTop > 4), { passive: true })
+    el('pfe').addEventListener('click', (e) => { if (e.target === el('pfe') && innerWidth > 840) pfeCancel() })
+    // on the document, not the sheet: focus can still be on the pencil that opened it
+    document.addEventListener('keydown', (e) => {
+      const m = el('pfe'); if (!m || m.hidden || m.classList.contains('closing')) return
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (!el('pfe-crop').hidden) el('pfe-crop').hidden = true; else pfeCancel() }
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); pfeSave() }
     })
 
     // ── settings: account ───────────────────────────────────
@@ -13643,21 +14045,48 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function palEl() {
       let m = el('palette'); if (m) return m
       m = document.createElement('div'); m.className = 'pal'; m.id = 'palette'; m.hidden = true
-      m.innerHTML = '<div class="pal-box" role="dialog" aria-label="Search"><div class="pal-in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input type="text" id="pal-q" placeholder="Search messages, people, lessons, videos, or jump anywhere" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div><div class="pal-list" id="pal-list" role="listbox"></div><div class="pal-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>?</kbd> shortcuts</span></div></div>'
+      m.innerHTML = '<div class="pal-box" role="dialog" aria-label="Search"><div class="pal-in"><label class="pal-field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input type="search" id="pal-q" placeholder="Search messages, people, lessons, videos, or jump anywhere" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" aria-label="Search"><button type="button" class="pal-clear" id="pal-clear" aria-label="Clear" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M9 9l6 6M15 9l-6 6" fill="none" stroke="var(--panel)" stroke-width="2" stroke-linecap="round"/></svg></button></label><kbd>Esc</kbd><button type="button" class="pal-cancel" id="pal-cancel">Cancel</button></div><div class="pal-list" id="pal-list" role="listbox"></div><div class="pal-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>?</kbd> shortcuts</span></div></div>'
       document.body.appendChild(m)
       m.addEventListener('click', (e) => { if (e.target === m) palClose() })
       const q = el('pal-q')
-      q.addEventListener('input', () => { PAL.q = q.value; palRender(); clearTimeout(PAL.t); PAL.t = setTimeout(palRemote, 220) })
+      q.addEventListener('input', () => { PAL.q = q.value; PAL.kb = false; PAL.pending = PAL.q.trim().length >= 2; el('pal-clear').hidden = !PAL.q; palRender(); clearTimeout(PAL.t); PAL.t = setTimeout(palRemote, 220) })
+      el('pal-clear').addEventListener('click', (e) => { e.preventDefault(); q.value = ''; q.dispatchEvent(new Event('input')); q.focus() })
+      el('pal-cancel').addEventListener('click', () => palClose())
+      // dragging the results puts the keyboard away, the way iOS search does
+      el('pal-list').addEventListener('touchmove', () => { if (document.activeElement === q) q.blur() }, { passive: true })
       q.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = PAL.items.length; if (n) { PAL.idx = (PAL.idx + (e.key === 'ArrowDown' ? 1 : n - 1)) % n; palPaint() } }
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = PAL.items.length; if (n) { PAL.idx = (PAL.idx + (e.key === 'ArrowDown' ? 1 : n - 1)) % n; PAL.kb = true; palPaint() } }
         else if (e.key === 'Enter') { e.preventDefault(); palGo(PAL.items[PAL.idx]) }
         else if (e.key === 'Escape') { e.preventDefault(); palClose() }
         e.stopPropagation()
       })
       return m
     }
-    function palOpen(seed) { const m = palEl(); PAL.open = true; m.hidden = false; const q = el('pal-q'); q.placeholder = window.innerWidth < 640 ? 'Search Echelon' : 'Search messages, people, lessons, videos, or jump anywhere'; q.value = seed || ''; PAL.q = q.value; PAL.remote = []; palRender(); requestAnimationFrame(() => { m.classList.add('on'); q.focus(); q.select() }); if (PAL.q) palRemote() }
-    function palClose() { const m = el('palette'); if (!m || m.hidden) return; PAL.open = false; m.classList.remove('on'); setTimeout(() => { m.hidden = true }, 140) }
+    /* On a phone the sheet is held to the visual viewport: when the keyboard comes up the page is exactly the space
+       above it, so the list scrolls inside and no result sits under the keys. */
+    function palVV() {
+      const m = el('palette'), vv = window.visualViewport; if (!m || !vv) return
+      if (window.innerWidth > 640) { m.style.removeProperty('--pal-h'); m.style.removeProperty('--pal-top'); return }
+      m.style.setProperty('--pal-h', Math.round(vv.height) + 'px'); m.style.setProperty('--pal-top', Math.round(vv.offsetTop) + 'px')
+    }
+    function palOpen(seed) {
+      const m = palEl(); PAL.open = true; m.hidden = false; const q = el('pal-q')
+      q.placeholder = window.innerWidth < 640 ? 'Search Echelon' : 'Search messages, people, lessons, videos, or jump anywhere'
+      q.value = seed || ''; PAL.q = q.value; PAL.remote = []; PAL.idx = 0; PAL.kb = false; PAL.pending = false; el('pal-clear').hidden = !PAL.q
+      document.documentElement.classList.add('pal-open')
+      palVV(); window.visualViewport?.addEventListener('resize', palVV); window.visualViewport?.addEventListener('scroll', palVV)
+      palRender(); el('pal-list').scrollTop = 0
+      // focus inside the tap itself: iOS only raises the keyboard for a focus made in the gesture, and the rAF this used to wait for is outside it
+      q.focus({ preventScroll: true }); if (q.value) q.select()
+      requestAnimationFrame(() => m.classList.add('on'))
+      if (PAL.q) palRemote()
+    }
+    function palClose() {
+      const m = el('palette'); if (!m || m.hidden) return; PAL.open = false; m.classList.remove('on')
+      document.documentElement.classList.remove('pal-open'); el('pal-q')?.blur()
+      window.visualViewport?.removeEventListener('resize', palVV); window.visualViewport?.removeEventListener('scroll', palVV)
+      setTimeout(() => { if (!PAL.open) m.hidden = true }, 180)
+    }
     const palNorm = (x) => String(x || '').toLowerCase()
     const palHas = (hay, q) => { const h = palNorm(hay); return q.split(/\s+/).every((w) => h.includes(w)) }
     function palLocal(q) {
@@ -13677,11 +14106,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       return out.slice(0, ql ? 40 : 22)
     }
     async function palRemote() {
-      const q = PAL.q.trim(); if (q.length < 2) { PAL.remote = []; palRender(); return }
+      const q = PAL.q.trim(); if (q.length < 2) { PAL.remote = []; PAL.pending = false; palRender(); return }
       const seq = ++PAL.seq
       if (!chat.channels?.length && !PAL.chans) { const { data: cs } = await supabase.from('channels').select('id, name'); PAL.chans = cs || [] }
       const { data } = await supabase.rpc('search_messages', { p_q: q, p_limit: 12 })
       if (seq !== PAL.seq || !PAL.open) return
+      PAL.pending = false
       PAL.remote = (data || []).map((m) => { const who = chatUser(m.user_id)?.username || 'member'; const where = m.channel_id ? '#' + ((chat.channels?.length ? chat.channels : PAL.chans || []).find((c) => c.id === m.channel_id)?.name || 'channel') : 'DM'; return { k: 'msg', t: m.body, d: `${who} in ${where} · ${chatShortAgo(m.created_at)}`, icon: 'msg', q, run: () => { showView('chat'); const go = () => { if (chat.cur?.id !== (m.channel_id || m.dm_id)) return openConversation(m.channel_id ? 'channel' : 'dm', m.channel_id || m.dm_id).then(() => chatJumpTo(m)); chatJumpTo(m) }; if (chat.loaded) go(); else { let n = 0; const w = setInterval(() => { if (chat.loaded || ++n > 40) { clearInterval(w); go() } }, 100) } } } })
       palRender()
     }
@@ -13694,6 +14124,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       for (const [k, label] of groups) {
         const rows = PAL.items.filter((x) => x.k === k); if (!rows.length) continue
         const h = document.createElement('div'); h.className = 'pal-h'; h.textContent = label; list.appendChild(h)
+        const g = document.createElement('div'); g.className = 'pal-g'; g.setAttribute('role', 'group'); g.setAttribute('aria-label', label); list.appendChild(g)
         for (const it of rows) {
           const b = document.createElement('button'); b.type = 'button'; b.className = 'pal-it'; b.dataset.i = PAL.items.indexOf(it); b.setAttribute('role', 'option')
           const ic = document.createElement('span'); ic.className = 'ic'; if (it.av) ic.appendChild(avatarNode(it.av, 'av')); else ic.innerHTML = PAL_ICON[it.icon]
@@ -13701,14 +14132,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const t = document.createElement('b'); if (it.q) { const at = palNorm(it.t).indexOf(palNorm(it.q)); if (at >= 0) { t.append(document.createTextNode(it.t.slice(0, at))); const mk = document.createElement('mark'); mk.textContent = it.t.slice(at, at + it.q.length); t.append(mk, document.createTextNode(it.t.slice(at + it.q.length))) } else t.textContent = it.t } else t.textContent = it.t
           const d = document.createElement('small'); d.textContent = it.d || ''
           tx.append(t, d); b.append(ic, tx)
-          b.addEventListener('mouseenter', () => { PAL.idx = +b.dataset.i; palPaint() }); b.addEventListener('click', () => palGo(it))
-          list.appendChild(b); i++
+          // hover follows the pointer on a desktop; a finger landing on a row is a tap, not a highlight
+          if (PAL_HOVER.matches) b.addEventListener('mouseenter', () => { PAL.idx = +b.dataset.i; palPaint() })
+          b.addEventListener('click', () => palGo(it))
+          g.appendChild(b); i++
         }
       }
-      if (!PAL.items.length) { const e = document.createElement('div'); e.className = 'pal-empty'; e.textContent = PAL.q.trim().length < 2 ? 'Type to search.' : 'Nothing matches.'; list.appendChild(e) }
+      if (PAL.pending) { const w = document.createElement('div'); w.className = 'pal-wait'; w.innerHTML = '<i aria-hidden="true"></i>Searching messages'; list.appendChild(w) }
+      else if (!PAL.items.length) { const e = document.createElement('div'); e.className = 'pal-empty'; e.textContent = PAL.q.trim().length < 2 ? 'Type to search.' : `Nothing matches "${PAL.q.trim()}".`; list.appendChild(e) }
       palPaint()
     }
-    function palPaint() { const list = el('pal-list'); list.querySelectorAll('.pal-it').forEach((b) => { const on = +b.dataset.i === PAL.idx; b.classList.toggle('on', on); if (on) b.scrollIntoView({ block: 'nearest' }) }) }
+    const PAL_HOVER = matchMedia('(hover: hover) and (pointer: fine)')
+    // only the arrow keys scroll the list to the highlight; typing and hovering leave it where it is
+    function palPaint() { const list = el('pal-list'); list.querySelectorAll('.pal-it').forEach((b) => { const on = +b.dataset.i === PAL.idx; b.classList.toggle('on', on); if (on && PAL.kb) b.scrollIntoView({ block: 'nearest' }) }) }
     function palGo(it) { if (!it) return; palClose(); hap('light'); try { it.run() } catch (e) { console.warn('palette', e) } }
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') { e.preventDefault(); if (PAL.open) palClose(); else palOpen() }

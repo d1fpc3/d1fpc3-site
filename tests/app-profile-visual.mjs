@@ -71,16 +71,18 @@ await shot("02-study");
 await page.click('#bnav button[data-view="set-profile"]'); await page.waitForTimeout(600);
 for (const id of ["pro-av", "pro-name", "pro-stats", "pro-edit", "pro-grid"]) if (!(await page.locator("#" + id).count())) fails.push("profile missing #" + id);
 if (await page.locator("#v-set-profile .set-back").count()) fails.push("profile still has the Settings back link");
-if (!(await page.locator("#pro-edit-wrap").isHidden())) fails.push("edit form open by default");
+if (!(await page.locator("#pfe").isHidden())) fails.push("edit sheet open by default");
 const name = await page.textContent("#pro-name");
 if (!/^@\w/.test(name.trim())) fails.push("profile name: " + name);
 // profiles carry no trade stats since d3c8471 (followers, following and the posts are the profile)
 if ((await page.textContent("#pro-stats")).trim()) fails.push("stats row should be empty now");
 await shot("03-profile");
-await page.click("#pro-edit"); await page.waitForTimeout(300);
-if (await page.locator("#pro-edit-wrap").isHidden()) fails.push("Edit profile did not open the form");
+// edit profile is one sheet since 2026-09-27 (Cancel, Edit profile, Save); tests/app-profile-edit-visual.mjs drives it end to end
+await page.click("#pro-edit"); await page.waitForTimeout(500);
+if (await page.locator("#pfe").isHidden()) fails.push("Edit profile did not open the sheet");
 await shot("04-profile-edit");
-await page.click("#pro-edit-done"); await page.waitForTimeout(200);
+await page.click("#pfe-cancel"); await page.waitForTimeout(600);
+if (!(await page.locator("#pfe").isHidden())) fails.push("Cancel on a clean sheet did not close it");
 // the gear sits in the top bar, next to the "Profile" title, only on this view
 const gear = page.locator("#pro-settings");
 if (!(await gear.isVisible())) fails.push("top-bar gear hidden on Profile");
