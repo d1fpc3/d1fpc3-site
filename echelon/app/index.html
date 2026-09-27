@@ -2958,6 +2958,29 @@
     .nt-device { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
     .nt-device[hidden] { display: none; }
     .nt-device b { font-weight: 600; }
+    /* custom GEX alerts: each alert reads as one sentence, built from chips */
+    .ga-list { display: flex; flex-direction: column; }
+    .ga-row { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .ga-row:last-child { border-bottom: 0; }
+    .ga-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--gold)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c, var(--gold)) 22%, transparent); }
+    .ga-row b { display: block; font-weight: 600; font-size: 13.5px; color: var(--ink); }
+    .ga-row small { display: block; font-size: 12px; color: var(--faint); margin-top: 1px; }
+    .ga-row.off b, .ga-row.off small, .ga-row.off .ga-dot { opacity: 0.45; }
+    .ga-x { background: none; border: 0; color: var(--faint); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: grid; place-items: center; transition: color 0.15s ease, background 0.15s ease; }
+    .ga-x svg { width: 15px; height: 15px; }
+    @media (hover: hover) { .ga-x:hover { color: var(--bad); background: var(--panel-2); } }
+    .ga-empty { font-size: 13px; color: var(--faint); }
+    .ga-add { display: grid; gap: 12px; padding-top: 4px; }
+    .ga-kinds { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ga-kinds button { border: 1px solid var(--line-bright); background: var(--panel-2); color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 550; padding: 7px 12px; border-radius: 999px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.25s cubic-bezier(.2,.8,.2,1); }
+    @media (hover: hover) { .ga-kinds button:hover { color: var(--ink); } }
+    .ga-kinds button:active { transform: scale(0.96); }
+    .ga-kinds button.on { border-color: var(--gold); color: var(--ink); background: color-mix(in srgb, var(--gold) 15%, var(--panel-2)); }
+    .ga-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13.5px; color: var(--muted); min-height: 42px; }
+    .ga-form .inp { padding: 8px 11px; }
+    .ga-form input.inp { width: 86px; font-variant-numeric: tabular-nums; }
+    .ga-go { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .ga-go .rowbtn { font-size: 13px; padding: 8px 16px; color: var(--ink); border-color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, var(--panel-2)); }
     /* motion: scrims fade, sheets move (inline transforms from animIn/animOut) */
     .rv, .pedit { transition: opacity 0.26s ease; }
     .rv.dim, .pedit.dim { opacity: 0; }
@@ -5532,6 +5555,27 @@
               </div>
             </div>
           </div>
+          <div class="block" id="ga-block" style="max-width:640px;" hidden>
+            <div class="block-head"><h3>Custom GEX alerts</h3><span class="label" id="ga-count"></span></div>
+            <div class="setgrid">
+              <div class="ga-list" id="ga-list"></div>
+              <div class="ga-add">
+                <p class="label" style="margin:0;">Add an alert</p>
+                <div class="ga-kinds" id="ga-kinds" role="radiogroup" aria-label="Alert type">
+                  <button type="button" data-k="regime" class="on">Regime flips</button>
+                  <button type="button" data-k="level">NQ near a level</button>
+                  <button type="button" data-k="vol_level">Vol high or low</button>
+                  <button type="button" data-k="vxn_above">VXN above</button>
+                  <button type="button" data-k="vxn_below">VXN below</button>
+                  <button type="button" data-k="vol_rising">Vol turning up</button>
+                  <button type="button" data-k="curve">VIX curve inverts</button>
+                </div>
+                <div class="ga-form" id="ga-form"></div>
+                <div class="ga-go"><p class="hint" style="margin:0;">Checked every minute, 9:30 to 4:15 New York. Each alert pushes once when it turns true, then rests 20 minutes.</p><button class="rowbtn" id="ga-save" type="button">Add alert</button></div>
+                <p class="msg" id="ga-msg" hidden></p>
+              </div>
+            </div>
+          </div>
           <div class="block" style="max-width:640px;">
             <div class="block-head"><h3>Channels</h3></div>
             <div class="setgrid">
@@ -6540,7 +6584,7 @@
       if (view === 'news') loadNews()
       if (view === 'propfirms') pfShown()
       if (view === 'lab') labShown()
-      if (view === 'notifs') ntRenderChannels()
+      if (view === 'notifs') { ntRenderChannels(); gaWire(); gaLoad() }
       if (view === 'set-profile') renderProfilePage()
       if (view === 'set-invite') renderInvitePage()
       if (view === 'set-stats') renderStatsPage()
@@ -19943,6 +19987,96 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ntRenderChannels()
       document.querySelectorAll('.set-row[data-go]').forEach((b) => b.addEventListener('click', () => showView(b.dataset.go)))
       document.querySelectorAll('.set-back, #notifs-back').forEach((b) => b.addEventListener('click', () => showView('settings')))
+    }
+    /* ── custom GEX alerts (public.gex_alerts, evaluated by send-push every minute) ── */
+    const GA = { kind: 'regime', rows: [], vol: null }
+    const GA_LEVEL = { call_wall: 'the call wall', put_wall: 'the put wall', flip: 'the gamma flip' }
+    const gaHas = () => state.owned.has('d1-gex') || state.isMod || state.isAdmin
+    const gaEsc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+    function gaText(a) {
+      const p = a.params || {}
+      return a.kind === 'regime' ? 'Gamma regime flips (Dampening or Amplifying)'
+        : a.kind === 'level' ? `NQ within ${p.pts ?? 20} pts of ${GA_LEVEL[p.target] || 'a level'}`
+        : a.kind === 'vxn_above' ? `VXN rises above ${p.value}` : a.kind === 'vxn_below' ? `VXN falls below ${p.value}`
+        : a.kind === 'vol_level' ? (p.to === 'low' ? 'Volatility goes LOW for its year' : 'Volatility goes HIGH for its year')
+        : a.kind === 'vol_rising' ? 'Implied vol turns up on the day' : a.kind === 'curve' ? 'The VIX curve inverts' : a.kind
+    }
+    const GA_C = { regime: '#6f96e8', level: 'var(--gold)', vxn_above: '#ef5350', vxn_below: '#22b35a', vol_level: '#e0a13a', vol_rising: '#ef5350', curve: '#e0a13a' }
+    // what the alert would see right now, from the board and the vol feed the chart already reads
+    function gaNow(a) {
+      const g = GEX.live, v = GA.vol, p = a.params || {}, z = g?.zdte || {}, nq = g?.nq
+      const n = (x) => Math.round(x).toLocaleString()
+      if (a.kind === 'level') { const lv = { call_wall: z.callWall?.nq, put_wall: z.putWall?.nq, flip: z.flip?.nq ?? g?.swing?.flip?.nq }[p.target]; return lv != null && nq != null ? `Now ${n(Math.abs(nq - lv))} pts from ${n(lv)}` : '' }
+      if (a.kind === 'regime') { const l = nq != null ? chGexLight(g, nq) : null; return l ? `Now ${l.label}` : '' }
+      if (!v?.vxn?.last) return ''
+      if (a.kind === 'vxn_above' || a.kind === 'vxn_below') return `Now ${v.vxn.last.toFixed(2)}`
+      if (a.kind === 'vol_level') return v.level ? `Now ${v.level.label}, ${v.level.pct} percentile` : ''
+      if (a.kind === 'vol_rising') return `Now ${v.trend || 'steady'}`
+      if (a.kind === 'curve') return v.term ? `Now ${v.term.state}` : ''
+      return ''
+    }
+    function gaForm() {
+      const f = el('ga-form'); if (!f) return
+      const k = GA.kind, v = GA.vol
+      f.innerHTML = k === 'level' ? `<span>NQ within</span><input class="inp" id="ga-pts" type="number" min="1" max="500" step="1" value="20" aria-label="Points"><span>pts of</span><select class="inp" id="ga-target" aria-label="Level"><option value="call_wall">the call wall</option><option value="put_wall">the put wall</option><option value="flip">the gamma flip</option></select>`
+        : k === 'vxn_above' || k === 'vxn_below' ? `<span>VXN ${k === 'vxn_above' ? 'rises above' : 'falls below'}</span><input class="inp" id="ga-val" type="number" min="5" max="90" step="0.5" value="${k === 'vxn_above' ? (v?.level?.p80 ?? 27) : (v?.level?.p20 ?? 18)}" aria-label="VXN value"><span class="hint" style="margin:0;">${v?.vxn?.last ? `now ${v.vxn.last.toFixed(2)}${v.level ? `, the year runs ${v.level.p20} (low) to ${v.level.p80} (high)` : ''}` : ''}</span>`
+        : k === 'vol_level' ? `<span>Volatility goes</span><select class="inp" id="ga-to" aria-label="High or low"><option value="high">HIGH (80th percentile or more)</option><option value="low">LOW (under the 20th)</option></select><span>for its year</span>`
+        : `<span>${gaText({ kind: k, params: {} })}.</span>`
+    }
+    function gaRender() {
+      const blk = el('ga-block'); if (!blk) return
+      blk.hidden = !gaHas(); if (blk.hidden) return
+      const list = el('ga-list')
+      el('ga-count').textContent = GA.rows.length ? `${GA.rows.length} of 20` : ''
+      list.innerHTML = GA.rows.length ? GA.rows.map((a) => `<div class="ga-row${a.enabled ? '' : ' off'}" data-id="${a.id}"><i class="ga-dot" style="--c:${GA_C[a.kind] || 'var(--gold)'}"></i><div><b>${gaEsc(gaText(a))}</b><small>${gaEsc(gaNow(a))}</small></div><label class="tgl" title="On or off"><input type="checkbox" data-act="on"${a.enabled ? ' checked' : ''}><span class="track"></span></label><button class="ga-x" type="button" data-act="del" aria-label="Delete alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>`).join('')
+        : '<p class="ga-empty">No custom alerts yet. Pick one below.</p>'
+      el('ga-save').disabled = GA.rows.length >= 20
+    }
+    async function gaLoad() {
+      if (!gaHas() || !state.user) { gaRender(); return }
+      const [{ data }] = await Promise.all([
+        supabase.from('gex_alerts').select('id, kind, params, enabled, created_at').order('created_at'),
+        GEX.live ? null : loadGex().catch(() => {}),
+        fetch(`${GEX_URL}/vol.json`, { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((j) => { GA.vol = j; CH.vol = CH.vol || j }).catch(() => {}),
+      ])
+      GA.rows = data || []
+      gaRender(); gaForm()
+    }
+    function gaWire() {
+      if (el('ga-block')?.dataset.wired) return
+      el('ga-block').dataset.wired = '1'
+      el('ga-kinds').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; hap('light'); GA.kind = b.dataset.k; el('ga-kinds').querySelectorAll('button').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', String(x === b)) }); gaForm() })
+      el('ga-save').addEventListener('click', async () => {
+        const k = GA.kind, msg = el('ga-msg'), params = {}
+        if (k === 'level') { params.target = el('ga-target').value; params.pts = Math.max(1, Math.min(500, Math.round(+el('ga-pts').value || 20))) }
+        if (k === 'vxn_above' || k === 'vxn_below') { const v = +el('ga-val').value; if (!(v >= 5 && v <= 90)) { msg.hidden = false; msg.className = 'msg err'; msg.textContent = 'Pick a VXN value between 5 and 90.'; return } params.value = Math.round(v * 2) / 2 }
+        if (k === 'vol_level') params.to = el('ga-to').value
+        const dup = GA.rows.find((a) => a.kind === k && JSON.stringify(a.params || {}) === JSON.stringify(params))
+        if (dup) { msg.hidden = false; msg.className = 'msg err'; msg.textContent = 'You already have that alert.'; return }
+        el('ga-save').disabled = true
+        const { data, error } = await supabase.from('gex_alerts').insert({ kind: k, params }).select('id, kind, params, enabled, created_at').single()
+        el('ga-save').disabled = false
+        msg.hidden = false
+        if (error) { msg.className = 'msg err'; msg.textContent = /row-level security/i.test(error.message) ? 'Custom alerts come with D1 GEX, and the limit is 20.' : 'Could not save that alert. Try again.'; return }
+        hap('success'); GA.rows.push(data); gaRender()
+        msg.className = 'msg ok'; msg.textContent = 'Alert added. You will get a push when it turns true.'
+        // pushes need this device switched on
+        if (ntNative()) { if ((await ntNativeState()) !== 'granted') ntNativeEnable() }
+        else if (ntSupported() && Notification.permission === 'default') ntAsk()
+      })
+      el('ga-list').addEventListener('change', async (e) => {
+        const cb = e.target.closest('input[data-act="on"]'); if (!cb) return
+        const id = cb.closest('.ga-row').dataset.id, a = GA.rows.find((x) => x.id === id); if (!a) return
+        a.enabled = cb.checked; gaRender()
+        const { error } = await supabase.from('gex_alerts').update({ enabled: cb.checked }).eq('id', id)
+        if (error) { a.enabled = !cb.checked; gaRender() }
+      })
+      el('ga-list').addEventListener('click', async (e) => {
+        const b = e.target.closest('button[data-act="del"]'); if (!b) return
+        const id = b.closest('.ga-row').dataset.id
+        hap('light'); GA.rows = GA.rows.filter((x) => x.id !== id); gaRender()
+        await supabase.from('gex_alerts').delete().eq('id', id)
+      })
     }
     // Per-channel, the Discord way: every channel gets its own rule that
     // overrides the switches above. Stored on this device with the rest.
