@@ -122,7 +122,8 @@
     .sh p { color: var(--faint); font-size: 13px; }
 
     /* strategy cards */
-    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 1150px) { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     .card {
       background: var(--panel); border-radius: 14px; padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 12px;
@@ -319,6 +320,12 @@
         </summary>
         <pre id="bt-text"></pre>
       </details>
+      <details class="bt" id="lab" style="margin-top:12px" hidden>
+        <summary>Research lab: dip buys, fees paid, Mayhem, creators, smart wallets, LP <span class="sub" id="lab-sum"></span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <pre id="lab-text"></pre>
+      </details>
     </section>
   </main>
 
@@ -335,8 +342,9 @@
       'launch-mayhem': ['Mayhem Mode launches', 'pump.fun AI agent trades them'],
       'kol-first-copy-exit': ['First KOL buy, copy their sell', 'the influencer play'],
       'runner-mig5-tp2-sl50': ['Graduate runner', '5 min after it reaches PumpSwap'],
+      'launch-min5-survivor': ['Minute-5 survivor', 'still alive at 40 to 200 SOL cap'],
     }
-    const SHORT = { 'launch-all-tp2-sl50': 'Control', 'launch-devbuy-over2': 'Big dev buy', 'launch-devbuy-small': 'Small dev buy', 'launch-mayhem': 'Mayhem', 'runner-mig5-tp2-sl50': 'Runner', 'kol-first-copy-exit': 'KOL copy' }
+    const SHORT = { 'launch-all-tp2-sl50': 'Control', 'launch-devbuy-over2': 'Big dev buy', 'launch-devbuy-small': 'Small dev buy', 'launch-mayhem': 'Mayhem', 'runner-mig5-tp2-sl50': 'Runner', 'launch-min5-survivor': 'Min-5 survivor', 'kol-first-copy-exit': 'KOL copy' }
     const pct = (v, d = 1) => Number.isFinite(v) ? (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(d) + '%' : '–'
     const sol = (v) => Number.isFinite(v) ? (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(2) : '–'
     const cls = (v) => !Number.isFinite(v) || Math.abs(v) < 1e-9 ? 'flat' : v > 0 ? 'pos' : 'neg'
@@ -392,10 +400,12 @@
       if (loading) return
       loading = true; $('refresh').classList.add('spin'); $('refresh').textContent = 'Refreshing'
       try {
-        const [paper, status, who, bt, tr] = await Promise.all([
+        const [paper, status, who, bt, tr, lab] = await Promise.all([
           latest('paper'), latest('status'), latest('who'), latest('backtest'),
           SB.from('memecoin_bot_trades').select('strategy, mint, label, kol, t_out, ret, pnl, peak, why').order('t_out', { ascending: false }).limit(300),
+          latest('lab'),
         ])
+        if (lab?.lines?.length) { $('lab').hidden = false; $('lab-text').textContent = lab.lines.join('\n'); $('lab-sum').textContent = ago(lab.at) }
         state.trades = tr.data || []
         renderHero(paper, status)
         renderCards(paper)
@@ -450,7 +460,7 @@
           <div class="cap"><span>${esc(when(t0))}</span><span>${esc(when(t1))}</span></div>`
       }
       const W = status?.body?.workers || []
-      const label = { collector: 'Launches', tape: 'Tapes', 'kol-watch': 'KOL feed', 'dex-watch': 'Dex paid', bot: 'Paper bot' }
+      const label = { collector: 'Launches', tape: 'Tapes', 'kol-watch': 'KOL feed', 'dex-watch': 'Dex paid', 'lp-watch': 'LP pools', bot: 'Paper bot' }
       $('workers').innerHTML = W.map((w) => `<span class="w ${w.alive ? '' : 'dead'}" title="${esc(w.line || '')}"><i></i>${esc(label[w.worker] || w.worker)}${w.alive ? '' : ' down'}</span>`).join('')
     }
 
@@ -478,7 +488,9 @@
       return `<span class="pill collecting num">${Math.min(s.n, 100)} of 100 trades</span>`
     }
     function renderCards(paper) {
-      const S = (paper?.body?.strategies || []).filter((s) => s.live)
+      // Live candidates first, then the ones the bar already ruled out.
+      const rank = { passes: 0, collecting: 1, 'no edge': 2, killed: 3 }
+      const S = (paper?.body?.strategies || []).filter((s) => s.live).sort((a, b) => (rank[a.verdict] ?? 1) - (rank[b.verdict] ?? 1))
       if (!S.length) { $('cards').innerHTML = '<div class="empty">No paper trades yet.</div>'; return }
       $('cards').innerHTML = S.map((s, i) => {
         const [nm, why] = NAMES[s.id] || [s.id, '']
