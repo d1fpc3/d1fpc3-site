@@ -62,36 +62,85 @@ const seed = (ctx) => ctx.addInitScript(([k, v]) => {
   const s = await page.evaluate(() => ({ skin: document.getElementById('v-chart')?.dataset.skin, bg: window.__CH.bgNow, up: window.__CH.s.up, down: window.__CH.s.down, grid: window.__CH.s.grid }))
   check(s.bg === '#808080', `the canvas is his grey (${s.bg})`)
   check(s.skin === 'dark', `and it does NOT flip the app to the light skin (${s.skin})`)
-  check(s.up === '#ffffff' && !s.grid, `white bars up, no grid (up ${s.up}, grid ${s.grid})`)
+  check(s.up === '#dbdbdb' && !s.grid, `light grey bars up (white edge, see app-chart-candles-visual.mjs), no grid (up ${s.up}, grid ${s.grid})`)
 
   // The prices on the scale, read off the canvas as a CONTRAST RATIO against the
   // background. Counting light pixels was not enough and passed while the prices
   // were invisible: the last-price tag and the white bars bleed into that strip,
   // so the count was bright while the labels themselves were #7c8189 on #808080,
-  // a ratio of 1.02. This finds the ink the labels are actually drawn in.
+  // a ratio of 1.02. This finds the ink the labels are actually drawn in, with
+  // the last-price tag's rows left out: it is filled in the up-bar colour, and
+  // since that became #dbdbdb (not white) it out-counted the labels.
   const scale = await page.evaluate(() => {
     const cv = document.querySelector('#v-chart canvas'); const g = cv.getContext('2d')
     const r = cv.getBoundingClientRect(), dpr = cv.width / r.width
     const x0 = Math.round((r.width - 58) * dpr), w = Math.round(46 * dpr)
     const y0 = Math.round(cv.height * 0.18), h = Math.round(cv.height * 0.5)
     const d = g.getImageData(x0, y0, w, h).data
+    const last = window.__CH.bars.at(-1), tagY = window.__CH.$.pt(last.t, last.c).y * dpr
     const lum = ([R, G, B]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }; return 0.2126 * f(R) + 0.7152 * f(G) + 0.0722 * f(B) }
     const count = new Map()
     for (let i = 0; i < d.length; i += 4) {
+      if (Math.abs(y0 + Math.floor(i / 4 / w) - tagY) < 12 * dpr) continue
       const k = d[i] + ',' + d[i + 1] + ',' + d[i + 2]
       count.set(k, (count.get(k) || 0) + 1)
     }
     const rows = [...count.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ c: k.split(',').map(Number), n }))
     const bg = rows[0].c                               // the scale's own background
-    // the ink is the most common colour that is not the background and not a
-    // filled tag (tags are wide runs; labels are thin), so: most common of the rest
-    const ink = rows.slice(1).find((r2) => Math.abs(lum(r2.c) - lum(bg)) > 0.02) || rows[1]
+    // Text is anti-aliased, so most of a glyph's pixels are blends between the
+    // ink and the background and the single most common one is a blend. The ink
+    // is the colour furthest from the background among the ones that make up a
+    // real share of the text (>= 5%), which ignores a stray pixel or two.
+    const text = rows.slice(1).filter((r2) => Math.abs(lum(r2.c) - lum(bg)) > 0.02), total = text.reduce((s2, r2) => s2 + r2.n, 0)
+    const ink = text.filter((r2) => r2.n >= total * 0.05).sort((a, b) => Math.abs(lum(b.c) - lum(bg)) - Math.abs(lum(a.c) - lum(bg)))[0] || rows[1]
     const hi = Math.max(lum(ink.c), lum(bg)), lo = Math.min(lum(ink.c), lum(bg))
     const hex = (c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('')
     return { bg: hex(bg), ink: hex(ink.c), ratio: +((hi + 0.05) / (lo + 0.05)).toFixed(2) }
   })
   check(scale.ratio >= 3, `the prices can actually be read: ${scale.ink} on ${scale.bg} is ${scale.ratio}:1`)
   await page.screenshot({ path: `${OUT}/look.png` })
+
+  // the legend's OHLC sits on the canvas too: it wears the candles' wick colours
+  // (the theme's teal was #089981 on #808080, 1.1:1)
+  const leg = await page.evaluate(() => [...document.querySelectorAll('#ch-legend i.up, #ch-legend i.down')].map((n) => [n.className, getComputedStyle(n).color]))
+  const legOk = leg.length && leg.every(([k, c]) => c === (k === 'up' ? 'rgb(255, 255, 255)' : 'rgb(250, 161, 164)'))
+  check(legOk, `legend prices read in the candle colours (${[...new Set(leg.map(([k, c]) => `${k} ${c}`))].join(', ')})`)
+
+  // ── the last price, zoomed in the way D1 had it (09-26) ──
+  // His screenshot: the scale set by hand, so the AUTO chip was up; its
+  // textAlign 'center' leaked into the tag, which printed the price half off
+  // the tag and across the plot, with the 30,922 tick showing behind it.
+  // Candles zoomed that far also ran on down through the volume pane.
+  for (const [name, span] of [['scrolled into the future space', [14, 16]], ['zoomed so candles overflow', [6, 4]]]) {
+    await page.evaluate(([lo, hi]) => { const CH = window.__CH, c = CH.bars.at(-1).c; CH.barW = 12; CH.offset = 60; CH.auto = false; CH.pMin = c - lo; CH.pMax = c + hi; CH.$.paint() }, span)
+    await page.waitForTimeout(300)
+    const r = await page.evaluate(() => {
+      const CH = window.__CH, cv = document.getElementById('ch-canvas'), g = cv.getContext('2d'), dpr = cv.width / cv.getBoundingClientRect().width
+      // CH.axisAt is what the scale says it drew; worked out by hand when it is
+      // missing (a build before it existed), so the pixel checks still run there
+      const last = CH.bars.at(-1), w0 = cv.clientWidth, ax = w0 < 520 ? 60 : 78
+      const A = CH.axisAt || { plotW: w0 - ax, mainH: Math.round((cv.clientHeight - 24) * 0.84), tag: CH.$.pt(last.t, last.c).y, cd: false, chip: null, ticks: [] }
+      const lum = (i, d) => (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255
+      // dark tag ink that landed LEFT of the scale, in the tag's own rows
+      const band = g.getImageData(Math.round((A.plotW - 80) * dpr), Math.round((A.tag - 5) * dpr), Math.round(78 * dpr), Math.round(10 * dpr)).data
+      let leak = 0; for (let i = 0; i < band.length; i += 4) if (lum(i, band) < 0.08) leak++
+      // and inside the tag, where it belongs
+      const tag = g.getImageData(Math.round((A.plotW + 4) * dpr), Math.round((A.tag - 5) * dpr), Math.round(60 * dpr), Math.round(10 * dpr)).data
+      let ink = 0; for (let i = 0; i < tag.length; i += 4) if (lum(i, tag) < 0.2) ink++
+      // a tick label is ~12px tall; the tag spans 18, the countdown 15 under it, the chip 15
+      const hit = A.ticks.filter((y) => (Math.abs(y - A.tag) < 15) || (A.cd && y > A.tag && y < A.tag + 30) || (A.chip != null && y + 6 > A.chip))
+      // exact candle colours in the top rows of the volume pane
+      const vp = g.getImageData(Math.round(100 * dpr), Math.round((A.mainH + 2) * dpr), Math.round((A.plotW - 110) * dpr), Math.round(8 * dpr)).data
+      const fills = new Set(['219,219,219', '250,161,164', '50,53,62', '220,69,81']); let spill = 0
+      for (let i = 0; i < vp.length; i += 4) if (fills.has(vp[i] + ',' + vp[i + 1] + ',' + vp[i + 2])) spill++
+      return { tag: A.tag != null, leak, ink, hit: hit.map(Math.round), ticks: A.ticks.length, spill }
+    })
+    check(r.tag && r.ink > 20 && r.leak === 0, `${name}: the price sits inside its tag (${r.ink} ink px in the tag, ${r.leak} spilled onto the plot)`)
+    check(r.ticks > 4 && !r.hit.length, `${name}: no scale price under the tag, countdown or AUTO chip (${r.ticks} drawn, colliding at ${r.hit.join(',') || 'none'})`)
+    check(r.spill === 0, `${name}: candles stop at their pane, none in the volume pane (${r.spill} px)`)
+    await page.screenshot({ path: `${OUT}/last-price-${name.split(' ')[0]}.png` })
+  }
+  await page.evaluate(() => { const CH = window.__CH; CH.barW = 9; CH.offset = 6; CH.auto = true; CH.$.paint() })
 
   // ── any interval ──
   // the row's chevron opens the whole list; app-chart-ux-visual.mjs walks it

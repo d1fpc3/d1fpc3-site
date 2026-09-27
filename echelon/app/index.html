@@ -1387,7 +1387,7 @@
     #v-chart .ch-legend .dot.off { background: var(--faint); box-shadow: 0 0 0 3px color-mix(in srgb, var(--faint) 18%, transparent); }
     #v-chart .ch-legend .ohlc { display: inline-flex; gap: 2px; color: var(--ink); }
     #v-chart .ch-legend i { font-style: normal; }
-    #v-chart .ch-legend .up, #v-chart .ch-legend i.up { color: var(--good); } #v-chart .ch-legend .down, #v-chart .ch-legend i.down { color: var(--bad); }
+    #v-chart .ch-legend .up, #v-chart .ch-legend i.up { color: var(--ch-up, var(--good)); } #v-chart .ch-legend .down, #v-chart .ch-legend i.down { color: var(--ch-dn, var(--bad)); }
     #v-chart .ch-legend .nm { color: var(--ink); font-weight: 400; font-size: 13px; letter-spacing: 0; }
     #v-chart .ch-legend .ln:not(.hd) > span:not(.nm):not(.ic) { color: var(--faint); }
     /* the GEX regime: price against the flip, in one word, tinted by what hedging does to a move */
@@ -13043,18 +13043,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        every colour and toggle. One canvas, redrawn on demand. */
     const CH_TF = { '1m': ['1m', 1], '3m': ['1m', 3], '5m': ['5m', 5], '15m': ['5m', 15], '30m': ['5m', 30], '1h': ['60m', 60], '4h': ['60m', 240], 'D': ['1d', 1440] }
     const CH_SPAN = { '1m': 32, '5m': 200, '60m': 2800, '1d': 9800 }   // days each source reaches back, at most (the archive holds Databento history from 2019; the read keeps the newest 60k bars)
-    /* D1's chart, as the chart's own look: grey canvas, white up, muted red
-       down, no grid. Named so the defaults below read as one decision rather
-       than six unexplained hex codes. */
-    const D1_BG = '#808080', D1_UP = '#ffffff', D1_DN = '#faa1a4'
-    const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP, wickDown: D1_DN, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, legendOhlc: true, legendInds: true, legendVals: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
+    /* D1's chart, as the chart's own look: grey canvas, light grey up with a
+       white edge, pink down, no grid. Vector candles keep that edge and wick and
+       change only the body: slate up, red down. Sampled off his screenshot, and
+       named so the defaults below read as one decision rather than unexplained
+       hex codes. */
+    const D1_BG = '#808080', D1_UP = '#dbdbdb', D1_UP_EDGE = '#ffffff', D1_DN = '#faa1a4', D1_VEC_UP = '#32353e', D1_VEC_DN = '#dc4551'
+    const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP_EDGE, wickDown: D1_DN, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, legendOhlc: true, legendInds: true, legendVals: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
       // LIT ships curated, not complete: the levels price reacts to are on, the ten
       // busier parts are one toggle away in the LIT menu. litV stamps the migration.
       lit: true, litV: 2, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: false, litKo: false, litPo3: false, litEighths: false, litGold: true, litVector: true, litDays: 3,
       litPm: false, litNwog: false, litDr: false, litDrBack: 3, litSig: false, litSig1: false, litSigAnc: false, litDs: true, litDsWeek: true, litOpen22: false, litLdn: false, litWm: true, litAlerts: true,
       litPmC: '', litPmW: 2, litNwogC: '', litNwogF: 0.12, litDrC: '', litDrHlC: '', litDrW: 1, litSigC: '', litSigW: 1, litDsC: '', litOpen22C: '', litOpen22W: 1, litLdnC: '', litLdnF: 0.1, litWmC: '',
       // chart style (empty colour = the theme token)
-      accentC: '', magnet: 'off', borderUp: D1_UP, borderDown: D1_DN, wicks: true, bodyW: 'wide', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: false, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
+      accentC: '', magnet: 'off', borderUp: D1_UP_EDGE, borderDown: D1_DN, wicks: true, bodyW: 'wide', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: false, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
       volUp: '', volDown: '', volA: 0.35, volSize: 'normal', volMa: false, volMaN: 20, volMaC: '',
       // indicators: moving averages are a list, VWAP has bands, LIT and GEX carry a colour and a width per part
       ma: null, vwapC: '', vwapW: 1.2, vwapStyle: 'dash', vwapBands: false, vwapBandC: '', vwapBandA: 0.08, prevDayC: '',
@@ -13184,10 +13186,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* Saved settings hold every key, so a new default never reaches anyone who has
        touched the chart once. This flips the ten busy LIT parts off a single time,
        stamps litV, and never runs again. Colours, widths and the rest are left alone. */
-    if (CH.s.lookV !== 4) {
-      CH.s.bg = ''; CH.s.bg2 = ''; CH.s.up = D1_UP; CH.s.down = D1_DN; CH.s.wickUp = D1_UP; CH.s.wickDown = D1_DN
-      CH.s.borderUp = D1_UP; CH.s.borderDown = D1_DN; CH.s.wickDown = D1_DN; CH.s.grid = false; CH.s.gridV = false; CH.s.textC = ''
-      CH.s.bodyW = 'wide'; CH.s.lookV = 4
+    if (!(CH.s.lookV >= 4)) {
+      CH.s.bg = ''; CH.s.bg2 = ''; CH.s.grid = false; CH.s.gridV = false; CH.s.textC = ''; CH.s.bodyW = 'wide'
+    }
+    // lookV 5: his candles, normal and vector. Vector colours go back to empty so
+    // they follow D1_VEC_*, which is what the LIT menu shows as Default.
+    if (!(CH.s.lookV >= 5)) {
+      Object.assign(CH.s, { up: D1_UP, down: D1_DN, wickUp: D1_UP_EDGE, wickDown: D1_DN, borderUp: D1_UP_EDGE, borderDown: D1_DN, border: true, litVecUp: '', litVecDn: '', lookV: 5 })
       try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {}
     }
     if (CH.s.litV !== 2) { for (const k of ['litMarks', 'litKo', 'litPo3', 'litEighths', 'litPm', 'litNwog', 'litDr', 'litSig', 'litOpen22', 'litLdn']) CH.s[k] = false; CH.s.litV = 2; try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {} }
@@ -13243,7 +13248,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     CH.layoutId = (() => { try { return localStorage.getItem(CH_LAY_KEY + ':at') || null } catch { return null } })()
     window.__CH = CH   // read-only peek for the console and the harness
     CH.layouts = { list: chLayouts, save: chLayoutsSave, now: chLayoutNow, apply: chLayoutApply }
-    CH.$ = { build: () => chBuild(), paint: () => { chPaint(); chCandlePreviewSync() }, pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck(), prev: () => chPrevDay(), smt: () => chSmt(), htfWarm: () => chHtfWarm(), eng: () => chLitEng(), ict: () => chIct(), sd: () => chSd(), pend: () => chPend(), amit: () => chAmit(), rolls: () => chRollsOf(chStoreFor(CH.sym)), setSym: (k) => chSetSymbol(k) }
+    CH.$ = { build: () => chBuild(), paint: () => { chPaint(); chCandlePreviewSync() }, pt: (t, p) => { const L = chLayout(); return { x: chX(chIofT(t), L), y: chY(p, L) } }, hit: (x, y) => { const h = chHit(x, y, chLayout()); return h && { type: h.d.type, handle: h.handle, cur: h.cur } }, setTool: (t) => chSetTool(t), menu: (w) => chMenu(w), alert: (p) => chAlertAdd(p), check: () => chAlertsCheck(), prev: () => chPrevDay(), smt: () => chSmt(), htfWarm: () => chHtfWarm(), eng: () => chLitEng(), ict: () => chIct(), sd: () => chSd(), pend: () => chPend(), amit: () => chAmit(), rolls: () => chRollsOf(chStoreFor(CH.sym)), setSym: (k) => chSetSymbol(k), vec: () => { const v = chLitVectors(); return chVisible().flatMap((b, i) => v[i] ? [{ t: b.t, o: b.o, h: b.h, l: b.l, c: b.c }] : []) } }
     // undo and redo keep whole snapshots of the drawings; cheap at this size
     const chSnapshot = () => JSON.stringify(CH.drawings)
     function chPush() { CH.hist.push(chSnapshot()); if (CH.hist.length > 60) CH.hist.shift(); CH.redo = []; chHistUi() }
@@ -13283,8 +13288,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const chFmtAxisDay = (t) => { const p = chWallParts(t); return `${p.d} ${CH_MON[p.mo]}` }
     const chFmtFull = (t) => { const p = chWallParts(t); return `${CH_WD[p.wd]} ${String(p.d).padStart(2, '0')} ${CH_MON[p.mo]} '${String(p.y).slice(2)}${CH.tfSec >= 86400 ? '' : '  ' + chFmtTime(t)}` }
     const chFmtDate = (t, long = false) => new Date(t * 1000).toLocaleDateString('en-US', { timeZone: chZoneIana(), month: 'short', day: 'numeric', ...(long ? { weekday: 'short', year: 'numeric' } : {}) })
-    const chPx = (v, d = 2) => v == null || isNaN(v) ? '' : Number(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
-    const chPts = (v) => (v < 0 ? '−' : '+') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 })
+    // toLocaleString with options builds a new formatter on every call, and the
+    // chart formats prices dozens of times a frame; profiled, that alone was the
+    // biggest slice of a crosshair frame. One formatter per precision, reused.
+    const CH_NF = new Map(), chNf = (d) => { let f = CH_NF.get(d); if (!f) CH_NF.set(d, f = new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })); return f }
+    const CH_NF_PTS = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
+    const chPx = (v, d = 2) => v == null || isNaN(v) ? '' : chNf(d).format(Number(v))
+    const chPts = (v) => (v < 0 ? '−' : '+') + CH_NF_PTS.format(Math.abs(v))
 
     /* ── data ── */
     async function chFetch(qs, sym = CH.sym) {
@@ -13880,7 +13890,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chVecCache = { key, v }; return v
     }
     // every LIT part has a colour (empty = the Pine default), lines a width, boxes a fill
-    const CH_LIT_DEF = (light) => ({ litPmC: light ? '#7b1fa2' : '#ce93d8', litNwogC: light ? '#7b8595' : '#9aa4b5', litDrC: light ? '#1a1815' : '#e9e3d8', litDrHlC: light ? '#5a5a5a' : '#a0a0a0', litSigC: light ? '#000000' : '#e9e3d8', litDsC: '#000000', litOpen22C: light ? '#1a1815' : '#e9e3d8', litLdnC: '#000000', litWmC: light ? '#1a1815' : '#e9e3d8', litPdC: light ? '#5a5a5a' : '#a0a0a0', litPwC: light ? '#5a5a5a' : '#a0a0a0', litWoC: light ? '#1a1815' : '#e9e3d8', litAsiaC: '#faa1a4', litNyC: '#000000', litOpenC: '#000000', litMarksC: '#080502', litKoC: '#080502', litPo3Up: '', litPo3Dn: '', litPo3Lab: '#9e9e9e', litEighthsC: light ? '#5a5a5a' : '#a0a0a0', litGoldC: '#d4af37', litVecUp: '#008f47', litVecDn: '#ffffff' })
+    const CH_LIT_DEF = (light) => ({ litPmC: light ? '#7b1fa2' : '#ce93d8', litNwogC: light ? '#7b8595' : '#9aa4b5', litDrC: light ? '#1a1815' : '#e9e3d8', litDrHlC: light ? '#5a5a5a' : '#a0a0a0', litSigC: light ? '#000000' : '#e9e3d8', litDsC: '#000000', litOpen22C: light ? '#1a1815' : '#e9e3d8', litLdnC: '#000000', litWmC: light ? '#1a1815' : '#e9e3d8', litPdC: light ? '#5a5a5a' : '#a0a0a0', litPwC: light ? '#5a5a5a' : '#a0a0a0', litWoC: light ? '#1a1815' : '#e9e3d8', litAsiaC: '#faa1a4', litNyC: '#000000', litOpenC: '#000000', litMarksC: '#080502', litKoC: '#080502', litPo3Up: '', litPo3Dn: '', litPo3Lab: light ? '#5a5a5a' : '#e9e3d8', litEighthsC: light ? '#5a5a5a' : '#a0a0a0', litGoldC: '#d4af37', litVecUp: D1_VEC_UP, litVecDn: D1_VEC_DN })
     const CH_LIT_PARTS = [['litPd', 'PDH / PDL', 'litPdC', 'litPdW'], ['litPw', 'PWH / PWL', 'litPwC', 'litPwW'], ['litWo', 'Weekly open', 'litWoC', 'litWoW'], ['litAsia', 'Asia box', 'litAsiaC', null, 'litAsiaF'], ['litNy', 'NYT box', 'litNyC', null, 'litNyF'], ['litOpen', '18:00 open', 'litOpenC', 'litOpenW'], ['litMarks', 'FF LO MM1 MM2 LC', 'litMarksC'], ['litKo', 'Key opens', 'litKoC'], ['litPo3', 'PO3 candles', 'litPo3Up', null, null, 'litPo3Dn'], ['litEighths', 'Weekly eighths', 'litEighthsC'], ['litGold', 'Golden Tue/Wed', 'litGoldC', 'litGoldW'], ['litVector', 'Vector candles', 'litVecUp', null, null, 'litVecDn'],
       ['litPm', 'PMH / PML', 'litPmC', 'litPmW'], ['litNwog', 'Liquidity voids (NWOG)', 'litNwogC', null, 'litNwogF'], ['litDr', 'Daily reset levels', 'litDrC', 'litDrW', null, 'litDrHlC'], ['litSig', 'σ bands (expected move)', 'litSigC', 'litSigW'], ['litDs', 'Day separators', 'litDsC'], ['litOpen22', '22:00 open', 'litOpen22C', 'litOpen22W'], ['litLdn', 'London box', 'litLdnC', null, 'litLdnF'], ['litWm', 'Watermark tag', 'litWmC']]
     /* ── the label lane ──
@@ -15046,6 +15056,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (S.gridC) T.line = S.gridC
       const D = chDefaults(T, light), C = { up: S.up || D.up, down: S.down || D.down, wickUp: S.wickUp || S.up || D.wickUp, wickDown: S.wickDown || D.wickDown, line: S.lineC || D.lineC, cross: S.crossC || D.crossC }
       C.borderUp = S.borderUp || D.borderUp; C.borderDown = S.borderDown || D.borderDown; C.volUp = S.volUp || C.up; C.volDown = S.volDown || D.volDown
+      // The legend's OHLC sits on the canvas too, so it reads in the candles' own
+      // wick colours (white up, pink down on D1's grey) instead of the theme's
+      // teal and red: #089981 on #808080 measured 1.1:1. Only when that colour clears the
+      // canvas; set only on change so a crosshair frame never restyles the page.
+      { const vch = el('v-chart'), bl = chLum(BG), ok = (c) => { const l = chLum(c); return l != null && bl != null && (Math.max(l, bl) + 0.05) / (Math.min(l, bl) + 0.05) >= 1.8 ? c : '' }, u = ok(C.wickUp), d = ok(C.wickDown)
+        if (vch && vch._legC !== u + '|' + d) { vch._legC = u + '|' + d; for (const [k, v] of [['--ch-up', u], ['--ch-dn', d]]) v ? vch.style.setProperty(k, v) : vch.style.removeProperty(k) } }
       const col = (c) => ({ good: T.good, bad: T.bad, gold: T.gold, faint: T.faint, muted: T.muted, ink: T.ink })[c] || c
       if (S.bg2) { const gr = ctx.createLinearGradient(0, 0, 0, L.H); gr.addColorStop(0, BG); gr.addColorStop(1, S.bg2); ctx.fillStyle = gr } else ctx.fillStyle = BG
       ctx.fillRect(0, 0, L.W, L.H)
@@ -15131,8 +15147,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // previous day (the plain version, when LIT is off)
       const lv = S.lit ? [] : [...chPrevDay(), ...(S.gex ? [] : chGexLevels())]
       for (const l of lv) { if (l.px < CH.pMin || l.px > CH.pMax) continue; if (S.prevDayC && (l.name === 'PDH' || l.name === 'PDL')) l.color = S.prevDayC; const y = Math.round(chY(l.px, L)) + 0.5; ctx.strokeStyle = alpha(col(l.color), 0.7); ctx.setLineDash(l.color === 'faint' ? [1, 3] : [4, 4]); ctx.lineWidth = 1; const xa = l.i0 == null ? 0 : chX(l.i0, L), xb = l.i1 == null ? L.plotW : Math.min(L.plotW, chX(l.i1, L)); if (xb < 0 || xa > L.plotW) { ctx.setLineDash([]); continue } ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(xb, y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = alpha(col(l.color), 0.9); ctx.textAlign = 'right'; ctx.font = `10px ${GEX_FONT}`; ctx.fillText(l.name, xb - 6, y - 7); ctx.font = `11px ${GEX_FONT}` }
-      // price
+      // price, clipped to its own pane: zoomed in, a tall candle used to run on
+      // down through the volume pane and under the time axis
       const bw = Math.max(1, Math.min(CH.barW * ({ thin: 0.5, normal: 0.72, wide: 0.9 }[S.bodyW] || 0.72), 40))
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip()
       ctx.lineWidth = 1
       if (S.type === 'line' || S.type === 'area') {
         const lw = +S.lineW || 1.6
@@ -15143,27 +15161,37 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       } else {
         const vec = S.lit && S.litVector ? chLitVectors() : null
         const ha = S.type === 'heikin' ? chHeikin() : null
-        // A vector candle is still one of your candles: it wears the chart's own
-        // colours unless a vector colour has been set on purpose, the same rule the
-        // PO3 candles follow. Hard-coded green and white made them a different
-        // chart sitting inside this one.
-        const vecUp = S.litVecUp || C.up, vecDn = S.litVecDn || C.down
+        // A vector candle is still one of your candles: it keeps the chart's own
+        // wick and border and swaps only the body, D1's slate up and red down
+        // unless a vector colour has been set on purpose. A whole candle in
+        // another colour (the old green and white) was a different chart sitting
+        // inside this one; a body alone reads as the same candle, just louder.
+        const vecUp = S.litVecUp || D1_VEC_UP, vecDn = S.litVecDn || D1_VEC_DN
         const wicks = S.wicks !== false, borderC = (up) => (up ? C.borderUp : C.borderDown) || alpha('#000000', 0.25)
+        /* One path per colour, not one draw call per candle. A wide screen shows
+           300 candles, and wick, body and border each as its own stroke or fill
+           was 1,000+ canvas calls a frame, every frame the crosshair moved. Wicks
+           stop at the body and bodies never touch, so drawing every wick, then
+           every body, then every border paints the same pixels in ~8 calls. */
+        const grp = () => { const m = new Map(); return { m, at: (c) => { let p = m.get(c); if (!p) m.set(c, p = new Path2D()); return p } } }
+        const WK = grp(), BD = grp(), ED = grp()
         for (let i = i0; i <= i1; i++) {
           const b = ha ? ha[i] : bars[i], up = b.c >= b.o, x = Math.round(chX(i, L)) + 0.5
           const yo = chY(b.o, L), yc = chY(b.c, L), yh = chY(b.h, L), yl = chY(b.l, L)
-          if (vec && vec[i]) { const vc = up ? vecUp : vecDn; if (wicks) { ctx.strokeStyle = vc; ctx.beginPath(); ctx.moveTo(x, yh); ctx.lineTo(x, yl); ctx.stroke() } const top = Math.min(yo, yc), hgt = Math.max(1, Math.abs(yc - yo)); ctx.fillStyle = alpha(vc, 0.85); ctx.fillRect(Math.round(x - bw / 2), Math.round(top), Math.round(bw), Math.max(1, Math.round(hgt))); continue }
-          if (S.type === 'bars') {
-            ctx.strokeStyle = up ? C.wickUp : C.wickDown; ctx.beginPath(); ctx.moveTo(x, yh); ctx.lineTo(x, yl); ctx.moveTo(x - bw / 2, yo); ctx.lineTo(x, yo); ctx.moveTo(x, yc); ctx.lineTo(x + bw / 2, yc); ctx.stroke()
-            continue
-          }
-          if (wicks) { ctx.strokeStyle = up ? C.wickUp : C.wickDown; ctx.beginPath(); ctx.moveTo(x, yh); ctx.lineTo(x, Math.min(yo, yc)); ctx.moveTo(x, Math.max(yo, yc)); ctx.lineTo(x, yl); ctx.stroke() }
+          const vc = vec && vec[i] ? (up ? vecUp : vecDn) : null
+          if (S.type === 'bars') { const p = WK.at(vc || (up ? C.wickUp : C.wickDown)); p.moveTo(x, yh); p.lineTo(x, yl); p.moveTo(x - bw / 2, yo); p.lineTo(x, yo); p.moveTo(x, yc); p.lineTo(x + bw / 2, yc); continue }
+          if (wicks) { const p = WK.at(up ? C.wickUp : C.wickDown); p.moveTo(x, yh); p.lineTo(x, Math.min(yo, yc)); p.moveTo(x, Math.max(yo, yc)); p.lineTo(x, yl) }
           const top = Math.min(yo, yc), hgt = Math.max(1, Math.abs(yc - yo))
-          if (bw < 2) { ctx.strokeStyle = up ? C.wickUp : C.wickDown; ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, top + hgt); ctx.stroke(); continue }
-          if (S.type === 'hollow' && up) { ctx.strokeStyle = C.borderUp || C.up; ctx.strokeRect(Math.round(x - bw / 2) + 0.5, Math.round(top) + 0.5, Math.round(bw) - 1, Math.max(1, Math.round(hgt) - 1)) }
-          else { ctx.fillStyle = up ? C.up : C.down; ctx.fillRect(Math.round(x - bw / 2), Math.round(top), Math.round(bw), Math.max(1, Math.round(hgt))); if (S.border && bw >= 2) { ctx.strokeStyle = borderC(up); ctx.strokeRect(Math.round(x - bw / 2) + 0.5, Math.round(top) + 0.5, Math.round(bw) - 1, Math.max(1, Math.round(hgt) - 1)) } }
+          if (bw < 2) { const p = WK.at(vc || (up ? C.wickUp : C.wickDown)); p.moveTo(x, top); p.lineTo(x, top + hgt); continue }
+          const rx = Math.round(x - bw / 2), ry = Math.round(top), rw = Math.round(bw)
+          if (S.type === 'hollow' && up && !vc) ED.at(C.borderUp || C.up).rect(rx + 0.5, ry + 0.5, rw - 1, Math.max(1, Math.round(hgt) - 1))
+          else { BD.at(vc || (up ? C.up : C.down)).rect(rx, ry, rw, Math.max(1, Math.round(hgt))); if (S.border && bw >= 2) ED.at(borderC(up)).rect(rx + 0.5, ry + 0.5, rw - 1, Math.max(1, Math.round(hgt) - 1)) }
         }
+        for (const [c, p] of WK.m) { ctx.strokeStyle = c; ctx.stroke(p) }
+        for (const [c, p] of BD.m) { ctx.fillStyle = c; ctx.fill(p) }
+        for (const [c, p] of ED.m) { ctx.strokeStyle = c; ctx.stroke(p) }
       }
+      ctx.restore()
       chPaintRolls(ctx, L, T)
       if (S.smt) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip(); chPaintSmt(ctx, L, T, { bars, n, i0, i1 }); ctx.restore() }
       // D1 LIT and D1 GEX
@@ -15211,9 +15239,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // clip line for the axes
       ctx.fillStyle = BG; ctx.fillRect(L.plotW, 0, L.ax, L.H); ctx.fillRect(0, L.H - L.tx, L.W, L.tx)
       ctx.strokeStyle = T.line; ctx.beginPath(); ctx.moveTo(L.plotW + 0.5, 0); ctx.lineTo(L.plotW + 0.5, L.H); ctx.moveTo(0, L.H - L.tx + 0.5); ctx.lineTo(L.W, L.H - L.tx + 0.5); ctx.stroke()
-      // price axis
+      // price axis. A tick that would sit under the last-price tag, the countdown
+      // under it or the AUTO chip is left out, the way the platform does it: two
+      // prices printed on top of each other read as neither.
+      const tradingNow = ['open', 'pre', 'globex'].includes(chSession().key)
+      const tagY = S.lastLine && lastBar ? chY(lastBar.c, L) : null, tagOn = tagY != null && tagY >= 0 && tagY <= L.mainH
+      const cdRoom = tagOn && S.countdown !== false && !CH.replay.on && tradingNow && CH.tfSec < 86400 * 7 && tagY <= L.mainH - 18
       ctx.fillStyle = T.faint; ctx.textAlign = 'left'
-      for (const p of ticks) ctx.fillText(chPx(p, step < 1 ? 2 : 0), L.plotW + 7, chY(p, L))
+      CH.axisAt = { plotW: L.plotW, mainH: L.mainH, tag: tagOn ? tagY : null, cd: cdRoom, chip: !CH.auto ? L.mainH - 20 : null, ticks: [] }   // what the scale drew, for the harness
+      for (const p of ticks) {
+        const y = chY(p, L)
+        if (tagOn && y > tagY - 15 && y < tagY + (cdRoom ? 30 : 15)) continue
+        if (!CH.auto && y > L.mainH - 26) continue
+        ctx.fillText(chPx(p, step < 1 ? 2 : 0), L.plotW + 7, y); CH.axisAt.ticks.push(y)
+      }
       // indicator values on the scale, the way the platform tags each study's last value
       if (S.axisInd !== false && lastBar) {
         const lastY = S.lastLine ? chY(lastBar.c, L) : -99, tagAt = (v, color) => { if (v == null) return; const y = chY(v, L); if (y < 0 || y > L.mainH || Math.abs(y - lastY) < 10) return; ctx.fillStyle = color; ctx.fillRect(L.plotW + 2, y - 7, L.ax - 4, 14); ctx.fillStyle = '#0b0a09'; ctx.font = `600 9.5px ${GEX_FONT}`; ctx.textAlign = 'left'; ctx.fillText(chPx(v), L.plotW + 6, y); ctx.font = `11px ${GEX_FONT}` }
@@ -15227,7 +15266,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // the auto chip on the scale, shown while the scale is set by hand
       CH.autoChip = null
       if (!CH.auto) { const cx0 = L.plotW + 4, cy0 = L.mainH - 20; ctx.fillStyle = alpha(T.gold, 0.18); ctx.fillRect(cx0, cy0, 34, 15); ctx.strokeStyle = alpha(T.gold, 0.5); ctx.strokeRect(cx0 + 0.5, cy0 + 0.5, 33, 14); ctx.fillStyle = T.gold; ctx.font = `600 9.5px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.fillText('AUTO', cx0 + 17, cy0 + 8); ctx.font = `11px ${GEX_FONT}`; CH.autoChip = { x0: cx0, x1: cx0 + 34, y0: cy0, y1: cy0 + 15 } }
-      if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.fillStyle = S.lastC || (up ? C.up : C.down === '#ffffff' ? C.borderDown : C.down); ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = (chLum(S.lastC || (up ? C.up : C.down === '#ffffff' ? C.borderDown : C.down)) ?? 0.3) > 0.35 ? '#0b0a09' : '#ffffff'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
+      // the tag sets its own alignment: the AUTO chip just above leaves it at
+      // 'center', which hung the price half off the tag and across the plot
+      if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = S.lastC || (up ? C.up : C.down === '#ffffff' ? C.borderDown : C.down); ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = (chLum(S.lastC || (up ? C.up : C.down === '#ffffff' ? C.borderDown : C.down)) ?? 0.3) > 0.35 ? '#0b0a09' : '#ffffff'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
       chPaintDrawings(ctx, L, T, true)
       // Keep time labels clear of the date controls and timezone corner.
       { const ab = el('ch-autobtn'); if (ab) ab.classList.toggle('on', !!CH.auto) }
@@ -15245,7 +15286,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // the bar-close countdown under the last price, like the platform does
       // the countdown is to the close of the CURRENT bar, so it only means
       // something while bars are forming. CH.cdOn is the harness's window onto it.
-      const tradingNow = ['open', 'pre', 'globex'].includes(chSession().key)
       CH.cdOn = false
       if (S.lastLine && S.countdown !== false && lastBar && !CH.replay.on && tradingNow && CH.tfSec < 86400 * 7) {
         const y = chY(lastBar.c, L)
@@ -17313,8 +17353,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function chartHidden() { CH.on = false; clearTimeout(CH.timer); CH.timer = null; clearInterval(CH.clock); CH.clock = null; clearInterval(CH.volT); CH.volT = null; chMenu(null) }
     // where the clock is in the futures week, for the poll cadence and the pill
+    // The session only changes on the minute, and every paint asks for it (a new
+    // DateTimeFormat each time was the second-biggest slice of a frame), so the
+    // answer is kept for the minute it was worked out in. Both live on the
+    // functions, not in a const, so a call during the script's first pass cannot
+    // hit a declaration that has not run yet.
     function chSession() {
-      const p = {}; for (const x of new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date())) p[x.type] = x.value
+      const k = Math.floor(Date.now() / 60000), m = chSession.memo
+      if (m && m.k === k) return m.v
+      chSession.memo = { k, v: chSessionAt() }; return chSession.memo.v
+    }
+    function chSessionAt() {
+      const f = chSessionAt.fmt || (chSessionAt.fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', hour: '2-digit', minute: '2-digit' }))
+      const p = {}; for (const x of f.formatToParts(new Date())) p[x.type] = x.value
       const min = ((+p.hour) % 24) * 60 + +p.minute, wd = p.weekday
       if (wd === 'Sat' || (wd === 'Sun' && min < 18 * 60) || (wd === 'Fri' && min >= 17 * 60)) return { key: 'weekend', label: 'Weekend' }
       if (min >= 570 && min < 960) return { key: 'open', label: 'Open' }

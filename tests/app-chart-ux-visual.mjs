@@ -145,7 +145,7 @@ await page.waitForTimeout(800)
 const after = await shot()
 check(!!before && before !== after, 'and it repaints the moment the colour changes')
 await page.screenshot({ path: `${OUT}/preview.png` })
-await page.evaluate(() => { window.__CH.s.up = '#ffffff'; window.__CH.$.paint() })
+await page.evaluate(() => { window.__CH.s.up = '#dbdbdb'; window.__CH.$.paint() })
 
 // ── layouts, findable ──
 check(await page.evaluate(() => !!document.getElementById('ch-layouts-btn')), 'Layouts has its own button on the bar')
