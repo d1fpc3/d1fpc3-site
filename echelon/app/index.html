@@ -565,6 +565,19 @@
     #v-gex .gex-ibtn.ghost { border-color: transparent; background: none; color: var(--muted); padding: 0 6px; }
     #v-gex .gex-ibtn.ghost:hover { color: var(--ink); }
     #v-gex .gex-histnote { margin: -4px 0 14px; padding: 0; }
+    /* old levels (D1, 09-27): whenever the print on screen is not today's, the board says so in words above
+       the read, the stamp turns amber and names the day, and the read is titled for that day */
+    #v-gex { --gx-old: #eba444; }
+    :root[data-theme="light"] #v-gex { --gx-old: #a8620f; }
+    #v-gex .gex-old { display: flex; align-items: flex-start; gap: 14px; margin: -2px 0 16px; padding: 14px 20px 15px 14px; border-radius: var(--gx-r); background: linear-gradient(100deg, color-mix(in srgb, var(--gx-old) 12%, var(--panel)) 0%, var(--panel) 72%); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gx-old) 32%, transparent), var(--gx-card-shadow); animation: gx-rise .5s var(--gx-ease) both; }
+    #v-gex .gex-old-ic { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; color: var(--gx-old); background: color-mix(in srgb, var(--gx-old) 15%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gx-old) 22%, transparent); }
+    #v-gex .gex-old-ic svg { width: 18px; height: 18px; }
+    #v-gex .gex-old-tx { min-width: 0; padding-top: 1px; }
+    #v-gex .gex-old b { display: block; font-size: 14.5px; font-weight: 600; letter-spacing: -0.005em; color: var(--gx-old); }
+    #v-gex .gex-old p { margin: 3px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+    #v-gex .gex-live.old i { background: var(--gx-old); opacity: 1; box-shadow: 0 0 0 3px color-mix(in srgb, var(--gx-old) 22%, transparent); }
+    #v-gex .gex-live.old .gex-stamp { color: var(--gx-old); font-weight: 500; }
+    @media (prefers-reduced-motion: reduce) { #v-gex .gex-old { animation: none; } }
 
     /* pill segmented controls: the chosen option rides a raised pill */
     #v-gex .seg.gex-pill { padding: 3px; border-radius: 999px; background: var(--tbseg-track); gap: 0; }
@@ -723,6 +736,8 @@
       #v-gex .gex-bar-sp { flex-basis: 100%; height: 0; }
       #v-gex .gex-live { order: 5; flex: 1; min-width: 0; }
       #v-gex .gex-live .gex-stamp { overflow: hidden; text-overflow: ellipsis; }
+      #v-gex .gex-old { gap: 12px; padding: 12px 14px 13px 12px; }
+      #v-gex .gex-old p { font-size: 12.5px; }
       #v-gex #gex-refresh span { display: none; }
       #v-gex #gex-refresh { width: 34px; padding: 0; justify-content: center; }
       #v-gex #gex-refresh, #v-gex #gex-whatis { order: 6; }
@@ -1406,7 +1421,10 @@
     /* the row's labels and stamp carry the read, so they take the ink at reduced strength instead of the theme's faint (invisible on a grey canvas) */
     #v-chart .ch-legend .ln[data-ind="gex"]:not(.hd) > span:not(.nm):not(.ic) { color: color-mix(in srgb, var(--ink) 68%, transparent); }
     .ch-legend .gx-d { font-style: normal; font-size: 11.5px; color: var(--ink); opacity: 0.72; font-variant-numeric: tabular-nums; }
-    .ch-legend i.gx-at.old { display: inline-flex; align-items: center; height: 19px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; color: #e6c677; background: #2a2416; box-shadow: inset 0 0 0 1px rgba(201,162,74,0.5); }
+    .ch-legend i.gx-at.old { display: inline-flex; align-items: center; gap: 6px; height: 19px; padding: 0 8px 0 7px; border-radius: 999px; font-style: normal; font-size: 11.5px; font-weight: 600; color: #f5c27c; background: #2b2013; box-shadow: inset 0 0 0 1px rgba(235,164,68,0.55), 0 2px 8px -3px rgba(0,0,0,0.45); }
+    .ch-legend i.gx-at.old::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #eba444; }
+    .ch-legend .ind.gx-old { color: #eba444; }
+    #v-chart[data-skin="light"] .ch-legend .ind.gx-old { color: #a8620f; }
     @media (prefers-reduced-motion: reduce) { .ch-legend i.gx-rg::before { animation: none; } }
     /* the vol side of the read (VXN): which way implied vol is going today, on the same plate as the pill */
     .ch-legend i.gx-vol {
@@ -5434,6 +5452,7 @@
             <button class="gex-ibtn" id="gex-refresh" type="button" title="Fetch the newest print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg><span>Refresh</span></button>
             <button class="gex-ibtn ghost" id="gex-whatis" type="button">What is GEX?</button>
           </div>
+          <div class="gex-old" id="gex-old" role="status" hidden><span class="gex-old-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div class="gex-old-tx"><b id="gex-old-t">Old levels</b><p id="gex-old-p"></p></div></div>
           <p class="hint gex-histnote" id="gex-histnote" hidden></p>
           <div class="gex-card gex-hero gex-readwrap" id="gex-hero">
             <div class="gex-hero-top">
@@ -13378,6 +13397,51 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const expDate = (tag) => new Date(Date.UTC(2000 + +tag.slice(0, 2), +tag.slice(2, 4) - 1, +tag.slice(4, 6)))
     const expLabel = (tag, wd = true) => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', ...(wd ? { weekday: 'short' } : {}), month: 'numeric', day: 'numeric' }).format(expDate(tag))
     const etStamp = (iso) => new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso)) + ' ET'
+    /* OLD LEVELS (D1, 09-27: "on the GEX dashboard it clearly says if they are old levels"). When the levels in a
+       print are FROM, by the rule the worker stamps into the TradingView indicator: a print made on a weekday from
+       08:00 to 16:30 New York is that day's (from 08:00 the chain carries the morning's open interest, and until the
+       delayed feed shows the open at 09:50 its rows are the prior close by design); any other print (the evening, a
+       weekend, a holiday) is its chain's last trade, so a Sunday rebuild of Friday's close is Friday's. They are old
+       when that day is before today, or when the session is running and no print has landed for 30 minutes (the
+       worker refuses a frozen chain, so the last good print stands and ages). window.__GEX_CLOCK moves "now" for a
+       harness, as it does for gexEt. */
+    const GEX_NYF = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    const gexNy = (ms) => { const p = {}; for (const x of GEX_NYF.formatToParts(new Date(ms))) p[x.type] = x.value; return { day: `${p.year}-${p.month}-${p.day}`, min: ((+p.hour) % 24) * 60 + +p.minute, wd: p.weekday } }
+    function gexAge(g) {
+      const genMs = Date.parse(g?.generatedAt || ''); if (!genMs) return null
+      const nowMs = window.__GEX_CLOCK ?? Date.now(), gen = gexNy(genMs), now = gexNy(nowMs), wk = (w) => w.wd !== 'Sat' && w.wd !== 'Sun'
+      const lt = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(g.chain?.lastTrade || '')
+      const own = !lt || (wk(gen) && gen.min >= 8 * 60 && gen.min < 16 * 60 + 30 && (lt[1] === gen.day || gen.min < 9 * 60 + 50))
+      const day = own ? gen.day : lt[1], min = own ? gen.min : +lt[2] * 60 + +lt[3]
+      const sinceMin = Math.max(0, Math.round((nowMs - genMs) / 60000))
+      const behind = day === now.day && wk(now) && now.min >= 9 * 60 + 50 && now.min < 16 * 60 + 20 && sinceMin > 30
+      return { day, min, now, sinceMin, behind, old: day < now.day || behind, close: !own && min >= 15 * 60 + 55 && min <= 16 * 60 + 20 }
+    }
+    const gexHm = (min) => `${((Math.floor(min / 60) + 11) % 12) + 1}:${String(min % 60).padStart(2, '0')} ${min < 720 ? 'AM' : 'PM'}`
+    const gexWkday = (day, long) => new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: long ? 'long' : 'short', timeZone: 'UTC' })
+    const gexMonthDay = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+    function gexNextWords(now) {
+      const wk = now.wd !== 'Sat' && now.wd !== 'Sun'
+      if (wk && now.min < 8 * 60) return "Today's first print lands from 8:00 AM ET, and the board picks it up by itself."
+      if (wk && now.min < 16 * 60 + 30) return "Today's print has not landed yet (a market holiday, or the options feed is late). The board picks it up by itself."
+      return `${['Fri', 'Sat', 'Sun'].includes(now.wd) ? "Monday's" : "Tomorrow's"} first print lands from 8:00 AM ET, and the board picks it up by itself.`
+    }
+    // the board's old-levels state: the banner, the amber stamp, and the read titled for its day
+    function renderGexOld() {
+      const d = GEX.data, box = el('gex-old'); if (!box) return
+      const a = d && !GEX.hist ? gexAge(d) : null, old = !!a?.old
+      box.hidden = !old
+      el('gex-live').classList.toggle('old', old)
+      if (!a) return
+      el('gex-read-title').textContent = old && !a.behind ? `${gexWkday(a.day, true)}'s read` : "Today's read"
+      el('gex-day').textContent = old && !a.behind ? 'latest' : 'today'
+      el('gex-stamp').textContent = !old ? `Updated ${etStamp(d.generatedAt)}` : a.behind ? `No new print since ${gexHm(a.min)} ET` : `From ${gexDayLabel(a.day)}${a.close ? ' close' : `, ${gexHm(a.min)} ET`}`
+      if (!old) return
+      el('gex-old-t').textContent = a.behind ? 'These levels are behind' : 'Old levels'
+      el('gex-old-p').textContent = a.behind
+        ? `No new print has landed since ${gexHm(a.min)} ET, ${a.sinceMin} minutes ago, so these are the last good levels. The board picks up the next print by itself.`
+        : `These are ${gexWkday(a.day, true)}'s levels, from ${a.close ? `the ${gexMonthDay(a.day)} close` : `${gexMonthDay(a.day)} at ${gexHm(a.min)} ET`}. ${gexNextWords(a.now)}`
+    }
     const gexNQ = (k) => { const c = GEX.data.conversion; return Math.round(k * c.divisor + c.basis) }
     const gexRows = (set) => { const m = GEX.data.surface.expiries.length; return set === 'zdte' ? [0] : set === 'swing' ? [...Array(m).keys()].slice(1) : [...Array(m).keys()] }
     const gexAt = (rows, j) => rows.reduce((s, i) => s + GEX.data.surface.gexM[i][j], 0)
@@ -13430,6 +13494,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         sel.value = GEX.hist?.t || entry.times[entry.times.length - 1]
       }
       el('gex-read-title').textContent = cur ? `${gexDayLabel(cur)} read` : "Today's read"
+      renderGexOld()
       const rf = el('gex-refresh'); if (rf) rf.hidden = !!cur
       el('v-gex').querySelector('.gex-readwrap').classList.toggle('hist', !!cur)
     }
@@ -13747,7 +13812,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       htf: false, htfPos: 'tr', htf5: true, htf15: true, htf60: true, htf240: true, htfD: true, htfRsiHi: 70, htfRsiLo: 30, htfVolHot: 1.5,
       news: false, newsPos: 'br', newsHigh: true, newsMed: true, newsHol: true, newsMax: 10, newsDim: true, newsMarks: true,
       badj: true, rollMarks: true, smt: false, smtPeer: 'auto', smtLen: 5, smtBack: 600, smtBearC: '', smtBullC: '', smtW: 2, smtLabels: true, smtPeerMark: true,
-      axisInd: true, indPresets: {}, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexLast: true, sdDemand: true, sdSupply: true,
+      axisInd: true, indPresets: {}, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexLast: true, gexOld: true, sdDemand: true, sdSupply: true,
       wmL1: 'user', wmT1: '', wmL2: 'info', wmT2: '', wmSym: true, wmTf: true, wmDate: true, wmA: 0.5, wmSize: 1, wmPos: 'top', wmAlign: 'center', wmBold: true, wmBigT: '', wmBigC: '', wmBigSize: 1, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true, gexSwing: true, gexRn: 10, gexBand: 6, gexPx: false }
     const CH_MA_DEFAULT = () => [{ t: 'ema', n: 20, c: '#c9a24a', w: 1.2, on: true }, { t: 'ema', n: 50, c: '#7aa2d9', w: 1.2, on: true }, { t: 'ema', n: 200, c: '#d97ab0', w: 1.2, on: true }]
     const CH_MA_COLORS = ['#c9a24a', '#7aa2d9', '#d97ab0', '#5fc39a', '#e08a4b']
@@ -15613,18 +15678,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (net < 0 && !above) return { k: 'amp', label: 'Amplifying' }
       return { k: 'mixed', label: 'Unsettled' }
     }
-    // how old the option data under the levels is. The chain's own clock (its last trade, New York wall time)
-    // wins over generatedAt: a Saturday rebuild of Friday's close is Friday's data. Quotes run 15 minutes
-    // behind by design, so the warning only fires past 35.
+    // when the drawn levels are from (D1, 09-27: "it should say when it was last updated"), by gexAge's rule:
+    // "updated 10:02 AM" when they are today's, an amber pill when they are an earlier day's or the prints stopped
     function chGexAt(g) {
-      if (!g?.generatedAt) return ''
-      const wall = (d) => { const p = {}; for (const x of new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(d)) p[x.type] = x.value; return `${p.year}-${p.month}-${p.day}T${String(p.hour % 24).padStart(2, '0')}:${p.minute}:${p.second}` }
-      const at = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(g.chain?.lastTrade || '') ? g.chain.lastTrade : wall(new Date(g.generatedAt))
-      const now = wall(new Date()), mins = Math.round((Date.parse(now + 'Z') - Date.parse(at + 'Z')) / 60000)
-      const t = new Date(at + 'Z'), fmt = (o) => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', ...o }).format(t)
-      const hm = fmt({ hour: 'numeric', minute: '2-digit' }), when = at.slice(0, 10) === now.slice(0, 10) ? hm : `${fmt({ weekday: 'short' })} ${hm}`
-      if (chSession().key === 'open' && mins > 35) return `<i class="gx-at old">data from ${when}, ${mins < 120 ? mins + 'm' : Math.round(mins / 60) + 'h'} old</i>`
-      return `<span class="gx-at">as of ${when}</span>`
+      const a = gexAge(g); if (!a) return ''
+      const when = a.day === a.now.day ? gexHm(a.min) : `${gexWkday(a.day)} ${a.close ? 'close' : gexHm(a.min)}`
+      const tip = `Levels from ${gexDayLabel(a.day)}${a.close ? ' close' : `, ${gexHm(a.min)} ET`}.`
+      if (a.behind) return `<i class="gx-at old" title="${tip} No print since, the next lands by itself.">No new print since ${gexHm(a.min)}, ${a.sinceMin < 120 ? a.sinceMin + 'm' : Math.round(a.sinceMin / 60) + 'h'}</i>`
+      if (a.old) return `<i class="gx-at old" title="${tip} ${gexNextWords(a.now).replace(/, and the board.*$/, '.')}">Old levels · ${when}</i>`
+      return `<span class="gx-at" title="${tip}">updated ${when}</span>`
     }
     // the vol side: VXN and the VIX curve from the worker's /vol.json, which pulls on request and
     // holds a read 20 seconds, so a 30 second poll is as fresh as the source gets
@@ -15648,8 +15710,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const term = v.term?.state === 'stressed' ? ' The VIX sits above the 3-month VIX: the market is paying more for protection now than later.' : v.term?.state === 'flat' ? ' The VIX curve is flat.' : ''
       return t + sd + term
     }
-    // the print the newest session is painted from: live while it trades, its morning print once the market is shut
-    function chGexNow() { const live = chGexLiveFor(); if (!live || chSession().key === 'open') return live; return chGexPrint(live.generatedAt.slice(0, 10)) || live }
+    // a bar's session day, New York (the CME session opening 18:00 belongs to the next day)
+    function chGexDay(t) { const d = new Date((t + chEtOff(t) + 6 * 3600) * 1000); return d.toISOString().slice(0, 10) }
+    // the print the newest session is painted from: live while it trades, that session's morning print once the market is
+    // shut. t is the newest bar, so the legend reads the same print chPaintGex draws on it.
+    function chGexNow(t) { const live = chGexLiveFor(); if (!live || chSession().key === 'open') return live; return chGexPrint(t != null ? chGexDay(t) : live.generatedAt.slice(0, 10)) || live }
     function chPaintGex(ctx, L, T, R) {
       if (!chGexBook()) return
       if (!(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return
@@ -15664,7 +15729,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // is filed) has only this to fall back on, so it has to be right.
       const liveDay = gLive ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(gLive.generatedAt)) : null
       const todayKey = chSessionKey(Date.now() / 1000)
-      const dayStr = (t) => { const d = new Date((t + chEtOff(t) + 6 * 3600) * 1000); return d.toISOString().slice(0, 10) }
+      const dayStr = chGexDay
       for (const sp of spans.values()) {
         // D1, 09-27: only the session the chart is on now, not yesterday's levels or the days before (a switch in D1 GEX brings them back)
         if (S.gexLast !== false && !(sp.i1 === n - 1 || sp.k === todayKey)) continue
@@ -15678,13 +15743,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const g = isLive && chSession().key === 'open' ? gLive : (chGexPrint(day) || (isLive ? gLive : null))
         if (!g) continue
         if (g.zdte?.callWall?.qqq != null && g.zdte.callWall.qqq === g.zdte?.putWall?.qqq) continue   // a degenerate print (both walls on one strike) is not drawn
+        // old levels on the newest session (an earlier day's print, or the prints stopped) draw faded with dashed borders,
+        // so they never pass for today's (D1, 09-27); the legend says when they are from
+        const old = (sp.k === todayKey || sp.i1 === n - 1) && S.gexOld !== false && !!gexAge(g)?.old, fade = old ? 0.5 : 1
         // the newest session on the chart runs into the right margin (live day, or the last one while the market is shut), so its names clear the candles
         // this session's back-adjustment, applied to every archived price below
         const adj = chGexAdj(bars[sp.i0].t)
         const Ya = (p) => Y(p + adj)
         const x0 = X(sp.i0) - CH.barW / 2, x1 = sp.k === todayKey || sp.i1 === n - 1 ? L.plotW : X(sp.i1) + CH.barW / 2
         const xa = Math.max(0, x0), xb = Math.min(L.plotW, x1), wide = xb - xa; if (wide < 2) continue
-        if (S.gexGtbr !== false && g.gtbr?.upperNQ && g.gtbr?.lowerNQ) { ctx.fillStyle = alpha(cc('gexGtbrC'), S.gexGtbrF ?? 0.06); ctx.fillRect(xa, Ya(g.gtbr.upperNQ), wide, Ya(g.gtbr.lowerNQ) - Ya(g.gtbr.upperNQ)) }
+        if (S.gexGtbr !== false && g.gtbr?.upperNQ && g.gtbr?.lowerNQ) { ctx.fillStyle = alpha(cc('gexGtbrC'), (S.gexGtbrF ?? 0.06) * fade); ctx.fillRect(xa, Ya(g.gtbr.upperNQ), wide, Ya(g.gtbr.lowerNQ) - Ya(g.gtbr.upperNQ)) }
         const zones = chGexZones(g, S)
         for (const zn of zones) {
           const base = cc(CH_GEX_KIND_C[zn.kind]), yMid = Ya(zn.px); if (yMid < -20 || yMid > L.mainH + 20) { zn.off = true; continue }
@@ -15696,12 +15764,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             if (bot - top < minH) { top = yMid - minH / 2; bot = yMid + minH / 2 }
             zn.top = top
             const pk = CH_GEX_KIND_P[zn.kind]
-            ctx.fillStyle = alpha(base, zn.dim ? 0.07 : (S[pk + 'F'] ?? (zn.kind === 5 ? 0.12 : 0.15))); ctx.fillRect(xa, top, wide, bot - top)
-            chPartBorder(ctx, pk, alpha(base, zn.dim ? 0.32 : 0.6), xa, top, Math.max(1, wide - 1), Math.max(1, bot - top), null, lw)
+            ctx.fillStyle = alpha(base, (zn.dim ? 0.07 : (S[pk + 'F'] ?? (zn.kind === 5 ? 0.12 : 0.15))) * fade); ctx.fillRect(xa, top, wide, bot - top)
+            chPartBorder(ctx, pk, alpha(base, (zn.dim ? 0.32 : 0.6) * (old ? 0.75 : 1)), xa, top, Math.max(1, wide - 1), Math.max(1, bot - top), old ? [4, 3] : null, lw)
           } else {
             const y = Math.round(yMid) + 0.5
             const pk = CH_GEX_KIND_P[zn.kind]
-            ctx.strokeStyle = alpha(base, zn.kind === 6 ? 0.5 : 0.9); ctx.lineWidth = chPartW(pk, zn.kind === 4 ? lw + 0.5 : lw); ctx.setLineDash(chPartDash(pk, zn.kind === 4 ? [6, 4] : [2, 3])); ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, y); ctx.stroke(); ctx.setLineDash([])
+            ctx.strokeStyle = alpha(base, (zn.kind === 6 ? 0.5 : 0.9) * fade); ctx.lineWidth = chPartW(pk, zn.kind === 4 ? lw + 0.5 : lw); ctx.setLineDash(chPartDash(pk, zn.kind === 4 ? [6, 4] : [2, 3])); ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, y); ctx.stroke(); ctx.setLineDash([])
           }
           ctx.lineWidth = 1
         }
@@ -15713,7 +15781,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             const tier = zn.tier >= 3 ? ' [+++]' : zn.tier === 2 ? ' [++]' : zn.tier === 1 ? ' [+]' : ''
             const txt = `${zn.name}${tier}${S.gexPx ? '  ' + Math.round(zn.px + adj).toLocaleString() : ''}`
             R.lbl.part = CH_GEX_KIND_P[zn.kind] || null
-            R.lbl.add(txt, xb - 6, ly, alpha(cc(CH_GEX_KIND_C[zn.kind]), zn.dim ? 0.6 : 1), 'right', 10.5, (zn.dim ? 20 : 10) + zn.kind)
+            R.lbl.add(txt, xb - 6, ly, alpha(cc(CH_GEX_KIND_C[zn.kind]), (zn.dim ? 0.6 : 1) * (old ? 0.7 : 1)), 'right', 10.5, (zn.dim ? 20 : 10) + zn.kind)
           }
           R.lbl.part = null
         }
@@ -16059,7 +16127,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!b) { lg.textContent = ''; lg._html = ''; return }
       const bars = chVisible(); const prev = bars[i - 1]; const d = b.c - b.o; const chg = prev ? b.c - prev.c : d
       const up = d >= 0
-      const inds = `${CH.s.lit ? '<span class="ind">D1 LIT</span>' : ''}${CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin) ? '<span class="ind">D1 GEX</span>' : ''}`
+      // the phone's short legend has no GEX row, so its chip carries the old-levels word
+      const gexOld = CH.s.gex && chGexBook() && (state.owned.has('d1-gex') || state.isMod || state.isAdmin) && !!gexAge(chGexNow(bars[bars.length - 1]?.t))?.old
+      const inds = `${CH.s.lit ? '<span class="ind">D1 LIT</span>' : ''}${CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin) ? `<span class="ind${gexOld ? ' gx-old' : ''}">D1 GEX${gexOld ? ' · old' : ''}</span>` : ''}`
       // a phone either way up gets the short legend: on its side the long one ate 40% of the chart
       const shortLg = window.innerWidth < 520 || window.innerHeight < 500
       if (shortLg && !CH.hover) { const h = `<b>${CH.sym}</b><span class="tf">${CH.tf}</span><span class="ohlc">C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)} (${(d / b.o * 100).toFixed(2)}%)</span>${inds}`; if (lg._html !== h) { lg._html = h; lg._shape = 'short'; lg.innerHTML = h } return }
@@ -16083,7 +16153,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.s.cmp) { const cmp = chCompare(); const cv = cmp?.v[i]; const c0 = cmp ? [...cmp.v].slice(0, Math.max(0, i)).reverse().find((x) => x != null) : null; rows.push(`<div class="ln" data-ind="cmp"><span class="nm" style="color:${CH.s.cmpC || '#ff9800'}">${cmp?.peer || chCmpSym()}</span><i>${cv != null ? chPx(cv) : '–'}</i>${cv != null && c0 != null ? `<span class="${cv >= c0 ? 'up' : 'down'}">${chPts(cv - c0)}</span>` : ''}${ic('cmp', 'ind:cmp')}</div>`) }
       if (CH.s.smt) rows.push(`<div class="ln" data-ind="smt"><span class="nm">SMT</span><span>${chSmtPeer()} ${CH.s.smtLen || 5}</span>${ic('smt', 'ind:smt')}</div>`)
       if (CH.s.prevDay && !CH.s.lit) rows.push(`<div class="ln" data-ind="prev"><span class="nm">PDH / PDL</span>${ic('prevDay', 'ind:prev')}</div>`)
-      if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${[chGexRead(g, last), chVolRead(last)].filter(Boolean).join(' ')}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${chVolBits(last)}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${ic('gex', 'ind:gex')}</div>`) }
+      if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(bars[bars.length - 1]?.t), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${[chGexRead(g, last), chVolRead(last)].filter(Boolean).join(' ')}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${chVolBits(last)}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${ic('gex', 'ind:gex')}</div>`) }
       const html = rows.join('')
       const shape = (CH.s.legendOhlc === false ? 'o' : '') + (CH.s.legendInds === false ? 'i' : '') + (CH.s.legendVals === false ? 'v' : '')
       if (lg._html !== html || lg._shape !== shape) { lg._html = html; lg._shape = shape; lg.innerHTML = html; chLegendTrim(lg) }
@@ -17942,7 +18012,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         button('Reset every LIT colour', () => { for (const [, , cKey, wKey, fKey, c2Key] of CH_LIT_PARTS) { S[cKey] = ''; if (c2Key) S[c2Key] = ''; if (wKey) S[wKey] = CH_DEFAULTS[wKey]; if (fKey) S[fKey] = CH_DEFAULTS[fKey] } chSave(); chDraw(); chMenu('ind:lit') })
       } else if (which === 'ind:gex') {
         toggle('gex', 'Show D1 GEX', 'Per session from the 9:30 print', () => { if (S.gex) { chGexWarm(); chVolLoad() } })
-        row('Line width', wselEl('gexW', 1)); toggle('gexLast', 'Latest session only', 'Off draws each earlier session\'s levels too'); toggle('gexLabels', 'Labels', 'Name on each zone'); toggle('gexPx', 'Price in labels', 'Adds the NQ price after the name'); toggle('gexSwing', 'Swing book', 'Walls and flip from the further-out expiries'); row('Zone height', rangeEl('gexBand', 0, 15, 0.5, 6), 'NQ points each side, 0 = lines'); row('Gamma levels shown', rangeEl('gexRn', 0, 10, 1, 10), 'Γ-1 is the biggest strike')
+        row('Line width', wselEl('gexW', 1)); toggle('gexLast', 'Latest session only', 'Off draws each earlier session\'s levels too'); toggle('gexOld', 'Fade old levels', 'Levels from an earlier day draw faded with dashed borders, and the legend says when they are from'); toggle('gexLabels', 'Labels', 'Name on each zone'); toggle('gexPx', 'Price in labels', 'Adds the NQ price after the name'); toggle('gexSwing', 'Swing book', 'Walls and flip from the further-out expiries'); row('Zone height', rangeEl('gexBand', 0, 15, 0.5, 6), 'NQ points each side, 0 = lines'); row('Gamma levels shown', rangeEl('gexRn', 0, 10, 1, 10), 'Γ-1 is the biggest strike')
         header('Levels')
         for (const [key, label, cKey] of CH_GEX_PARTS) { const els = [colorEl(cKey, 'default')]; if (key === 'gexGtbr') { const r = rangeEl('gexGtbrF', 0, 0.4, 0.01, 0.06); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) } partRow(label, '', els, tglEl(key), { key, colors: [cKey], fKey: key === 'gexGtbr' ? 'gexGtbrF' : key === 'gexMajor' ? null : key + 'F', fDef: key === 'gexGtbr' ? 0.06 : key === 'gexR' ? 0.12 : 0.15, fMax: 0.5, box: !['gexGtbr', 'gexMajor'].includes(key), noText: key === 'gexGtbr' }) }
         button('Reset every GEX colour', () => { for (const [key, , cKey] of CH_GEX_PARTS) { S[cKey] = ''; S[key] = true } S.gexGtbrF = 0.06; S.gexW = 1; chSave(); chDraw(); chMenu('ind:gex') })
@@ -18648,12 +18718,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const d = GEX.data; if (!d) return
       const lv = gexLiveSpot(d)
       const printFresh = !!d.marketOpen && Date.now() - new Date(d.generatedAt) < 20 * 60 * 1000
-      el('gex-live').classList.toggle('on', !GEX.hist && (lv.live || printFresh))
+      el('gex-live').classList.toggle('on', !GEX.hist && !gexAge(d)?.old && (lv.live || printFresh))
       const age = el('gex-pxage'), fut = d.futName ?? 'NQ'
       const trading = gexTrading()
       const lag = GEXLIVE.barT ? Math.floor((Date.now() / 1000 - GEXLIVE.barT) / 60) : 0
       age.hidden = !!GEX.hist || GEXLIVE.px == null || GEXLIVE.sym !== fut
       age.textContent = lv.live ? `· ${fut} live` : trading && lag >= 3 ? `· ${fut} feed ${lag}m behind` : `· ${fut} closed`
+      renderGexOld()
     }
     // push the live price into everything measured from spot, without re-rendering the board
     function gexApplyLive() {

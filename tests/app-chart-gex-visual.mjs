@@ -27,7 +27,7 @@ const mgmt = process.env.SUPABASE_ACCESS_TOKEN || (existsSync(tokenFile) ? readF
 const email = process.env.EMAIL || "appreview@d1fpc3.com";
 const theme = process.env.THEME || "dark";
 const SYM = process.env.SYM || "";   // NQ | MNQ | ES | MES; empty keeps whatever is saved
-const STALE = process.env.STALE === "1";   // fake a Monday 11:30 ET with only Friday's print on the feed: the legend must say how old it is
+const STALE = process.env.STALE === "1";   // fake a Monday 11:30 ET with only Friday's print on the feed: the legend must say the levels are old
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
 const service = keys.find((k) => k.name === "service_role").api_key;
 const anon = keys.find((k) => k.name === "anon").api_key;
@@ -74,7 +74,7 @@ async function run(vpName) {
     check(!!row, "legend has the D1 GEX row (the account owns d1-gex)");
     if (!row) { await page.screenshot({ path: `${OUT}/${vpName}-${theme}-gex-missing.png` }); await ctx.close(); return; }
     check(/(Dampening|Amplifying|Unsettled|Past the (call|put) wall)/.test(row.text) && /Flip\s?[\d,]+\s[+−]\d+/.test(row.text), `legend row reads: ${row.text.trim().slice(0, 110)}`);
-    check(STALE ? /data from \w{3} \d{1,2}:\d{2} [AP]M, \d+[mh] old/.test(row.text) : /as of (\w{3} )?\d{1,2}:\d{2}/.test(row.text), STALE ? "a quiet feed mid-session says how old the print is" : "legend says which print the levels came from");
+    check(STALE ? /Old levels · \w{3} (close|\d{1,2}:\d{2} [AP]M)/.test(row.text) : /(updated (\w{3} )?\d{1,2}:\d{2}|Old levels · \w{3} (close|\d{1,2}:\d{2}))/.test(row.text), STALE ? "Monday's session on Friday's print says the levels are old" : "legend says when the levels are from");
     const pill = await page.evaluate(() => { const p = document.querySelector("#ch-legend .gx-rg"); if (!p) return null; const cs = getComputedStyle(p); return { k: p.dataset.k, color: cs.color, bg: cs.backgroundColor, radius: cs.borderRadius }; });
     check(!!pill && pill.bg !== "rgba(0, 0, 0, 0)" && parseFloat(pill.radius) > 8, `regime pill painted: ${JSON.stringify(pill)}`);
     // the vol side (worker /vol.json): direction pill, VXN with its change, the session 1 sd in points

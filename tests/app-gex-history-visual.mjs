@@ -61,19 +61,21 @@ await page.evaluate(() => { localStorage.setItem("echelon-gex-tour", "1"); docum
 await page.waitForFunction(() => document.querySelectorAll("#gex-read .v").length >= 4 && !document.getElementById("gex-prev").disabled, null, { timeout: 30000 }).catch(() => fails.push("live board or day index never came up"));
 const state = () => page.evaluate(() => ({
   day: document.getElementById("gex-day").textContent, prev: document.getElementById("gex-prev").disabled, next: document.getElementById("gex-next").disabled,
-  title: document.getElementById("gex-read-title").textContent, stamp: document.getElementById("gex-stamp").textContent,
+  title: document.getElementById("gex-read-title").textContent, stamp: document.getElementById("gex-stamp").textContent, banner: !document.getElementById("gex-old").hidden,
   picker: !document.getElementById("gex-time").hidden, options: [...document.querySelectorAll("#gex-time option")].map((o) => o.textContent),
   grid: !document.getElementById("gex-grid").hidden, refresh: !document.getElementById("gex-refresh").hidden, note: document.getElementById("gex-histnote").hidden ? "" : document.getElementById("gex-histnote").textContent,
   figs: [...document.querySelectorAll("#gex-read .v")].map((v) => v.textContent), regime: document.getElementById("gex-regime").textContent.slice(0, 40),
   canvas: (() => { const c = document.getElementById("gex-canvas"); return c ? c.width > 0 : false; })(),
 }));
 let st = await state(); note("live: " + JSON.stringify(st));
-if (st.day !== "today" || st.prev || !st.next || !st.refresh || !st.grid) fails.push("live state wrong " + JSON.stringify(st));
+// the live board is "today", or "latest" under the old-levels banner (a weekend, before the first print)
+const liveOk = (st) => st.day === "today" ? !st.banner && /^Updated/.test(st.stamp) : st.day === "latest" && st.banner && /^(From |No new print)/.test(st.stamp);
+if (!liveOk(st) || st.prev || !st.next || !st.refresh || !st.grid) fails.push("live state wrong " + JSON.stringify(st));
 await page.screenshot({ path: `${OUT}/1-live.png` });
 
 await page.click("#gex-prev"); await page.waitForTimeout(1200);
 st = await state(); note("archived: " + JSON.stringify(st));
-if (!st.title.endsWith(" read") || st.title.startsWith("Today") || !st.picker || st.options.length !== 2 || !/^Viewing/.test(st.stamp) || st.refresh || !st.grid || !st.canvas || st.figs[2] !== "716.44") fails.push("archived day wrong " + JSON.stringify(st));
+if (!st.title.endsWith(" read") || st.title.startsWith("Today") || !st.picker || st.options.length !== 2 || !/^Viewing/.test(st.stamp) || st.refresh || !st.grid || !st.canvas || st.banner || st.figs[2] !== "716.44") fails.push("archived day wrong " + JSON.stringify(st));
 await page.screenshot({ path: `${OUT}/2-archived.png` });
 await page.selectOption("#gex-time", "1000"); await page.waitForTimeout(1000);
 st = await state(); note("earlier print: " + JSON.stringify({ stamp: st.stamp, spot: st.figs[2] }));
@@ -91,7 +93,7 @@ await page.click("#gex-next"); await page.waitForTimeout(600);
 await page.click("#gex-next"); await page.waitForTimeout(1000);
 await page.click("#gex-next"); await page.waitForTimeout(1000);
 st = await state(); note("back to today: " + JSON.stringify(st));
-if (st.day !== "today" || !st.next || !st.refresh || !st.grid || st.note || !/^Updated/.test(st.stamp)) fails.push("did not return to live " + JSON.stringify(st));
+if (!liveOk(st) || !st.next || !st.refresh || !st.grid || st.note) fails.push("did not return to live " + JSON.stringify(st));
 
 await browser.close();
 console.log(fails.length ? "FAIL\n - " + fails.join("\n - ") : "ALL OK");

@@ -47,6 +47,12 @@ await page.route(/functions\/v1\/tape\?.*tail=2/, (route) => {
   route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ symbol: sym, bars: [[barT - 60, px, px, px, px, 10], [barT, px, px, px, px, 10]], last: px, prevClose: px }) });
 });
 await page.route(/gex-worker\.d1fpc3\.workers\.dev\/refresh/, (route) => route.abort());
+// the print is this session's (a minute before the board's clock), or the board rightly calls it old and never pings live
+await page.route(/gex-worker\.d1fpc3\.workers\.dev\/gex\.json(\?book=es)?$/, async (route) => {
+  const res = await route.fetch(); const d = await res.json();
+  d.generatedAt = new Date(NOW - 60000).toISOString(); d.chain = { ...(d.chain || {}), lastTrade: "2026-09-28T10:44:02" };
+  route.fulfill({ response: res, json: d });
+});
 page.on("request", (r) => { if (/gex-worker\.d1fpc3\.workers\.dev\/gex\.json(\?book=es)?$/.test(r.url())) gexHits++; });
 
 await page.goto(APP_URL + "?start=gex", { waitUntil: "domcontentloaded" });
