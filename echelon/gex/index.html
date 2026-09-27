@@ -6,29 +6,32 @@
   <!-- zoom-lock: the page is an app, not a document. The meta stops pinch in WKWebView and Chromium; Safari ignores it, so the gesture guard below does the same job there. touch-action: manipulation removes double-tap zoom everywhere. -->
   <style>html{touch-action:manipulation;-webkit-text-size-adjust:100%}</style>
   <script>(function(){var p=function(e){e.preventDefault()};['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,p,{passive:false})});document.addEventListener('touchmove',function(e){if(typeof e.scale==='number'&&e.scale!==1)p(e)},{passive:false});window.__zoomLock=true})()</script>
-  <title>D1 GEX · QQQ gamma exposure, mapped to NQ</title>
+  <title>D1 GEX · dealer gamma on your NQ and ES chart</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <meta name="description" content="D1 GEX is an invite-only TradingView indicator that maps QQQ gamma exposure onto NQ: the strikes that pin price, the regimes that accelerate it. Sold separately, no membership required.">
+  <meta name="description" content="D1 GEX is an invite-only TradingView indicator that draws dealer gamma on NQ and ES: the call wall, the put wall, the gamma flip and the ten biggest strikes, from QQQ and SPX options. Sold separately, no membership required.">
   <meta name="theme-color" content="#0b0a09">
   <meta name="color-scheme" content="dark">
   <link rel="canonical" href="https://d1fpc3.com/echelon/gex/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Echelon by d1">
   <meta property="og:url" content="https://d1fpc3.com/echelon/gex/">
-  <meta property="og:title" content="D1 GEX · QQQ gamma exposure, mapped to NQ">
-  <meta property="og:description" content="Invite-only TradingView indicator. Dealer gamma by strike and expiry, translated to NQ levels. $35/mo or $147 once. No membership required.">
+  <meta property="og:title" content="D1 GEX · dealer gamma on your NQ and ES chart">
+  <meta property="og:description" content="Invite-only TradingView indicator. The walls, the flip and the biggest gamma strikes from QQQ and SPX options, drawn as NQ and ES levels. $35/mo or $147 once. No membership required.">
   <meta property="og:image" content="https://d1fpc3.com/echelon/assets/og-gex.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="https://d1fpc3.com/echelon/assets/og-gex.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
   <script async src="https://seenrank.com/pixel.js" data-sr-site="d19bf048-ec87-453a-aa7f-b264637a7360"></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Product",
     "name": "D1 GEX",
-    "description": "Invite-only TradingView indicator: QQQ gamma exposure by strike and expiry, mapped to NQ levels.",
+    "description": "Invite-only TradingView indicator: dealer gamma from QQQ and SPX options, drawn as NQ and ES levels.",
     "url": "https://d1fpc3.com/echelon/gex/",
     "offers": [
       { "@type": "Offer", "price": "35", "priceCurrency": "USD", "url": "https://buy.stripe.com/14A9ASfmublzd620oMg7e07" },
@@ -56,169 +59,381 @@
     html { zoom: var(--ui); }
   </style>
   <style>
-    /* d1fpc3.com/echelon/gex — the standalone D1 GEX storefront.
-       Same voice and palette as the site root; buying here needs no
-       Echelon membership: the payment link collects the TradingView
-       username and access is granted automatically. */
+    /* d1fpc3.com/echelon/gex: the D1 GEX storefront (rebuilt 2026-09-27, D1: "fix up the public D1 GEX
+       indicator ... that public page"). Same voice and palette as the Echelon landing: Inter with Instrument
+       Serif accents, gold on warm black. Buying needs no membership: checkout collects the TradingView
+       username and access is added automatically. The live card reads the real feed and says honestly when
+       the levels are old. */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       color-scheme: dark;
-      --bg: #0b0a09; --panel: #131211; --panel-2: #1a1817;
-      --ink: #f4f2ee; --muted: #9d978c; --faint: #6b665e;
+      --bg: #0b0a09; --panel: #131211; --panel-2: #1a1817; --panel-3: #211f1d;
+      --ink: #f4f2ee; --muted: #a39d92; --faint: #726c63;
       --line: #262321; --line-bright: #383431;
-      --gold: #c9a24a; --gold-deep: #a8842c;
+      --gold: #c9a24a; --gold-2: #e5c679; --gold-3: #f5e4b3; --gold-deep: #a8842c;
+      --good: #34b39a; --bad: #ef6b64; --old: #eba444;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --serif: 'Instrument Serif', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+      --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-
-    body {
-      background: var(--bg); color: var(--ink);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased;
-    }
+    html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; font-optical-sizing: auto; overflow-x: hidden; }
     a { color: inherit; text-decoration: none; }
-    ::selection { background: rgba(201,162,74,0.25); }
-    a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    button { font: inherit; color: inherit; }
+    ::selection { background: rgba(201,162,74,0.28); }
+    a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 6px; }
+    .wrap { width: min(1180px, 100%); margin: 0 auto; padding: 0 clamp(16px, calc(4 * var(--vw)), 40px); }
 
-    .col { max-width: 720px; margin: 0 auto; padding: 0 clamp(20px, calc(4 * var(--vw)), 40px); }
-    .label { font-size: 10.5px; letter-spacing: 0.02em; color: var(--faint); }
+    /* nav: glass, sticky */
+    .nav { position: sticky; top: 0; z-index: 50; background: rgba(11,10,9,0.86); -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4); border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .nav-in { display: flex; align-items: center; gap: 18px; height: 64px; }
+    .nav-back { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; color: var(--muted); transition: background 0.2s ease, color 0.2s ease; }
+    .nav-back:hover { background: rgba(255,255,255,0.06); color: var(--ink); }
+    .nav-back svg { width: 18px; height: 18px; }
+    .brand { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; margin-left: -6px; }
+    .brand span { color: var(--faint); font-weight: 500; }
+    .nav-links { display: flex; gap: 26px; margin-left: 28px; font-size: 14px; color: var(--muted); }
+    .nav-links a { transition: color 0.2s ease; }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-sp { flex: 1; }
+    .nav-signin { font-size: 14px; color: var(--muted); transition: color 0.2s ease; }
+    .nav-signin:hover { color: var(--ink); }
 
-    .top { border-bottom: 1px solid var(--line); }
-    .top .col { display: flex; align-items: center; justify-content: space-between; padding-top: 18px; padding-bottom: 18px; }
-    .brand { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
-    .quiet { color: var(--muted); font-size: 13.5px; border-bottom: 1px solid var(--line-bright); padding-bottom: 2px; }
-    .quiet:hover { color: var(--gold); border-color: var(--gold); }
+    /* buttons */
+    .btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 50px; padding: 0 26px; border: 0; border-radius: 14px; cursor: pointer; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; color: #1a1207; background: linear-gradient(135deg, var(--gold-2), var(--gold) 55%, var(--gold-deep)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 10px 30px -12px rgba(201,162,74,0.65); transition: transform 0.25s var(--ease), filter 0.2s ease, box-shadow 0.25s ease; }
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.05); box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 16px 38px -12px rgba(201,162,74,0.75); }
+    .btn:active { transform: translateY(0) scale(0.98); }
+    .btn svg { width: 16px; height: 16px; transition: transform 0.25s var(--ease); }
+    .btn:hover svg { transform: translateX(3px); }
+    .btn-sm { min-height: 38px; padding: 0 16px; border-radius: 11px; font-size: 13.5px; }
+    .btn-ghost { display: inline-flex; align-items: center; justify-content: center; min-height: 50px; padding: 0 24px; border-radius: 14px; border: 1px solid var(--line-bright); background: rgba(255,255,255,0.02); cursor: pointer; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.25s var(--ease); }
+    .btn-ghost:hover { border-color: var(--gold); color: var(--gold-2); background: rgba(201,162,74,0.06); transform: translateY(-2px); }
 
-    main { padding: clamp(48px, calc(9 * var(--vh)), 88px) 0 0; }
-    h1 { font-size: clamp(30px, calc(5 * var(--vw)), 42px); letter-spacing: -0.03em; line-height: 1.12; margin: 10px 0 14px; }
-    .sub { color: var(--muted); font-size: 16px; max-width: 56ch; }
+    /* hero */
+    .hero { position: relative; padding: clamp(56px, calc(9 * var(--vh)), 104px) 0 clamp(56px, calc(8 * var(--vh)), 96px); overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: -30% -10% auto 35%; height: 900px; background: radial-gradient(closest-side, rgba(201,162,74,0.16), rgba(201,162,74,0.05) 55%, transparent); pointer-events: none; }
+    .hero::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(201,162,74,0.35), transparent); }
+    .hero-in { position: relative; display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr); gap: clamp(32px, calc(5 * var(--vw)), 72px); align-items: center; }
+    .eyebrow { font-size: 13px; color: var(--gold-2); letter-spacing: 0.01em; }
+    h1 { margin: 14px 0 0; font-size: clamp(52px, calc(7.4 * var(--vw)), 92px); font-weight: 800; letter-spacing: -0.035em; word-spacing: 0.06em; line-height: 0.95; }
+    h1 .gt { display: block; margin-top: 10px; font-family: var(--serif); font-style: italic; font-weight: 400; font-size: clamp(30px, calc(3.6 * var(--vw)), 46px); letter-spacing: -0.012em; line-height: 1.08; text-wrap: balance; background: linear-gradient(100deg, var(--gold-3), var(--gold-2) 40%, var(--gold) 80%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .lede { margin-top: 22px; max-width: 54ch; color: var(--muted); font-size: 17px; line-height: 1.65; }
+    .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+    .trust { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 22px; color: var(--faint); font-size: 13px; }
+    .trust li { display: inline-flex; align-items: center; gap: 8px; }
+    .trust svg { width: 15px; height: 15px; color: var(--gold); flex: none; }
+
     /* hover definitions: dotted words explain themselves (tap works too) */
     .w { position: relative; border-bottom: 1.5px dotted var(--gold); color: var(--ink); font-weight: 600; cursor: help; outline: none; }
-    .w .tip {
-      position: absolute; bottom: calc(100% + 10px); left: 50%; z-index: 6;
-      width: 230px; max-width: calc(calc(100 * var(--vw)) - 32px);
-      background: #101014; border: 1px solid var(--line-bright); color: #e7e7ea;
-      font-size: 12px; font-weight: 400; line-height: 1.55; text-align: left;
-      padding: 10px 12px; border-radius: 10px;
-      opacity: 0; pointer-events: none;
-      transform: translateX(-50%) translateY(5px);
-      transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .w .tip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top-color: #101014; }
-    .w .tip b { display: block; color: var(--gold); font-size: 10.5px; letter-spacing: 0.02em; margin-bottom: 4px; }
+    .w .tip { position: absolute; bottom: calc(100% + 10px); left: 50%; z-index: 6; width: 240px; max-width: calc(calc(100 * var(--vw)) - 32px); background: #121114; border: 1px solid var(--line-bright); color: #e7e7ea; font-size: 12.5px; font-weight: 400; line-height: 1.55; text-align: left; padding: 11px 13px; border-radius: 12px; opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(5px); transition: opacity 0.2s ease, transform 0.25s var(--ease); box-shadow: 0 18px 40px -16px rgba(0,0,0,0.8); }
+    .w .tip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border: 5px solid transparent; border-top-color: #121114; }
+    .w .tip b { display: block; color: var(--gold-2); font-size: 11px; letter-spacing: 0.02em; margin-bottom: 4px; }
     .w:hover .tip, .w:focus .tip { opacity: 1; transform: translateX(-50%) translateY(0); }
     /* phones: a definition near the edge pushed the whole page sideways; it opens as a card pinned to the bottom instead */
-    @media (max-width: 640px) { .w .tip { position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); top: auto; width: auto; max-width: none; transform: translateY(8px); font-size: 13.5px; padding: 14px 16px; box-shadow: 0 18px 50px -12px rgba(0,0,0,0.7); } .w .tip::after { display: none; } .w:hover .tip, .w:focus .tip { transform: none; } }
+    @media (max-width: 640px) { .w .tip { position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); top: auto; width: auto; max-width: none; transform: translateY(8px); font-size: 14px; padding: 14px 16px; } .w .tip::after { display: none; } .w:hover .tip, .w:focus .tip { transform: none; } }
 
-    /* live preview: the real feed drawn small */
-    .gexprev { margin-top: 30px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 12px; background: var(--panel); }
-    .gp-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 11.5px; margin-bottom: 10px; }
-    .gp-live { color: var(--gold); display: inline-flex; gap: 6px; align-items: center; font-weight: 600; letter-spacing: 0.04em; font-size: 10.5px; }
-    .gp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
-    @media (prefers-reduced-motion: no-preference) { .gp-dot { animation: gp-pulse 2s ease infinite; } }
-    @keyframes gp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-    .gp-regime { font-weight: 700; letter-spacing: 0.02em; font-size: 10.5px; }
-    .gp-regime.neg { color: #ef5350; }
-    .gp-regime.pos { color: #26a69a; }
-    .gp-nq { color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
-    #gp-canvas { width: 100%; height: 150px; display: block; }
-    .gp-levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
-    .gp-lv { font-size: 11px; color: var(--faint); }
-    .gp-lv b { display: block; color: var(--ink); font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 650; }
-    .gp-cap { color: var(--faint); font-size: 11.5px; margin-top: 10px; }
-    .feat { list-style: none; margin-top: 26px; display: grid; gap: 8px; }
-    .feat li { position: relative; padding-left: 22px; color: var(--muted); font-size: 13.5px; line-height: 1.55; }
-    .feat li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--gold); font-weight: 700; }
+    /* the live card: the real feed, drawn */
+    .live { position: relative; border-radius: 24px; padding: 20px 20px 18px; background: linear-gradient(180deg, #171513, #100f0e); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07), 0 40px 90px -40px rgba(0,0,0,0.9), 0 0 0 1px rgba(201,162,74,0.06); }
+    .live::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(160deg, rgba(229,198,121,0.35), transparent 35%, transparent 70%, rgba(201,162,74,0.18)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+    .live-top { display: flex; align-items: center; gap: 12px; }
+    .seg { display: inline-flex; padding: 3px; border-radius: 999px; background: rgba(255,255,255,0.05); }
+    .seg button { min-width: 48px; height: 30px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 13px; font-weight: 650; cursor: pointer; transition: background 0.25s var(--ease), color 0.2s ease; }
+    .seg button.on { background: rgba(255,255,255,0.1); color: var(--ink); box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 4px 12px -6px rgba(0,0,0,0.6); }
+    .state { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .state i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; }
+    .state.live-on i { background: var(--good); box-shadow: 0 0 0 0 rgba(52,179,154,0.5); }
+    .state.live-on b { color: var(--good); }
+    .state.old i { background: var(--old); box-shadow: 0 0 0 3px rgba(235,164,68,0.18); }
+    .state.old b { color: var(--old); }
+    .state b { font-weight: 650; }
+    @media (prefers-reduced-motion: no-preference) { .state.live-on i { animation: ping 2.2s var(--ease) infinite; } }
+    @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(52,179,154,0.55); } 70%, 100% { box-shadow: 0 0 0 8px rgba(52,179,154,0); } }
+    .regime { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-top: 16px; }
+    .regime strong { font-size: 26px; font-weight: 750; letter-spacing: -0.03em; }
+    .regime strong.pos { color: var(--good); } .regime strong.neg { color: var(--bad); }
+    .regime span { color: var(--muted); font-size: 14px; }
+    .prof { position: relative; margin-top: 12px; }
+    #lv-canvas { display: block; width: 100%; height: 210px; }
+    .levels { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+    .lv { padding: 10px 11px; border-radius: 12px; background: rgba(255,255,255,0.035); min-width: 0; }
+    .lv span { display: block; font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lv b { display: block; margin-top: 2px; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .lv.call b { color: var(--bad); } .lv.put b { color: var(--good); } .lv.flip b { color: #7b9cff; } .lv.gam b { color: #8fb6d8; }
+    .live-note { display: flex; gap: 9px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.5; color: var(--muted); background: rgba(255,255,255,0.03); }
+    .live-note.old { background: rgba(235,164,68,0.09); box-shadow: inset 0 0 0 1px rgba(235,164,68,0.26); }
+    .live-note.old b { color: var(--old); }
+    .live-note svg { width: 15px; height: 15px; flex: none; margin-top: 2px; color: var(--old); }
+    .live-note:not(.old) svg { color: var(--gold); }
+    .live.skel .regime strong, .live.skel .lv b { color: transparent; background: rgba(255,255,255,0.06); border-radius: 6px; }
 
-    .what { margin: 40px 0 0; border-top: 1px solid var(--line); }
-    .what .row { display: flex; gap: 14px; padding: 15px 0; border-bottom: 1px solid var(--line); }
-    .what .row b { flex-shrink: 0; color: var(--gold); font-weight: 600; min-width: 132px; font-size: 13.5px; }
-    .what .row p { color: var(--muted); font-size: 13.5px; }
+    /* sections */
+    section.band { padding: clamp(72px, calc(11 * var(--vh)), 128px) 0; }
+    .sec-head { max-width: 720px; }
+    .sec-head .eyebrow { display: block; }
+    h2 { margin-top: 12px; font-size: clamp(34px, calc(4.4 * var(--vw)), 54px); font-weight: 780; letter-spacing: -0.04em; line-height: 1.02; text-wrap: balance; }
+    h2 em { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -0.01em; color: var(--gold-2); }
+    .sec-head p { margin-top: 16px; color: var(--muted); font-size: 17px; max-width: 58ch; }
 
-    .buy { margin-top: 44px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 13px 26px; background: linear-gradient(135deg, var(--gold), var(--gold-deep));
-      color: #1a1207; border: 0; border-radius: 10px;
-      font: 600 14px/1 inherit; cursor: pointer;
-      transition: filter 0.18s ease, transform 0.15s ease;
+    /* what it draws */
+    .draws { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: clamp(24px, calc(4 * var(--vw)), 56px); align-items: center; margin-top: 44px; }
+    .shot { position: relative; border-radius: 20px; overflow: hidden; background: #0e0f13; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 50px 100px -50px rgba(0,0,0,0.95); }
+    .shot img { display: block; width: 100%; height: auto; }
+    .shot-cap { margin-top: 12px; color: var(--faint); font-size: 13px; }
+    .notes { list-style: none; display: grid; gap: 4px; }
+    .notes li { display: grid; grid-template-columns: 14px 1fr; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+    .notes li:last-child { border-bottom: 0; }
+    .notes i { width: 14px; height: 14px; margin-top: 5px; border-radius: 4px; }
+    .notes b { display: block; font-size: 16px; letter-spacing: -0.01em; }
+    .notes p { margin-top: 4px; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
+
+    /* features */
+    .feats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 44px; }
+    .feat { position: relative; padding: 24px 22px 22px; border-radius: 20px; background: linear-gradient(180deg, var(--panel), #100f0e); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); transition: transform 0.4s var(--ease), box-shadow 0.4s ease; }
+    .feat:hover { transform: translateY(-4px); box-shadow: inset 0 0 0 1px rgba(201,162,74,0.3), 0 30px 60px -36px rgba(0,0,0,0.9); }
+    .feat .ic { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; color: var(--gold-2); background: rgba(201,162,74,0.1); box-shadow: inset 0 0 0 1px rgba(201,162,74,0.2); }
+    .feat .ic svg { width: 20px; height: 20px; }
+    .feat h3 { margin-top: 18px; font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+    .feat p { margin-top: 6px; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
+    .feat .new { position: absolute; top: 22px; right: 20px; font-size: 12px; color: var(--gold-2); }
+
+    /* the day, in order */
+    .day { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px; margin-top: 52px; list-style: none; }
+    .day::before { content: ''; position: absolute; left: 7px; right: 7px; top: 7px; height: 2px; background: linear-gradient(90deg, var(--gold-deep), var(--gold-2), var(--gold), rgba(201,162,74,0.25)); transform-origin: left; }
+    .day li { position: relative; padding-top: 32px; }
+    .day li::before { content: ''; position: absolute; left: 0; top: 0; width: 16px; height: 16px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 2px var(--gold), 0 0 0 5px var(--bg); }
+    .day li.off::before { box-shadow: inset 0 0 0 2px var(--faint), 0 0 0 5px var(--bg); }
+    .day time { display: block; font-size: 13px; color: var(--gold-2); font-variant-numeric: tabular-nums; }
+    .day li.off time { color: var(--faint); }
+    .day b { display: block; margin-top: 6px; font-size: 16px; letter-spacing: -0.015em; }
+    .day p { margin-top: 5px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+
+    /* members' board */
+    .board { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(24px, calc(4 * var(--vw)), 56px); align-items: center; }
+
+    /* pricing */
+    .plans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 44px; max-width: 920px; }
+    .plan { position: relative; display: flex; flex-direction: column; padding: 28px 26px 26px; border-radius: 24px; background: linear-gradient(180deg, var(--panel), #0f0e0d); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07); }
+    .plan.hl { background: linear-gradient(180deg, #1c1810, #11100d 60%); box-shadow: inset 0 0 0 1px rgba(201,162,74,0.4), 0 40px 80px -44px rgba(201,162,74,0.35); }
+    .plan h3 { font-size: 15px; font-weight: 650; color: var(--muted); letter-spacing: -0.005em; }
+    .plan.hl h3 { color: var(--gold-2); }
+    .price { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
+    .price b { font-size: 52px; font-weight: 800; letter-spacing: -0.05em; line-height: 1; }
+    .price span { color: var(--muted); font-size: 15px; }
+    .plan ul { list-style: none; display: grid; gap: 10px; margin: 22px 0 26px; }
+    .plan li { display: grid; grid-template-columns: 18px 1fr; gap: 10px; color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+    .plan li svg { width: 16px; height: 16px; margin-top: 3px; color: var(--gold); }
+    .plan .btn, .plan .btn-ghost { margin-top: auto; width: 100%; }
+    .fine { color: var(--faint); font-size: 13.5px; margin-top: 18px; max-width: 70ch; }
+    .fine a { color: var(--muted); border-bottom: 1px solid var(--line-bright); transition: color 0.2s ease, border-color 0.2s ease; }
+    .fine a:hover { color: var(--gold-2); border-color: var(--gold); }
+
+    /* faq */
+    .faq { max-width: 820px; margin-top: 36px; border-top: 1px solid var(--line); }
+    .faq details { border-bottom: 1px solid var(--line); }
+    .faq summary { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px 2px; cursor: pointer; list-style: none; font-size: 17px; font-weight: 650; letter-spacing: -0.015em; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary i { position: relative; flex: none; width: 30px; height: 30px; border-radius: 10px; background: rgba(201,162,74,0.1); box-shadow: inset 0 0 0 1px rgba(201,162,74,0.25); }
+    .faq summary i::before, .faq summary i::after { content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 2px; margin: -1px 0 0 -6px; border-radius: 2px; background: var(--gold-2); transition: transform 0.35s var(--ease); }
+    .faq summary i::after { transform: rotate(90deg); }
+    .faq details[open] summary i::after { transform: rotate(0deg); }
+    .faq details p { padding: 0 2px 22px; color: var(--muted); font-size: 15.5px; line-height: 1.65; max-width: 68ch; }
+
+    /* footer */
+    footer { border-top: 1px solid var(--line); padding: 34px 0 48px; }
+    .risk { color: var(--faint); font-size: 12.5px; max-width: 86ch; line-height: 1.6; }
+    .base { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-top: 20px; color: var(--muted); font-size: 13px; }
+    .base nav { display: flex; gap: 22px; flex-wrap: wrap; }
+    .base a:hover { color: var(--gold-2); }
+
+    /* the phone buy bar: once the hero's buttons scroll away */
+    .mbar { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 60; display: none; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: 18px; background: rgba(19,18,17,0.95); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 20px 50px -20px rgba(0,0,0,0.9); transform: translateY(140%); transition: transform 0.45s var(--ease); }
+    .mbar.on { transform: none; }
+    .mbar div { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); line-height: 1.3; }
+    .mbar b { display: block; color: var(--ink); font-size: 15px; }
+    .mbar .btn { min-height: 44px; padding: 0 18px; font-size: 14px; }
+
+    /* reveal on scroll */
+    .rv { opacity: 0; transform: translateY(18px); transition: opacity 0.7s var(--ease), transform 0.8s var(--ease); transition-delay: var(--d, 0s); }
+    .rv.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .rv { opacity: 1; transform: none; transition: none; } .btn, .btn-ghost, .feat { transition: none; } }
+
+    @media (max-width: 980px) {
+      .hero-in, .draws, .board { grid-template-columns: 1fr; }
+      .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .day { grid-template-columns: 1fr; gap: 0; }
+      .day::before { left: 7px; right: auto; top: 8px; bottom: 8px; width: 2px; height: auto; background: linear-gradient(180deg, var(--gold-deep), var(--gold-2), var(--gold), rgba(201,162,74,0.25)); }
+      .day li { padding: 0 0 26px 36px; }
+      .nav-links { display: none; }
     }
-    .btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
-    .once {
-      display: inline-flex; padding: 12px 22px; border: 1px solid var(--line-bright);
-      border-radius: 10px; font: 600 14px/1 inherit; color: var(--ink);
+    @media (max-width: 640px) {
+      .nav-signin { display: none; }
+      .feats, .plans { grid-template-columns: 1fr; }
+      .levels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lede { font-size: 16px; }
+      .cta .btn, .cta .btn-ghost { flex: 1 1 100%; }
+      .live { padding: 16px 14px 14px; border-radius: 20px; }
+      #lv-canvas { height: 180px; }
+      .mbar { display: flex; }
+      footer { padding-bottom: 110px; }
     }
-    .once:hover { border-color: var(--gold); color: var(--gold); }
-    .fine { color: var(--faint); font-size: 12.5px; margin-top: 14px; max-width: 60ch; }
-    .fine + .fine { margin-top: 6px; }
-    .fine a { color: var(--muted); border-bottom: 1px solid var(--line-bright); }
-    .fine a:hover { color: var(--gold); border-color: var(--gold); }
-
-    footer { margin-top: clamp(52px, calc(9 * var(--vh)), 92px); border-top: 1px solid var(--line); padding: 26px 0 40px; }
-    .risk { color: var(--faint); font-size: 11.5px; max-width: 78ch; }
-    .base { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-top: 18px; color: var(--muted); font-size: 12.5px; }
   </style>
 </head>
 <body>
-  <header class="top"><div class="col">
-    <span style="display:flex;align-items:center;gap:18px;">
-      <a class="quiet" href="/" id="back-link">&larr; Back</a>
-      <a class="brand" href="/">Echelon <span style="color:var(--faint);font-weight:500;">by d1</span></a>
-    </span>
-    <a class="quiet" href="/echelon/app/">Member sign in</a>
+  <header class="nav"><div class="wrap nav-in">
+    <a class="nav-back" href="/" id="back-link" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></a>
+    <a class="brand" href="/">Echelon <span>by d1</span></a>
+    <nav class="nav-links" aria-label="On this page"><a href="#draws">What it draws</a><a href="#day">When it updates</a><a href="#pricing">Pricing</a><a href="#faq">Questions</a></nav>
+    <span class="nav-sp"></span>
+    <a class="nav-signin" href="/echelon/app/">Member sign in</a>
+    <a class="btn btn-sm" href="#pricing">Get D1 GEX</a>
   </div></header>
 
-  <main><div class="col">
-    <span class="label">TradingView indicator · sold separately</span>
-    <h1>D1 GEX</h1>
-    <p class="sub">QQQ <span class="w" tabindex="0">gamma exposure<span class="tip" role="tooltip"><b>Gamma exposure</b>How much forced hedging dealers carry at each strike. Big numbers mean their buying and selling moves the tape whether they like it or not.</span></span>, mapped to NQ. See the strikes where <span class="w" tabindex="0">dealers<span class="tip" role="tooltip"><b>Dealers</b>The market makers on the other side of every option trade. They hedge constantly &mdash; that hedging is the flow this tool maps.</span></span> <span class="w" tabindex="0">pin<span class="tip" role="tooltip"><b>Pinning</b>Hedging that leans against price near a heavy strike. Expect stalls, magnets and slow grind instead of follow-through.</span></span> price, the <span class="w" tabindex="0">regimes<span class="tip" role="tooltip"><b>Regime</b>Which mode the tape is in. Positive gamma damps moves &mdash; fades work. Negative gamma feeds them &mdash; breaks keep going.</span></span> where moves accelerate, and the levels that matter for the session. On your chart, before the open.</p>
-
-    <div class="gexprev" id="gexprev" hidden>
-      <div class="gp-top">
-        <span class="gp-live"><span class="gp-dot"></span>Live</span>
-        <span class="gp-regime" id="gp-regime"></span>
-        <span class="gp-nq" id="gp-nq"></span>
+  <main>
+    <section class="hero"><div class="wrap hero-in">
+      <div class="hero-copy">
+        <p class="eyebrow rv">TradingView indicator · no membership needed</p>
+        <h1 class="rv" style="--d:.05s">D1 GEX<span class="gt">Dealer gamma, drawn on your chart.</span></h1>
+        <p class="lede rv" style="--d:.1s">The strikes where <span class="w" tabindex="0">dealers<span class="tip" role="tooltip"><b>Dealers</b>The market makers on the other side of every option trade. They hedge all day, and that hedging is the flow this maps.</span></span> carry the most <span class="w" tabindex="0">gamma<span class="tip" role="tooltip"><b>Gamma exposure</b>How much forced hedging dealers carry at each strike. Big numbers mean their buying and selling moves the tape whether they like it or not.</span></span>, turned into NQ and ES levels on your TradingView chart. See where price tends to <span class="w" tabindex="0">pin<span class="tip" role="tooltip"><b>Pinning</b>Hedging that leans against price near a heavy strike. Expect stalls, magnets and slow grinds instead of follow-through.</span></span>, where it tends to run, and which <span class="w" tabindex="0">regime<span class="tip" role="tooltip"><b>Regime</b>Which mode the tape is in. Positive gamma damps moves, so fades work. Negative gamma feeds them, so breaks keep going.</span></span> the session is in, before the open.</p>
+        <div class="cta rv" style="--d:.15s">
+          <button class="btn" data-buy="month" type="button">Subscribe · $35/mo <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <button class="btn-ghost" data-buy="one_time" type="button">Buy once · $147</button>
+        </div>
+        <ul class="trust rv" style="--d:.2s">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>On your TradingView in about 15 minutes</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>NQ from QQQ, ES from SPX</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Cancel any time</li>
+        </ul>
       </div>
-      <canvas id="gp-canvas" aria-label="Live QQQ gamma profile by strike, positive piles teal, negative red, spot marked in gold"></canvas>
-      <div class="gp-levels" id="gp-levels"></div>
-      <p class="gp-cap">This is the actual feed, right now, not a mockup. Buying puts it on your TradingView chart.</p>
-    </div>
 
-    <ul class="feat">
-      <li>Listed NQ prices for every level: <span class="w" tabindex="0">call wall<span class="tip" role="tooltip"><b>Call wall</b>The heaviest call strike above. Rallies tend to stall and pin into it &mdash; expect sellers to lean there.</span></span>, <span class="w" tabindex="0">put wall<span class="tip" role="tooltip"><b>Put wall</b>The heaviest put strike below. Dips into it tend to get bought &mdash; it acts like a floor until it breaks.</span></span>, <span class="w" tabindex="0">gamma flip<span class="tip" role="tooltip"><b>Gamma flip</b>The price where dealer positioning changes sign. Above it, calm and fades. Below it, hedging chases price and moves accelerate.</span></span>, and the ten biggest gamma concentrations</li>
-      <li>Rotating 3D <span class="w" tabindex="0">gamma surface<span class="tip" role="tooltip"><b>Surface</b>The whole board in 3D &mdash; gamma at every strike and expiry, so you see where the weight actually sits.</span></span> by strike and expiry: <span class="w" tabindex="0">0DTE<span class="tip" role="tooltip"><b>0DTE</b>Options expiring today. The fastest-moving gamma on the board &mdash; it sets the intraday levels.</span></span>, <span class="w" tabindex="0">swing<span class="tip" role="tooltip"><b>Swing</b>The book out to 60 days. Slower, heavier positioning &mdash; the bigger walls that hold for days.</span></span>, or the whole board</li>
-      <li>Positive / negative regime read rewritten on every print</li>
-      <li>Copyable daily levels sheet</li>
-      <li>The live GEX dashboard inside the Echelon members area</li>
-      <li>Invite-only TradingView script, recomputed every 15 minutes through the trading day</li>
-    </ul>
+      <aside class="live skel rv" id="live" style="--d:.12s" aria-label="The live feed">
+        <div class="live-top">
+          <span class="seg" role="tablist" aria-label="Book"><button class="on" type="button" data-book="nq" role="tab" aria-selected="true">NQ</button><button type="button" data-book="es" role="tab" aria-selected="false">ES</button></span>
+          <span class="state" id="lv-state"><i></i><b>Loading</b></span>
+        </div>
+        <div class="regime"><strong id="lv-regime">Positive gamma</strong><span id="lv-tag">Loading the feed</span></div>
+        <div class="prof"><canvas id="lv-canvas" role="img" aria-label="Gamma by strike from the live feed: call gamma above the line, put gamma below, the walls, the flip and the price marked"></canvas></div>
+        <div class="levels" id="lv-levels">
+          <div class="lv call"><span>Call wall</span><b>31,000</b></div><div class="lv flip"><span>Gamma flip</span><b>30,700</b></div><div class="lv put"><span>Put wall</span><b>30,100</b></div><div class="lv gam"><span>Biggest strike</span><b>31,100</b></div>
+        </div>
+        <p class="live-note" id="lv-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>This is the actual feed, not a mockup.</span></p>
+      </aside>
+    </div></section>
 
-    <div class="what">
-      <div class="row"><b>The surface</b><p>Dealer gamma by strike and expiry, refreshed through the trading day from live options data.</p></div>
-      <div class="row"><b>The regime</b><p>Positive gamma compresses: pushes stall, dips get bought. Negative gamma amplifies: breaks keep going. The indicator tells you which tape you are in.</p></div>
-      <div class="row"><b>NQ levels</b><p>The QQQ strikes that matter, translated into NQ prices you can trade against.</p></div>
-      <div class="row"><b>Delivery</b><p>Invite-only TradingView script. You enter your TradingView username at checkout and access is added automatically, usually within 15 minutes.</p></div>
-    </div>
+    <section class="band" id="draws"><div class="wrap">
+      <div class="sec-head rv">
+        <span class="eyebrow">What it draws</span>
+        <h2>Every level, <em>named and priced</em>, where you trade.</h2>
+        <p>Zones for the walls and the flip, the ten biggest gamma strikes ranked, and a one-line read of the regime. In NQ or ES prices, so nothing needs converting in your head.</p>
+      </div>
+      <div class="draws">
+        <figure class="rv">
+          <div class="shot"><img src="/echelon/assets/gex-page-chart.webp" width="1800" height="1238" loading="lazy" decoding="async" alt="An NQ five-minute chart with D1 GEX: a red call wall zone at 30,921, a teal put wall at 30,715, blue gamma flip zones, and ranked gamma strikes, each named with its price"></div>
+          <figcaption class="shot-cap">D1 GEX on an NQ chart in Echelon. The TradingView script draws the same zones and names.</figcaption>
+        </figure>
+        <ul class="notes">
+          <li class="rv"><i style="background:#ef5350"></i><div><b>Call wall and put wall</b><p>The heaviest call strike above and put strike below. Rallies tend to stall into the call wall, dips tend to get bought at the put wall.</p></div></li>
+          <li class="rv" style="--d:.06s"><i style="background:#2962ff"></i><div><b>The gamma flip</b><p>Where dealer hedging changes sign. Above it moves get absorbed, below it they get chased.</p></div></li>
+          <li class="rv" style="--d:.12s"><i style="background:#5b8db8"></i><div><b>Γ-1 to Γ-10</b><p>The ten biggest gamma strikes, ranked, with [+] to [+++] for how heavy each one is. Levels on one price merge into one name.</p></div></li>
+          <li class="rv" style="--d:.18s"><i style="background:#c9a24a"></i><div><b>The read</b><p>Dampening or amplifying, in words, against live price. Context, never a signal.</p></div></li>
+        </ul>
+      </div>
+    </div></section>
 
-    <div class="buy">
-      <button class="btn" id="buy-gex-month" type="button">Subscribe · $35/mo</button>
-      <button class="once" id="buy-gex-once" type="button">Buy once · $147</button>
-    </div>
-    <p class="fine">No membership required. Cancelling a subscription removes script access. <a href="https://www.tradingview.com/script/1IGwzZWk-D1-GEX/" target="_blank" rel="noopener">View the script on TradingView</a>.</p>
-    <p class="fine">Already an Echelon member? GEX lives in your app under Indicators, with a live gamma dashboard included.</p>
-    <p class="fine">Need help with anything, before or after buying? Email <a href="mailto:d1fpc3@gmail.com">d1fpc3@gmail.com</a>.</p>
-  </div></main>
+    <section class="band" style="padding-top:0"><div class="wrap">
+      <div class="sec-head rv">
+        <span class="eyebrow">What you get</span>
+        <h2>Built to be <em>honest</em> about what it knows.</h2>
+      </div>
+      <div class="feats">
+        <article class="feat rv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h12"/></svg></span><h3>NQ and ES levels</h3><p>From QQQ and SPX options, converted live to futures prices. The Book setting follows your chart's symbol.</p></article>
+        <article class="feat rv" style="--d:.05s"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19c4-1 5-9 8-9s4 5 8 4"/></svg></span><h3>The regime, in words</h3><p>Positive or negative gamma and what that means for the session, rewritten on every print.</p></article>
+        <article class="feat rv" style="--d:.1s"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><h3>Says when it is from</h3><p>Every chart shows the time of its print. Old levels draw faded and dashed, so yesterday's never pass for today's.</p><span class="new">New</span></article>
+        <article class="feat rv"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span><h3>Off after hours</h3><p>Levels show 9:30 AM to 4:00 PM ET on every timeframe, 4h and daily included. One switch keeps them on.</p><span class="new">New</span></article>
+        <article class="feat rv" style="--d:.05s"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 14l3-4 3 2 4-5"/></svg></span><h3>The live board</h3><p>The GEX dashboard inside Echelon: the gamma surface, where price sits between the walls, reprinted every minute of the session.</p></article>
+        <article class="feat rv" style="--d:.1s"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></span><h3>A levels sheet to copy</h3><p>Every level of the day as plain text, ready for your notes or another platform.</p></article>
+      </div>
+    </div></section>
 
-  <footer><div class="col">
+    <section class="band" id="day" style="padding-top:0"><div class="wrap">
+      <div class="sec-head rv">
+        <span class="eyebrow">When it updates</span>
+        <h2>One trading day, <em>in order</em>.</h2>
+        <p>Times are New York. The levels come from open interest, which changes overnight, so the morning book is the one that matters most.</p>
+      </div>
+      <ol class="day">
+        <li class="rv"><time>8:00 AM</time><b>The morning book</b><p>Today's open interest lands and every level is rebuilt from it.</p></li>
+        <li class="rv" style="--d:.06s"><time>Before the open</time><b>On TradingView</b><p>The pre-open levels are published to the script.</p></li>
+        <li class="rv" style="--d:.12s"><time>9:30 AM</time><b>On your chart</b><p>Levels show for the session, with the time of the print beside them.</p></li>
+        <li class="rv" style="--d:.18s"><time>10:30 AM and 2:45 PM</time><b>Republished</b><p>The midday and late books, as 0DTE gamma shifts through the day.</p></li>
+        <li class="off rv" style="--d:.24s"><time>4:00 PM</time><b>Off after hours</b><p>Hidden until the next session. If a print ever runs late, the chart says the levels are old.</p></li>
+      </ol>
+    </div></section>
+
+    <section class="band" style="padding-top:0"><div class="wrap board">
+      <div class="sec-head rv">
+        <span class="eyebrow">Inside Echelon</span>
+        <h2>The live board, <em>every minute</em>.</h2>
+        <p>The same book on a dashboard: the regime, net gamma for 0DTE and swing, where price sits between the walls, and the full surface by strike and expiry. Included with D1 GEX.</p>
+      </div>
+      <figure class="rv" style="--d:.08s"><div class="shot"><img src="/echelon/assets/gex-page-board.webp" width="1800" height="885" loading="lazy" decoding="async" alt="The Echelon GEX board: positive gamma, net 0DTE and swing gamma, QQQ and NQ prices, and a rail showing price between the put wall, the flip and the call wall"></div></figure>
+    </div></section>
+
+    <section class="band" id="pricing" style="padding-top:0"><div class="wrap">
+      <div class="sec-head rv">
+        <span class="eyebrow">Pricing</span>
+        <h2>Two ways in. <em>No membership.</em></h2>
+      </div>
+      <div class="plans">
+        <article class="plan rv">
+          <h3>Monthly</h3>
+          <div class="price"><b>$35</b><span>a month</span></div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>The invite-only TradingView script, NQ and ES</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Republished three times a trading day</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>The live GEX board in Echelon</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Cancel any time; cancelling ends access</li>
+          </ul>
+          <button class="btn-ghost" data-buy="month" type="button">Subscribe · $35/mo</button>
+        </article>
+        <article class="plan hl rv" style="--d:.06s">
+          <h3>Once</h3>
+          <div class="price"><b>$147</b><span>one payment</span></div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Everything in monthly</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>No renewal, nothing to cancel</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Pays for itself in about four months</li>
+          </ul>
+          <button class="btn" data-buy="one_time" type="button">Buy once · $147 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </article>
+      </div>
+      <p class="fine rv">You enter your TradingView username at checkout and access is added automatically, usually within 15 minutes. <a href="https://www.tradingview.com/script/1IGwzZWk-D1-GEX/" target="_blank" rel="noopener">See the script on TradingView</a>. Already an Echelon member? D1 GEX lives in your app under Indicators. Questions before or after buying: <a href="mailto:d1fpc3@gmail.com">d1fpc3@gmail.com</a>.</p>
+    </div></section>
+
+    <section class="band" id="faq" style="padding-top:0"><div class="wrap">
+      <div class="sec-head rv">
+        <span class="eyebrow">Questions</span>
+        <h2>The straight answers.</h2>
+      </div>
+      <div class="faq rv">
+        <details open><summary>How do I get it on my chart?<i></i></summary><p>At checkout you enter your TradingView username. The invite-only script is added to your account automatically, usually within 15 minutes. On TradingView open Indicators, then Invite-only scripts, and add D1 GEX.</p></details>
+        <details><summary>Which charts does it work on?<i></i></summary><p>NQ and MNQ, with levels from QQQ options, and ES and MES, from SPX options. The Book setting picks the right one from your chart's symbol. Any timeframe.</p></details>
+        <details><summary>When do the levels update?<i></i></summary><p>They are rebuilt from each morning's open interest and published to TradingView before the open, around 10:30 AM and around 2:45 PM New York time. The chart always says when your levels are from, and levels from an earlier day draw faded and dashed.</p></details>
+        <details><summary>Why are the levels gone after the close?<i></i></summary><p>They show from 9:30 AM to 4:00 PM New York time on weekdays, on every timeframe. The setting Hide when market closed keeps them on if you want them overnight.</p></details>
+        <details><summary>Do I need an Echelon membership?<i></i></summary><p>No. D1 GEX is sold on its own. Members already have it in the app under Indicators, with the live board.</p></details>
+        <details><summary>Is this financial advice?<i></i></summary><p>No. Dealer positioning is modelled from open interest, never observed. Treat every level as a zone that needs price to confirm it, not a line that trades itself.</p></details>
+      </div>
+    </div></section>
+  </main>
+
+  <footer><div class="wrap">
     <p class="risk">Trading futures involves substantial risk of loss and is not suitable for every investor. Leverage works against you as well as for you. Past performance, yours or anyone else's, does not guarantee future results. Only risk capital you can afford to lose. D1 GEX is an analytical tool, not financial advice. The author is not a registered investment or commodity trading advisor.</p>
     <div class="base">
       <span>© 2026 Echelon · d1fpc3</span>
-      <span style="display:flex;gap:22px;flex-wrap:wrap;">
-        <a href="https://www.tradingview.com/u/d1fpc3/" target="_blank" rel="noopener">TradingView</a>
-        <a href="/terms/">Terms</a>
-        <a href="/privacy/">Privacy</a>
-      </span>
+      <nav aria-label="Footer"><a href="https://www.tradingview.com/u/d1fpc3/" target="_blank" rel="noopener">TradingView</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a></nav>
     </div>
   </div></footer>
+
+  <div class="mbar" id="mbar" aria-hidden="true"><div><b>D1 GEX</b>$35/mo or $147 once</div><a class="btn" href="#pricing" tabindex="-1">Get it</a></div>
 
   <!-- On-page Stripe checkout: same popup as /pricing, buying never leaves the page -->
   <div class="co-scrim" id="co-scrim" role="dialog" aria-modal="true" aria-label="Checkout">
@@ -233,7 +448,7 @@
   <style>
     .co-scrim { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,4,0.72); display: none; align-items: center; justify-content: center; padding: 18px; }
     .co-scrim.on { display: flex; }
-    .co-panel { width: 100%; max-width: 480px; max-height: calc(92 * var(--vh)); background: #fff; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+    .co-panel { width: 100%; max-width: 480px; max-height: calc(92 * var(--vh)); background: #fff; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
     .co-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; color: #1a1207; font-size: 14px; border-bottom: 1px solid #eee; }
     .co-x { background: none; border: 0; font-size: 20px; line-height: 1; cursor: pointer; color: #666; padding: 2px 6px; }
     .co-mount { overflow-y: auto; min-height: 320px; }
@@ -293,19 +508,21 @@
       loading.innerHTML = '<div class="co-spin"></div>Loading secure checkout…';
       mount.innerHTML = '';
       try {
+        /* the session is asked for first: a failure then lands in the catch below and the panel says so,
+           where a rejection inside Stripe's own call left it on Loading forever */
+        var secretP = fetch(CHECKOUT_FN, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: SB_ANON },
+          body: JSON.stringify({ product: 'd1-gex', interval: interval, aff: affCode() }),
+        }).then(function (r) { return r.json(); }).then(function (d) {
+          if (d.error || !d.client_secret) throw new Error(d.error || 'Checkout could not start.');
+          return d.client_secret;
+        });
+        secretP.catch(function () {});   // handled by the await below; this keeps an early failure from reading as unhandled
         await loadStripeJs();
+        var secret = await secretP;
         var stripe = window.Stripe(STRIPE_PK);
-        var fetchClientSecret = function () {
-          return fetch(CHECKOUT_FN, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', apikey: SB_ANON },
-            body: JSON.stringify({ product: 'd1-gex', interval: interval, aff: affCode() }),
-          }).then(function (r) { return r.json(); }).then(function (d) {
-            if (d.error) throw new Error(d.error);
-            return d.client_secret;
-          });
-        };
-        _coInstance = await stripe.initEmbeddedCheckout({ fetchClientSecret: fetchClientSecret });
+        _coInstance = await stripe.initEmbeddedCheckout({ fetchClientSecret: function () { return Promise.resolve(secret); } });
         loading.style.display = 'none';
         _coInstance.mount('#echelon-checkout');
       } catch (e) {
@@ -313,8 +530,7 @@
         loading.textContent = e.message || 'Checkout could not load. Please try again.';
       }
     }
-    document.getElementById('buy-gex-month').addEventListener('click', function () { openCheckout('month'); });
-    document.getElementById('buy-gex-once').addEventListener('click', function () { openCheckout('one_time'); });
+    document.querySelectorAll('[data-buy]').forEach(function (b) { b.addEventListener('click', function () { openCheckout(b.getAttribute('data-buy')); }); });
     document.getElementById('co-x').addEventListener('click', closeCheckout);
     document.getElementById('co-scrim').addEventListener('click', function (e) {
       if (e.target === document.getElementById('co-scrim')) closeCheckout();
@@ -323,55 +539,156 @@
   })();
   </script>
   <script>
-  /* Live GEX preview: the same public feed the product runs on, drawn small. */
+  /* Reveal on scroll, and the phone buy bar once the hero's buttons have scrolled away. */
   (function () {
-    fetch('https://gex-worker.d1fpc3.workers.dev/gex.json')
-      .then(function (r) { return r.ok ? r.json() : null })
-      .then(function (j) {
-        if (!j || !j.surface || !j.surface.strikes || !j.surface.strikes.length) return;
-        var wrap = document.getElementById('gexprev'); wrap.hidden = false;
-        var reg = document.getElementById('gp-regime');
-        var neg = (j.regime || '').indexOf('neg') === 0;
-        reg.textContent = neg ? 'Negative gamma: accelerating' : 'Positive gamma: absorbing';
-        reg.className = 'gp-regime ' + (neg ? 'neg' : 'pos');
-        document.getElementById('gp-nq').textContent = 'NQ ' + Math.round(j.nq).toLocaleString() + ' · QQQ ' + j.spot;
-        var lv = [
-          ['Call wall', j.swing && j.swing.callWall && j.swing.callWall.nq],
-          ['Put wall', j.swing && j.swing.putWall && j.swing.putWall.nq],
-          ['Gamma flip', j.swing && j.swing.flip && j.swing.flip.nq],
-          ['Γ1 magnet', j.rLevels && j.rLevels[0] && j.rLevels[0].nq],
-        ];
-        var host = document.getElementById('gp-levels');
-        lv.forEach(function (p) {
-          var d = document.createElement('div'); d.className = 'gp-lv';
-          var s = document.createElement('span'); s.textContent = p[0];
-          var b = document.createElement('b'); b.textContent = p[1] ? 'NQ ' + Math.round(p[1]).toLocaleString() : '—';
-          d.appendChild(s); d.appendChild(b); host.appendChild(d);
+    var els = document.querySelectorAll('.rv');
+    if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) { els.forEach(function (e) { e.classList.add('in'); }); }
+    else {
+      var io = new IntersectionObserver(function (es) { es.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } }); }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+      els.forEach(function (e) { io.observe(e); });
+    }
+    var bar = document.getElementById('mbar'), cta = document.querySelector('.cta'), pricing = document.getElementById('pricing');
+    if (bar && cta && 'IntersectionObserver' in window) {
+      var ctaOut = false, atPricing = false;
+      var paint = function () { bar.classList.toggle('on', ctaOut && !atPricing); };
+      new IntersectionObserver(function (es) { ctaOut = !es[0].isIntersecting && es[0].boundingClientRect.top < 0; paint(); }).observe(cta);
+      new IntersectionObserver(function (es) { atPricing = es[0].isIntersecting; paint(); }, { rootMargin: '0px 0px -30% 0px' }).observe(pricing);
+    }
+  })();
+  </script>
+  <script>
+  /* The live card: the public feed the product runs on, drawn. It says honestly when the levels are old,
+     by the same rule as the Echelon board and the TradingView script: a print made on a weekday from 08:00
+     to 16:30 New York is that day's; any other print (evening, weekend, holiday) is its chain's last trade;
+     old = from an earlier day than today, or no new print for 30 minutes in the session. */
+  (function () {
+    var FEED = 'https://gex-worker.d1fpc3.workers.dev/gex.json';
+    var card = document.getElementById('live'), cv = document.getElementById('lv-canvas');
+    var cache = {}, book = 'nq', data = null, grown = false;
+    var NYF = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    function ny(ms) { var p = {}; NYF.formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = x.value; }); return { day: p.year + '-' + p.month + '-' + p.day, min: (+p.hour % 24) * 60 + +p.minute, wd: p.weekday }; }
+    function wk(w) { return w.wd !== 'Sat' && w.wd !== 'Sun'; }
+    function hm(min) { var h = Math.floor(min / 60); return ((h + 11) % 12 + 1) + ':' + String(min % 60).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); }
+    function dayWord(day) { return new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }); }
+    function monthDay(day) { return new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }); }
+    function age(g) {
+      var genMs = Date.parse(g.generatedAt || ''); if (!genMs) return null;
+      var nowMs = Date.now(), gen = ny(genMs), now = ny(nowMs);
+      var lt = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec((g.chain && g.chain.lastTrade) || '');
+      var own = !lt || (wk(gen) && gen.min >= 480 && gen.min < 990 && (lt[1] === gen.day || gen.min < 590));
+      var day = own ? gen.day : lt[1], min = own ? gen.min : +lt[2] * 60 + +lt[3];
+      var since = Math.max(0, Math.round((nowMs - genMs) / 60000));
+      var behind = day === now.day && wk(now) && now.min >= 590 && now.min < 980 && since > 30;
+      return { day: day, min: min, now: now, since: since, behind: behind, old: day < now.day || behind, close: !own && min >= 955 && min <= 980, open: wk(now) && now.min >= 570 && now.min < 960 };
+    }
+    function nextPrint(now) {
+      if (wk(now) && now.min < 480) return "Today's first print lands from 8:00 AM ET.";
+      if (wk(now) && now.min < 990) return "Today's print has not landed yet.";
+      return (['Fri', 'Sat', 'Sun'].indexOf(now.wd) >= 0 ? "Monday's" : "Tomorrow's") + ' first print lands from 8:00 AM ET.';
+    }
+    var fmt = function (v) { return v == null || isNaN(v) ? '·' : Math.round(v).toLocaleString('en-US'); };
+    function paint() {
+      var j = data; if (!j) return;
+      var z = j.zdte || {}, neg = /neg/.test(String(j.regime || '')), a = age(j);
+      card.classList.remove('skel');
+      var rg = document.getElementById('lv-regime'); rg.textContent = neg ? 'Negative gamma' : 'Positive gamma'; rg.className = neg ? 'neg' : 'pos';
+      document.getElementById('lv-tag').textContent = (neg ? 'Moves get amplified' : 'Moves get absorbed') + ' · ' + (j.futName || 'NQ') + ' ' + fmt(j.nq);
+      var gam = (j.rLevels || [])[0];
+      document.getElementById('lv-levels').innerHTML =
+        '<div class="lv call"><span>Call wall</span><b>' + fmt(z.callWall && z.callWall.nq) + '</b></div>' +
+        '<div class="lv flip"><span>Gamma flip</span><b>' + fmt(z.flip && z.flip.nq) + '</b></div>' +
+        '<div class="lv put"><span>Put wall</span><b>' + fmt(z.putWall && z.putWall.nq) + '</b></div>' +
+        '<div class="lv gam"><span>Biggest strike</span><b>' + fmt(gam && gam.nq) + '</b></div>';
+      var st = document.getElementById('lv-state'), note = document.getElementById('lv-note'), txt = note.querySelector('span');
+      if (a && a.old) {
+        st.className = 'state old';
+        st.innerHTML = '<i></i><b>' + (a.behind ? 'Behind' : 'Old levels') + '</b>';
+        note.className = 'live-note old';
+        txt.innerHTML = a.behind
+          ? '<b>No new print since ' + hm(a.min) + ' ET.</b> These are the last good levels; the next print replaces them.'
+          : '<b>These are ' + dayWord(a.day) + "'s levels</b>, from " + (a.close ? 'the ' + monthDay(a.day) + ' close' : monthDay(a.day) + ' at ' + hm(a.min) + ' ET') + '. ' + nextPrint(a.now) + ' The indicator marks old levels the same way.';
+      } else if (a) {
+        st.className = 'state' + (a.open ? ' live-on' : '');
+        st.innerHTML = '<i></i><b>' + (a.open ? 'Live' : 'Pre-open') + '</b> · ' + hm(a.min) + ' ET';
+        note.className = 'live-note';
+        txt.textContent = a.open ? 'The actual feed, reprinted every minute of the session. Not a mockup.' : "This morning's book, built from today's open interest. On your chart from 9:30 AM ET.";
+      }
+      draw();
+    }
+    /* the gamma profile: each strike's gamma summed across expiries, calls up, puts down, in futures prices */
+    function draw() {
+      var j = data; if (!j || !j.surface || !j.surface.strikes || !j.surface.strikes.length) return;
+      var W = cv.clientWidth || 520, H = cv.clientHeight || 210, dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      var g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+      var s = j.surface, cvn = j.conversion || { divisor: 1, basis: 0 }, spot = +j.spot;
+      var toF = function (k) { return k * cvn.divisor + cvn.basis; };
+      var rows = [];
+      for (var i = 0; i < s.strikes.length; i++) { var k = s.strikes[i]; if (Math.abs(k / spot - 1) > (j.book === 'es' ? 0.035 : 0.045)) continue; var t = 0; for (var e = 0; e < s.gexM.length; e++) t += s.gexM[e][i] || 0; rows.push([k, t]); }
+      if (rows.length < 3) return;
+      var kmin = rows[0][0], kmax = rows[rows.length - 1][0], padL = 6, padR = 6, top = 26, bot = 22;
+      var X = function (k) { return padL + (k - kmin) / (kmax - kmin) * (W - padL - padR); };
+      var max = 1; rows.forEach(function (r) { max = Math.max(max, Math.abs(r[1])); });
+      var zero = top + (H - top - bot) * 0.55, up = zero - top - 4, dn = H - bot - zero - 4;
+      var bw = Math.max(1.5, (W - padL - padR) / rows.length * 0.72);
+      var ease = grown ? 1 : 0;
+      var render = function (p) {
+        g.clearRect(0, 0, W, H);
+        g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(padL, Math.round(zero), W - padL - padR, 1);
+        rows.forEach(function (r) {
+          var x = X(r[0]) - bw / 2, v = r[1] / max * p;
+          if (v >= 0) { var h = v * up; var gr = g.createLinearGradient(0, zero - h, 0, zero); gr.addColorStop(0, 'rgba(52,179,154,0.95)'); gr.addColorStop(1, 'rgba(52,179,154,0.25)'); g.fillStyle = gr; g.fillRect(x, zero - h, bw, Math.max(1, h)); }
+          else { var h2 = -v * dn; var gr2 = g.createLinearGradient(0, zero, 0, zero + h2); gr2.addColorStop(0, 'rgba(239,107,100,0.25)'); gr2.addColorStop(1, 'rgba(239,107,100,0.95)'); g.fillStyle = gr2; g.fillRect(x, zero + 1, bw, Math.max(1, h2)); }
         });
-        var cv = document.getElementById('gp-canvas');
-        var W = cv.clientWidth || 560, H = 150;
-        var dpr = Math.min(2, window.devicePixelRatio || 1);
-        cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-        var ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
-        var s = j.surface, n = s.strikes.length;
-        var prof = [];
-        for (var i = 0; i < n; i++) { var t = 0; for (var e = 0; e < s.gexM.length; e++) t += s.gexM[e][i] || 0; prof.push(t); }
-        var max = 1; prof.forEach(function (v) { if (Math.abs(v) > max) max = Math.abs(v); });
-        var zero = H * 0.52, bw = W / n;
-        for (var k = 0; k < n; k++) {
-          var h = (prof[k] / max) * (H * 0.44);
-          ctx.fillStyle = prof[k] >= 0 ? 'rgba(38,166,154,0.85)' : 'rgba(239,83,80,0.85)';
-          if (h >= 0) ctx.fillRect(k * bw + 0.5, zero - h, Math.max(1, bw - 1.2), h || 1);
-          else ctx.fillRect(k * bw + 0.5, zero, Math.max(1, bw - 1.2), -h);
+        // price: a solid gold line with its own tag at the foot, the futures price as the feed has it
+        var kFut = j.nq != null ? (j.nq - cvn.basis) / cvn.divisor : spot;   // where the level formula puts the futures price, so the tag and the axis agree
+        if (kFut >= kmin && kFut <= kmax) {
+          var sx = Math.round(X(kFut)) + 0.5, tag = (j.futName || 'NQ') + ' ' + fmt(j.nq);
+          g.strokeStyle = 'rgba(229,198,121,0.9)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(sx, top - 6); g.lineTo(sx, H - bot - 16); g.stroke(); g.lineWidth = 1;
+          g.font = '700 11px Inter, system-ui, sans-serif'; var tw0 = g.measureText(tag).width + 12, tx = Math.min(W - tw0 - 2, Math.max(2, sx - tw0 / 2)), ty = H - bot - 17;
+          g.fillStyle = '#e5c679'; if (g.roundRect) { g.beginPath(); g.roundRect(tx, ty, tw0, 17, 6); g.fill(); } else g.fillRect(tx, ty, tw0, 17);
+          g.fillStyle = '#1a1207'; g.fillText(tag, tx + 6, ty + 12.5);
         }
-        ctx.fillStyle = 'rgba(157,151,140,0.35)'; ctx.fillRect(0, zero, W, 1);
-        var si = 0, best = 1e9;
-        s.strikes.forEach(function (kk, i2) { var d2 = Math.abs(kk - j.spot); if (d2 < best) { best = d2; si = i2; } });
-        ctx.fillStyle = '#c9a24a'; ctx.fillRect(si * bw, 6, 1.6, H - 12);
-        ctx.font = '10px ui-monospace, monospace'; ctx.fillStyle = '#c9a24a';
-        ctx.fillText('spot', Math.min(si * bw + 5, W - 30), 14);
-      })
-      .catch(function () {});
+        var z = j.zdte || {}, marks = [];
+        if (z.putWall) marks.push([z.putWall.qqq, 'Put wall', '#34b39a']);
+        if (z.flip) marks.push([z.flip.qqq, 'Flip', '#7b9cff']);
+        if (z.callWall) marks.push([z.callWall.qqq, 'Call wall', '#ef6b64']);
+        g.font = '600 11px Inter, system-ui, sans-serif'; g.textBaseline = 'alphabetic';
+        var placed = [];
+        marks.forEach(function (m) {
+          if (m[0] == null || m[0] < kmin || m[0] > kmax) return;
+          var x = Math.round(X(m[0])) + 0.5;
+          g.strokeStyle = m[2]; g.globalAlpha = 0.55; g.setLineDash([3, 3]); g.lineWidth = 1;
+          g.beginPath(); g.moveTo(x, top - 6); g.lineTo(x, H - bot); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+          var label = m[1] + ' ' + Math.round(toF(m[0])).toLocaleString('en-US'), w = g.measureText(label).width;
+          var lx = Math.min(W - w - 2, Math.max(2, x - w / 2)), row = 0;
+          while (placed.some(function (q) { return q[2] === row && lx < q[1] + 6 && lx + w + 6 > q[0]; })) row++;
+          placed.push([lx, lx + w, row]);
+          g.lineWidth = 4; g.strokeStyle = '#141312'; g.lineJoin = 'round'; g.strokeText(label, lx, 12 + row * 13); g.lineWidth = 1;
+          g.fillStyle = m[2]; g.fillText(label, lx, 12 + row * 13);
+        });
+        g.fillStyle = 'rgba(255,255,255,0.32)'; g.font = '500 10.5px Inter, system-ui, sans-serif';
+        var ticks = 4; for (var t = 0; t <= ticks; t++) { var kk = kmin + (kmax - kmin) * t / ticks, lbl = Math.round(toF(kk) / 10) * 10; var tw = g.measureText(lbl.toLocaleString('en-US')).width; g.fillText(lbl.toLocaleString('en-US'), Math.min(W - tw - 2, Math.max(2, X(kk) - tw / 2)), H - 5); }
+      };
+      if (ease || matchMedia('(prefers-reduced-motion: reduce)').matches) { render(1); grown = true; return; }
+      var t0 = performance.now();
+      var step = function (now) { var p = Math.min(1, (now - t0) / 700); render(1 - Math.pow(1 - p, 3)); if (p < 1) requestAnimationFrame(step); else grown = true; };
+      requestAnimationFrame(step);
+    }
+    function load(b) {
+      book = b;
+      document.querySelectorAll('.seg button').forEach(function (x) { var on = x.getAttribute('data-book') === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', on ? 'true' : 'false'); });
+      if (cache[b]) { data = cache[b]; grown = false; paint(); return; }
+      fetch(FEED + (b === 'es' ? '?book=es' : ''), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        if (!j || !j.surface) { if (!data) card.hidden = true; return; }
+        cache[b] = j; if (book !== b) return; data = j; grown = false; paint();
+      }).catch(function () { if (!data) card.hidden = true; });
+    }
+    document.querySelectorAll('.seg button').forEach(function (x) { x.addEventListener('click', function () { load(x.getAttribute('data-book')); }); });
+    var rt = 0; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { grown = true; draw(); }, 120); });
+    load('nq');
+    // the session reprints every minute; keep the card honest while the page sits open
+    setInterval(function () { delete cache[book]; var b = book; fetch(FEED + (b === 'es' ? '?book=es' : ''), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j && j.surface && book === b) { cache[b] = j; data = j; grown = true; paint(); } }).catch(function () {}); }, 60000);
   })();
   </script>
 </body>
