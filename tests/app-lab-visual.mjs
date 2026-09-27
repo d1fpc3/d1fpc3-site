@@ -110,8 +110,20 @@ async function run(vp) {
     check(pill === "Amplifying", `GEX slider below the flip flips the pill (${pill})`);
     await f.evaluate(() => { const s = document.getElementById("gxS"); s.value = 20200; s.dispatchEvent(new Event("input")) });
     check((await f.textContent("#gxPill")) === "Dampening", "above the flip it reads Dampening");
+    // vol and vanna: price pinned, only implied vol moves, and the dealer still has to trade
+    const va = async (v) => { await f.evaluate((x) => { const s = document.getElementById("vaIV"); s.value = x; s.dispatchEvent(new Event("input")) }, v); return { read: await f.textContent("#vaRead"), pill: await f.textContent("#vaPill") } };
+    const down = await va(16), up = await va(28), flat = await va(20);
+    check(down.pill === "Vol falling" && /buy back [\d,]+ NQ/.test(down.read), `vol 16%: ${down.read.slice(0, 90)}`);
+    check(up.pill === "Vol rising" && /sell [\d,]+ more NQ/.test(up.read), `vol 28%: dealer sells (${up.read.match(/sell [\d,]+ more NQ/)?.[0]})`);
+    check(flat.pill === "Vol steady" && /Move the slider/.test(flat.read), "vol 20% reads steady");
+    await f.click(".mx-c[data-c='3']");
+    check(await f.evaluate(() => document.querySelector(".mx-c[data-c='3']").classList.contains("on")), "the regime matrix cell selects");
+    await f.evaluate(() => document.getElementById("vol").scrollIntoView()); await page.waitForTimeout(250);
+    await page.screenshot({ path: `${OUT}/${vp}-vol.png` });
+    await f.click(".q[data-i='6'] .opts button[data-j='2']");
+    check(/1 of 1 right/.test(await f.textContent("#qScore")), "the vanna quiz question grades");
     await f.click(".q[data-i='3'] .opts button[data-j='2']");
-    check(/1 of 1 right/.test(await f.textContent("#qScore")), "quiz grades a right answer");
+    check(/2 of 2 right/.test(await f.textContent("#qScore")), "quiz grades a second right answer");
     const want = theme0 === "dark" ? "light" : "dark";
     await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), want); await page.waitForTimeout(400);
     check((await f.evaluate(() => document.documentElement.getAttribute("data-theme"))) === want, `app theme switch reaches the frame (${want})`);

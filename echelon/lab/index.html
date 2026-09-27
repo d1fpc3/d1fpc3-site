@@ -157,6 +157,17 @@
   .stats { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13px; color: var(--muted); }
   .stats b { font-family: var(--mono); color: var(--ink); }
 
+  /* vol matrix */
+  .mx { display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px; align-items: stretch; }
+  .mx-h { font-size: 12.5px; font-weight: 600; color: var(--muted); align-self: end; padding: 0 4px 2px; }
+  .mx-r { align-self: center; padding-right: 8px; }
+  .mx-c { text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); transition: border-color .15s, transform .15s; }
+  .mx-c b { font-size: 15px; } .mx-c span { font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .mx-c:hover { border-color: var(--gold); transform: translateY(-1px); }
+  .mx-c.damp { box-shadow: inset 3px 0 0 var(--bid); } .mx-c.amp { box-shadow: inset 3px 0 0 var(--ask); }
+  .mx-c.on { border-color: var(--gold); background: var(--gold-soft); }
+  @media (max-width: 560px) { .mx { grid-template-columns: 1fr 1fr; } .mx > span:first-child { display: none; } .mx-r { grid-column: 1 / -1; padding: 6px 4px 0; } }
+
   /* quiz */
   .quiz { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 860px) { .quiz { grid-template-columns: 1fr; } }
@@ -182,14 +193,15 @@
       <a href="#delta"><b>2</b>Delta and gamma</a>
       <a href="#hedge"><b>3</b>Dealer hedging</a>
       <a href="#gex"><b>4</b>The GEX map</a>
-      <a href="#quiz"><b>5</b>Check yourself</a>
+      <a href="#vol"><b>5</b>Vol and vanna</a>
+      <a href="#quiz"><b>6</b>Check yourself</a>
     </nav>
   </header>
 
   <!-- 1. ORDER BOOK -->
   <section id="book">
     <div class="sec-head">
-      <div class="step">1 of 5</div>
+      <div class="step">1 of 6</div>
       <h2>The order book: what actually moves price</h2>
       <p class="muted">Green bids wait to buy. Red offers wait to sell. The gold row is the last trade, which is what your chart shows. Price only moves when market orders eat a level empty. Go through the lessons in order, then use free play.</p>
     </div>
@@ -226,7 +238,7 @@
   <!-- 2. DELTA & GAMMA -->
   <section id="delta">
     <div class="sec-head">
-      <div class="step">2 of 5</div>
+      <div class="step">2 of 6</div>
       <h2>Delta and gamma: why hedging changes as price moves</h2>
       <p class="muted">A 20,000 call. Delta is how many NQ contracts one option acts like. Gamma is how fast delta changes as price moves. Drag the price across the strike, then shrink the time left and watch gamma turn into a spike.</p>
     </div>
@@ -248,7 +260,7 @@
   <!-- 3. HEDGING -->
   <section id="hedge">
     <div class="sec-head">
-      <div class="step">3 of 5</div>
+      <div class="step">3 of 6</div>
       <h2>Same news, two regimes</h2>
       <p class="muted">Both charts get the exact same random news shocks (the faint dashed line is price with no dealers). On the left, dealers are long gamma, so they sell rallies and buy dips. On the right, they are short gamma, so they chase. Nothing else differs.</p>
     </div>
@@ -274,7 +286,7 @@
   <!-- 4. GEX MAP -->
   <section id="gex">
     <div class="sec-head">
-      <div class="step">4 of 5</div>
+      <div class="step">4 of 6</div>
       <h2>The GEX map: walls, flip, and the regime pill</h2>
       <p class="muted">A model book for one day. Customers sold calls above (dealers long those, green) and bought puts below (dealers short those, red). Drag price through it. The flip is where the net total crosses zero, and the pill is the same one on your Echelon chart.</p>
     </div>
@@ -292,10 +304,40 @@
     </div>
   </section>
 
-  <!-- 5. QUIZ -->
+  <!-- 5. VOL AND VANNA -->
+  <section id="vol">
+    <div class="sec-head">
+      <div class="step">5 of 6</div>
+      <h2>Vol and vanna: dealers trade even when price stands still</h2>
+      <p class="muted">Customers own a lot of puts, and dealers are short them. A put's delta depends on implied volatility as well as price. So when vol moves, the dealer's hedge has to change, even if NQ does not move a tick. That flow is called vanna. Price is pinned at 20,000 here. Only the vol slider moves.</p>
+    </div>
+    <div class="two">
+      <div class="card panel">
+        <div class="row" style="justify-content:space-between"><h3>Dealer's hedge against 10,000 short puts</h3><span class="pill" id="vaPill">Vol steady</span></div>
+        <svg id="vaChart" viewBox="0 0 440 250" width="100%" role="img" aria-label="Futures the dealer is short to hedge, across implied volatility"></svg>
+      </div>
+      <div class="card panel">
+        <div class="ctrl"><label for="vaIV">Implied vol (VXN) <output id="vaIVo"></output></label><input id="vaIV" type="range" min="10" max="40" step="0.5" value="16"></div>
+        <div class="read" id="vaRead"></div>
+        <p class="muted" style="font-size:14px">On your chart this is the second pill next to the regime: <b style="color:var(--ink)">Vol falling</b>, <b style="color:var(--ink)">Vol steady</b> or <b style="color:var(--ink)">Vol rising</b>, from the VXN against yesterday's close. The <b style="color:var(--ink)">1σ ±</b> number beside it is how far NQ moves on a normal day at today's vol.</p>
+      </div>
+    </div>
+    <h3>Put the two reads together</h3>
+    <div class="mx" id="mx" role="group" aria-label="Gamma and vol regimes">
+      <span></span><span class="mx-h">Vol falling</span><span class="mx-h">Vol rising</span>
+      <span class="mx-h mx-r">Dampening</span>
+      <button class="mx-c damp" data-c="0"><b>Grind and pin</b><span>Ranges hold, breakouts fail, drift up from vanna. Playbook A.</span></button>
+      <button class="mx-c" data-c="1"><b>Chop</b><span>Walls get tested harder. Still fade, but smaller.</span></button>
+      <span class="mx-h mx-r">Amplifying</span>
+      <button class="mx-c" data-c="2"><b>Squeezes</b><span>Falling vol forces dealers to buy while they chase. Sharp bounces. Careful.</span></button>
+      <button class="mx-c amp" data-c="3"><b>Trend and crash days</b><span>Both flows sell into drops. Follow only, never fade. Playbook B.</span></button>
+    </div>
+  </section>
+
+  <!-- 6. QUIZ -->
   <section id="quiz">
     <div class="sec-head">
-      <div class="step">5 of 5</div>
+      <div class="step">6 of 6</div>
       <h2>Check yourself</h2>
       <p class="muted">Pick an answer. The explanation opens either way.</p>
     </div>
@@ -626,6 +668,7 @@
     { q: 'A dealer is long calls and price rallies. What do they do?', o: ['Buy futures, which speeds the rally up', 'Nothing', 'Sell futures, which slows the rally down'], a: 2, w: 'The calls gain delta as price rises, so the dealer is too long and sells futures to rebalance. That pushes against the rally. This is the Dampening regime.' },
     { q: 'The pill says Amplifying. Price breaks the put wall with no absorption. What do you do?', o: ['Fade it, walls always hold', 'Stay out of the way, then trade with the break on the retest', 'Buy more at the wall'], a: 1, w: 'In negative gamma, dealers sell into drops. With no absorption there is no buyer. Fading here is how accounts blow up.' },
     { q: 'Why do 0DTE options have so much gamma near the current price?', o: ['With little time left, delta swings from near 0 to near 1 over a small move', 'Because they have more volume', 'The exchange sets it'], a: 0, w: 'Drag the time slider in section 2 to 0DTE. The gamma curve becomes a spike at the strike, so small moves force big hedges.' },
+    { q: 'NQ is flat all morning, but the VXN drops 8%. Dealers are short a lot of puts. What do their hedges do?', o: ['Nothing, price did not move', 'They sell futures', 'They buy futures back'], a: 2, w: 'Lower vol shrinks the delta of the puts they are short, so they need a smaller short hedge and buy futures back. That is vanna, and it is why falling vol can lift price on its own.' },
   ]
   const ans = new Map()
   $('#qz').innerHTML = Q.map((x, i) => `<div class="card q" data-i="${i}"><div class="n">Question ${i + 1}</div><div>${x.q}</div><div class="opts">${x.o.map((o, j) => `<button data-j="${j}">${o}</button>`).join('')}</div><div class="why" hidden>${x.w}</div></div>`).join('')
@@ -640,9 +683,41 @@
     $('#qScore').textContent = `${right} of ${ans.size} right${ans.size === Q.length ? (right === Q.length ? '. Clean sheet.' : '. Go back to the sections you missed and run them again.') : ''}`
   })
 
+  /* ───────── 5. vol and vanna ───────── */
+  const VA = { S: 20000, K: 19600, T: 5 / 252, N: 10000, base: 20 }
+  const putDelta = (iv) => bs(VA.S, VA.K, VA.T, iv / 100).delta - 1
+  const hedge = (iv) => Math.round(-putDelta(iv) * VA.N)   // futures the dealer is short
+  function drawVanna() {
+    const iv = +$('#vaIV').value, s = $('#vaChart'); s.innerHTML = ''
+    $('#vaIVo').textContent = iv.toFixed(1) + '%'
+    const W = 440, H = 250, pl = 52, pr = 12, pt = 22, pb = 30, lo = 10, hi = 40
+    const yMax = Math.ceil(hedge(hi) / 1000) * 1000
+    const x = (v) => pl + ((v - lo) / (hi - lo)) * (W - pl - pr), y = (h) => pt + (1 - h / yMax) * (H - pt - pb)
+    for (let h = 0; h <= yMax; h += 1000) { mk('line', { x1: pl, x2: W - pr, y1: y(h), y2: y(h), class: 'grid-l' }, s); mk('text', { x: pl - 6, y: y(h) + 3.5, 'text-anchor': 'end' }, s).textContent = n0(h) }
+    for (const v of [10, 20, 30, 40]) mk('text', { x: x(v), y: H - 10, 'text-anchor': 'middle' }, s).textContent = v + '%'
+    const pts = []; for (let v = lo; v <= hi; v += 0.5) pts.push(`${x(v)},${y(hedge(v))}`)
+    mk('polyline', { points: pts.join(' '), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2 }, s)
+    const hb = hedge(VA.base), hn = hedge(iv), d = hn - hb
+    mk('line', { x1: x(VA.base), x2: x(VA.base), y1: pt, y2: H - pb, stroke: 'var(--faint)', 'stroke-dasharray': '3 3' }, s)
+    mk('text', { x: x(VA.base) + 5, y: H - pb - 6, class: 'lbl', fill: 'var(--faint)' }, s).textContent = 'yesterday 20%'
+    mk('circle', { cx: x(VA.base), cy: y(hb), r: 4, fill: 'var(--faint)' }, s)
+    const col = d < 0 ? 'var(--bid)' : d > 0 ? 'var(--ask)' : 'var(--gold)'
+    if (d !== 0) mk('line', { x1: x(iv), x2: x(iv), y1: y(hb), y2: y(hn), stroke: col, 'stroke-width': 3, 'stroke-linecap': 'round' }, s)
+    mk('circle', { cx: x(iv), cy: y(hn), r: 6, fill: col, stroke: 'var(--panel)', 'stroke-width': 2 }, s)
+    mk('text', { x: pl, y: 12, class: 'lbl', fill: 'var(--muted)' }, s).textContent = 'NQ sold short to hedge'
+    const pill = $('#vaPill'), k = iv < VA.base - 0.4 ? 'damp' : iv > VA.base + 0.4 ? 'amp' : ''
+    pill.className = 'pill ' + k; pill.textContent = k === 'damp' ? 'Vol falling' : k === 'amp' ? 'Vol rising' : 'Vol steady'
+    const pd0 = putDelta(VA.base), pd1 = putDelta(iv)
+    $('#vaRead').innerHTML = d === 0 ? `Vol is where it closed yesterday. Each 19,600 put acts like <b>${pd0.toFixed(2)}</b> NQ, so the dealer is short <b>${n0(hb)} NQ</b> as a hedge. Move the slider.`
+      : d < 0 ? `Vol fell from 20% to <b>${iv.toFixed(1)}%</b>. Each put's delta shrank from <b>${pd0.toFixed(2)}</b> to <b>${pd1.toFixed(2)}</b>, so the dealer only needs <b>${n0(hn)}</b> short instead of ${n0(hb)}. They <b style="color:var(--bid)">buy back ${n0(-d)} NQ</b> with price still at 20,000. That buying is the vanna tailwind behind slow, grinding rallies.`
+      : `Vol rose from 20% to <b>${iv.toFixed(1)}%</b>. Each put's delta grew from <b>${pd0.toFixed(2)}</b> to <b>${pd1.toFixed(2)}</b>, so the dealer must be short <b>${n0(hn)}</b>. They <b style="color:var(--ask)">sell ${n0(d)} more NQ</b> with price still at 20,000. If price then drops, the puts gain delta again and the selling feeds itself.`
+  }
+  $('#vaIV').addEventListener('input', drawVanna)
+  $('#mx').addEventListener('click', (e) => { const b = e.target.closest('.mx-c'); if (!b) return; document.querySelectorAll('.mx-c').forEach((x) => x.classList.toggle('on', x === b)) })
+
   /* boot */
   $('#hgGo').textContent = (+$('#hgG').value).toFixed(1)
-  startLesson(0); drawDG(); newDay(); drawGex()
+  startLesson(0); drawDG(); newDay(); drawGex(); drawVanna()
 })()
 </script>
 
