@@ -156,6 +156,23 @@ await page.waitForTimeout(800)
 check(await page.evaluate(() => document.getElementById('ch-menu-title')?.textContent) === 'Layouts', 'and it opens the layouts panel')
 await page.screenshot({ path: `${OUT}/layouts.png` })
 
+// ── the PO3 candles belong to their bars ──
+// They were pinned to the pane's right edge, so scrolling dragged them along:
+// "they follow my screen". They should move exactly as far as the last bar does.
+await page.keyboard.press('Escape')
+await page.waitForTimeout(400)
+await page.evaluate(() => { const CH = window.__CH; CH.s.lit = true; CH.s.litPo3 = true; CH.$.paint() })
+await page.waitForTimeout(1200)
+const spot = () => page.evaluate(() => ({ last: Math.round(window.__CH.$.pt(window.__CH.bars.at(-1).t, window.__CH.bars.at(-1).c).x), po3: window.__CH.po3At || [] }))
+const p1 = await spot()
+await page.mouse.move(700, 400)
+for (let i = 0; i < 8; i++) { await page.mouse.wheel(-120, 0); await page.waitForTimeout(60) }
+await page.waitForTimeout(900)
+const p2 = await spot()
+const moved = p2.last - p1.last
+const rode = p1.po3.length && p1.po3.every((x, k) => Math.abs((p2.po3[k] - x) - moved) <= 2)
+check(Math.abs(moved) > 200 && rode, `the PO3 candles move with the bars, not the screen (bars ${moved}px, candles ${p1.po3.map((x, k) => p2.po3[k] - x).join(', ')}px)`)
+
 if (errs.length) fails.push('page errors: ' + errs.slice(0, 3).join(' | '))
 console.log(fails.length ? `\n${fails.length} FAILED\n- ${fails.join('\n- ')}` : '\nall ok')
 console.log('shots: ' + OUT)

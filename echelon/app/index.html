@@ -13869,7 +13869,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chVecCache = { key, v }; return v
     }
     // every LIT part has a colour (empty = the Pine default), lines a width, boxes a fill
-    const CH_LIT_DEF = (light) => ({ litPmC: light ? '#7b1fa2' : '#ce93d8', litNwogC: light ? '#7b8595' : '#9aa4b5', litDrC: light ? '#1a1815' : '#e9e3d8', litDrHlC: light ? '#5a5a5a' : '#a0a0a0', litSigC: light ? '#000000' : '#e9e3d8', litDsC: '#000000', litOpen22C: light ? '#1a1815' : '#e9e3d8', litLdnC: '#000000', litWmC: light ? '#1a1815' : '#e9e3d8', litPdC: light ? '#5a5a5a' : '#a0a0a0', litPwC: light ? '#5a5a5a' : '#a0a0a0', litWoC: light ? '#1a1815' : '#e9e3d8', litAsiaC: '#faa1a4', litNyC: '#000000', litOpenC: '#000000', litMarksC: '#080502', litKoC: '#080502', litPo3Up: '#4caf50', litPo3Dn: '#000000', litPo3Lab: '#9e9e9e', litEighthsC: light ? '#5a5a5a' : '#a0a0a0', litGoldC: '#d4af37', litVecUp: '#008f47', litVecDn: '#ffffff' })
+    const CH_LIT_DEF = (light) => ({ litPmC: light ? '#7b1fa2' : '#ce93d8', litNwogC: light ? '#7b8595' : '#9aa4b5', litDrC: light ? '#1a1815' : '#e9e3d8', litDrHlC: light ? '#5a5a5a' : '#a0a0a0', litSigC: light ? '#000000' : '#e9e3d8', litDsC: '#000000', litOpen22C: light ? '#1a1815' : '#e9e3d8', litLdnC: '#000000', litWmC: light ? '#1a1815' : '#e9e3d8', litPdC: light ? '#5a5a5a' : '#a0a0a0', litPwC: light ? '#5a5a5a' : '#a0a0a0', litWoC: light ? '#1a1815' : '#e9e3d8', litAsiaC: '#faa1a4', litNyC: '#000000', litOpenC: '#000000', litMarksC: '#080502', litKoC: '#080502', litPo3Up: '', litPo3Dn: '', litPo3Lab: '#9e9e9e', litEighthsC: light ? '#5a5a5a' : '#a0a0a0', litGoldC: '#d4af37', litVecUp: '#008f47', litVecDn: '#ffffff' })
     const CH_LIT_PARTS = [['litPd', 'PDH / PDL', 'litPdC', 'litPdW'], ['litPw', 'PWH / PWL', 'litPwC', 'litPwW'], ['litWo', 'Weekly open', 'litWoC', 'litWoW'], ['litAsia', 'Asia box', 'litAsiaC', null, 'litAsiaF'], ['litNy', 'NYT box', 'litNyC', null, 'litNyF'], ['litOpen', '18:00 open', 'litOpenC', 'litOpenW'], ['litMarks', 'FF LO MM1 MM2 LC', 'litMarksC'], ['litKo', 'Key opens', 'litKoC'], ['litPo3', 'PO3 candles', 'litPo3Up', null, null, 'litPo3Dn'], ['litEighths', 'Weekly eighths', 'litEighthsC'], ['litGold', 'Golden Tue/Wed', 'litGoldC', 'litGoldW'], ['litVector', 'Vector candles', 'litVecUp', null, null, 'litVecDn'],
       ['litPm', 'PMH / PML', 'litPmC', 'litPmW'], ['litNwog', 'Liquidity voids (NWOG)', 'litNwogC', null, 'litNwogF'], ['litDr', 'Daily reset levels', 'litDrC', 'litDrW', null, 'litDrHlC'], ['litSig', 'σ bands (expected move)', 'litSigC', 'litSigW'], ['litDs', 'Day separators', 'litDsC'], ['litOpen22', '22:00 open', 'litOpen22C', 'litOpen22W'], ['litLdn', 'London box', 'litLdnC', null, 'litLdnF'], ['litWm', 'Watermark tag', 'litWmC']]
     /* ── the label lane ──
@@ -13969,14 +13969,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         // and only fall back to the edge when there is no room out there.
         const lastX = X(n - 1)
         const wOf = (c) => Math.max(6, Math.min(26, c.width * CH.barW))
+        // No clamp. Pulling them back when the offset space was off screen is what
+        // made them ride the viewport while D1 scrolled: they were pinned to the
+        // right edge every frame the future space was not visible. They belong to
+        // their bars, so they scroll away like everything else on the chart.
         const want = lit.po3.map((c) => ({ c, x: lastX + c.offset * CH.barW, w: wOf(c) }))
-        const right = Math.max(...want.map((p) => p.x + p.w))
-        const shift = right > L.plotW - 8 ? right - (L.plotW - 8) : 0
-        for (const p of want) p.x -= shift
-        const cw = wOf(lit.po3[0]), gap = Math.max(10, cw * 0.7)
-        const total = right - shift - want[0].x
+        CH.po3At = want.map((p) => Math.round(p.x))   // where they landed, for the harness
         let x = want[0].x
-        if (x > 40) {
+        if (want.some((p) => p.x + p.w > 0 && p.x < L.plotW)) {
           if (x < X(n - 1) + CH.barW && /^#[0-9a-f]{6}$/i.test(CH.bgNow || '')) {
             let t = Infinity, b = -Infinity
             for (const c of lit.po3) { t = Math.min(t, Y(c.h)); b = Math.max(b, Y(c.l)) }
@@ -13984,11 +13984,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           }
           for (const p of want) {
             const c = p.c, cw = p.w; x = p.x
-            const mid = x + cw / 2, up = c.c >= c.o, body = up ? cc('litPo3Up') : cc('litPo3Dn')
+            // A PO3 candle is a candle. It follows whatever the chart's candles are
+            // wearing (body, wick and border, up and down) unless a PO3 colour has
+            // been set on purpose, so changing the candle colour changes these too.
+            const mid = x + cw / 2, up = c.c >= c.o
+            const CD = chDefaults(T, light)
+            const body = (up ? S.litPo3Up : S.litPo3Dn) || (up ? S.up || CD.up : S.down || CD.down)
+            const wick = (up ? S.wickUp || S.up || CD.wickUp : S.wickDown || S.down || CD.wickDown)
+            const edge = (up ? S.borderUp || S.up || CD.borderUp : S.borderDown || S.down || CD.borderDown)
             const top = Math.min(Y(c.o), Y(c.c)), hgt = Math.max(1, Math.abs(Y(c.c) - Y(c.o)))
-            ctx.strokeStyle = cc('litPo3Dn'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Math.round(mid) + 0.5, Y(c.h)); ctx.lineTo(Math.round(mid) + 0.5, Y(c.l)); ctx.stroke()
+            ctx.strokeStyle = wick; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Math.round(mid) + 0.5, Y(c.h)); ctx.lineTo(Math.round(mid) + 0.5, Y(c.l)); ctx.stroke()
             ctx.fillStyle = body; ctx.fillRect(x, top, cw, hgt)
-            ctx.strokeStyle = light ? '#000' : 'rgba(0,0,0,0.6)'; ctx.strokeRect(Math.round(x) + 0.5, Math.round(top) + 0.5, Math.round(cw), Math.round(hgt))
+            ctx.strokeStyle = edge; ctx.strokeRect(Math.round(x) + 0.5, Math.round(top) + 0.5, Math.round(cw), Math.round(hgt))
             tag(c.openAt ? CH_ET_HM.format(new Date(c.openAt * 1000)) : c.label.replace(' PO3', ''), mid, Y(c.h) - 7, cc('litPo3Lab'), 'center', 9.5, 40)
           }
         }
@@ -15103,7 +15110,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       } else {
         const vec = S.lit && S.litVector ? chLitVectors() : null
         const ha = S.type === 'heikin' ? chHeikin() : null
-        const vecUp = S.litVecUp || '#008f47', vecDn = S.litVecDn || '#ffffff'
+        // A vector candle is still one of your candles: it wears the chart's own
+        // colours unless a vector colour has been set on purpose, the same rule the
+        // PO3 candles follow. Hard-coded green and white made them a different
+        // chart sitting inside this one.
+        const vecUp = S.litVecUp || C.up, vecDn = S.litVecDn || C.down
         const wicks = S.wicks !== false, borderC = (up) => (up ? C.borderUp : C.borderDown) || alpha('#000000', 0.25)
         for (let i = i0; i <= i1; i++) {
           const b = ha ? ha[i] : bars[i], up = b.c >= b.o, x = Math.round(chX(i, L)) + 0.5
