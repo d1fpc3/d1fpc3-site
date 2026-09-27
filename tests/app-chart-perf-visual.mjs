@@ -73,6 +73,60 @@ const full = await run(1)
 check(full.long <= 1,`full speed: ${full.frames} frames, p95 ${full.p95}ms, worst ${full.max}ms, ${full.long} over 20ms`)
 const slow = await run(4)
 check(slow.long <= 5, `CPU slowed 4x: ${slow.frames} frames, p95 ${slow.p95}ms, worst ${slow.max}ms, ${slow.long} over 20ms`)
+await ctx.close()
+
+// ── a phone: real touch through CDP on a Pixel 7 screen (2.6x pixels) ──
+// A phone CPU is taken as 4x slower than this desktop, and 6x for an older one.
+// The fingers: a slow pan, a fling, a pinch out and back, and a Settings sheet
+// rising (its slide is a transform, so it should cost the page nothing).
+{
+  const { devices } = require(PW_PATHS.find((p) => existsSync(p)) || 'playwright')
+  const pctx = await browser.newContext({ ...devices['Pixel 7'] })
+  await pctx.addInitScript(([k, v]) => {
+    if (sessionStorage.getItem('seeded')) return
+    sessionStorage.setItem('seeded', '1')
+    localStorage.setItem(k, v); localStorage.setItem('echelon-splash-day', new Date().toDateString()); localStorage.setItem('echelon-theme', 'dark'); localStorage.setItem('echelon-gex-tour', '1')
+    localStorage.removeItem('echelon-chart-settings')
+  }, [`sb-${REF}-auth-token`, JSON.stringify(session)])
+  const pg = await pctx.newPage()
+  await pg.goto(APP, { waitUntil: 'domcontentloaded' }); await pg.waitForSelector('#td-h1', { timeout: 60000 }); await pg.waitForTimeout(1500)
+  await pg.evaluate(() => document.querySelector('[data-view="chart"]').click()); await pg.waitForTimeout(4500)
+  await pg.evaluate(() => { const o = document.getElementById('onb'); if (o && !o.hidden) { o.hidden = true; document.body.classList.remove('onb-open') } })
+  const pcdp = await pctx.newCDPSession(pg)
+  const pb = await pg.locator('#ch-canvas').boundingBox()
+  const touch = (type, pts) => pcdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], id) => ({ x, y, id, radiusX: 4, radiusY: 4, force: 1 })) })
+  const frames = async (fn) => {
+    await pg.evaluate(() => { window.__ft = []; let last = performance.now(); const loop = (t) => { window.__ft.push(t - last); last = t; if (!window.__stop) requestAnimationFrame(loop) }; window.__stop = false; requestAnimationFrame(loop) })
+    await fn(); await pg.waitForTimeout(700)
+    const ft = await pg.evaluate(() => { window.__stop = true; return window.__ft.slice(2) }); ft.sort((a, b) => a - b)
+    return { frames: ft.length, p95: +ft[Math.floor(ft.length * 0.95)].toFixed(1), max: +ft.at(-1).toFixed(1), long: ft.filter((x) => x > 20).length }
+  }
+  const cx = pb.x + pb.width * 0.5, cy = pb.y + pb.height * 0.55
+  const fingers = async () => {
+    await pg.evaluate(() => { window.__CH.barW = 9; window.__CH.offset = 6; window.__CH.auto = true; window.__CH.$.paint() })
+    await touch('touchStart', [[cx + 120, cy]]); for (let k = 1; k <= 40; k++) { await touch('touchMove', [[cx + 120 - k * 6, cy + Math.sin(k / 6) * 10]]); await pg.waitForTimeout(8) } await touch('touchEnd', [])
+    await touch('touchStart', [[cx - 100, cy]]); for (let k = 1; k <= 10; k++) { await touch('touchMove', [[cx - 100 + k * 22, cy]]); await pg.waitForTimeout(8) } await touch('touchEnd', []); await pg.waitForTimeout(500)
+    await touch('touchStart', [[cx - 30, cy], [cx + 30, cy]]); for (let k = 1; k <= 25; k++) { await touch('touchMove', [[cx - 30 - k * 5, cy], [cx + 30 + k * 5, cy]]); await pg.waitForTimeout(8) }
+    for (let k = 24; k >= 0; k--) { await touch('touchMove', [[cx - 30 - k * 5, cy], [cx + 30 + k * 5, cy]]); await pg.waitForTimeout(8) } await touch('touchEnd', [])
+  }
+  // The first Settings open of a session compiles the panel code and rasterises its glyphs for
+  // the first time (~26ms of script and layout here, then the GPU). Reported on its own; the
+  // opens after it are what a trader feels all day.
+  const first = await frames(async () => { await pg.locator('#ch-settings-btn').tap(); await pg.waitForTimeout(450); await pg.evaluate(() => window.__CH.$.menu(null)) })
+  check(first.max < 160, `phone, first Settings open of the session: worst frame ${first.max}ms, ${first.long} over 20ms`)
+  for (const rate of [1, 4, 6]) {
+    await pcdp.send('Emulation.setCPUThrottlingRate', { rate })
+    const r = await frames(fingers)
+    // the first pass pays for compiling the gesture code, so full speed allows two
+    check(r.long <= (rate === 1 ? 2 : rate === 4 ? 5 : 14), `phone, fingers, CPU ${rate}x: ${r.frames} frames, p95 ${r.p95}ms, worst ${r.max}ms, ${r.long} over 20ms`)
+    const s = await frames(async () => { await pg.locator('#ch-settings-btn').tap(); await pg.waitForTimeout(450); await pg.evaluate(() => window.__CH.$.menu(null)) })
+    check(s.long <= (rate === 1 ? 1 : 3), `phone, Settings sheet up and down, CPU ${rate}x: p95 ${s.p95}ms, worst ${s.max}ms, ${s.long} over 20ms`)
+    const tf = await pg.evaluate(async () => { const a = performance.now(); window.__CH.$.menu(null); document.querySelector('#ch-tf .seg button, #ch-tf button[data-tf="15m"]')?.click(); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); const b = performance.now(); document.querySelector('#ch-tf button[data-tf="5m"]')?.click(); return +(b - a).toFixed(0) })
+    check(tf < (rate === 1 ? 120 : 400), `phone, switching the interval paints in ${tf}ms at CPU ${rate}x`)
+  }
+  await pcdp.send('Emulation.setCPUThrottlingRate', { rate: 1 })
+  await pctx.close()
+}
 
 console.log(fails.length ? `\n${fails.length} FAILED\n- ${fails.join('\n- ')}` : '\nall ok')
 await browser.close()
