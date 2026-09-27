@@ -17,7 +17,7 @@ const { chromium, devices } = require(PW.find((p) => existsSync(p)) || 'playwrig
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const PORT = Number(process.env.PORT || 8137)
 // admin/memecoins.html is a fragment the admin desk loads, not a page, so it is not listed
-const PAGES = ['echelon/admin/', 'echelon/admin/kalshi-desk/', 'echelon/admin/kalshi-desk/terminal.html', 'echelon/admin/kalshi-desk/weather.html', 'echelon/app/', 'echelon/apply/', 'echelon/gex/', 'echelon/lab/', 'echelon/mod/', 'echelon/propfirms/', 'echelon/weather/', 'echelon/welcome/']
+const PAGES = ['echelon/admin/', 'echelon/admin/memecoin-bot/', 'echelon/admin/kalshi-desk/', 'echelon/admin/kalshi-desk/terminal.html', 'echelon/admin/kalshi-desk/weather.html', 'echelon/app/', 'echelon/apply/', 'echelon/gex/', 'echelon/lab/', 'echelon/mod/', 'echelon/propfirms/', 'echelon/weather/', 'echelon/welcome/']
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png' }
 let server = null

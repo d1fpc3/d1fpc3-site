@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <!-- zoom-lock: the page is an app, not a document. The meta stops pinch in WKWebView and Chromium; Safari ignores it, so the gesture guard below does the same job there. touch-action: manipulation removes double-tap zoom everywhere. -->
+  <style>html{touch-action:manipulation;-webkit-text-size-adjust:100%}</style>
+  <script>(function(){var p=function(e){e.preventDefault()};['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,p,{passive:false})});document.addEventListener('touchmove',function(e){if(typeof e.scale==='number'&&e.scale!==1)p(e)},{passive:false});window.__zoomLock=true})()</script>
+  <title>Memecoin bot | Echelon</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0b0a09">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <script>
+    /* Interface scale: on a big monitor the page is drawn larger, the way browser zoom would.
+       Same rule as the rest of Echelon admin. */
+    (function () {
+      function pick() {
+        var ok = window.top === window && /Chrome\/\d+/.test(navigator.userAgent) && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+        var pref = 'auto'; try { pref = localStorage.getItem('echelon-ui-scale') || 'auto' } catch (e) {}
+        var w = window.innerWidth, z = 1;
+        if (ok && w >= 1500) z = pref === 'auto' ? Math.min(1.6, Math.max(1, Math.round(w / 1500 * 20) / 20)) : (parseFloat(pref) || 1);
+        if (ok && w / z < 1180) z = Math.max(1, Math.floor(w / 1180 * 20) / 20);
+        window.__uiz = z; document.documentElement.style.setProperty('--ui', String(z));
+      }
+      pick(); window.addEventListener('resize', pick);
+      try {
+        var t = localStorage.getItem('echelon-theme');
+        var dark = t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    :root { --ui: 1; --vh: calc(1vh / var(--ui)); --dvh: calc(1dvh / var(--ui)); --vw: calc(1vw / var(--ui)); }
+    html { zoom: var(--ui); }
+  </style>
+  <style>
+    /* ─────────────────────────────────────────────────────────
+       d1fpc3.com | echelon | admin | memecoin bot
+
+       The paper record of the pump.fun bot (apps/memecoin-bot), who is
+       worth tracking in J7, and the latest backtest. This file is public;
+       the rows only come back when Postgres says the signed-in user is an
+       Echelon admin (RLS on memecoin_bot_trades / memecoin_bot_reports).
+       ───────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+    :root {
+      --bg: #0b0a09; --panel: #131211; --panel-2: #1a1817; --panel-3: #22201e;
+      --ink: #f4f2ee; --muted: #9d978c; --faint: #6b665e;
+      --line: #262321; --line-bright: #383431;
+      --gold: #c9a24a; --gold-deep: #a8842c; --gold-glow: rgba(201,162,74,.16);
+      --bad: #d98b7a; --good: #86b57f;
+      --ease: cubic-bezier(.2,.8,.2,1);
+    }
+    :root[data-theme="light"] {
+      --bg: #f6f4f0; --panel: #ffffff; --panel-2: #efece6; --panel-3: #e7e3dc;
+      --ink: #1a1815; --muted: #5f5a51; --faint: #8a847a;
+      --line: #e4e0d8; --line-bright: #d3cec4;
+      --gold: #a8842c; --gold-deep: #8a6a1e; --gold-glow: rgba(168,132,44,.12);
+      --bad: #b4543c; --good: #4e7d46;
+    }
+    html, body { min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--ink);
+      font: 14px/1.55 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    a { color: inherit; }
+    .num { font-variant-numeric: tabular-nums; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, Consolas, monospace; }
+
+    /* ── shell ── */
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 24px 96px; }
+    .top { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+    .back {
+      display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px 0 9px;
+      border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 13px;
+      background: var(--panel); transition: color .15s, background .15s, transform .1s;
+    }
+    .back svg { width: 16px; height: 16px; }
+    @media (hover: hover) { .back:hover { color: var(--ink); background: var(--panel-2); } }
+    .back:active { transform: scale(.97); }
+    .top h1 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+    .fresh { margin-left: auto; font-size: 12.5px; color: var(--faint); display: flex; align-items: center; gap: 10px; }
+    .fresh button {
+      height: 30px; padding: 0 12px; border-radius: 8px; border: 0; cursor: pointer;
+      background: var(--panel); color: var(--muted); font: inherit; font-size: 12.5px;
+      transition: color .15s, background .15s, transform .1s;
+    }
+    @media (hover: hover) { .fresh button:hover { color: var(--ink); background: var(--panel-2); } }
+    .fresh button:active { transform: scale(.97); }
+    .fresh button.spin { color: var(--gold); }
+
+    /* ── hero ── */
+    .hero {
+      position: relative; overflow: hidden; border-radius: 18px; padding: 28px 28px 24px;
+      background: radial-gradient(120% 140% at 0% 0%, var(--gold-glow), transparent 55%), var(--panel);
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 32px; align-items: stretch; margin-bottom: 18px;
+    }
+    .hero .curve { display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; min-width: 0; }
+    .hero .curve svg { width: 100%; height: 96px; display: block; }
+    .hero .curve .cap { display: flex; justify-content: space-between; font-size: 12px; color: var(--faint); }
+    .hero .k { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+    .hero .big { font-size: 48px; line-height: 1.05; font-weight: 600; letter-spacing: -.03em; }
+    .hero .big small { font-size: 18px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-left: 6px; }
+    .hero .sub { margin-top: 10px; color: var(--muted); font-size: 14px; max-width: 62ch; }
+    .hero .sub b { color: var(--ink); font-weight: 500; }
+    .workers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
+    .w {
+      display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border-radius: 999px;
+      background: color-mix(in srgb, var(--panel-2) 80%, transparent); font-size: 12px; color: var(--muted); white-space: nowrap;
+    }
+    .w i { width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 22%, transparent); }
+    .w.dead i { background: var(--bad); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 22%, transparent); }
+    .w.dead { color: var(--bad); }
+
+    /* ── sections ── */
+    section { margin-top: 36px; }
+    .sh { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .sh h2 { font-size: 16px; font-weight: 600; letter-spacing: -.005em; }
+    .sh p { color: var(--faint); font-size: 13px; }
+
+    /* strategy cards */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); gap: 12px; }
+    .card {
+      background: var(--panel); border-radius: 14px; padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 12px;
+      transition: background .18s var(--ease), transform .18s var(--ease); min-width: 0;
+    }
+    @media (hover: hover) { .card:hover { background: var(--panel-2); } }
+    .card .nm { font-weight: 600; font-size: 14px; line-height: 1.3; }
+    .card .row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .card .ret { font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
+    .card .meta { color: var(--muted); font-size: 12.5px; text-align: right; line-height: 1.4; }
+    .pos { color: var(--good); } .neg { color: var(--bad); } .flat { color: var(--muted); }
+    .pill { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 999px; font-size: 12px; font-weight: 500; background: var(--panel-3); color: var(--muted); white-space: nowrap; }
+    .pill.passes { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+    .pill.killed, .pill.noedge { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+    .pill.collecting { background: var(--panel-3); color: var(--muted); }
+    .ci { position: relative; height: 22px; }
+    .ci .track { position: absolute; left: 0; right: 0; top: 10px; height: 2px; border-radius: 2px; background: var(--line); }
+    .ci .zero { position: absolute; top: 4px; width: 1px; height: 14px; background: var(--line-bright); }
+    .ci .rng { position: absolute; top: 8px; height: 6px; border-radius: 6px; background: var(--faint); opacity: .55; }
+    .ci .rng.pos { background: var(--good); opacity: .7; } .ci .rng.neg { background: var(--bad); opacity: .7; }
+    .ci .dot { position: absolute; top: 5px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 3px var(--panel); }
+    .card:hover .ci .dot { box-shadow: 0 0 0 3px var(--panel-2); }
+    .spark { width: 100%; height: 44px; display: block; }
+    .card .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; color: var(--faint); }
+
+    /* segmented control */
+    .seg {
+      display: inline-flex; gap: 2px; padding: 3px; border-radius: 11px; background: var(--panel);
+      max-width: 100%; overflow-x: auto; scrollbar-width: none; position: relative;
+    }
+    .seg::-webkit-scrollbar { display: none; }
+    .seg button {
+      position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted); cursor: pointer;
+      height: 30px; padding: 0 12px; border-radius: 8px; font: inherit; font-size: 12.5px; font-weight: 500; white-space: nowrap;
+      transition: color .15s, transform .1s;
+    }
+    .seg button[aria-pressed="true"] { color: var(--ink); }
+    .seg button:active { transform: scale(.97); }
+    @media (hover: hover) { .seg button:hover { color: var(--ink); } }
+    .seg .thumb { position: absolute; z-index: 0; top: 3px; height: 30px; border-radius: 8px; background: var(--panel-3); transition: transform .28s var(--ease), width .28s var(--ease); }
+
+    /* tables */
+    .tbl { background: var(--panel); border-radius: 14px; overflow: hidden; }
+    .tbl .scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; font-weight: 500; color: var(--faint); font-size: 12px; padding: 12px 14px 8px; white-space: nowrap; }
+    td { padding: 10px 14px; border-top: 1px solid var(--line); white-space: nowrap; }
+    th.r, td.r { text-align: right; }
+    tbody tr { transition: background .15s; }
+    @media (hover: hover) { tbody tr:hover { background: var(--panel-2); } }
+    td .sub { color: var(--faint); font-size: 12px; }
+    .handle { text-decoration: none; font-weight: 500; }
+    .handle:hover { color: var(--gold); }
+    .coin { font-weight: 500; max-width: 180px; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: bottom; }
+    .coin a { text-decoration: none; } .coin a:hover { color: var(--gold); }
+    .empty { padding: 28px 16px; text-align: center; color: var(--faint); font-size: 13px; }
+    .more {
+      display: block; width: 100%; height: 44px; border: 0; border-top: 1px solid var(--line); background: transparent;
+      color: var(--muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: color .15s, background .15s;
+    }
+    @media (hover: hover) { .more:hover { color: var(--ink); background: var(--panel-2); } }
+    .more:active { background: var(--panel-3); }
+    .bar { height: 6px; border-radius: 6px; background: var(--panel-3); overflow: hidden; min-width: 80px; }
+    .bar i { display: block; height: 100%; border-radius: 6px; background: var(--gold); opacity: .8; }
+
+    .two { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+
+    /* backtest */
+    details.bt { background: var(--panel); border-radius: 14px; }
+    details.bt summary {
+      list-style: none; cursor: pointer; padding: 16px; display: flex; align-items: center; gap: 12px; font-weight: 500;
+      border-radius: 14px; transition: background .15s;
+    }
+    details.bt summary::-webkit-details-marker { display: none; }
+    @media (hover: hover) { details.bt summary:hover { background: var(--panel-2); } }
+    details.bt summary .chev { margin-left: auto; width: 18px; height: 18px; color: var(--faint); transition: transform .25s var(--ease); }
+    details.bt[open] summary .chev { transform: rotate(180deg); }
+    details.bt summary .sub { color: var(--faint); font-weight: 400; font-size: 13px; }
+    .bt pre { margin: 0 16px 16px; padding: 14px; border-radius: 10px; background: var(--bg); color: var(--muted); font: 12px/1.6 'IBM Plex Mono', ui-monospace, Consolas, monospace; overflow-x: auto; white-space: pre; }
+    .findings { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .finding { background: var(--panel); border-radius: 14px; padding: 16px; }
+    .finding .v { font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin-bottom: 4px; }
+    .finding p { color: var(--muted); font-size: 13px; }
+
+    /* skeleton */
+    .skel { position: relative; overflow: hidden; background: var(--panel); border-radius: 14px; }
+    .skel::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent); animation: sh 1.3s infinite; }
+    :root[data-theme="light"] .skel::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent); }
+    @keyframes sh { to { transform: translateX(100%); } }
+
+    /* entrance */
+    .in { opacity: 0; transform: translateY(10px); animation: rise .38s var(--ease) forwards; }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .in { animation: fade .2s forwards; transform: none; } @keyframes fade { to { opacity: 1; } } .seg .thumb { transition: none; } }
+
+    /* gate */
+    .gate { min-height: 100vh; min-height: var(--dvh, 100vh); display: grid; place-items: center; padding: 24px; background: #0b0a09; color: #f4f2ee; }
+    .gate .box { width: min(380px, 100%); background: #131211; border-radius: 18px; padding: 28px; box-shadow: 0 30px 80px -30px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.04); }
+    .gate h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+    .gate p { color: #9d978c; font-size: 13.5px; margin-bottom: 18px; }
+    .gate input { width: 100%; height: 44px; margin-bottom: 10px; padding: 0 14px; border-radius: 10px; border: 1px solid #262321; background: #0b0a09; color: #f4f2ee; font: inherit; font-size: 14.5px; outline: 0; transition: border-color .15s, box-shadow .15s; }
+    .gate input:focus { border-color: #c9a24a; box-shadow: 0 0 0 3px rgba(201,162,74,.2); }
+    .gate button { width: 100%; height: 44px; border: 0; border-radius: 10px; background: #c9a24a; color: #0b0a09; font: 600 14.5px/1 inherit; font-family: inherit; cursor: pointer; transition: filter .15s, transform .1s; }
+    .gate button:active { transform: scale(.98); }
+    .gate button:disabled { opacity: .6; cursor: default; }
+    .gate .err { color: #d98b7a; font-size: 13px; margin-top: 10px; min-height: 18px; }
+    .gate a { color: #c9a24a; }
+
+    @media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) {
+      .wrap { padding: 16px 16px 80px; }
+      .top { margin-bottom: 18px; gap: 10px; }
+      .top h1 { font-size: 18px; }
+      .fresh span { display: none; }
+      .hero { grid-template-columns: 1fr; gap: 18px; padding: 22px 18px 18px; border-radius: 16px; }
+      .hero .big { font-size: 38px; }
+      .hero .curve svg { height: 72px; }
+      section { margin-top: 28px; }
+      /* five cards stacked is five screens; on a phone they ride a snap carousel instead */
+      .cards { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: none; }
+      .cards::-webkit-scrollbar { display: none; }
+      .cards > * { flex: 0 0 80%; scroll-snap-align: start; scroll-margin-left: 16px; }
+      th, td { padding-left: 12px; padding-right: 12px; }
+      .hide-sm { display: none; }
+    }
+    @media (pointer: coarse) { .seg button { height: 36px; padding: 0 14px; } .seg .thumb { height: 36px; } }
+  </style>
+</head>
+<body>
+  <div class="gate" id="gate" hidden>
+    <form class="box" id="gate-form">
+      <h2 id="gate-title">Memecoin bot</h2>
+      <p id="gate-say">Sign in with your Echelon admin account.</p>
+      <div id="gate-fields">
+        <input id="gate-email" type="email" placeholder="Email" autocomplete="username" required>
+        <input id="gate-pass" type="password" placeholder="Password" autocomplete="current-password" required>
+        <button id="gate-go" type="submit">Sign in</button>
+      </div>
+      <div class="err" id="gate-err"></div>
+    </form>
+  </div>
+
+  <main class="wrap" id="app" hidden>
+    <div class="top">
+      <a class="back" href="/echelon/admin/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Admin</a>
+      <h1>Memecoin bot</h1>
+      <div class="fresh"><span id="fresh">Loading</span><button id="refresh" type="button">Refresh</button></div>
+    </div>
+
+    <div class="hero in" id="hero">
+      <div>
+        <div class="k">Paper P&amp;L, all strategies</div>
+        <div class="big num" id="hero-pnl">&nbsp;</div>
+        <div class="sub" id="hero-sub">&nbsp;</div>
+        <div class="workers" id="workers"></div>
+      </div>
+      <div class="curve" id="hero-curve"></div>
+    </div>
+
+    <section>
+      <div class="sh"><h2>Strategies on paper</h2><p id="bar-say">Live after 100 trades with the whole range above zero.</p></div>
+      <div class="cards" id="cards"></div>
+    </section>
+
+    <section>
+      <div class="sh"><h2>Who to track in J7</h2><p id="who-say"></p></div>
+      <div class="two">
+        <div class="tbl"><div class="scroll"><table>
+          <thead><tr><th>Account</th><th class="r">Posts coined</th><th class="r">Coins</th><th class="r">Posts that graduated</th><th class="r hide-sm">Best peak</th></tr></thead>
+          <tbody id="who"></tbody>
+        </table></div></div>
+        <div class="tbl"><div class="scroll"><table>
+          <thead><tr><th>Launched with</th><th class="r">Launches</th><th>Graduated</th></tr></thead>
+          <tbody id="tools"></tbody>
+        </table></div></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sh"><h2>Recent paper trades</h2></div>
+      <div class="seg" id="seg" role="group" aria-label="Filter trades by strategy"><span class="thumb" id="thumb"></span></div>
+      <div class="tbl" style="margin-top:12px"><div class="scroll"><table>
+        <thead><tr><th>Closed</th><th>Coin</th><th class="hide-sm">Strategy</th><th class="r">Return</th><th class="r hide-sm">Peak</th><th>Exit</th></tr></thead>
+        <tbody id="trades"></tbody>
+      </table></div><button class="more" id="more" type="button" hidden>Show 20 more</button></div>
+    </section>
+
+    <section>
+      <div class="sh"><h2>What the backtest says</h2><p id="bt-say"></p></div>
+      <div class="findings" id="findings"></div>
+      <details class="bt" id="bt">
+        <summary>Full backtest report <span class="sub" id="bt-sum"></span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <pre id="bt-text"></pre>
+      </details>
+    </section>
+  </main>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+    const SB = createClient('https://cqdignbleethroyxxvzr.supabase.co', 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x')
+    const $ = (id) => document.getElementById(id)
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+
+    const NAMES = {
+      'launch-all-tp2-sl50': ['Every launch', 'the control'],
+      'launch-devbuy-over2': ['Big dev buy', '2+ SOL, your thesis as stated'],
+      'launch-devbuy-small': ['Small dev buy', '0.5 SOL or less, the inverse'],
+      'launch-mayhem': ['Mayhem Mode launches', 'pump.fun AI agent trades them'],
+      'kol-first-copy-exit': ['First KOL buy, copy their sell', 'the influencer play'],
+    }
+    const SHORT = { 'launch-all-tp2-sl50': 'Control', 'launch-devbuy-over2': 'Dev 2+ SOL', 'launch-devbuy-small': 'Dev small', 'launch-mayhem': 'Mayhem', 'kol-first-copy-exit': 'KOL copy' }
+    const pct = (v, d = 1) => Number.isFinite(v) ? (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(d) + '%' : '–'
+    const sol = (v) => Number.isFinite(v) ? (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(2) : '–'
+    const cls = (v) => !Number.isFinite(v) || Math.abs(v) < 1e-9 ? 'flat' : v > 0 ? 'pos' : 'neg'
+    const ago = (iso) => {
+      if (!iso) return 'never'
+      const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000)
+      return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'
+    }
+    const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+
+    /* ── gate ── */
+    async function boot() {
+      const { data: { session } } = await SB.auth.getSession()
+      if (!session) return gate('Sign in with your Echelon admin account.', true)
+      const { data: isAdmin } = await SB.rpc('is_admin')
+      if (!isAdmin) return gate(`${session.user.email} is not an Echelon admin.`, false)
+      $('gate').hidden = true
+      $('app').hidden = false
+      skeletons()
+      await load()
+      setInterval(() => { if (!document.hidden) load() }, 60_000)
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) load() })
+    }
+    function gate(msg, form) {
+      $('gate').hidden = false; $('app').hidden = true
+      $('gate-say').textContent = msg
+      $('gate-fields').hidden = !form
+    }
+    $('gate-form').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      $('gate-go').disabled = true; $('gate-err').textContent = ''
+      const { error } = await SB.auth.signInWithPassword({ email: $('gate-email').value.trim(), password: $('gate-pass').value })
+      $('gate-go').disabled = false
+      if (error) { $('gate-err').textContent = 'That email and password did not match.'; return }
+      boot()
+    })
+
+    function skeletons() {
+      $('cards').innerHTML = Array.from({ length: 5 }, () => '<div class="skel" style="height:208px"></div>').join('')
+      $('who').innerHTML = '<tr><td colspan="5"><div class="skel" style="height:120px"></div></td></tr>'
+      $('trades').innerHTML = '<tr><td colspan="6"><div class="skel" style="height:160px"></div></td></tr>'
+    }
+
+    /* ── data ── */
+    let state = { trades: [], filter: 'all', limit: 20 }
+    $('more').addEventListener('click', () => { state.limit += 20; renderTrades() })
+    async function latest(kind) {
+      const { data } = await SB.from('memecoin_bot_reports').select('at, body, lines').eq('kind', kind).order('at', { ascending: false }).limit(1)
+      return data?.[0] || null
+    }
+    let loading = false
+    async function load() {
+      if (loading) return
+      loading = true; $('refresh').classList.add('spin'); $('refresh').textContent = 'Refreshing'
+      try {
+        const [paper, status, who, bt, tr] = await Promise.all([
+          latest('paper'), latest('status'), latest('who'), latest('backtest'),
+          SB.from('memecoin_bot_trades').select('strategy, mint, label, kol, t_out, ret, pnl, peak, why').order('t_out', { ascending: false }).limit(300),
+        ])
+        state.trades = tr.data || []
+        renderHero(paper, status)
+        renderCards(paper)
+        renderWho(who)
+        renderSeg(paper)
+        renderTrades()
+        renderBacktest(bt)
+        $('fresh').textContent = paper ? 'Updated ' + ago(paper.at) : 'No data yet'
+      } finally {
+        loading = false; $('refresh').classList.remove('spin'); $('refresh').textContent = 'Refresh'
+      }
+    }
+    $('refresh').addEventListener('click', load)
+
+    function countUp(node, to, fmt) {
+      const from = Number(node.dataset.v || 0)
+      node.dataset.v = to
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches || from === to) { node.textContent = fmt(to); return }
+      const t0 = performance.now(), dur = 600
+      const step = (t) => {
+        const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3)
+        node.textContent = fmt(from + (to - from) * e)
+        if (k < 1) requestAnimationFrame(step)
+      }
+      requestAnimationFrame(step)
+    }
+
+    function renderHero(paper, status) {
+      const S = paper?.body?.strategies || []
+      const pnl = S.reduce((s, x) => s + (x.pnl || 0), 0)
+      const n = paper?.body?.trades || 0
+      const big = $('hero-pnl')
+      big.className = 'big num ' + cls(pnl)
+      if (!big.querySelector('span')) big.innerHTML = '<span></span><small>SOL</small>'
+      countUp(big.querySelector('span'), pnl, (v) => sol(v))
+      const passing = S.filter((x) => x.verdict === 'passes').length
+      const since = paper?.body?.since ? new Date(paper.body.since).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : null
+      $('hero-sub').innerHTML = `${n.toLocaleString()} paper trades${since ? ' since ' + esc(since) : ''}, 0.25 SOL each, priced off the live curve with fees. ` +
+        (passing ? `<b>${passing} ${passing === 1 ? 'strategy passes' : 'strategies pass'} the bar.</b>` : '<b>Nothing has passed the bar yet</b>, so nothing trades real money.')
+      const C = paper?.body?.combined || []
+      if (C.length > 1) {
+        const vals = C.map((p) => p[1]), lo = Math.min(0, ...vals), hi = Math.max(0, ...vals), span = hi - lo || 1
+        const t0 = C[0][0], t1 = C.at(-1)[0], X = (t) => ((t - t0) / (t1 - t0 || 1)) * 400, Y = (v) => 92 - ((v - lo) / span) * 84
+        const d = C.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('')
+        const col = vals.at(-1) >= 0 ? 'var(--good)' : 'var(--bad)'
+        const when = (t) => new Date(t * 1000).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+        $('hero-curve').innerHTML = `<svg viewBox="0 0 400 96" preserveAspectRatio="none" aria-label="Combined paper P&amp;L over time">
+            <defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".22"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+            <line x1="0" y1="${Y(0).toFixed(1)}" x2="400" y2="${Y(0).toFixed(1)}" stroke="var(--line-bright)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>
+            <path d="${d}L400,${Y(0).toFixed(1)}L0,${Y(0).toFixed(1)}Z" fill="url(#hg)"/>
+            <path d="${d}" fill="none" stroke="${col}" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>
+          <div class="cap"><span>${esc(when(t0))}</span><span>${esc(when(t1))}</span></div>`
+      }
+      const W = status?.body?.workers || []
+      const label = { collector: 'Launches', tape: 'Tapes', 'kol-watch': 'KOL feed', 'dex-watch': 'Dex paid', bot: 'Paper bot' }
+      $('workers').innerHTML = W.map((w) => `<span class="w ${w.alive ? '' : 'dead'}" title="${esc(w.line || '')}"><i></i>${esc(label[w.worker] || w.worker)}${w.alive ? '' : ' down'}</span>`).join('')
+    }
+
+    function ciBar(s) {
+      if (!Number.isFinite(s.lo) || !Number.isFinite(s.hi)) return '<div class="ci"><div class="track"></div></div>'
+      const lim = Math.max(0.5, Math.min(2, Math.max(Math.abs(s.lo), Math.abs(s.hi)) * 1.1))
+      const x = (v) => ((Math.max(-lim, Math.min(lim, v)) + lim) / (2 * lim)) * 100
+      const c = s.lo > 0 ? 'pos' : s.hi < 0 ? 'neg' : ''
+      return `<div class="ci" title="95% range of the average: ${pct(s.lo)} to ${pct(s.hi)}"><div class="track"></div><div class="zero" style="left:${x(0)}%"></div>` +
+        `<div class="rng ${c}" style="left:${x(s.lo)}%;width:${Math.max(1, x(s.hi) - x(s.lo))}%"></div><div class="dot" style="left:${x(s.mean)}%"></div></div>`
+    }
+    function spark(curve) {
+      if (!curve || curve.length < 2) return '<svg class="spark" viewBox="0 0 200 44" preserveAspectRatio="none"><line x1="0" y1="22" x2="200" y2="22" stroke="var(--line-bright)" stroke-dasharray="3 4"/></svg>'
+      const lo = Math.min(0, ...curve), hi = Math.max(0, ...curve), span = hi - lo || 1
+      const X = (i) => (i / (curve.length - 1)) * 200, Y = (v) => 40 - ((v - lo) / span) * 36
+      const d = curve.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('')
+      const last = curve.at(-1), col = last > 0 ? 'var(--good)' : last < 0 ? 'var(--bad)' : 'var(--muted)'
+      return `<svg class="spark" viewBox="0 0 200 44" preserveAspectRatio="none"><line x1="0" y1="${Y(0).toFixed(1)}" x2="200" y2="${Y(0).toFixed(1)}" stroke="var(--line-bright)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>` +
+        `<path d="${d}L200,${Y(0).toFixed(1)}L0,${Y(0).toFixed(1)}Z" fill="${col}" opacity=".10"/><path d="${d}" fill="none" stroke="${col}" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`
+    }
+    function pill(s) {
+      if (s.verdict === 'passes') return '<span class="pill passes">Passes the bar</span>'
+      if (s.verdict === 'killed') return '<span class="pill killed">Killed</span>'
+      if (s.verdict === 'no edge') return '<span class="pill noedge">No edge</span>'
+      return `<span class="pill collecting num">${Math.min(s.n, 100)} of 100 trades</span>`
+    }
+    function renderCards(paper) {
+      const S = (paper?.body?.strategies || []).filter((s) => s.live)
+      if (!S.length) { $('cards').innerHTML = '<div class="empty">No paper trades yet.</div>'; return }
+      $('cards').innerHTML = S.map((s, i) => {
+        const [nm, why] = NAMES[s.id] || [s.id, '']
+        return `<article class="card in" style="animation-delay:${i * 45}ms" title="${esc(s.note)}">
+          <div><div class="nm">${esc(nm)}</div><div class="sub" style="color:var(--faint);font-size:12.5px">${esc(why)}</div></div>
+          <div class="row"><div class="ret num ${cls(s.n ? s.mean : NaN)}">${s.n ? pct(s.mean) : '–'}</div>
+            <div class="meta num">${s.n} trades<br>${s.n ? Math.round(s.win * 100) + '% won' : '&nbsp;'}</div></div>
+          ${ciBar(s)}
+          ${spark(s.curve)}
+          <div class="foot"><span class="num ${cls(s.pnl)}">${sol(s.pnl)} SOL</span>${pill(s)}</div>
+        </article>`
+      }).join('')
+    }
+
+    function renderWho(who) {
+      const b = who?.body
+      if (!b) { $('who').innerHTML = '<tr><td colspan="5" class="empty">The ranking lands with the daily report.</td></tr>'; $('tools').innerHTML = ''; return }
+      $('who-say').textContent = `From ${Number(b.launches).toLocaleString()} launches over ${b.spanH} h, ${ago(who.at)}. Sharper every day.`
+      const H = (b.handles || []).slice(0, 15)
+      $('who').innerHTML = H.length ? H.map((h) => `<tr>
+          <td><a class="handle" href="https://x.com/${encodeURIComponent(h.handle)}" target="_blank" rel="noopener">@${esc(h.handle)}</a></td>
+          <td class="r num">${h.tweets}</td><td class="r num">${h.coins}</td>
+          <td class="r num ${h.gradTweets ? 'pos' : 'flat'}">${h.gradTweets} of ${h.tweets}</td>
+          <td class="r num hide-sm">${h.bestPeak ? Math.round(h.bestPeak).toLocaleString() + ' SOL' : '–'}</td></tr>`).join('')
+        : '<tr><td colspan="5" class="empty">No account has three coined posts yet.</td></tr>'
+      const T = (b.tools || []).filter((t) => t.n >= 50 && t.tool !== 'unknown').slice(0, 6)
+      const top = Math.max(...T.map((t) => t.g / t.n), 0.01)
+      $('tools').innerHTML = T.map((t) => `<tr><td>${esc(t.tool.replace('pump.fun UI / IPFS', 'pump.fun site'))}</td><td class="r num">${t.n.toLocaleString()}</td>
+        <td><div style="display:flex;align-items:center;gap:10px"><div class="bar"><i style="width:${((t.g / t.n) / top) * 100}%"></i></div><span class="num">${((100 * t.g) / t.n).toFixed(1)}%</span></div></td></tr>`).join('')
+    }
+
+    function renderSeg(paper) {
+      const ids = ['all', ...(paper?.body?.strategies || []).filter((s) => s.live).map((s) => s.id)]
+      const seg = $('seg')
+      if (seg.dataset.ids === ids.join()) return
+      seg.dataset.ids = ids.join()
+      seg.querySelectorAll('button').forEach((b) => b.remove())
+      for (const id of ids) {
+        const b = document.createElement('button')
+        b.type = 'button'; b.dataset.id = id; b.textContent = id === 'all' ? 'All' : SHORT[id] || id
+        b.setAttribute('aria-pressed', String(state.filter === id))
+        b.addEventListener('click', () => { state.filter = id; state.limit = 20; seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); moveThumb(); renderTrades() })
+        seg.appendChild(b)
+      }
+      requestAnimationFrame(moveThumb)
+    }
+    function moveThumb() {
+      const on = $('seg').querySelector('button[aria-pressed="true"]')
+      if (!on) return
+      const t = $('thumb')
+      t.style.width = on.offsetWidth + 'px'
+      t.style.transform = `translateX(${on.offsetLeft - 3}px)`
+      t.style.left = '3px'
+    }
+    window.addEventListener('resize', moveThumb)
+
+    const WHY = { tp: 'Took profit', sl: 'Stopped out', time: 'Time stop', 'kol-sold': 'KOL sold', graduated: 'Graduated' }
+    function renderTrades() {
+      const all = state.trades.filter((t) => state.filter === 'all' || t.strategy === state.filter)
+      const rows = all.slice(0, state.limit)
+      $('more').hidden = all.length <= state.limit
+      $('trades').innerHTML = rows.length ? rows.map((t) => `<tr>
+          <td class="num">${esc(clock(t.t_out))}</td>
+          <td><span class="coin"><a href="https://pump.fun/coin/${encodeURIComponent(t.mint)}" target="_blank" rel="noopener">${esc(t.label || t.mint.slice(0, 6))}</a></span></td>
+          <td class="hide-sm" style="color:var(--muted)">${esc(SHORT[t.strategy] || t.strategy)}</td>
+          <td class="r num ${cls(t.ret)}">${pct(t.ret)}</td>
+          <td class="r num hide-sm" style="color:var(--muted)">${Number.isFinite(t.peak) ? t.peak.toFixed(2) + 'x' : '–'}</td>
+          <td style="color:var(--muted)">${esc(WHY[t.why] || t.why || '')}</td></tr>`).join('')
+        : '<tr><td colspan="6" class="empty">No closed trades for this strategy yet.</td></tr>'
+    }
+
+    function renderBacktest(bt) {
+      if (!bt) { $('bt-say').textContent = 'The first report lands with the daily run.'; return }
+      $('bt-sum').textContent = `${Number(bt.body?.launches || 0).toLocaleString()} launches, ${ago(bt.at)}`
+      $('bt-text').textContent = (bt.lines || []).join('\n')
+      $('bt-say').textContent = 'Net of fees, our own price impact and a few seconds of delay.'
+      // Headline numbers are read out of the latest report, so they move with the data.
+      const text = (bt.lines || []).join('\n')
+      const P = (s) => parseFloat(String(s).replace('−', '-')) / 100
+      const F = []
+      const tp = text.split('exit: TP2x SL50 cap 15m')[1] || ''
+      const dev = /dev buy over 2\s+n=\s*(\d+) mean\s+(-?[\d.]+)%/.exec(tp)
+      const sold = /dev buy 2 to 5\s+SOL.*?dev sold inside 30 s\s+([\d.]+)%/.exec(text)
+      if (dev) F.push([P(dev[2]), `Creator bought 2+ SOL (${dev[1]} launches).${sold ? ` ${Math.round(+sold[1])}% of 2 to 5 SOL dev buys are sold inside 30 seconds.` : ''}`])
+      const kol = (text.split('5. FOLLOW A KOL BUY')[1] || '').split('\n').filter((l) => /^\s+L=\d+s (hold|TP)/.test(l)).map((l) => +(/mean\s+(-?[\d.]+)%/.exec(l) || [])[1]).filter(Number.isFinite)
+      const self = /the KOLs themselves:.*?net (-?[\d.]+) SOL/.exec(text)
+      if (kol.length) F.push([[Math.max(...kol) / 100, Math.min(...kol) / 100], `Copying a KOL buy with a fixed hold.${self ? ` The KOLs themselves netted ${sol(+self[1])} SOL.` : ''}`])
+      const dex = /\+60\s+min: n=\s*(\d+)\s+mean\s+(-?[\d.]+)%/.exec(text)
+      if (dex) F.push([P(dex[2]), `An hour after a paid DexScreener profile (${dex[1]} tokens). The payment is the last push, not a green light.`])
+      const show = (v) => Array.isArray(v) ? `${pct(v[0], 0)} to ${pct(v[1], 0)}` : pct(v)
+      const tone = (v) => cls(Array.isArray(v) ? Math.max(...v) : v)
+      $('findings').innerHTML = F.map(([v, p], i) => `<div class="finding in" style="animation-delay:${i * 45}ms"><div class="v num ${tone(v)}">${show(v)}</div><p>${esc(p)}</p></div>`).join('')
+    }
+
+    SB.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT') gate('Signed out. Sign in again to see the desk.', true) })
+    boot()
+  </script>
+</body>
+</html>
