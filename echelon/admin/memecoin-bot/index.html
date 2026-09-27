@@ -292,7 +292,7 @@
       <div class="sh"><h2>Who to track in J7</h2><p id="who-say"></p></div>
       <div class="two">
         <div class="tbl"><div class="scroll"><table>
-          <thead><tr><th>Account</th><th class="r">Posts coined</th><th class="r">Coins</th><th class="r">Posts that graduated</th><th class="r hide-sm">Best peak</th></tr></thead>
+          <thead id="who-head"><tr><th>Account</th><th class="r">Posts coined</th><th class="r">Coins</th><th class="r">Posts that graduated</th><th class="r hide-sm">Best peak</th></tr></thead>
           <tbody id="who"></tbody>
         </table></div></div>
         <div class="tbl"><div class="scroll"><table>
@@ -400,16 +400,16 @@
       if (loading) return
       loading = true; $('refresh').classList.add('spin'); $('refresh').textContent = 'Refreshing'
       try {
-        const [paper, status, who, bt, tr, lab] = await Promise.all([
+        const [paper, status, who, bt, tr, lab, j7] = await Promise.all([
           latest('paper'), latest('status'), latest('who'), latest('backtest'),
           SB.from('memecoin_bot_trades').select('strategy, mint, label, kol, t_out, ret, pnl, peak, why').order('t_out', { ascending: false }).limit(300),
-          latest('lab'),
+          latest('lab'), latest('j7'),
         ])
         if (lab?.lines?.length) { $('lab').hidden = false; $('lab-text').textContent = lab.lines.join('\n'); $('lab-sum').textContent = ago(lab.at) }
         state.trades = tr.data || []
         renderHero(paper, status)
         renderCards(paper)
-        renderWho(who)
+        renderWho(who, j7)
         renderSeg(paper)
         renderTrades()
         renderBacktest(bt)
@@ -505,12 +505,25 @@
       }).join('')
     }
 
-    function renderWho(who) {
+    function renderWho(who, j7) {
       const b = who?.body
       if (!b) { $('who').innerHTML = '<tr><td colspan="5" class="empty">The ranking lands with the daily report.</td></tr>'; $('tools').innerHTML = ''; return }
       $('who-say').textContent = `From ${Number(b.launches).toLocaleString()} launches over ${b.spanH} h, ${ago(who.at)}. Sharper every day.`
-      const H = (b.handles || []).slice(0, 15)
-      $('who').innerHTML = H.length ? H.map((h) => `<tr>
+      const usd = (v) => (v >= 1e6 ? '$' + (v / 1e6).toFixed(1) + 'M' : '$' + Math.round(v / 1e3) + 'k')
+      // Preferred: the J7 reads ranking (accounts whose posts produced graduated coins, from a
+      // full day of graduates). The stream-only ranking below is the fallback.
+      const R = (j7?.body?.tier1 || []).filter((r) => !r.project).slice(0, 20)
+      if (R.length) {
+        $('who-say').textContent = `Accounts whose posts became coins that graduated: ${Number(j7.body.grads).toLocaleString()} graduates over ${Math.round(j7.body.spanH)} h, ${ago(j7.at)}.`
+        $('who-head').innerHTML = '<tr><th>Account</th><th class="r">Posts that graduated</th><th class="r">Graduates</th><th class="r">$1M+</th><th class="hide-sm">Best coin</th></tr>'
+        $('who').innerHTML = R.map((r) => `<tr>
+          <td><a class="handle" href="https://x.com/${encodeURIComponent(r.handle)}" target="_blank" rel="noopener">@${esc(r.handle)}</a></td>
+          <td class="r num pos">${r.gradPosts}</td><td class="r num">${r.grads}</td>
+          <td class="r num ${r.over1m ? 'pos' : 'flat'}">${r.over1m}</td>
+          <td class="hide-sm"><a class="handle" href="${esc(r.best.post)}" target="_blank" rel="noopener">${esc(r.best.sym)}</a> <span class="sub">${usd(r.bestAth)}</span></td></tr>`).join('')
+      }
+      const H = R.length ? [] : (b.handles || []).slice(0, 15)
+      if (!R.length) $('who').innerHTML = H.length ? H.map((h) => `<tr>
           <td><a class="handle" href="https://x.com/${encodeURIComponent(h.handle)}" target="_blank" rel="noopener">@${esc(h.handle)}</a></td>
           <td class="r num">${h.tweets}</td><td class="r num">${h.coins}</td>
           <td class="r num ${h.gradTweets ? 'pos' : 'flat'}">${h.gradTweets} of ${h.tweets}</td>
