@@ -13747,7 +13747,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       htf: false, htfPos: 'tr', htf5: true, htf15: true, htf60: true, htf240: true, htfD: true, htfRsiHi: 70, htfRsiLo: 30, htfVolHot: 1.5,
       news: false, newsPos: 'br', newsHigh: true, newsMed: true, newsHol: true, newsMax: 10, newsDim: true, newsMarks: true,
       badj: true, rollMarks: true, smt: false, smtPeer: 'auto', smtLen: 5, smtBack: 600, smtBearC: '', smtBullC: '', smtW: 2, smtLabels: true, smtPeerMark: true,
-      axisInd: true, indPresets: {}, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexLast: true, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true, gexSwing: true, gexRn: 10, gexBand: 6, gexPx: false }
+      axisInd: true, indPresets: {}, stay: false, eth: true, gexFlip: true, gexCall: true, gexPut: true, gexMajor: true, gexR: true, gexGtbr: true, gexLast: true, sdDemand: true, sdSupply: true,
+      wmL1: 'user', wmT1: '', wmL2: 'info', wmT2: '', wmSym: true, wmTf: true, wmDate: true, wmA: 0.5, wmSize: 1, wmPos: 'top', wmAlign: 'center', wmBold: true, wmBigT: '', wmBigC: '', wmBigSize: 1, gexFlipC: '', gexCallC: '', gexPutC: '', gexMajorC: '', gexRC: '', gexGtbrC: '', gexGtbrF: 0.06, gexW: 1, gexLabels: true, gexSwing: true, gexRn: 10, gexBand: 6, gexPx: false }
     const CH_MA_DEFAULT = () => [{ t: 'ema', n: 20, c: '#c9a24a', w: 1.2, on: true }, { t: 'ema', n: 50, c: '#7aa2d9', w: 1.2, on: true }, { t: 'ema', n: 200, c: '#d97ab0', w: 1.2, on: true }]
     const CH_MA_COLORS = ['#c9a24a', '#7aa2d9', '#d97ab0', '#5fc39a', '#e08a4b']
     /* ── skin: the chart background decides the side everything else sits on ──
@@ -14578,7 +14579,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         add: (text, x, y, color, align, size, prio) => {
           const pk = lane.part, S = CH.s
           if (pk && S[pk + 'Txt'] === false) return
-          q.push({ text, x, y, color: pk && S[pk + 'Tc'] ? S[pk + 'Tc'] : color, align: align || 'left', size: size || 10, prio: prio == null ? 50 : prio })
+          q.push({ text, x, y, color: pk && S[pk + 'Tc'] ? S[pk + 'Tc'] : color, align: align || 'left', size: (pk && +S[pk + 'Ts']) || size || 10, prio: prio == null ? 50 : prio })
         },
         flush: (L) => {
           // a halo in the canvas colour hugs each letter, so a line crossing a name never strikes through it; unlike the old plate it is invisible on the canvas
@@ -14622,10 +14623,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const cc = (k) => S[k] || D[k], A = (k, a) => alpha(cc(k), a), W = (k, def) => +S[k] || def, labels = S.litLabels !== false
       const LBL = R.lbl
       const tag = (text, x, y, color, align, size, prio) => { if (labels) LBL.add(text, x, y, color, align, size, prio) }
-      const hline = (p, xa, xb, color, dash, width = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1 }
+      const hline = (p, xa, xb, color, dash, width = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return; ctx.strokeStyle = color; ctx.lineWidth = chPartW(LBL.part, width); ctx.setLineDash(chPartDash(LBL.part, dash)); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1 }
       const visible = (a, b) => b >= i0 - 1 && a <= i1 + 1
       // a box's border: its own colour and width when set, none when switched off (D1: change the colours of the box and everything)
-      const bord = (key, cKey, a, x, y, w, h, dash) => { if (S[key + 'Bd'] === false) return; ctx.strokeStyle = S[key + 'Bc'] ? alpha(S[key + 'Bc'], 0.9) : A(cKey, a); ctx.lineWidth = +S[key + 'Bw'] || 1; ctx.setLineDash(dash || []); ctx.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.round(w), Math.round(h)); ctx.setLineDash([]); ctx.lineWidth = 1 }
+      const bord = (key, cKey, a, x, y, w, h, dash) => chPartBorder(ctx, key, A(cKey, a), x, y, w, h, dash)
       // Asia and NYT boxes
       LBL.part = 'litAsia'; if (S.litAsia) for (const a of lit.asia) { if (!visible(a.i0, a.i1 + 7 * 3600 / CH.tfSec)) continue; const x0 = X(a.i0) - CH.barW / 2, x1 = X(a.i1) + CH.barW / 2, xe = X(a.i1 + 7 * 3600 / CH.tfSec); ctx.fillStyle = A('litAsiaC', S.litAsiaF ?? 0.15); ctx.fillRect(x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); bord('litAsia', 'litAsiaC', 0.5, x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); hline(a.h, x1, xe, A('litAsiaC', 0.5)); hline(a.l, x1, xe, A('litAsiaC', 0.5)); hline((a.h + a.l) / 2, x0, xe, A('litAsiaC', 0.7), [5, 4]) }
       LBL.part = 'litNy'; if (S.litNy) for (const a of lit.ny) { if (!visible(a.i0, a.i1)) continue; const x0 = X(a.i0) - CH.barW / 2, x1 = X(a.i1) + CH.barW / 2; ctx.fillStyle = S.litNyC ? A('litNyC', S.litNyF ?? 0.1) : alpha('#4285f4', S.litNyF ?? 0.1); ctx.fillRect(x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); bord('litNy', 'litNyC', 0.4, x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); tag('NYT', (x0 + x1) / 2, Y(a.h) - 7, S.litNyC ? A('litNyC', 0.9) : (light ? '#1a1815' : '#b4c8ff'), 'center', 10, 16) }
@@ -14657,7 +14658,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // 22:00 open, frozen at 02:00
       LBL.part = 'litOpen22'; if (S.litOpen22) for (const o of lit.open22) { if (!visible(o.i0, o.i1)) continue; hline(o.p, X(o.i0), X(o.i1), A('litOpen22C', 0.5), [], W('litOpen22W', 1)); tag('[22:00 Open]', X(o.i1) + 6, Y(o.p), A('litOpen22C', 0.7), 'left', 10, 32) }
       // London box, its high and low held until touched
-      LBL.part = 'litLdn'; if (S.litLdn) for (const b of lit.ldn) { const e1 = b.hHit ?? b.hEnd ?? b.i1, e2 = b.lHit ?? b.lEnd ?? b.i1; if (!visible(b.i0, Math.max(e1, e2))) continue; const x0 = X(b.i0) - CH.barW / 2, x1 = X(b.i1) + CH.barW / 2; ctx.fillStyle = A('litLdnC', S.litLdnF ?? 0.1); ctx.fillRect(x0, Y(b.h), x1 - x0, Y(b.l) - Y(b.h)); if (S.litLdnBd !== false) { const bc = S.litLdnBc ? alpha(S.litLdnBc, 0.9) : A('litLdnC', 0.6), bw = +S.litLdnBw || 1; hline(b.h, x0, X(e1), bc, [], bw); hline(b.l, x0, X(e2), bc, [], bw) } tag('LDN', x0 + 4, Y(b.h) - 4, A('litLdnC', 0.8), 'left', 9.5, 18) }
+      LBL.part = 'litLdn'; if (S.litLdn) for (const b of lit.ldn) { const e1 = b.hHit ?? b.hEnd ?? b.i1, e2 = b.lHit ?? b.lEnd ?? b.i1; if (!visible(b.i0, Math.max(e1, e2))) continue; const x0 = X(b.i0) - CH.barW / 2, x1 = X(b.i1) + CH.barW / 2; ctx.fillStyle = A('litLdnC', S.litLdnF ?? 0.1); ctx.fillRect(x0, Y(b.h), x1 - x0, Y(b.l) - Y(b.h)); if (S.litLdnBd !== false) { const bc = S.litLdnBc ? alpha(S.litLdnBc, 0.9) : A('litLdnC', 0.6), bw = +S.litLdnBw || 1, bs = CH_DASH[S.litLdnBs] || []; hline(b.h, x0, X(e1), bc, bs, bw); hline(b.l, x0, X(e2), bc, bs, bw) } tag('LDN', x0 + 4, Y(b.h) - 4, A('litLdnC', 0.8), 'left', 9.5, 18) }
       /* PO3 candles: one tight cluster pinned to the right edge. They used to be
          thrown 20, 35 and 50 bars into the future, which left a lake of empty
          chart between price and them and, since the chart sits flush right until
@@ -14764,7 +14765,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const X = (i) => chX(i, L), Y = (p) => chY(p, L)
       const ink = light ? '#1a1815' : '#e9e3d8'
       const C = (k, d) => S[k] || d
-      const hline = (p, xa, xb, color, dash, w = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return false; ctx.strokeStyle = color; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1; return true }
+      const hline = (p, xa, xb, color, dash, w = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return false; ctx.strokeStyle = color; ctx.lineWidth = chPartW(LBL.part, w); ctx.setLineDash(chPartDash(LBL.part, dash)); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1; return true }
       const tag = (t, x, y, c, al, sz, pr) => { if (S.ictLabels !== false) LBL.add(t, x, y, c, al, sz, pr) }
       const xe = Math.min(L.plotW, X(n - 1 + 10))
       LBL.part = 'ictMid'; if (S.ictMid !== false && v.mid && hline(v.mid.p, X(v.mid.i0), xe, alpha(C('ictMidC', ink), 0.6), [1, 3])) tag('Midnight Open', Math.min(xe + 5, L.plotW - 80), Y(v.mid.p), alpha(C('ictMidC', ink), 0.85), 'left', 9.5, 14)
@@ -14844,13 +14845,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const cD = S.sdDemandC || '#3fa45b', cS = S.sdSupplyC || '#e05252', cB = S.sdBrokenC || (light ? '#8a847a' : '#787b86')
       for (const z of zones) {
         if (z.i1 < i0 - 1 || z.i0 > i1 + 1) continue
+        const pk = z.side === 1 ? 'sdDemand' : 'sdSupply'; if (S[pk] === false) continue; LBL.part = pk
         const c = z.state === 2 ? cB : z.side === 1 ? cD : cS
         const xa = X(z.i0) - CH.barW / 2, xb = z.state === 2 ? X(z.i1) : Math.min(L.plotW, X(n - 1 + 8))
         const top = Y(z.top), bot = Y(z.bottom); if (bot < -20 || top > L.mainH + 20) continue
         ctx.fillStyle = alpha(c, z.state === 2 ? 0.05 : z.state === 1 ? (S.sdTestedF ?? 0.07) : (S.sdFreshF ?? 0.16))
         ctx.fillRect(xa, top, Math.max(1, xb - xa), Math.max(1, bot - top))
-        ctx.strokeStyle = alpha(c, z.state === 2 ? 0.3 : z.state === 1 ? 0.35 : 0.65); ctx.setLineDash(z.state === 1 ? [3, 3] : [])
-        ctx.strokeRect(Math.round(xa) + 0.5, Math.round(top) + 0.5, Math.round(Math.max(1, xb - xa)), Math.round(Math.max(1, bot - top))); ctx.setLineDash([])
+        chPartBorder(ctx, pk, alpha(c, z.state === 2 ? 0.3 : z.state === 1 ? 0.35 : 0.65), xa, top, Math.max(1, xb - xa), Math.max(1, bot - top), z.state === 1 ? [3, 3] : [])
         if (S.sdLabels !== false) LBL.add(`${z.cls} ${z.score.toFixed(1)}×`, Math.max(2, xa) + 4, z.side === 1 ? top - 3 : bot + 11, alpha(c, z.state ? 0.65 : 0.95), 'left', 9, z.state ? 42 : 26)
       }
     }
@@ -14912,8 +14913,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         let top = Y(l.top), bot = Y(l.bottom); if (bot - top < 2) { const m = (top + bot) / 2; top = m - 1; bot = m + 1 }
         if (bot < -20 || top > L.mainH + 20) continue
         ctx.fillStyle = alpha(c, l.swept ? 0.05 : (S.pendF ?? 0.14)); ctx.fillRect(xa, top, Math.max(1, xb - xa), bot - top)
-        ctx.strokeStyle = alpha(c, l.swept ? 0.3 : 0.6); ctx.strokeRect(Math.round(xa) + 0.5, Math.round(top) + 0.5, Math.round(Math.max(1, xb - xa)), Math.round(bot - top))
         LBL.part = l.isHigh ? 'pendHi' : 'pendLo'
+        chPartBorder(ctx, LBL.part, alpha(c, l.swept ? 0.3 : 0.6), xa, top, Math.max(1, xb - xa), bot - top)
         if (S.pendLabels !== false) LBL.add(`${l.count}×${l.swept ? ' swept' : ''}`, Math.min(xb, L.plotW - 4) - 4, l.isHigh ? top - 3 : bot + 11, alpha(c, l.swept ? 0.6 : 0.95), 'right', 9, l.swept ? 45 : 30)
       }
     }
@@ -14968,9 +14969,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const xa = X(z.i0) - CH.barW / 2, xb = S.amitExtend === false ? X(z.i0 + 1) : Math.min(L.plotW, X(n - 1 + 4))
         const top = Y(z.top), bot = Y(z.bottom); if (bot < -20 || top > L.mainH + 20) continue
         ctx.fillStyle = alpha(c, z.mit ? 0.07 : (S.amitF ?? 0.18)); ctx.fillRect(xa, top, Math.max(1, xb - xa), Math.max(1, bot - top))
-        ctx.strokeStyle = alpha(c, z.mit ? 0.35 : 0.7); ctx.setLineDash(z.mit ? [3, 3] : [])
-        ctx.strokeRect(Math.round(xa) + 0.5, Math.round(top) + 0.5, Math.round(Math.max(1, xb - xa)), Math.round(Math.max(1, bot - top))); ctx.setLineDash([])
         LBL.part = z.bull ? 'amitBull' : 'amitBear'
+        chPartBorder(ctx, LBL.part, alpha(c, z.mit ? 0.35 : 0.7), xa, top, Math.max(1, xb - xa), Math.max(1, bot - top), z.mit ? [3, 3] : [])
         if (S.amitLabels !== false) LBL.add(z.bull ? 'Bull MIT' : 'Bear MIT', Math.max(2, xa) + 4, z.bull ? bot + 11 : top - 3, alpha(c, z.mit ? 0.6 : 0.95), 'left', 9, z.mit ? 44 : 28)
       }
     }
@@ -15278,10 +15278,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const X = (i) => chX(i, L), Y = (p) => chY(p, L)
       const cBull = S.engBullC || '#16a34a', cBear = S.engBearC || '#e05252', cTrap = S.engTrapC || '#d08a2c', cIdm = S.engIdmC || '#8e5bd0', cEq = S.engEqC || (light ? '#5a5a5a' : '#a0a0a0')
       const vis = (a, b) => (b == null ? a : b) >= i0 - 1 && a <= i1 + 1
-      const hline = (p, xa, xb, c, dash, w = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return false; ctx.strokeStyle = c; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1; return true }
+      const hline = (p, xa, xb, c, dash, w = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return false; ctx.strokeStyle = c; ctx.lineWidth = chPartW(LBL.part, w); ctx.setLineDash(chPartDash(LBL.part, dash)); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1; return true }
       const mark = (x, y, c, up, sz = 4) => { ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x, up ? y + sz : y - sz); ctx.lineTo(x + sz, up ? y + sz * 2 : y - sz * 2); ctx.lineTo(x - sz, up ? y + sz * 2 : y - sz * 2); ctx.closePath(); ctx.fill() }
       // order blocks first, so the structure lines read on top of them
-      if (S.engOB !== false) for (const o of e.obs) {
+      LBL.part = 'engOB'; if (S.engOB !== false) for (const o of e.obs) {
         if (S.engObHide && o.tappedAt != null) continue
         if (!vis(o.i0, o.i1)) continue
         const dead = o.tappedAt != null || o.expired
@@ -15289,7 +15289,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const xa = X(o.i0) - CH.barW / 2, xb = X(o.i1) + CH.barW / 2, top = Y(o.top), bot = Y(o.bottom)
         if (bot < -20 || top > L.mainH + 20) continue
         ctx.fillStyle = alpha(c, dead ? 0.05 : (S.engObF ?? 0.12)); ctx.fillRect(xa, top, Math.max(1, xb - xa), Math.max(1, bot - top))
-        ctx.strokeStyle = alpha(c, dead ? 0.28 : 0.5); ctx.strokeRect(Math.round(xa) + 0.5, Math.round(top) + 0.5, Math.round(Math.max(1, xb - xa)), Math.round(Math.max(1, bot - top)))
+        chPartBorder(ctx, 'engOB', alpha(c, dead ? 0.28 : 0.5), xa, top, Math.max(1, xb - xa), Math.max(1, bot - top))
         hline((o.top + o.bottom) / 2, xa, xb, alpha(c, dead ? 0.2 : 0.4), [2, 3])
         if (S.engLabels !== false) LBL.add(o.txt, Math.min(xb, L.plotW - 4) - 4, top - 3, alpha(c, dead ? 0.55 : 0.95), 'right', 9, dead ? 43 : 24)
       }
@@ -15550,6 +15550,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const CH_GEX_PARTS = [['gexFlip', 'Gamma flip', 'gexFlipC'], ['gexCall', 'Call wall', 'gexCallC'], ['gexPut', 'Put wall', 'gexPutC'], ['gexMajor', 'Major wall', 'gexMajorC'], ['gexR', 'Ranked gamma levels (Γ)', 'gexRC'], ['gexGtbr', 'Session range (1σ)', 'gexGtbrC']]
     const CH_GEX_KIND_C = { 1: 'gexCallC', 2: 'gexPutC', 3: 'gexFlipC', 4: 'gexMajorC', 5: 'gexRC', 6: 'gexGtbrC' }
     const CH_PART_META = {}
+    /* A part's own line style, width and box border, when the member set them (D1, 09-27: "make
+       everything fully customizable"). Every painter asks these instead of hard-coding its dashes. */
+    const CH_DASH = { solid: [], dash: [6, 4], dot: [2, 3] }
+    function chPartDash(pk, dash) { const v = pk && CH.s[pk + 'Ls']; return v && CH_DASH[v] ? CH_DASH[v] : (dash || []) }
+    function chPartW(pk, w) { const v = pk && +CH.s[pk + 'Lw']; return v || w }
+    function chPartBorder(ctx, pk, stroke, x, y, w, h, dash, width = 1) {
+      const S = CH.s; if (pk && S[pk + 'Bd'] === false) return
+      ctx.strokeStyle = pk && S[pk + 'Bc'] ? alpha(S[pk + 'Bc'], 0.9) : stroke
+      ctx.lineWidth = (pk && +S[pk + 'Bw']) || width
+      ctx.setLineDash(pk && CH_DASH[S[pk + 'Bs']] ? CH_DASH[S[pk + 'Bs']] : (dash || []))
+      ctx.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.round(w), Math.round(h)); ctx.setLineDash([]); ctx.lineWidth = 1
+    }
     const CH_GEX_KIND_P = { 1: 'gexCall', 2: 'gexPut', 3: 'gexFlip', 4: 'gexMajor', 5: 'gexR', 6: 'gexGtbr' }
     // Same rules as the D1 GEX Pine. Kinds in priority order: 1 call wall, 2 put wall, 3 flip, 4 major wall,
     // 5 ranked gamma level, 6 session ceiling / floor. Levels that land on one NQ price merge into ONE zone
@@ -15683,11 +15695,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             let top = Ya(zn.px + half), bot = Ya(zn.px - half); const minH = zn.kind === 5 ? 3 : 5
             if (bot - top < minH) { top = yMid - minH / 2; bot = yMid + minH / 2 }
             zn.top = top
-            ctx.fillStyle = alpha(base, zn.dim ? 0.07 : zn.kind === 5 ? 0.12 : 0.15); ctx.fillRect(xa, top, wide, bot - top)
-            ctx.strokeStyle = alpha(base, zn.dim ? 0.32 : 0.6); ctx.lineWidth = lw; ctx.strokeRect(xa + 0.5, Math.round(top) + 0.5, Math.max(1, wide - 1), Math.max(1, Math.round(bot - top)))
+            const pk = CH_GEX_KIND_P[zn.kind]
+            ctx.fillStyle = alpha(base, zn.dim ? 0.07 : (S[pk + 'F'] ?? (zn.kind === 5 ? 0.12 : 0.15))); ctx.fillRect(xa, top, wide, bot - top)
+            chPartBorder(ctx, pk, alpha(base, zn.dim ? 0.32 : 0.6), xa, top, Math.max(1, wide - 1), Math.max(1, bot - top), null, lw)
           } else {
             const y = Math.round(yMid) + 0.5
-            ctx.strokeStyle = alpha(base, zn.kind === 6 ? 0.5 : 0.9); ctx.lineWidth = zn.kind === 4 ? lw + 0.5 : lw; ctx.setLineDash(zn.kind === 4 ? [6, 4] : [2, 3]); ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, y); ctx.stroke(); ctx.setLineDash([])
+            const pk = CH_GEX_KIND_P[zn.kind]
+            ctx.strokeStyle = alpha(base, zn.kind === 6 ? 0.5 : 0.9); ctx.lineWidth = chPartW(pk, zn.kind === 4 ? lw + 0.5 : lw); ctx.setLineDash(chPartDash(pk, zn.kind === 4 ? [6, 4] : [2, 3])); ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, y); ctx.stroke(); ctx.setLineDash([])
           }
           ctx.lineWidth = 1
         }
@@ -15757,8 +15771,25 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chAutoScale(L)
       ctx.font = `11px ${GEX_FONT}`; ctx.textBaseline = 'middle'
       if (!n) { ctx.fillStyle = T.faint; ctx.textAlign = 'center'; ctx.fillText(CH.err ? `The tape is not answering: ${CH.err}` : 'Loading the archive…', L.plotW / 2, L.mainH / 2); return }
-      if (S.watermark) { ctx.save(); ctx.font = `700 ${Math.min(160, L.mainH * 0.42)}px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = alpha(T.ink.length === 7 ? T.ink : (light ? '#000000' : '#ffffff'), light ? 0.045 : 0.05); ctx.fillText(CH.sym, L.plotW / 2, L.mainH / 2); ctx.restore() }
-      if (S.litWm !== false) { const handle = '@' + (state.profile?.username || 'd1fpc3'), d = new Date(), tfl = /^(\d+)m$/.test(CH.tf) ? CH.tf : CH.tf === 'D' ? '1D' : CH.tf; const line2 = `${CH.sym}1! | ${tfl} | ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`; const c = S.litWmC || (light ? '#1a1815' : '#e9e3d8'); const phone = window.innerWidth < 600; ctx.save(); ctx.textAlign = 'center'; ctx.fillStyle = alpha(c, 0.5); ctx.font = `700 ${phone ? 15 : 22}px ${GEX_FONT}`; ctx.fillText(handle, L.plotW / 2, phone ? 26 : 34); ctx.fillStyle = alpha(c, 0.38); ctx.font = `500 ${phone ? 10 : 12.5}px ${GEX_FONT}`; ctx.fillText(line2, L.plotW / 2, phone ? 44 : 56); ctx.restore() }
+      if (S.watermark) { ctx.save(); ctx.font = `700 ${Math.min(160, L.mainH * 0.42) * (+S.wmBigSize || 1)}px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = alpha(S.wmBigC || (T.ink.length === 7 ? T.ink : (light ? '#000000' : '#ffffff')), S.wmBigA ?? (light ? 0.045 : 0.05)); ctx.fillText(S.wmBigT || CH.sym, L.plotW / 2, L.mainH / 2); ctx.restore() }
+      /* the tag (D1, 09-27: "I need to be able to customize the watermark"): each line on, off or custom, what the
+         second line says, its colour, opacity, size, weight, and where it sits */
+      if (S.litWm !== false) {
+        const d = new Date(), tfl = /^(\d+)m$/.test(CH.tf) ? CH.tf : CH.tf === 'D' ? '1D' : CH.tf, phone = window.innerWidth < 600
+        const l1 = S.wmL1 === 'off' ? '' : S.wmL1 === 'custom' ? (S.wmT1 || '').trim() : '@' + (state.profile?.username || 'd1fpc3')
+        const info = [S.wmSym !== false ? `${CH.sym}1!` : '', S.wmTf !== false ? tfl : '', S.wmDate !== false ? `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}` : ''].filter(Boolean).join(' | ')
+        const l2 = S.wmL2 === 'off' ? '' : S.wmL2 === 'custom' ? (S.wmT2 || '').trim() : info
+        if (l1 || l2) {
+          const c = S.litWmC || (light ? '#1a1815' : '#e9e3d8'), a = S.wmA ?? 0.5, k = +S.wmSize || 1
+          const f1 = (phone ? 15 : 22) * k, f2 = (phone ? 10 : 12.5) * k, gap = 6 * k, h = (l1 ? f1 : 0) + (l1 && l2 ? gap : 0) + (l2 ? f2 : 0)
+          const al = S.wmAlign || 'center', x = al === 'left' ? 12 : al === 'right' ? L.plotW - 12 : L.plotW / 2
+          const pos = S.wmPos || 'top', y0 = pos === 'bottom' ? L.mainH - 14 - h : pos === 'middle' ? (L.mainH - h) / 2 : (phone ? 11 : 16)
+          ctx.save(); ctx.textAlign = al; ctx.textBaseline = 'top'
+          if (l1) { ctx.fillStyle = alpha(c, a); ctx.font = `${S.wmBold === false ? 500 : 700} ${f1}px ${GEX_FONT}`; ctx.fillText(l1, x, y0) }
+          if (l2) { ctx.fillStyle = alpha(c, a * 0.76); ctx.font = `500 ${f2}px ${GEX_FONT}`; ctx.fillText(l2, x, y0 + (l1 ? f1 + gap : 0)) }
+          ctx.restore()
+        }
+      }
       // sessions: shade everything outside 9:30 to 16:00 ET, hairline at each open
       if (S.sessions && CH.tfSec < 86400) {
         // A shade has to move AWAY from the canvas. On a dark canvas that means
@@ -17720,6 +17751,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const toggleD = (d, key, label, hintText, mut, defaultOn = false) => { const l = document.createElement('label'); l.className = 'tgl sm'; const i = document.createElement('input'); i.type = 'checkbox'; i.checked = defaultOn ? d[key] !== false : !!d[key]; i.addEventListener('change', () => mut(() => { d[key] = i.checked })); const tr = document.createElement('span'); tr.className = 'track'; l.append(i, tr); row(label, l, hintText) }
       const button = (text, fn, top = 14) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn'; b.textContent = text; b.style.marginTop = top + 'px'; b.addEventListener('click', fn); body.appendChild(b); return b }
       const hasGex = state.owned.has('d1-gex') || state.isMod || state.isAdmin
+      // a line of free text; keys typed here never reach the chart's shortcuts
+      const textEl = (key, placeholder) => { const i = document.createElement('input'); i.type = 'text'; i.className = 'inp'; i.maxLength = 60; i.value = S[key] || ''; i.placeholder = placeholder; i.style.width = '180px'; i.addEventListener('input', () => { S[key] = i.value; chSave(); chDraw() }); i.addEventListener('keydown', (e) => e.stopPropagation()); return i }
+      // the watermark, every piece of it (D1, 09-27)
+      const wmUi = (inPart) => {
+        if (inPart) header('Tag'); else toggle('litWm', 'Show the tag', 'Your name and the chart, written on the chart')
+        row('First line', segEl('wmL1', [['user', 'Username'], ['custom', 'Custom'], ['off', 'Off']], () => chMenu(which)))
+        if (S.wmL1 === 'custom') row('First line text', textEl('wmT1', 'Anything you like'))
+        row('Second line', segEl('wmL2', [['info', 'Chart info'], ['custom', 'Custom'], ['off', 'Off']], () => chMenu(which)))
+        if ((S.wmL2 || 'info') === 'info') { toggle('wmSym', 'Symbol'); toggle('wmTf', 'Interval'); toggle('wmDate', 'Date') }
+        if (S.wmL2 === 'custom') row('Second line text', textEl('wmT2', 'Anything you like'))
+        color('litWmC', 'Colour', '', 'default'); row('Opacity', rangeEl('wmA', 0.05, 1, 0.05, 0.5)); row('Size', rangeEl('wmSize', 0.6, 2.5, 0.05, 1))
+        row('Position', segEl('wmPos', [['top', 'Top'], ['middle', 'Middle'], ['bottom', 'Bottom']])); row('Align', segEl('wmAlign', [['left', 'Left'], ['center', 'Centre'], ['right', 'Right']])); toggle('wmBold', 'Bold first line')
+        header('Big symbol')
+        toggle('watermark', 'Show the big symbol', 'Large and faint in the middle of the chart'); row('Text', textEl('wmBigT', 'The symbol')); color('wmBigC', 'Colour', '', 'default'); row('Opacity', rangeEl('wmBigA', 0.01, 0.4, 0.01, 0.05)); row('Size', rangeEl('wmBigSize', 0.3, 1.5, 0.05, 1))
+      }
       // shared sections
       const sessionsUi = () => { toggle('eth', 'Extended hours', 'Globex and the pre-market; off shows 9:30 to 4:00 ET only', () => { chBuild(); CH.offset = 6; CH.auto = true }); toggle('sessions', 'Shade off-hours', 'Everything outside 9:30 to 4:00 ET'); color('sessC', 'Shade colour'); toggle('sessLines', 'Hairline at each open') }
       const volumeUi = () => { toggle('volume', 'Volume pane', 'Its × closes it too'); color('volUp', 'Up bars'); color('volDown', 'Down bars'); row('Opacity', rangeEl('volA', 0.1, 1, 0.05, 0.35)); row('Height', segEl('volSize', [['small', 'Small'], ['normal', 'Normal'], ['tall', 'Tall']])); toggle('volMa', 'Volume average', 'A simple average over the pane'); row('Length', numEl('volMaN', 2, 500, 20)); color('volMaC', 'Average colour') }
@@ -17736,14 +17782,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const on = (k) => { const l = tglEl(k); l.querySelector('input').checked = S[k] !== false; return l }
         const like = (k, label, hintText) => row(label, chColorBtn({ key: k, label, get: () => S[k] || '', def: defC(pm.colors[0]), set: (v) => { S[k] = v; chSave(); chDraw() }, autoLabel: 'Default' }), hintText)
         row('Show', on(partKey))
-        if (!pm.noText) { header('Text'); row('Show the text', on(partKey + 'Txt'), 'The name or price written beside it'); like(partKey + 'Tc', 'Text colour', 'Default follows its colour') }
+        const styles = [['', 'Default'], ['solid', 'Solid'], ['dash', 'Dashed'], ['dot', 'Dotted']]
+        for (const k of [partKey + 'Ts', partKey + 'Ls', partKey + 'Bs']) if (S[k] == null) S[k] = ''
+        if (partKey === 'litWm') wmUi(true)
+        else {
+        if (!pm.noText) { header('Text'); row('Show the text', on(partKey + 'Txt'), 'The name or price written beside it'); like(partKey + 'Tc', 'Text colour', 'Default follows its colour'); row('Text size', segEl(partKey + 'Ts', [['', 'Default'], [9, 'Small'], [11, 'Medium'], [13, 'Large'], [15, 'Larger']])) }
         header(pm.box ? 'Box' : 'Style')
         pm.colors.forEach((k, i) => color(k, pm.colorNames?.[i] || (pm.box ? 'Fill colour' : 'Colour'), '', 'default'))
-        if (pm.wKey) row('Width', wselEl(pm.wKey, pm.wDef || 1))
         if (pm.fKey) row(pm.box ? 'Fill opacity' : 'Fill', rangeEl(pm.fKey, 0, pm.fMax || 0.5, 0.01, pm.fDef ?? 0.1))
-        if (pm.box) { header('Border'); row('Show the border', on(partKey + 'Bd')); like(partKey + 'Bc', 'Border colour', 'Default follows the fill'); row('Border width', wselEl(partKey + 'Bw', 1)) }
+        if (!pm.noLine) { row('Line style', segEl(partKey + 'Ls', styles)); row('Line width', pm.wKey ? wselEl(pm.wKey, pm.wDef || 1) : wselEl(partKey + 'Lw', 1)) }
+        else if (pm.wKey) row('Width', wselEl(pm.wKey, pm.wDef || 1))
+        if (pm.box) { header('Border'); row('Show the border', on(partKey + 'Bd')); like(partKey + 'Bc', 'Border colour', 'Default follows the fill'); row('Border width', wselEl(partKey + 'Bw', 1)); row('Border style', segEl(partKey + 'Bs', styles)) }
+        }
         button('Reset this part', () => {
-          for (const k of [partKey + 'Txt', partKey + 'Tc', partKey + 'Bd', partKey + 'Bc', partKey + 'Bw', ...pm.colors, pm.wKey, pm.fKey]) { if (!k) continue; if (k in CH_DEFAULTS) S[k] = CH_DEFAULTS[k]; else delete S[k] }
+          for (const k of [partKey + 'Txt', partKey + 'Tc', partKey + 'Ts', partKey + 'Ls', partKey + 'Lw', partKey + 'Bd', partKey + 'Bc', partKey + 'Bw', partKey + 'Bs', ...pm.colors, pm.wKey, pm.fKey, ...(partKey === 'litWm' ? ['wmL1', 'wmT1', 'wmL2', 'wmT2', 'wmSym', 'wmTf', 'wmDate', 'wmA', 'wmSize', 'wmPos', 'wmAlign', 'wmBold', 'wmBigT', 'wmBigC', 'wmBigA', 'wmBigSize'] : [])]) { if (!k) continue; if (k in CH_DEFAULTS) S[k] = CH_DEFAULTS[k]; else delete S[k] }
           chSave(); chDraw(); chMenu(which)
         })
       } else if (which === 'sym') {
@@ -17885,14 +17937,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (c2Key) els.push(colorEl(c2Key, 'default'))
           if (wKey) els.push(wselEl(wKey, key === 'litWo' ? 2 : 1))
           if (fKey) { const r = rangeEl(fKey, 0, 0.5, 0.01, key === 'litAsia' ? 0.15 : 0.1); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) }
-          partRow(label, c2Key ? 'Up, then down' : '', els, tglEl(key), { key, colors: [cKey, c2Key].filter(Boolean), colorNames: { litPo3: ['Up', 'Down'], litVector: ['Up', 'Down'], litDr: ['Open and close', 'High and low'] }[key], wKey, wDef: key === 'litWo' ? 2 : 1, fKey, fDef: key === 'litAsia' ? 0.15 : 0.1, box: !!fKey, noText: key === 'litVector' })
+          partRow(label, c2Key ? 'Up, then down' : '', els, tglEl(key), { key, colors: [cKey, c2Key].filter(Boolean), colorNames: { litPo3: ['Up', 'Down'], litVector: ['Up', 'Down'], litDr: ['Open and close', 'High and low'] }[key], wKey, wDef: key === 'litWo' ? 2 : 1, fKey, fDef: key === 'litAsia' ? 0.15 : 0.1, box: !!fKey, noText: key === 'litVector', noLine: ['litVector', 'litPo3', 'litMarks', 'litDs', 'litNy', 'litNwog', 'litLdn', 'litWm'].includes(key) })
         }
         button('Reset every LIT colour', () => { for (const [, , cKey, wKey, fKey, c2Key] of CH_LIT_PARTS) { S[cKey] = ''; if (c2Key) S[c2Key] = ''; if (wKey) S[wKey] = CH_DEFAULTS[wKey]; if (fKey) S[fKey] = CH_DEFAULTS[fKey] } chSave(); chDraw(); chMenu('ind:lit') })
       } else if (which === 'ind:gex') {
         toggle('gex', 'Show D1 GEX', 'Per session from the 9:30 print', () => { if (S.gex) { chGexWarm(); chVolLoad() } })
         row('Line width', wselEl('gexW', 1)); toggle('gexLast', 'Latest session only', 'Off draws each earlier session\'s levels too'); toggle('gexLabels', 'Labels', 'Name on each zone'); toggle('gexPx', 'Price in labels', 'Adds the NQ price after the name'); toggle('gexSwing', 'Swing book', 'Walls and flip from the further-out expiries'); row('Zone height', rangeEl('gexBand', 0, 15, 0.5, 6), 'NQ points each side, 0 = lines'); row('Gamma levels shown', rangeEl('gexRn', 0, 10, 1, 10), 'Γ-1 is the biggest strike')
         header('Levels')
-        for (const [key, label, cKey] of CH_GEX_PARTS) { const els = [colorEl(cKey, 'default')]; if (key === 'gexGtbr') { const r = rangeEl('gexGtbrF', 0, 0.4, 0.01, 0.06); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) } partRow(label, '', els, tglEl(key), { key, colors: [cKey], fKey: key === 'gexGtbr' ? 'gexGtbrF' : null, fDef: 0.06, fMax: 0.4, noText: key === 'gexGtbr' }) }
+        for (const [key, label, cKey] of CH_GEX_PARTS) { const els = [colorEl(cKey, 'default')]; if (key === 'gexGtbr') { const r = rangeEl('gexGtbrF', 0, 0.4, 0.01, 0.06); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) } partRow(label, '', els, tglEl(key), { key, colors: [cKey], fKey: key === 'gexGtbr' ? 'gexGtbrF' : key === 'gexMajor' ? null : key + 'F', fDef: key === 'gexGtbr' ? 0.06 : key === 'gexR' ? 0.12 : 0.15, fMax: 0.5, box: !['gexGtbr', 'gexMajor'].includes(key), noText: key === 'gexGtbr' }) }
         button('Reset every GEX colour', () => { for (const [key, , cKey] of CH_GEX_PARTS) { S[cKey] = ''; S[key] = true } S.gexGtbrF = 0.06; S.gexW = 1; chSave(); chDraw(); chMenu('ind:gex') })
       } else if (which === 'ind:eng') {
         toggle('eng', 'Show the LIT Engine')
@@ -17901,13 +17953,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         header('Structure')
         partRow('BoS / CHoCH', '', [colorEl('engBullC', 'default'), colorEl('engBearC', 'default')], tglEl('engStruct'), { key: 'engStruct', colors: ['engBullC', 'engBearC'], colorNames: ['Bullish', 'Bearish'] })
         partRow('Inducement levels', '', [colorEl('engIdmC', 'default')], tglEl('engIdm'), { key: 'engIdm', colors: ['engIdmC'] })
-        partRow('Sweep markers', 'IDM and protected', [colorEl('engTrapC', 'default')], tglEl('engSweeps'), { key: 'engSweeps', colors: ['engTrapC'], noText: true })
+        partRow('Sweep markers', 'IDM and protected', [colorEl('engTrapC', 'default')], tglEl('engSweeps'), { key: 'engSweeps', colors: ['engTrapC'], noText: true, noLine: true })
         partRow('Equilibrium', 'Half of the BoS to CHoCH leg', [colorEl('engEqC', 'default')], tglEl('engEq'), { key: 'engEq', colors: ['engEqC'] })
         row('IDM mode', segEl('engIdmMode', [['reanchor', 'Re-anchor'], ['strict', 'Strict L2']]), 'Strict keeps the first pullback as the inducement until swept, which can freeze structure in a long trend')
         row('Min pullback depth', rangeEl('engMinPb', 0, 2, 0.25, 0.5), 'In ATR. A shallower pullback does not qualify as inducement. 0 is the pure mechanical spec')
         toggle('engFbos', 'A fake break moves the extreme', 'Off leaves the old level as the trigger, so a later body close through it still prints BoS')
         header('Order blocks')
-        toggle('engOB', 'Show order blocks', 'The last candle that took liquidity and has an imbalance in front of it')
+        partRow('Order blocks', 'The last candle that took liquidity and has an imbalance in front of it', [colorEl('engBullC', 'default'), colorEl('engBearC', 'default')], tglEl('engOB'), { key: 'engOB', colors: ['engBullC', 'engBearC'], colorNames: ['Bullish', 'Bearish'], fKey: 'engObF', fDef: 0.12, fMax: 0.4, box: true, noLine: true })
         row('Scan lookback', numEl('engObLookback', 10, 200, 60)); row('Expire after', numEl('engObMaxExt', 20, 500, 120), 'Bars without a tap before a zone stops painting')
         toggle('engObBody', 'Body only', 'Off uses the full candle'); toggle('engObHide', 'Remove tapped zones', 'Off greys them out, since the tap is the entry')
         row('Fill', rangeEl('engObF', 0, 0.4, 0.01, 0.12))
@@ -17934,7 +17986,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         partRow('Prev close', 'The 16:14 settlement print', [colorEl('ictPcC', 'default')], tglEl('ictPc'), { key: 'ictPc', colors: ['ictPcC'] })
         partRow('RTH quadrants', 'CE, 25% and 75% between the settlement and the 09:30 open', [colorEl('ictCeC', 'default'), colorEl('ictQuadC', 'default')], tglEl('ictRth'), { key: 'ictRth', colors: ['ictCeC', 'ictQuadC'], colorNames: ['CE line', 'Quadrants'] })
         const mf = rangeEl('ictMacroF', 0, 0.3, 0.01, 0.07); mf.title = 'Fill'; const mfl = document.createElement('span'); mfl.className = 'fl'; mfl.textContent = 'Fill'
-        partRow('Macro windows', 'The eight :50 to :10 windows', [colorEl('ictMacroC', 'default'), mfl, mf], tglEl('ictMacro'), { key: 'ictMacro', colors: ['ictMacroC'], fKey: 'ictMacroF', fDef: 0.07, fMax: 0.3 })
+        partRow('Macro windows', 'The eight :50 to :10 windows', [colorEl('ictMacroC', 'default'), mfl, mf], tglEl('ictMacro'), { key: 'ictMacro', colors: ['ictMacroC'], fKey: 'ictMacroF', fDef: 0.07, fMax: 0.3, noLine: true })
       } else if (which === 'ind:sd') {
         toggle('sd', 'Show SD zones', 'Seiden-lineage supply and demand, not ICT order blocks')
         header('Detection')
@@ -17945,7 +17997,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         toggle('sdKeep', 'Keep broken zones', 'Off removes a zone once price closes through its far edge')
         toggle('sdLabels', 'Labels', 'The class and the departure score')
         header('Style')
-        color('sdDemandC', 'Demand'); color('sdSupplyC', 'Supply'); color('sdBrokenC', 'Broken')
+        partRow('Demand', 'Zones price left upward', [colorEl('sdDemandC', 'default')], tglEl('sdDemand'), { key: 'sdDemand', colors: ['sdDemandC'], box: true, noLine: true })
+        partRow('Supply', 'Zones price left downward', [colorEl('sdSupplyC', 'default')], tglEl('sdSupply'), { key: 'sdSupply', colors: ['sdSupplyC'], box: true, noLine: true })
+        color('sdBrokenC', 'Broken')
         row('Fresh fill', rangeEl('sdFreshF', 0, 0.5, 0.01, 0.16)); row('Tested fill', rangeEl('sdTestedF', 0, 0.5, 0.01, 0.07))
       } else if (which === 'ind:pend') {
         toggle('pend', 'Show pending levels', 'Two or more swings inside the tolerance are engineered liquidity')
@@ -17957,8 +18011,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         toggle('pendKeep', 'Draw swept levels too', 'Off by default: a busy session leaves a hundred of them, which buries the handful still standing. The legend counts them either way')
         toggle('pendLabels', 'Labels', 'How many swings built the level')
         header('Sides and style')
-        partRow('Buy-side (highs)', '', [colorEl('pendHiC', 'default')], tglEl('pendHi'), { key: 'pendHi', colors: ['pendHiC'] })
-        partRow('Sell-side (lows)', '', [colorEl('pendLoC', 'default')], tglEl('pendLo'), { key: 'pendLo', colors: ['pendLoC'] })
+        partRow('Buy-side (highs)', '', [colorEl('pendHiC', 'default')], tglEl('pendHi'), { key: 'pendHi', colors: ['pendHiC'], box: true, noLine: true })
+        partRow('Sell-side (lows)', '', [colorEl('pendLoC', 'default')], tglEl('pendLo'), { key: 'pendLo', colors: ['pendLoC'], box: true, noLine: true })
         color('pendSweptC', 'Swept colour'); row('Fill', rangeEl('pendF', 0, 0.5, 0.01, 0.14))
       } else if (which === 'ind:amit') {
         toggle('amit', 'Show Asia mitigations', 'Fair value gaps formed between 18:00 and 01:00 New York')
@@ -17967,8 +18021,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         toggle('amitExtend', 'Extend to the last bar', 'Off draws the zone only where it formed')
         toggle('amitLabels', 'Labels')
         header('Sides and style')
-        partRow('Bullish', '', [colorEl('amitBullC', 'default')], tglEl('amitBull'), { key: 'amitBull', colors: ['amitBullC'] })
-        partRow('Bearish', '', [colorEl('amitBearC', 'default')], tglEl('amitBear'), { key: 'amitBear', colors: ['amitBearC'] })
+        partRow('Bullish', '', [colorEl('amitBullC', 'default')], tglEl('amitBull'), { key: 'amitBull', colors: ['amitBullC'], box: true, noLine: true })
+        partRow('Bearish', '', [colorEl('amitBearC', 'default')], tglEl('amitBear'), { key: 'amitBear', colors: ['amitBearC'], box: true, noLine: true })
         row('Fill', rangeEl('amitF', 0, 0.5, 0.01, 0.18))
         hint('A mitigated zone stays drawn, dimmed and dashed: it is the record of where price came back. A zone wicked through on the far side is invalidated and removed.')
       } else if (which === 'ind:htf') {
@@ -18133,7 +18187,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         header('Line and area')
         color('lineC', 'Line colour'); row('Line width', segEl('lineW', [[1.2, 'Thin'], [1.6, 'Normal'], [2.4, 'Bold'], [3.2, 'Heavy']]))
         header('Background')
-        color('bg', 'Background', 'Dark or light, the bar, rail and dialogs follow it'); color('bg2', 'Gradient to', 'A second colour fades in toward the bottom', 'none'); toggle('watermark', 'NQ watermark')
+        color('bg', 'Background', 'Dark or light, the bar, rail and dialogs follow it'); color('bg2', 'Gradient to', 'A second colour fades in toward the bottom', 'none')
+        header('Watermark'); wmUi()
         header('Accent')
         color('accentC', 'Accent colour', 'Buttons, tabs, switches and everything active around the chart', 'skin')
         header('Grid')
@@ -18172,7 +18227,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     /* the drawer becomes what TradingView would show: a centred dialog with tabs, a popover under
        its button, or a side panel (objects, alerts) */
-    const CH_SET_TABS = { Symbol: ['Chart type', 'Candles', 'Line and area'], Canvas: ['Background', 'Accent', 'Grid', 'Crosshair', 'Sessions'], 'Scales and lines': ['Axes and labels', 'Time'], Volume: ['Volume'], Drawing: ['Drawing'] }
+    const CH_SET_TABS = { Symbol: ['Chart type', 'Candles', 'Line and area'], Canvas: ['Background', 'Watermark', 'Big symbol', 'Accent', 'Grid', 'Crosshair', 'Sessions'], 'Scales and lines': ['Axes and labels', 'Time'], Volume: ['Volume'], Drawing: ['Drawing'] }
     // a declaration, not a const: the bar and the strip ask it during the script's first pass
     function chPhone() { return matchMedia('(max-width: 840px), (max-width: 1000px) and (max-height: 500px)').matches }
     function chDlgShape(m, body, which) {
