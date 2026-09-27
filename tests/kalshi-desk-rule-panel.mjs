@@ -47,6 +47,7 @@ for (const [name, vp] of [['desk', { viewport: { width: 1440, height: 900 } }], 
   // the sizing note states the table's own Kelly share and cap
   const [km] = await sql('select kelly_mult, cap from kalshi_risk_table limit 1'), note = await page.evaluate(() => document.querySelector('#sz-note')?.textContent ?? '')
   if (!note.includes(`capped at ${Math.round(100 * km.cap)}%`) || (Number(km.kelly_mult) === 0.75 && !note.includes('three-quarter Kelly'))) findings.push(`${name}: sizing note "${note.slice(0, 140)}" vs table ${km.kelly_mult} Kelly, cap ${km.cap}`)
+  if (!note.includes("only one coin qualifies bets half")) findings.push(`${name}: the sizing note does not say a lone coin bets half`)
   console.log(`${name}: note "${note.slice(0, 120)}..."`)
   if (got.rows.length !== 6) findings.push(`${name}: ${got.rows.length} sizing rows`)
   for (const r of got.rows) { r.cells[0] = r.cells[0].replace(/[+-]\d.*$/, '').trim(); if (r.cells[1] !== want[r.seg]) findings.push(`${name}: ${r.seg} shows ${r.cells[1]}, database says ${want[r.seg]}`); if (r.cells[0] !== SAY[r.seg]) findings.push(`${name}: ${r.seg} label ${r.cells[0]}`) }
