@@ -32,6 +32,8 @@ async function open(name, eng, dev, feed) {
   await page.route(/functions\/v1\/create-checkout/, (r) => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ error: "harness: checkout stubbed" }) }));
   if (feed) await page.route(/gex-worker\.d1fpc3\.workers\.dev\/gex\.json/, (r) => r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(feed(r.request().url())) }));
   await page.goto(URL, { waitUntil: "domcontentloaded" });
+  // live, Hostinger can show a few seconds of "Checking your browser" before the page itself
+  await page.waitForSelector("#lv-state", { timeout: 45000 });
   await page.waitForFunction(() => !document.getElementById("live").classList.contains("skel"), null, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(1200);
   return { b, page, errs };
