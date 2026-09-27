@@ -56,9 +56,31 @@ async function run(vp) {
   await page.goto(`${ORIGIN}/echelon/app/`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#td-h1", { timeout: 30000 }); await page.waitForTimeout(1200);
   await page.evaluate(() => { const o = document.getElementById("onb"); if (o && !o.hidden) { o.hidden = true; document.body.classList.remove("onb-open") } });
-  const tab = await page.evaluate(() => document.querySelector('.tab[data-view="lab"]')?.textContent.trim() ?? null);
-  check(tab === "Tape and gamma", `sidebar has the tab (${tab})`);
-  await page.evaluate(() => document.querySelector('.tab[data-view="lab"]').click());
+  // it lives in Study: a segment beside Lessons, Library and Homework, not a sidebar row
+  const inTools = await page.evaluate(() => [...document.querySelectorAll('.grp:not([hidden]) .tab')].some((t) => t.dataset.view === "lab"));
+  check(!inTools, "no sidebar row of its own");
+  await page.evaluate(() => document.querySelector('.tab[data-view="course"]').click());
+  await page.waitForTimeout(700);
+  const seg = await page.evaluate(() => { const s = document.getElementById("tb-seg"); const bs = [...s.querySelectorAll("button")]; const r = s.getBoundingClientRect(); return { labels: bs.map((b) => b.textContent.trim()), clipped: bs.some((b) => { const q = b.getBoundingClientRect(); return q.right > r.right + 1 || q.left < r.left - 1 || b.scrollWidth > b.clientWidth + 1 }), over: s.scrollWidth > s.clientWidth + 1 } });
+  check(seg.labels.includes("Lab") && seg.labels[0] === "Lessons", `Study segments: ${seg.labels.join(" | ")}`);
+  check(!seg.clipped && !seg.over, "every segment fits the bar");
+  await page.screenshot({ path: `${OUT}/${vp}-study-seg.png` });
+  // a member with homework gets a fourth segment: it must still fit a phone
+  const four = await page.evaluate(async () => {
+    const hw = document.getElementById("hw-tab"), was = hw.hidden; hw.hidden = false
+    document.querySelector('.tab[data-view="chart"]').click(); await new Promise((r) => setTimeout(r, 200)); document.querySelector('.tab[data-view="course"]').click(); await new Promise((r) => setTimeout(r, 400))
+    const s = document.getElementById("tb-seg"), r = s.getBoundingClientRect(), bs = [...s.querySelectorAll("button")]
+    const out = { n: bs.length, fits: !bs.some((b) => { const q = b.getBoundingClientRect(); return q.right > Math.min(r.right, innerWidth) + 1 || b.scrollWidth > b.clientWidth + 1 }), w: Math.round(r.width), vw: innerWidth }
+    hw.hidden = was; return out
+  });
+  check(four.n === 4 && four.fits, `with Homework, four segments fit (${JSON.stringify(four)})`);
+  if (vp === "phone") await page.screenshot({ path: `${OUT}/${vp}-study-seg4.png` });
+  await page.evaluate(() => { document.querySelector('.tab[data-view="chart"]').click() }); await page.waitForTimeout(200);
+  await page.evaluate(() => document.querySelector('.tab[data-view="course"]').click()); await page.waitForTimeout(500);
+  await page.evaluate(() => [...document.querySelectorAll("#tb-seg button")].find((b) => b.dataset.view === "lab").click());
+  await page.waitForTimeout(300);
+  const lit = await page.evaluate(() => ({ seg: document.querySelector('#tb-seg button[data-view="lab"]')?.classList.contains("on"), row: document.querySelector('.tab[data-view="course"]')?.classList.contains("on"), title: document.getElementById("pane-title")?.textContent }));
+  check(lit.seg && lit.row && lit.title === "Study", `lab segment on, Study row lit, title ${lit.title}`);
   await page.waitForFunction(() => document.getElementById("lab-frame")?.dataset.loaded === "1", null, { timeout: 10000 });
   const fh = await page.$("#lab-frame"); const f = await fh.contentFrame();
   await f.waitForSelector("#ladder .lrow", { timeout: 20000 });
