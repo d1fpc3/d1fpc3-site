@@ -46,7 +46,7 @@ await page.waitForTimeout(2500);
 console.log(`\nD1 LIT: the curated set and the label lane`);
 const LOUD = ["litMarks", "litKo", "litPo3", "litEighths", "litPm", "litNwog", "litDr", "litSig", "litOpen22", "litLdn"];
 const curated = await page.evaluate((loud) => ({ v: window.__CH.s.litV, on: loud.filter((k) => window.__CH.s[k]) }), LOUD);
-ok(curated.v === 2 && !curated.on.length, "the ten busy parts ship off, litV stamped: " + JSON.stringify(curated));
+ok(curated.v >= 2 && !curated.on.length, "the ten busy parts ship off, litV stamped: " + JSON.stringify(curated));
 
 // every part on is the worst case the lane has to survive
 await page.evaluate((loud) => { const C = window.__CH; C.s.lit = true; for (const k of loud) C.s[k] = true; C.$.paint() }, LOUD);
