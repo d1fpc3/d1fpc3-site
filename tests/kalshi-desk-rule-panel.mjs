@@ -39,11 +39,15 @@ for (const [name, vp] of [['desk', { viewport: { width: 1440, height: 900 } }], 
   if (!/risk model/.test(got.pill ?? '')) findings.push(`${name}: pill says "${got.pill}"`)
   if (!/9:45, 10:15 and 10:30/.test(got.skips ?? '')) findings.push(`${name}: skips row "${got.skips}"`)
   // the hourly row: the switch's mode and size, and the paper count straight from the table
-  await page.waitForFunction(() => /.$/.test(document.querySelector('#rl-hourly')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => {})
+  await page.waitForFunction(() => (document.querySelector('#rl-hourly')?.textContent ?? '').endsWith('.'), null, { timeout: 30000 }).catch(() => findings.push(`${name}: the hourly row never rendered`))
   got.hourly = await page.evaluate(() => document.querySelector('#rl-hourly')?.textContent)
   if (hsw.hourly_rule === 'live' && !got.hourly?.includes(`live on the 02:00 New York close`)) findings.push(`${name}: hourly row "${got.hourly}" but the switch is live`)
   if (hsw.hourly_rule === 'live' && !got.hourly?.includes(`${(100 * Number(hsw.hourly_frac)).toFixed(0)}% of the account`)) findings.push(`${name}: hourly size is not ${hsw.hourly_frac}`)
   if (hp.n > 0 && !got.hourly?.includes(`${new Intl.NumberFormat('en-US').format(Math.min(hp.n, 5000))} legs graded`)) findings.push(`${name}: hourly paper count, database ${hp.n}: "${got.hourly}"`)
+  // the sizing note states the table's own Kelly share and cap
+  const [km] = await sql('select kelly_mult, cap from kalshi_risk_table limit 1'), note = await page.evaluate(() => document.querySelector('#sz-note')?.textContent ?? '')
+  if (!note.includes(`capped at ${Math.round(100 * km.cap)}%`) || (Number(km.kelly_mult) === 0.75 && !note.includes('three-quarter Kelly'))) findings.push(`${name}: sizing note "${note.slice(0, 140)}" vs table ${km.kelly_mult} Kelly, cap ${km.cap}`)
+  console.log(`${name}: note "${note.slice(0, 120)}..."`)
   if (got.rows.length !== 6) findings.push(`${name}: ${got.rows.length} sizing rows`)
   for (const r of got.rows) { r.cells[0] = r.cells[0].replace(/[+-]\d.*$/, '').trim(); if (r.cells[1] !== want[r.seg]) findings.push(`${name}: ${r.seg} shows ${r.cells[1]}, database says ${want[r.seg]}`); if (r.cells[0] !== SAY[r.seg]) findings.push(`${name}: ${r.seg} label ${r.cells[0]}`) }
   if (got.rows.filter((r) => r.on).length !== 1) findings.push(`${name}: ${got.rows.filter((r) => r.on).length} rows highlighted as the next close`)

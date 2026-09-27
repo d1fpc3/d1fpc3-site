@@ -2317,7 +2317,7 @@
     }
     // D1, 2026-09-27: "if it changed update discord and echelon". Under the live risk model the clip
     // is not the size: each segment's share of the account per close comes from the nightly
-    // walk-forward table (half Kelly on the 80% lower bound of its last 90 days, 12% cap), and a
+    // walk-forward table (a share of Kelly on the 80% lower bound of its last 90 days, capped; both read from the table), and a
     // segment whose edge falls to zero stops by itself. So the panel shows that table, which row the
     // next close lands in, and the skips the switch has armed.
     const SEG_SAY = { ':00 weekend': 'Sat/Sun, top of the hour', ':30/45 weekend': 'Sat/Sun, :30 and :45', ':15 weekend': 'Sat/Sun, :15',
@@ -2366,8 +2366,9 @@
           return `<tr data-seg="${s}" class="${s === seg ? 'on' : ''}"><td>${SEG_SAY[s]}<span class="sz-sub">${past}</span></td><td><b>${fr > 0 ? (100 * fr).toFixed(1) + '%' : 'not traded'}</b></td>`
             + `<td>${fr > 0 && eq > 0 ? '$' + (eq * fr).toFixed(2) : '–'}</td><td>${past}</td></tr>`
         }).join('')
+        const KM = { 0.25: 'quarter', 0.5: 'half', 0.75: 'three-quarter', 1: 'full' }
         const when = rt[0]?.computed_at ? new Date(rt[0].computed_at).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'nightly'
-        el('sz-note').textContent = `The risk model has sized every bet since 2026-09-27. Each row's share of the account per close is half Kelly on the cautious (80%) bound of its last 90 days, capped at 12%, and inside a close the money tilts toward the coin moving on its own, the cheapest book and the tightest spread. A row trades only while that cautious bound is above zero, so a small positive average on a noisy row can still sit out, and a row whose edge fades stops by itself. Recomputed ${when} ET.`
+        el('sz-note').textContent = `The risk model has sized every bet since 2026-09-27. Each row's share of the account per close is ${KM[rt[0]?.kelly_mult] ?? `${rt[0]?.kelly_mult}x`} Kelly on the cautious (80%) bound of its last 90 days, capped at ${Math.round(100 * Number(rt[0]?.cap ?? 0.12))}%, and inside a close the money tilts toward the coin moving on its own, the cheapest book and the tightest spread. A row trades only while that cautious bound is above zero, so a small positive average on a noisy row can still sit out, and a row whose edge fades stops by itself. Recomputed ${when} ET.`
         return
       }
       const clip = Number(sw?.clip)
@@ -2594,7 +2595,7 @@
         q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price,risk_model,risk_segments,open_skip,tokyo_skip,sol_btc_skip,hourly_rule,hourly_frac').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
         q('kalshi_executor_state', (b) => b.select('at,halted,realized_today,cash,at_risk,equity').eq('id', 1)).then((r) => r[0] ?? null).catch(() => null),
         supabase.rpc('kalshi_edge_health_desk').then((r) => r.data ?? null).catch(() => null),
-        q('kalshi_risk_table', (b) => b.select('segment,n,mean,fraction,computed_at')).catch(() => []),
+        q('kalshi_risk_table', (b) => b.select('segment,n,mean,fraction,computed_at,kelly_mult,cap')).catch(() => []),
       ])
       const since = sw.stop_from ?? new Date().toISOString().slice(0, 10) + 'T00:00:00Z'
       const today = await q('kalshi_live_orders', (b) => b.select('pnl,filled,status').eq('source', 'fav').gte('created_at', since)).catch(() => [])
