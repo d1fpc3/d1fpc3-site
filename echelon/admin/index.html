@@ -2009,6 +2009,12 @@
         <!-- COMMUNITY: channels + moderators -->
         <section class="view" id="v-community">
           <div class="block">
+            <div class="block-head"><h3>Reports</h3><span class="label" id="rep-total"></span></div>
+            <p class="settings-note" style="margin:0 0 2px;">What members flag from chat, posts, comments and profiles in the app. The app promises a look within 24 hours. Remove takes the content down; Resolve closes the report either way.</p>
+            <div class="tbl-scroll"><table id="rep-table"></table></div>
+            <div class="empty" id="rep-empty" hidden>Nothing reported.</div>
+          </div>
+          <div class="block">
             <div class="block-head"><h3>Channels</h3><span class="label" id="chan-total"></span></div>
             <div class="field-row">
               <input class="inp" id="chan-name" placeholder="New channel name" style="flex:2;">
@@ -3357,8 +3363,69 @@
       ])
       cmChannels = ch ?? []; cmMods = new Set((mods ?? []).map((m) => m.user_id)); cmDir = dir ?? []
       renderChannels(); renderMods(); renderModPicker(el('mod-q').value || '')
+      loadReports()
       loadApplications()
       loadAffiliates()
+    }
+    // Reports (App Review 1.2): content_reports, admin-readable by RLS. Remove soft-deletes a message or
+    // comment and deletes a post, the same writes the app's own mod tools make; Resolve stamps the report.
+    let cmReports = []
+    async function loadReports() {
+      const { data } = await supabase.from('content_reports').select('*').order('created_at', { ascending: false }).limit(200)
+      cmReports = data ?? []
+      renderReports()
+    }
+    function renderReports() {
+      const open = cmReports.filter((r) => !r.resolved_at)
+      el('rep-total').textContent = open.length ? `${open.length} open` : ''
+      el('rep-empty').hidden = cmReports.length > 0
+      const name = (uid) => (uid ? '@' + (cmDir.find((d) => d.user_id === uid)?.username ?? 'former member') : '–')
+      const WHAT = { message: 'Chat message', post: 'Post', comment: 'Comment', member: 'Profile' }
+      const WHY = { harassment: 'Harassment', explicit: 'Explicit', spam: 'Spam', other: 'Other' }
+      const resolve = async (r) => {
+        const { data: { session } } = await supabase.auth.getSession()
+        const { error } = await supabase.from('content_reports').update({ resolved_at: new Date().toISOString(), resolved_by: session?.user?.id ?? null }).eq('id', r.id)
+        if (error) { alert(error.message); return false }
+        return true
+      }
+      table(el('rep-table'), ['Reported', 'What', 'Why', 'From', 'When', ''], cmReports, (r) => {
+        const tr = document.createElement('tr'); if (r.resolved_at) tr.style.opacity = '0.55'
+        const who = document.createElement('td'); who.className = 'ink'
+        const nm = document.createElement('div'); nm.textContent = name(r.target_user); nm.style.fontWeight = '600'
+        const ex = document.createElement('div'); ex.textContent = r.excerpt || ''; ex.style.cssText = 'color:var(--faint);font-size:12px;max-width:380px;white-space:normal;overflow-wrap:anywhere;'
+        who.append(nm, ex); tr.appendChild(who)
+        tr.appendChild(cell(WHAT[r.kind] ?? r.kind))
+        tr.appendChild(cell((WHY[r.reason] ?? r.reason) + (r.note ? `: ${r.note}` : '')))
+        tr.appendChild(cell(name(r.reporter)))
+        tr.appendChild(cell(new Date(r.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })))
+        const act = document.createElement('td')
+        if (!r.resolved_at) {
+          if (r.target_id && r.kind !== 'member') {
+            const rm = document.createElement('button'); rm.className = 'rowbtn'; rm.textContent = 'Remove'
+            rm.addEventListener('click', async () => {
+              if (!confirm(`Take this ${(WHAT[r.kind] ?? 'item').toLowerCase()} down for everyone?`)) return
+              rm.disabled = true
+              const { data: { session } } = await supabase.auth.getSession()
+              const now = new Date().toISOString()
+              const { error } = r.kind === 'message'
+                ? await supabase.from('messages').update({ deleted_at: now, deleted_by: session?.user?.id ?? null }).eq('id', r.target_id)
+                : r.kind === 'comment'
+                  ? await supabase.from('post_comments').update({ deleted_at: now }).eq('id', r.target_id)
+                  : await supabase.from('member_recaps').delete().eq('id', r.target_id)
+              if (error) { alert(error.message); rm.disabled = false; return }
+              if (await resolve(r)) loadReports()
+            })
+            act.appendChild(rm)
+          }
+          const ok = document.createElement('button'); ok.className = 'rowbtn'; ok.textContent = 'Resolve'; ok.style.marginLeft = '6px'
+          ok.addEventListener('click', async () => { ok.disabled = true; if (await resolve(r)) loadReports(); else ok.disabled = false })
+          act.appendChild(ok)
+        } else {
+          const b = document.createElement('span'); b.className = 'badge b-neutral'; b.textContent = 'resolved'
+          act.appendChild(b)
+        }
+        tr.appendChild(act); return tr
+      })
     }
     async function loadApplications() {
       try { const r = await adminAction({ action: 'app_list' }); cmApps = r.applications ?? [] }

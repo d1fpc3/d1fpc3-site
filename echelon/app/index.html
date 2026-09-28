@@ -131,7 +131,9 @@
       backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       box-shadow: 0 24px 60px -24px rgba(0,0,0,0.7);
     }
-    .glass h1 { font-size: 24px; font-weight: 650; letter-spacing: -0.025em; }
+    /* the gate is dark in both themes (.centre stays #0b0a09 in light), so its title is always white:
+       in light mode it inherited the dark ink and "Welcome back" nearly vanished */
+    .glass h1 { font-size: 24px; font-weight: 650; letter-spacing: -0.025em; color: #fff; }
     .glass .body { margin-top: 6px; font-size: 13px; color: rgba(255,255,255,0.55); }
     .glass .label { color: var(--gold); margin-bottom: 12px; }
 
@@ -4361,10 +4363,11 @@
     @media (hover: none) { .chat-log .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } }
     /* the held message lights up so the hold has feedback (Discord) */
     .msg.acts-open { background: var(--panel-2); border-radius: 10px; }
-    .m-del, .m-react { background: var(--panel-2); border: 1px solid var(--line-bright); color: var(--faint);
+    .m-del, .m-react, .m-flag { background: var(--panel-2); border: 1px solid var(--line-bright); color: var(--faint);
       border-radius: 6px; padding: 4px; cursor: pointer; display: inline-flex; }
-    .m-del svg, .m-react svg { width: 14px; height: 14px; display: block; }
+    .m-del svg, .m-react svg, .m-flag svg { width: 14px; height: 14px; display: block; }
     .m-del:hover { color: var(--bad); border-color: var(--bad); }
+    .m-flag:hover { color: var(--warn, #e0a44a); border-color: var(--warn, #e0a44a); }
     .m-react:hover { color: var(--gold); border-color: var(--gold); }
     .m-name { cursor: pointer; }
     .m-name:hover { text-decoration: underline; text-underline-offset: 2px; }
@@ -4684,6 +4687,27 @@
     .mrt.cf .cf-field .hint b { color: var(--ink); font-weight: 600; }
     .mrt.cf .row { justify-content: flex-end; }
     .mrt.cf .btn.danger { background: var(--bad); color: #1a100c; }
+    /* The confirm dialog opens from anywhere, the member card (190) and a fullscreen chart (300) included,
+       so it sits above them; only the splash and the lock screen stay higher. */
+    #cf-scrim { z-index: 350; } #cfmodal { z-index: 351; }
+    /* Report reasons: pick one, the chosen row takes a gold ring (App Review 1.2) */
+    .mrt.cf .cf-choices { display: grid; gap: 8px; margin: -4px 0 16px; }
+    .mrt.cf .cf-choices[hidden] { display: none; }
+    .cf-choice { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 11px 14px; box-sizing: border-box; text-align: left;
+      border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line-bright); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease; -webkit-tap-highlight-color: transparent; }
+    .cf-choice::before { content: ''; flex: none; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%; border: 1.5px solid var(--faint); transition: border 0.15s ease; }
+    .cf-choice:hover { border-color: var(--muted); }
+    .cf-choice[aria-checked="true"] { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 9%, var(--panel-2)); }
+    .cf-choice[aria-checked="true"]::before { border: 5.5px solid var(--gold); }
+    .cf-choice:active { transform: scale(0.99); }
+    /* member card: report and block sit quietly under the actions, never on your own card */
+    .mm-safety { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 10px; }
+    .mm-safety[hidden] { display: none; }
+    .mm-safety span { width: 3px; height: 3px; border-radius: 50%; background: var(--line-bright); }
+    .mm-safety button { background: none; border: 0; padding: 10px 6px; min-height: 44px; font: inherit; font-size: 12.5px; color: var(--faint); cursor: pointer; transition: color 0.15s ease; }
+    .mm-safety button:hover { color: var(--ink); }
+    .mm-safety #mm-block:hover, .mm-safety #mm-block.on { color: var(--bad); }
     .set-rate b { font-size: 14px; font-weight: 500; cursor: pointer; }
     .set-rate .stars { display: flex; gap: 0; }
     #set-rate-row { padding: 9px 6px; gap: 14px; justify-content: flex-start; } #set-rate-row b { flex: 1; } #set-rate-row .ico { width: 21px; height: 21px; flex: none; display: flex; align-items: center; justify-content: center; } #set-rate-row .ico svg { width: 19px; height: 19px; }
@@ -6183,6 +6207,7 @@
     <div class="body">
       <h3 id="cf-title"></h3>
       <p id="cf-body"></p>
+      <div class="cf-choices" id="cf-choices" role="radiogroup" hidden></div>
       <div class="cf-field" id="cf-field" hidden>
         <p class="hint" id="cf-field-hint"></p>
         <input class="inp" id="cf-input" autocomplete="off" autocapitalize="characters" spellcheck="false">
@@ -6312,6 +6337,7 @@
       <div class="pro-stats" id="mm-stats"></div>
       <div class="mm-bio" id="mm-bio"></div>
       <div class="mm-actions"><button class="mm-followbtn" id="mm-followbtn" type="button" hidden>Follow</button><button class="mm-msg" id="mm-msg" type="button">Message</button></div>
+      <div class="mm-safety" id="mm-safety" hidden><button type="button" id="mm-report">Report</button><span aria-hidden="true"></span><button type="button" id="mm-block">Block</button></div>
       <div class="pro-grid" id="mm-grid"></div>
       <p class="hint pro-empty" id="mm-empty" hidden>No trades posted yet.</p>
     </div>
@@ -6381,6 +6407,7 @@
         return !!globalThis.Capacitor?.isNativePlatform?.() || localStorage.getItem('echelon-native') === '1'
       } catch { return false }
     })()
+    const IOS_SHELL = (() => { try { return globalThis.Capacitor?.getPlatform?.() === 'ios' } catch { return false } })()
 
     // An affiliate link (?aff=CODE) is remembered for 30 days and rides along
     // on checkout, where the webhook turns it into the affiliate's commission.
@@ -6552,7 +6579,11 @@
           code.style.display = 'block'
           code.addEventListener('click', () => codeScreen(em.i.value.trim()))
 
-          form.append(em.f, pw.f, button, note, alts, or, discordButton(fail))
+          form.append(em.f, pw.f, button, note, alts)
+          // iOS: App Review 4.8 wants Sign in with Apple beside any third-party
+          // login, so the iPhone app signs in with email only. A Discord-only
+          // member uses "Forgot password?" once to give the account a password.
+          if (!IOS_SHELL) form.append(or, discordButton(fail))
           if (!NATIVE) form.appendChild(code)  // native shells: sign-in only
           host.appendChild(form)
         },
@@ -10485,7 +10516,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const t = document.createElement('span'); t.className = 'rv-when'; t.textContent = ago(r.created_at).replace(' ago', ''); t.title = d.toLocaleString()
       who.append(nm, t); user.appendChild(who)
       const mine = r.user_id === state.user?.id
-      if (mine || state.isMod || state.isAdmin) {
+      if (state.user) {   // everyone gets the menu: yours to edit, anyone's to report or block (App Review 1.2)
         const mb = document.createElement('button'); mb.type = 'button'; mb.className = 'rv-menu-btn'; mb.setAttribute('aria-label', 'Options')
         mb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>'
         mb.addEventListener('click', (e) => {
@@ -10496,7 +10527,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const menu = document.createElement('div'); menu.className = 'rv-menu'
           const item = (label, fn, cls) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (cls) b.className = cls; b.addEventListener('click', () => { menu.remove(); fn() }); menu.appendChild(b) }
           if (mine) item('Edit', () => openPostEditor(r, post))
-          item('Delete', () => rvDelete(post, r), 'danger')
+          if (mine || state.isMod || state.isAdmin) item('Delete', () => rvDelete(post, r), 'danger')
+          if (!mine) {
+            item('Report post', () => reportContent({ kind: 'post', id: r.id, userId: r.user_id, excerpt: [r.title, r.body].filter(Boolean).join(' | ') }))
+            item(`Block @${p?.username ?? 'member'}`, () => blockMember(r.user_id), 'danger')
+          }
           user.appendChild(menu)
           requestAnimationFrame(() => menu.classList.add('on'))
         })
@@ -10782,6 +10817,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     // a comment lands under its parent when it is a reply (one level: a reply to a reply joins the same thread)
     function cmMount(c, r, pending) {
+      if (isBlocked(c.user_id)) return null
       const list = el('cm-list'); if (list.querySelector(`.cm-row[data-id="${c.id}"]`)) return null
       const row = cmRow(c, r); if (pending) row.classList.add('pending')
       const root = c.parent_id ? (CM.rows.find((x) => x.id === c.parent_id)?.parent_id || c.parent_id) : null
@@ -10816,6 +10852,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const when = document.createElement('span'); when.textContent = ago(c.created_at).replace(' ago', '')
       const rp = document.createElement('button'); rp.type = 'button'; rp.textContent = 'Reply'; rp.addEventListener('click', () => cmReplyTo(c))
       meta.append(when, rp)
+      if (c.user_id !== state.user?.id) {
+        const rep = document.createElement('button'); rep.type = 'button'; rep.textContent = 'Report'
+        rep.addEventListener('click', () => reportContent({ kind: 'comment', id: c.id, userId: c.user_id, excerpt: c.body }))
+        meta.append(rep)
+      }
       if (c.user_id === state.user?.id || state.isMod || state.isAdmin) {
         const del = document.createElement('button'); del.type = 'button'; del.className = 'danger'; del.textContent = 'Delete'
         del.addEventListener('click', async () => {
@@ -10879,11 +10920,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // every image, no blank flash); only the counts repaint.
       if (reset && !FEED.rows.length && !host.children.length) host.innerHTML = '<div class="rv-skel"><div class="u"><i class="skel"></i><b class="skel"></b></div><div class="m skel"></div><div class="a"><i class="skel"></i><i class="skel"></i><i class="skel"></i></div><div class="l skel"></div></div>'.repeat(2)
       const before = (!reset && FEED.rows.length) ? FEED.rows[FEED.rows.length - 1].created_at : new Date().toISOString()
-      const { data, error } = await supabase.rpc('feed_posts', { p_scope: FEED.scope, p_before: before, p_limit: 20 })
+      const [{ data, error }] = await Promise.all([supabase.rpc('feed_posts', { p_scope: FEED.scope, p_before: before, p_limit: 20 }), blocksLoad()])
       FEED.busy = false
       if (error) { host.querySelectorAll('.rv-skel').forEach((x) => x.remove()); toast('Could not load the feed.'); return }
       host.querySelectorAll('.rv-skel').forEach((x) => x.remove())
-      const rows = data ?? []
+      const all = data ?? [], rows = all.filter((r) => !isBlocked(r.user_id))
       for (const r of rows) { POST_STATS.set(r.id, { like_count: r.like_count, comment_count: r.comment_count, liked: !!r.liked }); chat.byUser = chat.byUser || {}; chat.byUser[r.user_id] = chat.byUser[r.user_id] || { username: r.username, avatar_url: r.avatar_url } }
       FEED.loadedAt = Date.now()
       if (reset) {
@@ -10901,7 +10942,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         FEED.rows = []; FEED.done = false; host.textContent = ''
       }
       FEED.rows.push(...rows)
-      if (rows.length < 20) FEED.done = true
+      if (all.length < 20) FEED.done = true
       for (const r of rows) host.appendChild(rvPost(r))
       rvPreviewLoad(rows)
       el('feed-empty').hidden = FEED.rows.length > 0
@@ -11948,8 +11989,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('mm-bio').textContent = m.bio || ''
       const msg = el('mm-msg')
       const isSelf = m.user_id === state.user?.id
-      msg.style.display = (isSelf || !chatPerm('dm')) ? 'none' : ''
       msg.onclick = () => { closeMemberProfile(true); messageMember(m.user_id) }
+      // report / block (App Review 1.2): quiet, under the actions, never on your own card
+      el('mm-safety').hidden = isSelf
+      el('mm-report').onclick = () => reportContent({ kind: 'member', id: m.user_id, userId: m.user_id, excerpt: [m.username, m.bio].filter(Boolean).join(' | ') })
+      const bl = el('mm-block')
+      const paintBlock = () => {
+        const b = isBlocked(m.user_id)
+        bl.textContent = b ? 'Unblock' : 'Block'; bl.classList.toggle('on', b)
+        msg.style.display = (isSelf || !chatPerm('dm') || b) ? 'none' : ''
+      }
+      paintBlock()
+      bl.onclick = async () => {
+        if (isBlocked(m.user_id)) { await unblockMember(m.user_id); if (mmOpenId === m.user_id) paintBlock() }
+        else if (await blockMember(m.user_id)) closeMemberProfile()
+      }
       const sc = el('mm-scrim'), fresh = !sc.classList.contains('on') || sc.classList.contains('closing')
       if (fresh) navPush({ view: curView(), layer: 'member' })
       sc.classList.remove('closing'); sc.classList.add('on'); document.body.style.overflow = 'hidden'
@@ -12017,6 +12071,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     async function loadMembers() {
       myFollowsLoad()   // who you follow, before any member card opens
+      blocksLoad()      // who you blocked, before any feed, comment or chat draws
       const { data } = await supabase.from('member_directory').select('*')
         .order('is_admin', { ascending: false })
         .order('is_premium', { ascending: false })
@@ -12504,15 +12559,27 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // ── confirm dialog ──────────────────────────────────────
     // Replaces window.confirm/prompt. Plain yes/no, type-to-confirm (match),
     // or a short note (text). Resolves null when dismissed, true on confirm,
-    // or the trimmed note when text is set.
+    // or the trimmed note when text is set. With choices ([{ value, label }])
+    // one must be picked first, and it resolves { choice, note }.
     let CF = null
-    function askConfirm({ title, body = '', yes = 'Confirm', no = 'Cancel', danger = false, match = null, text = null }) {
+    function askConfirm({ title, body = '', yes = 'Confirm', no = 'Cancel', danger = false, match = null, text = null, choices = null }) {
       if (CF) CF.done(null)
       const scrim = el('cf-scrim'), panel = el('cfmodal'), input = el('cf-input'), ta = el('cf-text'), ok = el('cf-yes'), hint = el('cf-field-hint')
       el('cf-title').textContent = title
       el('cf-body').textContent = body; el('cf-body').hidden = !body
       el('cf-no').textContent = no
       ok.textContent = yes; ok.classList.toggle('danger', danger)
+      const ch = el('cf-choices'); ch.textContent = ''; ch.hidden = !choices
+      for (const c of choices ?? []) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'cf-choice'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', 'false')
+        b.textContent = c.label
+        b.addEventListener('click', () => {
+          ch.querySelectorAll('.cf-choice').forEach((x) => x.setAttribute('aria-checked', String(x === b)))
+          if (CF) CF.choice = c.value
+          ok.disabled = false; hap('light')
+        })
+        ch.appendChild(b)
+      }
       el('cf-field').hidden = !match && !text
       input.hidden = !match; ta.hidden = !text; hint.hidden = !match
       hint.textContent = ''
@@ -12521,14 +12588,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         input.value = ''; input.placeholder = match
       }
       if (text) { ta.value = ''; ta.placeholder = text.placeholder ?? '' }
-      ok.disabled = !!match
+      ok.disabled = !!match || !!choices
       const prev = document.activeElement
       scrim.hidden = false; panel.hidden = false
-      requestAnimationFrame(() => { scrim.classList.add('on'); panel.classList.add('on'); (match ? input : text ? ta : ok).focus() })
+      requestAnimationFrame(() => { scrim.classList.add('on'); panel.classList.add('on'); (match ? input : choices ? (ch.firstElementChild || ok) : text ? ta : ok).focus() })
       document.body.style.overflow = 'hidden'
       return new Promise((resolve) => {
         CF = {
-          match, text,
+          match, text, choices, choice: null,
           done(v) {
             CF = null
             scrim.classList.remove('on'); panel.classList.remove('on'); document.body.style.overflow = ''
@@ -12543,10 +12610,94 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const input = el('cf-input'), ok = el('cf-yes')
       input.addEventListener('input', () => { if (CF?.match) ok.disabled = input.value.trim() !== CF.match })
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !ok.disabled) { e.preventDefault(); ok.click() } })
-      ok.addEventListener('click', () => { if (CF) CF.done(CF.text ? el('cf-text').value.trim() : true) })
+      ok.addEventListener('click', () => { if (CF) CF.done(CF.choices ? { choice: CF.choice, note: CF.text ? el('cf-text').value.trim() : '' } : CF.text ? el('cf-text').value.trim() : true) })
       el('cf-no').addEventListener('click', () => { if (CF) CF.done(null) })
       el('cf-scrim').addEventListener('click', () => { if (CF) CF.done(null) })
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && CF) CF.done(null) })
+    }
+
+    /* ── report + block (App Review 1.2: members can flag content and shut someone out) ──
+       A report goes to content_reports and every admin's bell; the member is never told who.
+       A block hides that member's messages, posts and comments here, drops the DM, and the
+       server refuses their DMs to you (messages_dm_not_blocked). */
+    const BLOCKS = new Set()
+    let blocksP = null
+    function blocksLoad(force) {
+      if (!state.user) return Promise.resolve()
+      if (blocksP && !force) return blocksP
+      blocksP = supabase.from('user_blocks').select('blocked').limit(1000).then(({ data, error }) => {
+        if (error) { blocksP = null; return }
+        BLOCKS.clear(); for (const r of data ?? []) BLOCKS.add(r.blocked)
+      })
+      return blocksP
+    }
+    const isBlocked = (uid) => !!uid && uid !== state.user?.id && BLOCKS.has(uid)
+    const FLAG_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h11l-2.2 4L16 12H5"/></svg>'
+    const REPORT_WHAT = { message: 'message', post: 'post', comment: 'comment', member: 'member' }
+    const REPORT_REASONS = [
+      { value: 'harassment', label: 'Harassment, hate or threats' },
+      { value: 'explicit', label: 'Sexual, violent or graphic content' },
+      { value: 'spam', label: 'Spam or scams' },
+      { value: 'other', label: 'Something else' },
+    ]
+    async function reportContent({ kind, id = null, userId = null, excerpt = '' }) {
+      const r = await askConfirm({
+        title: `Report this ${REPORT_WHAT[kind] ?? 'content'}`,
+        body: 'A moderator reviews every report within 24 hours and removes anything that breaks the rules. They are not told who reported them.',
+        yes: 'Send report', choices: REPORT_REASONS, text: { placeholder: 'Anything else we should know (optional)' },
+      })
+      if (!r?.choice) return
+      const { error } = await supabase.from('content_reports').insert({
+        kind, target_id: id ? String(id) : null, target_user: userId, reason: r.choice,
+        note: r.note ? r.note.slice(0, 500) : null, excerpt: excerpt ? String(excerpt).slice(0, 500) : null,
+      })
+      if (error) { toast('Could not send the report. Try again.'); return }
+      hap('success'); toast('Report sent. Thank you.')
+    }
+    function memberName(uid) {
+      const m = (state.members || []).find((x) => x.user_id === uid)
+      return m?.username ?? chatUser(uid)?.username ?? 'member'
+    }
+    async function blockMember(uid) {
+      if (!uid || uid === state.user?.id) return false
+      const name = memberName(uid)
+      const ok = await askConfirm({
+        title: `Block @${name}?`,
+        body: 'Their messages, posts and comments disappear for you, and they can no longer message you. They are not told. You can unblock them from their profile.',
+        yes: 'Block', danger: true,
+      })
+      if (!ok) return false
+      const { error } = await supabase.from('user_blocks').insert({ blocked: uid })
+      if (error && !/duplicate/i.test(error.message)) { toast('Could not block. Try again.'); return false }
+      BLOCKS.add(uid); hap('medium'); blocksApply()
+      toast(`@${name} is blocked.`)
+      return true
+    }
+    async function unblockMember(uid) {
+      const { error } = await supabase.from('user_blocks').delete().eq('blocked', uid)
+      if (error) { toast('Could not unblock. Try again.'); return false }
+      BLOCKS.delete(uid); blocksApply()
+      toast(`@${memberName(uid)} is unblocked.`)
+      return true
+    }
+    // Take a freshly blocked member off every surface that is already drawn.
+    function blocksApply() {
+      document.querySelectorAll('#feed .rv-post').forEach((post) => {
+        const r = FEED.rows.find((x) => x.id === post.dataset.id)
+        if (r && isBlocked(r.user_id)) post.remove()
+      })
+      FEED.rows = FEED.rows.filter((r) => !isBlocked(r.user_id))
+      if (chat.loaded) {
+        chat.dms = (chat.dms ?? []).filter((d) => !isBlocked(d.user_lo === state.user.id ? d.user_hi : d.user_lo))
+        const cur = chat.cur?.type === 'dm' ? (chat.dms ?? []).find((d) => d.id === chat.cur.id) : true
+        if (!cur) { chat.cur = null; el('chat').classList.remove('open-convo') }
+        renderChatRail()
+        if (chat.cur) renderLog()
+      }
+      if (CM.r) el('cm-list')?.querySelectorAll('.cm-row').forEach((row) => {
+        const c = (CM.rows ?? []).find((x) => String(x.id) === row.dataset.id)
+        if (c && isBlocked(c.user_id)) row.remove()
+      })
     }
 
     function rateOpen(v) {
@@ -20268,13 +20419,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         supabase.from('chat_role_perms').select('*'),
         supabase.rpc('unread_conversations'),
         supabase.rpc('chat_previews'),
+        blocksLoad(),
       ])
       chat.channels = ch ?? []
       chat.modSet = new Set((mods ?? []).map((m) => m.user_id))
       chat.staff = new Map((staff ?? []).map((s) => [s.user_id, s.role]))
       chat.isStaff = state.isAdmin || state.isMod || chat.modSet.has(state.user.id)
       chat.permsByRole = Object.fromEntries((perms ?? []).map((p) => [p.role, p]))
-      chat.dms = dms ?? []
+      chat.dms = (dms ?? []).filter((d) => !isBlocked(d.user_lo === state.user.id ? d.user_hi : d.user_lo))
       chat.unread = new Map((unread ?? []).map((u) => [u.scope, u.cnt]))
       chat.previews = new Map((previews ?? []).map((p) => [p.scope, p]))
       applyChatPerms()
@@ -21098,6 +21250,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const isAnn = curChan?.kind === 'announcement'
       let lastDay = '', lastUser = null, lastT = 0
       for (const [i, m] of chat.msgs.entries()) {
+        if (isBlocked(m.user_id)) continue
         const t = new Date(m.created_at)
         const day = t.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })
         if (day !== lastDay) { const d = document.createElement('div'); d.className = 'chat-day'; d.textContent = day; log.appendChild(d); lastDay = day; lastUser = null }
@@ -21142,6 +21295,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (chat.isStaff && chat.cur?.type === 'channel' && !m.deleted_at) { const pn = document.createElement('button'); pn.className = 'm-pin' + (m.pinned_at ? ' on' : ''); pn.title = m.pinned_at ? 'Unpin' : 'Pin'; pn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3z"/></svg>'; pn.addEventListener('click', (e) => { e.stopPropagation(); chatPin(m.id, !m.pinned_at) }); acts.appendChild(pn) }
         if (m.pinned_at) row.classList.add('pinned')
         if (!m.deleted_at && el('chat-composer').style.display !== 'none') { const rp = document.createElement('button'); rp.className = 'm-reply'; rp.title = 'Reply'; rp.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>'; rp.addEventListener('click', (e) => { e.stopPropagation(); chatReplyTo(m) }); acts.appendChild(rp) }
+        if (!m.deleted_at && m.user_id !== state.user.id) {
+          const fl = document.createElement('button'); fl.className = 'm-flag'; fl.title = 'Report'; fl.setAttribute('aria-label', 'Report message')
+          fl.innerHTML = FLAG_SVG
+          fl.addEventListener('click', (e) => { e.stopPropagation(); row.classList.remove('acts-open'); reportContent({ kind: 'message', id: m.id, userId: m.user_id, excerpt: m.body || (m.image_url ? '[image] ' + m.image_url : '') }) })
+          acts.appendChild(fl)
+        }
         if (m.user_id === state.user.id || (chat.isStaff && chatPerm('delete'))) {
           const del = document.createElement('button'); del.className = 'm-del'; del.title = 'Delete'
           del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
@@ -21277,6 +21436,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (error) {
         input.value = body; if (replied) chatReplyTo(replied)
         if (img) { pendingImage = img; el('cc-thumb').src = img; el('cc-pending').classList.add('on') }
+        // a DM the other member blocked you from: say so, no retry that can never work
+        if (chat.cur?.type === 'dm' && /row-level security/i.test(error.message) && (await supabase.rpc('dm_blocked', { p_dm: chat.cur.id })).data === true) { toast('This member is not taking messages from you.'); return }
         toast('Could not send that.', 7000, { label: 'Retry', fn: sendMessage })
         return
       }
