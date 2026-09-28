@@ -1241,12 +1241,57 @@
     .ch-legend .ic button svg { width: 13px; height: 13px; }
     .ch-legend .ic button:hover { color: var(--ink); background: var(--panel-2); }
     /* drawing properties */
-    .ch-swrow { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: flex-end; max-width: 170px; }
+    .ch-swrow { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: flex-end; max-width: 230px; }   /* eight swatches and the custom one on one line (170px dropped the custom one to a line of its own) */
     .ch-swrow .sw { width: 16px; height: 16px; border-radius: 50%; border: 2px solid transparent; background: var(--c); cursor: pointer; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25); }
     .ch-swrow .sw.on { border-color: var(--ink); }
     .ch-swrow .sw.pal { background: conic-gradient(#f23645, #ff9800, #4caf50, #089981, #2962ff, #9c27b0, #f23645); }
     .ch-swrow .swc { position: relative; width: 18px; height: 18px; border-radius: 50%; background: var(--c); border: 1px dashed var(--faint); cursor: pointer; overflow: hidden; display: inline-block; }
     .ch-swrow .swc input { position: absolute; inset: -10px; width: 40px; height: 40px; opacity: 0; cursor: pointer; }
+    /* chart themes: a gallery of live pictures, one tap applies */
+    @media (max-width: 840px), (max-width: 1000px) and (max-height: 500px) { #v-chart .ch-bar > #ch-themes-btn { display: none; } }
+    .ch-themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 8px 0 12px; }
+    .ch-theme { position: relative; display: flex; flex-direction: column; gap: 7px; padding: 6px 6px 9px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); cursor: pointer; outline: none; transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.18s ease, box-shadow 0.18s ease; }
+    .ch-theme canvas { display: block; width: 100%; aspect-ratio: 28 / 15; height: auto; border-radius: 9px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 3px rgba(0, 0, 0, 0.3); }
+    .ch-theme .tx { display: flex; flex-direction: column; gap: 1px; padding: 0 4px; min-width: 0; }
+    .ch-theme b { font-size: 13px; font-weight: 650; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ch-theme small { font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    @media (hover: hover) { .ch-theme:hover { transform: translateY(-2px); border-color: var(--line-bright); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35); } }
+    .ch-theme:active { transform: scale(0.97); }
+    .ch-theme:focus-visible { border-color: var(--acc, var(--gold)); }
+    .ch-theme.on { border-color: var(--acc, var(--gold)); box-shadow: 0 0 0 1px var(--acc, var(--gold)), 0 8px 22px rgba(0, 0, 0, 0.3); }
+    .ch-theme.on::after { content: ''; position: absolute; top: 12px; right: 12px; width: 18px; height: 18px; border-radius: 50%; background: var(--acc, var(--gold)) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2314110a' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); }
+    .ch-theme .del { position: absolute; top: 10px; left: 10px; width: 24px; height: 24px; border: 0; border-radius: 50%; padding: 0; display: grid; place-items: center; background: rgba(0, 0, 0, 0.55); color: #fff; cursor: pointer; opacity: 0; transition: opacity 0.15s ease; }
+    .ch-theme .del svg { width: 12px; height: 12px; }
+    .ch-theme:hover .del, .ch-theme:focus-within .del { opacity: 1; }
+    @media (hover: none) { .ch-theme .del { opacity: 1; width: 38px; height: 38px; top: 4px; left: 4px; } .ch-theme .del svg { width: 14px; height: 14px; } }
+    /* drawing templates: a chip per saved style, the swatch it carries, a star for "new ones start like this" */
+    .ch-tpls { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0 4px; }
+    .ch-tpl { display: inline-flex; align-items: center; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
+    .ch-tpl button { border: 0; background: none; color: var(--ink); font: inherit; font-size: 12.5px; cursor: pointer; height: 32px; display: inline-flex; align-items: center; gap: 7px; }
+    .ch-tpl .ap { padding: 0 8px 0 10px; font-weight: 600; }
+    .ch-tpl .ap i { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3); flex-shrink: 0; }
+    .ch-tpl .star, .ch-tpl .x { width: 30px; justify-content: center; color: var(--faint); border-left: 1px solid var(--line); }
+    .ch-tpl .star svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+    .ch-tpl .star.on { color: var(--acc, var(--gold)); } .ch-tpl .star.on svg { fill: currentColor; }
+    .ch-tpl .x { font-size: 16px; }
+    @media (hover: hover) { .ch-tpl button:hover { background: var(--panel); } .ch-tpl .x:hover { color: var(--bad); } }
+    @media (max-width: 840px) { .ch-tpl button { height: 40px; } .ch-tpl .star, .ch-tpl .x { width: 40px; } }
+    /* a name, asked for in the chart's own dialog */
+    .ch-ask { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: 16px; background: rgba(6, 7, 10, 0.5); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: chAskFade 0.16s ease; }
+    .ch-ask.out { opacity: 0; transition: opacity 0.15s ease; }
+    .ch-ask .box { width: min(380px, 100%); padding: 20px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line-bright); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5); animation: chAskIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .ch-ask h4 { margin: 0 0 14px; font-size: 15px; font-weight: 650; color: var(--ink); }
+    .ch-ask input { width: 100%; height: 42px; padding: 0 13px; border-radius: 10px; border: 1px solid var(--line-bright); background: var(--field, var(--panel-2)); color: var(--ink); font: inherit; font-size: 15px; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .ch-ask input:focus { border-color: var(--acc, var(--gold)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc, var(--gold)) 22%, transparent); }
+    .ch-ask .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .ch-ask button { height: 40px; min-width: 84px; padding: 0 16px; border-radius: 10px; border: 0; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; transition: transform 0.12s ease, filter 0.12s ease; }
+    .ch-ask button:active { transform: scale(0.96); }
+    .ch-ask .cancel { background: var(--panel-2); color: var(--muted); }
+    .ch-ask .ok { background: var(--acc, var(--gold)); color: var(--acc-ink, #14110a); }
+    @media (hover: hover) { .ch-ask .ok:hover { filter: brightness(1.08); } .ch-ask .cancel:hover { color: var(--ink); } }
+    @keyframes chAskFade { from { opacity: 0; } }
+    @keyframes chAskIn { from { opacity: 0; transform: translateY(10px) scale(0.97); } }
+    @media (prefers-reduced-motion: reduce) { .ch-ask, .ch-ask .box { animation: none; } .ch-theme { transition: none; } }
     .ch-chk { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); cursor: pointer; }
     .ch-chk input { accent-color: var(--gold); }
     .ch-acts { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 14px; }
@@ -1348,6 +1393,8 @@
     #v-chart .ch-ib.on, #v-chart .ch-tools button.on, #v-chart .ch-selbar button.on, #v-chart #ch-stay.on, #v-chart #ch-lockall.on { color: var(--tv-blue); background: var(--tv-tint); }
     #v-chart .ch-part.on { color: var(--tv-blue); border-color: rgba(41,98,255,0.45); background: rgba(41,98,255,0.07); }
     #v-chart .ch-selbar .lbl:focus { border-color: var(--tv-blue); }
+    /* the picked swatch keeps its colour (the strip's "on" tint painted over it, so the colour in use showed as an empty ring) */
+    #v-chart .ch-selbar .sw, #v-chart .ch-selbar .sw.on { background: var(--c); } #v-chart .ch-selbar .sw.pal { background: conic-gradient(#f23645, #ff9800, #4caf50, #089981, #2962ff, #9c27b0, #f23645); }
     @media (min-width: 841px) {
       body.in-chart .topbar { display: none; }
       body.in-chart .pane { padding: 0; }
@@ -5603,6 +5650,7 @@
               <button class="ch-ib" id="ch-type-btn" type="button" title="Chart type" aria-label="Chart type"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4v3"/><rect x="5" y="7" width="4" height="9" rx="1"/><path d="M7 16v4"/><path d="M17 3v4"/><rect x="15" y="7" width="4" height="7" rx="1"/><path d="M17 14v5"/></svg></button>
               <button class="ch-ib ch-lb" id="ch-ind-btn" type="button" title="Indicators" aria-label="Indicators"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-8 5-8 8-2s5 6 10-8"/></svg><span>Indicators</span></button>
               <button class="ch-ib ch-lb" id="ch-replay-btn" type="button" title="Replay bar by bar" aria-label="Replay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M10 9l5 3-5 3z" fill="currentColor"/></svg><span>Replay</span></button>
+              <button class="ch-ib" id="ch-themes-btn" type="button" aria-label="Themes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A4.7 4.7 0 0 0 21 9.7C21 5.9 17 3 12 3z"/><circle cx="7.5" cy="11.5" r="1.3" fill="currentColor"/><circle cx="10" cy="7.3" r="1.3" fill="currentColor"/><circle cx="14.8" cy="7.3" r="1.3" fill="currentColor"/></svg></button>
               <button class="ch-ib" id="ch-layouts-btn" type="button" aria-label="Layouts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
               <button class="ch-ib" id="ch-settings-btn" type="button" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
               <button class="ch-ib" id="ch-full" type="button" title="Fullscreen" aria-label="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
@@ -14516,7 +14564,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP_EDGE, wickDown: D1_DN, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, legendOhlc: true, legendInds: true, legendVals: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
       // LIT ships the way the Pine does (D1, 09-27: "mimic the D1 LIT indicator"): every part its master
       // controls turn on is on. litV stamps the migration that brings saved settings along.
-      lit: true, litV: 4, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: true, litKo: true, litPo3: true, litGold: true, litVector: true, litDays: 3,
+      themeDrawings: true, lit: true, litV: 4, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: true, litKo: true, litPo3: true, litGold: true, litVector: true, litDays: 3,
       litPm: true, litNwog: true, litRef: true, litSig: true, litSig1: false, litSigAnc: false, litDs: true, litDsWeek: true, litOpen22: true, litLdn: true, litWm: true, litAlerts: true,
       litPmC: '', litPmW: 2, litNwogUp: '', litNwogDn: '', litNwogF: 0.18, litRefC: '', litSigC: '', litSigW: 1, litDsC: '', litOpen22C: '', litOpen22W: 1, litLdnC: '', litLdnF: 0.15, litWmC: '',
       // chart style (empty colour = the theme token)
@@ -16747,6 +16795,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (!S.volDown && S.down === D1_DN) C.volDown = pinkE
       }
       CH.candleC = C   // what the candles are painted in, so the PO3 candles wear exactly the same
+      // the last-price tag in the candle's body colour, or its edge when the body is the canvas (a hollow candle, a white one on white)
+      const bodyOr = (body, edge) => { const lb = chLum(BG), lc = chLum(body); return lb != null && lc != null && (Math.max(lb, lc) + 0.05) / (Math.min(lb, lc) + 0.05) < 1.6 ? edge : body }
       // The legend's OHLC sits on the canvas too, so it reads in the candles' own
       // wick colours (white up, pink down on D1's grey) instead of the theme's
       // teal and red: #089981 on #808080 measured 1.1:1. Only when that colour clears the
@@ -16947,7 +16997,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const lastBar = bars[n - 1]
       if (S.lastLine && lastBar) {
         const y = Math.round(chY(lastBar.c, L)) + 0.5, up = lastBar.c >= lastBar.o
-        if (lastBar.c >= CH.pMin && lastBar.c <= CH.pMax) { ctx.strokeStyle = alpha(S.lastC || (up ? (light && C.up === '#ffffff' ? C.borderUp : C.up) : C.down === '#ffffff' ? C.borderDown : C.down), 0.9); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([]) }
+        if (lastBar.c >= CH.pMin && lastBar.c <= CH.pMax) { ctx.strokeStyle = alpha(S.lastC || (up ? bodyOr(C.up, C.borderUp) : bodyOr(C.down, C.borderDown)), 0.9); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([]) }
       }
       // drawings, clipped to the plot; their axis tags come after the axis paints
       ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip(); chPaintDrawings(ctx, L, T, false); ctx.restore()
@@ -16984,7 +17034,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!CH.auto) { const cx0 = L.plotW + 4, cy0 = L.mainH - 20; ctx.fillStyle = alpha(T.gold, 0.18); ctx.fillRect(cx0, cy0, 34, 15); ctx.strokeStyle = alpha(T.gold, 0.5); ctx.strokeRect(cx0 + 0.5, cy0 + 0.5, 33, 14); ctx.fillStyle = T.gold; ctx.font = `600 9.5px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.fillText('AUTO', cx0 + 17, cy0 + 8); ctx.font = `11px ${GEX_FONT}`; CH.autoChip = { x0: cx0, x1: cx0 + 34, y0: cy0, y1: cy0 + 15 } }
       // the tag sets its own alignment: the AUTO chip just above leaves it at
       // 'center', which hung the price half off the tag and across the plot
-      if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = S.lastC || (up ? (light && C.up === '#ffffff' ? C.borderUp : C.up) : C.down === '#ffffff' ? C.borderDown : C.down); ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = (chLum(S.lastC || (up ? (light && C.up === '#ffffff' ? C.borderUp : C.up) : C.down === '#ffffff' ? C.borderDown : C.down)) ?? 0.3) > 0.35 ? '#0b0a09' : '#ffffff'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
+      if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = S.lastC || (up ? bodyOr(C.up, C.borderUp) : bodyOr(C.down, C.borderDown)); ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = (chLum(S.lastC || (up ? bodyOr(C.up, C.borderUp) : bodyOr(C.down, C.borderDown))) ?? 0.3) > 0.35 ? '#0b0a09' : '#ffffff'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
       chPaintDrawings(ctx, L, T, true)
       // Keep time labels clear of the date controls and timezone corner.
       { const ab = el('ch-autobtn'); if (ab) ab.classList.toggle('on', !!CH.auto) }
@@ -17105,7 +17155,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const CH_FIB = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1], CH_FIB_EXT = [1.272, 1.618, 2, 2.618]
     const CH_FIB_C = { 0: '#8a8a8a', 0.236: '#f23645', 0.382: '#ff9800', 0.5: '#4caf50', 0.618: '#089981', 0.786: '#2962ff', 1: '#8a8a8a', 1.272: '#9c27b0', 1.618: '#e91e63', 2: '#9c27b0', 2.618: '#e91e63' }
     const CH_SWATCHES_DARK = ['#2962ff', '#e9e3d8', '#f23645', '#26a69a', '#c9a24a', '#ff9800', '#ab47bc', '#8a8a8a'], CH_SWATCHES_LIGHT = ['#2962ff', '#1a1815', '#f23645', '#089981', '#c9a24a', '#ff9800', '#9c27b0', '#8a8a8a']
-    const CH_SWATCHES = { get list() { return document.documentElement.getAttribute('data-theme') === 'light' ? CH_SWATCHES_LIGHT : CH_SWATCHES_DARK }, map(fn) { return this.list.map(fn) } }
+    const CH_SWATCHES = { get list() { return Array.isArray(CH.s?.swatches) && CH.s.swatches.length === 8 ? CH.s.swatches : document.documentElement.getAttribute('data-theme') === 'light' ? CH_SWATCHES_LIGHT : CH_SWATCHES_DARK }, map(fn) { return this.list.map(fn) } }   // a theme brings its own palette
     /* the tool rail: groups with a flyout, the way the platform does it; the group button carries the last tool picked */
     const CH_I = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`
     const CH_TOOLS = {
@@ -17160,6 +17210,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       rail.innerHTML = CH_GROUPS.map(([g, ts]) => { const cur = ts.includes(S.rail[g]) ? S.rail[g] : ts[0]; return `<div class="ch-tg" data-group="${g}">${btn(cur)}${ts.length > 1 ? '<button type="button" class="ch-tgc" aria-label="More tools" tabindex="-1"></button>' : ''}</div>` }).join('')
         + '<span class="ch-tools-gap"></span>'
         + fixed('ch-magnet', 'Magnet', '<path d="M6 4v7a6 6 0 0 0 12 0V4"/><path d="M6 4h4v7a2 2 0 0 0 4 0V4h4"/>')
+        + fixed('ch-angle', 'Straight lines: snap every line flat, to 45° or upright', CH_PR.ang)
         + fixed('ch-stay', 'Stay in drawing mode', '<path d="M12 17v5"/><path d="M8 3h8l-1 7 3 3v1H6v-1l3-3z"/>')
         + fixed('ch-lockall', 'Lock all drawings', '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>')
         + fixed('ch-eye', 'Hide drawings', '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M4 4l16 16"/>')
@@ -17195,6 +17246,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const CH_STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.5l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></svg>'
     const CH_PR = {
       all: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><path d="M16.75 14v5.5M14 16.75h5.5"/>',
+      ang: '<path d="M4 20h16"/><path d="M4 20L17 7"/><path d="M10.5 20a6.5 6.5 0 0 0-1.9-4.6"/><circle cx="17" cy="7" r="1.6" fill="currentColor"/>',
       mag: '<path d="M6 4v7a6 6 0 0 0 12 0V4"/><path d="M6 4h4v7a2 2 0 0 0 4 0V4h4"/><path d="M6 8h4M14 8h4" opacity=".55"/>',
       stay: '<path d="M12 17v5"/><path d="M8 3h8l-1 7 3 3v1H6v-1l3-3z"/>',
       lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
@@ -17210,7 +17262,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         + b('', 'pr-tool', 'Cursor', CH_TOOLS.cross.icon, ' data-tool="cross"')
         + chToolFavs().map((t) => b('', 'pr-tool', CH_TOOLS[t].name, CH_TOOLS[t].icon, ` data-tool="${t}"`)).join('')
         + b('ch-pr-all', 'pr-all', 'All drawing tools', CH_PR.all) + '<i class="pr-sep"></i>'
-        + b('ch-pr-mag', 'pr-mag', 'Magnet', CH_PR.mag) + b('ch-pr-stay', '', 'Stay in drawing mode', CH_PR.stay) + b('ch-pr-lock', '', 'Lock all drawings', CH_PR.lock) + b('ch-pr-eye', '', 'Hide drawings', CH_PR.eye)
+        + b('ch-pr-mag', 'pr-mag', 'Magnet', CH_PR.mag) + b('ch-pr-ang', '', 'Straight lines', CH_PR.ang) + b('ch-pr-stay', '', 'Stay in drawing mode', CH_PR.stay) + b('ch-pr-lock', '', 'Lock all drawings', CH_PR.lock) + b('ch-pr-eye', '', 'Hide drawings', CH_PR.eye)
         + '<i class="pr-sep"></i>' + b('ch-pr-undo', '', 'Undo', CH_PR.undo) + b('ch-pr-redo', '', 'Redo', CH_PR.redo) + b('ch-pr-del', 'danger', 'Delete the selected drawing', CH_PR.del)
       if (!r.dataset.wired) {
         r.dataset.wired = '1'
@@ -17220,6 +17272,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (x.id === 'ch-pr-grip') { CH.s.prail = false; chSave(); chPrailShow(); chSetTool('cross'); return }
           if (x.id === 'ch-pr-all') chSheet(CH.sheet === 'tools' ? null : 'tools')
           else if (x.id === 'ch-pr-mag') { chMagnet(); toast(CH.s.magnet === 'off' ? 'Magnet off' : CH.s.magnet === 'weak' ? 'Magnet: weak, snaps to O H L C within reach' : 'Magnet: strong, every point lands on O H L C', 1600) }
+          else if (x.id === 'ch-pr-ang') chAngleToggle()
           else if (x.id === 'ch-pr-stay') { CH.s.stay = !CH.s.stay; chSave(); chStayUi(); toast(CH.s.stay ? 'Stays in the tool after each drawing' : 'Back to the cursor after each drawing', 1600) }
           else if (x.id === 'ch-pr-lock') { if (!CH.drawings.length) return; chPush(); const all = CH.drawings.every((d) => d.lock); CH.drawings.forEach((d) => { d.lock = !all }); chSave(); chLockAllUi(); chSelBar(); chDraw() }
           else if (x.id === 'ch-pr-eye') { CH.hideDr = !CH.hideDr; if (CH.hideDr) { CH.sel = null; chSelBar() } chEyeUi(); chDraw() }
@@ -17235,7 +17288,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const r = el('ch-prail'); if (!r || !r.firstElementChild) return
       r.querySelectorAll('.pr-tool').forEach((x) => x.classList.toggle('on', x.dataset.tool === CH.tool))
       const m = el('ch-pr-mag'); m.classList.toggle('on', CH.s.magnet !== 'off'); m.dataset.mode = CH.s.magnet === 'weak' ? 'W' : CH.s.magnet === 'strong' ? 'S' : ''; m.setAttribute('aria-label', 'Magnet: ' + CH.s.magnet)
-      el('ch-pr-stay').classList.toggle('on', !!CH.s.stay)
+      el('ch-pr-stay').classList.toggle('on', !!CH.s.stay); el('ch-pr-ang')?.classList.toggle('on', !!CH.s.snapAngle)
       el('ch-pr-lock').classList.toggle('on', CH.drawings.length > 0 && CH.drawings.every((d) => d.lock))
       el('ch-pr-eye').classList.toggle('on', !!CH.hideDr)
       el('ch-pr-undo').disabled = !CH.hist.length; el('ch-pr-redo').disabled = !CH.redo.length; el('ch-pr-del').disabled = !chSelAll().length
@@ -17319,7 +17372,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           wrap.appendChild(g)
         }
         const full = el('v-chart').classList.contains('ch-fullscreen'), tz = el('ch-tz')?.firstChild?.textContent || ''
-        grp([['Chart type', svgOf('ch-type-btn'), () => chMenu('type')], ['Layouts', svgOf('ch-layouts-btn'), () => chMenu('layouts')], ['Replay', svgOf('ch-replay-btn'), () => el('ch-replay-btn').click()]])
+        grp([['Themes', svgOf('ch-themes-btn'), () => chThemesOpen()], ['Chart type', svgOf('ch-type-btn'), () => chMenu('type')], ['Layouts', svgOf('ch-layouts-btn'), () => chMenu('layouts')], ['Replay', svgOf('ch-replay-btn'), () => el('ch-replay-btn').click()]])
         grp([['Go to date', svgOf('ch-goto'), () => el('ch-goto').click()], ['Timezone', ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'), () => chTzMenu(), tz], [full ? 'Exit full screen' : 'Full screen', svgOf('ch-full'), () => el('ch-full').click()]])
         grp([['Snapshot', svgOf('ch-snap-btn'), () => el('ch-snap-btn').click()], ['Objects', ic('<path d="M4 6h16M4 12h16M4 18h10"/>'), () => chMenu('objects')], ['Settings', svgOf('ch-settings-btn'), () => chMenu('settings')]])
         body.appendChild(wrap)
@@ -17376,6 +17429,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       '#ch-ind-btn': ['Indicators', 'Averages, VWAP, bands, oscillators, D1 LIT and D1 GEX.'],
       '#ch-replay-btn': ['Replay', 'Wind the chart back and step it forward bar by bar.'],
       '#ch-settings-btn': ['Settings', 'Colours, candles, background, scales, and the way in to layouts.'],
+      '#ch-themes-btn': ['Themes', 'Restyle the whole chart in one tap: the canvas, the candles, D1 LIT, the indicators and your drawings.'],
       '#ch-layouts-btn': ['Layouts', 'This whole chart under a name: the symbol, the interval, every setting and every drawing. Save one, switch between them.'],
       '#ch-full': ['Fullscreen', 'Give the chart the whole screen.'],
       '#ch-type-btn': ['Chart type', 'Candles, hollow candles, Heikin Ashi, bars, line or area. The picker draws each one.'],
@@ -17424,6 +17478,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     el('ch-tf-any')?.addEventListener('click', (e) => { e.stopPropagation(); if (chPhone()) chSheet(CH.sheet === 'tf' ? null : 'tf'); else chMenu('tf') })
       el('ch-layouts-btn')?.addEventListener('click', () => chMenu('layouts'))
+      el('ch-themes-btn')?.addEventListener('click', (e) => { e.stopPropagation(); if (CH.menu === 'settings' && CH.tabs?.['tab:settings'] === 'Themes') chMenu(null); else chThemesOpen() })
       setTimeout(chTipsApply, 0)   // after the bar's own wiring has run
     function chHistUi() { const u = el('ch-undo-btn'), r = el('ch-redo-btn'); if (u) u.disabled = !CH.hist.length; if (r) r.disabled = !CH.redo.length; chPrailSync() }
     function chStayUi() { const b = el('ch-stay'); if (b) b.classList.toggle('on', !!CH.s.stay); chPrailSync() }
@@ -17431,7 +17486,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const chLineW = (d, sel) => ({ 1: 1.2, 2: 2, 3: 3, 4: 4 }[d.w] || 1.2) + (sel ? 0.5 : 0)
     const chDashOf = (d) => d.dash === 'dash' ? [7, 5] : d.dash === 'dot' ? [2, 3] : []
     const chGold = () => { try { return getComputedStyle(el('v-chart')).getPropertyValue('--gold').trim() || '#2962ff' } catch { return '#2962ff' } }
-    const chDrawColor = (d) => d.color || chGold()
+    const chDrawColor = (d) => d.color || CH.s.drawC || chGold()   // a theme's drawing colour, or the accent
     // where a two-point line meets the plot edges, honouring extend left / right
     function chLineEnds(d, P, L) {
       const [a, b] = P; if (!b) return [a, a]
@@ -17908,7 +17963,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           + (d.type === 'text' || d.type === 'callout' ? `<button type="button" class="ib" data-edit="1" aria-label="Edit text">${I('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>')}</button>` : '')
           + `<span class="ch-sep"></span><button type="button" class="ib" data-props="1" aria-label="Settings">${I('<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>')}</button>`
           + `<button type="button" class="ib${d.lock ? ' on' : ''}" data-lock="1" aria-label="${d.lock ? 'Unlock' : 'Lock'}">${I(CH_PR.lock)}</button>`
-          + `<button type="button" class="ib" data-dup="1" aria-label="Clone">${I('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>')}</button>`
+          + (chAngled(d) ? CH_LVL_BTN : `<button type="button" class="ib" data-dup="1" aria-label="Clone">${I('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>')}</button>`)   // a line trades Clone (in its menu) for Level
           + `<button type="button" class="ib danger" data-del="1" aria-label="Delete">${I(CH_PR.del)}</button>`
         return
       }
@@ -17924,7 +17979,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const fibx = d.type === 'fib' ? `<button type="button" class="tb${d.fibExt ? ' on' : ''}" data-fibext="1" title="Extension levels 1.272 to 2.618">1.618</button>` : d.type === 'channel' ? `<button type="button" class="tb${d.mid !== false ? ' on' : ''}" data-mid="1" title="Middle line">mid</button>` : (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') ? `<button type="button" class="tb${d.stats !== false ? ' on' : ''}" data-stats="1" title="Show change, bars and time when selected">stats</button>` : ''
       const size = d.type === 'text' || d.type === 'callout' ? `<span class="ch-sep"></span><span class="seg tiny">${[11, 13, 16, 20].map((s) => `<button type="button" data-size="${s}"${(d.size || 13) === s ? ' class="on"' : ''}>${s}</button>`).join('')}</span>` : ''
       const text = d.type === 'text' || d.type === 'callout' ? `<button type="button" class="ib" data-edit="1" title="Edit text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>` : `<input type="text" class="lbl" value="${(d.text || '').replace(/"/g, '&quot;')}" placeholder="Label" maxlength="40" aria-label="Label">`
-      bar.innerHTML = `<span class="ch-selname">${nSel > 1 ? nSel + ' drawings' : (CH_TOOL_NAMES[d.type] || d.type)}</span><span class="ch-sep"></span><span class="sws">${fibPal}${sw}<label class="swc" title="Custom colour" style="--c:${c}"><input type="color" value="${/^#[0-9a-f]{6}$/i.test(c) ? c : '#c9a24a'}" aria-label="Drawing colour"></label></span><span class="ch-sep"></span><span class="wbs">${widths}</span><span class="ch-sep"></span><span class="dbs">${dashes}</span>${ext}${fill}${fibx}${size}<span class="ch-sep"></span>${text}<span class="ch-sep"></span><button type="button" class="ib${d.lock ? ' on' : ''}" data-lock="1" title="${d.lock ? 'Unlock' : 'Lock in place'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button><button type="button" class="ib" data-dup="1" title="Duplicate (Ctrl+D)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button><button type="button" class="ib" data-props="1" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button><button type="button" class="ib" data-def="1" title="Save as the default style for this tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg></button><button type="button" class="ib danger" data-del="1" title="Delete (Del)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button>`
+      bar.innerHTML = `<span class="ch-selname">${nSel > 1 ? nSel + ' drawings' : (CH_TOOL_NAMES[d.type] || d.type)}</span><span class="ch-sep"></span><span class="sws">${fibPal}${sw}<label class="swc" title="Custom colour" style="--c:${c}"><input type="color" value="${/^#[0-9a-f]{6}$/i.test(c) ? c : '#c9a24a'}" aria-label="Drawing colour"></label></span><span class="ch-sep"></span><span class="wbs">${widths}</span><span class="ch-sep"></span><span class="dbs">${dashes}</span>${ext}${chAngled(d) ? CH_LVL_BTN : ''}${fill}${fibx}${size}<span class="ch-sep"></span>${text}<span class="ch-sep"></span><button type="button" class="ib${d.lock ? ' on' : ''}" data-lock="1" title="${d.lock ? 'Unlock' : 'Lock in place'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button><button type="button" class="ib" data-dup="1" title="Duplicate (Ctrl+D)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button><button type="button" class="ib" data-props="1" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button><button type="button" class="ib" data-tpl="1" title="Templates: saved styles for this tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10a1 1 0 0 1 1 1v17l-6-4-6 4V4a1 1 0 0 1 1-1z"/></svg></button><button type="button" class="ib danger" data-del="1" title="Delete (Del)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button>`
     }
     // the inline editor for text notes
     function chTextEdit(d) {
@@ -18361,6 +18416,164 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chPush(); CH.drawings.push(d); CH.sel = d; chSave(); chSelBar(); chDraw()
     }
     function chResetView() { CH.barW = 9; CH.offset = 6; CH.auto = true; chDraw() }
+    /* ── chart themes ──
+       D1, 09-28: "automatic themes for the indicators and the chart layouts ... a black theme and white theme, gray
+       theme, pink background theme, just insane themes ... apply it and it'll change the colors of the indicators,
+       your boxes, your trend lines, everything." A theme is applied on purpose (the grey stays until then) and
+       restyles every colour the chart owns at once: the canvas, candles, D1 LIT's boxes and levels, the indicator
+       defaults, the drawing palette, and the drawings themselves (each keeps its place in the palette, so a red
+       line stays the theme's red). Undo sits on the toast. */
+    const CH_LIT_COLOR_KEYS = ['litPdC', 'litPwC', 'litPmC', 'litWoC', 'litOpenC', 'litOpen22C', 'litMarksC', 'litAsiaC', 'litLdnC', 'litNyC', 'litDsC', 'litKoC', 'litSigC', 'litRefC', 'litNwogUp', 'litNwogDn', 'litNwogC', 'litGoldC', 'litPo3Up', 'litPo3Dn', 'litPo3Lab', 'litWmC', 'litVecUp', 'litVecDn']
+    const chLitInk = (ink, grey, boxes = {}) => ({ litPdC: grey, litPwC: grey, litPmC: grey, litNwogC: grey, litPo3Lab: grey, litWoC: ink, litOpenC: ink, litOpen22C: ink, litMarksC: ink, litLdnC: ink, litNyC: ink, litDsC: ink, litKoC: ink, litSigC: ink, litRefC: ink, litWmC: ink, ...boxes })
+    const CH_THEMES = [
+      { id: 'd1grey', name: 'D1 Grey', note: 'Your TradingView grey', bg: D1_BG, up: D1_UP, down: D1_DN, wickUp: D1_UP_EDGE, wickDown: D1_DN, borderUp: D1_UP_EDGE, borderDown: D1_DN, vec: [D1_VEC_UP, D1_VEC_DN], draw: '#c9a24a' },
+      { id: 'obsidian', name: 'Obsidian', note: 'Black, bone and crimson', bg: '#0b0b0d', up: '#ecebe8', down: '#e0485f', vec: ['#d4af37', '#ff2d55'], draw: '#d4af37', accent: '#d4af37',
+        sw: ['#4f8cff', '#ecebe8', '#ff4d6a', '#2ec4a6', '#d4af37', '#ff9f43', '#b77cff', '#7d7f86'],
+        ind: { ma: ['#d4af37', '#4f8cff', '#ff6fb1', '#2ec4a6', '#ff9f43'], rsi: '#b77cff', macd: '#4f8cff', sig: '#ff9f43', bb: '#4f8cff', bbMid: '#ff9f43', vwap: '#ecebe8', atr: '#2ec4a6' },
+        lit: chLitInk('#ecebe8', '#8d8f96', { litAsiaC: '#ff6fb1', litGoldC: '#d4af37', litNwogUp: '#2ec4a6', litNwogDn: '#ff4d6a' }) },
+      { id: 'paper', name: 'Paper', note: 'White, the platform\'s own', bg: '#ffffff', up: '#089981', down: '#f23645', vec: ['#131722', '#b71c1c'], draw: '#2962ff', accent: '#2962ff', grid: true, gridC: '#eef0f3',
+        sw: ['#2962ff', '#131722', '#f23645', '#089981', '#c9a24a', '#ff9800', '#9c27b0', '#787b86'],
+        ind: { ma: ['#2962ff', '#ff9800', '#9c27b0', '#089981', '#f23645'], rsi: '#7e57c2', macd: '#2962ff', sig: '#ff6d00', bb: '#2962ff', bbMid: '#ff6d00', vwap: '#131722', atr: '#089981' },
+        lit: chLitInk('#131722', '#787b86', { litAsiaC: '#f06292', litGoldC: '#c9a24a' }) },
+      { id: 'blush', name: 'Blush', note: 'Pink canvas, raspberry and plum', volUp: '#8e2a52', volDown: '#d6336c', bg: '#f9e1ea', bg2: '#f3cbd9', up: '#ffffff', down: '#d6336c', wickUp: '#8e2a52', borderUp: '#8e2a52', wickDown: '#b0204f', borderDown: '#b0204f', vec: ['#4a1030', '#8a0a36'], draw: '#7b2cbf', accent: '#d6336c', textC: '#5a2a3e', crossC: '#3b1024',
+        sw: ['#3a5bd9', '#3b1024', '#d6336c', '#0f9d8a', '#b8860b', '#f08c00', '#7b2cbf', '#9a7f8a'],
+        ind: { ma: ['#7b2cbf', '#d6336c', '#3a5bd9', '#0f9d8a', '#f08c00'], rsi: '#7b2cbf', macd: '#3a5bd9', sig: '#d6336c', bb: '#7b2cbf', bbMid: '#d6336c', vwap: '#3b1024', atr: '#0f9d8a' },
+        lit: chLitInk('#3b1024', '#8a5a6e', { litAsiaC: '#d6336c', litGoldC: '#b8860b', litNwogUp: '#0f9d8a', litNwogDn: '#d6336c' }) },
+      { id: 'neon', name: 'Neon Tokyo', note: 'Midnight violet, cyan and hot pink', bg: '#0a0418', bg2: '#1c0636', up: '#00f5d4', down: '#ff2e97', vec: ['#fcee0a', '#ff5a1f'], draw: '#fcee0a', accent: '#ff2e97', grid: true, gridC: '#1f0f3d', textC: '#b8a9e8', crossC: '#ff2e97',
+        sw: ['#3d7bff', '#f5f0ff', '#ff2e97', '#00f5d4', '#fcee0a', '#ff8a00', '#b14dff', '#7a6f99'],
+        ind: { ma: ['#fcee0a', '#00f5d4', '#ff2e97', '#b14dff', '#3d7bff'], rsi: '#b14dff', macd: '#00f5d4', sig: '#ff2e97', bb: '#b14dff', bbMid: '#fcee0a', vwap: '#f5f0ff', atr: '#00f5d4' },
+        lit: chLitInk('#f5f0ff', '#9d8fd1', { litAsiaC: '#ff2e97', litNyC: '#00f5d4', litLdnC: '#b14dff', litGoldC: '#fcee0a', litNwogUp: '#00f5d4', litNwogDn: '#ff2e97' }) },
+      { id: 'matrix', name: 'Matrix', note: 'Phosphor green on black', volDown: '#00c832', bg: '#020a04', up: '#00ff41', down: '#04380f', wickDown: '#00c832', borderDown: '#00c832', vec: ['#eaffea', '#ff3b3b'], draw: '#00ff41', accent: '#00ff41', grid: true, gridC: '#0a2412', textC: '#00c832', crossC: '#00ff41',
+        sw: ['#39c5ff', '#d7ffd9', '#ff3b3b', '#00ff41', '#baff29', '#ffb000', '#b388ff', '#2f6b3a'],
+        ind: { ma: ['#00ff41', '#baff29', '#39c5ff', '#d7ffd9', '#ffb000'], rsi: '#00ff41', macd: '#39c5ff', sig: '#baff29', bb: '#00c832', bbMid: '#baff29', vwap: '#d7ffd9', atr: '#00ff41' },
+        lit: chLitInk('#9dffb0', '#4caf6a', { litAsiaC: '#00ff41', litLdnC: '#39c5ff', litGoldC: '#baff29', litNwogUp: '#00ff41', litNwogDn: '#ff3b3b' }) },
+      { id: 'miami', name: 'Miami', note: 'Sunset plum to magenta', bg: '#1b0a2a', bg2: '#4a1238', up: '#ffb347', down: '#ff4f81', vec: ['#fff275', '#c9184a'], draw: '#5ee7ff', accent: '#ff7a59', textC: '#e0b8d8',
+        sw: ['#5ee7ff', '#fff1e6', '#ff4f81', '#2dd4bf', '#ffd166', '#ff7a59', '#c77dff', '#9a7aa0'],
+        ind: { ma: ['#ffd166', '#5ee7ff', '#ff4f81', '#c77dff', '#2dd4bf'], rsi: '#c77dff', macd: '#5ee7ff', sig: '#ff7a59', bb: '#c77dff', bbMid: '#ffd166', vwap: '#fff1e6', atr: '#2dd4bf' },
+        lit: chLitInk('#fff1e6', '#c9a3c9', { litAsiaC: '#ff4f81', litNyC: '#5ee7ff', litLdnC: '#c77dff', litGoldC: '#ffd166', litNwogUp: '#2dd4bf', litNwogDn: '#ff4f81' }) },
+      { id: 'gold', name: 'Gold Standard', note: 'Echelon black and gold', volUp: '#d4af37', volDown: '#e9e3d8', bg: '#0b0a09', up: '#d4af37', down: '#0b0a09', wickDown: '#e9e3d8', borderDown: '#e9e3d8', vec: ['#fff3b0', '#ff5c5c'], draw: '#d4af37', accent: '#d4af37', textC: '#9c9384',
+        sw: ['#8fb3ff', '#e9e3d8', '#ff8a8a', '#7ed9b5', '#d4af37', '#f0a860', '#c5a3ff', '#8a8070'],
+        ind: { ma: ['#d4af37', '#e9e3d8', '#8fb3ff', '#ff8a8a', '#7ed9b5'], rsi: '#d4af37', macd: '#e9e3d8', sig: '#d4af37', bb: '#d4af37', bbMid: '#e9e3d8', vwap: '#e9e3d8', atr: '#d4af37' },
+        lit: chLitInk('#e9e3d8', '#8a8070', { litAsiaC: '#d4af37', litGoldC: '#fff3b0', litNwogUp: '#7ed9b5', litNwogDn: '#ff8a8a' }) },
+      { id: 'arctic', name: 'Arctic', note: 'Ice blue and signal red', bg: '#eef4fa', up: '#1e88e5', down: '#e53935', vec: ['#0d2b4d', '#8e0000'], draw: '#0d47a1', accent: '#1e88e5', grid: true, gridC: '#dce6f1', textC: '#4a5a70',
+        sw: ['#1e88e5', '#0d2b4d', '#e53935', '#43a047', '#b8860b', '#fb8c00', '#8e24aa', '#7a8ca3'],
+        ind: { ma: ['#1e88e5', '#e53935', '#43a047', '#fb8c00', '#8e24aa'], rsi: '#8e24aa', macd: '#1e88e5', sig: '#fb8c00', bb: '#1e88e5', bbMid: '#fb8c00', vwap: '#0d2b4d', atr: '#43a047' },
+        lit: chLitInk('#0d2b4d', '#7a8ca3', { litAsiaC: '#e57399', litGoldC: '#b8860b' }) },
+      { id: 'mono', name: 'Mono', note: 'Ink only, no colour at all', volDown: '#9a9a9a', bg: '#111214', up: '#f2f2f2', down: '#4a4a4a', wickDown: '#9a9a9a', borderDown: '#9a9a9a', vec: ['#bdbdbd', '#1e1e1e'], draw: '#ffffff', accent: '#e6e6e6', textC: '#8a8a8a',
+        sw: ['#9e9e9e', '#ffffff', '#bdbdbd', '#757575', '#e0e0e0', '#cfcfcf', '#616161', '#424242'],
+        ind: { ma: ['#ffffff', '#bdbdbd', '#8a8a8a', '#e0e0e0', '#9e9e9e'], rsi: '#e0e0e0', macd: '#ffffff', sig: '#8a8a8a', bb: '#9e9e9e', bbMid: '#e0e0e0', vwap: '#ffffff', atr: '#bdbdbd' },
+        lit: chLitInk('#e6e6e6', '#8a8a8a', { litAsiaC: '#bdbdbd', litGoldC: '#ffffff', litNwogUp: '#e6e6e6', litNwogDn: '#5a5a5a' }) },
+    ]
+    const chDrawDef = () => CH.s.drawC || chGold()
+    // the look the chart has now, as a theme (the "Save the current look" card)
+    function chThemeSnap(name) {
+      const S = CH.s, lit = {}; for (const k of CH_LIT_COLOR_KEYS) if (S[k]) lit[k] = S[k]
+      return { id: 'u' + Date.now().toString(36), name, note: 'Saved from your chart', bg: S.bg || CH.bgNow || D1_BG, bg2: S.bg2 || '', grid: !!S.grid, gridC: S.gridC || '', textC: S.textC || '', crossC: S.crossC || '', accent: S.accentC || '', sessC: S.sessC || '',
+        up: S.up, down: S.down, wickUp: S.wickUp, wickDown: S.wickDown, borderUp: S.borderUp, borderDown: S.borderDown, vec: [S.litVecUp || '', S.litVecDn || ''], draw: S.drawC || chGold(), sw: Array.isArray(S.swatches) ? S.swatches.slice() : null,
+        ind: { ma: (S.ma || []).map((m) => m.c), rsi: S.rsiC || '', macd: S.macdC || '', sig: S.macdSigC || '', bb: S.bbC || '', bbMid: S.bbMidC || '', vwap: S.vwapC || '', atr: S.atrC || '' }, lit }
+    }
+    function chThemeApply(th) {
+      const S = CH.s, before = JSON.stringify(S), drBefore = JSON.stringify(CH.drawings, (k, v) => k.startsWith('_') ? undefined : v)
+      const oldSw = CH_SWATCHES.list.slice(), oldDraw = chDrawDef()
+      Object.assign(S, { bg: th.bg || '', bg2: th.bg2 || '', grid: !!th.grid, gridC: th.gridC || '', textC: th.textC || '', crossC: th.crossC || '', accentC: th.accent || '', sessC: th.sessC || '' })
+      Object.assign(S, { up: th.up, down: th.down, wickUp: th.wickUp || th.up, wickDown: th.wickDown || th.down, borderUp: th.borderUp || th.wickUp || th.up, borderDown: th.borderDown || th.wickDown || th.down, border: true, volUp: th.volUp || '', volDown: th.volDown || '' })
+      for (const k of CH_LIT_COLOR_KEYS) S[k] = ''
+      Object.assign(S, th.lit || {}); S.litVecUp = th.vec?.[0] || ''; S.litVecDn = th.vec?.[1] || ''
+      const I = th.ind || {}
+      S.ma = (S.ma || []).map((m, i) => ({ ...m, c: (I.ma && I.ma[i % I.ma.length]) || CH_MA_COLORS[i % 5] }))
+      for (const [k, v] of [['rsiC', I.rsi], ['macdC', I.macd], ['macdSigC', I.sig], ['bbC', I.bb], ['bbMidC', I.bbMid], ['vwapC', I.vwap], ['atrC', I.atr]]) S[k] = v || ''
+      S.drawC = th.draw || ''; S.swatches = Array.isArray(th.sw) && th.sw.length === 8 ? th.sw.slice() : null; S.themeId = th.id
+      // the drawings: the default colour follows the theme; a palette colour moves to the same place in the new palette
+      let moved = 0
+      if (S.themeDrawings !== false) { const sw = CH_SWATCHES.list; for (const d of CH.drawings) { if (!d.color) continue; if (d.color === oldDraw) { d.color = ''; moved++ } else { const i = oldSw.indexOf(d.color); if (i >= 0) { d.color = sw[i]; moved++ } } } }
+      chInkMemo.clear(); chSave(); chSelBar(); chDraw()
+      if (CH.menu === 'settings') chMenu('settings')
+      toast(`${th.name} is on${moved ? `, ${moved} drawing${moved > 1 ? 's' : ''} recoloured` : ''}.`, 7000, { label: 'Undo', fn: () => { CH.s = JSON.parse(before); CH.drawings = JSON.parse(drBefore); CH.sel = null; chInkMemo.clear(); chSave(); chSelBar(); chDraw(); if (CH.menu === 'settings') chMenu('settings') } })
+    }
+    // a card's picture: the theme's canvas, sixteen candles, an average, an Asia box and a trend line
+    function chThemePreview(cv, th) {
+      const g = cv.getContext('2d'), W = cv.width, H = cv.height
+      if (th.bg2) { const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, th.bg); gr.addColorStop(1, th.bg2); g.fillStyle = gr } else g.fillStyle = th.bg || D1_BG
+      g.fillRect(0, 0, W, H)
+      if (th.grid) { g.strokeStyle = th.gridC || 'rgba(127,127,127,0.18)'; g.lineWidth = 1; for (let y = H / 4; y < H; y += H / 4) { g.beginPath(); g.moveTo(0, Math.round(y) + 0.5); g.lineTo(W, Math.round(y) + 0.5); g.stroke() } }
+      const closes = [52, 49, 55, 60, 57, 63, 59, 66, 71, 67, 62, 65, 58, 54, 61, 69], n = closes.length, cw = W / (n + 2), Y = (v) => H - 10 - (v - 40) / 40 * (H - 20)
+      const asia = th.lit?.litAsiaC || '#faa1a4'; g.fillStyle = alpha(asia, 0.16); g.fillRect(cw * 1.5, Y(64), cw * 5, Y(47) - Y(64)); g.strokeStyle = alpha(asia, 0.8); g.strokeRect(cw * 1.5 + 0.5, Y(64) + 0.5, cw * 5, Y(47) - Y(64))
+      let prev = 50
+      closes.forEach((c, i) => {
+        const o = prev, up = c >= o, x = cw * (i + 1.5), hi = Math.max(o, c) + 2 + (i % 3), lo = Math.min(o, c) - 2 - (i % 2)
+        const body = up ? th.up : th.down, edge = up ? th.borderUp || th.wickUp || th.up : th.borderDown || th.wickDown || th.down, wick = up ? th.wickUp || th.up : th.wickDown || th.down
+        const vec = i === 7 || i === 12
+        g.strokeStyle = wick; g.lineWidth = 1; g.beginPath(); g.moveTo(Math.round(x) + 0.5, Y(hi)); g.lineTo(Math.round(x) + 0.5, Y(lo)); g.stroke()
+        const bw = Math.max(3, cw * 0.62), top = Y(Math.max(o, c)), h = Math.max(1.5, Math.abs(Y(o) - Y(c)))
+        g.fillStyle = vec ? (up ? th.vec?.[0] || D1_VEC_UP : th.vec?.[1] || D1_VEC_DN) : body; g.fillRect(x - bw / 2, top, bw, h)
+        g.strokeStyle = edge; g.strokeRect(Math.round(x - bw / 2) + 0.5, Math.round(top) + 0.5, Math.round(bw) - 1, Math.max(1, Math.round(h) - 1))
+        prev = c
+      })
+      const ma = th.ind?.ma?.[0] || CH_MA_COLORS[0]; g.strokeStyle = ma; g.lineWidth = 1.6; g.beginPath(); closes.forEach((c, i) => { const v = closes.slice(Math.max(0, i - 3), i + 1).reduce((a, b) => a + b, 0) / Math.min(i + 1, 4), x = cw * (i + 1.5); i ? g.lineTo(x, Y(v)) : g.moveTo(x, Y(v)) }); g.stroke()
+      g.strokeStyle = th.draw || '#c9a24a'; g.lineWidth = 2; g.beginPath(); g.moveTo(cw * 1.5, Y(47)); g.lineTo(cw * 14, Y(74)); g.stroke()
+      g.fillStyle = th.draw || '#c9a24a'; for (const [x, y] of [[cw * 1.5, Y(47)], [cw * 14, Y(74)]]) { g.beginPath(); g.arc(x, y, 3, 0, Math.PI * 2); g.fill() }
+    }
+    function chThemesOpen() { CH.tabs = CH.tabs || {}; CH.tabs['tab:settings'] = 'Themes'; chMenu('settings') }
+    function chThemeCard(th, onDelete) {
+      const card = document.createElement('div'); card.className = 'ch-theme' + ((CH.s.themeId || 'd1grey') === th.id ? ' on' : ''); card.tabIndex = 0; card.setAttribute('role', 'button'); card.dataset.th = th.id
+      const cv = document.createElement('canvas'); cv.width = 280; cv.height = 150; card.appendChild(cv)
+      const t = document.createElement('div'); t.className = 'tx'; const b = document.createElement('b'); b.textContent = th.name; const sm = document.createElement('small'); sm.textContent = th.note || ''; t.append(b, sm); card.appendChild(t)
+      if (onDelete) { const x = document.createElement('button'); x.type = 'button'; x.className = 'del'; x.setAttribute('aria-label', `Remove ${th.name}`); x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'; x.addEventListener('click', (e) => { e.stopPropagation(); onDelete() }); card.appendChild(x) }
+      const go = () => chThemeApply(th); card.addEventListener('click', go); card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go() } })
+      requestAnimationFrame(() => chThemePreview(cv, th))
+      return card
+    }
+    /* a name, asked for in the chart's own dialog (the native prompt() is a grey box from another decade) */
+    function chAskName(title, value = '', ok = 'Save') {
+      return new Promise((resolve) => {
+        const wrap = document.createElement('div'); wrap.className = 'ch-ask'
+        wrap.innerHTML = '<form class="box"><h4></h4><input type="text" maxlength="40" autocomplete="off" spellcheck="false"><div class="row"><button type="button" class="cancel">Cancel</button><button type="submit" class="ok"></button></div></form>'
+        wrap.querySelector('h4').textContent = title; wrap.querySelector('.ok').textContent = ok
+        const inp = wrap.querySelector('input'); inp.value = value
+        const done = (v) => { wrap.classList.add('out'); setTimeout(() => wrap.remove(), 160); resolve(v) }
+        wrap.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); const v = inp.value.trim(); if (v) done(v); else inp.focus() })
+        wrap.querySelector('.cancel').addEventListener('click', () => done(null))
+        wrap.addEventListener('pointerdown', (e) => { if (e.target === wrap) done(null) })
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); done(null) } e.stopPropagation() })
+        document.body.appendChild(wrap); requestAnimationFrame(() => { inp.focus(); inp.select() })
+      })
+    }
+    /* ── drawing templates ──
+       D1: "you should be able to save certain presets for like trend lines so it'll save the size of it and the
+       color of it and stuff like that." A template is a drawing's style under a name, per tool: colour, width,
+       line style, extensions, fill, stats, text size, position colours and size. Apply one to the selected
+       drawing, or make it what every new one of that tool starts with. */
+    const CH_STYLE_KEYS = ['color', 'w', 'dash', 'ext', 'fill', 'size', 'fibExt', 'mid', 'stats', 'box', 'upC', 'dnC', 'labels', 'qty', 'pv', 'arrow', 'bins', 'width']
+    function chStyleOf(d) { const s = {}; for (const k of CH_STYLE_KEYS) if (d[k] !== undefined) s[k] = JSON.parse(JSON.stringify(d[k])); return s }
+    const chTpls = (type) => ((CH.s.drTpl || {})[type] || [])
+    function chTplApply(tp) { const all = chSelAll().filter((x) => x.type === tp.type); if (!all.length) return; chPush(); for (const x of all) { for (const k of CH_STYLE_KEYS) delete x[k]; Object.assign(x, JSON.parse(JSON.stringify(tp.style))) } chSave(); chSelBar(); chDraw(); toast(`${tp.name} applied.`, 1800) }
+    async function chTplSave(d) {
+      const name = await chAskName(`Save this ${(CH_TOOL_NAMES[d.type] || 'drawing').toLowerCase()} style`, `${CH_TOOL_NAMES[d.type] || 'Style'} ${chTpls(d.type).length + 1}`)
+      if (!name) return
+      CH.s.drTpl = CH.s.drTpl || {}; const list = (CH.s.drTpl[d.type] || []).filter((x) => x.name !== name)
+      list.push({ id: chId(), type: d.type, name, style: chStyleOf(d) }); CH.s.drTpl[d.type] = list; chSave()
+      toast(`Saved "${name}". It is in the template menu of every ${(CH_TOOL_NAMES[d.type] || 'drawing').toLowerCase()}.`, 2600)
+      if (CH.menu === 'draw') chMenu('draw')
+    }
+    function chTplDelete(tp) { CH.s.drTpl[tp.type] = chTpls(tp.type).filter((x) => x.id !== tp.id); chSave(); if (CH.menu === 'draw') chMenu('draw') }
+    function chTplDefault(tp) { CH.s.toolDef = CH.s.toolDef || {}; CH.s.toolDef[tp.type] = JSON.parse(JSON.stringify(tp.style)); chSave(); toast(`New ${(CH_TOOL_NAMES[tp.type] || 'drawing').toLowerCase()}s start as "${tp.name}".`, 2200) }
+    // the selection bar's template button: the saved styles, then save and default
+    function chTplMenu(d, btn) {
+      const st = el('ch-stage').getBoundingClientRect(), r = btn.getBoundingClientRect(), list = chTpls(d.type), nm = (CH_TOOL_NAMES[d.type] || 'drawing').toLowerCase()
+      const items = [...list.map((tp) => ({ label: tp.name, fn: () => chTplApply(tp) })), list.length ? { sep: true } : null,
+        { label: 'Save this style as a template…', fn: () => chTplSave(d) }, { label: `Start every new ${nm} like this`, fn: () => chSaveDefault(d) }].filter(Boolean)
+      chCtx(items, r.left - st.left, r.bottom - st.top + 6)
+    }
+    /* ── straight lines ──
+       Shift snaps a line to flat, 45 degrees or upright on a desk; a phone has no Shift (D1: "you should also be
+       able to make the trend line straight on mobile"). The rail's ruler toggles the same snap for every new line
+       and every dragged end, and Level makes a selected line flat in one tap. */
+    const chAngled = (d) => !!d && ['trend', 'ray', 'arrowline'].includes(d.type)
+    const chSnapOn = (d) => !!d && d.p.length === 2 && (CH.shift || (CH.s.snapAngle && chAngled(d)))
+    function chAngleToggle() { CH.s.snapAngle = !CH.s.snapAngle; chSave(); chAngleUi(); toast(CH.s.snapAngle ? 'Straight lines: every line snaps flat, to 45° or upright' : 'Straight lines off', 1800) }
+    function chAngleUi() { const b = el('ch-angle'); if (b) { b.classList.toggle('on', !!CH.s.snapAngle); b.title = CH.s.snapAngle ? 'Straight lines: on (flat, 45° or upright)' : 'Straight lines: snap every line flat, to 45° or upright' } const p = el('ch-pr-ang'); if (p) p.classList.toggle('on', !!CH.s.snapAngle) }
+    function chLevelSel() { const all = chSelAll().filter((x) => chAngled(x) && x.p.length === 2); if (!all.length) return; chPush(); for (const x of all) x.p = [x.p[0], { ...x.p[1], p: x.p[0].p }]; chSave(); chSelBar(); chDraw() }
+    const CH_LVL_BTN = '<button type="button" class="ib" data-level="1" title="Make it level" aria-label="Make it level"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M7 8l-4 4 4 4M17 8l4 4-4 4"/></svg></button>'
     function chSaveDefault(d) { CH.s.toolDef = CH.s.toolDef || {}; const def = {}; for (const k of ['color', 'w', 'dash', 'ext', 'fill', 'size', 'fibExt', 'mid', 'stats', 'box', 'upC', 'dnC', 'labels', 'qty', 'pv']) if (d[k] !== undefined) def[k] = JSON.parse(JSON.stringify(d[k])); CH.s.toolDef[d.type] = def; chSave(); toast(`Saved as the default style for ${CH_TOOL_NAMES[d.type] || d.type}.`, 2200) }
     /* ── go to a date, quick ranges ── */
     function chGotoOpen() {
@@ -18438,7 +18651,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           chSelBar(); chDraw(); return
         }
         if (CH.tool === 'eraser') { const hit = chHit(p.x, p.y, L); if (hit) { chPush(); CH.drawings = CH.drawings.filter((d) => d !== hit.d); if (CH.sel === hit.d) CH.sel = null; chSave(); chSelBar(); chDraw() } CH.drag = null; return }
-        const fresh = (type, pts, extra) => ({ id: chId(), type, p: pts, color: type === 'fib' || type === 'long' || type === 'short' ? '' : chGold(), ...(CH.s.toolDef?.[type] ? JSON.parse(JSON.stringify(CH.s.toolDef[type])) : {}), ...extra })
+        const fresh = (type, pts, extra) => ({ id: chId(), type, p: pts, color: '',   /* empty: it wears the theme's drawing colour, and follows it when the theme changes */ ...(CH.s.toolDef?.[type] ? JSON.parse(JSON.stringify(CH.s.toolDef[type])) : {}), ...extra })
         if (CH.tool === 'hline' || CH.tool === 'vline' || CH.tool === 'hray' || CH.tool === 'plabel' || CH.tool === 'xcross' || CH.tool === 'avwap' || CH.tool === 'flag' || CH.tool === 'markup' || CH.tool === 'markdown') { chPush(); const d = fresh(CH.tool, [chPoint(p.x, p.y, L)]); CH.drawings.push(d); chSave(); chAfterDraw(); CH.sel = d; chSelBar(); chDraw(); return }
         if (CH.tool === 'brush' || CH.tool === 'hilite') { const pt = chPoint(p.x, p.y, L); CH.pending = fresh(CH.tool, [pt], CH.tool === 'hilite' ? { color: CH.s.toolDef?.hilite?.color || '#f5d90a' } : {}); CH.pending.free = true; CH.drag.brush = true; chDraw(); return }
         if (CH.tool === 'long' || CH.tool === 'short') {
@@ -18454,7 +18667,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           else { CH.measure = { a: chPoint(p.x, p.y, L), b: null, live: true }; CH.drag.measure = true }
           chDraw(); return
         }
-        const pt = CH.pending && CH.shift && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)   // Shift keeps the angle snap on the committing click
+        const pt = CH.pending && chSnapOn(CH.pending) ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)   // Shift keeps the angle snap on the committing click
         if (!CH.pending) { const type = CH.tool === 'xline' ? 'trend' : CH.tool; CH.pending = fresh(type, [pt, { ...pt }], CH.tool === 'fib' || CH.tool === 'fibext' ? { ext: { r: true } } : CH.tool === 'xline' ? { ext: { l: true, r: true } } : {}); CH.pending.need = CH_MULTI[CH.tool] || 2; CH.drag.pend = true }
         else chPendingAdvance(pt)
       })
@@ -18494,7 +18707,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             else if (d.type === 'vline') d.p = [{ t: now.t, p: p0[0].p }]
             else if (handle >= 10 && dg.move.box0) chBoxApply(d, dg.move.box0, handle - 10, now)
             else if ((d.type === 'regression' || d.type === 'daterange' || d.type === 'vprofile') && handle >= 0) { const left = p0[0].t <= p0[1].t ? 0 : 1, k = handle === 0 ? left : 1 - left; d.p = p0.map((q, i) => i === k ? { t: now.t, p: d.type === 'daterange' ? p0[0].p : q.p } : q) }
-            else if (handle >= 0 && CH.shift && (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') && p0.length === 2) { const snapped = chSnapAngleFrom(p0[1 - handle], p, L); d.p = p0.map((q, k) => k === handle ? snapped : q) }
+            else if (handle >= 0 && (CH.shift || CH.s.snapAngle) && (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') && p0.length === 2) { const snapped = chSnapAngleFrom(p0[1 - handle], p, L); d.p = p0.map((q, k) => k === handle ? snapped : q) }
             else if (handle >= 0) d.p = p0.map((q, k) => k === handle ? { t: now.t, p: now.p } : q)
             else d.p = p0.map((q) => ({ t: q.t + dt, p: +(q.p + dp).toFixed(2) }))
             if (e.pointerType === 'touch' && handle !== -1) chLoupe(p)
@@ -18502,10 +18715,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           }
           if (dg.measure && CH.measure?.live) { CH.measure.b = chPoint(p.x, p.y, L); if (e.pointerType === 'touch') chLoupe(p); chDraw(); return }
           if (dg.brush && CH.pending) { const q = CH.pending.p[CH.pending.p.length - 1], qx = chX(chIofT(q.t), L), qy = chY(q.p, L); if (Math.hypot(p.x - qx, p.y - qy) >= 3) CH.pending.p.push({ t: chTofI(chI(p.x, L)), p: +chP(p.y, L).toFixed(2) }); chDraw(); return }
-          if (dg.pend && CH.pending) { CH.pending.p[CH.pending.p.length - 1] = CH.shift && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L); if (e.pointerType === 'touch') chLoupe(p); chDraw(); return }
+          if (dg.pend && CH.pending) { CH.pending.p[CH.pending.p.length - 1] = chSnapOn(CH.pending) ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L); if (e.pointerType === 'touch') chLoupe(p); chDraw(); return }
           if (CH.tool === 'cross' && !CH.replay.arm) { CH.offset = dg.offset - dx / CH.barW; chClampOffset(L); if (!CH.auto) { const shift = dy / L.mainH * (dg.pMax - dg.pMin); CH.pMin = dg.pMin + shift; CH.pMax = dg.pMax + shift } cv.style.cursor = 'grabbing'; chDraw(); return }
         }
-        if (CH.pending && !CH.pending.free) CH.pending.p[CH.pending.p.length - 1] = CH.shift && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)
+        if (CH.pending && !CH.pending.free) CH.pending.p[CH.pending.p.length - 1] = chSnapOn(CH.pending) ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)
         else if (CH.measure?.live) CH.measure.b = chPoint(p.x, p.y, L)
         else if (CH.tool !== 'cross' && CH.tool !== 'measure') chPoint(p.x, p.y, L)   // keeps the snap ring live under a drawing tool
         else CH.snap = null
@@ -18529,7 +18742,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const s1 = dg.samples[dg.samples.length - 1], s0 = dg.samples.find((q) => s1.t - q.t <= 120) || s1, dt = s1.t - s0.t
           if (dt > 0 && performance.now() - s1.t < 100) { const v = (s1.x - s0.x) / dt; if (Math.abs(v) > 0.25) chKinetic(v) }
         }
-        if (dg?.pend && CH.pending && dg.moved) chPendingAdvance(chPoint(dg.x, dg.y, chLayout()))
+        if (dg?.pend && CH.pending && dg.moved) chPendingAdvance(chSnapOn(CH.pending) ? chSnapAngle(CH.pending, { x: dg.x, y: dg.y }, chLayout()) : chPoint(dg.x, dg.y, chLayout()))   // the lift keeps the snapped angle (it used to land the raw point)
         if (dg?.brush && CH.pending) { const d = CH.pending; CH.pending = null; if (d.p.length >= 2) { delete d.free; chPush(); CH.drawings.push(d); CH.sel = d; chSave(); chSelBar() } chAfterDraw(); chDraw() }
         if (dg?.measure && dg.moved && CH.measure?.b) { CH.measure.live = false; chSetTool('cross', true) }
         // a tap without movement on a phone: park the crosshair there
@@ -18578,7 +18791,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const p = CH.hover; if (!p) return
         const L = chLayout()
         if (CH.drag?.move) { chDraw(); return }
-        if (CH.pending && !CH.pending.free) CH.pending.p[CH.pending.p.length - 1] = CH.shift && CH.pending.p.length === 2 ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)
+        if (CH.pending && !CH.pending.free) CH.pending.p[CH.pending.p.length - 1] = chSnapOn(CH.pending) ? chSnapAngle(CH.pending, p, L) : chPoint(p.x, p.y, L)
         else if (CH.measure?.live) CH.measure.b = chPoint(p.x, p.y, L)
         else if (CH.tool !== 'cross' && CH.tool !== 'measure') chPoint(p.x, p.y, L)
         else CH.snap = null
@@ -18629,6 +18842,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       document.addEventListener('click', (e) => { const fly = el('ch-fly'); if (fly && !fly.hidden && !e.composedPath().some((n) => n.id === 'ch-fly' || (n.classList && n.classList.contains('ch-tg')))) fly.hidden = true })
       el('ch-clear').addEventListener('click', () => chRemoveAll())
       el('ch-magnet').addEventListener('click', () => chMagnet()); chMagnetUi()
+      el('ch-angle')?.addEventListener('click', () => chAngleToggle()); chAngleUi()
       el('ch-eye').addEventListener('click', () => { CH.hideDr = !CH.hideDr; if (CH.hideDr) { CH.sel = null; chSelBar() } chEyeUi(); chDraw() })
       const sb = el('ch-selbar')
       sb.addEventListener('click', (e) => {
@@ -18646,6 +18860,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (b.dataset.size) style(() => { d.size = +b.dataset.size })
         else if (b.dataset.lock) style(() => { const to = !d.lock; each((x) => { x.lock = to }); chLockAllUi() })
         else if (b.dataset.dup) chDuplicateSel()
+        else if (b.dataset.level) chLevelSel()
+        else if (b.dataset.tpl) { e.stopPropagation(); chTplMenu(d, b) }   // the document's outside-click would shut the menu this same click opens
         else if (b.dataset.del) chDeleteSel()
         else if (b.dataset.edit) chTextEdit(d)
         else if (b.dataset.props) chMenu('draw')
@@ -19219,6 +19435,27 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (d.type === 'trend' || d.type === 'ray' || d.type === 'arrowline') toggleD(d, 'stats', 'Show stats', 'Change, bars and time when selected', mut, true)
         if (d.type === 'text') { const s = document.createElement('span'); s.className = 'seg'; [11, 13, 16, 20].forEach((v) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = v; b.classList.toggle('on', (d.size || 13) === v); b.addEventListener('click', () => { mut(() => { d.size = v }); s.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)) }); s.appendChild(b) }); row('Size', s); toggleD(d, 'box', 'Background box', '', mut, true) }
         { const i = document.createElement(d.type === 'text' ? 'textarea' : 'input'); i.className = 'inp'; if (d.type !== 'text') i.type = 'text'; i.value = d.text || ''; i.placeholder = d.type === 'text' ? 'Note' : d.type === 'plabel' ? 'Price shown when empty' : 'Label'; i.style.width = '150px'; i.style.padding = '5px 7px'; i.style.fontSize = '12px'; if (d.type === 'text') i.rows = 2; i.addEventListener('input', () => { d.text = i.value; chSave(); chDraw() }); i.addEventListener('change', () => chPush()); row(d.type === 'text' ? 'Text' : 'Label', i) }
+        header('Templates')
+        {
+          const list = chTpls(d.type), nm = (CH_TOOL_NAMES[d.type] || 'drawing').toLowerCase(), def = JSON.stringify(CH.s.toolDef?.[d.type] || null)
+          if (list.length) {
+            const wrap = document.createElement('div'); wrap.className = 'ch-tpls'
+            for (const tp of list) {
+              const c = document.createElement('span'); c.className = 'ch-tpl'
+              const a = document.createElement('button'); a.type = 'button'; a.className = 'ap'; a.title = `Put "${tp.name}" on this ${nm}`
+              const sw = document.createElement('i'); sw.style.background = tp.style.color || chDrawDef(); a.append(sw, document.createTextNode(tp.name))
+              a.addEventListener('click', () => { chTplApply(tp); chMenu('draw') })
+              const st = document.createElement('button'); st.type = 'button'; st.className = 'star' + (def === JSON.stringify(tp.style) ? ' on' : ''); st.title = `Every new ${nm} starts like this`; st.setAttribute('aria-label', st.title)
+              st.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.5l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></svg>'
+              st.addEventListener('click', () => { chTplDefault(tp); chMenu('draw') })
+              const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', `Remove ${tp.name}`); x.addEventListener('click', () => chTplDelete(tp))
+              c.append(a, st, x); wrap.appendChild(c)
+            }
+            body.appendChild(wrap)
+          } else hint(`Keep this ${nm}'s colour, width and style under a name, then put it on any ${nm} in one tap.`)
+          const acts = document.createElement('div'); acts.className = 'ch-acts'
+          const sv = document.createElement('button'); sv.type = 'button'; sv.className = 'rowbtn'; sv.textContent = 'Save this style as a template'; sv.addEventListener('click', () => chTplSave(d)); acts.appendChild(sv); body.appendChild(acts)
+        }
         header('Coordinates')
         const pad = (n) => String(n).padStart(2, '0'), toLocal = (t) => { const x = new Date(t * 1000); return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}T${pad(x.getHours())}:${pad(x.getMinutes())}` }
         const priceIn = (get, set) => { const i = document.createElement('input'); i.type = 'number'; i.className = 'inp'; i.step = 0.25; i.value = get(); i.style.width = '104px'; i.style.padding = '5px 7px'; i.style.fontSize = '12px'; i.addEventListener('change', () => { const v = +i.value; if (isFinite(v) && v > 0) mut(() => set(+v.toFixed(2))) }); return i }
@@ -19235,13 +19472,27 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         hint('Show this drawing on these timeframes.')
         for (const [g, label, h] of [['m', 'Minutes', '1m to 30m'], ['h', 'Hours', '1h and 4h'], ['d', 'Days', 'D']]) { const l = document.createElement('label'); l.className = 'tgl sm'; const i = document.createElement('input'); i.type = 'checkbox'; i.checked = !d.vis || d.vis[g] !== false; i.addEventListener('change', () => mut(() => { d.vis = d.vis || { m: true, h: true, d: true }; d.vis[g] = i.checked })); const tr = document.createElement('span'); tr.className = 'track'; l.append(i, tr); row(label, l, h) }
         const acts = document.createElement('div'); acts.className = 'ch-acts'
-        for (const [t, fn, cls] of [['Save as default style', () => chSaveDefault(d), ''], ['Clone', () => { chDuplicateSel(); chMenu('draw') }, ''], [d.lock ? 'Unlock' : 'Lock', () => { mut(() => { d.lock = !d.lock }); chLockAllUi(); chMenu('draw') }, ''], ['Remove', () => { chDeleteSel(); chMenu(null) }, 'danger']]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn ' + cls; b.textContent = t; b.addEventListener('click', fn); acts.appendChild(b) }
+        for (const [t, fn, cls] of [...(chAngled(d) ? [['Make it level', () => { chLevelSel(); chMenu('draw') }, '']] : []), ['Save as default style', () => chSaveDefault(d), ''], ['Clone', () => { chDuplicateSel(); chMenu('draw') }, ''], [d.lock ? 'Unlock' : 'Lock', () => { mut(() => { d.lock = !d.lock }); chLockAllUi(); chMenu('draw') }, ''], ['Remove', () => { chDeleteSel(); chMenu(null) }, 'danger']]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn ' + cls; b.textContent = t; b.addEventListener('click', fn); acts.appendChild(b) }
         body.appendChild(acts)
       }
       else {
         const links = document.createElement('div'); links.className = 'ch-links'
         for (const [t, w] of [['Layouts', 'layouts'], ['Objects', 'objects'], ['Alerts', 'alerts'], ['Indicators', 'ind'], ...(matchMedia('(hover: none)').matches ? [] : [['Shortcuts', 'keys']])]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', () => chMenu(w)); links.appendChild(b) }
         body.appendChild(links)
+        header('Themes')
+        hint('One tap restyles the whole chart: the canvas, the candles, D1 LIT\'s boxes and levels, the indicators and your drawings. A drawing keeps its place in the palette, so a red line stays the theme\'s red. Undo is on the toast.')
+        { const grid = document.createElement('div'); grid.className = 'ch-themes'; for (const th of CH_THEMES) grid.appendChild(chThemeCard(th)); body.appendChild(grid) }
+        toggle('themeDrawings', 'Recolour my drawings', 'Off: a theme leaves every drawing the colour it has')
+        header('Your themes')
+        {
+          const mine = CH.s.userThemes || []
+          if (mine.length) { const grid = document.createElement('div'); grid.className = 'ch-themes'; for (const th of mine) grid.appendChild(chThemeCard(th, () => { CH.s.userThemes = (CH.s.userThemes || []).filter((x) => x.id !== th.id); chSave(); chMenu('settings') })); body.appendChild(grid) }
+          else hint('Style the chart the way you like it, then keep that look here as a theme of your own.')
+          const acts = document.createElement('div'); acts.className = 'ch-acts'
+          const sv = document.createElement('button'); sv.type = 'button'; sv.className = 'rowbtn'; sv.textContent = 'Save the current look'
+          sv.addEventListener('click', async () => { const name = await chAskName('Name this look', `My theme ${mine.length + 1}`); if (!name) return; const th = chThemeSnap(name); CH.s.userThemes = [...(CH.s.userThemes || []), th]; CH.s.themeId = th.id; chSave(); chMenu('settings'); toast(`Saved "${name}".`, 1800) })
+          acts.appendChild(sv); body.appendChild(acts)
+        }
         header('Chart type')
         const typeRow = document.createElement('div'); typeRow.className = 'ch-row ch-row-wide'; typeRow.appendChild(seg('type', [['candles', 'Candles'], ['hollow', 'Hollow'], ['heikin', 'HA'], ['bars', 'Bars'], ['line', 'Line'], ['area', 'Area']])); body.appendChild(typeRow)
         header('Candles')
@@ -19291,7 +19542,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     /* the drawer becomes what TradingView would show: a centred dialog with tabs, a popover under
        its button, or a side panel (objects, alerts) */
-    const CH_SET_TABS = { Symbol: ['Chart type', 'Candles', 'Line and area'], Canvas: ['Background', 'Watermark', 'Big symbol', 'Accent', 'Grid', 'Crosshair', 'Sessions'], 'Scales and lines': ['Axes and labels', 'Time'], Volume: ['Volume'], Drawing: ['Drawing'] }
+    const CH_SET_TABS = { Symbol: ['Chart type', 'Candles', 'Line and area'], Canvas: ['Background', 'Watermark', 'Big symbol', 'Accent', 'Grid', 'Crosshair', 'Sessions'], 'Scales and lines': ['Axes and labels', 'Time'], Volume: ['Volume'], Drawing: ['Drawing'], Themes: ['Themes', 'Your themes'] }
     // a declaration, not a const: the bar and the strip ask it during the script's first pass
     function chPhone() { return matchMedia('(max-width: 840px), (max-width: 1000px) and (max-height: 500px)').matches }
     function chDlgShape(m, body, which) {
@@ -19340,6 +19591,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         for (const x of tabs) { const b = document.createElement('button'); b.type = 'button'; b.dataset.t = x.t; b.textContent = x.t; b.addEventListener('click', (e) => { e.stopPropagation(); show(x.t) }); nav.appendChild(b) }
         if (which === 'settings' && window.innerWidth > 840) { const links = body.querySelector('.ch-links'); if (links) { links.classList.add('in-nav'); nav.appendChild(links) } }
         m.insertBefore(nav, body); show(tabs.some((x) => x.t === CH.tabs[key]) ? CH.tabs[key] : tabs[0].t)
+        requestAnimationFrame(() => { const on = nav.querySelector('button.on'); if (on && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2 })   // a tab strip that scrolls brings the open tab into view (Themes sat off the right edge)
       }
       if (which !== 'sym' && which !== 'ind') {
         const ft = document.createElement('div'); ft.className = 'ch-dlg-foot'

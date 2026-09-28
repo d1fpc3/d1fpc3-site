@@ -109,10 +109,11 @@ async function run(vpName) {
   else await page.click("#ch-settings-btn");
   await page.waitForTimeout(350);
   const dlg = await page.evaluate(() => ({ open: !document.getElementById("ch-menu").hidden, title: document.getElementById("ch-menu-title").textContent, presets: document.querySelectorAll(".ch-preset").length, tabs: [...document.querySelectorAll(".ch-dlg-nav button[data-t]")].map((b) => b.textContent), reset: !!document.getElementById("ch-set-reset"), done: document.querySelector(".ch-dlg-foot .ok")?.textContent, pills: document.querySelectorAll("#ch-menu-body .ch-cbtn").length, caps: [...document.querySelectorAll("#ch-menu-body .ch-h")].some((h) => getComputedStyle(h).textTransform === "uppercase") }));
-  check(dlg.open && dlg.title === "Settings" && dlg.presets === 0 && dlg.tabs.join("|") === "Symbol|Canvas|Scales and lines|Volume|Drawing" && dlg.reset && dlg.done === "Done" && dlg.pills > 10 && !dlg.caps, `settings: no presets, tabs ${dlg.tabs.join(", ")}, ${dlg.pills} colour pills, Done`);
+  check(dlg.open && dlg.title === "Settings" && dlg.presets === 0 && dlg.tabs.join("|") === "Symbol|Canvas|Scales and lines|Volume|Drawing|Themes" && dlg.reset && dlg.done === "Done" && dlg.pills > 10 && !dlg.caps, `settings: no presets, tabs ${dlg.tabs.join(", ")}, ${dlg.pills} colour pills, Done`);
   await page.screenshot({ path: `${OUT}/${tag}-settings.png` });
 
-  // 5. a colour pill opens the picker inside the dialog; swatch, hex, any colour, default
+  // 5. a colour pill opens the picker inside the dialog; swatch, hex, any colour, default (Themes opens first since 09-28; the pills are on Symbol)
+  await page.click('.ch-dlg-nav button[data-t="Symbol"]'); await page.waitForTimeout(200);
   await page.click('#ch-menu-body .ch-cbtn[data-key="up"]'); await page.waitForTimeout(250);
   const pk = await page.evaluate(() => { const p = document.getElementById("ch-cpick"), m = document.getElementById("ch-menu").getBoundingClientRect(), r = p.getBoundingClientRect(); return { open: !p.hidden, inside: r.left >= m.left - 1 && r.right <= m.right + 1 && r.top >= m.top - 1 && r.bottom <= m.bottom + 1, swatches: p.querySelectorAll(".g button").length, vp: r.left >= 0 && r.right <= innerWidth }; });
   check(pk.open && pk.inside && pk.swatches === 48 && pk.vp, `picker opens inside the dialog with ${pk.swatches} swatches`);

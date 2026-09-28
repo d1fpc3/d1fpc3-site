@@ -11,6 +11,11 @@
 //   pitchfork     its tines could never be clicked (the reach was shadowed by the ends array).
 //   the phone     a selected drawing's bar was a sheet over half the chart, the drawing under it; now one
 //                 row: colour (swatches in its place), width, style, settings, lock, clone, delete.
+//   themes        Settings opens on a gallery (D1 Grey, Obsidian, Paper, Blush, Neon Tokyo, Matrix, Miami, Gold
+//                 Standard, Arctic, Mono): one tap restyles canvas, candles, LIT, indicators and drawings; Undo
+//                 on the toast; the current look saves as a theme of your own.
+//   templates     a drawing's style saved under a name and put on any drawing of that tool in one click.
+//   straight      the rail's ruler snaps every line flat / 45° / upright (a phone has no Shift); Level flattens one.
 //   indicators    TradingView's colours on D1's #808080: RSI purple 1.2:1, MACD blue 1.4:1. A default
 //                 colour below 2.2:1 is walked away from the canvas; a picked colour is left alone.
 import { createRequire } from 'module'
@@ -126,6 +131,55 @@ console.log('\n1440, indicators on the grey canvas, then on a dark one')
   await b.close()
 }
 
+// ── themes, templates, straight lines (D1, 09-28: "automatic themes ... black, white, gray, pink ... it'll change
+// the colors of the indicators, your boxes, your trend lines, everything"; "save certain presets for like trend
+// lines"; "make the trend line straight on mobile") ──
+console.log('\n1440, themes, templates and straight lines')
+{
+  const b = await PW.chromium.launch({ channel: 'chrome' })
+  const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } }); await seed(ctx)
+  const { page, errs } = await open(ctx)
+  const R = await (await page.$('#ch-canvas')).boundingBox(), at = (fx, fy) => [R.x + R.width * fx, R.y + R.height * fy]
+  const drag = async ([x0, y0], [x1, y1]) => { await page.mouse.move(x0, y0); await page.mouse.down(); for (let k = 1; k <= 10; k++) await page.mouse.move(x0 + (x1 - x0) * k / 10, y0 + (y1 - y0) * k / 10); await page.mouse.up(); await page.waitForTimeout(200) }
+  await page.evaluate(() => { const C = window.__CH, bs = C.bars, n = bs.length; C.s.emaOn = true; C.drawings.push({ id: 'd1', type: 'trend', p: [{ t: bs[n - 70].t, p: bs[n - 70].l }, { t: bs[n - 20].t, p: bs[n - 20].h }], color: '' }, { id: 'd2', type: 'hline', p: [{ t: bs[n - 5].t, p: bs[n - 5].c + 15 }], color: '#f23645' }); C.$.build(); C.$.paint() })
+  await page.click('#ch-themes-btn'); await page.waitForTimeout(600)   // the palette on the bar opens Settings on Themes
+  const g = await page.evaluate(() => ({ tab: document.querySelector('.ch-dlg-nav button.on')?.dataset.t, cards: [...document.querySelectorAll('#ch-menu-body .ch-theme')].map((c) => c.dataset.th), on: document.querySelector('#ch-menu-body .ch-theme.on')?.dataset.th }))
+  ok(g.tab === 'Themes' && g.cards.length >= 10 && ['d1grey', 'obsidian', 'paper', 'blush', 'neon'].every((x) => g.cards.includes(x)), `the palette button opens the Themes gallery: ${g.cards.length} themes (${g.cards.join(', ')}), ${g.on} marked`)
+  await page.screenshot({ path: `${OUT}/1440-themes.png` })
+  await page.locator('#ch-menu-body .ch-theme[data-th="neon"]').click(); await page.waitForTimeout(500)
+  const n = await page.evaluate(() => { const C = window.__CH; return { bg: C.bgNow, up: C.s.up, asia: C.s.litAsiaC, ma: (C.s.ma || []).map((m) => m.c), line: C.drawings.find((d) => d.id === 'd1'), h: C.drawings.find((d) => d.id === 'd2').color, lineInk: (C.drawings.find((d) => d.id === 'd1').color || C.s.drawC), toast: document.getElementById('co-toast')?.innerText || '' } })
+  ok(n.bg === '#0a0418' && n.up === '#00f5d4' && n.asia === '#ff2e97' && n.ma[0] === '#fcee0a', `Neon Tokyo restyles the canvas, candles, the Asia box and the averages (${n.bg}, ${n.up}, ${n.asia}, ${n.ma.join(' ')})`)
+  ok(n.lineInk === '#fcee0a' && n.h === '#ff2e97', `and the drawings: a default line wears the theme's colour (${n.lineInk}), a red one the theme's red (${n.h})`)
+  await page.evaluate(() => window.__CH.$.menu(null)); await page.waitForTimeout(400); await page.screenshot({ path: `${OUT}/1440-neon.png` })
+  await page.click('#co-toast .act'); await page.waitForTimeout(400)
+  const u = await page.evaluate(() => { const C = window.__CH; return { bg: C.bgNow, h: C.drawings.find((d) => d.id === 'd2').color, theme: C.s.themeId || null } })
+  ok(u.bg === '#808080' && u.h === '#f23645', `Undo on the toast puts the grey and the red line back (${u.bg}, ${u.h})`)
+  // save the current look as a theme of your own
+  await page.click('#ch-themes-btn'); await page.waitForTimeout(500)
+  await page.locator('#ch-menu-body button', { hasText: 'Save the current look' }).click(); await page.waitForTimeout(300)
+  const ask = await page.evaluate(() => !!document.querySelector('.ch-ask input'))
+  await page.fill('.ch-ask input', 'Desk grey'); await page.keyboard.press('Enter'); await page.waitForTimeout(500)
+  const mine = await page.evaluate(() => (window.__CH.s.userThemes || []).map((t) => t.name))
+  ok(ask && mine.includes('Desk grey') && await page.locator('#ch-menu-body .ch-theme', { hasText: 'Desk grey' }).count() === 1, `"Save the current look" asks for a name in the chart's own dialog and keeps it as a card (${mine.join(', ')})`)
+  await page.evaluate(() => window.__CH.$.menu(null)); await page.waitForTimeout(500)
+  // a template: style a line, save it, put it on another
+  await page.mouse.move(...at(0.5, 0.5)); await page.keyboard.press('Alt+t'); await drag(at(0.3, 0.6), at(0.55, 0.4))
+  await page.click('#ch-selbar .sw[data-c="#2962ff"]'); await page.click('#ch-selbar .wb[data-w="3"]'); await page.click('#ch-selbar .db[data-d="dash"]')
+  await page.click('#ch-selbar [data-tpl]'); await page.waitForTimeout(250); await page.locator('#ch-ctx .it', { hasText: 'Save this style as a template' }).first().click(); await page.waitForTimeout(300)
+  await page.fill('.ch-ask input', 'Blue level'); await page.keyboard.press('Enter'); await page.waitForTimeout(300)
+  await page.mouse.click(...at(0.9, 0.9)); await page.mouse.move(...at(0.5, 0.5)); await page.keyboard.press('Alt+t'); await drag(at(0.35, 0.75), at(0.7, 0.7))
+  await page.click('#ch-selbar [data-tpl]'); await page.waitForTimeout(250); await page.locator('#ch-ctx .it', { hasText: 'Blue level' }).first().click(); await page.waitForTimeout(300)
+  const tp = await page.evaluate(() => { const d = window.__CH.sel; return { color: d.color, w: d.w, dash: d.dash } })
+  ok(tp.color === '#2962ff' && tp.w === 3 && tp.dash === 'dash', `a saved template ("Blue level") puts colour, width and style on a new line in one click (${JSON.stringify(tp)})`)
+  await page.click('#ch-selbar [data-level]'); await page.waitForTimeout(200)
+  ok(await page.evaluate(() => { const d = window.__CH.sel; return d.p[0].p === d.p[1].p }), 'Level makes the selected line flat')
+  // straight lines on: a near-flat drag lands flat
+  await page.click('#ch-angle'); await page.mouse.move(...at(0.5, 0.5)); await page.keyboard.press('Alt+t'); await drag(at(0.2, 0.5), at(0.5, 0.47))
+  ok(await page.evaluate(() => { const d = window.__CH.sel; return window.__CH.s.snapAngle && d.p[0].p === d.p[1].p }), 'with Straight lines on, a nearly flat drag draws a flat line')
+  ok(!errs.length, `no page errors (${errs.join(' | ') || 'none'})`)
+  await b.close()
+}
+
 // ── the phone: one-row selection bar ──
 console.log('\niPhone 15 Pro, WebKit, drawing')
 {
@@ -154,6 +208,15 @@ console.log('\niPhone 15 Pro, WebKit, drawing')
   await tap('#ch-selbar [data-props]'); ok(await page.evaluate(() => window.__CH.menu === 'draw'), 'settings opens the drawing\'s own sheet')
   await page.evaluate(() => window.__CH.$.menu(null)); await page.waitForTimeout(400)
   await tap('#ch-selbar [data-del]'); ok(await page.evaluate(() => window.__CH.drawings.length === 0), 'delete takes it off')
+  // straight lines on a phone: the rail's ruler, then two taps a little off level draw a flat line; Level flattens one that is not
+  await tap('#ch-pr-ang'); await tap('#ch-prail button[data-tool="trend"]')
+  await page.touchscreen.tap(box.x + box.width * 0.3, box.y + box.height * 0.5); await page.waitForTimeout(250); await page.touchscreen.tap(box.x + box.width * 0.7, box.y + box.height * 0.47); await page.waitForTimeout(600)
+  ok(await page.evaluate(() => { const d = window.__CH.sel; return !!d && window.__CH.s.snapAngle && d.p[0].p === d.p[1].p }), 'Straight lines on the rail: two taps a little off level draw a flat line')
+  await tap('#ch-pr-ang'); await tap('#ch-prail button[data-tool="trend"]')
+  await page.touchscreen.tap(box.x + box.width * 0.3, box.y + box.height * 0.7); await page.waitForTimeout(250); await page.touchscreen.tap(box.x + box.width * 0.7, box.y + box.height * 0.4); await page.waitForTimeout(600)
+  await tap('#ch-selbar [data-level]')
+  ok(await page.evaluate(() => { const d = window.__CH.sel; return !!d && d.p[0].p === d.p[1].p }), 'and Level on the bar flattens a slanted one')
+  await page.screenshot({ path: `${OUT}/phone-level.png` })
   ok(!errs.length, `no page errors (${errs.join(' | ') || 'none'})`)
   await b.close()
 }

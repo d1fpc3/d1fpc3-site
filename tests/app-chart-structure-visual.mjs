@@ -131,7 +131,7 @@ ok(eng.trades.every((t) => t.qty >= 1 && Math.abs(t.risk - t.qty * Math.abs(t.en
 ok(eng.edmAtLows && eng.edmAtHighs, "EDM marks sit on the pivot they were found at");
 ok(["Build Up", "Inducement", "Inducement + vector", "Expansion (BoS)", "Mitigation", "Complete"].includes(eng.cyc), "the cycle is a known state: " + eng.cyc);
 ok(eng.panelCorner === "bl", "the dashboard sits bottom left, clear of the legend: " + eng.panelCorner);
-ok(/LIT ENGINE/.test(eng.panelText) && /Cycle/.test(eng.panelText) && /Last signal/.test(eng.panelText), "the dashboard reads: " + eng.panelText);
+ok(/LIT ENGINE/i.test(eng.panelText) && /Cycle/.test(eng.panelText) && /Last signal/.test(eng.panelText), "the dashboard reads: " + eng.panelText);
 
 console.log(`\nsix overlays at once`);
 const lane = await page.evaluate(() => {
