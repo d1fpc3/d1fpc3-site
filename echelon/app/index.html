@@ -8695,11 +8695,24 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const mk = (label, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = label; b.disabled = true; wrap.appendChild(b); return b }
       const month = skus.month ? mk('Subscribe', 'btn') : null
       const once = skus.one_time ? mk('Buy once', 'rowbtn') : null
+      const terms = iapTerms(skus.month ? 'subs' : 'inapp')
       iapProducts().then((pr) => {
-        if (month) { const p = pr[skus.month]; month.textContent = p ? `Subscribe · ${p.priceString} / month` : 'Subscription unavailable'; month.disabled = !p; month.addEventListener('click', () => iapBuy(productKey, 'month')) }
-        if (once) { const p = pr[skus.one_time]; once.textContent = p ? `Buy once · ${p.priceString}` : 'Unavailable'; once.disabled = !p; once.addEventListener('click', () => iapBuy(productKey, 'one_time')) }
+        // A product StoreKit does not return is left out rather than shown as a dead button
+        // (App Review 2.1); only when nothing is on sale does one disabled button say so.
+        const pm = month ? pr[skus.month] : null, po = once ? pr[skus.one_time] : null
+        if (month) {
+          if (pm) { month.textContent = `Subscribe · ${pm.priceString} / month`; month.disabled = false; month.addEventListener('click', () => iapBuy(productKey, 'month')) }
+          else if (po) month.remove()
+          else month.textContent = 'Purchase unavailable right now'
+        }
+        if (once) {
+          if (po) { once.textContent = `Buy once · ${po.priceString}`; once.disabled = false; once.addEventListener('click', () => iapBuy(productKey, 'one_time')); if (!pm) once.className = 'btn' }
+          else if (month) once.remove()
+          else once.textContent = 'Purchase unavailable right now'
+        }
+        if (month && !pm && po) terms.replaceWith(iapTerms('inapp'))
       })
-      wrap.appendChild(iapTerms(skus.month ? 'subs' : 'inapp'))
+      wrap.appendChild(terms)
       wrap.appendChild(iapLinks(false))
       const note = document.createElement('p'); note.className = 'p-price-note'; note.textContent = 'Add your TradingView username after purchase and access is added to your account.'
       wrap.appendChild(note)
