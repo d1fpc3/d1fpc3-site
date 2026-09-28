@@ -46,6 +46,17 @@ for (const [name, vp] of [['desk', { viewport: { width: 1440, height: 900 } }], 
   if (hsw.hourly_rule === 'live' && !got.hourly?.includes(`live on weekends: 20 minutes before each top of the hour`)) findings.push(`${name}: hourly row "${got.hourly}" but the switch is live`)
   if (hsw.hourly_rule === 'live' && !got.hourly?.includes(`${(100 * Number(hsw.hourly_frac)).toFixed(0)}% of the account`)) findings.push(`${name}: hourly size is not ${hsw.hourly_frac}`)
   if (hp.n > 0 && !got.hourly?.includes(`${new Intl.NumberFormat('en-US').format(Math.min(hp.n, 5000))} legs graded`)) findings.push(`${name}: hourly paper count, database ${hp.n}: "${got.hourly}"`)
+  // the underdog row (open-dog, 09-28): the switch's mode, and the graded 9:45 paper count straight from the table
+  const [dsw] = await sql('select open_dog from kalshi_switch where id = 1'), [dp] = await sql("select count(*)::int n from kalshi_open_dog_paper where won is not null and rule = 'dog945'")
+  await page.waitForFunction(() => (document.querySelector('#rl-dog')?.textContent ?? '').endsWith('.'), null, { timeout: 30000 }).catch(() => findings.push(`${name}: the underdog row never rendered`))
+  got.dog = await page.evaluate(() => document.querySelector('#rl-dog')?.textContent)
+  const dmode = String(dsw?.open_dog ?? 'paper')
+  if (dmode === 'paper' && !got.dog?.startsWith('on paper: the side the book does not favour at the 9:45')) findings.push(`${name}: underdog row "${got.dog}" but the switch is paper`)
+  if (dmode === 'live' && !got.dog?.startsWith('live: the side the book does not favour')) findings.push(`${name}: underdog row "${got.dog}" but the switch is live`)
+  if (dmode === 'off' && got.dog !== 'off.') findings.push(`${name}: underdog row "${got.dog}" but the switch is off`)
+  if (dp.n > 0 && !got.dog?.includes(`${new Intl.NumberFormat('en-US').format(dp.n)} legs graded`)) findings.push(`${name}: underdog paper count, database ${dp.n}: "${got.dog}"`)
+  if (dp.n === 0 && dmode !== 'off' && !got.dog?.includes('No paper leg graded yet')) findings.push(`${name}: underdog row claims graded legs the table does not have: "${got.dog}"`)
+  console.log(`${name}: underdog "${got.dog}"`)
   // the sizing note states the table's own Kelly share and cap
   const [km] = await sql('select kelly_mult, cap from kalshi_risk_table limit 1'), note = await page.evaluate(() => document.querySelector('#sz-note')?.textContent ?? '')
   if (!note.includes(`capped at ${Math.round(100 * km.cap)}%`) || (Number(km.kelly_mult) === 0.75 && !note.includes('three-quarter Kelly'))) findings.push(`${name}: sizing note "${note.slice(0, 140)}" vs table ${km.kelly_mult} Kelly, cap ${km.cap}`)
