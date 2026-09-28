@@ -40,6 +40,7 @@ function json(status: number, body: unknown, extra: Record<string, string> = {})
 }
 
 type Bar = [number, number, number, number, number, number];
+const FUTS = new Set(["NQ", "MNQ", "ES", "MES"]);
 
 async function yahoo(symbol: string, params: string, keepForming = false) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(SYMBOLS[symbol])}?${params}&includePrePost=true`;
@@ -57,7 +58,9 @@ async function yahoo(symbol: string, params: string, keepForming = false) {
   for (let i = 0; i < ts.length; i++) {
     const o = q.open?.[i], h = q.high?.[i], l = q.low?.[i], c = q.close?.[i];
     if (o == null || h == null || l == null || c == null) continue;
-    bars.push([ts[i], o, h, l, c, q.volume?.[i] ?? 0]);
+    // the futures trade in quarters, but a Yahoo daily close now and then is not on one (NQ 2026-09-18: 29,613.68)
+    const k = FUTS.has(symbol) ? 4 : 0, r = (v: number) => k ? Math.round(v * k) / k : v;
+    bars.push([ts[i], r(o), r(h), r(l), r(c), q.volume?.[i] ?? 0]);
   }
   if (bars.length && params.includes("interval=1m")) {
     const last = bars[bars.length - 1], aligned = Math.floor(last[0] / 60) * 60;
