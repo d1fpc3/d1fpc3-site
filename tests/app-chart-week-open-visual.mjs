@@ -32,7 +32,7 @@ for (const sym of ["NQ", "MNQ", "ES"]) {
   const dr = dj.chart.result[0], dOpen = dr.indicators.quote[0].open.at(-1);
   for (const tf of ["1m", "5m", "1h"]) {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    await ctx.addInitScript(([k, v, s, t]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-chart-sym", s); localStorage.setItem("echelon-chart-tf", t); localStorage.setItem("echelon-chart-settings", JSON.stringify({ lit: true, litV: 3, litWo: true, litNwog: true })); }, [`sb-${REF}-auth-token`, JSON.stringify(session), sym, tf]);
+    await ctx.addInitScript(([k, v, s, t]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-chart-sym", s); localStorage.setItem("echelon-chart-tf", t); localStorage.setItem("echelon-chart-settings", JSON.stringify({ lit: true, litV: 4, litWo: true, litNwog: true })); }, [`sb-${REF}-auth-token`, JSON.stringify(session), sym, tf]);
     const page = await ctx.newPage();
     page.on("pageerror", (e) => fails.push(`${sym} ${tf} pageerror: ${e.message}`));
     await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
@@ -46,7 +46,7 @@ for (const sym of ["NQ", "MNQ", "ES"]) {
       const wo = L.wo, first = wo ? bars[wo.i0] : null, fri = wo && wo.i0 > 0 ? bars[wo.i0 - 1] : null;
       const g = (L.nwog || []).find((x) => x.i0 === wo?.i0) || null;
       const o18Late = (L.open18 || []).filter((o) => wo && o.i0 < wo.i0 && o.i1 >= wo.i0).map((o) => o.p);
-      return { o18Late, wo: wo?.p, firstT: first?.t, friT: fri?.t, friC: fri?.c, friV: fri?.v, nwog: g ? { top: g.top, bottom: g.bottom } : null, tf: window.__CH.tf };
+      return { o18Late, wo: wo?.p, firstT: first?.t, friT: fri?.t, friC: fri?.c, friV: fri?.v, nwog: g ? { top: g.top, bottom: g.bottom, o: g.o, c: g.c } : null, tf: window.__CH.tf };
     });
     const firstEt = r.firstT ? et.format(new Date(r.firstT * 1000)) : "none", friEt = r.friT ? et.format(new Date(r.friT * 1000)) : "none";
     console.log(`\n${sym} ${tf}: weekly open ${r.wo} (daily ${dOpen}), first bar ${firstEt}, Friday's last ${friEt} close ${r.friC}, NWOG ${JSON.stringify(r.nwog)}`);
@@ -54,8 +54,9 @@ for (const sym of ["NQ", "MNQ", "ES"]) {
     ok(/^Sun 18:00$/.test(firstEt), `${sym} ${tf}: the week's first bar is Sunday 18:00 (${firstEt})`);
     ok(!/17:00/.test(friEt) || tf === "1h", `${sym} ${tf}: Friday's last bar is a trade, not a 17:00 settlement print (${friEt})`);
     ok(!r.o18Late.length, `${sym} ${tf}: no earlier 18:00 open runs on into the new week (${JSON.stringify(r.o18Late)})`);
-    if (r.nwog) ok(Math.abs(Math.min(r.nwog.top, r.nwog.bottom) - Math.min(r.friC, dOpen)) < 0.01 && Math.abs(Math.max(r.nwog.top, r.nwog.bottom) - Math.max(r.friC, dOpen)) < 0.01, `${sym} ${tf}: the NWOG runs from Friday's close ${r.friC} to the open ${dOpen}`);
-    else console.log("  (no NWOG box: the gap is under half a point, or price has traded through it)");
+    // the void is Friday's close to the Sunday open; what is drawn is the slice price has not eaten yet (Pine 8d)
+    if (r.nwog) ok(Math.abs(r.nwog.c - r.friC) < 0.01 && Math.abs(r.nwog.o - dOpen) < 0.01 && Math.min(r.nwog.top, r.nwog.bottom) >= Math.min(r.friC, dOpen) - 0.01 && Math.max(r.nwog.top, r.nwog.bottom) <= Math.max(r.friC, dOpen) + 0.01, `${sym} ${tf}: the NWOG runs from Friday's close ${r.friC} to the open ${dOpen}, ${r.nwog.bottom} to ${r.nwog.top} still open`);
+    else console.log("  (no NWOG box: the gap is under 4 ticks, or price has traded through it)");
     if (tf === "1m" && sym === "NQ") await page.screenshot({ path: `${OUT}/nq-1m.png` });
     await ctx.close();
   }

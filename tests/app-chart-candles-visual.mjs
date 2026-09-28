@@ -64,7 +64,11 @@ const open = async (settings) => {
 // first pixel left of the body (its border) and a pixel on the upper wick.
 const sample = (page) => page.evaluate(() => {
   const CH = window.__CH, cv = document.getElementById('ch-canvas'), g = cv.getContext('2d')
+  // the D1 LIT session boxes tint every candle under them (Sunday night the Asia box covers the whole chart),
+  // so the candles are read with the boxes off for one paint
+  const BOX = ['litAsia', 'litLdn', 'litNy', 'litNwog'], keep = BOX.map((k) => CH.s[k]); BOX.forEach((k) => { CH.s[k] = false }); CH.$.paint()
   const W = cv.width, H = cv.height, d = g.getImageData(0, 0, W, H).data
+  BOX.forEach((k, i) => { CH.s[k] = keep[i] }); CH.$.paint()
   const hex = (x, y) => { x = Math.round(x); y = Math.round(y); if (x < 0 || y < 0 || x >= W || y >= H) return null; const i = (y * W + x) * 4; return '#' + [d[i], d[i + 1], d[i + 2]].map((v) => v.toString(16).padStart(2, '0')).join('') }
   const vt = new Set(CH.$.vec().map((b) => b.t))
   const out = []

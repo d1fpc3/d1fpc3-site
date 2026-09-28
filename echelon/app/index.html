@@ -14388,11 +14388,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        hex codes. */
     const D1_BG = '#808080', D1_UP = '#dbdbdb', D1_UP_EDGE = '#ffffff', D1_DN = '#faa1a4', D1_VEC_UP = '#32353e', D1_VEC_DN = '#dc4551'
     const CH_DEFAULTS = { posPv: 20, posQty: 1, posAcct: 0, posUp: '', posDn: '', posLabels: true, type: 'candles', up: D1_UP, down: D1_DN, wickUp: D1_UP_EDGE, wickDown: D1_DN, border: true, grid: false, volume: true, sessions: true, lastLine: true, legend: true, legendOhlc: true, legendInds: true, legendVals: true, tz: 'ET', ema: [20, 50, 200], emaOn: false, vwap: false, gex: false, prevDay: false, bg: '',
-      // LIT ships curated, not complete: the levels price reacts to are on, the ten
-      // busier parts are one toggle away in the LIT menu. litV stamps the migration.
-      lit: true, litV: 3, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: false, litKo: false, litPo3: false, litEighths: false, litGold: true, litVector: true, litDays: 3,
-      litPm: false, litNwog: false, litDr: false, litDrBack: 3, litSig: false, litSig1: false, litSigAnc: false, litDs: true, litDsWeek: true, litOpen22: false, litLdn: false, litWm: true, litAlerts: true,
-      litPmC: '', litPmW: 2, litNwogC: '', litNwogF: 0.12, litDrC: '', litDrHlC: '', litDrW: 1, litSigC: '', litSigW: 1, litDsC: '', litOpen22C: '', litOpen22W: 1, litLdnC: '', litLdnF: 0.1, litWmC: '',
+      // LIT ships the way the Pine does (D1, 09-27: "mimic the D1 LIT indicator"): every part its master
+      // controls turn on is on. litV stamps the migration that brings saved settings along.
+      lit: true, litV: 4, litPd: true, litPw: true, litWo: true, litAsia: true, litNy: true, litOpen: true, litMarks: true, litKo: true, litPo3: true, litGold: true, litVector: true, litDays: 3,
+      litPm: true, litNwog: true, litRef: true, litSig: true, litSig1: false, litSigAnc: false, litDs: true, litDsWeek: true, litOpen22: true, litLdn: true, litWm: true, litAlerts: true,
+      litPmC: '', litPmW: 2, litNwogUp: '', litNwogDn: '', litNwogF: 0.18, litRefC: '', litSigC: '', litSigW: 1, litDsC: '', litOpen22C: '', litOpen22W: 1, litLdnC: '', litLdnF: 0.15, litWmC: '',
       // chart style (empty colour = the theme token)
       accentC: '', magnet: 'off', borderUp: D1_UP_EDGE, borderDown: D1_DN, wicks: true, bodyW: 'wide', lineC: '', lineW: 1.6, bg2: '', gridC: '', gridStyle: 'solid', gridV: false, crossC: '', crossStyle: 'dash', sessC: '', sessLines: true, textC: '', lastC: '', countdown: true, watermark: false,
       volUp: '', volDown: '', volA: 0.35, volSize: 'normal', volMa: false, volMaN: 20, volMaC: '',
@@ -14400,7 +14400,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ma: null, vwapC: '', vwapW: 1.2, vwapStyle: 'dash', vwapBands: false, vwapBandC: '', vwapBandA: 0.08, prevDayC: '',
       bb: false, bbN: 20, bbK: 2, bbC: '', bbMidC: '', bbF: 0.06, bbW: 1,
       p_rsi: false, rsiN: 14, rsiC: '', rsiHi: 70, rsiLo: 30, rsiFill: true, p_macd: false, macdF: 12, macdS: 26, macdSig: 9, macdC: '', macdSigC: '', p_atr: false, atrN: 14, atrC: '',
-      litPdC: '', litPdW: 1, litPwC: '', litPwW: 1, litWoC: '', litWoW: 2, litAsiaC: '', litAsiaF: 0.15, litNyC: '', litNyF: 0.1, litOpenC: '', litOpenW: 1, litMarksC: '', litKoC: '', litPo3Up: '', litPo3Dn: '', litPo3Lab: '', litEighthsC: '', litGoldC: '', litGoldW: 1, litVecUp: '', litVecDn: '', litLabels: true,
+      litPdC: '', litPdW: 1, litPwC: '', litPwW: 1, litWoC: '', litWoW: 2, litAsiaC: '', litAsiaF: 0.15, litNyC: '', litNyF: 0.1, litOpenC: '', litOpenW: 1, litMarksC: '', litKoC: '', litPo3Up: '', litPo3Dn: '', litPo3Lab: '', litGoldC: '', litGoldW: 1, litVecUp: '', litVecDn: '', litLabels: true,
       cmp: false, cmpSym: 'auto', cmpC: '', cmpW: 1.4, cmpLabel: true,
       // D1 LIT Engine: the mechanical IDM/BoS structure engine, opt in
       eng: false, engBack: 3000, engStruct: true, engIdm: true, engSweeps: true, engEq: true, engLabels: true,
@@ -14537,6 +14537,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     if ((CH.s.litV || 0) < 2) { for (const k of ['litMarks', 'litKo', 'litPo3', 'litEighths', 'litPm', 'litNwog', 'litDr', 'litSig', 'litOpen22', 'litLdn']) CH.s[k] = false; CH.s.litV = 2; try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {} }
     // v3 (D1, 09-27): the daily reset levels (Thu Open, Thu High, Thu Close, Fri Open) go off once for everyone who had them on
     if (CH.s.litV === 2) { CH.s.litDr = false; CH.s.litV = 3; try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {} }
+    // v4 (D1, 09-27: "it's not the same as the D1 LIT indicator, mimic it"): every part the Pine ships on comes on
+    // once, the two the Pine dropped on 09-22 (weekly eighths, daily reset levels) go, and the NWOG and London
+    // fills take the Pine's own transparency. A colour or width the member picked is left alone.
+    if (CH.s.litV === 3) {
+      for (const k of ['litMarks', 'litKo', 'litPo3', 'litPm', 'litNwog', 'litRef', 'litSig', 'litOpen22', 'litLdn', 'litGold']) CH.s[k] = true
+      for (const k of ['litEighths', 'litEighthsC', 'litDr', 'litDrBack', 'litDrC', 'litDrHlC', 'litDrW', 'litNwogC']) delete CH.s[k]
+      if (CH.s.litNwogF === 0.12) CH.s.litNwogF = 0.18
+      if (CH.s.litLdnF === 0.1) CH.s.litLdnF = 0.15
+      CH.s.litV = 4; try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)) } catch {}
+    }
     try { CH.drawings = JSON.parse(localStorage.getItem(chDrKey()) || '[]') } catch { CH.drawings = [] }
     CH.drawings.forEach((d) => { if (!d.id) d.id = Math.random().toString(36).slice(2, 9) })   // older drawings predate ids; undo tracks selection by id
     try { CH.alerts = JSON.parse(localStorage.getItem(chAlKey()) || '[]') } catch { CH.alerts = [] }
@@ -14706,8 +14716,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chAggregate(src, m) {
       const out = []; let cur = null, key = null
       for (const b of src) {
-        const k = m >= 43200 ? chMonthKey(b[0]) : m >= 10080 ? chWeekKey(b[0]) : m >= 1440 ? (m === 1440 ? chSessionKey(b[0]) : Math.floor(chSessionKey(b[0]) / (m / 1440))) : Math.floor((b[0] + chEtOff(b[0])) / (m * 60))
-        if (k !== key) { key = k; cur = { k, t: m >= 1440 ? b[0] : k * m * 60 - chEtOff(b[0]), o: b[1], h: b[2], l: b[3], c: b[4], v: b[5] }; out.push(cur) }
+        const k = m >= 43200 ? chMonthKey(b[0]) : m >= 10080 ? chWeekKey(b[0]) : m >= 1440 ? (m === 1440 ? chSessionKey(b[0]) : Math.floor(chSessionKey(b[0]) / (m / 1440))) : Math.floor((b[0] + chEtOff(b[0]) + 21600) / (m * 60))   // from 18:00 ET, so a 4H bar opens at 18, 22, 02, 06, 10, 14 as on TradingView
+        if (k !== key) { key = k; cur = { k, t: m >= 1440 ? b[0] : k * m * 60 - 21600 - chEtOff(b[0]), o: b[1], h: b[2], l: b[3], c: b[4], v: b[5] }; out.push(cur) }
         else { if (b[2] > cur.h) cur.h = b[2]; if (b[3] < cur.l) cur.l = b[3]; cur.c = b[4]; cur.v += b[5] }
       }
       return out
@@ -15081,64 +15091,41 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const chDayKey = (t) => chSessionKey(t)                       // days since epoch, session-rolled
     const chWeekKey = (t) => Math.floor((chSessionKey(t) - 4) / 7) // Monday 1970-01-05 opens week 0
     const chEtDate = (t) => new Date((t + chEtOff(t)) * 1000)      // UTC methods read as New York wall-clock
+    /* ── D1 LIT ──
+       Ported rule for rule from tools/indicators/D1 LIT Indicator.pine, the copy D1 runs on TradingView
+       (rebased on his live script 09-22, London window 09-24). The numbers in the comments are the Pine's
+       own sections, so a change there is easy to find here. D1, 09-27: "it's not the same as the D1 LIT
+       indicator, mimic the D1 LIT indicator". */
+    const LIT_TICK = 0.25                                             // NQ, MNQ, ES and MES all tick in quarters
+    const CH_WD_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     function chLit() {
       const bars = chVisible(), n = bars.length
-      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${bars[n - 1]?.t}|${CH.s.litDays}|${CH.s.litDrBack}|${CH.s.litDsWeek}|${CH.vixDay}`
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${bars[n - 1]?.t}|${CH.s.litDays}|${CH.s.litDsWeek}|${CH.vixDay}|${CH.replay?.on ? 1 : 0}`
       if (chLitCache.key === key) return chLitCache.v
-      const tf = CH.tfSec, S = CH.s
-      const v = { pd: [], pw: null, wo: null, asia: [], ny: [], open18: [], marks: [], ko: [], po3: [], eighths: null, gold: null }
+      const tf = CH.tfSec, S = CH.s, intra = tf <= 3600
+      const v = { pd: [], pw: null, pm: null, wo: null, asia: [], ny: [], ldn: [], open18: [], open22: [], marks: [], ko: [], po3: [], gold: null, nwog: [], sig: null, days: [] }
       if (!n) { chLitCache = { key, v }; return v }
-      const lastT = bars[n - 1].t, lastKey = chDayKey(lastT), minKey = lastKey - (S.litDays || 3)
-      // per-session extremes with the bar index that made them
+      const lastT = bars[n - 1].t
+      // 1. isWithinLookback: "the last X days" counts back from the wall clock, not from the last bar, so on a
+      // weekend Friday already fills most of the window (a replay counts back from the replay point)
+      const since = (CH.replay?.on ? lastT : Math.max(lastT, Date.now() / 1000)) - (S.litDays || 3) * 86400
+      const mOf = (i) => chMin(bars[i].t)
+      // 2. f_atTime: the first bar at or past hh:mm, so on a coarse chart a straddled minute lands on the next bar
+      const atTime = (i, mm) => mOf(i) >= mm && (i === 0 || mOf(i - 1) < mm)
+      const calDay = (t) => Math.floor((t + chEtOff(t)) / 86400)
+      // per-session extremes with the bar index that made them (a session runs 18:00 to 17:00)
       const days = new Map()
       for (let i = 0; i < n; i++) { const b = bars[i], k = chDayKey(b.t); let d = days.get(k); if (!d) { d = { k, i0: i, h: b.h, hi: i, l: b.l, li: i, open: b.o }; days.set(k, d) } d.i1 = i; d.c = b.c; if (b.h > d.h) { d.h = b.h; d.hi = i } if (b.l < d.l) { d.l = b.l; d.li = i } }
       const dayList = [...days.values()].sort((a, b) => a.k - b.k)
-      v.pm = null; v.nwog = []; v.dr = []; v.drLive = null; v.sig = null; v.days = []; v.open22 = []; v.ldn = []
-      // PMH / PML: the prior calendar month's extremes, rays until swept
-      { const mk = (t) => { const d = chEtDate(t); return d.getUTCFullYear() * 12 + d.getUTCMonth() }
-        const months = new Map()
-        for (let i = 0; i < n; i++) { const b = bars[i], k = mk(b.t); let m = months.get(k); if (!m) { m = { k, i0: i, h: b.h, hi: i, l: b.l, li: i }; months.set(k, m) } if (b.h > m.h) { m.h = b.h; m.hi = i } if (b.l < m.l) { m.l = b.l; m.li = i } }
-        const ml = [...months.values()].sort((a, b) => a.k - b.k)
-        if (ml.length >= 2) { const pm = ml[ml.length - 2], cm = ml[ml.length - 1]; let hEnd = n - 1, lEnd = n - 1, hs = false, ls = false; for (let i = cm.i0; i < n; i++) { if (!hs && bars[i].h >= pm.h) { hEnd = i; hs = true } if (!ls && bars[i].l <= pm.l) { lEnd = i; ls = true } if (hs && ls) break } v.pm = { h: pm.h, hi: pm.hi, hEnd, hs, l: pm.l, li: pm.li, lEnd, ls } }
-      }
-      // liquidity voids: the weekend gap between Friday's close and Sunday's open, boxed until price trades through the Friday side
-      if (tf <= 86400) for (let i = 1; i < n; i++) {
-        const a = bars[i - 1], b = bars[i]
-        if (b.t - a.t < 20 * 3600 || chEtDate(a.t).getUTCDay() !== 5) continue
-        const o = b.o, c = a.c; if (Math.abs(o - c) < 0.5) continue
-        const up = o > c; let fill = o, dead = false
-        for (let j = i; j < n; j++) { const x = bars[j]; if (up ? x.l <= c : x.h >= c) { dead = true; break } fill = up ? Math.min(fill, x.l) : Math.max(fill, x.h) }
-        if (!dead) v.nwog.push({ i0: i, top: Math.max(o, c), bottom: Math.min(o, c), fill, t: b.t })
-        if (v.nwog.length > 6) v.nwog.shift()
-      }
-      // daily reset levels: each completed session's open, high, low and close across that session; today's open live
-      if (tf <= 3600) {
-        const back = Math.max(1, Math.min(10, S.litDrBack || 3)), done = dayList.slice(0, -1).slice(-back)
-        const dow = (t) => CH_WD[chEtDate(t + 6 * 3600).getUTCDay()]   // the session's trade date
-        for (const d of done) v.dr.push({ i0: d.i0, i1: d.i1, o: d.open, h: d.h, l: d.l, c: d.c, name: dow(bars[d.i0].t) })
-        const cur = dayList[dayList.length - 1]; if (cur) v.drLive = { i0: cur.i0, o: cur.open, name: dow(bars[cur.i0].t) }
-      }
-      // σ bands: the prior session's close ± VIX-implied daily move (VIX/100 / sqrt 252), from the session open
-      if (tf <= 86400 && dayList.length >= 2 && CH.vixDay != null) { const prev = dayList[dayList.length - 2], cur = dayList[dayList.length - 1]; const s1 = prev.c * (CH.vixDay / 100) / Math.sqrt(252); v.sig = { anchor: prev.c, s1, i0: cur.i0 } }
-      // day separators at every 18:00 open, the 22:00 open until 02:00, the London box 02:00 to 07:00
-      { const lastWeek = chWeekKey(lastT); let o22 = null, ldn = null
-        for (const d of dayList) { const t0 = bars[d.i0].t; if (chMin(t0) >= 1050 && (!S.litDsWeek || chWeekKey(t0) === lastWeek)) v.days.push({ i: d.i0, name: CH_WD[chEtDate(t0 + 6 * 3600).getUTCDay()] }) }
-        for (let i = 0; i < n; i++) {
-          const b = bars[i], m = chMin(b.t), k = chDayKey(b.t); if (k < minKey) continue
-          const contains = (target) => m <= target && target < m + tf / 60
-          if (contains(1320)) { o22 = { p: b.o, i0: i, i1: i }; v.open22.push(o22) } else if (o22 && (m >= 1320 || m < 120)) o22.i1 = i
-          if (tf <= 3600) { const inL = m >= 120 && m < 420; if (inL) { if (!ldn || ldn.k !== k) { ldn = { k, i0: i, i1: i, h: b.h, l: b.l, hEnd: null, lEnd: null }; v.ldn.push(ldn) } else { ldn.i1 = i; if (b.h > ldn.h) ldn.h = b.h; if (b.l < ldn.l) ldn.l = b.l } } else if (ldn && ldn.k === k) { if (ldn.hEnd == null) { ldn.hEnd = i; if (b.h >= ldn.h) ldn.hHit = i } else if (ldn.hHit == null) { ldn.hEnd = i; if (b.h >= ldn.h) ldn.hHit = i } if (ldn.lEnd == null) { ldn.lEnd = i; if (b.l <= ldn.l) ldn.lHit = i } else if (ldn.lHit == null) { ldn.lEnd = i; if (b.l <= ldn.l) ldn.lHit = i } } }
-        }
-      }
-      // PDH / PDL: the prior session's extremes, drawn through the next session until swept
-      for (let di = 1; di < dayList.length; di++) {
-        const prev = dayList[di - 1], cur = dayList[di]
-        if (cur.k < minKey) continue
-        let hEnd = cur.i1, lEnd = cur.i1, hSwept = false, lSwept = false
-        for (let i = cur.i0; i <= cur.i1; i++) { if (!hSwept && bars[i].h >= prev.h) { hEnd = i; hSwept = true } if (!lSwept && bars[i].l <= prev.l) { lEnd = i; lSwept = true } if (hSwept && lSwept) break }
+      // 3. PDH / PDL: the prior session's high and low, the latest pair only (every day change deletes the last
+      // one), each a ray from the bar that made it to the bar that sweeps it, or to the current bar while it stands
+      if (dayList.length >= 2) {
+        const prev = dayList[dayList.length - 2], cur = dayList[dayList.length - 1]
+        let hEnd = n - 1, lEnd = n - 1, hSwept = false, lSwept = false
+        for (let i = cur.i0; i < n; i++) { if (!hSwept && bars[i].h >= prev.h) { hEnd = i; hSwept = true } if (!lSwept && bars[i].l <= prev.l) { lEnd = i; lSwept = true } if (hSwept && lSwept) break }
         v.pd.push({ p: prev.h, i0: prev.hi, i1: hEnd, label: 'PDH', swept: hSwept }, { p: prev.l, i0: prev.li, i1: lEnd, label: 'PDL', swept: lSwept })
       }
-      // weeks: prior week's extremes, this week's open, eighths of the prior week
+      // 4. PWH / PWL: the prior week's, the same rays; 5. the weekly open: the week's first bar
       const weeks = new Map()
       for (let i = 0; i < n; i++) { const b = bars[i], k = chWeekKey(b.t); let w = weeks.get(k); if (!w) { w = { k, i0: i, h: b.h, hi: i, l: b.l, li: i, open: b.o }; weeks.set(k, w) } w.i1 = i; if (b.h > w.h) { w.h = b.h; w.hi = i } if (b.l < w.l) { w.l = b.l; w.li = i } }
       const weekList = [...weeks.values()].sort((a, b) => a.k - b.k)
@@ -15147,48 +15134,107 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         let hEnd = n - 1, lEnd = n - 1, hSwept = false, lSwept = false
         for (let i = cw.i0; i < n; i++) { if (!hSwept && bars[i].h >= pw.h) { hEnd = i; hSwept = true } if (!lSwept && bars[i].l <= pw.l) { lEnd = i; lSwept = true } if (hSwept && lSwept) break }
         v.pw = { h: pw.h, hi: pw.hi, hEnd, l: pw.l, li: pw.li, lEnd }
-        if (pw.h > pw.l) v.eighths = { step: (pw.h - pw.l) / 8, base: pw.l, i0: cw.i0 }
       }
       if (weekList.length) { const cw = weekList[weekList.length - 1]; v.wo = { p: cw.open, i0: cw.i0 } }
-      // sessions inside the lookback: Asia 18:00 to 01:00 with EQ, NYT 08:00 to 09:00, the 18:00 open until 11:00, the vertical markers
-      let asia = null, ny = null, o18 = null
+      // 4b. PMH / PML: the prior month's (a month by trade date, so the Sunday 18:00 session belongs to Monday's month)
+      { const mk = (t) => { const d = chEtDate(t + 6 * 3600); return d.getUTCFullYear() * 12 + d.getUTCMonth() }
+        const months = new Map()
+        for (let i = 0; i < n; i++) { const b = bars[i], k = mk(b.t); let m = months.get(k); if (!m) { m = { k, i0: i, h: b.h, hi: i, l: b.l, li: i }; months.set(k, m) } if (b.h > m.h) { m.h = b.h; m.hi = i } if (b.l < m.l) { m.l = b.l; m.li = i } }
+        const ml = [...months.values()].sort((a, b) => a.k - b.k)
+        if (ml.length >= 2) { const pm = ml[ml.length - 2], cm = ml[ml.length - 1]; let hEnd = n - 1, lEnd = n - 1, hs = false, ls = false; for (let i = cm.i0; i < n; i++) { if (!hs && bars[i].h >= pm.h) { hEnd = i; hs = true } if (!ls && bars[i].l <= pm.l) { lEnd = i; ls = true } if (hs && ls) break } v.pm = { h: pm.h, hi: pm.hi, hEnd, hs, l: pm.l, li: pm.li, lEnd, ls } }
+      }
+      /* 8d. liquidity voids. On the first bar of each week a void opens from the prior week's last close to this
+         open, unless they sit within 4 ticks. Price starts the week on the Sunday edge, so it can only eat the
+         void inward from there: one running extreme per void holds what is left. A void is dropped the bar price
+         trades through the Friday close, and at most 10 stay open (the oldest goes when an eleventh opens). All
+         of it walks forward bar by bar like the Pine, so a filled void frees its slot the bar it fills. */
+      if (tf <= 86400) {
+        const open = []
+        for (let i = 0; i < n; i++) {
+          const b = bars[i]
+          if (i > 0 && chWeekKey(b.t) !== chWeekKey(bars[i - 1].t)) {
+            const fri = bars[i - 1].c, sun = b.o
+            if (Math.abs(sun - fri) >= 4 * LIT_TICK - 1e-9) { open.push({ iL: i - 1, i0: i, t: b.t, o: sun, c: fri, fill: sun }); if (open.length > 10) open.shift() }
+          }
+          for (let k = open.length - 1; k >= 0; k--) {
+            const g = open[k], up = g.o > g.c
+            if (up ? b.l <= g.c : b.h >= g.c) open.splice(k, 1)
+            else g.fill = up ? Math.min(g.fill, b.l) : Math.max(g.fill, b.h)
+          }
+        }
+        for (const g of open) { const up = g.o > g.c; v.nwog.push({ ...g, up, top: up ? g.fill : g.c, bottom: up ? g.c : g.fill }) }
+      }
+      // 5, 5b, 6, 7. the session boxes, the overnight opens and the markers: 1h and below, each started only inside the lookback
+      let asia = null, ny = null, ldn = null, o18 = null, o22 = null
       const marks = [[60, 'FF'], [180, 'LO'], [210, 'MM1'], [330, 'MM2'], [660, 'LC']]
-      for (let i = 0; i < n; i++) {
-        const b = bars[i], m = chMin(b.t), k = chDayKey(b.t)
-        if (k < minKey) continue
-        const inAsia = m >= 1080 || m < 60, inNy = m >= 480 && m < 540
-        if (tf <= 3600) {
-          if (inAsia) { if (!asia || asia.k !== k) { asia = { k, i0: i, i1: i, h: b.h, l: b.l }; v.asia.push(asia) } else { asia.i1 = i; if (b.h > asia.h) asia.h = b.h; if (b.l < asia.l) asia.l = b.l } }
-          if (inNy) { if (!ny || ny.k !== k) { ny = { k, i0: i, i1: i, h: b.h, l: b.l }; v.ny.push(ny) } else { ny.i1 = i; if (b.h > ny.h) ny.h = b.h; if (b.l < ny.l) ny.l = b.l } }
+      if (intra) for (let i = 0; i < n; i++) {
+        const b = bars[i], m = mOf(i), k = chDayKey(b.t), fresh = b.t > since
+        // 5. Asia 18:00 to 01:00
+        if (m >= 1080 || m < 60) { if (!asia || asia.k !== k) { asia = { k, i0: i, i1: i, h: b.h, l: b.l }; if (fresh) v.asia.push(asia) } else { asia.i1 = i; if (b.h > asia.h) asia.h = b.h; if (b.l < asia.l) asia.l = b.l } }
+        // 6. NYT 08:00 to 09:00
+        if (m >= 480 && m < 540) { if (!ny || ny.k !== k) { ny = { k, i0: i, i1: i, h: b.h, l: b.l }; if (fresh) v.ny.push(ny) } else { ny.i1 = i; if (b.h > ny.h) ny.h = b.h; if (b.l < ny.l) ny.l = b.l } }
+        // 5b. London 02:00 to 07:00: after the close its high and low each run on until the first bar through
+        // them; one still untouched when the next London box opens freezes where it is
+        if (m >= 120 && m < 420) {
+          if (!ldn || ldn.k !== k) { ldn = { k, i0: i, i1: i, h: b.h, l: b.l, hEnd: i, lEnd: i, hHit: false, lHit: false }; if (fresh) v.ldn.push(ldn) }
+          else { ldn.i1 = ldn.hEnd = ldn.lEnd = i; if (b.h > ldn.h) ldn.h = b.h; if (b.l < ldn.l) ldn.l = b.l }
+        } else if (ldn) {
+          if (!ldn.hHit) { ldn.hEnd = i; ldn.hHit = b.h >= ldn.h }
+          if (!ldn.lHit) { ldn.lEnd = i; ldn.lHit = b.l <= ldn.l }
         }
-        const contains = (target) => m <= target && target < m + tf / 60
-        // Sunday 18:00 is the weekly open, drawn as such; it also ends Thursday's 18:00 open, which otherwise ran on
-        // through Sunday night (D1, 09-27: an [18:00 OPEN] at 30,725 on the new week was Thursday's 30,726.50)
-        if (contains(1080)) { if (chEtDate(b.t).getUTCDay() !== 0) { o18 = { p: b.o, i0: i, i1: i }; v.open18.push(o18) } else o18 = null }
-        else if (o18 && (m >= 1080 || m < 660)) o18.i1 = i
-        if (tf <= 3600) for (const [mm, label] of marks) if (contains(mm)) v.marks.push({ i, label })
+        // 7. the 18:00 open, from the first bar at 18:00 through the overnight, frozen on the last bar before 11:00;
+        // Sunday's 18:00 is the weekly open and draws as that alone
+        if (atTime(i, 1080) && fresh) { if (o18) o18.done = true; o18 = chEtDate(b.t).getUTCDay() !== 0 ? { p: b.o, i0: i, i1: i, done: false } : null; if (o18) v.open18.push(o18) }
+        else if (o18 && !o18.done) { if (m >= 1080 || m < 660) o18.i1 = i; else o18.done = true }
+        // the 22:00 open, the same way, frozen at 02:00
+        if (atTime(i, 1320) && fresh) { if (o22) o22.done = true; o22 = { p: b.o, i0: i, i1: i, done: false }; v.open22.push(o22) }
+        else if (o22 && !o22.done) { if (m >= 1320 || m < 120) o22.i1 = i; else o22.done = true }
+        // 7. the vertical session markers, lettered just above the last ten bars' high
+        if (fresh) for (const [mm, label] of marks) if (atTime(i, mm)) { let hh = b.h; for (let j = Math.max(0, i - 9); j < i; j++) if (bars[j].h > hh) hh = bars[j].h; v.marks.push({ i, label, y: hh + 75 * LIT_TICK }) }
       }
-      // key opens for the last calendar day, shown while that day's regular session is on screen
-      const lastEt = chEtDate(lastT), lastMin = chMin(lastT)
-      if (tf <= 3600 && lastMin >= 570 && lastMin <= 960) {
-        const dayStart = Math.floor((lastT + chEtOff(lastT)) / 86400)
-        for (const [mm, label] of [[510, '[08:30 Open]'], [570, '[09:30 Open]'], [600, '[10:00 Open]']]) {
-          for (let i = n - 1; i >= 0; i--) { const b = bars[i]; if (Math.floor((b.t + chEtOff(b.t)) / 86400) !== dayStart) break; const m = chMin(b.t); if (m <= mm && mm < m + tf / 60) { v.ko.push({ p: b.o, i0: i, label }); break } }
+      // an open still inside its window runs past price; one past it is frozen where the window closed
+      for (const o of v.open18.concat(v.open22)) o.live = !o.done
+      // 7b. day separators below 4H: a line on each session's first bar and the day's full name (the session that
+      // opens Sunday 18:00 is Monday's), this week only unless that is switched off (then the last 15 days)
+      if (tf < 14400) {
+        const lastWeek = chWeekKey(lastT)
+        for (let di = 1; di < dayList.length; di++) {
+          const d = dayList[di], t0 = bars[d.i0].t
+          if (S.litDsWeek !== false ? chWeekKey(t0) !== lastWeek : t0 <= lastT - 15 * 86400) continue
+          v.days.push({ i: d.i0, i1: d.i1, name: CH_WD_FULL[chEtDate(t0 + 7 * 3600).getUTCDay()] })
+        }
+        if (v.days.length > 15) v.days.splice(0, v.days.length - 15)
+      }
+      // 8. key opens: the 08:30, 09:30 and 10:00 opens of the current NY day (a bar has to open ON the minute),
+      // shown only while the current bar sits inside 09:30 to 16:00; the 10:00 ray stops at the first bar at or past 14:00
+      { const lastMin = mOf(n - 1), today = calDay(lastT)
+        if (lastMin >= 570 && lastMin <= 960) {
+          let i1400 = null
+          for (let i = n - 1; i >= 0 && calDay(bars[i].t) === today; i--) { const m = mOf(i); if (atTime(i, 840)) i1400 = i; for (const [mm, label] of [[510, '[08:30 Open]'], [570, '[09:30 Open]'], [600, '[10:00 Open]']]) if (m === mm) v.ko.push({ p: bars[i].o, i0: i, label, mm }) }
+          v.ko.sort((a, b) => a.mm - b.mm)
+          for (const k of v.ko) if (k.mm === 600 && i1400 != null && i1400 > k.i0) k.end = i1400
         }
       }
-      // PO3 candles: the live 30m, 4H and D1 (NY midnight) candles, drawn to the right of price
-      const po3 = (secs, anchorMidnight, offset, width, label, fits) => {
+      /* 8b. PO3 candles: the live 30m and 4H candles, cut from the 18:00 session open the way TradingView cuts
+         futures bars (a 4H candle opens at 18, 22, 02, 06, 10 or 14), and the day from NY midnight, which needs
+         a bar that opens at 00:00 (so none on 4H or daily, as on TradingView). */
+      const po3 = (label, offset, width, fits, keyOf) => {
         if (!fits) return
-        let o = null, h = -Infinity, l = Infinity
-        const lastKeyOf = (t) => anchorMidnight ? Math.floor((t + chEtOff(t)) / 86400) : Math.floor((t + chEtOff(t)) / secs)
-        const k = lastKeyOf(lastT)
-        let openT = null
-        for (let i = n - 1; i >= 0; i--) { const b = bars[i]; if (lastKeyOf(b.t) !== k) break; o = b.o; openT = b.t; if (b.h > h) h = b.h; if (b.l < l) l = b.l }
+        const k = keyOf(n - 1)
+        let o = null, h = -Infinity, l = Infinity, openT = null
+        for (let i = n - 1; i >= 0 && keyOf(i) === k; i--) { const b = bars[i]; o = b.o; openT = b.t; if (b.h > h) h = b.h; if (b.l < l) l = b.l }
         if (o != null) v.po3.push({ o, h, l, c: bars[n - 1].c, offset, width, label, openAt: openT })
       }
-      po3(1800, false, 20, 4, '30m PO3', tf <= 1800); po3(14400, false, 35, 6, '4H PO3', tf <= 14400); po3(86400, true, 50, 6, 'D1 PO3', tf <= 86400)
-      // golden Tue 01:00 to Wed 23:00 window: the highest high, floated 0.05% up, from the window start
-      { let best = null; for (let i = 0; i < n; i++) { const b = bars[i], d = chEtDate(b.t), dow = d.getUTCDay(), hr = d.getUTCHours(); const inWin = (dow === 2 && hr >= 1) || (dow === 3 && hr <= 23); if (!inWin) continue; const wk = chWeekKey(b.t); if (!best || best.wk !== wk) best = { wk, i0: i, h: b.h }; else if (b.h > best.h) best.h = b.h } if (best) v.gold = best }
+      const cut = (secs) => (i) => Math.floor((bars[i].t + chEtOff(bars[i].t) + 6 * 3600) / secs)
+      let midnight = null; for (let i = n - 1; i >= 0; i--) if (mOf(i) === 0) { midnight = i; break }
+      po3('30m PO3', 20, 4, tf <= 1800, cut(1800)); po3('4H PO3', 35, 6, tf <= 14400, cut(14400)); po3('D1 PO3', 50, 6, tf <= 86400 && midnight != null, (i) => i >= midnight ? 0 : 1)
+      // 9. HOW / LOW window, Tue 02:00 to Wed 11:00 NY: its highest high floated 0.05% up, across the window and
+      // no further; only the latest window
+      { let w = null, was = false
+        for (let i = 0; i < n; i++) { const d = chEtDate(bars[i].t), dow = d.getUTCDay(), hr = d.getUTCHours(), on = (dow === 2 && hr >= 2) || (dow === 3 && hr < 11); if (on) { if (!was) w = { i0: i, i1: i, h: bars[i].h }; else { w.i1 = i; if (bars[i].h > w.h) w.h = bars[i].h } } was = on }
+        v.gold = w }
+      // 9d. σ bands: the prior session's close ± the VIX-implied daily move (VIX/100 / sqrt 252), from the session open
+      if (tf <= 86400 && dayList.length >= 2 && CH.vixDay != null) { const prev = dayList[dayList.length - 2], cur = dayList[dayList.length - 1]; const s1 = prev.c * (CH.vixDay / 100) / Math.sqrt(252); v.sig = { anchor: prev.c, s1, i0: cur.i0 } }
       chLitCache = { key, v }; return v
     }
     // the prior day's VIX close feeds the σ bands; refreshed every half hour while the chart is open
@@ -15202,10 +15248,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         CH.vixDay = c ?? bars[bars.length - 1][4]; chLitCache.key = ''; chDraw()
       } catch {}
     }
+    // QQQ and SPY for the reference prices: the regular session only (what the Pine's request.security sees from a
+    // futures chart), every 15 seconds while a 5m-or-finer chart shows them
+    async function chRefLoad() {
+      if (CH.refAt && Date.now() - CH.refAt < 15000) return
+      CH.refAt = Date.now()
+      const ref = {}
+      await Promise.all(['QQQ', 'SPY'].map(async (s) => { try { const j = await chFetch('range=1d', s); const b = (j.bars || []).filter((x) => { const m = chMin(x[0]); return m >= 570 && m < 960 }).pop(); ref[s] = b ? { p: b[4], t: b[0] } : null } catch { ref[s] = CH.ref?.[s] ?? null } }))
+      CH.ref = ref; chDraw()
+    }
     // sweep alerts: the first trade through a LIT level, once per level per session
     const LIT_FIRED = new Set()
     function chLitAlerts() {
       if (CH.s.lit && CH.s.litSig !== false) chVixLoad()
+      if (CH.s.lit && CH.s.litRef !== false && CH.tfSec <= 300) chRefLoad()
       if (!CH.s.lit || CH.s.litAlerts === false || !CH.on || CH.replay.on) return
       const bars = chVisible(), n = bars.length; if (n < 2) return
       const b = bars[n - 1], sk = chSessionKey(b.t), lit = chLit()
@@ -15232,10 +15288,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       chVecCache = { key, v }; return v
     }
-    // every LIT part has a colour (empty = the Pine default), lines a width, boxes a fill
-    const CH_LIT_DEF = (light) => ({ litPmC: light ? '#7b1fa2' : '#ce93d8', litNwogC: light ? '#7b8595' : '#9aa4b5', litDrC: light ? '#1a1815' : '#e9e3d8', litDrHlC: light ? '#5a5a5a' : '#a0a0a0', litSigC: light ? '#000000' : '#e9e3d8', litDsC: '#000000', litOpen22C: light ? '#1a1815' : '#e9e3d8', litLdnC: '#000000', litWmC: light ? '#1a1815' : '#e9e3d8', litPdC: light ? '#5a5a5a' : '#a0a0a0', litPwC: light ? '#5a5a5a' : '#a0a0a0', litWoC: light ? '#1a1815' : '#e9e3d8', litAsiaC: '#faa1a4', litNyC: '#000000', litOpenC: '#000000', litMarksC: '#080502', litKoC: '#080502', litPo3Up: '', litPo3Dn: '', litPo3Lab: light ? '#5a5a5a' : '#e9e3d8', litEighthsC: light ? '#5a5a5a' : '#a0a0a0', litGoldC: '#d4af37', litVecUp: D1_VEC_UP, litVecDn: D1_VEC_DN })
-    const CH_LIT_PARTS = [['litPd', 'PDH / PDL', 'litPdC', 'litPdW'], ['litPw', 'PWH / PWL', 'litPwC', 'litPwW'], ['litWo', 'Weekly open', 'litWoC', 'litWoW'], ['litAsia', 'Asia box', 'litAsiaC', null, 'litAsiaF'], ['litNy', 'NYT box', 'litNyC', null, 'litNyF'], ['litOpen', '18:00 open', 'litOpenC', 'litOpenW'], ['litMarks', 'FF LO MM1 MM2 LC', 'litMarksC'], ['litKo', 'Key opens', 'litKoC'], ['litPo3', 'PO3 candles', 'litPo3Up', null, null, 'litPo3Dn'], ['litEighths', 'Weekly eighths', 'litEighthsC'], ['litGold', 'Golden Tue/Wed', 'litGoldC', 'litGoldW'], ['litVector', 'Vector candles', 'litVecUp', null, null, 'litVecDn'],
-      ['litPm', 'PMH / PML', 'litPmC', 'litPmW'], ['litNwog', 'Liquidity voids (NWOG)', 'litNwogC', null, 'litNwogF'], ['litDr', 'Daily reset levels', 'litDrC', 'litDrW', null, 'litDrHlC'], ['litSig', 'σ bands (expected move)', 'litSigC', 'litSigW'], ['litDs', 'Day separators', 'litDsC'], ['litOpen22', '22:00 open', 'litOpen22C', 'litOpen22W'], ['litLdn', 'London box', 'litLdnC', null, 'litLdnF'], ['litWm', 'Watermark tag', 'litWmC']]
+    /* Every LIT part's default colour, the Pine's own. Those colours are made for a light or mid-grey canvas
+       (D1's TradingView is grey), so they are used as they are on both. On a dark canvas the black parts turn
+       to ink and the greys lighten. On the mid grey the Pine's grey (#787b86) would sit on the canvas itself,
+       so the grey parts go black at the same transparency and stay readable. */
+    const chLitMode = (bg, light) => { const l = chLum(bg || ''); return l == null ? (light ? 'light' : 'dark') : l > 0.5 ? 'light' : l > 0.1 ? 'mid' : 'dark' }
+    const CH_LIT_DEF = (mode) => {
+      if (typeof mode === 'boolean') mode = mode ? 'light' : 'dark'
+      const dk = mode === 'dark', ink = dk ? '#e9e3d8' : '#080202', black = dk ? '#e9e3d8' : '#000000', grey = mode === 'light' ? '#787b86' : dk ? '#a0a0a0' : '#000000'
+      return { litPdC: grey, litPwC: grey, litPmC: grey, litWoC: ink, litOpenC: ink, litOpen22C: ink, litMarksC: ink, litAsiaC: '#faa1a4', litLdnC: black, litNyC: black, litDsC: black, litKoC: black, litSigC: black, litRefC: black,
+        litNwogUp: '#26a69a', litNwogDn: '#ef5350', litNwogC: grey, litGoldC: '#d4af37', litPo3Up: '#4caf50', litPo3Dn: dk ? '#e9e3d8' : '#000000', litPo3Wick: dk ? '#d1d4dc' : '#000000', litPo3Edge: dk ? '#d1d4dc' : '#363a45', litPo3Lab: grey,
+        litWmC: mode === 'light' ? '#1a1815' : '#e9e3d8', litVecUp: D1_VEC_UP, litVecDn: D1_VEC_DN }
+    }
+    // the parts in the Pine's master-control order; the weekly eighths and daily reset levels left the Pine on 09-22
+    const CH_LIT_PARTS = [['litPd', 'PDH / PDL', 'litPdC', 'litPdW'], ['litPw', 'PWH / PWL', 'litPwC', 'litPwW'], ['litPm', 'PMH / PML', 'litPmC', 'litPmW'], ['litWo', 'Weekly open', 'litWoC', 'litWoW'], ['litOpen', '18:00 open', 'litOpenC', 'litOpenW'], ['litAsia', 'Asia box', 'litAsiaC', null, 'litAsiaF'], ['litNy', 'NYT box', 'litNyC', null, 'litNyF'], ['litMarks', 'FF LO MM1 MM2 LC', 'litMarksC'], ['litKo', 'Key opens', 'litKoC'], ['litPo3', 'PO3 candles', 'litPo3Up', null, null, 'litPo3Dn'],
+      ['litGold', 'HOW / LOW window', 'litGoldC', 'litGoldW'], ['litNwog', 'Liquidity voids (NWOG)', 'litNwogUp', null, 'litNwogF', 'litNwogDn'], ['litRef', 'QQQ / SPY prices', 'litRefC'], ['litVector', 'Vector candles', 'litVecUp', null, null, 'litVecDn'], ['litWm', 'Watermark tag', 'litWmC'], ['litSig', 'σ bands (expected move)', 'litSigC', 'litSigW'], ['litDs', 'Day separators', 'litDsC'], ['litOpen22', '22:00 open', 'litOpen22C', 'litOpen22W'], ['litLdn', 'London box', 'litLdnC', null, 'litLdnF']]
     /* ── the label lane ──
        Twenty parts each painting their own text is what turned this chart into a
        pile of overlapping words. Parts queue a label here instead. The lane sorts
@@ -15285,98 +15352,101 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       return lane
     }
-    /* Three tiers carry the hierarchy: the levels price actually reacts to read
-       solid and bright, session structure sits behind them, and the timing marks
-       are faint enough to ignore until you look for them. Priority doubles as the
-       lane's drop order, so a crowded chart loses the eighths before it loses PDH. */
+    /* Drawn the way TradingView draws the Pine: boxes and lines pinned to bar centres, labels in the Pine's
+       styles and sizes, every colour and transparency its default. Priority doubles as the lane's order, so the
+       weekly open and the prior-period levels keep their spots and the timing marks give way. */
     function chPaintLit(ctx, L, T, R) {
-      const S = CH.s, lit = chLit(), { n, i0, i1, light } = R
+      const S = CH.s, lit = chLit(), { bars, n, i0, i1, light } = R
       if (!n) return
-      const X = (i) => chX(i, L), Y = (p) => chY(p, L), D = CH_LIT_DEF(light)
+      const X = (i) => chX(i, L), Y = (p) => chY(p, L), D = CH_LIT_DEF(chLitMode(CH.bgNow, light))
       const cc = (k) => S[k] || D[k], A = (k, a) => alpha(cc(k), a), W = (k, def) => +S[k] || def, labels = S.litLabels !== false
-      const LBL = R.lbl
-      const tag = (text, x, y, color, align, size, prio) => { if (labels) LBL.add(text, x, y, color, align, size, prio) }
+      const LBL = R.lbl, SM = 11, TINY = 9.5                           // TradingView's size.small and size.tiny
+      const tag = (text, x, y, color, align, size, prio) => { if (labels && text) LBL.add(text, x, y, color, align, size, prio) }
+      /* style_label_left, the Pine's usual label: the text starts just past its anchor, centred on the level.
+         An anchor out past price (10 or 20 bars) that the plot cannot hold is pulled back to the right edge
+         while the last bar is on screen, so a name never sits in the unseen margin; scroll back and it goes
+         with its bars. A level above or below the prices in view has no name on screen, as on TradingView. */
+      const lastOn = X(n - 1) <= L.plotW, inView = (p) => { const y = Y(p); return y >= 0 && y <= L.mainH }
+      const tagL = (text, x, p, color, size, prio, dy = 0) => {
+        if (!labels || !text || !inView(p)) return
+        const pk = LBL.part, sz = (pk && +S[pk + 'Ts']) || size, y = Y(p) + sz * 0.36 + dy
+        ctx.font = `600 ${sz}px ${GEX_FONT}`
+        if (x + 6 + ctx.measureText(text).width <= L.plotW - 3) LBL.add(text, x + 6, y, color, 'left', size, prio)
+        else if (lastOn) LBL.add(text, L.plotW - 4, y, color, 'right', size, prio)
+      }
       const hline = (p, xa, xb, color, dash, width = 1) => { const y = Math.round(Y(p)) + 0.5; if (y < -20 || y > L.mainH + 20) return; ctx.strokeStyle = color; ctx.lineWidth = chPartW(LBL.part, width); ctx.setLineDash(chPartDash(LBL.part, dash)); ctx.beginPath(); ctx.moveTo(Math.max(0, xa), y); ctx.lineTo(Math.min(L.plotW, xb), y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1 }
+      const vline = (x, color, dash) => { ctx.strokeStyle = color; ctx.lineWidth = chPartW(LBL.part, 1); ctx.setLineDash(chPartDash(LBL.part, dash)); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.mainH); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1 }
       const visible = (a, b) => b >= i0 - 1 && a <= i1 + 1
       // a box's border: its own colour and width when set, none when switched off (D1: change the colours of the box and everything)
       const bord = (key, cKey, a, x, y, w, h, dash) => chPartBorder(ctx, key, A(cKey, a), x, y, w, h, dash)
-      // Asia and NYT boxes
-      LBL.part = 'litAsia'; if (S.litAsia) for (const a of lit.asia) { if (!visible(a.i0, a.i1 + 7 * 3600 / CH.tfSec)) continue; const x0 = X(a.i0) - CH.barW / 2, x1 = X(a.i1) + CH.barW / 2, xe = X(a.i1 + 7 * 3600 / CH.tfSec); ctx.fillStyle = A('litAsiaC', S.litAsiaF ?? 0.15); ctx.fillRect(x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); bord('litAsia', 'litAsiaC', 0.5, x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); hline(a.h, x1, xe, A('litAsiaC', 0.5)); hline(a.l, x1, xe, A('litAsiaC', 0.5)); hline((a.h + a.l) / 2, x0, xe, A('litAsiaC', 0.7), [5, 4]) }
-      LBL.part = 'litNy'; if (S.litNy) for (const a of lit.ny) { if (!visible(a.i0, a.i1)) continue; const x0 = X(a.i0) - CH.barW / 2, x1 = X(a.i1) + CH.barW / 2; ctx.fillStyle = S.litNyC ? A('litNyC', S.litNyF ?? 0.1) : alpha('#4285f4', S.litNyF ?? 0.1); ctx.fillRect(x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); bord('litNy', 'litNyC', 0.4, x0, Y(a.h), x1 - x0, Y(a.l) - Y(a.h)); tag('NYT', (x0 + x1) / 2, Y(a.h) - 7, S.litNyC ? A('litNyC', 0.9) : (light ? '#1a1815' : '#b4c8ff'), 'center', 10, 16) }
-      // vertical markers: the faintest tier, they are a clock rather than a level
-      LBL.part = 'litMarks'; if (S.litMarks) for (const m of lit.marks) { if (m.i < i0 - 1 || m.i > i1 + 1) continue; const x = Math.round(X(m.i)) + 0.5; ctx.strokeStyle = A('litMarksC', light ? 0.3 : 0.24); ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.plotH); ctx.stroke(); ctx.setLineDash([]); tag(m.label, x, Math.min(L.mainH - 6, (el('ch-legend')?.offsetHeight || 0) + 22), A('litMarksC', 0.6), 'center', 9.5, 52) }
-      // 18:00 open, weekly open
-      LBL.part = 'litOpen'; if (S.litOpen) for (const o of lit.open18) { if (!visible(o.i0, o.i1)) continue; hline(o.p, X(o.i0), X(o.i1), A('litOpenC', 0.6), [], W('litOpenW', 1)); tag('[18:00 OPEN]', X(o.i1) + 6, Y(o.p), A('litOpenC', 0.8), 'left', 10, 20) }
-      LBL.part = 'litWo'; if (S.litWo && lit.wo && visible(lit.wo.i0, n + 30)) { hline(lit.wo.p, X(lit.wo.i0), L.plotW, A('litWoC', 0.9), [], W('litWoW', 2)); tag('[WEEKLY OPEN]', Math.min(L.plotW - 90, X(n - 1) + 8), Y(lit.wo.p), cc('litWoC'), 'left', 10, 0) }
-      // PDH / PDL and PWH / PWL: the top tier, what price is actually reaching for
-      LBL.part = 'litPd'; if (S.litPd) for (const p of lit.pd) { if (!visible(p.i0, p.i1)) continue; hline(p.p, X(p.i0), X(p.i1), A('litPdC', 0.7), [], W('litPdW', 1)); tag(p.label, Math.min(X(p.i1), L.plotW - 6) - 4, Y(p.p) + (p.label === 'PDH' ? -7 : 11), A('litPdC', 0.95), 'right', 10, 8) }
-      LBL.part = 'litPw'; if (S.litPw && lit.pw) { const w = lit.pw, c = A('litPwC', 0.7), lw = W('litPwW', 1); if (visible(w.hi, w.hEnd)) { hline(w.h, X(w.hi), X(w.hEnd), c, [6, 4], lw); tag('PWH', Math.min(X(w.hEnd), L.plotW - 6) - 4, Y(w.h) - 7, A('litPwC', 0.95), 'right', 10, 6) } if (visible(w.li, w.lEnd)) { hline(w.l, X(w.li), X(w.lEnd), c, [6, 4], lw); tag('PWL', Math.min(X(w.lEnd), L.plotW - 6) - 4, Y(w.l) + 11, A('litPwC', 0.95), 'right', 10, 6) } }
-      // weekly eighths
-      LBL.part = 'litEighths'; if (S.litEighths && lit.eighths && CH.tfSec <= 86400) { const e = lit.eighths; for (let k = 1; k <= 7; k++) { const p = e.base + e.step * k; const c = k === 4 && !S.litEighthsC ? 'rgba(212,175,55,0.45)' : A('litEighthsC', k === 4 ? 0.45 : 0.22); hline(p, X(e.i0), X(n - 1 + 20), c, [2, 4]); tag(`${k}/8`, Math.min(X(n - 1 + 20), L.plotW - 4), Y(p) - 6, c, 'right', 9, 48) } }
-      // key opens
-      LBL.part = 'litKo'; if (S.litKo) for (const k of lit.ko) { hline(k.p, X(k.i0), X(n - 1 + 20), A('litKoC', 0.45), [2, 4]); tag(k.label, Math.min(X(n - 1 + 22), L.plotW - 70), Y(k.p), A('litKoC', 0.75), 'left', 9.5, 28) }
-      // golden window
-      LBL.part = 'litGold'; if (S.litGold && lit.gold) { const p = lit.gold.h * 1.0005; hline(p, X(lit.gold.i0), L.plotW, A('litGoldC', 0.9), [], W('litGoldW', 1)); tag('Golden Tue/Wed', Math.min(X(n - 1) + 8, L.plotW - 90), Y(p) - 7, cc('litGoldC'), 'left', 10, 12) }
-      // PMH / PML
-      LBL.part = 'litPm'; if (S.litPm && lit.pm) { const m = lit.pm, c = A('litPmC', 0.8), lw = W('litPmW', 2); if (visible(m.hi, m.hEnd)) { hline(m.h, X(m.hi), m.hs ? X(m.hEnd) : L.plotW, c, [], lw); tag('PMH', Math.min(m.hs ? X(m.hEnd) : L.plotW, L.plotW - 6) - 4, Y(m.h) - 7, cc('litPmC'), 'right', 10, 4) } if (visible(m.li, m.lEnd)) { hline(m.l, X(m.li), m.ls ? X(m.lEnd) : L.plotW, c, [], lw); tag('PML', Math.min(m.ls ? X(m.lEnd) : L.plotW, L.plotW - 6) - 4, Y(m.l) + 11, cc('litPmC'), 'right', 10, 4) } }
-      // liquidity voids
-      LBL.part = 'litNwog'; if (S.litNwog) for (const g of lit.nwog) { if (!visible(g.i0, n + 10)) continue; const x0 = X(g.i0) - CH.barW / 2, x1 = Math.min(L.plotW, X(n - 1 + 10)); const top = Y(g.top), bot = Y(g.bottom); ctx.fillStyle = A('litNwogC', S.litNwogF ?? 0.12); ctx.fillRect(x0, top, x1 - x0, bot - top); bord('litNwog', 'litNwogC', 0.55, x0, top, x1 - x0, bot - top, [2, 3]); tag(`NWOG ${chFmtAxisDay(g.t)}`, x0 + 4, top - 4, A('litNwogC', 0.85), 'left', 9.5, 36) }
-      // daily reset levels: context behind the key levels, never in front of them
-      LBL.part = 'litDr'; if (S.litDr) { const dc = A('litDrC', 0.45), hc = A('litDrHlC', 0.4), lw = W('litDrW', 1); for (const d of lit.dr) { if (!visible(d.i0, d.i1)) continue; const xa = X(d.i0), xb = X(d.i1) + CH.barW / 2; for (const [p, lab, c] of [[d.h, 'High', hc], [d.l, 'Low', hc], [d.o, 'Open', dc], [d.c, 'Close', dc]]) { hline(p, xa, xb, c, [1, 3], lw); tag(`${d.name} ${lab}`, Math.min(xb + 6, L.plotW - 60), Y(p) + 3, c, 'left', 9, 44) } }
-        if (lit.drLive && visible(lit.drLive.i0, n)) { hline(lit.drLive.o, X(lit.drLive.i0), X(n - 1) + CH.barW / 2, dc, [1, 3], lw); tag(`${lit.drLive.name} Open`, Math.min(X(n - 1) + 8, L.plotW - 60), Y(lit.drLive.o) + 3, dc, 'left', 9, 44) } }
-      // σ bands from the session open, projected eight bars right
-      LBL.part = 'litSig'; if (S.litSig && lit.sig) { const g = lit.sig, c = A('litSigC', 0.5), lw = W('litSigW', 1), xe = Math.min(L.plotW, X(n - 1 + 8)); const band = (k, lab) => { const p = g.anchor + g.s1 * k; if (!visible(g.i0, n + 8)) return; hline(p, X(g.i0), xe, c, [], lw); tag(lab, Math.min(xe + 4, L.plotW - 40), Y(p) + 3, A('litSigC', 0.75), 'left', 9.5, 24) }; for (const k of [2, -2, 2.5, -2.5]) band(k, `${k > 0 ? '+' : ''}${k}σ`); if (S.litSig1) { band(1, '+1σ'); band(-1, '-1σ') } if (S.litSigAnc) band(0, 'anchor') }
-      // day separators
-      LBL.part = 'litDs'; if (S.litDs) for (const d of lit.days) { if (d.i < i0 - 1 || d.i > i1 + 1) continue; const x = Math.round(X(d.i) - CH.barW / 2) + 0.5; ctx.strokeStyle = A('litDsC', 0.32); ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.plotH); ctx.stroke(); tag(d.name, x + 5, L.mainH - 8, A('litDsC', 0.65), 'left', 10, 56) }
-      // 22:00 open, frozen at 02:00
-      LBL.part = 'litOpen22'; if (S.litOpen22) for (const o of lit.open22) { if (!visible(o.i0, o.i1)) continue; hline(o.p, X(o.i0), X(o.i1), A('litOpen22C', 0.5), [], W('litOpen22W', 1)); tag('[22:00 Open]', X(o.i1) + 6, Y(o.p), A('litOpen22C', 0.7), 'left', 10, 32) }
-      // London box, its high and low held until touched
-      LBL.part = 'litLdn'; if (S.litLdn) for (const b of lit.ldn) { const e1 = b.hHit ?? b.hEnd ?? b.i1, e2 = b.lHit ?? b.lEnd ?? b.i1; if (!visible(b.i0, Math.max(e1, e2))) continue; const x0 = X(b.i0) - CH.barW / 2, x1 = X(b.i1) + CH.barW / 2; ctx.fillStyle = A('litLdnC', S.litLdnF ?? 0.1); ctx.fillRect(x0, Y(b.h), x1 - x0, Y(b.l) - Y(b.h)); if (S.litLdnBd !== false) { const bc = S.litLdnBc ? alpha(S.litLdnBc, 0.9) : A('litLdnC', 0.6), bw = +S.litLdnBw || 1, bs = CH_DASH[S.litLdnBs] || []; hline(b.h, x0, X(e1), bc, bs, bw); hline(b.l, x0, X(e2), bc, bs, bw) } tag('LDN', x0 + 4, Y(b.h) - 4, A('litLdnC', 0.8), 'left', 9.5, 18) }
-      /* PO3 candles: one tight cluster pinned to the right edge. They used to be
-         thrown 20, 35 and 50 bars into the future, which left a lake of empty
-         chart between price and them and, since the chart sits flush right until
-         you pan, put them off screen most of the time. Pinned they are always
-         where you look; a plate behind just their own box, not the full height,
-         separates them from the newest candles without hiding any. */
+      // 5. Asia: pink box, border, high and low at 80% and the EQ dashed at 70%; the three lines run 7 hours past the close
+      LBL.part = 'litAsia'; if (S.litAsia) for (const a of lit.asia) { const e = a.i1 + Math.round(7 * 3600 / CH.tfSec); if (!visible(a.i0, e)) continue; const x0 = X(a.i0), x1 = X(a.i1), xe = X(e), yt = Y(a.h), yb = Y(a.l); ctx.fillStyle = A('litAsiaC', S.litAsiaF ?? 0.15); ctx.fillRect(x0, yt, x1 - x0, yb - yt); bord('litAsia', 'litAsiaC', 0.8, x0, yt, x1 - x0, yb - yt); hline(a.h, x0, xe, A('litAsiaC', 0.8)); hline(a.l, x0, xe, A('litAsiaC', 0.8)); hline((a.h + a.l) / 2, x0, xe, A('litAsiaC', 0.7), [6, 4]) }
+      // 5b. London: a black box at 85% transparency with no outline; its high and low run on until they are traded through
+      LBL.part = 'litLdn'; if (S.litLdn) for (const b of lit.ldn) { if (!visible(b.i0, Math.max(b.hEnd, b.lEnd))) continue; const x0 = X(b.i0), x1 = X(b.i1); ctx.fillStyle = A('litLdnC', S.litLdnF ?? 0.15); ctx.fillRect(x0, Y(b.h), x1 - x0, Y(b.l) - Y(b.h)); if (S.litLdnBd !== false) { const bc = S.litLdnBc ? alpha(S.litLdnBc, 0.9) : A('litLdnC', 0.75), bw = +S.litLdnBw || 1, bs = CH_DASH[S.litLdnBs] || []; hline(b.h, x0, X(b.hEnd), bc, bs, bw); hline(b.l, x0, X(b.lEnd), bc, bs, bw) } }
+      // 6. NYT: a black box at 90%, its border at 60%, "NYT" over the middle of its top
+      LBL.part = 'litNy'; if (S.litNy) for (const a of lit.ny) { if (!visible(a.i0, a.i1)) continue; const x0 = X(a.i0), x1 = X(a.i1), yt = Y(a.h), yb = Y(a.l); ctx.fillStyle = A('litNyC', S.litNyF ?? 0.1); ctx.fillRect(x0, yt, x1 - x0, yb - yt); bord('litNy', 'litNyC', 0.4, x0, yt, x1 - x0, yb - yt); tag('NYT', (x0 + x1) / 2, yt - 4, cc('litNyC'), 'center', SM, 16) }
+      // 8d. liquidity voids: what is left of each open weekend gap, from Friday's last bar to 10 bars past price, teal
+      // where Sunday gapped up and red where it gapped down, a dotted grey border, dated at the right ("NWOG Sep 27")
+      LBL.part = 'litNwog'; if (S.litNwog) for (const g of lit.nwog) {
+        const e = n - 1 + 10; if (!visible(g.iL, e)) continue
+        const x0 = X(g.iL), x1 = X(e), yt = Y(g.top), yb = Y(g.bottom), d = chEtDate(g.t)
+        ctx.fillStyle = A(g.up ? 'litNwogUp' : 'litNwogDn', S.litNwogF ?? 0.18); ctx.fillRect(x0, yt, x1 - x0, yb - yt)
+        bord('litNwog', 'litNwogC', 0.6, x0, yt, x1 - x0, yb - yt, [2, 3])
+        tagL(`NWOG ${CH_MON[d.getUTCMonth()]} ${d.getUTCDate()}`, x1, (g.top + g.bottom) / 2, cc('litNwogC'), SM, 36)
+      }
+      // 7. vertical session markers: dotted, the full height, the letters just above the last ten bars' high
+      LBL.part = 'litMarks'; if (S.litMarks) { const c = cc('litMarksC'); for (const m of lit.marks) { if (m.i < i0 - 1 || m.i > i1 + 1) continue; const x = Math.round(X(m.i)) + 0.5; vline(x, c, [2, 3]); tag(m.label, x, Math.max(SM + 4, Y(m.y) - 3), c, 'center', SM, 52) } }
+      // 7b. day separators: a solid line on each session's first bar, the day's name centred in its column on one
+      // row just under the lowest low in view
+      LBL.part = 'litDs'; if (S.litDs && lit.days.length) {
+        let lo = Infinity; for (let i = Math.max(0, i0); i <= Math.min(n - 1, i1); i++) if (bars[i].l < lo) lo = bars[i].l
+        const rowY = isFinite(lo) ? Math.min(L.mainH - 4, Y(lo * (1 - 0.0015)) - 3) : L.mainH - 4
+        for (const d of lit.days) { if (!visible(d.i, d.i1)) continue; if (d.i >= i0 - 1 && d.i <= i1 + 1) vline(Math.round(X(d.i)) + 0.5, A('litDsC', 0.4), []); tag(d.name, X((d.i + d.i1) / 2), rowY, A('litDsC', 0.7), 'center', SM, 56) }
+      }
+      /* 3, 4, 4b. PDH / PDL, PWH / PWL, PMH / PML: grey rays from the extreme to the bar that sweeps it or to the
+         current bar; daily solid at 50%, weekly dashed at 70%, monthly dotted at width 2 and 90%. The name sits
+         over the line's right end, highs above and lows below, and tiers that land on one price share a single
+         label on the highest tier ("PDH/PWH"), the rest blank (4c). */
+      const pdh = S.litPd ? lit.pd[0] : null, pdl = S.litPd ? lit.pd[1] : null, pw = S.litPw ? lit.pw : null, pm = S.litPm ? lit.pm : null
+      const same = (a, b) => a != null && b != null && Math.abs(a - b) <= LIT_TICK + 1e-9
+      const hDW = same(pdh?.p, pw?.h), hDM = same(pdh?.p, pm?.h), hWM = same(pw?.h, pm?.h), lDW = same(pdl?.p, pw?.l), lDM = same(pdl?.p, pm?.l), lWM = same(pw?.l, pm?.l)
+      const ray = (p, a, b, color, dash, w, name, above, prio) => { if (!visible(a, b)) return; hline(p, X(a), X(b), color, dash, w); if (inView(p)) tag(name, Math.min(X(b), L.plotW - 3) - 2, Y(p) + (above ? -4 : SM + 3), color, 'right', SM, prio) }
+      LBL.part = 'litPm'; if (pm) { const c = A('litPmC', 0.9), w = W('litPmW', 2); ray(pm.h, pm.hi, pm.hEnd, c, [2, 3], w, (hDM ? 'PDH/' : '') + (hWM ? 'PWH/' : '') + 'PMH', true, 4); ray(pm.l, pm.li, pm.lEnd, c, [2, 3], w, (lDM ? 'PDL/' : '') + (lWM ? 'PWL/' : '') + 'PML', false, 4) }
+      LBL.part = 'litPw'; if (pw) { const c = A('litPwC', 0.7), w = W('litPwW', 1); ray(pw.h, pw.hi, pw.hEnd, c, [6, 4], w, hWM ? '' : hDW ? 'PDH/PWH' : 'PWH', true, 6); ray(pw.l, pw.li, pw.lEnd, c, [6, 4], w, lWM ? '' : lDW ? 'PDL/PWL' : 'PWL', false, 6) }
+      LBL.part = 'litPd'; if (pdh) { const c = A('litPdC', 0.5), w = W('litPdW', 1); ray(pdh.p, pdh.i0, pdh.i1, c, [], w, hDM || hDW ? '' : 'PDH', true, 8); ray(pdl.p, pdl.i0, pdl.i1, c, [], w, lDM || lDW ? '' : 'PDL', false, 8) }
+      // 5. the weekly open: from the week's first bar to the current bar, "[WEEKLY OPEN]" just past it
+      LBL.part = 'litWo'; if (S.litWo && lit.wo && visible(lit.wo.i0, n - 1)) { const c = cc('litWoC'); hline(lit.wo.p, X(lit.wo.i0), X(n - 1), c, [], W('litWoW', 2)); tagL('[WEEKLY OPEN]', X(n - 1), lit.wo.p, c, SM, 0) }
+      // 7. the 18:00 and 22:00 opens: while the window is open the line runs 20 bars past price with its name 2 bars
+      // further; once it closes (11:00, 02:00) the line stops on the window's last bar. Tiny names from 15m up.
+      const opens = (list, part, cKey, wKey, text, prio) => { LBL.part = part; const c = cc(cKey), sz = CH.tfSec >= 900 ? TINY : SM; for (const o of list) { const e = o.live ? n - 1 + 20 : o.i1; if (!visible(o.i0, e + 2)) continue; hline(o.p, X(o.i0), X(e), c, [], W(wKey, 1)); tagL(text, X(e + 2), o.p, c, sz, prio) } }
+      if (S.litOpen) opens(lit.open18, 'litOpen', 'litOpenC', 'litOpenW', '[18:00 Open]', 20)
+      if (S.litOpen22) opens(lit.open22, 'litOpen22', 'litOpen22C', 'litOpen22W', '[22:00 Open]', 32)
+      // 8. key opens: dotted black at 70%, 20 bars past price (the 10:00 stops at 14:00), the name 2 bars further
+      LBL.part = 'litKo'; if (S.litKo) { const c = A('litKoC', 0.7); for (const k of lit.ko) { const e = k.end ?? n - 1 + 20; hline(k.p, X(k.i0), X(e), c, [2, 3]); tagL(k.label, X(e + 2), k.p, c, SM, 28) } }
+      // 9. HOW / LOW window: gold, across the window only, no label
+      LBL.part = 'litGold'; if (S.litGold && lit.gold && visible(lit.gold.i0, lit.gold.i1)) hline(lit.gold.h * 1.0005, X(lit.gold.i0), X(lit.gold.i1), cc('litGoldC'), [], W('litGoldW', 1))
+      // 9d. σ bands: black, from the session open to 8 bars past price, named at the right end
+      LBL.part = 'litSig'; if (S.litSig && lit.sig) { const g = lit.sig, c = cc('litSigC'), lw = W('litSigW', 1), e = n - 1 + 8; if (visible(g.i0, e)) { const band = (k, lab) => { const p = g.anchor + g.s1 * k; hline(p, X(g.i0), X(e), c, [], lw); tagL(lab, X(e), p, c, SM, 24) }; for (const k of [2.5, 2, -2, -2.5]) band(k, `${k > 0 ? '+' : ''}${k}σ`); if (S.litSig1) { band(1, '+1σ'); band(-1, '-1σ') } if (S.litSigAnc) band(0, 'anchor') } }
+      // 8b. PO3 candles right of price, each at its own bar offset (20, 35, 50) and width (4, 6, 6): green up, black
+      // down, a black wick, a dark edge and the candle's NY open time above (a PO3 colour picked in the menu wins)
       LBL.part = 'litPo3'; if (S.litPo3 && lit.po3.length) {
-        // The Pine draws these in the space to the RIGHT OF THE LAST BAR, each at
-        // its own bar offset (20, 35, 50) and its own width in bars (4, 6, 6).
-        // The port kept those numbers on every candle and then ignored them,
-        // pinning the group to the pane's right edge instead, so they sat against
-        // the scale however far the chart was scrolled. They ride the bars now,
-        // and only fall back to the edge when there is no room out there.
         const lastX = X(n - 1)
-        const wOf = (c) => Math.max(6, Math.min(26, c.width * CH.barW))
-        // No clamp. Pulling them back when the offset space was off screen is what
-        // made them ride the viewport while D1 scrolled: they were pinned to the
-        // right edge every frame the future space was not visible. They belong to
-        // their bars, so they scroll away like everything else on the chart.
-        const want = lit.po3.map((c) => ({ c, x: lastX + c.offset * CH.barW, w: wOf(c) }))
+        const want = lit.po3.map((c) => ({ c, x: lastX + c.offset * CH.barW, w: Math.max(4, c.width * CH.barW) }))
         CH.po3At = want.map((p) => Math.round(p.x))   // where they landed, for the harness
-        let x = want[0].x
-        if (want.some((p) => p.x + p.w > 0 && p.x < L.plotW)) {
-          if (x < X(n - 1) + CH.barW && /^#[0-9a-f]{6}$/i.test(CH.bgNow || '')) {
-            let t = Infinity, b = -Infinity
-            for (const c of lit.po3) { t = Math.min(t, Y(c.h)); b = Math.max(b, Y(c.l)) }
-            ctx.fillStyle = alpha(CH.bgNow, 0.78); ctx.fillRect(x - 7, Math.max(0, t - 16), L.plotW - x + 7, Math.min(L.mainH, b + 5) - Math.max(0, t - 16))
-          }
-          for (const p of want) {
-            const c = p.c, cw = p.w; x = p.x
-            // A PO3 candle is a candle. It follows whatever the chart's candles are
-            // wearing (body, wick and border, up and down) unless a PO3 colour has
-            // been set on purpose, so changing the candle colour changes these too.
-            const mid = x + cw / 2, up = c.c >= c.o
-            const CD = chDefaults(T, light)
-            const body = (up ? S.litPo3Up : S.litPo3Dn) || (up ? S.up || CD.up : S.down || CD.down)
-            const wick = (up ? S.wickUp || S.up || CD.wickUp : S.wickDown || S.down || CD.wickDown)
-            const edge = (up ? S.borderUp || S.up || CD.borderUp : S.borderDown || S.down || CD.borderDown)
-            const top = Math.min(Y(c.o), Y(c.c)), hgt = Math.max(1, Math.abs(Y(c.c) - Y(c.o)))
-            ctx.strokeStyle = wick; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Math.round(mid) + 0.5, Y(c.h)); ctx.lineTo(Math.round(mid) + 0.5, Y(c.l)); ctx.stroke()
-            ctx.fillStyle = body; ctx.fillRect(x, top, cw, hgt)
-            ctx.strokeStyle = edge; ctx.strokeRect(Math.round(x) + 0.5, Math.round(top) + 0.5, Math.round(cw), Math.round(hgt))
-            tag(c.openAt ? CH_ET_HM.format(new Date(c.openAt * 1000)) : c.label.replace(' PO3', ''), mid, Y(c.h) - 7, cc('litPo3Lab'), 'center', 9.5, 40)
-          }
+        if (want.some((p) => p.x + p.w > 0 && p.x < L.plotW)) for (const { c, x, w } of want) {
+          const up = c.c >= c.o, mid = Math.round(x + w / 2) + 0.5, top = Math.min(Y(c.o), Y(c.c)), hgt = Math.max(1, Math.abs(Y(c.c) - Y(c.o)))
+          ctx.strokeStyle = cc('litPo3Wick'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(mid, Y(c.h)); ctx.lineTo(mid, Y(c.l)); ctx.stroke()
+          ctx.fillStyle = cc(up ? 'litPo3Up' : 'litPo3Dn'); ctx.fillRect(x, top, w, hgt)
+          ctx.strokeStyle = cc('litPo3Edge'); ctx.strokeRect(Math.round(x) + 0.5, Math.round(top) + 0.5, Math.round(w), Math.round(hgt))
+          tag(c.openAt ? CH_ET_HM.format(new Date(c.openAt * 1000)) : c.label.replace(' PO3', ''), mid, Y(c.h) - 4, cc('litPo3Lab'), 'center', SM, 40)
         }
+      }
+      // 9c. reference prices: QQQ and SPY at the current price, 3 bars out, tiny, 5m and below, each row only while
+      // its ETF is still printing (its last print within three bars or five minutes of the current bar)
+      LBL.part = 'litRef'; if (S.litRef && CH.tfSec <= 300 && CH.ref) {
+        const last = bars[n - 1], lim = Math.max(CH.tfSec * 3, 300)
+        const rows = ['QQQ', 'SPY'].filter((s) => CH.ref[s] && Math.abs(last.t - CH.ref[s].t) <= lim).map((s) => `${s} : ${+CH.ref[s].p.toFixed(2)}`)
+        rows.forEach((r, k) => tagL(r, X(n - 1 + 3), last.c, cc('litRefC'), TINY, 30, (k - (rows.length - 1) / 2) * (TINY + 3)))
       }
     }
 
@@ -18413,7 +18483,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       m.dataset.which = which
       const back = el('ch-menu-back'); back.hidden = !sub; back.onclick = () => chMenu(partKey ? root + ':' + sub : root)
       const hex = (c) => /^#[0-9a-f]{6}$/i.test(c) ? c : '#c9a24a'
-      const defC = (key) => ({ ...chDefaults(T, bgLight), cmpC: '#ff9800', bbC: '#2962ff', bbMidC: '#ff9800', rsiC: '#7e57c2', macdC: '#2962ff', macdSigC: '#ff6d00', atrC: '#26a69a', ...CH_LIT_DEF(bgLight), ...CH_GEX_DEF })[key] || T.gold
+      const defC = (key) => ({ ...chDefaults(T, bgLight), cmpC: '#ff9800', bbC: '#2962ff', bbMidC: '#ff9800', rsiC: '#7e57c2', macdC: '#2962ff', macdSigC: '#ff6d00', atrC: '#26a69a', ...CH_LIT_DEF(chLitMode(S.bg || chBgDefault(light), bgLight)), ...CH_GEX_DEF })[key] || T.gold
       const row = (label, control, hint) => { const r = document.createElement('div'); r.className = 'ch-row'; const t = document.createElement('div'); t.className = 'ch-row-t'; t.textContent = label; if (hint) { const h = document.createElement('small'); h.textContent = hint; t.appendChild(h) } r.append(t, control); body.appendChild(r); return r }
       const header = (text) => { const h = document.createElement('div'); h.className = 'ch-h'; h.textContent = text; body.appendChild(h) }
       const hint = (text) => { const h = document.createElement('div'); h.className = 'ch-hint'; h.textContent = text; body.appendChild(h) }
@@ -18615,7 +18685,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         row('Sessions back', numEl('litDays', 1, 30, 3), 'How many prior sessions carry levels')
         toggle('litLabels', 'Labels', 'The text beside each level')
         toggle('litAlerts', 'Sweep alerts', 'A toast and a chime the first time price trades through PDH/PDL, PWH/PWL, PMH/PML, the Asia range or a σ band')
-        row('Reset days back', numEl('litDrBack', 1, 10, 3), 'How many completed days keep their open, high, low and close')
         toggle('litSig1', 'Inner ±1σ', 'Off by default: it gets tagged most sessions'); toggle('litSigAnc', 'σ anchor midline', 'The prior close the bands measure from')
         toggle('litDsWeek', 'Separators this week only', 'Drop last week\'s 18:00 lines and day names')
         header('Parts')
@@ -18623,9 +18692,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         for (const [key, label, cKey, wKey, fKey, c2Key] of CH_LIT_PARTS) {
           const els = [colorEl(cKey, 'default')]
           if (c2Key) els.push(colorEl(c2Key, 'default'))
-          if (wKey) els.push(wselEl(wKey, key === 'litWo' ? 2 : 1))
-          if (fKey) { const r = rangeEl(fKey, 0, 0.5, 0.01, key === 'litAsia' ? 0.15 : 0.1); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) }
-          partRow(label, c2Key ? 'Up, then down' : '', els, tglEl(key), { key, colors: [cKey, c2Key].filter(Boolean), colorNames: { litPo3: ['Up', 'Down'], litVector: ['Up', 'Down'], litDr: ['Open and close', 'High and low'] }[key], wKey, wDef: key === 'litWo' ? 2 : 1, fKey, fDef: key === 'litAsia' ? 0.15 : 0.1, box: !!fKey, noText: key === 'litVector', noLine: ['litVector', 'litPo3', 'litMarks', 'litDs', 'litNy', 'litNwog', 'litLdn', 'litWm'].includes(key) })
+          const wDef = key === 'litWo' || key === 'litPm' ? 2 : 1, fDef = CH_DEFAULTS[fKey] ?? 0.1
+          if (wKey) els.push(wselEl(wKey, wDef))
+          if (fKey) { const r = rangeEl(fKey, 0, 0.5, 0.01, fDef); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) }
+          partRow(label, key === 'litNwog' ? 'Gap up, then gap down' : c2Key ? 'Up, then down' : '', els, tglEl(key), { key, colors: [cKey, c2Key].filter(Boolean), colorNames: { litPo3: ['Up', 'Down'], litVector: ['Up', 'Down'], litNwog: ['Gap up', 'Gap down'] }[key], wKey, wDef, fKey, fDef, box: !!fKey, noText: ['litVector', 'litGold', 'litLdn'].includes(key), noLine: ['litVector', 'litPo3', 'litMarks', 'litDs', 'litNy', 'litNwog', 'litLdn', 'litWm', 'litRef'].includes(key) })
         }
         button('Reset every LIT colour', () => { for (const [, , cKey, wKey, fKey, c2Key] of CH_LIT_PARTS) { S[cKey] = ''; if (c2Key) S[c2Key] = ''; if (wKey) S[wKey] = CH_DEFAULTS[wKey]; if (fKey) S[fKey] = CH_DEFAULTS[fKey] } chSave(); chDraw(); chMenu('ind:lit') })
       } else if (which === 'ind:gex') {
@@ -19025,7 +19095,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chCtx(CH_ZONES.map(([k, name]) => ({ label: name, check: CH.s.tz === k, fn: () => { CH.s.tz = k; chZoneCache.clear(); chSave(); chTzLabel(); chDraw(); if (CH.menu === 'settings') chMenu('settings') } })), b.left - st.left - 150, b.top - st.top - 12 * CH_ZONES.length - 60)
     }
     async function chartShown() {
-      CH.on = true; chWire(); chSkinNow(); chFit(); chTzLabel(); chSymUi(); chPrailShow(); chTfRow(); requestAnimationFrame(() => chTfStripSync(false)); if (CH.s.lit && CH.s.litSig !== false) chVixLoad()
+      CH.on = true; chWire(); chSkinNow(); chFit(); chTzLabel(); chSymUi(); chPrailShow(); chTfRow(); requestAnimationFrame(() => chTfStripSync(false)); if (CH.s.lit && CH.s.litSig !== false) chVixLoad(); if (CH.s.lit && CH.s.litRef !== false && CH.tfSec <= 300) chRefLoad()
       if (CH.s.gex) chGexWarm()
       clearInterval(CH.volT); if (CH.s.gex) chVolLoad(); CH.volT = setInterval(() => { if (CH.on && CH.s.gex) chVolLoad() }, 30_000)
       if (CH.s.htf) chHtfWarm()
