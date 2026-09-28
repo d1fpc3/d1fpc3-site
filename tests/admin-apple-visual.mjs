@@ -111,6 +111,16 @@ for (const [vp, launcher, opts] of VPS) for (const theme of THEMES) {
   await page.evaluate(() => document.querySelector('.grp[data-grp="course"]').click()); await page.waitForTimeout(1400)
   const plus = await page.evaluate(() => { const b = [...document.querySelectorAll('#course-tree .rowbtn.gold')][0]; if (!b) return null; const cs = getComputedStyle(b); return { text: b.textContent, color: cs.color, bg: cs.backgroundColor } })
   ok(plus && plus.color !== plus.bg, `"+ Lesson" reads: ${plus && `${plus.text} ${plus.color} on ${plus.bg}`}`)
+  // Rename asks with a field (the browser's prompt() before), holding the current name; Escape leaves it
+  const ren = await page.evaluate(() => { const b = [...document.querySelectorAll('#course-tree .rowbtn')].find((x) => x.textContent.trim() === 'Rename'); if (!b) return null; const name = b.closest('.intg')?.querySelector('.n')?.textContent; b.click(); return name })
+  if (ren) {
+    await page.waitForTimeout(500)
+    const f = await page.evaluate(() => { const s = document.querySelector('.asheet'); return s && { title: s.querySelector('h4').textContent, value: s.querySelector('input')?.value, focused: document.activeElement === s.querySelector('input'), btns: [...s.querySelectorAll('.as-btns button')].map((b) => b.textContent) } })
+    ok(f && f.value === ren && f.focused && f.btns.join() === 'Cancel,Save', `Rename opens a sheet with "${ren}" in a focused field: ${JSON.stringify(f)}`)
+    await page.keyboard.press('Escape'); await page.waitForTimeout(700)
+    const after = await page.evaluate(() => [...document.querySelectorAll('#course-tree .intg .n')][0]?.textContent)
+    ok(await page.evaluate(() => !document.querySelector('.asheet')) && after === ren, `Escape closes it and the name stays "${after}"`)
+  }
 
   // an Apple alert in place of confirm(): Cancel and Escape both leave everything as it was
   await page.evaluate(() => { document.querySelector('.grp[data-grp="community"]').click() }); await page.waitForTimeout(1500)
