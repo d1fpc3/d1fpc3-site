@@ -6,9 +6,12 @@
 //   { message_id }       push_on_message trigger — a new chat message. Works
 //                        out the recipients (DM partner / everyone in the
 //                        room minus the sender), honors notify_prefs.
-//   { notification_id }  notify() — a like, comment or follow landed in the
-//                        inbox; ping the one recipient if their `social`
-//                        switch is on.
+//   { notification_id }  notify(): a like, comment, reply, mention, follow,
+//                        new post from someone followed, or a reaction on a
+//                        chat message landed in the inbox; ping the one
+//                        recipient by their notify_prefs.activity rule for
+//                        that kind (off / people they follow / everyone).
+//   Pause all: notify_prefs.paused_until ahead of now keeps every push away.
 //   { gex_sheet: true }  pg_cron at 08:30 New York — the day's GEX sheet to
 //                        every active D1 GEX holder with `gex` on.
 //   { gex_refresh }      the tos-gex TV refresh just published a slot
@@ -116,8 +119,13 @@ async function sendWeb(sub: { endpoint: string; p256dh: string; auth: string }, 
   }
 }
 
-// Fan out one notification to a set of users over both transports.
+// Fan out one notification to a set of users over both transports. Anyone on Pause all
+// (notify_prefs.paused_until still ahead) is left out, whatever sent it.
 async function deliver(userIds: string[], title: string, body: string, path: string) {
+  if (userIds.length) {
+    const { data: paused } = await admin.from('notify_prefs').select('user_id').in('user_id', userIds).gt('paused_until', new Date().toISOString())
+    if (paused?.length) { const off = new Set(paused.map((p) => p.user_id)); userIds = userIds.filter((id) => !off.has(id)) }
+  }
   if (!userIds.length) return { sent: 0, devices: 0 }
   const [{ data: tokens }, { data: subs }] = await Promise.all([
     admin.from('push_tokens').select('user_id, token').eq('platform', 'apns').in('user_id', userIds),
@@ -141,10 +149,12 @@ async function deliver(userIds: string[], title: string, body: string, path: str
 }
 
 // alerts: per-alert off switches, absent = on (gex_open/mid/close, sweep_*)
-type Prefs = { ann: boolean; dm: boolean; chat: boolean; gex: boolean; social: boolean; news: boolean; alerts: Record<string, boolean>; channels: Record<string, string> }
-const DEFAULT_PREFS: Prefs = { ann: true, dm: true, chat: false, gex: true, social: true, news: true, alerts: {}, channels: {} }
+// activity: one rule per social kind, absent = ACTIVITY_DEFAULT ('off' | 'following' | 'everyone', or 'off' | 'on')
+type Prefs = { ann: boolean; dm: boolean; chat: boolean; gex: boolean; social: boolean; news: boolean; sweeps: boolean; alerts: Record<string, boolean>; channels: Record<string, string>; activity: Record<string, string> }
+const DEFAULT_PREFS: Prefs = { ann: true, dm: true, chat: false, gex: true, social: true, news: true, sweeps: true, alerts: {}, channels: {}, activity: {} }
+const ACTIVITY_DEFAULT: Record<string, string> = { like: 'everyone', comment: 'everyone', reply: 'everyone', mention: 'everyone', follow: 'on', post: 'on', reaction: 'on' }
 async function prefsFor(ids: string[]) {
-  const { data } = await admin.from('notify_prefs').select('user_id, ann, dm, chat, gex, social, news, alerts, channels').in('user_id', ids)
+  const { data } = await admin.from('notify_prefs').select('user_id, ann, dm, chat, gex, social, news, sweeps, alerts, channels, activity').in('user_id', ids)
   const map = new Map<string, Prefs>()
   for (const p of data ?? []) map.set(p.user_id, { ...DEFAULT_PREFS, ...p })
   return (uid: string) => map.get(uid) ?? DEFAULT_PREFS
@@ -192,15 +202,39 @@ Deno.serve(async (req) => {
       .select('id, user_id, kind, actor_id, recap_id, body').eq('id', body.notification_id).maybeSingle()
     if (!n) return json({ ok: true, skipped: 'no such notification' })
     const pref = await prefsFor([n.user_id])
-    if (!pref(n.user_id).social) return json({ ok: true, muted: 1 })
+    const p = pref(n.user_id)
+    if (!p.social) return json({ ok: true, muted: 1 })
+    // replies and mentions ride on the comment and system kinds; their body says which
+    const body0 = n.body || ''
+    const act = n.kind === 'comment' && body0.startsWith('replied: ') ? 'reply'
+      : n.kind === 'system' && body0.startsWith('mentioned you') ? 'mention'
+      : n.kind
+    const rule = p.activity?.[act] ?? ACTIVITY_DEFAULT[act] ?? 'everyone'
+    if (rule === 'off') return json({ ok: true, muted: 1, rule: act })
+    if (rule === 'following' && n.actor_id) {
+      const { data: f } = await admin.from('follows').select('follower_id').eq('follower_id', n.user_id).eq('followee_id', n.actor_id).maybeSingle()
+      if (!f) return json({ ok: true, muted: 1, rule: `${act}:following` })
+    }
     const { data: actor } = n.actor_id ? await admin.from('profiles').select('username').eq('user_id', n.actor_id).maybeSingle() : { data: null }
     const who = actor?.username ? `@${actor.username}` : 'Someone'
-    const title = n.kind === 'like' ? `${who} liked your trade`
-      : n.kind === 'comment' ? `${who} commented on your trade`
-      : n.kind === 'follow' ? `${who} started following you`
+    const emoji = act === 'reaction' ? body0.split(' ')[0] : ''
+    const title = act === 'like' ? `${who} liked your trade`
+      : act === 'comment' ? `${who} commented on your trade`
+      : act === 'reply' ? `${who} replied to your comment`
+      : act === 'mention' ? `${who} mentioned you`
+      : act === 'follow' ? `${who} started following you`
+      : act === 'post' ? `${who} posted a trade`
+      : act === 'reaction' ? `${who} reacted ${emoji} to your message`
       : 'Echelon'
-    const text = n.kind === 'comment' ? (n.body || '') : n.kind === 'follow' ? 'Tap to see their profile.' : 'Tap to open it.'
-    const path = n.recap_id ? `${APP_PATH}?p=${n.recap_id}` : n.actor_id ? `${APP_PATH}?u=${encodeURIComponent(actor?.username ?? '')}` : APP_PATH
+    const text = act === 'comment' || act === 'post' ? body0
+      : act === 'reply' ? body0.replace(/^replied: /, '')
+      : act === 'mention' ? body0.replace(/^mentioned you /, '')
+      : act === 'reaction' ? body0.slice(emoji.length).trim()
+      : act === 'follow' ? 'Tap to see their profile.'
+      : act === 'like' ? 'Tap to open it.'
+      : body0 || 'Tap to open it.'
+    const path = act === 'reaction' || (act === 'mention' && !n.recap_id) ? `${APP_PATH}?start=chat`
+      : n.recap_id ? `${APP_PATH}?p=${n.recap_id}` : n.actor_id ? `${APP_PATH}?u=${encodeURIComponent(actor?.username ?? '')}` : APP_PATH
     const r = await deliver([n.user_id], title, text, path)
     return json({ ok: true, kind: n.kind, ...r, errors: ERRORS.splice(0, 5) })
   }
@@ -388,7 +422,7 @@ Deno.serve(async (req) => {
     const pref = await prefsFor(ids)
     let delivered = 0
     for (const e of fresh) {
-      const targets = ids.filter((id) => (pref(id).alerts ?? {})[e.key] !== false)
+      const targets = ids.filter((id) => pref(id).sweeps !== false && (pref(id).alerts ?? {})[e.key] !== false)
       if (!targets.length) continue
       const line = `${e.label} ${fmt(e.level)} ran · NQ ${fmt(S.last)}.`
       await admin.from('notifications').insert(targets.map((uid) => ({ user_id: uid, kind: 'sweep', body: line })))

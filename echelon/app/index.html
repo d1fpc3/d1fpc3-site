@@ -3033,6 +3033,28 @@
     .nt-device { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
     .nt-device[hidden] { display: none; }
     .nt-device b { font-weight: 600; }
+    /* per-kind rules: pause, activity (off / people I follow / everyone), each a cell in one rounded list */
+    .nt-sec { margin: 18px 0 4px; }
+    .nt-h { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; color: var(--faint); }
+    .nt-f { margin: 8px 2px 0; font-size: 12.5px; line-height: 1.45; color: var(--faint); }
+    .nt-cells { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); overflow: hidden; }
+    .nt-cell { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 54px; padding: 12px 16px; box-sizing: border-box; }
+    .nt-cell + .nt-cell::before { content: ''; position: absolute; left: 16px; right: 0; top: 0; height: 1px; background: var(--line); }
+    .nt-cell.nt-stack { gap: 24px; padding: 12px 16px; }
+    .nt-cell .nt-seg { flex: none; }
+    .nt-tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .nt-tx b { font-size: 14px; font-weight: 500; color: var(--ink); }
+    .nt-tx small { font-size: 12.5px; line-height: 1.4; color: var(--muted); transition: color 0.2s ease; }
+    .nt-tx small.live { color: var(--gold); }
+    .nt-seg { position: relative; display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: color-mix(in srgb, var(--ink) 7%, transparent); isolation: isolate; }
+    .nt-seg .thumb { position: absolute; z-index: -1; top: 3px; bottom: 3px; left: 0; width: 0; border-radius: 9px; background: color-mix(in srgb, var(--ink) 13%, var(--panel)); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22), inset 0 0.5px 0 rgba(255, 255, 255, 0.07); transition: transform 0.38s cubic-bezier(0.3, 1.35, 0.5, 1), width 0.3s cubic-bezier(0.3, 1.2, 0.5, 1), background-color 0.2s ease; }
+    .nt-seg .thumb.gold { background: color-mix(in srgb, var(--gold) 22%, var(--panel)); }
+    .nt-seg button { flex: 1 1 auto; min-width: 0; height: 34px; padding: 0 14px; border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 500; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color 0.2s ease, transform 0.14s ease; }
+    .nt-seg button:hover { color: var(--ink); }
+    .nt-seg button:active { transform: scale(0.96); }
+    .nt-seg button.on { color: var(--ink); font-weight: 600; }
+    .nt-seg:not(.ready) .thumb { transition: none; }
+    @media (prefers-reduced-motion: reduce) { .nt-seg .thumb { transition: none; } }
     /* custom GEX alerts: each alert reads as one sentence, built from chips */
     .ga-list { display: flex; flex-direction: column; }
     .ga-row { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
@@ -4886,6 +4908,18 @@
       .setpage .setgrid > .filters:has(> .tgl) .label { font-size: 17px; font-weight: 400; letter-spacing: -0.02em; }
       .setpage .setgrid:has(> .filters > .tgl) > p.label { margin: 26px 16px 7px !important; font-size: 13px; font-weight: 400; color: var(--muted); }
       .setpage .nt-device:not([hidden]) { border-radius: 22px; margin-bottom: 26px; }
+      .setpage .nt-sec { margin: 0 0 26px; }
+      .setpage .nt-sec:has(+ .setgrid) { margin-bottom: 0; }
+      .setpage .nt-h { margin: 0 16px 7px; font-size: 13px; font-weight: 400; color: var(--muted); }
+      .setpage .nt-f { margin: 7px 16px 0; font-size: 13px; }
+      .setpage .nt-cells { border: 0; border-radius: 22px; }
+      .setpage .nt-cell { min-height: 50px; padding: 10px 16px; }
+      .setpage .nt-cell.nt-stack { flex-direction: column; align-items: stretch; gap: 11px; padding: 12px 16px 14px; }
+      .setpage .nt-cell .nt-seg { flex: 0 0 auto; }
+      .setpage .nt-cell + .nt-cell::before { height: 0.5px; }
+      .setpage .nt-tx b { font-size: 17px; font-weight: 400; letter-spacing: -0.02em; }
+      .setpage .nt-tx small { font-size: 13px; }
+      .setpage .nt-seg button { height: 36px; font-size: 14px; }
       /* forms in one card */
       .setpage .block:not(:has(.setgrid > .filters > .tgl)) { background: var(--panel); border: 0; border-radius: 22px; padding: 14px 16px; }
       .setpage .block:not(:has(.setgrid > .filters > .tgl)) .block-head { border-bottom: 0; }
@@ -5717,7 +5751,53 @@
               <div><b>This device</b><p class="hint" id="nt-device-hint" style="margin:2px 0 0;">Get pushes here even when the app is closed.</p></div>
               <button class="rowbtn" id="nt-enable" type="button">Turn on</button>
             </div>
+            <!-- every kind of ping has its own rule (D1, 09-28): pause, then activity with who it comes from, then chat and markets -->
+            <div class="nt-sec">
+              <div class="nt-cells">
+                <div class="nt-cell nt-stack">
+                  <div class="nt-tx"><b>Pause all</b><small id="nt-pause-note">Nothing is paused.</small></div>
+                  <div class="nt-seg" id="nt-pause" role="radiogroup" aria-label="Pause all notifications">
+                    <button type="button" role="radio" data-v="0">Off</button><button type="button" role="radio" data-v="1">1 hour</button><button type="button" role="radio" data-v="8">8 hours</button><button type="button" role="radio" data-v="24">1 day</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="nt-sec">
+              <p class="nt-h">Activity</p>
+              <div class="nt-cells" id="nt-activity">
+                <div class="nt-cell nt-stack" data-act="like">
+                  <div class="nt-tx"><b>Likes</b><small>When someone likes one of your trades</small></div>
+                  <div class="nt-seg" role="radiogroup" aria-label="Likes"><button type="button" role="radio" data-v="off">Off</button><button type="button" role="radio" data-v="following">People I follow</button><button type="button" role="radio" data-v="everyone">Everyone</button></div>
+                </div>
+                <div class="nt-cell nt-stack" data-act="comment">
+                  <div class="nt-tx"><b>Comments</b><small>When someone comments on your trades</small></div>
+                  <div class="nt-seg" role="radiogroup" aria-label="Comments"><button type="button" role="radio" data-v="off">Off</button><button type="button" role="radio" data-v="following">People I follow</button><button type="button" role="radio" data-v="everyone">Everyone</button></div>
+                </div>
+                <div class="nt-cell nt-stack" data-act="reply">
+                  <div class="nt-tx"><b>Replies</b><small>When someone answers your comment</small></div>
+                  <div class="nt-seg" role="radiogroup" aria-label="Replies"><button type="button" role="radio" data-v="off">Off</button><button type="button" role="radio" data-v="following">People I follow</button><button type="button" role="radio" data-v="everyone">Everyone</button></div>
+                </div>
+                <div class="nt-cell nt-stack" data-act="mention">
+                  <div class="nt-tx"><b>Mentions</b><small>When someone writes your @name in chat or a comment</small></div>
+                  <div class="nt-seg" role="radiogroup" aria-label="Mentions"><button type="button" role="radio" data-v="off">Off</button><button type="button" role="radio" data-v="following">People I follow</button><button type="button" role="radio" data-v="everyone">Everyone</button></div>
+                </div>
+                <div class="nt-cell" data-act="follow">
+                  <div class="nt-tx"><b>New followers</b></div>
+                  <label class="tgl"><input type="checkbox" aria-label="New followers"><span class="track"></span></label>
+                </div>
+                <div class="nt-cell" data-act="post">
+                  <div class="nt-tx"><b>New trades</b><small>From people you follow</small></div>
+                  <label class="tgl"><input type="checkbox" aria-label="New trades from people you follow"><span class="track"></span></label>
+                </div>
+                <div class="nt-cell" data-act="reaction">
+                  <div class="nt-tx"><b>Reactions</b><small>On your chat messages</small></div>
+                  <label class="tgl"><input type="checkbox" aria-label="Reactions on your chat messages"><span class="track"></span></label>
+                </div>
+              </div>
+              <p class="nt-f">These decide what reaches your phone and browser. Your inbox keeps all of it either way.</p>
+            </div>
             <div class="setgrid">
+              <p class="label" style="margin:14px 0 0;">Chat</p>
               <div class="filters" style="justify-content:space-between;">
                 <p class="label" style="margin:0;">Announcements</p>
                 <label class="tgl"><input type="checkbox" id="nt-ann"><span class="track"></span></label>
@@ -5747,13 +5827,14 @@
                 <p class="label" style="margin:0;">Close refresh</p>
                 <label class="tgl"><input type="checkbox" id="nt-gex-close"><span class="track"></span></label>
               </div>
+              <p class="label" style="margin:14px 0 0;">Markets</p>
+              <div class="filters" style="justify-content:space-between;">
+                <p class="label" style="margin:0;">Level sweeps (yesterday, last week, last month, Asia)</p>
+                <label class="tgl"><input type="checkbox" id="nt-sweeps"><span class="track"></span></label>
+              </div>
               <div class="filters" style="justify-content:space-between;">
                 <p class="label" style="margin:0;">Red-folder news, 30 minutes out</p>
                 <label class="tgl"><input type="checkbox" id="nt-news"><span class="track"></span></label>
-              </div>
-              <div class="filters" style="justify-content:space-between;">
-                <p class="label" style="margin:0;">Likes, comments, follows</p>
-                <label class="tgl"><input type="checkbox" id="nt-social"><span class="track"></span></label>
               </div>
             </div>
           </div>
@@ -6834,7 +6915,7 @@
       if (view === 'news') loadNews()
       if (view === 'propfirms') pfShown()
       if (view === 'lab') labShown()
-      if (view === 'notifs') { ntRenderChannels(); gaWire(); gaLoad() }
+      if (view === 'notifs') { ntRenderChannels(); ntPaint(); gaWire(); gaLoad() }
       if (view === 'set-profile') renderProfilePage()
       if (view === 'set-invite') renderInvitePage()
       if (view === 'set-stats') renderStatsPage()
@@ -11426,6 +11507,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       for (const n of items) {
         const lb = dayLabel(n.created_at); if (lb !== lastLabel) { lastLabel = lb; const h = document.createElement('div'); h.className = 'nb-day'; h.textContent = lb; host.appendChild(h) }
         const isReply = n.kind === 'comment' && /^replied: /.test(n.body || ''); if (isReply) n.body = n.body.replace(/^replied: /, '')
+        // a reaction's body is "<emoji> <the message>"
+        const rxEmoji = n.kind === 'reaction' ? String(n.body || '').split(' ')[0] : ''; if (rxEmoji) n.body = String(n.body).slice(rxEmoji.length).trim()
         n.body = tidy(n.body)
         const p = n.actor_id ? (mrProfile(n.actor_id) ?? chatUser(n.actor_id)) : null
         const row = document.createElement('div'); row.className = 'nb-row' + (n.read_at ? '' : ' unread')
@@ -11433,8 +11516,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const tx = document.createElement('div'); tx.className = 'tx'
         const who = document.createElement('b'); who.textContent = n.kind === 'gex' ? 'D1 GEX' : n.kind === 'sweep' ? 'Level sweep' : n.kind === 'ann' ? 'Announcements' : n.kind === 'news' ? 'News' : '@' + (p?.username ?? 'someone')
         tx.appendChild(who)
-        tx.appendChild(document.createTextNode(n.kind === 'like' ? ' liked your trade' : n.kind === 'comment' ? (isReply ? ' replied to your comment' : ' commented on your trade') : n.kind === 'follow' ? ' started following you' : n.kind === 'gex' ? (n.more ? ` · ${n.more + 1} updates` : " · today's sheet") : n.kind === 'ann' || n.kind === 'news' || n.kind === 'sweep' ? '' : ' ' + (n.body || '')))
-        if ((n.kind === 'comment' || n.kind === 'gex' || n.kind === 'ann' || n.kind === 'news' || n.kind === 'sweep') && n.body) { const sm = document.createElement('small'); sm.textContent = n.body; tx.appendChild(sm) }
+        tx.appendChild(document.createTextNode(n.kind === 'like' ? ' liked your trade' : n.kind === 'comment' ? (isReply ? ' replied to your comment' : ' commented on your trade') : n.kind === 'follow' ? ' started following you' : n.kind === 'post' ? ' posted a trade' : n.kind === 'reaction' ? ` reacted ${rxEmoji} to your message` : n.kind === 'gex' ? (n.more ? ` · ${n.more + 1} updates` : " · today's sheet") : n.kind === 'ann' || n.kind === 'news' || n.kind === 'sweep' ? '' : ' ' + (n.body || '')))
+        if ((n.kind === 'comment' || n.kind === 'post' || n.kind === 'reaction' || n.kind === 'gex' || n.kind === 'ann' || n.kind === 'news' || n.kind === 'sweep') && n.body) { const sm = document.createElement('small'); sm.textContent = n.body; tx.appendChild(sm) }
         const when = document.createElement('span'); when.className = 'when'; when.textContent = ago(n.created_at)
         row.append(av, tx, when)
         if (n.recap_id && thumbs.get(n.recap_id)) { const th = document.createElement('img'); th.className = 'th'; th.src = thumbs.get(n.recap_id); th.alt = ''; row.appendChild(th) }
@@ -11445,6 +11528,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (n.kind === 'news') { showView('news'); newsOpenAt(n.created_at); return }
           { const mm = /^mentioned you in #([a-z0-9_-]+)/i.exec(n.body || ''); if (n.kind === 'system' && mm) { const slug = mm[1].toLowerCase(); showView('chat'); (async () => { let c = chat.channels?.find((x) => x.slug === slug); if (!c) { const { data } = await supabase.from('channels').select('id').eq('slug', slug).maybeSingle(); c = data } for (let i = 0; i < 30 && !chat.loaded; i++) await new Promise((r) => setTimeout(r, 100)); if (c) openConversation('channel', c.id) })(); return } }
           if (n.kind === 'gex') { showView('gex'); gexOpenAt(n.created_at); return }
+          if (n.kind === 'reaction') { showView('chat'); return }
           if (n.recap_id) { openSharedPost(n.recap_id); return }
           if (n.actor_id) openChatProfile(n.actor_id)
         })
@@ -20782,23 +20866,32 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // Rides the same realtime stream the badges use. Per-device prefs in
     // localStorage; announcements and DMs default on, the full room off.
     const NT_KEY = 'echelon-notify'
+    // activity: one rule per social kind (send-push and the post / reaction triggers read the same keys)
+    const NT_ACT_DEFAULT = { like: 'everyone', comment: 'everyone', reply: 'everyone', mention: 'everyone', follow: 'on', post: 'on', reaction: 'on' }
+    const NT_BASE = () => ({ ann: true, dm: true, chat: false, gex: true, social: true, news: true, sweeps: true, alerts: {}, channels: {}, activity: {}, paused_until: null })
     function ntPrefs() {
-      try { return { ann: true, dm: true, chat: false, gex: true, social: true, news: true, alerts: {}, channels: {}, ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } }
-      catch { return { ann: true, dm: true, chat: false, gex: true, social: true, news: true, alerts: {}, channels: {} } }
+      let p
+      try { p = { ...NT_BASE(), ...JSON.parse(localStorage.getItem(NT_KEY) || '{}') } } catch { p = NT_BASE() }
+      // the old single "Likes, comments, follows" switch, off: every social kind off
+      if (p.social === false) { p.activity = Object.fromEntries(Object.keys(NT_ACT_DEFAULT).map((k) => [k, 'off'])); p.social = true }
+      p.activity = p.activity || {}
+      return p
     }
+    const ntAct = (p, k) => p.activity?.[k] ?? NT_ACT_DEFAULT[k]
+    const ntPaused = (p = ntPrefs()) => !!p.paused_until && new Date(p.paused_until) > new Date()
     function ntSavePrefs(p) {
       try { localStorage.setItem(NT_KEY, JSON.stringify(p)) } catch {}
       if (state.user) {
         supabase.from('notify_prefs').upsert({
-          user_id: state.user.id, ann: !!p.ann, dm: !!p.dm, chat: !!p.chat, gex: !!p.gex, social: p.social !== false, news: p.news !== false,
-          alerts: p.alerts || {}, channels: p.channels || {}, updated_at: new Date().toISOString(),
+          user_id: state.user.id, ann: !!p.ann, dm: !!p.dm, chat: !!p.chat, gex: !!p.gex, social: true, news: p.news !== false, sweeps: p.sweeps !== false,
+          alerts: p.alerts || {}, channels: p.channels || {}, activity: p.activity || {}, paused_until: p.paused_until || null, updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' }).then(() => {}, () => {})
       }
     }
     // On a fresh device, the server copy of the prefs wins.
     async function ntLoadPrefs() {
       if (!state.user) return
-      const { data } = await supabase.from('notify_prefs').select('ann, dm, chat, gex, social, news, alerts, channels').maybeSingle()
+      const { data } = await supabase.from('notify_prefs').select('ann, dm, chat, gex, social, news, sweeps, alerts, channels, activity, paused_until').maybeSingle()
       if (data) { try { localStorage.setItem(NT_KEY, JSON.stringify(data)) } catch {} }
     }
     // Inside the iOS shell the Capacitor bridge is on the page and delivery
@@ -20846,23 +20939,81 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       else if (Notification.permission === 'denied') st.textContent = 'Blocked'
       else st.textContent = ''
     }
+    // Pause all + Activity: segmented rules with a sliding thumb, switches for the on/off kinds
+    function ntSegPaint(seg, value, animate = true) {
+      let th = seg.querySelector('.thumb'); if (!th) { th = document.createElement('span'); th.className = 'thumb'; th.setAttribute('aria-hidden', 'true'); seg.prepend(th) }
+      const btns = [...seg.querySelectorAll('button')], on = btns.find((b) => b.dataset.v === String(value)) || btns[0]
+      for (const b of btns) { const is = b === on; b.classList.toggle('on', is); b.setAttribute('aria-checked', String(is)); b.tabIndex = is ? 0 : -1 }
+      if (!animate) seg.classList.remove('ready')
+      th.style.width = on.offsetWidth + 'px'; th.style.transform = `translateX(${on.offsetLeft}px)`
+      th.classList.toggle('gold', on.dataset.v !== 'off' && on.dataset.v !== '0')
+      if (!animate) requestAnimationFrame(() => seg.classList.add('ready'))
+    }
+    function ntPausePaint(p = ntPrefs()) {
+      const seg = el('nt-pause'), note = el('nt-pause-note'); if (!seg) return
+      const live = ntPaused(p)
+      if (!live && p.paused_until) { p.paused_until = null; ntSavePrefs(p) }   // a pause that ran out reads Off again
+      const left = live ? (new Date(p.paused_until) - Date.now()) / 36e5 : 0
+      ntSegPaint(seg, !live ? 0 : left > 8.05 ? 24 : left > 1.05 ? 8 : 1, false)
+      const until = live ? new Date(p.paused_until) : null
+      const sameDay = until && until.toDateString() === new Date().toDateString()
+      note.textContent = live ? `Paused until ${until.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${sameDay ? '' : ' tomorrow'}. Your inbox still fills.` : 'Nothing is paused.'
+      note.classList.toggle('live', live)
+    }
+    function ntActPaint(p = ntPrefs()) {
+      for (const cell of document.querySelectorAll('#nt-activity [data-act]')) {
+        const k = cell.dataset.act, v = ntAct(p, k), seg = cell.querySelector('.nt-seg'), cb = cell.querySelector('input[type="checkbox"]')
+        if (seg) ntSegPaint(seg, v, false)
+        if (cb) cb.checked = v !== 'off'
+      }
+    }
+    function ntPaint() { const p = ntPrefs(); ntPausePaint(p); ntActPaint(p) }
+    let _ntPauseTimer = 0
     function ntInitSettings() {
-      const map = { ann: 'nt-ann', dm: 'nt-dm', chat: 'nt-chat', gex: 'nt-gex', social: 'nt-social', news: 'nt-news' }
+      const map = { ann: 'nt-ann', dm: 'nt-dm', chat: 'nt-chat', gex: 'nt-gex', news: 'nt-news', sweeps: 'nt-sweeps' }
       // per-alert switches live in prefs.alerts (absent = on)
       const ALERTS = {
         gex_open: 'nt-gex-open', gex_mid: 'nt-gex-mid', gex_close: 'nt-gex-close',
       }
       const p = ntPrefs()
+      // Turning something on asks this device for permission when it can. The choice is kept either way: the rules
+      // live on the account, so a phone that cannot show notifications can still set what the iOS app gets.
       const askPermission = async (cb) => {
-        if (cb.checked && ntNative()) {
-          if (!(await ntNativeEnable())) cb.checked = false
-        } else {
-          if (cb.checked && ntSupported() && Notification.permission === 'default') {
-            if (!(await ntAsk())) cb.checked = false
-          }
-          if (cb.checked && (!ntSupported() || Notification.permission === 'denied')) cb.checked = false
-        }
+        if (!cb.checked) return
+        if (ntNative()) { await ntNativeEnable(); return }
+        if (ntSupported() && Notification.permission === 'default') await ntAsk()
       }
+      const askFor = async (on) => askPermission({ checked: on })
+      // Activity: segmented rules and switches
+      for (const cell of document.querySelectorAll('#nt-activity [data-act]')) {
+        const k = cell.dataset.act, seg = cell.querySelector('.nt-seg'), cb = cell.querySelector('input[type="checkbox"]')
+        const save = (v) => { const cur = ntPrefs(); cur.activity = { ...(cur.activity || {}), [k]: v }; ntSavePrefs(cur); ntUpdateState() }
+        if (seg) {
+          seg.addEventListener('click', async (e) => {
+            const b = e.target.closest('button'); if (!b || b.classList.contains('on')) return
+            ntSegPaint(seg, b.dataset.v); try { navigator.vibrate?.(8) } catch {}
+            save(b.dataset.v); await askFor(b.dataset.v !== 'off')
+          })
+          seg.addEventListener('keydown', (e) => {
+            if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+            const btns = [...seg.querySelectorAll('button')], i = btns.findIndex((x) => x.classList.contains('on')), n = btns[(i + (e.key === 'ArrowRight' ? 1 : btns.length - 1)) % btns.length]
+            e.preventDefault(); n.click(); n.focus()
+          })
+        }
+        if (cb) cb.addEventListener('change', async () => { save(cb.checked ? 'on' : 'off'); await askPermission(cb) })
+      }
+      // Pause all
+      const pause = el('nt-pause')
+      pause?.addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b) return
+        const h = +b.dataset.v, cur = ntPrefs()
+        cur.paused_until = h ? new Date(Date.now() + h * 36e5).toISOString() : null
+        ntSavePrefs(cur); ntPausePaint(cur); ntSegPaint(pause, h)
+        clearTimeout(_ntPauseTimer); if (h) _ntPauseTimer = setTimeout(() => ntPausePaint(), h * 36e5 + 1000)
+      })
+      ntPaint()
+      // the thumbs measure their buttons, so repaint once the page is laid out and whenever it resizes
+      new ResizeObserver(() => ntPaint()).observe(el('v-notifs'))
       for (const [k, id] of Object.entries(map)) {
         const cb = el(id); if (!cb) continue
         cb.checked = !!p[k]
@@ -21029,6 +21180,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!ntSupported() || Notification.permission !== 'granted') return
       if (!m || m.user_id === state.user?.id) return
       const prefs = ntPrefs()
+      if (ntPaused(prefs)) return
       let kind = 'chat', chName = null
       if (m.dm_id) kind = 'dm'
       else {
@@ -21065,7 +21217,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (regime === NT_LAST_REGIME) return
       const from = NT_LAST_REGIME
       NT_LAST_REGIME = regime
-      if (!ntSupported() || Notification.permission !== 'granted' || !ntPrefs().gex) return
+      if (!ntSupported() || Notification.permission !== 'granted' || !ntPrefs().gex || ntPaused()) return
       if (el('v-gex').classList.contains('on') && document.hasFocus()) return
       try {
         const n = new Notification('D1 GEX · regime change', {
