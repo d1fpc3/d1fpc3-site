@@ -1009,6 +1009,169 @@
     @media (max-width: 620px) { .nf-grid { grid-template-columns: 1fr; } }
     @media (prefers-reduced-motion: reduce) { .nf input, .nf input::after { transition: none; } }
 
+    /* ════ Apple, 2026-09-28 ═════════════════════════════════════════════════
+       D1: "go into the entire admin ... like the Kalshi desk, everything ... put a whole bunch
+       of Apple UI on that". The same layer the Echelon admin wears: Apple's system palette,
+       a glass navigation bar with a large title and a gold back button, capsule segmented
+       controls, inset cards with a lit top edge, widget tiles for the status strip, filled
+       fields, and every letter-spaced capital label turned back into a sentence. Nothing the
+       script reads or writes changes. It sits above the touch block on purpose: that block
+       must stay last, so the phone sizes still win. */
+    @font-face { font-family: 'Inter var'; src: url('/echelon/assets/fonts/inter-var-latin.woff2') format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
+    :root {
+      --bg: #000000; --panel: #1c1c1e; --panel-2: #2c2c2e; --ink: #f5f5f7; --muted: #aeaeb2; --faint: #8e8e93;
+      --line: #38383a; --line-bright: #48484a; --bad: #ff6961; --good: #30d158;
+      --fill: rgba(118, 118, 128, 0.24); --fill-2: rgba(118, 118, 128, 0.16); --fill-3: rgba(118, 118, 128, 0.1);
+      --rim: rgba(255, 255, 255, 0.07); --rim-top: rgba(255, 255, 255, 0.12);
+      --tint: rgba(201, 162, 74, 0.2); --tint-2: rgba(201, 162, 74, 0.11); --on-gold: #17130a;
+      --glass-bar: rgba(22, 22, 24, 0.7); --glass: rgba(28, 28, 30, 0.78); --seg-on: #636366;
+      --lift: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 14px 34px -20px rgba(0, 0, 0, 0.85);
+      --ease: cubic-bezier(0.32, 0.72, 0, 1);
+      --ramp-0: #242426;
+    }
+    :root[data-theme="light"] {
+      --bg: #f2f2f7; --panel: #ffffff; --panel-2: #efeff4; --ink: #1d1d1f; --muted: #6e6e73; --faint: #8e8e93;
+      --line: #e5e5ea; --line-bright: #d1d1d6; --bad: #d70015; --good: #248a3d;
+      --fill: rgba(118, 118, 128, 0.14); --fill-2: rgba(118, 118, 128, 0.09); --fill-3: rgba(118, 118, 128, 0.06);
+      --rim: rgba(0, 0, 0, 0.06); --rim-top: rgba(0, 0, 0, 0.06);
+      --tint: rgba(168, 132, 44, 0.15); --tint-2: rgba(168, 132, 44, 0.08); --on-gold: #ffffff;
+      --glass-bar: rgba(249, 249, 251, 0.74); --glass: rgba(255, 255, 255, 0.8); --seg-on: #ffffff;
+      --lift: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 30px -20px rgba(0, 0, 0, 0.25);
+      --ramp-0: #efeff4;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter var', 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+      letter-spacing: -0.006em;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: radial-gradient(1100px 620px at 6% -14%, rgba(201, 162, 74, 0.1), transparent 62%),
+                  radial-gradient(900px 540px at 104% -10%, rgba(10, 132, 255, 0.05), transparent 60%);
+    }
+    ::selection { background: rgba(201, 162, 74, 0.32); }
+
+    /* the navigation bar: glass over a quiet blur of the page, a large title, a gold back button */
+    .topstick::before { background: var(--glass-bar); -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8); }
+    .topstick.lifted { box-shadow: 0 1px 0 var(--rim), 0 14px 30px -22px rgba(0, 0, 0, 0.8); }
+    .topbar { border-bottom: 0; min-height: 60px; }
+    .title { font-size: 22px; font-weight: 700; letter-spacing: -0.026em; }
+    .back { color: var(--gold); font-size: 15px; font-weight: 500; border-radius: 999px; }
+    .back svg { width: 17px; height: 17px; }
+    @media (hover: hover) { .back:hover { color: var(--gold); background: var(--tint-2); } }
+    .pulse { font-size: 13px; }
+    .refresh { border: 0; background: var(--fill-2); color: var(--ink); height: 32px; padding: 0 12px 0 10px; font-size: 12.5px; font-weight: 600; }
+    @media (hover: hover) { .refresh:hover { background: var(--fill); border: 0; color: var(--ink); } }
+    .refresh.busy, .refresh.old { background: var(--tint-2); color: var(--gold); }
+    .who .dsk-out, .dsk-out.dsk-out-inline {
+      text-transform: none; letter-spacing: -0.005em; font-size: 12.5px; font-weight: 600; color: var(--ink);
+      background: var(--fill-2); border: 0; border-radius: 999px; padding: 7px 13px;
+    }
+    .who .dsk-out:hover { color: var(--bad); background: rgba(255, 69, 58, 0.14); border: 0; }
+
+    /* the section rail: a capsule segmented control */
+    .sectionnav { border-bottom: 1px solid var(--rim); background: none; }
+    .sectionnav a { font-size: 13px; font-weight: 600; color: var(--muted); border-radius: 999px; }
+    .sectionnav a.on { color: var(--ink); }
+    .sectionnav a.sn-page { color: var(--gold); }
+    .sn-thumb { background: var(--fill); border: 0; border-radius: 999px; }
+    .sn-sep { background: var(--line); }
+
+    /* cards: inset, a lit top edge, a little depth */
+    .panel, details.engine {
+      background: var(--panel); border: 1px solid var(--rim); border-top-color: var(--rim-top); border-radius: 22px; box-shadow: var(--lift);
+    }
+    .sub-panel { background: var(--fill-3); border-color: transparent; box-shadow: none; }
+    .panel-head h2, .eng-t { font-size: 19px; font-weight: 700; letter-spacing: -0.024em; }
+    .panel-head .sub, .eng-s { font-size: 13.5px; color: var(--muted); }
+
+    /* the status strip: six widget tiles instead of cells behind a hairline grid */
+    .strip { gap: 12px; background: none; border: 0; border-radius: 0; overflow: visible; }
+    .strip .cell {
+      background: var(--panel); border: 1px solid var(--rim); border-top-color: var(--rim-top); border-radius: 20px;
+      padding: 15px 17px 15px; box-shadow: var(--lift);
+    }
+    .strip .k { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; text-transform: none; color: var(--muted); }
+    .strip .v { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; margin-top: 6px; }
+    .strip .m { font-size: 12.5px; color: var(--faint); margin-top: 4px; }
+
+    /* letter-spaced capitals, everywhere, back to sentences */
+    .basis-h, .book-h, .risk-h, .cal-knob > span, .cal-all span, .rule-dl dt, .sn-k, .sizing-t th, .cal-dow span {
+      text-transform: none; letter-spacing: -0.005em; font-size: 12.5px; font-weight: 600; color: var(--muted);
+    }
+    .cal-dow span { font-weight: 600; color: var(--faint); font-size: 12px; }
+    .rule-dl dt { font-weight: 500; font-size: 12.5px; padding-top: 1px; }
+
+    /* segmented controls: capsules with a floating thumb */
+    .seg { background: var(--fill); border-radius: 999px; padding: 3px; }
+    .seg.scroll, .cal-knob .seg { background-color: var(--fill); }
+    .seg button { border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--muted); }
+    .seg button.on { color: var(--ink); }
+    .seg .thumb { background: var(--seg-on); border-radius: 999px; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14), 0 3px 1px rgba(0, 0, 0, 0.04); }
+
+    /* the calendar: Apple Calendar's month, rounded days, the controls as glass circles and capsules */
+    .cal-arrow { border: 0; border-radius: 50%; background: var(--fill-2); color: var(--ink); width: 34px; height: 34px; }
+    .cal-arrow:hover:not(:disabled) { background: var(--fill); border: 0; }
+    .cal-month { font-size: 22px; font-weight: 700; letter-spacing: -0.026em; }
+    .cal-jump { border: 0; background: var(--tint-2); color: var(--gold); border-radius: 999px; font-size: 13px; font-weight: 600; padding: 7px 13px; white-space: nowrap; }
+    .cal-month { white-space: nowrap; }
+    .cal-jump:hover { background: var(--tint); color: var(--gold); border: 0; }
+    .cal-own, .rs-search, .nf-quiet input {
+      background: var(--fill-2); border: 1px solid transparent; border-radius: 12px; color: var(--ink);
+      transition: box-shadow 0.18s var(--ease), background 0.18s var(--ease), border-color 0.18s var(--ease);
+    }
+    .cal-own:focus, .rs-search:focus, .nf-quiet input:focus { background: var(--panel); border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201, 162, 74, 0.22); }
+    .cal-strip { gap: 10px; background: none; border: 0; overflow: visible; }
+    .cal-cell { background: var(--fill-3); border-radius: 16px; padding: 12px 14px 13px; }
+    .cal-cell b { font-size: 20px; font-weight: 700; letter-spacing: -0.03em; }
+    .cal-cell span { font-size: 12px; letter-spacing: -0.005em; }
+    .cal-d { border-radius: 16px; border-color: var(--rim); }
+    .cal-d .num { font-weight: 600; font-size: 11.5px; }
+    /* today in a filled circle, as Calendar marks it */
+    .cal-d.is-today .num { align-self: flex-start; min-width: 21px; height: 21px; padding: 0 6px; margin: -3px 0 0 -3px; border-radius: 999px; display: grid; place-items: center; color: var(--on-gold); background: var(--gold); }
+    .cal-d:not(.pad):not(.none):hover { border-color: var(--line-bright); }
+    .cal-d.sel { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+    .cal-day { border-color: var(--rim); border-radius: 20px; background: var(--fill-3); }
+    @media (max-width: 1100px) { .strip .cell:nth-child(n+4) { border-top: 1px solid var(--rim-top); } }
+
+    /* lists and tables: hairlines, sentence-case heads */
+    th { font-size: 12px; font-weight: 500; color: var(--faint); }
+    td { border-top-color: var(--line); }
+    .pill { border: 0; background: var(--fill-2); font-weight: 600; }
+    .pill.live { background: rgba(48, 209, 88, 0.16); color: var(--good); border: 0; }
+    .pill.halted { background: rgba(255, 69, 58, 0.16); color: var(--bad); border: 0; }
+    .rs-strip .rs-pill { background: var(--fill-2); }
+    .sizing-now { border: 0; border-radius: 16px; background: var(--tint-2); }
+
+    /* the controls D1 sets: filled fields, a gold capsule to save, iOS switches */
+    .ri { background: var(--fill-2); border: 1px solid transparent; border-radius: 12px; }
+    .ri:focus-within { background: var(--panel); border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201, 162, 74, 0.22); }
+    .risk-save { border-radius: 999px; padding: 0 18px; color: var(--on-gold); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+    .notify { background: var(--fill-3); border: 0; border-radius: 18px; }
+    .nf input { width: 42px; height: 25px; flex-basis: 42px; background: #39393d; }
+    :root[data-theme="light"] .nf input { background: #e9e9eb; }
+    .nf input::after { top: 2px; left: 2px; width: 21px; height: 21px; background: #fff; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); transition: transform 0.3s var(--ease); }
+    .nf input:checked, .nf.master input:checked { background: var(--gold); }
+    .nf input:checked::after { transform: translateX(17px); }
+
+    /* disclosures read like iOS: a chevron that turns, the summary a tappable row */
+    details.evidence { border-top-color: var(--line); }
+    details.evidence summary { font-size: 13.5px; font-weight: 600; color: var(--gold); }
+    details.evidence summary::before, details.engine > summary::before { border-color: var(--gold); }
+
+    @media (max-width: 640px) {
+      .title { font-size: 19px; }
+      .strip { gap: 10px; }
+      .strip .cell { border-radius: 18px; padding: 13px 14px 13px; }
+      .strip .v { font-size: 22px; }
+      .panel { border-radius: 20px; }
+      .cal-month { font-size: 18px; }
+      .cal-d { border-radius: 10px; }
+      .cal-strip { gap: 8px; }
+    }
+    @media (max-width: 760px) {
+      .who .dsk-out, .who .dsk-out-inline { background: var(--fill-2) !important; border-radius: 999px; padding: 9px 13px; min-height: 36px; color: var(--ink); }
+    }
+
     /* ════ touch, and it has to be last ══════════════════════
        Every control here was built for a cursor: 47 of 47 came in under the 40px touch
        minimum and the nav chips sat 2px apart, so on a phone the wrong one is what you hit.
@@ -1386,7 +1549,7 @@
   <div class="tip" id="tip"></div>
 
   <script type="module">
-    import { SB as supabase, requireDesk } from './desk-auth.js?v=5ee29628d7'
+    import { SB as supabase, requireDesk } from './desk-auth.js?v=fdda0cfcfd'
     const el = (id) => document.getElementById(id)
     const fmt = new Intl.NumberFormat('en-US')
     const n0 = (x) => (x == null ? '–' : fmt.format(Math.round(x)))
@@ -1849,7 +2012,7 @@
         const target = el(`bot-${bot.id}-ext`)
         if (botExt.has(bot.id)) { const m = botExt.get(bot.id); if (m?.mount) m.mount(target, ctxFor(bot)); continue }
         botExt.set(bot.id, null)
-        import(`./bots/${bot.id}.js?v=5ee29628d7`).then((m) => { botExt.set(bot.id, m); if (m?.mount) m.mount(el(`bot-${bot.id}-ext`), ctxFor(bot)) }).catch(() => {})
+        import(`./bots/${bot.id}.js?v=fdda0cfcfd`).then((m) => { botExt.set(bot.id, m); if (m?.mount) m.mount(el(`bot-${bot.id}-ext`), ctxFor(bot)) }).catch(() => {})
       }
       const tb = el('feed').querySelector('tbody')
       const pill = (f) => { const [label, cls] = { called: ['open', 'open'], won: ['won', 'won'], lost: ['lost', 'lost'], exited: ['sold at ' + p2(f.exit_price), 'won'], void: ['void', ''] }[f.status] ?? [f.status, '']; return `<span class="st ${cls}">${label}</span>` }

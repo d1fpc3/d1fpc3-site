@@ -65,7 +65,8 @@ const openView = () => page.evaluate(() => [...document.querySelectorAll('.view'
 const title = () => page.evaluate(() => document.getElementById('pane-title').textContent)
 
 const bar = await rail()
-check(bar.length === 8 && bar.filter((b) => b.link).length === 1, `the rail holds seven places and the Kalshi link (${bar.length} rows: ${bar.map((b) => b.label).join(', ')})`)
+// 09-28: the memecoin bot desk got its link too (it had none that anyone could see)
+check(bar.length === 9 && bar.filter((b) => b.link).length === 2, `the rail holds seven places and the two desk links (${bar.length} rows: ${bar.map((b) => b.label).join(', ')})`)
 check(bar[0].on && bar[0].label === 'Overview', `Overview is where you land (${bar.find((b) => b.on)?.label})`)
 await page.screenshot({ path: `${OUT}/rail.png` })
 

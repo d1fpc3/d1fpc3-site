@@ -55,7 +55,7 @@ if (tallies !== 5) fails.push(`tallies ${tallies}`);
 const tops = await page.locator("#st-grid .st-row.top").count();
 if (tops !== 5) fails.push(`top rows ${tops}`);
 const read = await page.textContent("#st-read");
-if (!/Most of the room/.test(read)) fails.push("read sentence: " + read);
+if (!/^Most members are [^.]+, (trade|are) [^.]+ and (are|run) /.test(read)) fails.push("read sentence: " + read);   // plural since the room went (D1 never wants the word)
 const tableRows = await page.locator("#onb-table tbody tr").count();
 if (!tableRows) fails.push("who-they-are table empty");
 await shot("02-statistics");

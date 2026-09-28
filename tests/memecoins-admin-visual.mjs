@@ -30,6 +30,8 @@ await page.evaluate(() => {
   document.getElementById("gate").style.display = "none";
   document.getElementById("app").classList.add("on");
   document.querySelector('.tab[data-view="memes"]').click();
+  // the tab opens on its desk now; the playbook is the third segment and loads when chosen
+  document.querySelector('.mm-tab[data-mm="playbook"]').click();
 });
 await page.waitForFunction(() => document.querySelectorAll("#memes-body .pb h2").length > 5, null, { timeout: 15000 });
 await page.waitForTimeout(400);
@@ -63,11 +65,7 @@ await shot("memes-warn-callout-light");
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.waitForTimeout(300);
 await shot("memes-top-light");
-// the Cars tab must still load through the shared loader
-await page.evaluate(() => document.querySelector('.tab[data-view="cars"]').click());
-await page.waitForFunction(() => document.querySelectorAll("#cars-body .pb h2").length > 5, null, { timeout: 15000 });
-console.log("cars sections (shared loader):", await page.evaluate(() => document.querySelectorAll("#cars-body .pb h2").length));
-await page.evaluate(() => document.querySelector('.tab[data-view="memes"]').click());
+// (the Cars playbook tab it once shared a loader with is gone from the admin)
 // mobile
 await page.setViewportSize({ width: 430, height: 900 }); await page.waitForTimeout(400);
 await setTheme("dark");

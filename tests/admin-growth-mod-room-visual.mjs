@@ -44,16 +44,22 @@ const ownerEmail = process.env.EMAIL || (await sql("select email from admins ord
 const owner = await sessionFor(ownerEmail);
 
 // the truth, straight from the database
+// The admin counts PEOPLE, not entitlement rows (09-09: 59 rows were 22 people), so the truth groups the
+// rows the same way groupPeople() does: by user_id, else by email; a person joined at their first grant.
 const [truth] = await sql(`
+  with people as (
+    select coalesce(user_id::text, 'email:' || lower(email)) as k, bool_or(status = 'active') as active,
+           min(granted_at) as joined, max(coalesce(lessons_done, 0)) as lessons_done
+    from admin_buyers group by 1)
   select
-    (select count(*) from admin_buyers where status = 'active') as members,
+    (select count(*) from people where active) as members,
     (select coalesce(sum(amount_cents), 0) from admin_buyers where source = 'stripe' and amount_cents is not null) as revenue,
     (select count(*) from admin_buyers where source = 'stripe' and amount_cents is not null) as paid,
-    (select count(*) from admin_buyers where granted_at >= date_trunc('month', now())) as joined_this_month,
-    (select count(*) from admin_buyers) as total,
+    (select count(*) from people where joined >= date_trunc('month', now())) as joined_this_month,
+    (select count(*) from people) as total,
     (select count(distinct user_id) from lesson_views) as opened,
-    (select count(*) from admin_buyers where lessons_done >= 1) as finished_one,
-    (select count(*) from admin_buyers where lessons_done >= (select count(*) from lessons where is_published)) as finished_all,
+    (select count(*) from people where lessons_done >= 1) as finished_one,
+    (select count(*) from people where lessons_done >= (select count(*) from lessons where is_published)) as finished_all,
     (select count(*) from lessons where is_published) as lessons`);
 console.log("admin truth:", JSON.stringify(truth));
 
@@ -192,7 +198,7 @@ console.log("mod truth:", JSON.stringify(modTruth));
     if (+modTruth.pending === 0 && +modTruth.quiet === 0 && !/caught up/.test(m.line || "")) fails.push(`idle sentence wrong: ${m.line}`);
     if (m.newRows !== Math.min(8, +modTruth.newbies) && !m.newEmpty) fails.push(`new members ${m.newRows} vs db ${modTruth.newbies}`);
     if (m.emDash) fails.push("em dash in mod room copy");
-    if (m.order[0] !== "The room this week") fails.push(`room block should come first: ${m.order}`);
+    if (m.order[0] !== "Everyone this week") fails.push(`the week block should come first: ${m.order}`);   // renamed from "The room this week": D1 never wants the word
     await page.screenshot({ path: `${OUT}/mod-01-room.png`, fullPage: true });
   }
   await ctx.close();

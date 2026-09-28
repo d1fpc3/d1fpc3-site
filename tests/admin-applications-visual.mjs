@@ -49,7 +49,8 @@ page.on("dialog", (d) => d.accept());
 await page.goto(URL_, { waitUntil: "domcontentloaded" });
 await page.waitForFunction(() => document.getElementById("app")?.classList.contains("on"), null, { timeout: 30000 }).catch(async () => { console.log("gate stuck. errors:", errors.join(" | "), "| text:", (await page.evaluate(() => document.body.innerText)).slice(0, 300)); });
 await page.waitForTimeout(2000);
-await page.click('.side .tab[data-view="applications"]'); await page.waitForTimeout(1200);
+// the rail holds seven places since 09-26; the page buttons are hidden and driven from it
+await page.evaluate(() => document.querySelector('.tab[data-view="applications"]').click()); await page.waitForTimeout(1200);
 const rowOf = (n) => page.locator("#apps-table tr", { hasText: n });
 ok(await rowOf("Harness Alpha").count() === 1 && await rowOf("Harness Beta").count() === 1, "both applications list under Open");
 ok(/\$5,000\+/.test(await rowOf("Harness Alpha").textContent()) && /D1/.test(await rowOf("Harness Alpha").textContent()), "the row shows the range and the code");

@@ -1484,6 +1484,405 @@
     .apps-mail:hover { color: var(--gold); }
     .tab .count.hot { background: var(--gold); color: #1a1207; }
 </style>
+  <style id="apple">
+    /* ═══════════════════════════════════════════════════════════════════
+       Apple (D1, 09-28: "put a whole bunch of Apple UI on that, make it look
+       insanely good"). One layer over the admin's own grammar: the tokens take
+       Apple's system palette (hex, because the GEX canvas parses them), the
+       shapes take iOS / macOS Tahoe's: a floating source-list sidebar tinted
+       gold, a large title under a glass toolbar, capsule segmented controls,
+       inset grouped cards, filled fields, tinted capsules, and on a phone a
+       floating glass tab bar in place of the drawer. Every class and id the
+       script writes is unchanged; this block only restyles them, and it sits
+       last so equal selectors win.
+       ═══════════════════════════════════════════════════════════════════ */
+    @font-face { font-family: 'Inter var'; src: url('/echelon/assets/fonts/inter-var-latin.woff2') format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
+    :root, :root[data-theme="dark"] {
+      --bg: #000000; --panel: #1c1c1e; --panel-2: #2c2c2e; --ink: #f5f5f7; --muted: #aeaeb2; --faint: #8e8e93;
+      --line: #38383a; --line-bright: #48484a; --gold: #c9a24a; --gold-deep: #a8842c; --bad: #ff453a; --good: #30d158;
+      --fill: rgba(118, 118, 128, 0.24); --fill-2: rgba(118, 118, 128, 0.16); --fill-3: rgba(118, 118, 128, 0.1);
+      --rim: rgba(255, 255, 255, 0.07); --rim-top: rgba(255, 255, 255, 0.12);
+      --tint: rgba(201, 162, 74, 0.2); --tint-2: rgba(201, 162, 74, 0.11); --on-gold: #17130a;
+      --good-t: rgba(48, 209, 88, 0.16); --bad-t: rgba(255, 69, 58, 0.16);
+      --glass: rgba(22, 22, 24, 0.72); --glass-bar: rgba(30, 30, 32, 0.66); --seg-on: #636366;
+      --lift: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 12px 32px -18px rgba(0, 0, 0, 0.8);
+      --sidebar: 268px; --r-card: 22px; --r-ctl: 12px;
+      --ease: cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    :root[data-theme="light"] {
+      --bg: #f2f2f7; --panel: #ffffff; --panel-2: #efeff4; --ink: #1d1d1f; --muted: #6e6e73; --faint: #8e8e93;
+      --line: #e5e5ea; --line-bright: #d1d1d6; --gold: #a8842c; --gold-deep: #8a6a1e; --bad: #d70015; --good: #248a3d;
+      --fill: rgba(118, 118, 128, 0.14); --fill-2: rgba(118, 118, 128, 0.09); --fill-3: rgba(118, 118, 128, 0.06);
+      --rim: rgba(0, 0, 0, 0.06); --rim-top: rgba(255, 255, 255, 0.9);
+      --tint: rgba(168, 132, 44, 0.15); --tint-2: rgba(168, 132, 44, 0.08); --on-gold: #ffffff;
+      --good-t: rgba(36, 138, 61, 0.12); --bad-t: rgba(215, 0, 21, 0.1);
+      --glass: rgba(249, 249, 251, 0.74); --glass-bar: rgba(255, 255, 255, 0.72); --seg-on: #ffffff;
+      --lift: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 30px -20px rgba(0, 0, 0, 0.25);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter var', 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px; letter-spacing: -0.006em; font-feature-settings: 'cv11' 0, 'ss01' 0;
+      background: var(--bg);
+    }
+    /* the page is lit from the top left in the brand's gold, so the glass has something to be glass over */
+    .app.on::before {
+      content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: radial-gradient(1100px 620px at 8% -12%, rgba(201, 162, 74, 0.09), transparent 62%),
+                  radial-gradient(900px 540px at 104% -8%, rgba(10, 132, 255, 0.05), transparent 60%);
+    }
+    :root[data-theme="light"] .app.on::before {
+      background: radial-gradient(1100px 620px at 8% -12%, rgba(168, 132, 44, 0.08), transparent 62%),
+                  radial-gradient(900px 540px at 104% -8%, rgba(0, 122, 255, 0.05), transparent 60%);
+    }
+    ::selection { background: rgba(201, 162, 74, 0.32); }
+    ::-webkit-scrollbar-thumb { background: var(--fill); border-color: transparent; background-clip: padding-box; }
+
+    /* ── sidebar: a floating source list ─────────────────────────────────── */
+    .app.on { grid-template-columns: var(--sidebar) minmax(0, 1fr); }
+    .app.rail { grid-template-columns: 82px minmax(0, 1fr); }
+    .side {
+      margin: 10px 0 10px 10px; top: 10px; height: calc(100 * var(--dvh) - 20px);
+      background: var(--glass); -webkit-backdrop-filter: blur(40px) saturate(1.8); backdrop-filter: blur(40px) saturate(1.8);
+      border: 1px solid var(--rim); border-top-color: var(--rim-top); border-radius: 24px;
+      box-shadow: var(--lift); overflow: hidden;
+    }
+    :root[data-theme="light"] .side { border-top-color: var(--rim); }
+    .side-brand { padding: 18px 16px 12px 18px; font-size: 17px; font-weight: 700; letter-spacing: -0.022em; }
+    .side-brand small {
+      font-size: 11px; font-weight: 600; letter-spacing: 0; color: var(--muted);
+      background: var(--fill-2); border: 0; border-radius: 999px; padding: 2px 9px;
+    }
+    .side-collapse { border-radius: 999px; padding: 6px; color: var(--muted); }
+    .side-collapse:hover { background: var(--fill-2); color: var(--ink); }
+    .side-groups { padding: 6px 10px 10px; gap: 2px; }
+    .grp {
+      min-height: 36px; padding: 7px 10px; border-radius: 11px; gap: 11px;
+      color: var(--ink); font-size: 14px; font-weight: 500; letter-spacing: -0.01em;
+      transition: background 0.18s var(--ease), color 0.18s var(--ease), transform 0.12s var(--ease);
+    }
+    .grp .ic, .grp svg { width: 18px; height: 18px; color: var(--gold); flex: 0 0 auto; }
+    @media (hover: hover) { .grp:hover { background: var(--fill-3); color: var(--ink); } }
+    .grp:active { transform: scale(0.985); }
+    .grp.on { background: var(--tint); color: var(--ink); font-weight: 600; }
+    .grp.on::before { display: none; }
+    .grp .gc {
+      min-width: 22px; padding: 1px 8px; border-radius: 999px; text-align: center;
+      font-size: 11.5px; font-weight: 600; color: var(--muted); background: var(--fill-2);
+    }
+    .grp .gc:empty { display: none; }
+    .grp .gc.hot { color: var(--on-gold); background: var(--gold); }
+    .grp .go-out { margin-left: auto; width: 12px; height: 12px; color: var(--faint); opacity: 0.8; }
+    .grp-sep { margin: 8px 10px; background: var(--line); }
+    .app.rail .grp { padding: 9px 0; }
+    .side-user {
+      margin: 8px 10px 10px; padding: 9px 10px; border-top: 0; border-radius: 16px; background: var(--fill-3);
+    }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; font-size: 12.5px; background: linear-gradient(145deg, #e0bf66, #a8842c); color: #17130a; }
+    .side-user .u-name { font-size: 13px; }
+    .side-user .u-role { font-size: 11.5px; color: var(--muted); }
+    .u-signout { border-radius: 999px; }
+    .u-signout:hover { background: var(--bad-t); }
+
+    /* ── toolbar and large title ────────────────────────────────────────── */
+    .topbar, :root[data-theme] .topbar {
+      background: var(--glass-bar); -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8);
+      border-bottom: 1px solid var(--rim); gap: 10px;
+      padding-top: max(20px, env(safe-area-inset-top, 0px)); padding-bottom: 16px;
+    }
+    .topbar h2 { font-size: 30px; font-weight: 700; letter-spacing: -0.028em; line-height: 1.12; }
+    .topbar .crumb { font-size: 13.5px; color: var(--muted); margin-top: 3px; letter-spacing: -0.005em; }
+    .tb-bell, .menu-btn {
+      width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--fill-2); color: var(--ink);
+      transition: background 0.18s var(--ease), transform 0.12s var(--ease);
+    }
+    @media (hover: hover) { .tb-bell:hover { background: var(--fill); border: 0; } }
+    .tb-bell:active, .tb-ghost:active, .tb-open:active { transform: scale(0.96); }
+    .tb-bell.on { background: var(--tint); color: var(--gold); border: 0; }
+    .bell-dot { top: 2px; right: 1px; background: var(--bad); color: #fff; border: 2px solid var(--bg); height: 18px; line-height: 14px; min-width: 18px; border-radius: 999px; font-size: 10.5px; }
+    .tb-ghost { background: var(--fill-2); color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600; }
+    .tb-ghost svg { color: var(--gold); }
+    .tb-ghost:hover { background: var(--fill); color: var(--ink); }
+    .tb-open {
+      background: var(--gold); color: var(--on-gold); border: 0; border-radius: 999px; padding: 8px 16px;
+      font-size: 13px; font-weight: 600; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    }
+    .tb-open:hover { color: var(--on-gold); filter: brightness(1.07); transform: none; border: 0; }
+
+    /* the pages inside a place: iOS's capsule segmented control */
+    .subnav { padding: 16px clamp(20px, calc(3 * var(--vw)), 34px) 0; }
+    .sub-seg { border: 0; border-radius: 999px; background: var(--fill); padding: 3px; gap: 0; }
+    .sub-seg .thumb {
+      top: 3px; bottom: 3px; border-radius: 999px; background: var(--seg-on);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04), inset 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+      transition: transform 0.34s var(--ease), width 0.34s var(--ease);
+    }
+    .sub-seg button { padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: -0.01em; }
+    .sub-seg button.on { color: var(--ink); }
+    .sub-seg .sc { font-weight: 600; color: var(--faint); }
+    .sub-seg button.on .sc { color: var(--gold); }
+    .sub-seg .seg-link {
+      position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: 999px;
+      font-size: 13px; font-weight: 600; color: var(--gold); text-decoration: none; white-space: nowrap;
+    }
+    .sub-seg .seg-link svg { width: 11px; height: 11px; }
+    @media (hover: hover) { .sub-seg .seg-link:hover { background: var(--tint-2); } }
+
+    .pane { padding: 22px clamp(20px, calc(3 * var(--vw)), 34px) 48px; }
+    .view.on { animation: apple-in 0.36s var(--ease); }
+    @keyframes apple-in { from { opacity: 0; transform: translateY(6px) scale(0.995); } }
+    @media (prefers-reduced-motion: reduce) { .view.on { animation: none; } }
+
+    /* "How this page works": an info capsule */
+    .pg-help { margin: 0 0 16px; }
+    .pg-help summary { background: var(--fill-3); color: var(--muted); font-size: 12.5px; font-weight: 500; padding: 5px 12px 5px 8px; border: 0; }
+    .pg-help summary:hover { color: var(--ink); background: var(--fill-2); }
+    .pg-help[open] summary { color: var(--gold); background: var(--tint-2); border: 0; }
+    .pg-help p { font-size: 14px; color: var(--muted); }
+
+    /* ── widgets: every headline figure is its own tile ─────────────────── */
+    .cards, .st-head { gap: 12px; border: 0; margin-bottom: 22px; }
+    .cards .scard, .cards .scard:last-child, .st-head .st-n, .st-head .st-n:last-child {
+      background: var(--panel); border: 1px solid var(--rim); border-top-color: var(--rim-top); border-radius: 20px;
+      padding: 16px 18px 15px; margin: 0; box-shadow: var(--lift); overflow: hidden;
+    }
+    :root[data-theme="light"] .cards .scard, :root[data-theme="light"] .st-head .st-n { border-top-color: var(--rim); }
+    .scard .k, .st-head .k { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; color: var(--muted); }
+    .scard .v, .st-head .v { font-size: 30px; font-weight: 700; letter-spacing: -0.035em; margin-top: 6px; line-height: 1.1; }
+    .scard .d { font-size: 12.5px; color: var(--faint); margin-top: 5px; }
+    .scard .spark { right: 16px; bottom: 16px; }
+    @media (max-width: 900px) {
+      .cards .scard:nth-child(n+3), .st-head .st-n:nth-child(n+3) { border-top: 1px solid var(--rim); }
+      .cards .scard:nth-child(2), .st-head .st-n:nth-child(2) { border-right: 1px solid var(--rim); }
+    }
+    .ov-room, .st-read {
+      background: var(--panel); border: 1px solid var(--rim); border-radius: 20px; padding: 16px 20px; margin: 0 0 22px;
+      font-size: 14.5px; line-height: 1.6; box-shadow: var(--lift); max-width: none;
+    }
+    .apps-sum > div { background: var(--fill-3); border-radius: 16px; padding: 12px 14px; }
+
+    /* ── inset grouped cards, lists ─────────────────────────────────────── */
+    .block {
+      background: var(--panel); border: 1px solid var(--rim); border-top-color: var(--rim-top); border-radius: var(--r-card);
+      box-shadow: var(--lift);
+    }
+    :root[data-theme="light"] .block { border-top-color: var(--rim); }
+    .block + .block { margin-top: 16px; }
+    .block-head { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+    .block-head h3 { font-size: 17px; font-weight: 650; letter-spacing: -0.022em; }
+    .block-head .label { font-size: 12.5px; color: var(--faint); }
+    table { font-size: 14px; }
+    th { font-size: 12px; font-weight: 500; letter-spacing: -0.005em; color: var(--faint); padding: 12px 16px 8px 0; border-bottom: 1px solid var(--line); }
+    td { padding: 12px 16px 12px 0; color: var(--muted); border-bottom: 1px solid var(--line); }
+    .block th:first-child, .block td:first-child { padding-left: 20px; }
+    .block th:last-child, .block td:last-child { padding-right: 20px; }
+    td.ink { color: var(--ink); font-weight: 500; letter-spacing: -0.01em; }
+    td .sub { font-size: 12.5px; color: var(--faint); margin-top: 2px; }
+    th.sortable:hover { color: var(--ink); }
+    th.sorted { color: var(--gold); }
+    .empty, .gex-empty, .notes-empty { color: var(--faint); font-size: 14px; padding: 38px 20px; }
+    .intg { padding: 14px 20px; border-bottom: 1px solid var(--line); }
+    .intg .n { font-size: 15px; font-weight: 500; letter-spacing: -0.012em; }
+    .intg .h { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .field-row, .users-tools, .access-bulk { padding-left: 20px; padding-right: 20px; }
+    .settings-note { background: var(--tint-2); border: 0; border-radius: 16px; color: var(--muted); font-size: 13.5px; padding: 14px 16px; }
+
+    /* ── capsules: product chips, live/draft, badges ────────────────────── */
+    .chip {
+      border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 600; letter-spacing: -0.005em;
+      background: var(--fill-2); color: var(--ink); border: 1px solid transparent;
+    }
+    .chip.course { background: var(--tint); color: var(--gold); }
+    .chip::before { width: 6px; height: 6px; }
+    .chip:hover:not(:disabled) { border-color: transparent; color: var(--ink); background: var(--fill); }
+    .chip.course:hover:not(:disabled) { color: var(--gold); background: rgba(201, 162, 74, 0.28); }
+    .chip.off { background: transparent; border-color: var(--line); color: var(--faint); }
+    .live, .badge { border-radius: 999px; font-size: 12px; padding: 4px 10px; }
+    .live { background: var(--good-t); color: var(--good); }
+    .live.draft { background: var(--fill-2); color: var(--muted); }
+    .b-active { background: var(--good-t); color: var(--good); }
+    .b-refunded, .b-revoked { background: var(--bad-t); color: var(--bad); }
+    .b-pending, .b-working { background: var(--tint); color: var(--gold); }
+    .b-neutral, .b-none { background: var(--fill-2); color: var(--muted); border: 0; }
+    .views-btn { border-bottom: 0; color: var(--muted); }
+    .views-btn b { color: var(--ink); }
+    .views-btn:hover { color: var(--gold); }
+
+    /* ── buttons: filled capsules, the prominent one in gold ────────────── */
+    .btn {
+      background: var(--gold); color: var(--on-gold); border-radius: 999px; padding: 10px 20px; min-height: 40px;
+      font-size: 14px; font-weight: 600; letter-spacing: -0.01em; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+      transition: filter 0.18s var(--ease), transform 0.12s var(--ease);
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.07); transform: none; }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+    .rowbtn {
+      border-radius: 999px; border: 1px solid transparent; background: var(--fill-2); color: var(--ink);
+      font-size: 13px; font-weight: 600; padding: 6px 14px; letter-spacing: -0.005em;
+      transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease);
+    }
+    .rowbtn:hover:not(:disabled) { background: var(--fill); border-color: transparent; color: var(--ink); }
+    .rowbtn:active:not(:disabled) { transform: scale(0.96); }
+    .rowbtn.danger { color: var(--bad); }
+    .rowbtn.danger:hover:not(:disabled) { background: var(--bad-t); color: var(--bad); }
+    .rowbtn.gold, .ract .rowbtn.gold, .pc-foot .rowbtn.gold { background: var(--gold); color: var(--on-gold); border-color: transparent; }
+    .rowbtn.gold:hover:not(:disabled), .ract .rowbtn.gold:hover:not(:disabled) { background: var(--gold); color: var(--on-gold); filter: brightness(1.08); }
+    /* row actions: plain tinted text until touched, like a list's trailing buttons */
+    .ract .rowbtn { background: none; color: var(--gold); padding: 6px 10px; }
+    .ract .rowbtn:hover:not(:disabled) { background: var(--tint-2); color: var(--gold); }
+    .ract .rowbtn.danger, .ract .rowbtn.danger:hover:not(:disabled) { color: var(--bad); }
+    .ract .rowbtn.danger:hover:not(:disabled) { background: var(--bad-t); }
+    .mv .rowbtn { background: none; color: var(--muted); border-radius: 6px; }
+    .mv .rowbtn:hover:not(:disabled) { color: var(--gold); background: var(--fill-2); }
+    .news-arrow { border-radius: 999px; }
+    .news-arrow:hover:not(:disabled) { background: var(--fill-2); }
+
+    /* ── fields ─────────────────────────────────────────────────────────── */
+    .inp, .gex-time {
+      background: var(--fill-2); border: 1px solid transparent; border-radius: var(--r-ctl);
+      color: var(--ink); font-size: 14px; padding: 10px 14px; letter-spacing: -0.008em;
+      transition: box-shadow 0.18s var(--ease), background 0.18s var(--ease), border-color 0.18s var(--ease);
+    }
+    .inp:focus, .gex-time:focus { outline: none; background: var(--panel); border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201, 162, 74, 0.22); }
+    .inp::placeholder { color: var(--faint); }
+    select.inp:hover { border-color: transparent; background-color: var(--fill); }
+    .users-tools .inp, .filters .inp { padding: 8px 12px; font-size: 13.5px; }
+    textarea.inp { line-height: 1.5; }
+
+    /* ── the switch: 51 by 31 ───────────────────────────────────────────── */
+    .tgl { width: 51px; height: 31px; }
+    .tgl .track { background: #39393d; }
+    :root[data-theme="light"] .tgl .track { background: #e9e9eb; }
+    .tgl .track::before { width: 27px; height: 27px; top: 2px; left: 2px; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 3px 1px rgba(0, 0, 0, 0.06); transition: transform 0.32s var(--ease); }
+    .tgl input:checked + .track { background: var(--gold); }
+    .tgl input:checked + .track::before { transform: translateX(20px); }
+
+    /* ── segmented filters: capsules instead of underlines ──────────────── */
+    .seg { background: var(--fill); border-radius: 999px; padding: 2px; gap: 0; }
+    .seg button {
+      border: 0; border-radius: 999px; padding: 5px 13px; font-size: 13px; font-weight: 600; color: var(--muted);
+      transition: background 0.22s var(--ease), color 0.18s var(--ease), box-shadow 0.22s var(--ease);
+    }
+    .seg button:hover { color: var(--ink); }
+    .seg button.on { background: var(--seg-on); color: var(--ink); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04); }
+    .seg + .seg { margin-left: 8px; padding-left: 2px; border-left: 0; }
+
+    /* ── popovers, tips, the walkthrough: glass sheets ──────────────────── */
+    .notes, .tour-card, .gex-tip {
+      background: var(--glass); -webkit-backdrop-filter: blur(40px) saturate(1.8); backdrop-filter: blur(40px) saturate(1.8);
+      border: 1px solid var(--rim); border-top-color: var(--rim-top); box-shadow: 0 30px 80px -24px rgba(0, 0, 0, 0.55);
+    }
+    .notes { border-radius: 22px; margin-top: 10px; }
+    .notes-head { padding: 14px 18px 12px; border-bottom: 1px solid var(--line); }
+    .notes-head b { font-size: 15px; font-weight: 650; }
+    .note { padding: 12px 18px; border-bottom: 1px solid var(--line); }
+    .note .nd { background: var(--gold); }
+    .tour-card { border-radius: 24px; }
+    .gex-tip { border-radius: 12px; }
+    .skel { border-radius: 8px; background: var(--fill-3); }
+    .upbar .fill { background: var(--gold); }
+    .upbar .track { background: var(--fill); }
+
+    /* the memecoin desk: its tabs a segmented control, its capital labels sentences */
+    .mm-tabs { display: inline-flex; gap: 0; padding: 3px; margin-bottom: 22px; border: 0; border-radius: 999px; background: var(--fill); }
+    .mm-tab { border: 0; margin: 0; padding: 6px 16px; border-radius: 999px; font-size: 13px; color: var(--muted); transition: background 0.22s var(--ease), color 0.18s var(--ease); }
+    .mm-tab.on { background: var(--seg-on); color: var(--ink); border: 0; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04); }
+    .sc-seg { border: 0; border-radius: 999px; background: var(--fill); }
+    .sc-seg-btn { border-radius: 999px; }
+    .sc-seg-btn.on { color: var(--ink); }
+    .board-sort { background: var(--fill); border-radius: 999px; padding: 2px; gap: 0; }
+    .board-sort button { border-radius: 999px; padding: 3px 10px; font-size: 12px; color: var(--muted); }
+    .board-sort button.on { background: var(--seg-on); color: var(--ink); }
+    .wire-title .kind, .wire-sec-head, .cp-call .sec { text-transform: none; letter-spacing: -0.005em; }
+    .wire-title .kind { border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 650; }
+    .wire-sec-head { font-size: 13.5px; font-weight: 650; color: var(--ink); }
+    .cp-call .sec { font-size: 12px; }
+
+    /* ── Apple alerts, replacing the browser's confirm / alert / prompt ─── */
+    .asheet-scrim {
+      position: fixed; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center; padding: 24px;
+      background: rgba(0, 0, 0, 0.38); opacity: 0; transition: opacity 0.22s var(--ease);
+    }
+    .asheet-scrim.on { opacity: 1; }
+    .asheet {
+      width: min(300px, 100%); border-radius: 26px; overflow: hidden; text-align: center;
+      background: var(--glass); -webkit-backdrop-filter: blur(50px) saturate(1.9); backdrop-filter: blur(50px) saturate(1.9);
+      border: 1px solid var(--rim); box-shadow: 0 40px 100px -30px rgba(0, 0, 0, 0.7);
+      transform: scale(1.08); opacity: 0; transition: transform 0.34s var(--ease), opacity 0.22s var(--ease);
+    }
+    .asheet-scrim.on .asheet { transform: none; opacity: 1; }
+    .asheet .as-body { padding: 20px 18px 16px; }
+    .asheet h4 { font-size: 16px; font-weight: 650; letter-spacing: -0.02em; color: var(--ink); line-height: 1.3; }
+    .asheet p { font-size: 13px; color: var(--muted); line-height: 1.45; margin-top: 5px; white-space: pre-wrap; }
+    .asheet input { width: 100%; margin-top: 14px; text-align: left; }
+    .asheet .as-btns { display: flex; border-top: 1px solid var(--line); }
+    .asheet .as-btns button {
+      flex: 1; min-height: 46px; border: 0; background: none; font: inherit; font-size: 15.5px; font-weight: 500; color: var(--gold);
+      cursor: pointer; transition: background 0.14s ease; -webkit-tap-highlight-color: transparent;
+    }
+    .asheet .as-btns button + button { border-left: 1px solid var(--line); }
+    .asheet .as-btns button.strong { font-weight: 650; }
+    .asheet .as-btns button.danger { color: var(--bad); }
+    .asheet .as-btns button:hover, .asheet .as-btns button:focus-visible { background: var(--fill-3); outline: none; }
+    @media (prefers-reduced-motion: reduce) { .asheet, .asheet-scrim { transition: none; } }
+
+    /* ── a phone: the drawer becomes a floating glass tab bar ───────────── */
+    @media (max-width: 840px) {
+      .app.on::before { background: radial-gradient(700px 420px at 0% -8%, rgba(201, 162, 74, 0.1), transparent 62%); }
+      .menu-btn, .scrim { display: none !important; }
+      .side, .nav-open .side {
+        position: fixed; top: auto; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); right: auto;
+        transform: translateX(-50%); width: min(420px, calc(100% - 20px)); height: 62px; margin: 0; padding: 6px;
+        flex-direction: row; align-items: center; border-radius: 999px; z-index: 70; transition: none;
+        background: var(--glass-bar); box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 var(--rim-top);
+      }
+      .side-brand, .side-user, .side-collapse, .grp-sep, .side-groups a.grp { display: none !important; }
+      .side-groups { flex: 1; flex-direction: row; justify-content: space-between; align-items: center; padding: 0; gap: 2px; overflow: visible; }
+      .grp, .app.rail .grp { flex: 1 1 0; min-width: 0; height: 50px; min-height: 0; padding: 0; justify-content: center; border-radius: 999px; gap: 0; }
+      .grp > span:not(.gc) { display: none; }
+      .grp .ic, .grp svg { width: 22px; height: 22px; color: var(--muted); transition: color 0.18s var(--ease), transform 0.3s var(--ease); }
+      .grp.on { background: var(--tint); }
+      .grp.on .ic, .grp.on svg { color: var(--gold); transform: scale(1.06); }
+      .grp .gc { display: none; }
+      .grp .gc.hot:not(:empty) { display: block; position: absolute; top: 5px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; line-height: 16px; }
+      .main { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+      .topbar, :root[data-theme] .topbar { padding: 12px 16px 12px; padding-top: max(12px, env(safe-area-inset-top, 0px)); }
+      .topbar h2 { font-size: 28px; }
+      .tb-open { width: 36px; height: 36px; padding: 0; justify-content: center; font-size: 0; gap: 0; border-radius: 50%; }
+      .tb-open svg { width: 16px; height: 16px; }
+      .subnav { padding: 0 16px 12px; }
+      .sub-seg { display: flex; width: 100%; }
+      .sub-seg button, .sub-seg .seg-link { flex: 1 0 auto; justify-content: center; padding: 7px 14px; }
+      .pane { padding: 16px 16px 28px; }
+      .cards, .st-head { gap: 10px; }
+      .cards .scard, .st-head .st-n { padding: 14px 15px 13px; border-radius: 18px; }
+      .scard .v, .st-head .v { font-size: 26px; }
+      .block { border-radius: 20px; }
+      .block-head { padding: 14px 16px; }
+      .block th:first-child, .block td:first-child { padding-left: 16px; }
+      .block th:last-child, .block td:last-child { padding-right: 16px; }
+      .intg, .field-row, .users-tools, .access-bulk { padding-left: 16px; padding-right: 16px; }
+      .inp, select.inp { font-size: 16px; }            /* iOS zooms a field under 16px */
+      .rowbtn { min-height: 34px; }
+      .asheet { width: min(290px, 100%); }
+    }
+    @media (max-width: 640px) {
+      .view #recent-buyers, .view #users-table { display: block; min-width: 0; overflow: visible; }
+      #recent-buyers thead, #users-table thead { display: none; }
+      #recent-buyers tbody, #users-table tbody { display: block; }
+      #recent-buyers tr, #users-table tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 8px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+      #recent-buyers tbody tr:last-child, #users-table tbody tr:last-child { border-bottom: 0; }
+      .block #recent-buyers td, .block #users-table td { display: block; padding: 0; border: 0; font-size: 12.5px; color: var(--faint); }
+      #recent-buyers td:nth-child(1), #users-table td:nth-child(1) { order: 1; flex: 1 1 0; min-width: 0; font-size: 15px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
+      #recent-buyers td:nth-child(5), #users-table td:nth-child(5) { order: 2; flex: 0 0 auto; }
+      #recent-buyers td:nth-child(2), #users-table td:nth-child(2) { order: 3; flex: 1 0 100%; }
+      #recent-buyers td:nth-child(3), #users-table td:nth-child(3) { order: 4; }
+      #recent-buyers td:nth-child(4), #users-table td:nth-child(4), #users-table td:nth-child(6) { display: none; }
+      #users-table td:nth-child(7) { order: 5; }
+      #users-table td:nth-child(7)::before { content: '· '; }
+      #users-table td:nth-child(7)::after { content: ' lessons'; }
+      #recent-buyers .chips, #users-table .chips { flex-wrap: wrap; }
+    }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 </head>
 <body>
@@ -2300,6 +2699,57 @@
     const money = (c) => c == null ? '–' : '$' + (c / 100).toFixed(c % 100 ? 2 : 0)
     const when = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' }) : '–'
 
+    /* ── Apple alerts in place of confirm / alert / prompt ──
+       The browser's own boxes are grey system furniture that freeze the page. These are the iOS
+       alert: a title, the message, the buttons side by side (the destructive one red), Escape to
+       cancel and Enter to go. Each returns a promise, so a caller awaits it where it used to block. */
+    function appleAlert({ title, message = '', buttons, input = null }) {
+      return new Promise((resolve) => {
+        const scrim = document.createElement('div'); scrim.className = 'asheet-scrim'
+        const box = document.createElement('div'); box.className = 'asheet'; box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-modal', 'true')
+        const body = document.createElement('div'); body.className = 'as-body'
+        const h = document.createElement('h4'); h.textContent = title; body.appendChild(h)
+        if (message) { const p = document.createElement('p'); p.textContent = message; body.appendChild(p) }
+        let field = null
+        if (input !== null) { field = document.createElement('input'); field.className = 'inp'; field.value = input; field.setAttribute('aria-label', title); body.appendChild(field) }
+        const row = document.createElement('div'); row.className = 'as-btns'
+        const prev = document.activeElement
+        const valueOf = (b) => b.value === '$input' ? field.value : b.value
+        let closed = false
+        const done = (v) => {
+          if (closed) return; closed = true
+          document.removeEventListener('keydown', key, true)
+          scrim.classList.remove('on'); setTimeout(() => scrim.remove(), 260)
+          try { prev?.focus?.({ preventScroll: true }) } catch {}
+          resolve(v)
+        }
+        for (const b of buttons) {
+          const x = document.createElement('button'); x.type = 'button'; x.textContent = b.label; if (b.cls) x.className = b.cls
+          x.addEventListener('click', () => done(valueOf(b))); row.appendChild(x)
+        }
+        const cancel = buttons.find((b) => b.cancel), def = buttons.find((b) => b.default)
+        function key(e) {
+          if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(cancel ? valueOf(cancel) : null) }
+          else if (e.key === 'Enter' && def && (field ? document.activeElement === field : true)) { e.preventDefault(); done(valueOf(def)) }
+        }
+        document.addEventListener('keydown', key, true)
+        scrim.addEventListener('click', (e) => { if (e.target === scrim) done(cancel ? valueOf(cancel) : null) })
+        box.append(body, row); scrim.appendChild(box); document.body.appendChild(scrim)
+        requestAnimationFrame(() => { scrim.classList.add('on'); (field || row.querySelector('.strong') || row.lastChild)?.focus({ preventScroll: true }); if (field) field.select() })
+      })
+    }
+    // "Delete X? Members lose it too." -> title "Delete X?", message the rest, the button named by the verb
+    function confirmSheet(text) {
+      const i = text.indexOf('? '), title = i > 0 ? text.slice(0, i + 1) : text, message = i > 0 ? text.slice(i + 2) : ''
+      const verb = (title.match(/^[A-Z][a-z]+/) || ['OK'])[0]
+      const label = { Mark: 'Mark paid', Take: 'Take down' }[verb] || verb
+      const danger = !['Restore', 'Mark', 'OK', 'Approve'].includes(verb)
+      return appleAlert({ title, message, buttons: [{ label: 'Cancel', value: false, cancel: true }, { label, value: true, cls: 'strong' + (danger ? ' danger' : ''), default: true }] })
+    }
+    const tell = (message, title = 'That did not go through') => appleAlert({ title, message: String(message ?? ''), buttons: [{ label: 'OK', value: true, cls: 'strong', cancel: true, default: true }] })
+    const askText = (title, value = '') => appleAlert({ title, input: value, buttons: [{ label: 'Cancel', value: null, cancel: true }, { label: 'Save', value: '$input', cls: 'strong', default: true }] })
+    window.__sheets = { appleAlert, confirmSheet, tell, askText }
+
     /* ── theme: system by default, sticky once toggled ── */
     const THEME_KEY = 'echelon-theme'
     const sysDark = window.matchMedia('(prefers-color-scheme: dark)')
@@ -2409,6 +2859,8 @@
       tabs.forEach((t) => t.classList.toggle('on', t === tab))
       tab.scrollIntoView({ block: 'nearest' })
       const view = tab.dataset.view
+      if (view && !el(`v-${view}`)?.classList.contains('on')) window.scrollTo({ top: 0 })
+      if (view && typeof markActive === 'function') markActive(view)
       document.querySelectorAll('.view').forEach((v) => v.classList.toggle('on', v.id === `v-${view}`))
       el('pane-title').textContent = tab.dataset.title
       el('pane-crumb').textContent = tab.dataset.crumb
@@ -2457,14 +2909,15 @@
         b.addEventListener('click', () => { openView(lastIn(g)); el('app').classList.remove('nav-open') })
         host.appendChild(b)
       }
-      // the Kalshi desk is a different page, so it stays a link, under Desk
-      const kal = [...document.querySelectorAll('#tabs a.tab')][0]
-      if (kal) {
+      // the Kalshi desk and the memecoin bot are pages of their own, so they stay links, under Desk
+      // (the memecoin bot's link used to live only in the hidden list, so nothing led to it)
+      const before = [...host.children].find((n) => n.classList?.contains('grp-sep'))
+      for (const src of document.querySelectorAll('#tabs a.tab')) {
         const a = document.createElement('a')
-        a.className = 'grp'; a.href = kal.getAttribute('href'); a.title = kal.title || 'Kalshi'
-        const svg = kal.querySelector('svg'); if (svg) a.appendChild(svg.cloneNode(true))
-        const lab = document.createElement('span'); lab.textContent = 'Kalshi'; a.appendChild(lab)
-        const before = [...host.children].find((n) => n.classList?.contains('grp-sep'))
+        a.className = 'grp'; a.href = src.getAttribute('href'); a.title = src.title || ''
+        const svg = src.querySelector('svg'); if (svg) a.appendChild(svg.cloneNode(true))
+        const lab = document.createElement('span'); lab.textContent = src.textContent.trim(); a.appendChild(lab)
+        a.insertAdjacentHTML('beforeend', '<svg class="go-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>')
         host.insertBefore(a, before ?? null)
       }
     }
@@ -2487,6 +2940,12 @@
         }
         b.addEventListener('click', () => openView(v))
         seg.appendChild(b)
+      }
+      if (g.id === 'desk') for (const src of document.querySelectorAll('#tabs a.tab')) {
+        const a = document.createElement('a'); a.className = 'seg-link'; a.href = src.getAttribute('href'); a.title = src.title || ''
+        a.textContent = src.textContent.trim()
+        a.insertAdjacentHTML('beforeend', '<svg class="go-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>')
+        seg.appendChild(a)
       }
       host.appendChild(seg)
       // the thumb sits on the live button, so it cannot drift from the label
@@ -2517,13 +2976,14 @@
     // segment rather than moving them, so every writer keeps working untouched.
     function syncCounts() {
       for (const g of GROUPS) {
-        let total = 0, hot = false
+        let lead = 0, hotN = 0, hot = false
         for (const v of g.views) {
           const c = tabFor(v)?.querySelector('.count'); if (!c) continue
           const n = parseInt(c.textContent, 10)
-          if (Number.isFinite(n)) total += n
-          if (c.classList.contains('hot')) hot = true
+          if (v === g.views[0] && Number.isFinite(n)) lead = n
+          if (c.classList.contains('hot')) { hot = true; if (Number.isFinite(n)) hotN += n }
         }
+        const total = hot ? hotN : lead
         const badge = document.querySelector('.gc[data-gc="' + g.id + '"]')
         if (badge) { badge.textContent = total ? String(total) : ''; badge.classList.toggle('hot', hot) }
       }
@@ -2977,7 +3437,7 @@
         c.title = `${productName(e.product)} · ${sourceLabel(e.source)}${on ? '' : ' · ' + e.status}${live ? (on ? ' · click to revoke' : ' · click to restore') : ''}`
         if (live) c.addEventListener('click', async () => {
           const verb = on ? 'Revoke' : 'Restore'
-          if (!confirm(`${verb} ${productName(e.product)} for ${p.email}?`)) return
+          if (!await confirmSheet(`${verb} ${productName(e.product)} for ${p.email}?`)) return
           c.disabled = true
           try { await adminAction({ action: on ? 'revoke' : 'restore', id: e.id }); await loadBuyers() }
           catch (err) { c.disabled = false; c.textContent = err.message.slice(0, 16) }
@@ -3239,7 +3699,7 @@
       if (tvAutoSwap) el('tvauto-sid').focus()
     })
     el('tvauto-off').addEventListener('click', async () => {
-      if (!confirm('Disconnect TradingView? Queue rows will wait until you connect again.')) return
+      if (!await confirmSheet('Disconnect TradingView? Queue rows will wait until you connect again.')) return
       try { tvAutoSwap = false; paintTvAuto(await tvAuto({ action: 'disconnect' })); tvAutoMsg('', '') } catch (e) { tvAutoMsg('err', e.message) }
     })
 
@@ -3385,7 +3845,7 @@
       const resolve = async (r) => {
         const { data: { session } } = await supabase.auth.getSession()
         const { error } = await supabase.from('content_reports').update({ resolved_at: new Date().toISOString(), resolved_by: session?.user?.id ?? null }).eq('id', r.id)
-        if (error) { alert(error.message); return false }
+        if (error) { tell(error.message); return false }
         return true
       }
       table(el('rep-table'), ['Reported', 'What', 'Why', 'From', 'When', ''], cmReports, (r) => {
@@ -3403,7 +3863,7 @@
           if (r.target_id && r.kind !== 'member') {
             const rm = document.createElement('button'); rm.className = 'rowbtn'; rm.textContent = 'Remove'
             rm.addEventListener('click', async () => {
-              if (!confirm(`Take this ${(WHAT[r.kind] ?? 'item').toLowerCase()} down for everyone?`)) return
+              if (!await confirmSheet(`Take this ${(WHAT[r.kind] ?? 'item').toLowerCase()} down for everyone?`)) return
               rm.disabled = true
               const { data: { session } } = await supabase.auth.getSession()
               const now = new Date().toISOString()
@@ -3412,7 +3872,7 @@
                 : r.kind === 'comment'
                   ? await supabase.from('post_comments').update({ deleted_at: now }).eq('id', r.target_id)
                   : await supabase.from('member_recaps').delete().eq('id', r.target_id)
-              if (error) { alert(error.message); rm.disabled = false; return }
+              if (error) { tell(error.message); rm.disabled = false; return }
               if (await resolve(r)) loadReports()
             })
             act.appendChild(rm)
@@ -3450,11 +3910,11 @@
           const ok = document.createElement('button'); ok.className = 'rowbtn'; ok.textContent = 'Approve'
           ok.addEventListener('click', async () => {
             ok.disabled = true
-            try { await adminAction({ action: 'app_approve', id: a.id }); await loadApplications() } catch (e) { alert(e.message); ok.disabled = false }
+            try { await adminAction({ action: 'app_approve', id: a.id }); await loadApplications() } catch (e) { tell(e.message); ok.disabled = false }
           })
           const no = document.createElement('button'); no.className = 'rowbtn'; no.textContent = 'Deny'; no.style.marginLeft = '6px'
           no.addEventListener('click', async () => {
-            if (!confirm(`Deny ${a.email}?`)) return
+            if (!await confirmSheet(`Deny ${a.email}?`)) return
             no.disabled = true
             try { await adminAction({ action: 'app_deny', id: a.id }); await loadApplications() } catch (e) { no.disabled = false }
           })
@@ -3519,10 +3979,10 @@
             const pay = document.createElement('button'); pay.className = 'rowbtn'; pay.textContent = 'Mark paid'
             pay.style.marginTop = '4px'
             pay.addEventListener('click', async () => {
-              if (!confirm(`Mark ${money(e.earned)} as paid out? Do the actual transfer first. This only records it.`)) return
+              if (!await confirmSheet(`Mark ${money(e.earned)} as paid out? Do the actual transfer first. This only records it.`)) return
               pay.disabled = true
               const { error } = await supabase.rpc('pay_affiliate', { p_user: a.user_id })
-              if (error) { alert(error.message); pay.disabled = false; return }
+              if (error) { tell(error.message); pay.disabled = false; return }
               await loadAffiliates()
             })
             earn.appendChild(pay)
@@ -3535,15 +3995,15 @@
           ok.addEventListener('click', async () => {
             ok.disabled = true
             const { error } = await supabase.rpc('approve_affiliate', { p_user: a.user_id })
-            if (error) { alert(error.message); ok.disabled = false; return }
+            if (error) { tell(error.message); ok.disabled = false; return }
             await loadAffiliates()
           })
           const no = document.createElement('button'); no.className = 'rowbtn'; no.textContent = 'Deny'; no.style.marginLeft = '6px'
           no.addEventListener('click', async () => {
-            if (!confirm('Deny this application?')) return
+            if (!await confirmSheet('Deny this application?')) return
             no.disabled = true
             const { error } = await supabase.rpc('deny_affiliate', { p_user: a.user_id })
-            if (error) { alert(error.message); no.disabled = false; return }
+            if (error) { tell(error.message); no.disabled = false; return }
             await loadAffiliates()
           })
           act.append(ok, no)
@@ -3565,7 +4025,7 @@
         const act = document.createElement('td')
         const del = document.createElement('button'); del.className = 'rowbtn'; del.textContent = 'Delete'
         del.addEventListener('click', async () => {
-          if (!confirm(`Delete #${c.name} and all its messages?`)) return
+          if (!await confirmSheet(`Delete #${c.name} and all its messages?`)) return
           del.disabled = true
           try { await adminAction({ action: 'channel_delete', id: c.id }); await loadCommunity() } catch { del.disabled = false }
         })
@@ -3617,8 +4077,8 @@
     // The majority answer, said as a sentence.
     const ONB_PHRASE = {
       exp: { new: 'just starting out', under1: 'under a year in', y1to3: 'one to three years in', y3plus: 'three or more years in' },
-      market: { nq: 'trades NQ or MNQ', futures: 'trades other futures', stocks: 'trades stocks or options', crypto: 'trades crypto', none: 'is not trading yet' },
-      stage: { sim: 'is still on sim', eval: 'is in a funded eval', funded: 'is funded and getting paid', live: 'runs a live personal account' },
+      market: { nq: 'trade NQ or MNQ', futures: 'trade other futures', stocks: 'trade stocks or options', crypto: 'trade crypto', none: 'are not trading yet' },
+      stage: { sim: 'are still on sim', eval: 'are in a funded eval', funded: 'are funded and getting paid', live: 'run a live personal account' },
       blocker: { entries: 'finding entries', holding: 'holding winners', discipline: 'overtrading and discipline', framework: 'having no clear framework' },
       source: { discord: 'Discord', instagram: 'Instagram', twitter: 'Twitter / X', youtube: 'YouTube', friend: 'a friend', other: 'somewhere else' },
     }
@@ -4208,7 +4668,7 @@
       appr.addEventListener('click', () => persist({ approved: !r.approved }))
       del.addEventListener('click', async () => {
         if (r.id) {
-          if (!confirm('Delete this question? Members\' review history for it goes too.')) return
+          if (!await confirmSheet('Delete this question? Members\' review history for it goes too.')) return
           const { error } = await supabase.from('lesson_checks').delete().eq('id', r.id)
           if (error) { st.textContent = error.message; st.className = 'st err'; return }
         }
@@ -4227,7 +4687,7 @@
       const ids = PC.rows.filter((r) => r.id && !r.approved).map((r) => r.id)
       if (!ids.length) return
       const { error } = await supabase.from('lesson_checks').update({ approved: true, updated_at: new Date().toISOString() }).in('id', ids)
-      if (error) { alert(error.message); return }
+      if (error) { tell(error.message); return }
       PC.rows.forEach((r) => { if (ids.includes(r.id)) r.approved = true })
       pcRender()
     })
@@ -4484,13 +4944,13 @@
         const controls = document.createElement('div'); controls.className = 'ract'
         const del = mkBtn('Delete', 'Delete this category and everything in it', async (b) => {
           const inside = LESSONS.filter((l) => l.module_id === m.id).length
-          if (!confirm(`Delete "${m.title}"${inside ? ` and its ${inside} lesson${inside === 1 ? '' : 's'}` : ''}? Members lose it immediately.`)) return
+          if (!await confirmSheet(`Delete "${m.title}"${inside ? ` and its ${inside} lesson${inside === 1 ? '' : 's'}` : ''}? Members lose it immediately.`)) return
           b.disabled = true
           try { await adminAction({ action: 'module_delete', id: m.id }); await loadContent() } catch { b.disabled = false }
         }, 'rowbtn danger')
         controls.append(
           mkBtn('Rename', 'Rename this category', async () => {
-            const title = prompt('Category name', m.title)
+            const title = await askText('Category name', m.title)
             if (!title?.trim()) return
             try { await adminAction({ action: 'module_save', id: m.id, title, summary: m.summary ?? '' }); await loadContent() } catch { /* row stays */ }
           }),
@@ -4535,7 +4995,7 @@
           ra.append(
             mkBtn('Edit', 'Open the page editor', () => openPageEditor(l)),
             mkBtn('Delete', '', async (b) => {
-              if (!confirm(`Delete "${l.title}"?`)) return
+              if (!await confirmSheet(`Delete "${l.title}"?`)) return
               b.disabled = true
               try { await adminAction({ action: 'lesson_delete', id: l.id }); await loadContent() } catch { b.disabled = false }
             }, 'rowbtn danger'),
@@ -4621,7 +5081,7 @@
       if (l.homework) {
         const rm = document.createElement('button'); rm.className = 'rowbtn'; rm.type = 'button'; rm.textContent = 'Remove'
         rm.addEventListener('click', async () => {
-          if (!confirm(`Remove the homework on "${l.title}"? The lesson will complete without a markup; past submissions stay on file.`)) return
+          if (!await confirmSheet(`Remove the homework on "${l.title}"? The lesson will complete without a markup; past submissions stay on file.`)) return
           rm.disabled = true
           try { await adminAction({ action: 'lesson_save', id: l.id, homework: '' }); l.homework = null; renderHomework() }
           catch { rm.disabled = false }
@@ -4726,7 +5186,7 @@
         ra.append(
           mk('Edit', () => { recapEditor(r); window.scrollTo({ top: 0, behavior: 'smooth' }) }),
           mk('Delete', async (b) => {
-            if (!confirm(`Delete "${r.title}"? Members lose it too.`)) return
+            if (!await confirmSheet(`Delete "${r.title}"? Members lose it too.`)) return
             b.disabled = true
             try { await adminAction({ action: 'recap_delete', id: r.id }); if (recapEditing === r.id) recapEditor(null); await loadRecaps() }
             catch { b.disabled = false }
@@ -4773,7 +5233,7 @@
       b.disabled = true
       const { error } = await supabase.from('library_videos')
         .update({ captions_status: 'queued', captions_error: null }).eq('id', r.id)
-      if (error) alert(`Captions did not queue: ${error.message}`)
+      if (error) tell(`Captions did not queue: ${error.message}`)
       loadLibraryAdmin()
     }
     async function loadLibraryAdmin() {
@@ -4848,7 +5308,7 @@
           loadLibraryAdmin()
         })
         btn('Delete', async (b) => {
-          if (!confirm(`Delete "${r.title}"? Members lose it too.`)) return
+          if (!await confirmSheet(`Delete "${r.title}"? Members lose it too.`)) return
           b.disabled = true
           await supabase.from('library_videos').delete().eq('id', r.id)
           supabase.storage.from('lesson-files').remove([r.storage_path, ...(r.captions_path ? [r.captions_path] : [])]).then(() => {}, () => {})
@@ -5031,15 +5491,15 @@
        the public bucket URL changes and no cache shows the old frame. */
     async function libSetThumb(row, file, btn) {
       const blob = await libImageToJpeg(file)
-      if (!blob) { alert('Could not read that image.'); return }
+      if (!blob) { tell('Could not read that image.'); return }
       btn.disabled = true
       const newPath = `${row.id}-${Date.now().toString(36)}.jpg`
       const { error: upErr } = await supabase.storage.from('library-thumbs')
         .upload(newPath, blob, { contentType: 'image/jpeg' })
-      if (upErr) { alert(upErr.message); btn.disabled = false; return }
+      if (upErr) { tell(upErr.message); btn.disabled = false; return }
       const { error } = await supabase.from('library_videos')
         .update({ thumb_path: newPath, updated_at: new Date().toISOString() }).eq('id', row.id)
-      if (error) { alert(error.message); btn.disabled = false; return }
+      if (error) { tell(error.message); btn.disabled = false; return }
       if (row.thumb_path && row.thumb_path !== newPath) {
         supabase.storage.from('library-thumbs').remove([row.thumb_path]).then(() => {}, () => {})
       }
@@ -5234,16 +5694,16 @@
           const prev = a.status; a.status = sel.value; sel.disabled = true
           const { error } = await supabase.from('applications').update({ status: sel.value, updated_at: new Date().toISOString() }).eq('id', a.id)
           sel.disabled = false
-          if (error) { a.status = prev; sel.value = prev; alert(error.message); return }
+          if (error) { a.status = prev; sel.value = prev; tell(error.message); return }
           renderApps()
         })
         st.appendChild(sel); tr.appendChild(st)
         const del = document.createElement('td'); const db = document.createElement('button'); db.className = 'rowbtn'; db.textContent = 'Delete'
         db.addEventListener('click', async () => {
-          if (!confirm(`Delete the application from ${a.name}?`)) return
+          if (!await confirmSheet(`Delete the application from ${a.name}?`)) return
           db.disabled = true
           const { error } = await supabase.from('applications').delete().eq('id', a.id)
-          if (error) { db.disabled = false; alert(error.message); return }
+          if (error) { db.disabled = false; tell(error.message); return }
           APPS = APPS.filter((x) => x.id !== a.id); renderApps()
         })
         del.appendChild(db); tr.appendChild(del)
@@ -5306,7 +5766,7 @@
           catch { b.disabled = false }
         }))
         tr.appendChild(mk('Delete', async (b) => {
-          if (!confirm(`Delete ${c.code}? Anyone holding it loses the way in.`)) return
+          if (!await confirmSheet(`Delete ${c.code}? Anyone holding it loses the way in.`)) return
           b.disabled = true
           try { await adminAction({ action: 'code_delete', id: c.id }); await loadCodes() }
           catch { b.disabled = false }

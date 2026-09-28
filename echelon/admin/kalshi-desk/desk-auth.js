@@ -28,56 +28,53 @@ export const SB = createClient(SUPABASE_URL, PUBLISHABLE, {
 });
 
 const CSS = `
-.dsk-gate{position:fixed;inset:0;z-index:9999;background:#000;display:grid;place-items:center;
-  font-family:ui-monospace,'Cascadia Mono','SF Mono',Menlo,Consolas,monospace;color:#e8e8e8}
-.dsk-gate::before{content:'';position:absolute;inset:0;opacity:.5;pointer-events:none;
-  background:
-    repeating-linear-gradient(to bottom,rgba(255,160,0,.045) 0 1px,transparent 1px 3px),
-    radial-gradient(90% 60% at 50% 42%,rgba(255,160,0,.16),transparent 62%),
-    radial-gradient(120% 80% at 50% 0%,rgba(255,160,0,.08),transparent 60%)}
-.dsk-gate::after{content:'';position:absolute;inset:0;pointer-events:none;
-  box-shadow:inset 0 2px 0 #ffa000, inset 0 0 160px rgba(0,0,0,.9)}
-.dsk-card{position:relative;width:min(92vw,392px);background:#070707;border:1px solid #2a2a2a;
-  box-shadow:0 0 0 1px #000,0 30px 80px -20px rgba(0,0,0,.95);animation:dsk-in .32s cubic-bezier(.2,.8,.2,1) both}
-@keyframes dsk-in{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
-.dsk-hd{display:flex;align-items:center;gap:8px;background:#ffa000;color:#000;padding:3px 9px;
-  font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-.dsk-hd .dsk-lock{font-size:11px;line-height:1}
-.dsk-hd .dsk-sub{margin-left:auto;font-weight:400;letter-spacing:.04em;text-transform:none;color:#3a2600;font-size:10px}
-.dsk-bd{padding:18px 18px 16px}
-.dsk-ttl{font-size:12.5px;letter-spacing:.02em;color:#e8e8e8;margin-bottom:3px}
-.dsk-say{font-size:10.5px;color:#6f6f6f;line-height:1.5;margin-bottom:15px}
-.dsk-f{display:block;margin-bottom:10px}
-.dsk-l{display:block;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:#585858;margin-bottom:4px}
-.dsk-i{width:100%;background:#000;border:1px solid #242424;color:#ffa000;caret-color:#ffa000;
-  font:inherit;font-size:12px;padding:7px 9px;outline:0;transition:border-color .14s,box-shadow .14s}
-.dsk-i:hover{border-color:#333}
-.dsk-i:focus{border-color:#ffa000;box-shadow:0 0 0 1px #ffa000,0 0 22px -6px rgba(255,160,0,.7)}
-.dsk-i::placeholder{color:#3a3a3a}
-.dsk-go{width:100%;margin-top:6px;background:#ffa000;color:#000;border:0;font:inherit;font-size:11px;
-  font-weight:700;letter-spacing:.13em;text-transform:uppercase;padding:8px;cursor:pointer;
-  transition:filter .14s,transform .06s}
-.dsk-go:hover{filter:brightness(1.12)}
-.dsk-go:active{transform:translateY(1px)}
-.dsk-go:disabled{background:#2a2a2a;color:#6f6f6f;cursor:default;filter:none}
-.dsk-err{margin-top:9px;font-size:10.5px;color:#ff4d4d;line-height:1.45;white-space:pre-line}
+/* Apple, 2026-09-28 (D1: "a whole bunch of Apple UI ... everything"): the door is a glass sheet over a
+   gold-lit dark page, in the system type, with filled fields and one gold capsule. Same classes. */
+.dsk-gate{position:fixed;inset:0;z-index:9999;background:#000;display:grid;place-items:center;padding:20px;
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter var','Inter','Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+  color:#f5f5f7;letter-spacing:-.006em;-webkit-font-smoothing:antialiased}
+.dsk-gate::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(70% 55% at 50% 36%,rgba(201,162,74,.2),transparent 62%),
+             radial-gradient(90% 60% at 85% 105%,rgba(10,132,255,.08),transparent 60%)}
+.dsk-card{position:relative;width:min(100%,380px);overflow:hidden;border-radius:28px;
+  background:rgba(28,28,30,.72);-webkit-backdrop-filter:blur(40px) saturate(1.8);backdrop-filter:blur(40px) saturate(1.8);
+  border:1px solid rgba(255,255,255,.08);border-top-color:rgba(255,255,255,.15);
+  box-shadow:0 40px 100px -30px rgba(0,0,0,.9);animation:dsk-in .42s cubic-bezier(.32,.72,0,1) both}
+@keyframes dsk-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.dsk-hd{display:flex;align-items:center;gap:8px;padding:20px 24px 0;color:#c9a24a;font-size:13px;font-weight:600}
+.dsk-hd .dsk-lock{display:inline-flex;width:15px;height:15px}
+.dsk-hd .dsk-lock svg{width:15px;height:15px}
+.dsk-hd .dsk-sub{margin-left:auto;padding:2px 9px;border-radius:999px;background:rgba(118,118,128,.2);color:#aeaeb2;font-size:11.5px;font-weight:600}
+.dsk-bd{padding:12px 24px 22px}
+.dsk-ttl{font-size:26px;font-weight:700;letter-spacing:-.028em;color:#f5f5f7;margin-bottom:5px}
+.dsk-say{font-size:14px;color:#aeaeb2;line-height:1.45;margin-bottom:18px}
+.dsk-f{display:block;margin-bottom:12px}
+.dsk-l{display:block;font-size:12.5px;font-weight:600;color:#aeaeb2;margin-bottom:6px}
+.dsk-i{width:100%;background:rgba(118,118,128,.2);border:1px solid transparent;border-radius:12px;color:#f5f5f7;caret-color:#c9a24a;
+  font:inherit;font-size:16px;padding:11px 14px;outline:0;transition:border-color .18s,box-shadow .18s,background .18s}
+.dsk-i:hover{background:rgba(118,118,128,.26)}
+.dsk-i:focus{border-color:#c9a24a;box-shadow:0 0 0 4px rgba(201,162,74,.24);background:rgba(118,118,128,.14)}
+.dsk-i::placeholder{color:#8e8e93}
+.dsk-go{width:100%;margin-top:8px;min-height:48px;background:#c9a24a;color:#17130a;border:0;border-radius:999px;font:inherit;
+  font-size:16px;font-weight:650;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.28);transition:filter .14s,transform .12s}
+.dsk-go:hover{filter:brightness(1.07)}
+.dsk-go:active{transform:scale(.97)}
+.dsk-go:disabled{background:rgba(118,118,128,.24);color:#8e8e93;cursor:default;filter:none;box-shadow:none}
+.dsk-err{margin-top:10px;font-size:13px;color:#ff6961;line-height:1.45;white-space:pre-line}
 .dsk-err:empty{margin:0}
-.dsk-ft{border-top:1px solid #171717;padding:8px 18px 11px;font-size:9.5px;color:#454545;line-height:1.55}
-.dsk-ft b{color:#6f6f6f;font-weight:400}
-.dsk-shake{animation:dsk-sh .28s}
-@keyframes dsk-sh{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
-.dsk-cur{display:inline-block;width:6px;height:11px;background:#ffa000;vertical-align:-1px;
-  animation:dsk-bl 1.05s steps(2,start) infinite}
-@keyframes dsk-bl{50%{opacity:0}}
-.dsk-out{position:fixed;right:9px;bottom:32px;z-index:60;background:#0a0a0a;border:1px solid #2a2a2a;
-  color:#8a8a8a;font:inherit;font-size:11px;letter-spacing:.07em;text-transform:uppercase;
-  padding:5px 10px;cursor:pointer;transition:color .14s,border-color .14s}
-@media (pointer:coarse){.dsk-out{font-size:11.5px;padding:9px 12px}}
+.dsk-ft{border-top:1px solid rgba(255,255,255,.07);padding:13px 24px 17px;font-size:12.5px;color:#8e8e93;line-height:1.5}
+.dsk-ft b{color:#aeaeb2;font-weight:600}
+.dsk-shake{animation:dsk-sh .32s}
+@keyframes dsk-sh{0%,100%{transform:none}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.dsk-cur{display:none}
+.dsk-out{position:fixed;right:12px;bottom:14px;z-index:60;background:rgba(118,118,128,.24);border:0;border-radius:999px;
+  color:#f5f5f7;font:inherit;font-size:12.5px;font-weight:600;padding:8px 14px;cursor:pointer;transition:color .14s,background .14s}
+@media (pointer:coarse){.dsk-out{padding:10px 15px}}
 /* the name is the first thing to go: on a phone the bar needs the width more than the reader
    needs reminding which account they are on, and the tooltip still says it */
 @media (max-width:700px){.dsk-out .dsk-who,.dsk-out .dsk-sep{display:none}}
-.dsk-out:hover{color:#ffa000;border-color:#ffa000}
-.dsk-out-inline{position:static;background:transparent;border-color:#2a2a2a}
+.dsk-out:hover{color:#ff6961}
+.dsk-out-inline{position:static}
 `;
 
 function injectCss() {
@@ -103,19 +100,19 @@ function askForLogin(reason) {
     g.className = 'dsk-gate';
     g.innerHTML = `
       <form class="dsk-card" autocomplete="on">
-        <div class="dsk-hd"><span class="dsk-lock">&#9632;</span>Kalshi desk<span class="dsk-sub">private</span></div>
+        <div class="dsk-hd"><span class="dsk-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg></span>Kalshi desk<span class="dsk-sub">private</span></div>
         <div class="dsk-bd">
           <div class="dsk-ttl">Sign in<span class="dsk-cur"></span></div>
           <div class="dsk-say">This desk shows a live brokerage account. It is readable only by the
             logins on its access list.</div>
           <label class="dsk-f"><span class="dsk-l">Email</span>
-            <input class="dsk-i" type="email" name="email" autocomplete="username" required placeholder="you@example.com"></label>
+            <input class="dsk-i" type="email" name="email" autocomplete="username" required></label>
           <label class="dsk-f"><span class="dsk-l">Password</span>
-            <input class="dsk-i" type="password" name="password" autocomplete="current-password" required placeholder="••••••••"></label>
+            <input class="dsk-i" type="password" name="password" autocomplete="current-password" required></label>
           <button class="dsk-go" type="submit">Unlock desk</button>
           <div class="dsk-err" role="alert">${reason ? esc(reason) : ''}</div>
         </div>
-        <div class="dsk-ft"><b>Served from this machine only.</b> Not published, not on the network,
+        <div class="dsk-ft"><b>Your Echelon login.</b> The rows arrive only for accounts on the desk's access list,
           and nothing on this desk places an order.</div>
       </form>`;
     document.body.appendChild(g);

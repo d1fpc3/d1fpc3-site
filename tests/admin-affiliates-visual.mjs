@@ -43,7 +43,7 @@ await ctx.addInitScript(([k, v]) => localStorage.setItem(k, v), [`sb-${REF}-auth
 const page = await ctx.newPage();
 page.on("pageerror", (e) => fails.push("pageerror: " + e.message));
 await page.goto("http://127.0.0.1:8123/echelon/admin/", { waitUntil: "domcontentloaded" });
-await page.waitForSelector('.tab[data-view="community"]', { timeout: 25000 });
+await page.waitForSelector('.tab[data-view="community"]', { state: 'attached', timeout: 25000 });   // hidden since the rail became seven places
 await page.waitForTimeout(1500);
 await page.evaluate(() => document.querySelector('.tab[data-view="community"]').click());
 await page.waitForFunction(() => document.querySelector("#aff-table tbody tr"), null, { timeout: 15000 }).catch(() => fails.push("affiliates table empty"));
