@@ -15006,7 +15006,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (inNy) { if (!ny || ny.k !== k) { ny = { k, i0: i, i1: i, h: b.h, l: b.l }; v.ny.push(ny) } else { ny.i1 = i; if (b.h > ny.h) ny.h = b.h; if (b.l < ny.l) ny.l = b.l } }
         }
         const contains = (target) => m <= target && target < m + tf / 60
-        if (contains(1080) && chEtDate(b.t).getUTCDay() !== 0) { o18 = { p: b.o, i0: i, i1: i }; v.open18.push(o18) }
+        // Sunday 18:00 is the weekly open, drawn as such; it also ends Thursday's 18:00 open, which otherwise ran on
+        // through Sunday night (D1, 09-27: an [18:00 OPEN] at 30,725 on the new week was Thursday's 30,726.50)
+        if (contains(1080)) { if (chEtDate(b.t).getUTCDay() !== 0) { o18 = { p: b.o, i0: i, i1: i }; v.open18.push(o18) } else o18 = null }
         else if (o18 && (m >= 1080 || m < 660)) o18.i1 = i
         if (tf <= 3600) for (const [mm, label] of marks) if (contains(mm)) v.marks.push({ i, label })
       }

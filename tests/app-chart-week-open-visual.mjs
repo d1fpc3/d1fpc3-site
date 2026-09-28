@@ -45,13 +45,15 @@ for (const sym of ["NQ", "MNQ", "ES"]) {
       const L = window.__CH.$.lit(), bars = window.__CH.vis || [];
       const wo = L.wo, first = wo ? bars[wo.i0] : null, fri = wo && wo.i0 > 0 ? bars[wo.i0 - 1] : null;
       const g = (L.nwog || []).find((x) => x.i0 === wo?.i0) || null;
-      return { wo: wo?.p, firstT: first?.t, friT: fri?.t, friC: fri?.c, friV: fri?.v, nwog: g ? { top: g.top, bottom: g.bottom } : null, tf: window.__CH.tf };
+      const o18Late = (L.open18 || []).filter((o) => wo && o.i0 < wo.i0 && o.i1 >= wo.i0).map((o) => o.p);
+      return { o18Late, wo: wo?.p, firstT: first?.t, friT: fri?.t, friC: fri?.c, friV: fri?.v, nwog: g ? { top: g.top, bottom: g.bottom } : null, tf: window.__CH.tf };
     });
     const firstEt = r.firstT ? et.format(new Date(r.firstT * 1000)) : "none", friEt = r.friT ? et.format(new Date(r.friT * 1000)) : "none";
     console.log(`\n${sym} ${tf}: weekly open ${r.wo} (daily ${dOpen}), first bar ${firstEt}, Friday's last ${friEt} close ${r.friC}, NWOG ${JSON.stringify(r.nwog)}`);
     ok(Math.abs(r.wo - dOpen) < 0.01, `${sym} ${tf}: the weekly open is the session's real open, ${r.wo}`);
     ok(/^Sun 18:00$/.test(firstEt), `${sym} ${tf}: the week's first bar is Sunday 18:00 (${firstEt})`);
     ok(!/17:00/.test(friEt) || tf === "1h", `${sym} ${tf}: Friday's last bar is a trade, not a 17:00 settlement print (${friEt})`);
+    ok(!r.o18Late.length, `${sym} ${tf}: no earlier 18:00 open runs on into the new week (${JSON.stringify(r.o18Late)})`);
     if (r.nwog) ok(Math.abs(Math.min(r.nwog.top, r.nwog.bottom) - Math.min(r.friC, dOpen)) < 0.01 && Math.abs(Math.max(r.nwog.top, r.nwog.bottom) - Math.max(r.friC, dOpen)) < 0.01, `${sym} ${tf}: the NWOG runs from Friday's close ${r.friC} to the open ${dOpen}`);
     else console.log("  (no NWOG box: the gap is under half a point, or price has traded through it)");
     if (tf === "1m" && sym === "NQ") await page.screenshot({ path: `${OUT}/nq-1m.png` });
