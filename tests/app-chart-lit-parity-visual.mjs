@@ -118,6 +118,22 @@ if (!ONLY) {
   ok(ov.h === 0, `${ov.n} labels placed, no two overlap`)
   await page.screenshot({ path: `${OUT}/2560-grey-1m.png` })
 
+  // PO3 wears D1's own candle colours (D1, 09-28: "I wanted the Power 3 candles to match the current candle colors
+  // that I have"), and follows them when he changes them. Scroll them into view, read each body's centre pixel.
+  const po3Body = () => page.evaluate(() => {
+    const C = window.__CH, cv = document.getElementById('ch-canvas'), g = cv.getContext('2d'), dpr = cv.width / cv.clientWidth, L = C.$.lit(), bars = C.vis || C.bars, t = bars[bars.length - 1].t
+    C.offset = 64; C.$.paint()
+    return L.po3.map((c, k) => { const x = C.po3At[k] + (c.width * C.barW) / 2, y = (C.$.pt(t, c.o).y + C.$.pt(t, c.c).y) / 2, d = g.getImageData(Math.round(x * dpr), Math.round(y * dpr), 1, 1).data
+      return { label: c.label, up: c.c >= c.o, tall: Math.abs(C.$.pt(t, c.o).y - C.$.pt(t, c.c).y) > 4, hex: '#' + [d[0], d[1], d[2]].map((v) => v.toString(16).padStart(2, '0')).join('') } })
+  })
+  const want = await page.evaluate(() => ({ up: window.__CH.s.up, down: window.__CH.s.down }))
+  const b1 = (await po3Body()).filter((c) => c.tall)
+  ok(b1.length && b1.every((c) => c.hex === (c.up ? want.up : want.down)), `PO3 bodies are the chart's candles (${want.up} up, ${want.down} down): ${b1.map((c) => `${c.label} ${c.hex}`).join(', ')}`)
+  await page.evaluate(() => { const S = window.__CH.s; window.__keepCandles = [S.up, S.down]; S.up = '#00e676'; S.down = '#d500f9' })
+  const b2 = (await po3Body()).filter((c) => c.tall)
+  ok(b2.length && b2.every((c) => c.hex === (c.up ? '#00e676' : '#d500f9')), `and they follow a candle colour change: ${b2.map((c) => `${c.label} ${c.hex}`).join(', ')}`)
+  await page.evaluate(() => { const S = window.__CH.s; [S.up, S.down] = window.__keepCandles; window.__CH.offset = 6; window.__CH.$.paint() })
+
   // replay to last Friday afternoon: key opens, the 10:00 freeze at 14:00, the markers, a frozen 18:00 open
   const fri = await page.evaluate(() => {
     const C = window.__CH, all = C.bars, f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false })
@@ -157,9 +173,9 @@ if (!ONLY) {
   // QQQ / SPY: fetched from the tape, hidden while the ETF is not printing, shown when it is
   await page.waitForFunction(() => window.__CH.ref && window.__CH.ref.QQQ && window.__CH.ref.SPY, null, { timeout: 20000 }).catch(() => {})
   const ref = await page.evaluate(() => { const C = window.__CH, bars = C.vis || C.bars, last = bars[bars.length - 1]; const q = C.ref || {}; const before = (C.lbl || []).filter((x) => /^(QQQ|SPY) : /.test(x.text)).map((x) => x.text); const live = Math.abs(last.t - (q.QQQ?.t || 0)) <= 300
-    const keep = JSON.parse(JSON.stringify(q)); C.ref = { QQQ: { p: q.QQQ.p, t: last.t }, SPY: { p: q.SPY.p, t: last.t } }; C.$.paint(); const after = (C.lbl || []).filter((x) => /^(QQQ|SPY) : /.test(x.text)); C.ref = keep; C.$.paint()
+    const keep = JSON.parse(JSON.stringify(q)); C.ref = { QQQ: { p: q.QQQ?.p ?? 612.34, t: last.t }, SPY: { p: q.SPY?.p ?? 668.12, t: last.t } }; C.$.paint(); const after = (C.lbl || []).filter((x) => /^(QQQ|SPY) : /.test(x.text)); C.ref = keep; C.$.paint()
     return { qqq: q.QQQ, spy: q.SPY, before, live, after: after.map((x) => ({ t: x.text, y: (x.y0 + x.y1) / 2 })), price: C.$.pt(last.t, last.c).y } })
-  ok(ref.qqq?.p > 100 && ref.spy?.p > 100, `the tape serves QQQ ${ref.qqq?.p} and SPY ${ref.spy?.p} (regular session)`)
+  ok((ref.qqq?.p > 100 && ref.spy?.p > 100) || (ref.qqq === null && ref.spy === null), `the tape serves QQQ ${ref.qqq?.p} and SPY ${ref.spy?.p} (regular session; null before today's 09:30 print)`)
   ok(ref.live || !ref.before.length, `not printing now, so no rows (${ref.before.join(' | ') || 'none'})`)
   ok(ref.after.length === 2 && /^QQQ : \d+(\.\d{1,2})?$/.test(ref.after[0].t) && ref.after.every((a) => Math.abs(a.y - ref.price) < 14), `printing, both rows sit beside price: ${ref.after.map((a) => a.t).join(' | ')}`)
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''))
@@ -212,12 +228,25 @@ await browser.close()
 {
   console.log('\niPhone 15 Pro, WebKit')
   const wk = await PW.webkit.launch()
-  const ctx = await wk.newContext({ ...PW.devices['iPhone 15 Pro'] }); await seed(ctx)
-  const { page, errs } = await open(ctx)
-  const ov = await overlaps(page)
-  ok(ov.h === 0, `${ov.n} labels on the phone, no two overlap`)
-  await page.screenshot({ path: `${OUT}/phone-1m.png` })
-  ok(!errs.length, 'no page errors on the phone' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''))
+  for (const tf of ['1m', '15m']) {
+    const ctx = await wk.newContext({ ...PW.devices['iPhone 15 Pro'] }); await seed(ctx, { tf })
+    const { page, errs } = await open(ctx)
+    const ov = await overlaps(page)
+    ok(ov.h === 0, `${tf}: ${ov.n} labels on the phone, no two overlap`)
+    // no level's name on the legend, and the tag clears it (09-28: "[22:00 Open]" sat on the legend's close price)
+    const lg = await page.evaluate(() => {
+      const cv = document.getElementById('ch-canvas').getBoundingClientRect()
+      const rows = [...document.querySelectorAll('#ch-legend .ln')].map((e) => e.getBoundingClientRect()).filter((r) => r.width).map((r) => ({ x0: r.left - cv.left, x1: r.right - cv.left, y0: r.top - cv.top, y1: r.bottom - cv.top }))
+      const hit = (a, b) => a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0
+      const on = (window.__CH.lbl || []).filter((l) => rows.some((r) => hit(l, r))).map((l) => l.text)
+      const tag = window.__CH.wmRect, tagOn = tag && rows.some((r) => hit({ x0: tag.x0 + 4, x1: tag.x1 - 4, y0: tag.y0 + 2, y1: tag.y1 - 3 }, r))
+      return { on, tagOn, tf: window.__CH.tf, rows: rows.length }
+    })
+    ok(!lg.on.length && !lg.tagOn, `${lg.tf}: no level name on the legend (${lg.on.join(', ') || 'none'}), the tag clears it (${lg.tagOn ? 'NO' : 'yes'})`)
+    await page.screenshot({ path: `${OUT}/phone-${tf}.png` })
+    ok(!errs.length, `${tf}: no page errors on the phone` + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''))
+    await ctx.close()
+  }
   await wk.close()
 }
 

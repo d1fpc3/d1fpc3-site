@@ -1376,8 +1376,9 @@
     #v-chart .ch-symbtn svg { width: 16px; height: 16px; color: var(--ink); }
     #v-chart .ch-symbtn b { font-size: 14px; font-weight: 600; letter-spacing: 0; }
     #v-chart .ch-symbtn:hover { background: var(--panel-2); }
-    #v-chart .ch-sess { font-size: 10px; letter-spacing: 0.04em; color: var(--faint); align-self: center; }
-    #v-chart .ch-sess.lag { color: #f57c00; }
+    #v-chart .ch-sess { font-size: 11.5px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--faint); align-self: center; white-space: nowrap; }
+    #v-chart .ch-sess.lag { color: #f5a623; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 999px; background: rgba(245, 166, 35, 0.13); }
+    #v-chart .ch-sess.lag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     #v-chart .ch-ib { height: 30px; padding: 0 6px; border-radius: 4px; align-items: center; color: var(--ink); transition: background 0.12s ease; }
     #v-chart .ch-ib svg { width: 18px; height: 18px; stroke-width: 1.6; }
     #v-chart .ch-ib:disabled { color: var(--faint); opacity: 0.45; cursor: default; background: none; }
@@ -15310,7 +15311,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (typeof mode === 'boolean') mode = mode ? 'light' : 'dark'
       const dk = mode === 'dark', ink = dk ? '#e9e3d8' : '#080202', black = dk ? '#e9e3d8' : '#000000', grey = mode === 'light' ? '#787b86' : dk ? '#a0a0a0' : '#000000'
       return { litPdC: grey, litPwC: grey, litPmC: grey, litWoC: ink, litOpenC: ink, litOpen22C: ink, litMarksC: ink, litAsiaC: '#faa1a4', litLdnC: black, litNyC: black, litDsC: black, litKoC: black, litSigC: black, litRefC: black,
-        litNwogUp: '#26a69a', litNwogDn: '#ef5350', litNwogC: grey, litGoldC: '#d4af37', litPo3Up: '#4caf50', litPo3Dn: dk ? '#e9e3d8' : '#000000', litPo3Wick: dk ? '#d1d4dc' : '#000000', litPo3Edge: dk ? '#d1d4dc' : '#363a45', litPo3Lab: grey,
+        litNwogUp: '#26a69a', litNwogDn: '#ef5350', litNwogC: grey, litGoldC: '#d4af37', litPo3Up: '', litPo3Dn: '', litPo3Lab: grey,
         litWmC: mode === 'light' ? '#1a1815' : '#e9e3d8', litVecUp: D1_VEC_UP, litVecDn: D1_VEC_DN }
     }
     // the parts in the Pine's master-control order; the weekly eighths and daily reset levels left the Pine on 09-22
@@ -15324,6 +15325,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        go. A plate in the chart's own background keeps every survivor readable
        over the candles, the same trick the GEX names use. */
     const CH_LBL_DY = [0, -12, 12, -24, 24, -36, 36]
+    function chLegendRects(cv) {
+      const lg = el('ch-legend'); if (!lg || !cv || lg.hidden || !lg.offsetParent) return []
+      const c = cv.getBoundingClientRect(), rows = lg.querySelectorAll('.ln'), list = rows.length ? rows : [lg]
+      const out = []
+      for (const r0 of list) { const r = r0.getBoundingClientRect(); if (r.width && r.height) out.push({ x0: r.left - c.left - 4, x1: r.right - c.left + 4, y0: r.top - c.top - 2, y1: r.bottom - c.top + 3 }) }
+      return out
+    }
     function chLabelLane(ctx) {
       const q = []
       const lane = {
@@ -15337,6 +15345,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         flush: (L) => {
           // a halo in the canvas colour hugs each letter, so a line crossing a name never strikes through it; unlike the old plate it is invisible on the canvas
           const placed = [], halo = /^#[0-9a-f]{6}$/i.test(CH.bgNow || '') ? alpha(CH.bgNow, 0.85) : null
+          // the legend's rows (and the tag, once painted) are text of their own: a level's name is never written over
+          // them (D1's phone, 09-28: "[22:00 Open]" landed on the legend's close price). Rows, not the whole box: the
+          // legend is max-content per row, so a short row leaves the canvas beside it free.
+          const keep = chLegendRects(ctx.canvas).concat(CH.wmRect ? [CH.wmRect] : [])
+          const hitsKeep = (x0, w, yy, h) => keep.some((r) => x0 < r.x1 && x0 + w > r.x0 && yy - h < r.y1 && yy > r.y0)
           for (const it of q.sort((a, b) => a.prio - b.prio)) {
             if (!isFinite(it.x) || !isFinite(it.y)) continue
             ctx.font = `600 ${it.size}px ${GEX_FONT}`
@@ -15348,11 +15361,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
               const yy = it.y + dy
               if (yy - h < 1 || yy > L.mainH - 2) continue
               if (placed.some((p) => x0 < p.x1 + 4 && x0 + w > p.x0 - 4 && yy - h < p.y1 && yy > p.y0)) continue
+              if (hitsKeep(x0, w, yy, h)) continue
               y = yy; break
             }
-            // no free slot: it still shows, where it asked to be (D1, 09-27: dropped labels hid levels)
+            // no free slot: it still shows, where it asked to be (D1, 09-27: dropped labels hid levels), unless that is
+            // on the legend, where it looks for the nearest clear line just below it instead
             let forced = false
-            if (y == null) { if (it.y - h < 1 || it.y > L.mainH - 2) continue; y = it.y; forced = true }
+            if (y == null) {
+              if (it.y - h < 1 || it.y > L.mainH - 2) continue
+              y = it.y; forced = true
+              // no further than 48px: a name that has to travel further than that no longer reads as its level's, so it stays off
+              if (hitsKeep(x0, w, y, h)) { let yy = y; while (yy < Math.min(L.mainH - 2, it.y + 48) && hitsKeep(x0, w, yy, h)) yy += 6; if (hitsKeep(x0, w, yy, h) || yy >= L.mainH - 2) continue; y = yy }
+            }
             placed.push({ x0, x1: x0 + w, y0: y - h, y1: y, text: it.text, forced })
             // no plate behind the text (D1, 09-27: every label read as a box and covered what was under it)
             ctx.textAlign = 'left'
@@ -15413,7 +15433,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // row just under the lowest low in view
       LBL.part = 'litDs'; if (S.litDs && lit.days.length) {
         let lo = Infinity; for (let i = Math.max(0, i0); i <= Math.min(n - 1, i1); i++) if (bars[i].l < lo) lo = bars[i].l
-        const rowY = isFinite(lo) ? Math.min(L.mainH - 4, Y(lo * (1 - 0.0015)) - 3) : L.mainH - 4
+        const rowY = isFinite(lo) ? Math.min(L.mainH - 7, Y(lo * (1 - 0.0015)) - 3) : L.mainH - 7
         for (const d of lit.days) { if (!visible(d.i, d.i1)) continue; if (d.i >= i0 - 1 && d.i <= i1 + 1) vline(Math.round(X(d.i)) + 0.5, A('litDsC', 0.4), []); tag(d.name, X((d.i + d.i1) / 2), rowY, A('litDsC', 0.7), 'center', SM, 56) }
       }
       /* 3, 4, 4b. PDH / PDL, PWH / PWL, PMH / PML: grey rays from the extreme to the bar that sweeps it or to the
@@ -15440,17 +15460,23 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       LBL.part = 'litGold'; if (S.litGold && lit.gold && visible(lit.gold.i0, lit.gold.i1)) hline(lit.gold.h * 1.0005, X(lit.gold.i0), X(lit.gold.i1), cc('litGoldC'), [], W('litGoldW', 1))
       // 9d. σ bands: black, from the session open to 8 bars past price, named at the right end
       LBL.part = 'litSig'; if (S.litSig && lit.sig) { const g = lit.sig, c = cc('litSigC'), lw = W('litSigW', 1), e = n - 1 + 8; if (visible(g.i0, e)) { const band = (k, lab) => { const p = g.anchor + g.s1 * k; hline(p, X(g.i0), X(e), c, [], lw); tagL(lab, X(e), p, c, SM, 24) }; for (const k of [2.5, 2, -2, -2.5]) band(k, `${k > 0 ? '+' : ''}${k}σ`); if (S.litSig1) { band(1, '+1σ'); band(-1, '-1σ') } if (S.litSigAnc) band(0, 'anchor') } }
-      // 8b. PO3 candles right of price, each at its own bar offset (20, 35, 50) and width (4, 6, 6): green up, black
-      // down, a black wick, a dark edge and the candle's NY open time above (a PO3 colour picked in the menu wins)
+      // 8b. PO3 candles right of price, each at its own bar offset (20, 35, 50) and width (4, 6, 6), the candle's NY
+      // open time above. They wear the chart's OWN candle colours, body, wick and border, up and down (D1, 09-28:
+      // "I wanted the Power 3 candles to match the current candle colors that I have"; the Pine's green and black
+      // are not his). A PO3 colour picked on purpose in the LIT menu still wins.
       LBL.part = 'litPo3'; if (S.litPo3 && lit.po3.length) {
         const lastX = X(n - 1)
         const want = lit.po3.map((c) => ({ c, x: lastX + c.offset * CH.barW, w: Math.max(4, c.width * CH.barW) }))
         CH.po3At = want.map((p) => Math.round(p.x))   // where they landed, for the harness
         if (want.some((p) => p.x + p.w > 0 && p.x < L.plotW)) for (const { c, x, w } of want) {
           const up = c.c >= c.o, mid = Math.round(x + w / 2) + 0.5, top = Math.min(Y(c.o), Y(c.c)), hgt = Math.max(1, Math.abs(Y(c.c) - Y(c.o)))
-          ctx.strokeStyle = cc('litPo3Wick'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(mid, Y(c.h)); ctx.lineTo(mid, Y(c.l)); ctx.stroke()
-          ctx.fillStyle = cc(up ? 'litPo3Up' : 'litPo3Dn'); ctx.fillRect(x, top, w, hgt)
-          ctx.strokeStyle = cc('litPo3Edge'); ctx.strokeRect(Math.round(x) + 0.5, Math.round(top) + 0.5, Math.round(w), Math.round(hgt))
+          const CD = chDefaults(T, light)
+          const body = (up ? S.litPo3Up : S.litPo3Dn) || (up ? S.up || CD.up : S.down || CD.down)
+          const wick = up ? S.wickUp || S.up || CD.wickUp : S.wickDown || S.down || CD.wickDown
+          const edge = S.border === false ? body : up ? S.borderUp || S.up || CD.borderUp : S.borderDown || S.down || CD.borderDown
+          ctx.strokeStyle = wick; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(mid, Y(c.h)); ctx.lineTo(mid, Y(c.l)); ctx.stroke()
+          ctx.fillStyle = body; ctx.fillRect(x, top, w, hgt)
+          ctx.strokeStyle = edge; ctx.strokeRect(Math.round(x) + 0.5, Math.round(top) + 0.5, Math.round(w), Math.round(hgt))
           tag(c.openAt ? CH_ET_HM.format(new Date(c.openAt * 1000)) : c.label.replace(' PO3', ''), mid, Y(c.h) - 4, cc('litPo3Lab'), 'center', SM, 40)
         }
       }
@@ -16543,6 +16569,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (S.watermark) { ctx.save(); ctx.font = `700 ${Math.min(160, L.mainH * 0.42) * (+S.wmBigSize || 1)}px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = alpha(S.wmBigC || (T.ink.length === 7 ? T.ink : (light ? '#000000' : '#ffffff')), S.wmBigA ?? (light ? 0.045 : 0.05)); ctx.fillText(S.wmBigT || CH.sym, L.plotW / 2, L.mainH / 2); ctx.restore() }
       /* the tag (D1, 09-27: "I need to be able to customize the watermark"): each line on, off or custom, what the
          second line says, its colour, opacity, size, weight, and where it sits */
+      CH.wmRect = null
       if (S.litWm !== false) {
         const d = new Date(), tfl = /^(\d+)m$/.test(CH.tf) ? CH.tf : CH.tf === 'D' ? '1D' : CH.tf, phone = window.innerWidth < 600
         const l1 = S.wmL1 === 'off' ? '' : S.wmL1 === 'custom' ? (S.wmT1 || '').trim() : '@' + (state.profile?.username || 'd1fpc3')
@@ -16552,10 +16579,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const c = S.litWmC || (light ? '#1a1815' : '#e9e3d8'), a = S.wmA ?? 0.5, k = +S.wmSize || 1
           const f1 = (phone ? 15 : 22) * k, f2 = (phone ? 10 : 12.5) * k, gap = 6 * k, h = (l1 ? f1 : 0) + (l1 && l2 ? gap : 0) + (l2 ? f2 : 0)
           const al = S.wmAlign || 'center', x = al === 'left' ? 12 : al === 'right' ? L.plotW - 12 : L.plotW / 2
-          const pos = S.wmPos || 'top', y0 = pos === 'bottom' ? L.mainH - 14 - h : pos === 'middle' ? (L.mainH - h) / 2 : (phone ? 11 : 16)
+          // on a phone the legend runs the width of the chart, so a tag at the top waits under its last row
+          const lgBottom = phone ? Math.max(0, ...chLegendRects(ctx.canvas).map((r) => r.y1)) : 0
+          const pos = S.wmPos || 'top', y0 = pos === 'bottom' ? L.mainH - 14 - h : pos === 'middle' ? (L.mainH - h) / 2 : Math.max(phone ? 11 : 16, lgBottom + 4)
           ctx.save(); ctx.textAlign = al; ctx.textBaseline = 'top'
           if (l1) { ctx.fillStyle = alpha(c, a); ctx.font = `${S.wmBold === false ? 500 : 700} ${f1}px ${GEX_FONT}`; ctx.fillText(l1, x, y0) }
           if (l2) { ctx.fillStyle = alpha(c, a * 0.76); ctx.font = `500 ${f2}px ${GEX_FONT}`; ctx.fillText(l2, x, y0 + (l1 ? f1 + gap : 0)) }
+          // where the tag landed, so the label lane writes no level's name across it
+          ctx.font = `700 ${f1}px ${GEX_FONT}`; const tw = Math.max(l1 ? ctx.measureText(l1).width : 0, (() => { ctx.font = `500 ${f2}px ${GEX_FONT}`; return l2 ? ctx.measureText(l2).width : 0 })())
+          const tx0 = al === 'left' ? x : al === 'right' ? x - tw : x - tw / 2
+          CH.wmRect = { x0: tx0 - 4, x1: tx0 + tw + 4, y0: y0 - 2, y1: y0 + h + 3 }
           ctx.restore()
         }
       }
@@ -18496,7 +18529,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       m.dataset.which = which
       const back = el('ch-menu-back'); back.hidden = !sub; back.onclick = () => chMenu(partKey ? root + ':' + sub : root)
       const hex = (c) => /^#[0-9a-f]{6}$/i.test(c) ? c : '#c9a24a'
-      const defC = (key) => ({ ...chDefaults(T, bgLight), cmpC: '#ff9800', bbC: '#2962ff', bbMidC: '#ff9800', rsiC: '#7e57c2', macdC: '#2962ff', macdSigC: '#ff6d00', atrC: '#26a69a', ...CH_LIT_DEF(chLitMode(S.bg || chBgDefault(light), bgLight)), ...CH_GEX_DEF })[key] || T.gold
+      const defC = (key) => ({ ...chDefaults(T, bgLight), cmpC: '#ff9800', bbC: '#2962ff', bbMidC: '#ff9800', rsiC: '#7e57c2', macdC: '#2962ff', macdSigC: '#ff6d00', atrC: '#26a69a', ...CH_LIT_DEF(chLitMode(S.bg || chBgDefault(light), bgLight)), litPo3Up: S.up || chDefaults(T, bgLight).up, litPo3Dn: S.down || chDefaults(T, bgLight).down, ...CH_GEX_DEF })[key] || T.gold   // PO3 by default wears the candles' own colours
       const row = (label, control, hint) => { const r = document.createElement('div'); r.className = 'ch-row'; const t = document.createElement('div'); t.className = 'ch-row-t'; t.textContent = label; if (hint) { const h = document.createElement('small'); h.textContent = hint; t.appendChild(h) } r.append(t, control); body.appendChild(r); return r }
       const header = (text) => { const h = document.createElement('div'); h.className = 'ch-h'; h.textContent = text; body.appendChild(h) }
       const hint = (text) => { const h = document.createElement('div'); h.className = 'ch-hint'; h.textContent = text; body.appendChild(h) }
@@ -19143,7 +19176,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (min >= 17 * 60 && min < 18 * 60) return { key: 'closed', label: 'Closed' }
       return { key: min < 570 && min >= 240 ? 'pre' : 'globex', label: min < 570 && min >= 240 ? 'Pre-market' : 'Globex' }
     }
-    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const lag = trading && CH.feedAt ? Math.floor((Date.now() / 1000 - CH.feedAt) / 60) : 0; sp.textContent = lag >= 3 ? (window.innerWidth < 520 ? `${lag}m behind` : `feed ${lag}m behind`) : ''; sp.hidden = lag < 3; sp.className = 'ch-sess' + (lag >= 3 ? ' lag' : ''); sp.title = lag >= 3 ? 'Yahoo\x27s feed has stalled; it backfills when it catches up.' : '' } const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const ms = trading ? 3000 : st.key === 'weekend' ? 5 * 60 * 1000 : 60 * 1000; CH.timer = setTimeout(chTick, ms) }
+    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const lag = trading && CH.feedAt ? Math.floor((Date.now() / 1000 - CH.feedAt) / 60) : 0; sp.textContent = lag >= 3 ? (window.innerWidth < 520 ? `${lag} min behind` : `Feed ${lag} min behind`) : ''; sp.hidden = lag < 3; sp.className = 'ch-sess' + (lag >= 3 ? ' lag' : ''); sp.title = lag >= 3 ? 'Yahoo\x27s feed has stalled; it backfills when it catches up.' : '' } const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const ms = trading ? 3000 : st.key === 'weekend' ? 5 * 60 * 1000 : 60 * 1000; CH.timer = setTimeout(chTick, ms) }
     async function chTick() { if (!CH.on) return; if (document.hidden) { chSchedule(); return } await chTail(Date.now() - (CH.fullAt || 0) > 5 * 60 * 1000); for (const peer of new Set([CH.s.smt ? chSmtPeer() : null, CH.s.cmp ? chCmpSym() : null].filter(Boolean))) { const ps = chStoreFor(peer); if (ps.have['1m'] === true) chTail(Date.now() - (ps.fullAt || 0) > 5 * 60 * 1000, peer) } chSchedule() }
 
     function renderGex() {
