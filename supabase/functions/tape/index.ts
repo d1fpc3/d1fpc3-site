@@ -41,7 +41,7 @@ function json(status: number, body: unknown, extra: Record<string, string> = {})
 
 type Bar = [number, number, number, number, number, number];
 
-async function yahoo(symbol: string, params: string) {
+async function yahoo(symbol: string, params: string, keepForming = false) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(SYMBOLS[symbol])}?${params}&includePrePost=true`;
   const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (Echelon tape)", Accept: "application/json" } });
   const j = await r.json().catch(() => ({}));
@@ -65,8 +65,68 @@ async function yahoo(symbol: string, params: string) {
     }
   }
   // coarser intervals: Yahoo stamps the bar still forming with the clock time; it is not a real bar yet, so it never reaches the archive
-  if (bars.length && !params.includes("interval=1m")) { const step = params.includes("interval=60m") ? 3600 : 300; if (bars[bars.length - 1][0] % step) bars.pop(); }
+  if (bars.length && !keepForming && !params.includes("interval=1m")) { const step = params.includes("interval=60m") ? 3600 : 300; if (bars[bars.length - 1][0] % step) bars.pop(); }
+  if (!params.includes("interval=1d")) {
+    // After the 17:00 close Yahoo appends one more "bar" at 17:00 carrying the settlement price with a
+    // volume of 1 (2026-09-25: a wick from the 30,921.75 last trade down to the 30,889.25 settle). It is
+    // not a trade, and as the week's last bar it moved Friday's close, which the NWOG is drawn from.
+    for (let i = bars.length - 1; i >= 0; i--) if (bars[i][5] <= 1 && etMin(bars[i][0]) === 17 * 60) bars.splice(i, 1);
+    await repairSessionOpens(symbol, bars, params.includes("interval=60m") ? 3600 : params.includes("interval=5m") ? 300 : 60, params);
+  }
   return { meta: res.meta ?? {}, bars };
+}
+
+/* Yahoo's intraday bars never carry the first ten minutes of the week: Sunday 18:00 to 18:09 ET is missing
+   from 1m, 2m and 5m for good, and the 60m 18:00 bar is built from 18:10 onward. The daily bar still has the
+   true session open (and a high or low made in those minutes). Without this the weekly open was the 18:10
+   price, 30,844.50 instead of 30,870 on 2026-09-27, the NWOG was drawn down to it, and the 30,920.75 high
+   of the first minutes was nowhere on the chart (D1: "NWOG isn't correct and the weekly open isn't correct").
+   A session start is the first bar after a weekend or holiday gap (or the first bar of the answer, on a
+   Sunday) that lands between 18:01 and 18:59 ET. It gets the missing 18:00 bar back from the daily bar:
+   open = the session open, close = the first real bar's open, high and low stretched to the daily extremes
+   only when no later bar of that session reached them. */
+const ET_PARTS = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour12: false, weekday: "short", hour: "2-digit", minute: "2-digit" });
+const ET_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" });
+function etMin(t: number) { const p: Record<string, string> = {}; for (const x of ET_PARTS.formatToParts(new Date(t * 1000))) p[x.type] = x.value; return (+p.hour % 24) * 60 + +p.minute; }
+function etWd(t: number) { return ET_PARTS.formatToParts(new Date(t * 1000)).find((x) => x.type === "weekday")?.value ?? ""; }
+const tradeDate = (t: number) => ET_DAY.format(new Date((t + 6 * 3600) * 1000));   // the session opening 18:00 belongs to the next day
+const dailyCache = new Map<string, { at: number; bars: Bar[] }>();
+async function dailyBars(symbol: string, range: string) {
+  const k = `${symbol}|${range}`, hit = dailyCache.get(k);
+  if (hit && Date.now() - hit.at < 60_000) return hit.bars;
+  const { bars } = await yahoo(symbol, `interval=1d&range=${range}`, true);   // the live session's daily bar is the one this week needs
+  dailyCache.set(k, { at: Date.now(), bars });
+  return bars;
+}
+async function repairSessionOpens(symbol: string, bars: Bar[], step: number, params: string) {
+  const starts: number[] = [];
+  for (let i = 0; i < bars.length; i++) {
+    const gap = i === 0 ? etWd(bars[0][0]) === "Sun" : bars[i][0] - bars[i - 1][0] >= 20 * 3600;
+    if (!gap) continue;
+    const m = etMin(bars[i][0]);
+    if (m > 18 * 60 && m < 19 * 60) starts.push(i);
+    else if (m === 18 * 60 && step >= 3600) starts.push(i);   // the 60m bar is there, its open is not
+  }
+  if (!starts.length) return;
+  let daily: Bar[] = [];
+  const wide = /range=(60d|1y|2y|5y|max)|period1=/.test(params);
+  try { daily = await dailyBars(symbol, wide ? "2y" : "3mo"); } catch { return; }
+  const byDate = new Map(daily.map((d) => [tradeDate(d[0]), d]));
+  for (let s = starts.length - 1; s >= 0; s--) {
+    const i = starts[s], first = bars[i];
+    const sessionStart = first[0] - (etMin(first[0]) - 18 * 60) * 60;
+    const d = byDate.get(tradeDate(sessionStart)); if (!d) continue;
+    let hi = -Infinity, lo = Infinity, lastT = 0;
+    for (let j = i; j < bars.length && bars[j][0] < sessionStart + 23 * 3600; j++) { lastT = bars[j][0]; if (j > i || first[0] !== sessionStart) { hi = Math.max(hi, bars[j][2]); lo = Math.min(lo, bars[j][3]); } }
+    // the daily extremes only prove something about the missing minutes when every other bar of the session is
+    // in hand: the session ran to its last hour, or it is still running and the bars reach now. A 7-day backfill
+    // slice that stops mid-session would otherwise hand the day's later high to the 18:00 bar.
+    const whole = lastT >= sessionStart + 22 * 3600 || lastT >= Date.now() / 1000 - 3600;
+    const o = d[1], c = first[1];
+    const h = Math.max(o, c, whole && d[2] > hi ? d[2] : -Infinity), l = Math.min(o, c, whole && d[3] < lo ? d[3] : Infinity);
+    if (first[0] === sessionStart) { first[1] = o; first[2] = Math.max(first[2], h); first[3] = Math.min(first[3], l); }
+    else bars.splice(i, 0, [sessionStart, o, h, l, c, 0]);
+  }
 }
 
 async function fetchTape(symbol: string, range: string) {
