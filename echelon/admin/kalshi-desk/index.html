@@ -2517,6 +2517,24 @@
       const lv = lf.length ? `. Live: ${lw} won of ${lf.length}, ${lp >= 0 ? '+' : '-'}${Math.abs(lp).toFixed(2)}` : mode === 'live' ? '. No live leg settled yet' : ''
       el('rl-hourly').textContent = head + pp + lv + '.'
     }
+    // D1, 2026-09-28: "start trading it now, just the Bitcoin". Polymarket US lists the same BTC
+    // contract as Kalshi (same CF Benchmarks index, same strike), so the executor offers each BTC leg
+    // there first and takes it only when the ask is at least a cent cheaper (kalshi_switch.polyus,
+    // polyus_orders). This row says which mode it is in and what it has done.
+    function renderVenue(sw, rows = []) {
+      const mode = String(sw?.polyus ?? 'off').toLowerCase()
+      const took = rows.filter((r) => Number(r.filled) > 0), done = took.filter((r) => r.pnl != null)
+      const w = done.filter((r) => r.won).length, pnl = done.reduce((t, r) => t + Number(r.pnl), 0)
+      const kept = rows.filter((r) => r.state === 'kept on Kalshi').length, paper = rows.filter((r) => r.state === 'paper').length
+      const record = took.length
+        ? ` So far ${took.length} BTC leg${took.length === 1 ? '' : 's'} bought there${done.length ? `, ${w} won of ${done.length} settled, ${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toFixed(2)}` : ', none settled yet'}; ${kept} kept on Kalshi because it was not cheaper.`
+        : kept ? ` No leg bought there yet; ${kept} kept on Kalshi because it was not cheaper.` : ' No BTC leg has come up since it was switched on.'
+      el('rl-venue').textContent = mode === 'live'
+        ? `Kalshi, and Polymarket US for BTC. It lists the same BTC contract, so each BTC leg goes there when its ask is at least a cent cheaper, and whatever it cannot fill stays on Kalshi. ETH, SOL, XRP and DOGE are Kalshi only (Polymarket US does not list them).${record}`
+        : mode === 'paper'
+          ? `Kalshi only. Polymarket US (same BTC contract) is on paper: each BTC leg records what it would have bought there. ${paper} paper leg${paper === 1 ? '' : 's'} so far.`
+          : 'Kalshi only. Polymarket US lists the same BTC contract and quotes the favourite about a cent cheaper, but the bot does not trade there, and it lists no ETH, SOL, XRP or DOGE. polymarket.com is closed to US accounts, and the rule does not pay there.'
+    }
     function renderSizing(sw, rt = [], equity = null) {
       if (sw?.risk_model === 'live' && sw?.risk_segments === 'table' && rt?.length) {
         const eq = Number(equity), next = nextCloseAt(), seg = segmentAt(next), by = Object.fromEntries(rt.map((r) => [r.segment, r]))
@@ -2760,7 +2778,7 @@
     async function loadStatus() {
       const et = (d) => new Date(d).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
       const [sw, st, h, rt] = await Promise.all([
-        q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price,risk_model,risk_segments,open_skip,tokyo_skip,sol_btc_skip,hourly_rule,hourly_frac,seg_off').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
+        q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price,risk_model,risk_segments,open_skip,tokyo_skip,sol_btc_skip,hourly_rule,hourly_frac,seg_off,polyus').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
         q('kalshi_executor_state', (b) => b.select('at,halted,realized_today,cash,at_risk,equity').eq('id', 1)).then((r) => r[0] ?? null).catch(() => null),
         supabase.rpc('kalshi_edge_health_desk').then((r) => r.data ?? null).catch(() => null),
         q('kalshi_risk_table', (b) => b.select('segment,n,mean,fraction,computed_at,kelly_mult,cap')).catch(() => []),
@@ -2796,6 +2814,7 @@
         q('kalshi_hourly_paper', (b) => b.select('won,price,pnl_c').eq('mode', 'paper').not('won', 'is', null).order('created_at', { ascending: false }).limit(5000)).catch(() => []),
         q('kalshi_live_orders', (b) => b.select('pnl,filled').eq('source', 'hourly')).catch(() => []),
       ]).then(([p, l]) => renderHourly(sw, p, l))
+      q('polyus_orders', (b) => b.select('state,filled,pnl,won').order('created_at', { ascending: false }).limit(2000)).catch(() => []).then((r) => renderVenue(sw, r))
       const setH = (id, v, cls) => { const e = el(id); e.textContent = v; e.className = 'v ' + (cls ?? '') }
       setH('rl-edge7', e7 == null ? '–' : `${e7 >= 0 ? '+' : ''}${e7.toFixed(2)}c`, e7 == null ? '' : e7 >= 0 ? 'up' : 'down')
       setH('rl-win7', d7 ? `${Number(d7.win_pct).toFixed(1)}%` : '–')
