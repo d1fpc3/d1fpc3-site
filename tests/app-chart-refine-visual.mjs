@@ -172,6 +172,19 @@ console.log('\n1440, light theme, 5m')
   await ctx.close()
 }
 
+// ── the phone, daily: a name with no free row slides along its line instead of printing over another ──
+console.log('\niPhone 15 Pro, WebKit, daily')
+{
+  const wk = await PW.webkit.launch()
+  const ctx = await wk.newContext({ ...PW.devices["iPhone 15 Pro"] }); await seed(ctx, { tf: "D" })
+  const { page, errs } = await open(ctx)
+  const r = await page.evaluate(() => { const L = window.__CH.lbl || []; const hit = []; for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i], b = L[j]; if (a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0) hit.push(a.text + " / " + b.text) } return { n: L.length, hit, forced: L.filter((x) => x.forced).map((x) => x.text) } })
+  ok(r.n > 3 && !r.hit.length, `${r.n} names on the phone daily, none printed over another (${r.hit.join(", ") || "none"}; drawn where they asked: ${r.forced.join(", ") || "none"})`)
+  await page.screenshot({ path: `${OUT}/phone-daily.png` })
+  ok(!errs.length, `no page errors (${errs.join(" | ") || "none"})`)
+  await wk.close()
+}
+
 await browser.close()
 console.log(fails.length ? `\n${fails.length} FAILED:\n  ${fails.join('\n  ')}` : '\nALL OK')
 console.log(`shots: ${OUT}`)

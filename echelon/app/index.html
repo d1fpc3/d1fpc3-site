@@ -15484,17 +15484,24 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             }
             // no free slot: it still shows, where it asked to be (D1, 09-27: dropped labels hid levels), unless that is
             // on the legend, where it looks for the nearest clear line just below it instead
-            // No free row: before writing over another name (two names on one spot read as neither), slide left along
-            // its own line, past whatever holds the spot, up to three times and never more than 160px from its anchor.
+            // No free row: before writing over another name (two names on one spot read as neither), slide along its
+            // own line past whatever holds the spot, right or left, whichever is shorter: up to three hops, never more
+            // than 160px from its anchor, never off the plot. (D1's phone, daily: PDH printed across PWH.)
             if (y == null && it.y - h >= 1 && it.y <= L.mainH - 2) {
-              let xs = x0
-              for (let k = 0; k < 3; k++) {
-                const blk = placed.filter((p) => xs < p.x1 + 4 && xs + w > p.x0 - 4 && it.y - h < p.y1 && it.y > p.y0)
-                const kb = keep.filter((r) => xs < r.x1 && xs + w > r.x0 && it.y - h < r.y1 && it.y > r.y0)
-                if (!blk.length && !kb.length) { if (xs !== x0) { y = it.y; x0 = xs } break }
-                xs = Math.min(...blk.map((p) => p.x0 - 4), ...kb.map((r) => r.x0)) - w - 2
-                if (xs < 2 || x0 - xs > 160) break
+              const walk = (dir) => {
+                let xs = x0
+                for (let k = 0; k <= 3; k++) {
+                  const blk = placed.filter((p) => xs < p.x1 + 4 && xs + w > p.x0 - 4 && it.y - h < p.y1 && it.y > p.y0)
+                  const kb = keep.filter((r) => xs < r.x1 && xs + w > r.x0 && it.y - h < r.y1 && it.y > r.y0)
+                  if (!blk.length && !kb.length) return xs
+                  if (k === 3) return null
+                  xs = dir < 0 ? Math.min(...blk.map((p) => p.x0 - 4), ...kb.map((r) => r.x0)) - w - 2 : Math.max(...blk.map((p) => p.x1 + 4), ...kb.map((r) => r.x1)) + 2
+                  if (xs < 2 || xs + w > L.plotW - 2 || Math.abs(xs - x0) > 160) return null
+                }
+                return null
               }
+              const best = [walk(1), walk(-1)].filter((v) => v != null && v !== x0).sort((a, b) => Math.abs(a - x0) - Math.abs(b - x0))[0]
+              if (best != null) { y = it.y; x0 = best }
             }
             let forced = false
             if (y == null) {
