@@ -56,12 +56,13 @@ const lane = await page.evaluate(() => {
   const hits = [];
   for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) {
     const a = r[i], b = r[j];
+    if (a.forced || b.forced) continue;   // since 09-27 the lane never drops a label: one with no free slot draws where it asked (forced)
     if (a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0) hits.push([i, j]);
   }
-  return { n: r.length, hits: hits.length };
+  return { n: r.length, hits: hits.length, forced: r.filter((x) => x.forced).length };
 });
 ok(lane.n > 12, "the lane placed a full board of labels: " + lane.n);
-ok(lane.hits === 0, "no two labels share pixels: " + lane.hits + " overlaps");
+ok(lane.hits === 0, "no two placed labels share pixels: " + lane.hits + " overlaps (" + lane.forced + " drawn where they asked, the lane had no free slot)");
 await shot("lit-all-on");
 await page.evaluate((loud) => { const C = window.__CH; for (const k of loud) C.s[k] = false; C.$.paint() }, LOUD);
 await page.waitForTimeout(600);
