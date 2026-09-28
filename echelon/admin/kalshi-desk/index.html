@@ -919,6 +919,7 @@
     .sizing-t td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: baseline; }
     .sizing-t tr:last-child td { border-bottom: 0; }
     .sizing-t tr.on td { background: rgba(212,175,55,.07); }
+    .sizing-t tr.off td, .sizing-t tr.off td b { color: var(--faint); }
 /* the risk table's 90-day figure: its own column on a wide screen, a quiet line under the round on a phone */
 .sizing-t .sz-sub { display: none; font-size: 11.5px; opacity: .62; margin-top: 3px; font-weight: 400; }
 @media (max-width: 560px) {
@@ -2518,20 +2519,23 @@
     function renderSizing(sw, rt = [], equity = null) {
       if (sw?.risk_model === 'live' && sw?.risk_segments === 'table' && rt?.length) {
         const eq = Number(equity), next = nextCloseAt(), seg = segmentAt(next), by = Object.fromEntries(rt.map((r) => [r.segment, r]))
-        const skip = String(sw.open_skip ?? 'live').toLowerCase() === 'live' && isOpenSkip(next), f = Number(by[seg]?.fraction ?? 0)
+        // kalshi_switch.seg_off (09-28, D1: weekdays trade the top of the hour only) is a comma list of risk-table
+        // segments that never trade, whatever their fraction; their rows and the next close say so instead of a size
+        const off = new Set(String(sw.seg_off ?? '').split(',').map((x) => x.trim()).filter(Boolean)), segOff = off.has(seg)
+        const skip = String(sw.open_skip ?? 'live').toLowerCase() === 'live' && isOpenSkip(next), f = segOff ? 0 : Number(by[seg]?.fraction ?? 0)
         const at = next.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
-        el('sz-now').textContent = skip ? 'skipped' : f > 0 ? `${(100 * f).toFixed(1)}% of the account` : 'not trading'
-        el('sz-desc').textContent = skip ? `the ${at} close is a US-open close` : `${f > 0 && eq > 0 ? `$${(eq * f).toFixed(2)} on the ${at} close · ` : ''}${SEG_SAY[seg] ?? seg}`
+        el('sz-now').textContent = segOff ? 'switched off' : skip ? 'skipped' : f > 0 ? `${(100 * f).toFixed(1)}% of the account` : 'not trading'
+        el('sz-desc').textContent = segOff ? `the ${at} close · ${SEG_SAY[seg] ?? seg} is switched off` : skip ? `the ${at} close is a US-open close` : `${f > 0 && eq > 0 ? `$${(eq * f).toFixed(2)} on the ${at} close · ` : ''}${SEG_SAY[seg] ?? seg}`
         el('sz-head').innerHTML = '<th>Round</th><th>Share per close</th><th>Stake now</th><th>Last 90 days</th>'
         el('sz-body').innerHTML = Object.keys(SEG_SAY).map((s) => {
-          const r = by[s] ?? {}, fr = Number(r.fraction ?? 0), mu = r.mean == null ? null : 100 * Number(r.mean)
+          const r = by[s] ?? {}, isOff = off.has(s), fr = isOff ? 0 : Number(r.fraction ?? 0), mu = r.mean == null ? null : 100 * Number(r.mean)
           const past = mu == null ? '–' : `${mu >= 0 ? '+' : ''}${mu.toFixed(2)}% a close over ${fmt.format(Number(r.n))} closes`
-          return `<tr data-seg="${s}" class="${s === seg ? 'on' : ''}"><td>${SEG_SAY[s]}<span class="sz-sub">${past}</span></td><td><b>${fr > 0 ? (100 * fr).toFixed(1) + '%' : 'not traded'}</b></td>`
+          return `<tr data-seg="${s}" class="${[s === seg ? 'on' : '', isOff ? 'off' : ''].join(' ').trim()}"><td>${SEG_SAY[s]}<span class="sz-sub">${past}</span></td><td><b>${isOff ? 'switched off' : fr > 0 ? (100 * fr).toFixed(1) + '%' : 'not traded'}</b></td>`
             + `<td>${fr > 0 && eq > 0 ? '$' + (eq * fr).toFixed(2) : '–'}</td><td>${past}</td></tr>`
         }).join('')
         const KM = { 0.25: 'quarter', 0.5: 'half', 0.75: 'three-quarter', 1: 'full' }
         const when = rt[0]?.computed_at ? new Date(rt[0].computed_at).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'nightly'
-        el('sz-note').textContent = `The risk model has sized every bet since 2026-09-27. Each row's share of the account per close is ${KM[rt[0]?.kelly_mult] ?? `${rt[0]?.kelly_mult}x`} Kelly on the cautious (80%) bound of its last 90 days, capped at ${Math.round(100 * Number(rt[0]?.cap ?? 0.12))}%, and inside a close the money tilts toward the coin moving on its own, the cheapest book and the tightest spread. A close where only one coin qualifies bets half, because one coin swings about twice as hard as a spread of them. A row trades only while that cautious bound is above zero, so a small positive average on a noisy row can still sit out, and a row whose edge fades stops by itself. Recomputed ${when} ET.`
+        el('sz-note').textContent = `The risk model has sized every bet since 2026-09-27. Each row's share of the account per close is ${KM[rt[0]?.kelly_mult] ?? `${rt[0]?.kelly_mult}x`} Kelly on the cautious (80%) bound of its last 90 days, capped at ${Math.round(100 * Number(rt[0]?.cap ?? 0.12))}%, and inside a close the money tilts toward the coin moving on its own, the cheapest book and the tightest spread. A close where only one coin qualifies bets half, because one coin swings about twice as hard as a spread of them. A row trades only while that cautious bound is above zero, so a small positive average on a noisy row can still sit out, and a row whose edge fades stops by itself.${off.size ? ' A row switched off on the switch never trades, whatever its share.' : ''} Recomputed ${when} ET.`
         return
       }
       const clip = Number(sw?.clip)
@@ -2755,7 +2759,7 @@
     async function loadStatus() {
       const et = (d) => new Date(d).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
       const [sw, st, h, rt] = await Promise.all([
-        q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price,risk_model,risk_segments,open_skip,tokyo_skip,sol_btc_skip,hourly_rule,hourly_frac').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
+        q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price,risk_model,risk_segments,open_skip,tokyo_skip,sol_btc_skip,hourly_rule,hourly_frac,seg_off').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
         q('kalshi_executor_state', (b) => b.select('at,halted,realized_today,cash,at_risk,equity').eq('id', 1)).then((r) => r[0] ?? null).catch(() => null),
         supabase.rpc('kalshi_edge_health_desk').then((r) => r.data ?? null).catch(() => null),
         q('kalshi_risk_table', (b) => b.select('segment,n,mean,fraction,computed_at,kelly_mult,cap')).catch(() => []),

@@ -23,8 +23,10 @@ const session = await (await fetch(`${SB}/auth/v1/verify`, { method: 'POST', hea
 if (!session.access_token) throw new Error('verify failed')
 // the truth, straight from the database
 const truth = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, { method: 'POST', headers: { Authorization: `Bearer ${mgmt}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ query: 'select segment, fraction from kalshi_risk_table' }) })).json()
-const want = Object.fromEntries(truth.map((r) => [r.segment, Number(r.fraction) > 0 ? (100 * Number(r.fraction)).toFixed(1) + '%' : 'not traded']))
 const sql = async (query) => (await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, { method: 'POST', headers: { Authorization: `Bearer ${mgmt}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) })).json()
+// kalshi_switch.seg_off (09-28): a segment named there never trades whatever its fraction, so its row reads "switched off"
+const [so] = await sql('select seg_off from kalshi_switch where id = 1'), OFF = new Set(String(so?.seg_off ?? '').split(',').map((x) => x.trim()).filter(Boolean))
+const want = Object.fromEntries(truth.map((r) => [r.segment, OFF.has(r.segment) ? 'switched off' : Number(r.fraction) > 0 ? (100 * Number(r.fraction)).toFixed(1) + '%' : 'not traded']))
 const [hsw] = await sql('select hourly_rule, hourly_frac from kalshi_switch where id = 1'), [hp] = await sql("select count(*)::int n from kalshi_hourly_paper where won is not null and mode = 'paper'")
 const SAY = { ':00 weekend': 'Sat/Sun, top of the hour', ':30/45 weekend': 'Sat/Sun, :30 and :45', ':15 weekend': 'Sat/Sun, :15', ':00 weekday': 'Mon-Fri, top of the hour', ':30/45 weekday': 'Mon-Fri, :30 and :45', ':15 weekday': 'Mon-Fri, :15' }
 const browser = await chromium.launch(), findings = []
@@ -52,6 +54,10 @@ for (const [name, vp] of [['desk', { viewport: { width: 1440, height: 900 } }], 
   if (got.rows.length !== 6) findings.push(`${name}: ${got.rows.length} sizing rows`)
   for (const r of got.rows) { r.cells[0] = r.cells[0].replace(/[+-]\d.*$/, '').trim(); if (r.cells[1] !== want[r.seg]) findings.push(`${name}: ${r.seg} shows ${r.cells[1]}, database says ${want[r.seg]}`); if (r.cells[0] !== SAY[r.seg]) findings.push(`${name}: ${r.seg} label ${r.cells[0]}`) }
   if (got.rows.filter((r) => r.on).length !== 1) findings.push(`${name}: ${got.rows.filter((r) => r.on).length} rows highlighted as the next close`)
+  for (const r of got.rows) if (OFF.has(r.seg) && r.cells[2] !== '–') findings.push(`${name}: ${r.seg} is switched off but shows a stake ${r.cells[2]}`)
+  const nextSeg = got.rows.find((r) => r.on)?.seg
+  if (nextSeg && OFF.has(nextSeg) && got.now !== 'switched off') findings.push(`${name}: the next close is in ${nextSeg}, switched off, but "right now" says "${got.now}"`)
+  if (nextSeg && !OFF.has(nextSeg) && got.now === 'switched off') findings.push(`${name}: "right now" says switched off for ${nextSeg}`)
   if (got.overflow) findings.push(`${name}: page scrolls sideways (${got.sw} > ${got.iw}): ${got.wide.join(', ')}`)
   if (name === 'phone' && got.rows.some((r) => !r.subVisible || r.col4Visible)) findings.push('phone: the 90-day figure is not under the round')
   if (name === 'desk' && got.rows.some((r) => r.subVisible || !r.col4Visible)) findings.push('desk: the 90-day column is not a column')
