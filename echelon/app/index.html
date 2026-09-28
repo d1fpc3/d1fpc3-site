@@ -1400,6 +1400,8 @@
     #v-chart .ch-legend { top: 4px; left: 8px; gap: 0 8px; font-size: 13px; color: var(--ink); }
     #v-chart .ch-legend .ln { display: flex; align-items: center; gap: 8px; min-height: 22px; padding: 0 4px; border-radius: 4px; border: 1px solid transparent; }
     #v-chart .ch-legend .ln.hd { gap: 6px; min-height: 26px; }
+    /* a halo in the canvas colour, as the level names on the canvas have: a line passing under a row breaks around its letters instead of striking through the prices. Eight hard 1px copies, no blur: a blurred shadow is re-rasterised with the canvas on every frame of a pan */
+    #v-chart .ch-legend .ln { --hl: var(--ch-bg, transparent); text-shadow: 1px 0 0 var(--hl), -1px 0 0 var(--hl), 0 1px 0 var(--hl), 0 -1px 0 var(--hl), 1px 1px 0 var(--hl), -1px -1px 0 var(--hl), 1px -1px 0 var(--hl), -1px 1px 0 var(--hl); }
     #v-chart .ch-legend .ln:not(.hd):hover { border-color: var(--line-bright); background: color-mix(in srgb, var(--panel) 92%, transparent); }
     #v-chart .ch-legend .ttl { font-size: 16px; font-weight: 400; color: var(--ink); margin-right: 2px; }
     #v-chart .ch-legend .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px rgba(8,153,129,0.18); margin: 0 4px 0 2px; }
@@ -2039,6 +2041,8 @@
       #v-chart .ch-menu .seg button, #v-chart .ch-wsel button { height: 40px; min-height: 40px; border-radius: 18px; color: var(--i-label); font-size: 13px; font-weight: 500; }
       #v-chart .ch-menu .seg button.on, #v-chart .ch-wsel button.on { font-weight: 600; }
       #v-chart .ch-menu .seg button::after, #v-chart .ch-wsel button::after { content: ''; position: absolute; inset: -4px 0; }
+      /* six choices (the chart types) in one phone-wide control: at 10px a side "Candles" ran out past its own thumb and into "Hollow" */
+      #v-chart .ch-menu .seg:has(> button:nth-child(6)) button { padding: 0 1px; font-size: 12.5px; letter-spacing: -0.1px; }
       #v-chart .ch-cbtn { min-height: 40px; height: 40px; padding: 0 12px 0 5px; border: 0; background: var(--i-fill3); color: var(--i-label2); font-size: 15px; font-weight: 400; position: relative; }
       #v-chart .ch-cbtn::after { content: ''; position: absolute; inset: -4px 0; }
       #v-chart .ch-cbtn .sw { width: 24px; height: 24px; }
@@ -14787,9 +14791,21 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (st.have[src]) return
       st.have[src] = 'loading'; chBusy(1)
       try {
-        const from = new Date(Date.now() - CH_SPAN[src] * (window.innerWidth < 520 && src !== '1d' ? 0.5 : 1) * 864e5).toISOString().slice(0, 10), to = new Date(Date.now() + 864e5).toISOString().slice(0, 10)   // phones pull half the span
-        const j = await chFetch(`interval=${src}&from=${from}&to=${to}`, sym)
-        st.base[src] = chMerge(st.base[src], j.bars); st.have[src] = true; if (sym === CH.sym) CH.err = null
+        const iso = (ms) => new Date(ms).toISOString().slice(0, 10), span = CH_SPAN[src] * (window.innerWidth < 520 && src !== '1d' ? 0.5 : 1)   // phones pull half the span
+        const from = iso(Date.now() - span * 864e5), to = iso(Date.now() + 864e5), near = { '5m': 30, '60m': 120 }[src]
+        // A long archive is a big answer (the hourly one is 45k bars, 2 MB, four seconds in a browser): the recent
+        // slice comes first so the chart fills at once, and the years behind it follow in a second pull.
+        if (near && span > near * 1.5) {
+          const cut = iso(Date.now() - near * 864e5)
+          const j0 = await chFetch(`interval=${src}&from=${cut}&to=${to}`, sym)
+          st.base[src] = chMerge(st.base[src], j0.bars); if (sym === CH.sym) { CH.err = null; chBuild(); chDraw() }
+          const j = await chFetch(`interval=${src}&from=${from}&to=${cut}`, sym)
+          st.base[src] = chMerge(st.base[src], j.bars)
+        } else {
+          const j = await chFetch(`interval=${src}&from=${from}&to=${to}`, sym)
+          st.base[src] = chMerge(st.base[src], j.bars)
+        }
+        st.have[src] = true; if (sym === CH.sym) CH.err = null
       } catch (err) { st.have[src] = null; if (sym === CH.sym) CH.err = err.message }
       finally { chBusy(-1); chBuild(); chDraw() }
     }
@@ -14823,7 +14839,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const out = []; let cur = null, key = null
       for (const b of src) {
         const k = m >= 43200 ? chMonthKey(b[0]) : m >= 10080 ? chWeekKey(b[0]) : m >= 1440 ? (m === 1440 ? chSessionKey(b[0]) : Math.floor(chSessionKey(b[0]) / (m / 1440))) : Math.floor((b[0] + chEtOff(b[0]) + 21600) / (m * 60))   // from 18:00 ET, so a 4H bar opens at 18, 22, 02, 06, 10, 14 as on TradingView
-        if (k !== key) { key = k; cur = { k, t: m >= 1440 ? b[0] : k * m * 60 - 21600 - chEtOff(b[0]), o: b[1], h: b[2], l: b[3], c: b[4], v: b[5] }; out.push(cur) }
+        // a day (or week) is stamped with its trade date, midnight ET: built from the minutes it began at the 18:00 open the evening before (the crosshair read Sunday on Monday's bar), and the archive stamps a half day at 09:30
+        if (k !== key) { key = k; cur = { k, t: m >= 1440 ? chSessionKey(b[0]) * 86400 - chEtOff(b[0]) : k * m * 60 - 21600 - chEtOff(b[0]), o: b[1], h: b[2], l: b[3], c: b[4], v: b[5] }; out.push(cur) }
         else { if (b[2] > cur.h) cur.h = b[2]; if (b[3] < cur.l) cur.l = b[3]; cur.c = b[4]; cur.v += b[5] }
       }
       return out
@@ -14896,25 +14913,33 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       return cut === arr.length ? c.head : c.head.concat(arr.slice(cut))
     }
-    function chBarsOf(sym) {
-      const [src, m] = CH_TF[CH.tf], st = chStoreFor(sym)
-      let bars = chAggregate(chAdjBase(st, '1m'), m)
-      if (src !== '1m' && st.base[src].length) { const coarse = chAggregate(chAdjBase(st, src), m), firstFine = bars.length ? bars[0].k : Infinity; bars = coarse.filter((b) => b.k < firstFine).concat(bars) }
-      return bars
+    // the bars of one interval for one symbol: the minutes where they reach, the coarse archive around them
+    function chTfBars(st, src, m) {
+      const m1 = chAdjBase(st, '1m')
+      let bars = chAggregate(m1, m)
+      if (src === '1m' || !st.base[src].length) return bars
+      const coarse = chAggregate(chAdjBase(st, src), m)
+      if (m >= 1440) {
+        // A day is the archive's daily bar wherever there is one: it opens on the true 18:00 print and closes on
+        // the settlement, as TradingView's daily does. Built from the minutes, the first day came out cut (the
+        // minutes begin mid-session: 2026-08-27 opened 150 points off) and a holiday lost its session. The
+        // minutes build only the day still trading and any the archive has not stored yet.
+        const lastFine = bars.length ? bars[bars.length - 1].k : null, lastCoarse = coarse.length ? coarse[coarse.length - 1].k : -Infinity
+        return coarse.filter((b) => b.k !== lastFine).concat(bars.filter((b) => b.k > lastCoarse || b.k === lastFine))
+      }
+      // the minutes begin wherever the archive's window does, usually inside a bar: that first bar is partial, the coarse one is whole
+      if (bars.length > 1 && m1.length && bars[0].t < m1[0][0] && coarse.some((b) => b.k === bars[0].k)) bars.shift()
+      const firstFine = bars.length ? bars[0].k : Infinity
+      return coarse.filter((b) => b.k < firstFine).concat(bars)
     }
+    function chBarsOf(sym) { const [src, m] = CH_TF[CH.tf]; return chTfBars(chStoreFor(sym), src, m) }
     let chCmpCache = { key: '', v: null }
     const chCmpDirty = () => { chCmpCache.key = '' }
     function chBuild() {
       const [src, m] = CH_TF[CH.tf]
       CH.tfSec = m * 60
       const stNow = chStoreFor(CH.sym)
-      let bars = chAggregate(chAdjBase(stNow, '1m'), m)
-      if (src !== '1m' && CH.base[src].length) {
-        const coarse = chAggregate(chAdjBase(stNow, src), m)
-        const firstFine = bars.length ? bars[0].k : Infinity
-        const older = coarse.filter((b) => b.k < firstFine)
-        bars = older.concat(bars)
-      }
+      let bars = chTfBars(stNow, src, m)
       if (CH.s.eth === false && CH.tfSec < 86400) bars = bars.filter((b) => { const mm = chMin(b.t); return mm >= 570 && mm < 960 })
       CH.bars = bars
       chSetVis()
@@ -15446,7 +15471,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             if (!isFinite(it.x) || !isFinite(it.y)) continue
             ctx.font = `600 ${it.size}px ${GEX_FONT}`
             const w = ctx.measureText(it.text).width, h = it.size + 2
-            const x0 = it.align === 'right' ? it.x - w : it.align === 'center' ? it.x - w / 2 : it.x
+            let x0 = it.align === 'right' ? it.x - w : it.align === 'center' ? it.x - w / 2 : it.x
             if (x0 + w < 2 || x0 > L.plotW - 2) continue
             let y = null
             for (const dy of CH_LBL_DY) {
@@ -15458,6 +15483,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             }
             // no free slot: it still shows, where it asked to be (D1, 09-27: dropped labels hid levels), unless that is
             // on the legend, where it looks for the nearest clear line just below it instead
+            // No free row: before writing over another name (two names on one spot read as neither), slide left along
+            // its own line, past whatever holds the spot, up to three times and never more than 160px from its anchor.
+            if (y == null && it.y - h >= 1 && it.y <= L.mainH - 2) {
+              let xs = x0
+              for (let k = 0; k < 3; k++) {
+                const blk = placed.filter((p) => xs < p.x1 + 4 && xs + w > p.x0 - 4 && it.y - h < p.y1 && it.y > p.y0)
+                const kb = keep.filter((r) => xs < r.x1 && xs + w > r.x0 && it.y - h < r.y1 && it.y > r.y0)
+                if (!blk.length && !kb.length) { if (xs !== x0) { y = it.y; x0 = xs } break }
+                xs = Math.min(...blk.map((p) => p.x0 - 4), ...kb.map((r) => r.x0)) - w - 2
+                if (xs < 2 || x0 - xs > 160) break
+              }
+            }
             let forced = false
             if (y == null) {
               if (it.y - h < 1 || it.y > L.mainH - 2) continue
@@ -15563,9 +15600,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (want.some((p) => p.x + p.w > 0 && p.x < L.plotW)) for (const { c, x, w } of want) {
           const up = c.c >= c.o, mid = Math.round(x + w / 2) + 0.5, top = Math.min(Y(c.o), Y(c.c)), hgt = Math.max(1, Math.abs(Y(c.c) - Y(c.o)))
           const CD = chDefaults(T, light)
-          const body = (up ? S.litPo3Up : S.litPo3Dn) || (up ? S.up || CD.up : S.down || CD.down)
-          const wick = up ? S.wickUp || S.up || CD.wickUp : S.wickDown || S.down || CD.wickDown
-          const edge = S.border === false ? body : up ? S.borderUp || S.up || CD.borderUp : S.borderDown || S.down || CD.borderDown
+          const K = CH.candleC || { up: S.up || CD.up, down: S.down || CD.down, wickUp: S.wickUp || S.up || CD.wickUp, wickDown: S.wickDown || S.down || CD.wickDown, borderUp: S.borderUp || S.up || CD.borderUp, borderDown: S.borderDown || S.down || CD.borderDown }
+          const body = (up ? S.litPo3Up : S.litPo3Dn) || (up ? K.up : K.down)
+          const wick = up ? K.wickUp : K.wickDown
+          const edge = S.border === false ? body : up ? K.borderUp : K.borderDown
           ctx.strokeStyle = wick; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(mid, Y(c.h)); ctx.lineTo(mid, Y(c.l)); ctx.stroke()
           ctx.fillStyle = body; ctx.fillRect(x, top, w, hgt)
           ctx.strokeStyle = edge; ctx.strokeRect(Math.round(x) + 0.5, Math.round(top) + 0.5, Math.round(w), Math.round(hgt))
@@ -15609,7 +15647,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (chIctCache.key === key) return chIctCache.v
       const v = { mid: null, pc: null, rth: null, macros: [] }
       if (!n || tf > 3600) { chIctCache = { key, v }; return v }
-      const lastDay = chCalDay(bars[n - 1].t), minDay = lastDay - Math.max(0, (S.ictDays ?? 2) - 1)
+      // days back count trading days: on a Monday two CALENDAR days were Sunday and Monday, so Friday's settlement
+      // (and with it the RTH band) was gone until 16:14 (a harness on 2026-09-28 found both null)
+      const lastDay = chCalDay(bars[n - 1].t); let minDay = lastDay
+      for (let k = Math.max(0, (S.ictDays ?? 2) - 1); k > 0;) { minDay--; const wd = ((minDay % 7) + 11) % 7; if (wd !== 0 && wd !== 6) k-- }   // day 0 was a Thursday
       let o930 = null, pcForRth = null
       for (let i = 0; i < n; i++) {
         const b = bars[i], d = chCalDay(b.t); if (d < minDay) continue
@@ -16644,12 +16685,28 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (S.gridC) T.line = S.gridC
       const D = chDefaults(T, light), C = { up: S.up || D.up, down: S.down || D.down, wickUp: S.wickUp || S.up || D.wickUp, wickDown: S.wickDown || D.wickDown, line: S.lineC || D.lineC, cross: S.crossC || D.crossC }
       C.borderUp = S.borderUp || D.borderUp; C.borderDown = S.borderDown || D.borderDown; C.volUp = S.volUp || C.up; C.volDown = S.volDown || D.volDown
+      // D1's candles are drawn for his grey canvas: a light grey body with a white edge, which a white canvas
+      // swallows whole (09-28: on the light theme the up candles, their wicks and their volume all but vanished).
+      // On a light canvas those untouched defaults read as their mirror, a white body with an ink edge, and the
+      // pink keeps a deeper edge. A colour the member picked is left alone.
+      if (light) {
+        const inkE = '#363a45', pinkE = '#e4636b'
+        if (C.up === D1_UP) C.up = '#ffffff'
+        if (C.wickUp === D1_UP_EDGE) C.wickUp = inkE
+        if (C.borderUp === D1_UP_EDGE) C.borderUp = inkE
+        if (C.wickDown === D1_DN) C.wickDown = pinkE
+        if (C.borderDown === D1_DN) C.borderDown = pinkE
+        if (!S.volUp && S.up === D1_UP) C.volUp = '#787b86'
+        if (!S.volDown && S.down === D1_DN) C.volDown = pinkE
+      }
+      CH.candleC = C   // what the candles are painted in, so the PO3 candles wear exactly the same
       // The legend's OHLC sits on the canvas too, so it reads in the candles' own
       // wick colours (white up, pink down on D1's grey) instead of the theme's
       // teal and red: #089981 on #808080 measured 1.1:1. Only when that colour clears the
       // canvas; set only on change so a crosshair frame never restyles the page.
       { const vch = el('v-chart'), bl = chLum(BG), ok = (c) => { const l = chLum(c); return l != null && bl != null && (Math.max(l, bl) + 0.05) / (Math.min(l, bl) + 0.05) >= 1.8 ? c : '' }, u = ok(C.wickUp), d = ok(C.wickDown), f = ok(T.faint)
-        if (vch && vch._legC !== u + '|' + d + '|' + f) { vch._legC = u + '|' + d + '|' + f; for (const [k, v] of [['--ch-up', u], ['--ch-dn', d], ['--ch-faint', f]]) v ? vch.style.setProperty(k, v) : vch.style.removeProperty(k) } }
+        const bgv = /^#[0-9a-f]{6}$/i.test(BG) ? BG : ''
+        if (vch && vch._legC !== u + '|' + d + '|' + f + '|' + bgv) { vch._legC = u + '|' + d + '|' + f + '|' + bgv; for (const [k, v] of [['--ch-up', u], ['--ch-dn', d], ['--ch-faint', f], ['--ch-bg', bgv]]) v ? vch.style.setProperty(k, v) : vch.style.removeProperty(k) } }
       const col = (c) => ({ good: T.good, bad: T.bad, gold: T.gold, faint: T.faint, muted: T.muted, ink: T.ink })[c] || c
       if (S.bg2) { const gr = ctx.createLinearGradient(0, 0, 0, L.H); gr.addColorStop(0, BG); gr.addColorStop(1, S.bg2); ctx.fillStyle = gr } else ctx.fillStyle = BG
       ctx.fillRect(0, 0, L.W, L.H)
@@ -16671,21 +16728,27 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const c = S.litWmC || (light ? '#1a1815' : '#e9e3d8'), a = S.wmA ?? 0.5, k = +S.wmSize || 1
           const f1 = (phone ? 15 : 22) * k, f2 = (phone ? 10 : 12.5) * k, gap = 6 * k, h = (l1 ? f1 : 0) + (l1 && l2 ? gap : 0) + (l2 ? f2 : 0)
           const al = S.wmAlign || 'center', x = al === 'left' ? 12 : al === 'right' ? L.plotW - 12 : L.plotW / 2
-          // on a phone the legend runs the width of the chart, so a tag at the top waits under its last row
-          const lgBottom = phone ? Math.max(0, ...chLegendRects(ctx.canvas).map((r) => r.y1)) : 0
-          const pos = S.wmPos || 'top', y0 = pos === 'bottom' ? L.mainH - 14 - h : pos === 'middle' ? (L.mainH - h) / 2 : Math.max(phone ? 11 : 16, lgBottom + 4)
-          ctx.save(); ctx.textAlign = al; ctx.textBaseline = 'top'
+          ctx.save()
+          ctx.font = `700 ${f1}px ${GEX_FONT}`; const w1 = l1 ? ctx.measureText(l1).width : 0
+          ctx.font = `500 ${f2}px ${GEX_FONT}`; const w2 = l2 ? ctx.measureText(l2).width : 0
+          const tw = Math.max(w1, w2), tx0 = al === 'left' ? x : al === 'right' ? x - tw : x - tw / 2
+          // A tag at the top waits under any legend row it would cross: the phone's legend runs the width of the
+          // chart, and at 1440 the OHLC row reaches past the middle (09-28: the low printed across "@appreview").
+          // Once down it wants 24px of clearance to come back up, so a price that grows a digit does not bounce it.
+          const pos = S.wmPos || 'top'
+          let y0 = pos === 'bottom' ? L.mainH - 14 - h : pos === 'middle' ? (L.mainH - h) / 2 : phone ? 11 : 16
+          if (pos === 'top') { const pad = CH.wmDown ? 24 : 4, under = chLegendRects(ctx.canvas).filter((r) => tx0 - pad < r.x1 && tx0 + tw + pad > r.x0).map((r) => r.y1); CH.wmDown = under.length > 0; if (under.length) y0 = Math.max(y0, Math.max(...under) + 4) }
+          ctx.textAlign = al; ctx.textBaseline = 'top'
           if (l1) { ctx.fillStyle = alpha(c, a); ctx.font = `${S.wmBold === false ? 500 : 700} ${f1}px ${GEX_FONT}`; ctx.fillText(l1, x, y0) }
           if (l2) { ctx.fillStyle = alpha(c, a * 0.76); ctx.font = `500 ${f2}px ${GEX_FONT}`; ctx.fillText(l2, x, y0 + (l1 ? f1 + gap : 0)) }
           // where the tag landed, so the label lane writes no level's name across it
-          ctx.font = `700 ${f1}px ${GEX_FONT}`; const tw = Math.max(l1 ? ctx.measureText(l1).width : 0, (() => { ctx.font = `500 ${f2}px ${GEX_FONT}`; return l2 ? ctx.measureText(l2).width : 0 })())
-          const tx0 = al === 'left' ? x : al === 'right' ? x - tw : x - tw / 2
           CH.wmRect = { x0: tx0 - 4, x1: tx0 + tw + 4, y0: y0 - 2, y1: y0 + h + 3 }
           ctx.restore()
         }
       }
-      // sessions: shade everything outside 9:30 to 16:00 ET, hairline at each open
-      if (S.sessions && CH.tfSec < 86400) {
+      // sessions: shade everything outside 9:30 to 16:00 ET, hairline at each open. Hourly and below, the Pine's own
+      // gate for its session boxes: at 4H two bars a day are in session, and the shade striped the chart like a barcode.
+      if (S.sessions && CH.tfSec <= 3600) {
         // A shade has to move AWAY from the canvas. On a dark canvas that means
         // adding light; on a mid grey it means taking light away, which is what
         // D1's own chart does (his out-of-session blocks read #6d6d6d against
@@ -16837,7 +16900,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const lastBar = bars[n - 1]
       if (S.lastLine && lastBar) {
         const y = Math.round(chY(lastBar.c, L)) + 0.5, up = lastBar.c >= lastBar.o
-        if (lastBar.c >= CH.pMin && lastBar.c <= CH.pMax) { ctx.strokeStyle = alpha(S.lastC || (up ? C.up : C.down === '#ffffff' ? C.borderDown : C.down), 0.9); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([]) }
+        if (lastBar.c >= CH.pMin && lastBar.c <= CH.pMax) { ctx.strokeStyle = alpha(S.lastC || (up ? (light && C.up === '#ffffff' ? C.borderUp : C.up) : C.down === '#ffffff' ? C.borderDown : C.down), 0.9); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([]) }
       }
       // drawings, clipped to the plot; their axis tags come after the axis paints
       ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip(); chPaintDrawings(ctx, L, T, false); ctx.restore()
@@ -16856,6 +16919,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const y = chY(p, L)
         if (tagOn && y > tagY - 15 && y < tagY + (cdRoom ? 30 : 15)) continue
         if (!CH.auto && y > L.mainH - 26) continue
+        if (y < 8 || y > L.mainH - 6) continue   // half a price, cut by the top edge or the volume pane, reads as a wrong one
         ctx.fillText(chPx(p, step < 1 ? 2 : 0), L.plotW + 7, y); CH.axisAt.ticks.push(y)
       }
       // indicator values on the scale, the way the platform tags each study's last value
@@ -16873,7 +16937,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!CH.auto) { const cx0 = L.plotW + 4, cy0 = L.mainH - 20; ctx.fillStyle = alpha(T.gold, 0.18); ctx.fillRect(cx0, cy0, 34, 15); ctx.strokeStyle = alpha(T.gold, 0.5); ctx.strokeRect(cx0 + 0.5, cy0 + 0.5, 33, 14); ctx.fillStyle = T.gold; ctx.font = `600 9.5px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.fillText('AUTO', cx0 + 17, cy0 + 8); ctx.font = `11px ${GEX_FONT}`; CH.autoChip = { x0: cx0, x1: cx0 + 34, y0: cy0, y1: cy0 + 15 } }
       // the tag sets its own alignment: the AUTO chip just above leaves it at
       // 'center', which hung the price half off the tag and across the plot
-      if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = S.lastC || (up ? C.up : C.down === '#ffffff' ? C.borderDown : C.down); ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = (chLum(S.lastC || (up ? C.up : C.down === '#ffffff' ? C.borderDown : C.down)) ?? 0.3) > 0.35 ? '#0b0a09' : '#ffffff'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
+      if (S.lastLine && lastBar) { const y = chY(lastBar.c, L); if (y >= 0 && y <= L.mainH) { const up = lastBar.c >= lastBar.o; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = S.lastC || (up ? (light && C.up === '#ffffff' ? C.borderUp : C.up) : C.down === '#ffffff' ? C.borderDown : C.down); ctx.fillRect(L.plotW + 2, y - 9, L.ax - 4, 18); ctx.fillStyle = (chLum(S.lastC || (up ? (light && C.up === '#ffffff' ? C.borderUp : C.up) : C.down === '#ffffff' ? C.borderDown : C.down)) ?? 0.3) > 0.35 ? '#0b0a09' : '#ffffff'; ctx.font = `600 11px ${GEX_FONT}`; ctx.fillText(chPx(lastBar.c), L.plotW + 7, y); ctx.font = `11px ${GEX_FONT}` } }
       chPaintDrawings(ctx, L, T, true)
       // Keep time labels clear of the date controls and timezone corner.
       { const ab = el('ch-autobtn'); if (ab) ab.classList.toggle('on', !!CH.auto) }
@@ -16918,7 +16982,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (cur === 'cross') { ctx.strokeStyle = crossC; ctx.setLineDash(S.crossStyle === 'solid' ? [] : S.crossStyle === 'dot' ? [1, 3] : [3, 3]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.H - L.tx); ctx.moveTo(0, y); ctx.lineTo(L.plotW, y); ctx.stroke(); ctx.setLineDash([]) }
         else if (cur === 'dot') { ctx.fillStyle = crossC; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill() }
         if (cur !== 'arrow' && hv.y > L.mainH + L.volH) { const pn = L.panes.find((p) => hv.y >= p.top && hv.y < p.top + p.h), sc = pn && CH.paneScale?.[pn.key]; if (sc) { const v = sc.lo + (sc.top + sc.h - 4 - hv.y) / (sc.h - 22) * (sc.hi - sc.lo); ctx.fillStyle = T.panel2; ctx.fillRect(L.plotW + 2, y - 8, L.ax - 4, 16); ctx.fillStyle = T.ink; ctx.textAlign = 'left'; ctx.fillText(pn.key === 'rsi' ? v.toFixed(1) : v.toFixed(2), L.plotW + 7, y) } }
-        if (cur !== 'arrow' && hv.y <= L.mainH) { ctx.fillStyle = sn && sn.snapped ? T.gold : T.panel2; ctx.fillRect(L.plotW + 2, y - 8, L.ax - 4, 16); ctx.fillStyle = sn && sn.snapped ? '#1a1207' : T.ink; ctx.textAlign = 'left'; ctx.fillText(chPx(hvP), L.plotW + 7, y) }
+        if (cur !== 'arrow' && hv.y <= L.mainH) { ctx.fillStyle = sn && sn.snapped ? T.gold : T.panel2; ctx.fillRect(L.plotW + 2, y - 8, L.ax - 4, 16); ctx.fillStyle = sn && sn.snapped ? '#1a1207' : T.ink; ctx.textAlign = 'left'; ctx.fillText(chPx(sn && sn.snapped ? hvP : Math.round(hvP * 4) / 4), L.plotW + 7, y) }   // on the tick, as the platform prints it and as Add alert takes it
         if (sn && sn.snapped && cur !== 'arrow') { ctx.strokeStyle = T.gold; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = T.gold; ctx.beginPath(); ctx.arc(x, y, 1.5, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 1 }
         const tt = b ? b.t : chTofI(chI(hv.x, L)); const text = chFmtFull(tt)
         if (cur !== 'arrow') { ctx.font = `600 10.5px ${GEX_FONT}`; const tw = ctx.measureText(text).width + 12; const tx0 = Math.min(Math.max(0, x - tw / 2), L.W - tw); ctx.fillStyle = T.panel2; ctx.fillRect(tx0, L.H - L.tx + 2, tw, L.tx - 4); ctx.fillStyle = T.ink; ctx.textAlign = 'center'; ctx.fillText(text, tx0 + tw / 2, L.H - L.tx / 2); ctx.font = `11px ${GEX_FONT}` }
@@ -18435,7 +18499,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (mod && (k === 'y' || (k === 'z' && e.shiftKey))) chRedo()
         else if (mod && k === 'd') chDuplicateSel()
         else if (e.altKey && !mod && CH_ALT[k]) chSetTool(CH_ALT[k])
-        else if (e.altKey && !mod && k === 'a') { const L2 = chLayout(); if (CH.hover && CH.hover.x <= L2.plotW && CH.hover.y <= L2.mainH) chAlertAdd(+chP(CH.hover.y, L2).toFixed(2)); else { const c = chLastClose(); if (c != null) chAlertAdd(c) } }
+        else if (e.altKey && !mod && k === 'a') { const L2 = chLayout(); if (CH.hover && CH.hover.x <= L2.plotW && CH.hover.y <= L2.mainH) chAlertAdd(Math.round(chP(CH.hover.y, L2) * 4) / 4); else { const c = chLastClose(); if (c != null) chAlertAdd(c) } }
         else if (e.altKey && !mod && k === 's') chShot('save')
         else if (e.altKey && !mod && k === 'o') chMenu(CH.menu === 'objects' ? null : 'objects')
         else if (!mod && !e.altKey && /^[0-9]$/.test(e.key)) chIntervalKey(e.key)
@@ -18588,7 +18652,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       CH.sel = null; CH.pending = null; CH.measure = null; CH.multi.clear(); CH.err = null; CH.auto = true; CH.offset = 6
       chSelBar(); chSymUi(); chBuild(); chDraw(); if (CH.s.smt || CH.s.cmp) chSmtWarm()
       const [src] = CH_TF[CH.tf]
-      if (!CH.have['1m']) chTail(true).then(() => chLoad('1m')).then(() => { if (src !== '1m') chLoad(src) })
+      if (!CH.have['1m']) chTail(true).then(() => { chLoad('1m'); if (src !== '1m') chLoad(src) })
       else { chTail(true); if (src !== '1m' && !CH.have[src]) chLoad(src) }
       chSchedule()
     }
@@ -18875,7 +18939,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       } else if (which === 'ind:ict') {
         toggle('ict', 'Show D1 ICT')
         hint('The PO3 candles and the 08:30 / 09:30 / 10:00 opens are already D1 LIT parts, so this carries only what LIT does not.')
-        row('Days back', numEl('ictDays', 1, 10, 2), 'How many calendar days keep their levels')
+        row('Days back', numEl('ictDays', 1, 10, 2), 'How many trading days keep their levels (a weekend does not count)')
         toggle('ictLabels', 'Labels')
         header('Parts')
         partRow('Midnight open', '00:00 New York', [colorEl('ictMidC', 'default')], tglEl('ictMid'), { key: 'ictMid', colors: ['ictMidC'] })
@@ -19242,7 +19306,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chTfCustomButtons(); el('ch-tf').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tf === CH.tf))
       chSetTool(CH.s.rail?.cursor || CH.tool); chReplayUi()
       chDraw()
-      if (!CH.have['1m']) { await chTail(true); chLoad('1m').then(() => { const [src] = CH_TF[CH.tf]; if (src !== '1m') chLoad(src) }) }
+      // the minutes and the interval's own archive side by side: one after the other, a 4H chart waited six seconds for its hourly bars behind a minute archive it barely uses
+      if (!CH.have['1m']) { await chTail(true); const [src] = CH_TF[CH.tf]; chLoad('1m'); if (src !== '1m') chLoad(src) }
       else chTail(true)
       chSchedule()
     }

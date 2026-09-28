@@ -48,6 +48,9 @@ async function yahoo(symbol: string, params: string, keepForming = false) {
   if (!r.ok) throw new Error(j?.chart?.error?.description ?? `yahoo ${r.status}`);
   const res = j?.chart?.result?.[0];
   if (!res) throw new Error(j?.chart?.error?.description ?? "empty chart");
+  // a daily ask over range=max comes back in MONTHS (meta.dataGranularity "1mo"), each stamped the 1st like a day: never store that as days
+  const want = /interval=(1d|1m|5m)/.exec(params)?.[1];
+  if (want && res.meta?.dataGranularity && res.meta.dataGranularity !== want) throw new Error(`yahoo answered ${res.meta.dataGranularity} for ${want}`);
   const ts: number[] = res.timestamp ?? [];
   const q = res.indicators?.quote?.[0] ?? {};
   const bars: Bar[] = [];
@@ -66,6 +69,18 @@ async function yahoo(symbol: string, params: string, keepForming = false) {
   }
   // coarser intervals: Yahoo stamps the bar still forming with the clock time; it is not a real bar yet, so it never reaches the archive
   if (bars.length && !keepForming && !params.includes("interval=1m")) { const step = params.includes("interval=60m") ? 3600 : 300; if (bars[bars.length - 1][0] % step) bars.pop(); }
+  if (params.includes("interval=1d") && bars.length) {
+    // Yahoo slips a MONTH's bar into a daily answer on a 1st that did not trade (a Saturday, New Year's Day, Labor Day):
+    // stamped at midnight like a day, carrying the month's range and ten million contracts. 66 of them sat in the NQ
+    // archive (removed 2026-09-28) and drew a candle the size of a month, with a volume bar to match, on the daily
+    // chart. Nothing trades on a Saturday, a Sunday bar stamped midnight is no session (the live one opens at 18:00),
+    // and no real day trades eight times the median.
+    const vs = bars.map((b) => b[5]).filter((v) => v > 0).sort((a, b) => a - b), med = vs[Math.floor(vs.length / 2)] ?? 0;
+    for (let i = bars.length - 1; i >= 0; i--) {
+      const wd = etWd(bars[i][0]);
+      if (wd === "Sat" || (wd === "Sun" && etMin(bars[i][0]) === 0) || (vs.length >= 5 && med > 0 && bars[i][5] > 8 * med)) bars.splice(i, 1);
+    }
+  }
   if (!params.includes("interval=1d")) {
     // After the 17:00 close Yahoo appends one more "bar" at 17:00 carrying the settlement price with a
     // volume of 1 (2026-09-25: a wick from the 30,921.75 last trade down to the 30,889.25 settle). It is
@@ -207,7 +222,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const interval = INTERVALS.has(body.interval) ? body.interval : "1m";
     const symbol = sym(body.symbol);
-    let params = `interval=${interval}&range=${body.range ?? (interval === "1m" ? "2d" : interval === "5m" ? "60d" : interval === "60m" ? "2y" : "max")}`;
+    let params = `interval=${interval}&range=${body.range ?? (interval === "1m" ? "2d" : interval === "5m" ? "60d" : interval === "60m" ? "2y" : "10y")}`;   // not "max": for a daily ask Yahoo answers range=max in MONTHS
     if (body.period1 && body.period2) params = `interval=${interval}&period1=${+body.period1}&period2=${+body.period2}`;
     try {
       const { bars } = await yahoo(symbol, params);

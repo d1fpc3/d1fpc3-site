@@ -168,7 +168,8 @@ async function run(vpName) {
   await page.screenshot({ path: `${OUT}/${tag}-indicators.png` });
   await page.evaluate(() => window.__CH.$.menu("ind:lit")); await page.waitForTimeout(400);
   const lit = await page.evaluate(() => ({ pills: document.querySelectorAll("#ch-menu-body .ch-prow .ch-cbtn").length, tgl: document.querySelectorAll("#ch-menu-body .ch-prow .tgl").length }));
-  check(lit.pills >= 20 && lit.tgl >= 20, `D1 LIT parts: ${lit.pills} colour pills, ${lit.tgl} switches`);
+  // 19 since the Pine parity pass (09-27): the weekly eighths and the daily reset levels left with the Pine's own
+  check(lit.pills >= 19 && lit.tgl >= 19, `D1 LIT parts: ${lit.pills} colour pills, ${lit.tgl} switches`);
   await page.screenshot({ path: `${OUT}/${tag}-lit.png` });
   await page.click("#ch-menu-close"); await page.waitForTimeout(300);
   if (vpName !== "phone") { await page.click("#ch-type-btn"); await page.waitForTimeout(300); await page.screenshot({ path: `${OUT}/${tag}-type.png` }); await page.keyboard.press("Escape"); await page.waitForTimeout(300); }
