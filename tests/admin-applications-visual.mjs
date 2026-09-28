@@ -63,7 +63,9 @@ ok(await rowOf("Harness Alpha").count() === 1, "and into Accepted");
 const db = await (await fetch(`${SB}/rest/v1/applications?email=eq.harness-app-a-${stamp}@d1fpc3.test&select=status`, { headers: H })).json();
 ok(db[0]?.status === "accepted", "the status saved: " + db[0]?.status);
 await page.click('#apps-filter [data-f="all"]'); await page.waitForTimeout(400);
-await rowOf("Harness Beta").locator("button", { hasText: "Delete" }).click(); await page.waitForTimeout(1200);
+await rowOf("Harness Beta").locator("button", { hasText: "Delete" }).click(); await page.waitForTimeout(500);
+// since 09-28 the confirmation is an Apple alert in the page, not the browser's dialog: press its red button
+await page.locator(".asheet .as-btns button.danger").click(); await page.waitForTimeout(1200);
 const gone = await (await fetch(`${SB}/rest/v1/applications?email=eq.harness-app-b-${stamp}@d1fpc3.test&select=id`, { headers: H })).json();
 ok(gone.length === 0 && await rowOf("Harness Beta").count() === 0, "delete removes the row and the record");
 ok(errors.length === 0, "no page errors: " + errors.join(" | "));
