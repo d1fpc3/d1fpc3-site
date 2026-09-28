@@ -13208,21 +13208,26 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     // ── settings: delete account ────────────────────────────
 
+    // Shared by Settings and the not-a-member gate: the delete-account function, then the goodbye card.
+    async function deleteMyAccount() {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ confirm: 'DELETE' }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? `${res.status}`)
+      await supabase.auth.signOut().catch(() => {})
+      gate({ title: 'Account deleted.', body: 'Everything about you is gone. Thanks for passing through.' })
+    }
+
     el('del-account').addEventListener('click', async () => {
       const msg = el('del-msg')
       if (!(await askConfirm({ title: 'Delete your account', body: 'Everything about you goes for good, including anything you bought. There is no way back.', match: 'DELETE', yes: 'Delete my account', danger: true }))) return
       el('del-account').disabled = true; msg.className = 'msg'; msg.textContent = 'Deleting…'
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` },
-          body: JSON.stringify({ confirm: 'DELETE' }),
-        })
-        const body = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(body.error ?? `${res.status}`)
-        await supabase.auth.signOut().catch(() => {})
-        gate({ title: 'Account deleted.', body: 'Everything about you is gone. Thanks for passing through.' })
+        await deleteMyAccount()
       } catch (err) {
         msg.className = 'msg err'; msg.textContent = err.message
         el('del-account').disabled = false
@@ -22579,6 +22584,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             out.className = 'go dim'; out.style.marginTop = '18px'; out.textContent = 'Sign out'
             out.addEventListener('click', async () => { await supabase.auth.signOut(); location.reload() })
             host.appendChild(out)
+            // App Review 5.1.1(v): an account with nothing on it can still be deleted from here,
+            // not only from Settings (which it cannot reach). Same flow and function as Settings.
+            const del = gateQuiet('Delete this account')
+            del.style.display = 'block'; del.style.margin = '16px auto 0'
+            const note = document.createElement('p'); note.className = 'form-error'; note.hidden = true
+            del.addEventListener('click', async () => {
+              if (!(await askConfirm({ title: 'Delete your account', body: 'Everything about you goes for good. There is no way back.', match: 'DELETE', yes: 'Delete my account', danger: true }))) return
+              del.disabled = true
+              try { await deleteMyAccount() } catch (err) { note.hidden = false; note.textContent = err.message; del.disabled = false }
+            })
+            host.append(del, note)
           },
         })
         return
