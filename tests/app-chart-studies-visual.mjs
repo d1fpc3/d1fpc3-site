@@ -42,7 +42,7 @@ await page.evaluate(() => { window.__CH.s.cmp = false; window.__CH.s.lit = true;
 await go("chart"); await page.waitForFunction(() => /O\s?[\d,]/.test(document.getElementById("ch-legend").textContent), null, { timeout: 30000 }).catch(() => {}); await page.waitForTimeout(1500);
 page.on("dialog", (d) => d.accept("Harness set"));
 await page.evaluate(() => { const C = window.__CH; C.s.emaOn = true; C.s.vwap = true; C.s.lit = false; C.$.menu("ind") }); await page.waitForTimeout(400);
-await page.click(".ch-tpl-b.add"); await page.waitForTimeout(400);
+await page.click(".ch-tpl-b.add"); await page.fill(".ch-ask input", "Harness set"); await page.keyboard.press("Enter"); await page.waitForTimeout(400);
 ok(await page.locator(".ch-tpl-b", { hasText: "Harness set" }).count() === 1, "the current set saves under a name");
 await page.evaluate(() => { const C = window.__CH; C.s.emaOn = false; C.s.vwap = false; C.s.lit = true; C.$.menu("ind") }); await page.waitForTimeout(300);
 await page.locator(".ch-tpl-b", { hasText: "Harness set" }).locator("span").click(); await page.waitForTimeout(600);

@@ -185,6 +185,100 @@ console.log('\niPhone 15 Pro, WebKit, daily')
   await wk.close()
 }
 
+// ── the views pass (D1, 09-28: "there's still a few things that look off, refine the desktop and phone view") ──
+console.log('\n1440, the views pass')
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }); await seed(ctx, { tf: '5m' })
+  const { page, errs } = await open(ctx)
+  const natives = []; page.on('dialog', async (d) => { natives.push(d.type()); await d.dismiss() })
+  const geo = () => page.evaluate(() => { const c = document.getElementById('ch-canvas').getBoundingClientRect(), m = document.getElementById('ch-menu'), r = m.getBoundingClientRect(); return { cv: Math.round(c.right), ml: Math.round(r.left), mr: Math.round(r.right), open: !m.hidden, dock: document.querySelector('#v-chart .ch-body').classList.contains('dock') } })
+  // chart type: six rows, a picture beside each name, none cut off
+  await page.click('#ch-type-btn'); await page.waitForTimeout(500)
+  const ty = await page.evaluate(() => { const m = document.getElementById('ch-menu'), bs = [...m.querySelectorAll('.ch-opt-ty')]; return { n: bs.length, flex: bs.every((b) => getComputedStyle(b).display === 'flex'), tall: Math.max(...bs.map((b) => b.getBoundingClientRect().height)), fits: m.scrollHeight <= m.clientHeight + 1 && document.getElementById('ch-menu-body').scrollHeight <= document.getElementById('ch-menu-body').clientHeight + 1 } })
+  ok(ty.n === 6 && ty.flex && ty.tall < 56 && ty.fits, `chart type: ${ty.n} rows with the picture beside the name (tallest ${Math.round(ty.tall)}px), all in view`)
+  await page.evaluate(() => window.__CH.$.menu(null)); await page.waitForTimeout(300)
+  // a side drawer docks: the price scale stays in view, and the chart takes the width back after
+  const g0 = await geo()
+  await page.click('#ch-alerts-btn'); await page.waitForTimeout(600)
+  const g1 = await geo()
+  ok(g1.dock && g1.open && Math.abs(g1.cv - g1.ml) <= 1 && g1.mr === g0.cv, `Alerts docks beside the chart: the chart ends at ${g1.cv}, the drawer runs ${g1.ml} to ${g1.mr}`)
+  await page.screenshot({ path: `${OUT}/1440-alerts-docked.png` })
+  await page.evaluate(() => window.__CH.$.menu(null)); await page.waitForTimeout(500)
+  const g2 = await geo()
+  ok(!g2.dock && g2.cv === g0.cv, `closed, the chart takes its width back (${g2.cv})`)
+  // symbol search fits its four futures
+  await page.evaluate(() => window.__CH.$.menu('sym')); await page.waitForTimeout(600)
+  const sh = await page.evaluate(() => Math.round(document.getElementById('ch-menu').getBoundingClientRect().height))
+  ok(sh < 460, `symbol search is as tall as its rows (${sh}px, was 620)`)
+  await page.evaluate(() => window.__CH.$.menu(null)); await page.waitForTimeout(300)
+  // the indicator Templates row and a part panel
+  await page.evaluate(() => window.__CH.$.menu('ind')); await page.waitForTimeout(500)
+  const tr = await page.evaluate(() => { const t = document.querySelector('#ch-menu-body .ch-tpl'); const cs = t && getComputedStyle(t); return cs ? { border: cs.borderTopWidth, bg: cs.backgroundColor } : null })
+  ok(tr && tr.border === '0px', `the Templates row is a row, not the drawing-template chip's box (border ${tr?.border})`)
+  await page.evaluate(() => window.__CH.$.menu('ind:lit')); await page.waitForTimeout(500)
+  const lit = await page.evaluate(() => { const m = document.getElementById('ch-menu'), n = [...m.querySelectorAll('.ch-prow .t')].find((x) => /PDH/.test(x.textContent)); return { w: Math.round(m.getBoundingClientRect().width), h: n ? Math.round(n.getBoundingClientRect().height) : 0 } })
+  ok(lit.w >= 540 && lit.h > 0 && lit.h < 26, `D1 LIT's parts panel is ${lit.w}px wide and "PDH / PDL" keeps one line (${lit.h}px)`)
+  await page.evaluate(() => window.__CH.$.menu(null)); await page.waitForTimeout(300)
+  // a layout: named in the chart's own dialog, removed after its own yes
+  await page.evaluate(() => window.__CH.$.menu('layouts')); await page.waitForTimeout(500)
+  await page.click('#ch-menu-body .rowbtn.pri'); await page.waitForTimeout(400)
+  const asked = await page.evaluate(() => document.querySelector('.ch-ask input')?.value)
+  await page.fill('.ch-ask input', 'Views pass'); await page.keyboard.press('Enter'); await page.waitForTimeout(600)
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('echelon-chart-layouts') || '[]').map((x) => x.name))
+  ok(asked && saved.includes('Views pass'), `Save this layout asks in the chart's dialog (offered "${asked}") and keeps it (${saved.join(', ')})`)
+  await page.locator('#ch-menu-body .ch-obj button[data-a="x"]').first().click(); await page.waitForTimeout(400)
+  const sure = await page.evaluate(() => ({ t: document.querySelector('.ch-ask h4')?.textContent, ok: document.querySelector('.ch-ask .ok')?.textContent }))
+  await page.click('.ch-ask .ok'); await page.waitForTimeout(600)
+  const gone = await page.evaluate(() => JSON.parse(localStorage.getItem('echelon-chart-layouts') || '[]').length)
+  ok(sure.ok === 'Remove' && gone === 0, `Remove asks "${sure.t}" with a ${sure.ok} button, then removes it (${gone} left)`)
+  ok(!natives.length, `no native prompt() or confirm() box (${natives.join(', ') || 'none'})`)
+  // a line's Extend: two chips
+  await page.evaluate(() => { const C = window.__CH, bs = C.bars, n = bs.length; const d = { id: 'xt', type: 'trend', p: [{ t: bs[n - 60].t, p: bs[n - 60].l }, { t: bs[n - 10].t, p: bs[n - 10].h }], color: '' }; C.drawings.push(d); C.sel = d; C.$.build(); C.$.paint(); C.$.menu('draw') }); await page.waitForTimeout(500)
+  await page.click('.ch-xt button[data-ext="r"]'); await page.waitForTimeout(200)
+  const xt = await page.evaluate(() => ({ r: window.__CH.sel?.ext?.r, pressed: document.querySelector('.ch-xt button[data-ext="r"]').getAttribute('aria-pressed'), boxes: document.querySelectorAll('#ch-menu-body input[type="checkbox"]:not(.tgl input)').length }))
+  ok(xt.r === true && xt.pressed === 'true', `Extend is two chips: Right switches the line's right extension on (${JSON.stringify(xt)})`)
+  // a trend line the TradingView way (D1: "when I click it should start the drawing and then when I click again it
+  // should be done ... and then it should take you back to the crosshair"), with a click that wobbles 6px as real ones do
+  await page.evaluate(() => { const C = window.__CH; C.$.menu(null); C.sel = null; C.drawings = []; C.$.paint() }); await page.waitForTimeout(400)
+  const R = await (await page.$('#ch-canvas')).boundingBox(), at = (fx, fy) => [R.x + R.width * fx, R.y + R.height * fy]
+  const wobble = async ([x, y]) => { await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + 6, y + 3, { steps: 3 }); await page.mouse.up(); await page.waitForTimeout(150) }
+  const tv = []
+  for (const k of [0, 1]) {
+    await page.click('#ch-tools button[data-tool="trend"]'); await page.waitForTimeout(250)
+    const A = at(0.3, 0.6 - k * 0.1), B = at(0.62, 0.35 - k * 0.1)
+    await wobble(A)
+    const mid = await page.evaluate(() => ({ tool: window.__CH.tool, pending: !!window.__CH.pending, n: window.__CH.drawings.length }))
+    for (let s = 1; s <= 10; s++) { await page.mouse.move(A[0] + (B[0] - A[0]) * s / 10, A[1] + (B[1] - A[1]) * s / 10); await page.waitForTimeout(16) }
+    await wobble(B)
+    const end = await page.evaluate(() => { const C = window.__CH, d = C.drawings.at(-1); return { tool: C.tool, pending: !!C.pending, n: C.drawings.length, span: d ? Math.abs(C.$.pt(d.p[1].t, d.p[1].p).x - C.$.pt(d.p[0].t, d.p[0].p).x) : 0 } })
+    await page.mouse.click(...at(0.85, 0.8)); await page.waitForTimeout(200)
+    const after = await page.evaluate(() => ({ tool: window.__CH.tool, n: window.__CH.drawings.length, sel: !!window.__CH.sel }))
+    tv.push({ mid, end, after })
+  }
+  ok(tv.every((r, k) => r.mid.tool === 'trend' && r.mid.pending && r.mid.n === k && r.end.n === k + 1 && !r.end.pending && r.end.tool === 'cross' && r.end.span > 200 && r.after.n === k + 1 && !r.after.sel), `click, move, click draws the line, puts the crosshair back, and the next click only deselects, twice over (${JSON.stringify(tv.map((r) => [r.mid.pending, r.end.n, r.end.tool, Math.round(r.end.span), r.after.n]))})`)
+  // the feed chip: Yahoo's steady ten-minute delay reads quietly
+  const chip = await page.evaluate(() => { const s = document.getElementById('ch-sess'); return { hidden: s.hidden, cls: s.className, text: s.textContent, lag: window.__CH.feedAt ? Math.floor((Date.now() / 1000 - window.__CH.feedAt) / 60) : null } })
+  ok(chip.hidden || (chip.lag <= 12 ? /dly/.test(chip.cls) && /^Delayed/.test(chip.text) : /lag/.test(chip.cls)), `the feed chip: "${chip.text || 'hidden'}" (${chip.cls}, ${chip.lag} min)`)
+  ok(!errs.length, `no page errors (${errs.join(' | ') || 'none'})`)
+  await ctx.close()
+}
+console.log('\niPhone 15 Pro, WebKit, the views pass')
+{
+  const wk = await PW.webkit.launch()
+  const ctx = await wk.newContext({ ...PW.devices['iPhone 15 Pro'] }); await seed(ctx, { tf: '5m' })
+  const { page, errs } = await open(ctx)
+  await page.evaluate(() => window.__CH.$.menu('layouts')); await page.waitForTimeout(700)
+  const s = await page.evaluate(() => { const m = document.getElementById('ch-menu'), b = m.querySelector('.ch-menu-body > .rowbtn.pri'), body = document.getElementById('ch-menu-body'); const a = +(getComputedStyle(m).backgroundColor.match(/[\d.]+\)$/) || ['1'])[0].replace(')', ''); const bs = getComputedStyle(body); return { a, bw: b ? Math.round(b.getBoundingClientRect().width) : 0, cw: Math.round(body.clientWidth - parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight)) } })
+  ok(s.a >= 0.9, `a sheet is solid enough that the bar under it does not ghost through (alpha ${s.a})`)
+  ok(s.bw > 0 && Math.abs(s.bw - s.cw) <= 2, `Save this layout spans the sheet (${s.bw} of ${s.cw}px)`)
+  await page.screenshot({ path: `${OUT}/phone-layouts.png` })
+  await page.locator('#ch-menu-body .rowbtn.pri').tap(); await page.waitForTimeout(600)
+  ok(await page.locator('.ch-ask input').count() === 1, 'and a tap asks for the name in the chart\'s own dialog')
+  await page.screenshot({ path: `${OUT}/phone-ask.png` })
+  ok(!errs.length, `no page errors (${errs.join(' | ') || 'none'})`)
+  await wk.close()
+}
+
 await browser.close()
 console.log(fails.length ? `\n${fails.length} FAILED:\n  ${fails.join('\n  ')}` : '\nALL OK')
 console.log(`shots: ${OUT}`)

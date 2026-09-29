@@ -252,6 +252,8 @@ for (const [name, engine, dev] of PHONES) {
   await open(OPEN.layouts)
   const saveBtn = page.locator('#ch-menu button').filter({ hasText: /save/i }).first()
   if (await saveBtn.count()) { await saveBtn.tap(); await wait(500) }
+  // the name comes in the chart's own dialog, not prompt()
+  if (await page.locator('.ch-ask input').count()) { await page.fill('.ch-ask input', 'Phone test'); judge('Name dialog', await surface(page, '.ch-ask .box')); await shot('ask-name'); await page.locator('.ch-ask .ok').tap(); await wait(500) }
   const lays = await CH(() => JSON.parse(localStorage.getItem('echelon-chart-layouts') || '[]').length)
   check(lays >= 1, `Layouts: Save keeps the chart under a name (${lays} saved)`)
   judge('Layouts with one saved', await surface(page, '#ch-menu')); await shot('layouts-saved')

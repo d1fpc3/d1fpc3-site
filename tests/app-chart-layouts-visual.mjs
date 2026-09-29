@@ -42,9 +42,15 @@ await ctx.addInitScript(([k, v, t]) => { localStorage.setItem(k, v); localStorag
   if (!sessionStorage.getItem('lay-init')) { sessionStorage.setItem('lay-init', '1'); localStorage.removeItem('echelon-chart-layouts'); localStorage.removeItem('echelon-chart-layouts:at') } }, [`sb-${REF}-auth-token`, JSON.stringify(session), theme])
 const page = await ctx.newPage()
 page.on('pageerror', (e) => fails.push('pageerror: ' + e.message))
-// prompt() is how the menu asks for a name; answer it the way a person would
+// the chart asks for a name (or a yes) in its own dialog, .ch-ask; answer it the way a person would
 let answer = null
-page.on('dialog', async (d) => { if (d.type() === 'prompt') await d.accept(answer ?? d.defaultValue()); else await d.accept() })
+page.on('dialog', async (d) => { fails.push('a native ' + d.type() + '() box opened: ' + d.message()); await d.dismiss() })
+const asked = async () => {
+  const box = await page.waitForSelector('.ch-ask', { timeout: 4000 }).catch(() => null)
+  if (!box) { fails.push('the chart did not ask'); return }
+  if (await page.$('.ch-ask input')) await page.fill('.ch-ask input', answer)
+  await page.click('.ch-ask .ok'); await page.waitForTimeout(300)
+}
 
 const openChart = async () => {
   await page.evaluate(() => document.querySelector('.tab[data-view="chart"]').click())
@@ -81,6 +87,7 @@ await page.waitForTimeout(500)
 const title = await page.evaluate(() => document.getElementById('ch-menu-title')?.textContent)
 check(title === 'Layouts', `the Layouts panel opens ("${title}")`)
 await page.evaluate(() => [...document.querySelectorAll('#ch-menu-body .rowbtn')].find((b) => /Save this layout|Save over/.test(b.textContent))?.click())
+await asked()
 await page.waitForTimeout(900)
 let now = await st()
 check(now.saved === 1 && !!now.at, `saved one layout and marked it current (${now.saved}, id ${now.at ? 'set' : 'none'})`)
@@ -120,6 +127,7 @@ await page.waitForTimeout(900)
 await page.evaluate(() => window.__CH.$.menu('layouts'))
 await page.waitForTimeout(400)
 await page.evaluate(() => [...document.querySelectorAll('#ch-menu-body .rowbtn')].find((b) => /Save as a new one/.test(b.textContent))?.click())
+await asked()
 await page.waitForTimeout(900)
 now = await st()
 check(now.saved === 2, `a second layout saves alongside the first (${now.saved})`)
@@ -143,10 +151,12 @@ answer = 'Scalp v2'
 await page.evaluate(() => window.__CH.$.menu('layouts'))
 await page.waitForTimeout(500)
 await page.evaluate(() => { const r = [...document.querySelectorAll('#ch-menu-body .ch-obj')].find((x) => /Scalp/.test(x.textContent)); r?.querySelector('button[data-a="rename"]')?.click() })
+await asked()
 await page.waitForTimeout(700)
 const named = await page.evaluate(() => JSON.parse(localStorage.getItem('echelon-chart-layouts') || '[]').map((x) => x.name))
 check(named.includes('Scalp v2'), `rename sticks (${named.join(', ')})`)
 await page.evaluate(() => { const r = [...document.querySelectorAll('#ch-menu-body .ch-obj')].find((x) => /Swing/.test(x.textContent)); r?.querySelector('button[data-a="x"]')?.click() })
+await asked()
 await page.waitForTimeout(700)
 const left = await page.evaluate(() => JSON.parse(localStorage.getItem('echelon-chart-layouts') || '[]').map((x) => x.name))
 check(left.length === 1 && left[0] === 'Scalp v2', `remove takes one away (${left.join(', ') || 'none'})`)
