@@ -1,4 +1,4 @@
-// Echelon members app — service worker. Web push only: no caching, no
+// Echelon members app, service worker. Web push only: no caching, no
 // offline shell. The page registers this at boot; send-push (VAPID) posts
 // {title, body, path} and a tap opens that path in the app.
 self.addEventListener('install', () => self.skipWaiting())

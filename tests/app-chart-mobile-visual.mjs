@@ -118,7 +118,8 @@ for (const [name, engine, dev] of PHONES) {
   await page.evaluate(() => { const o = document.getElementById('onb'); if (o && !o.hidden) { o.hidden = true; document.body.classList.remove('onb-open') } })
   await page.evaluate(HIT)
   const CH = (fn, arg) => page.evaluate(fn, arg)
-  const shot = (n) => page.screenshot({ path: `${OUT}/${name}-${n}.png` })
+  // a picture is evidence, not a check: WebKit on this machine sometimes never hands one back (seen against the live site too), and that must not end the run
+  const shot = (n) => page.screenshot({ path: `${OUT}/${name}-${n}.png`, timeout: 15000 }).catch((e) => console.log(`note [${name}] screenshot ${n} skipped: ${String(e.message).split(/\r?\n/)[0]}`))
   const tapSel = async (sel) => { await page.locator(sel).first().tap({ timeout: 5000 }); await wait(450) }
   const railOff = async () => { if (await CH(() => !document.getElementById('ch-prail').hidden)) await tapSel('#ch-tools-btn') }
   const closeAll = async () => { await CH(() => { window.__CH.$.menu(null); document.getElementById('ch-ctx').hidden = true; document.getElementById('ch-goto-pop').hidden = true; if (!document.getElementById('ch-sheet').hidden) document.getElementById('ch-sheet-close').click() }); await wait(350) }

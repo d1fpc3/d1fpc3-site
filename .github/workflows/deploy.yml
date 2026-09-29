@@ -43,32 +43,51 @@ jobs:
             -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=yes" \
             ./ "$SSH_USER@$SSH_HOST:$DEPLOY_DIR"
 
+      # Proof the files landed comes from the server itself (the same SSH key): the
+      # page checks over HTTPS kept going red on Hostinger's bot challenge ("Checking
+      # your browser before accessing") while the deploy had landed fine. A page that
+      # still serves the challenge after five tries is a warning, not a failed deploy;
+      # a page serving the WRONG content is still a failure.
       - name: Verify live site updated
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_DIR: domains/d1fpc3.com/public_html/
         run: |
+          set -u
+          for f in index.html echelon/app/index.html templates/index.html; do
+            want=$(sha256sum "$f" | cut -d' ' -f1)
+            have=$(ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" "sha256sum '$DEPLOY_DIR$f'" | cut -d' ' -f1)
+            if [ "$want" = "$have" ]; then echo "Server has this commit's $f."; else echo "::error::Server copy of $f differs from this commit ($have vs $want). The rsync deploy did not land."; exit 1; fi
+          done
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
+          title() {
+            for i in 1 2 3 4 5; do
+              t=$(curl -s -A "$UA" -H "Accept: text/html" -H "Accept-Language: en-US,en;q=0.9" "$1" | grep -o "<title>[^<]*</title>" | head -1)
+              case "$t" in *"Checking your browser"*|*"Just a moment"*|"") sleep $((i * 6)) ;; *) echo "$t"; return ;; esac
+            done
+            echo "CHALLENGE"
+          }
+          check() {
+            t=$(title "$1")
+            echo "$1 -> $t"
+            case "$t" in
+              CHALLENGE) echo "::warning::$1 still served Hostinger's bot challenge after five tries; the files are verified on the server above." ;;
+              *"$2"*) echo "$1 live." ;;
+              *) echo "::error::$1 is serving '$t', expected '$2'."; exit 1 ;;
+            esac
+          }
           sleep 10
           # The site root IS the Echelon landing page (moved 2026-08-10).
-          TITLE=$(curl -s -A "Mozilla/5.0" https://d1fpc3.com/ | grep -o "<title>[^<]*</title>")
-          echo "Live root title: $TITLE"
-          case "$TITLE" in
-            *Echelon*) echo "Echelon landing live at root." ;;
-            *) echo "::error::Root still serving '$TITLE'. The rsync deploy did not land."; exit 1 ;;
-          esac
-          TTITLE=$(curl -s -A "Mozilla/5.0" https://d1fpc3.com/templates/ | grep -o "<title>[^<]*</title>")
-          echo "Templates title: $TTITLE"
-          case "$TTITLE" in
-            *"UI Templates"*) echo "Templates live." ;;
-            *) echo "::error::/templates/ not serving expected page."; exit 1 ;;
-          esac
+          check https://d1fpc3.com/ Echelon
+          check https://d1fpc3.com/templates/ "UI Templates"
+          check https://d1fpc3.com/echelon/app/ Echelon
           # /echelon/ must 301 to the root now; app/welcome stay put.
-          ECODE=$(curl -s -o /dev/null -w "%{http_code}" -A "Mozilla/5.0" https://d1fpc3.com/echelon/)
+          ECODE=$(curl -s -o /dev/null -w "%{http_code}" -A "$UA" https://d1fpc3.com/echelon/)
           echo "/echelon/ status: $ECODE"
           case "$ECODE" in
             301|308) echo "/echelon/ redirects." ;;
+            403|429|503) echo "::warning::/echelon/ answered $ECODE (the bot challenge), the redirect is unverified this run." ;;
             *) echo "::error::/echelon/ returned $ECODE, expected a 301 redirect to /."; exit 1 ;;
-          esac
-          ATITLE=$(curl -s -A "Mozilla/5.0" https://d1fpc3.com/echelon/app/ | grep -o "<title>[^<]*</title>")
-          echo "Members area title: $ATITLE"
-          case "$ATITLE" in
-            *Echelon*) echo "Members area live." ;;
-            *) echo "::error::/echelon/app/ not serving expected page."; exit 1 ;;
           esac

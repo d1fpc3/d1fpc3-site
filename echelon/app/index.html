@@ -1355,7 +1355,7 @@
     .ch-prow .t small { display: block; font-size: 11px; color: var(--faint); margin-top: 1px; }
     .ch-prow .c { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
     .ch-prow .c > *, .ch-row .ctl > * { flex-shrink: 0; }
-    .fl { font-size: 10.5px; color: var(--faint); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; }
+    .fl { font-size: 12px; color: var(--faint); font-weight: 500; }   /* sentence case: the small caps "FILL" read as a stamped label */
     .ch-wsel { display: flex; }
     .ch-wsel button { background: none; border: 1px solid var(--line); border-left-width: 0; width: 26px; height: 24px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); padding: 0; }
     .ch-wsel button:first-child { border-left-width: 1px; border-radius: 6px 0 0 6px; } .ch-wsel button:last-child { border-radius: 0 6px 6px 0; }
@@ -1645,6 +1645,8 @@
       #v-chart .ch-menu[data-kind="dlg"] { border: 1px solid var(--line-bright); border-radius: 14px; box-shadow: var(--shadow); animation: ch-dlg-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
       /* a panel of parts (D1 LIT, D1 GEX): a colour, four line styles, a gear and a switch left the name 70px, so "PDH / PDL" broke in two */
       @media (min-height: 501px) { #v-chart .ch-menu[data-kind="dlg"]:has(.ch-prow .c) { width: min(560px, calc(100% - 32px)); } }   /* a phone on its side is 852 wide: it keeps its side sheet */
+      /* two colours and a fill in one part row (Liquidity voids) left its name one word wide: those pills show the swatch alone, the hex is in the picker */
+      #v-chart .ch-menu[data-kind="dlg"] .ch-prow .c:has(.ch-cbtn + .ch-cbtn):has(.ch-range) .ch-cbtn .hx { display: none; }
       /* symbol search holds four futures: at the list height it was four rows over a 300px void; it fits them, and keeps their height while you type */
       @media (min-height: 501px) {
         #v-chart .ch-menu[data-kind="dlg"][data-which="sym"] { height: auto; }
@@ -2007,7 +2009,7 @@
     @media (max-width: 840px), (max-width: 1000px) and (max-height: 500px) {
       #v-chart {
         --i-font: -apple-system, BlinkMacSystemFont, system-ui, 'Inter', 'Segoe UI', Roboto, sans-serif;
-        --i-bg: #000000; --i-cell: #1c1c1e; --i-cell2: #2c2c2e;
+        --i-bg: #000000; --i-cell: #2c2c2e; --i-cell2: #3a3a3c;   /* every cell sits on a sheet (#1e1e21): iOS lifts grouped cells to #2c2c2e there, #1c1c1e vanished into it */
         --i-label: #ffffff; --i-label2: rgba(235, 235, 245, 0.62); --i-label3: rgba(235, 235, 245, 0.32);
         --i-sep: rgba(84, 84, 88, 0.6); --i-fill: rgba(120, 120, 128, 0.36); --i-fill2: rgba(120, 120, 128, 0.32); --i-fill3: rgba(118, 118, 128, 0.24); --i-fill4: rgba(118, 118, 128, 0.18);
         --i-thumb: #636366; --i-red: #ff453a;
@@ -2042,6 +2044,7 @@
       #v-chart .ch-bar > .ch-tfs button[data-tf] { height: 40px; min-width: 42px; padding: 0 11px; border-radius: 20px; color: var(--i-label2); font-size: 14px; font-weight: 600; }
       /* the selected interval is a capsule that slides to the next one, iOS's segmented control */
       #v-chart .ch-bar > .ch-tfs { position: relative; }
+      @media (max-height: 500px) { #v-chart .ch-sess.dly { display: none; } #v-chart .ch-sess.lag { font-size: 0; gap: 0; padding: 0; margin-left: 2px; background: none; } #v-chart .ch-sess.lag::before { width: 8px; height: 8px; box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.22); } }   /* a phone on its side printed the chip under the interval strip */
       /* the left end fades like the right one does under the chevron: a scrolled-off interval was a cut glyph ("m" of 1m) */
       #v-chart .ch-bar > .ch-tfs::before { display: block; content: ''; position: sticky; left: 0; z-index: 2; flex: 0 0 16px; width: 16px; height: 40px; margin-right: -16px; border-radius: 20px 0 0 20px; background: linear-gradient(var(--i-fill4), var(--i-fill4)), var(--i-bg); -webkit-mask-image: linear-gradient(90deg, #000 20%, transparent); mask-image: linear-gradient(90deg, #000 20%, transparent); pointer-events: none; }
       #v-chart .ch-bar > .ch-tfs .seg-thumb { top: 2px; bottom: auto; height: 40px; border-radius: 20px; background: var(--i-thumb); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22), inset 0 0.5px 0 rgba(255, 255, 255, 0.16); z-index: 0; }
@@ -2159,6 +2162,17 @@
       #v-chart .ch-menu-body > .rowbtn.pri { background: color-mix(in srgb, var(--acc) 17%, transparent); color: var(--acc); font-weight: 600; }
       #v-chart .ch-menu-body > .rowbtn.warn { color: var(--i-red); }
       #v-chart .ch-menu-body > .rowbtn + .rowbtn { margin-left: 0; }
+      /* a sheet's lone action row (save a template, save the current look) spans the sheet like the others */
+      #v-chart .ch-menu-body > .ch-acts > .rowbtn:only-child { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; border-radius: 25px; }
+      /* several actions: one inset card of rows in the tint, the one that removes in red (iOS's action list) */
+      #v-chart .ch-menu-body > .ch-acts.list { display: flex; flex-direction: column; gap: 0; padding: 0; margin-top: 22px; border-radius: 22px; overflow: hidden; background: var(--i-cell); }
+      #v-chart .ch-menu-body > .ch-acts.list > .rowbtn { position: relative; display: flex; align-items: center; justify-content: flex-start; width: 100%; min-height: 50px; margin: 0; padding: 0 16px; border-radius: 0; background: none; color: var(--acc); font-weight: 400; text-align: left; }
+      #v-chart .ch-menu-body > .ch-acts.list > .rowbtn + .rowbtn::before { content: ''; position: absolute; left: 16px; right: 0; top: 0; height: 0.5px; background: var(--i-sep); }
+      #v-chart .ch-menu-body > .ch-acts > .rowbtn.danger, #v-chart .ch-menu-body > .ch-acts.list > .rowbtn.danger { color: var(--i-red); }
+      #v-chart .ch-menu-body > .ch-acts.list > .rowbtn:active { background: var(--i-fill4); transform: none; }
+      /* iOS draws no spin arrows on a number field; WebKit elsewhere drew a white box of them in the coordinates */
+      #v-chart .ch-menu input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+      #v-chart .ch-menu input[type="number"]::-webkit-inner-spin-button, #v-chart .ch-menu input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
       .ch-ask input { font-size: 17px; }
       /* the shortcuts to other panels are plain tinted buttons, so they never read as more tabs */
       #v-chart .ch-links { gap: 2px; padding: 2px 4px 4px; }
@@ -8099,7 +8113,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const wrap = document.createElement('div'); wrap.className = 'vp paused'; wrap.tabIndex = 0
       const video = document.createElement('video')
       video.src = url; video.playsInline = true; video.preload = 'metadata'
-      // Nothing here stops a screen recorder — no browser lets a page do that.
+      // Nothing here stops a screen recorder: no browser lets a page do that.
       // What it stops is the easy copy: the download item in the native menu,
       // the cast target, the picture-in-picture window that outlives the page.
       video.controlsList = 'nodownload noplaybackrate noremoteplayback'
@@ -15582,6 +15596,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        go. A plate in the chart's own background keeps every survivor readable
        over the candles, the same trick the GEX names use. */
     const CH_LBL_DY = [0, -12, 12, -24, 24, -36, 36]
+    // the legend is written after the canvas paints: if it grew into the watermark tag, paint again so the tag steps down
+    function chWmRecheck() { const w = CH.wmRect; if (!w || !CH.on) return; if (chLegendRects(el('ch-canvas')).some((r) => w.x0 < r.x1 && w.x1 > r.x0 && w.y0 < r.y1 && w.y1 > r.y0)) chDraw() }
     function chLegendRects(cv) {
       const lg = el('ch-legend'); if (!lg || !cv || lg.hidden || !lg.offsetParent) return []
       const c = cv.getBoundingClientRect(), rows = lg.querySelectorAll('.ln'), list = rows.length ? rows : [lg]
@@ -17173,8 +17189,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const inds = `${CH.s.lit ? '<span class="ind">D1 LIT</span>' : ''}${CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin) ? `<span class="ind${gexOld ? ' gx-old' : ''}">D1 GEX${gexOld ? ' · old' : ''}</span>` : ''}`
       // a phone either way up gets the short legend: on its side the long one ate 40% of the chart
       const shortLg = window.innerWidth < 520 || window.innerHeight < 500
-      if (shortLg && !CH.hover) { const h = `<b>${CH.sym}</b><span class="tf">${CH.tf}</span><span class="ohlc">C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)} (${(d / b.o * 100).toFixed(2)}%)</span>${inds}`; if (lg._html !== h) { lg._html = h; lg._shape = 'short'; lg.innerHTML = h } return }
-      if (shortLg) { const h = `<b>${CH.sym}</b><span class="tf">${CH.tf}</span><span class="ohlc">O <i>${chPx(b.o)}</i></span><span class="ohlc">H <i>${chPx(b.h)}</i></span><span class="ohlc">L <i>${chPx(b.l)}</i></span><span>C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)}</span>${CH.s.volume ? `<span>V <i>${b.v.toLocaleString()}</i></span>` : ''}`; if (lg._html !== h) { lg._html = h; lg._shape = 'short'; lg.innerHTML = h } return }
+      if (shortLg && !CH.hover) { const h = `<b>${CH.sym}</b><span class="tf">${CH.tf}</span><span class="ohlc">C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)} (${(d / b.o * 100).toFixed(2)}%)</span>${inds}`; if (lg._html !== h) { lg._html = h; lg._shape = 'short'; lg.innerHTML = h; requestAnimationFrame(chWmRecheck) } return }
+      if (shortLg) { const h = `<b>${CH.sym}</b><span class="tf">${CH.tf}</span><span class="ohlc">O <i>${chPx(b.o)}</i></span><span class="ohlc">H <i>${chPx(b.h)}</i></span><span class="ohlc">L <i>${chPx(b.l)}</i></span><span>C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)}</span>${CH.s.volume ? `<span>V <i>${b.v.toLocaleString()}</i></span>` : ''}`; if (lg._html !== h) { lg._html = h; lg._shape = 'short'; lg.innerHTML = h; requestAnimationFrame(chWmRecheck) } return }
       const eye = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>', gearI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>'
       const ic = (key, menu) => `<span class="ic"><button type="button" data-act="eye" data-key="${key}" title="Hide">${eye}</button><button type="button" data-act="gear" data-menu="${menu}" title="Settings">${gearI}</button></span>`
       const dir = up ? 'up' : 'down', cdir = chg >= 0 ? 'up' : 'down', tfl = /^(\d+)m$/.test(CH.tf) ? CH.tf.slice(0, -1) : CH.tf
@@ -17197,7 +17213,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(bars[bars.length - 1]?.t), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${[chGexRead(g, last), chVolRead(last)].filter(Boolean).join(' ')}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${chVolBits(last)}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${chGexHidden() ? '<span class="gx-at">off after hours</span>' : ''}${ic('gex', 'ind:gex')}</div>`) }
       const html = rows.join('')
       const shape = (CH.s.legendOhlc === false ? 'o' : '') + (CH.s.legendInds === false ? 'i' : '') + (CH.s.legendVals === false ? 'v' : '')
-      if (lg._html !== html || lg._shape !== shape) { lg._html = html; lg._shape = shape; lg.innerHTML = html; chLegendTrim(lg) }
+      if (lg._html !== html || lg._shape !== shape) { lg._html = html; lg._shape = shape; lg.innerHTML = html; chLegendTrim(lg); requestAnimationFrame(chWmRecheck) }
     }
 
     /* ── drawings: horizontal, vertical, trendline, ray, rectangle, fib, positions, text, measure ──
@@ -19541,7 +19557,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         header('Visibility')
         hint('Show this drawing on these timeframes.')
         for (const [g, label, h] of [['m', 'Minutes', '1m to 30m'], ['h', 'Hours', '1h and 4h'], ['d', 'Days', 'D']]) { const l = document.createElement('label'); l.className = 'tgl sm'; const i = document.createElement('input'); i.type = 'checkbox'; i.checked = !d.vis || d.vis[g] !== false; i.addEventListener('change', () => mut(() => { d.vis = d.vis || { m: true, h: true, d: true }; d.vis[g] = i.checked })); const tr = document.createElement('span'); tr.className = 'track'; l.append(i, tr); row(label, l, h) }
-        const acts = document.createElement('div'); acts.className = 'ch-acts'
+        const acts = document.createElement('div'); acts.className = 'ch-acts list'   // a list of actions (a class, not :has(): WebKit re-matches :has() on every legend write)
         for (const [t, fn, cls] of [...(chAngled(d) ? [['Make it level', () => { chLevelSel(); chMenu('draw') }, '']] : []), ['Save as default style', () => chSaveDefault(d), ''], ['Clone', () => { chDuplicateSel(); chMenu('draw') }, ''], [d.lock ? 'Unlock' : 'Lock', () => { mut(() => { d.lock = !d.lock }); chLockAllUi(); chMenu('draw') }, ''], ['Remove', () => { chDeleteSel(); chMenu(null) }, 'danger']]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn ' + cls; b.textContent = t; b.addEventListener('click', fn); acts.appendChild(b) }
         body.appendChild(acts)
       }
@@ -19808,7 +19824,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       drawGexSoon()
     }
 
-    const gexTidy = (h) => String(h).replace(/<\/b>\s*—\s*/g, '</b>: ').replace(/\s*—\s*/g, ', ')
+    const gexTidy = (h) => String(h).replace(/<\/b>\s*\u2014\s*/g, '</b>: ').replace(/\s*\u2014\s*/g, ', ')
     const gexPts = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(Math.round(n)).toLocaleString()}`
     // The headline: the regime in big type, one line under it saying what that means, then the read.
     function renderRegime(d, fresh) {
