@@ -4883,7 +4883,7 @@
     .cc-menu button:hover { background: var(--panel-2); }
     @media (max-width: 640px) {
       .cc-plus { display: inline-flex; }
-      #cc-img-btn, #cc-poll-btn { display: none; }
+      #cc-img-btn, #cc-poll-btn, #cc-gif-btn.gif-only { display: none !important; }
     }
     .chat-composer textarea {
       flex: 1; resize: none; max-height: 140px; background: var(--bg); border: 1px solid var(--line-bright); border-radius: 10px;
@@ -5043,6 +5043,23 @@
     .ep-e:active { transform: scale(0.88); background: var(--panel-2); }
     .ep-e.first { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--gold) 60%, transparent); }
     .ep-none { padding: 28px 8px; text-align: center; color: var(--faint); font-size: 13px; }
+    /* GIFs: the buttons appear once gif-search answers (it needs its GIPHY key) */
+    .gif-only { display: none !important; }
+    body.gifs-on .chat-composer .cc-gif.gif-only { display: inline-flex !important; }
+    body.gifs-on .cc-menu .gif-only { display: block !important; }
+    .gif-ic { display: inline-block; padding: 2px 4px 1px; border: 1.7px solid currentColor; border-radius: 5px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.03em; line-height: 1.15; }
+    .gp-pop { width: 400px; display: flex; flex-direction: column; }
+    .gp-body { height: 360px; overflow-y: auto; overscroll-behavior: contain; padding: 2px 8px 8px; }
+    .gp-cols { display: flex; gap: 6px; align-items: flex-start; }
+    .gp-cols > div { flex: 1; min-width: 0; display: grid; gap: 6px; }
+    .gp-item { display: block; width: 100%; padding: 0; border: 0; border-radius: 10px; overflow: hidden; background: var(--panel-2); cursor: pointer; transition: transform 0.18s cubic-bezier(.2,.8,.2,1), filter 0.15s ease; -webkit-tap-highlight-color: transparent; }
+    .gp-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    @media (hover: hover) { .gp-item:hover { filter: brightness(1.1); } }
+    .gp-item:active { transform: scale(0.95); }
+    .gp-sk { display: block; width: 100%; border-radius: 10px; }
+    .gp-more { height: 1px; }
+    .gp-foot { padding: 7px 12px 9px; border-top: 0.5px solid var(--line); font-size: 11px; color: var(--faint); text-align: right; }
+    .gp-foot b { color: var(--muted); font-weight: 800; letter-spacing: 0.02em; }
     .ep-load { width: 352px; height: 400px; display: grid; place-items: center; color: var(--faint); font-size: 13px; }
     .ep-scrim { position: fixed; inset: 0; z-index: 215; background: rgba(0, 0, 0, 0.38); animation: ms-fade 0.2s ease; }
     /* a hold on a phone: an iOS action sheet with the message, quick reactions and what you can do */
@@ -5110,6 +5127,7 @@
       .ep-pop.sheet .ep-load { width: 100%; height: min(56dvh, 440px); }
       .ep-pop.sheet .ep-e { font-size: 28px; }
       .ep-pop.sheet .ep-search input { font-size: 16px; }
+      .gp-pop.sheet .gp-body { height: min(50dvh, 420px); }
     }
 
     /* ── members directory ───────────────────────────────────── */
@@ -6009,6 +6027,7 @@
                 <div class="cc-menu" id="cc-menu" hidden>
                   <button type="button" id="cc-menu-photo">Photo</button>
                   <button type="button" id="cc-menu-poll">Poll</button>
+                  <button type="button" id="cc-menu-gif" class="gif-only">GIF</button>
                 </div>
                 <input type="file" id="cc-file" accept="image/*" hidden>
                 <button class="cc-img" id="cc-img-btn" type="button" aria-label="Add image" title="Add image">
@@ -6017,6 +6036,7 @@
                 <button class="cc-img" id="cc-poll-btn" type="button" aria-label="Create poll" title="Create poll">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 </button>
+                <button class="cc-img cc-gif gif-only" id="cc-gif-btn" type="button" aria-label="GIF" title="GIF"><span class="gif-ic">GIF</span></button>
                 <button class="cc-img" id="cc-emoji-btn" type="button" aria-label="Emoji" title="Emoji"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></svg></button>
                 <div class="cc-field">
                   <textarea id="chat-input" rows="1" placeholder="Message" maxlength="4000"></textarea>
@@ -22067,6 +22087,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (postRole === 'admin' && !state.isAdmin) canPost = false
       }
       el('chat-composer').style.display = canPost ? '' : 'none'
+      gifProbe()
       el('chat-locked').hidden = canPost
 
       // Rooms you have opened before paint from memory at once; the fresh
@@ -22127,7 +22148,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       let bar = el('chat-replying')
       if (!bar) { bar = document.createElement('div'); bar.id = 'chat-replying'; bar.className = 'chat-replying'; bar.hidden = true; bar.innerHTML = '<span class="t"></span><button type="button" aria-label="Cancel reply">&times;</button>'; bar.querySelector('button').addEventListener('click', () => chatReplyTo(null)); el('chat-composer').before(bar) }
       bar.hidden = !m
-      if (m) { const who = chatUser(m.user_id)?.username || 'member'; bar.querySelector('.t').textContent = `Replying to ${who}: ${(m.body || (m.image_url ? 'a chart' : m.poll ? 'a poll' : '')).slice(0, 90)}`; el('chat-input').focus() }
+      if (m) { const who = chatUser(m.user_id)?.username || 'member'; bar.querySelector('.t').textContent = `Replying to ${who}: ${(m.body || (m.image_url ? (isGif(m.image_url) ? 'a GIF' : 'a chart') : m.poll ? 'a poll' : '')).slice(0, 90)}`; el('chat-input').focus() }
     }
     const MSG_QUOTES = new Map()
     function chatQuote(id) {
@@ -22907,6 +22928,97 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     document.addEventListener('click', (e) => { if (epOpen && !epOpen.scrim && !epOpen.wrap.contains(e.target)) closeEmojiPicker() })
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && epOpen) { e.stopPropagation(); closeEmojiPicker() } }, true)
+    // ── GIFs (D1, 09-29: "should also have gifs"): GIPHY through our gif-search function. The buttons show once it
+    // answers (it needs the GIPHY_API_KEY secret); a GIF sends at once as its own message, the way iMessage does.
+    const GIF = { ok: null, first: null }
+    const isGif = (u) => /(^|\/\/)([a-z0-9-]+\.)*giphy\.com\//i.test(u || '')
+    async function gifFetch(q = '', offset = 0) {
+      const { data, error } = await supabase.functions.invoke(`gif-search?q=${encodeURIComponent(q)}&offset=${offset}`, { method: 'GET' })
+      if (error) { if (error.context?.status === 503) GIF.ok = false; throw error }
+      GIF.ok = true
+      return data
+    }
+    async function gifProbe() {
+      if (GIF.ok !== null) return
+      try { GIF.first = await gifFetch() } catch {}
+      document.body.classList.toggle('gifs-on', GIF.ok === true)
+    }
+    async function sendGif(g) {
+      if (!chat.cur || !g?.url) return
+      hap('light')
+      const replied = chat.replyTo; chatReplyTo(null)
+      const col = chat.cur.type === 'channel' ? 'channel_id' : 'dm_id'
+      const { data, error } = await supabase.from('messages').insert({ [col]: chat.cur.id, user_id: state.user.id, body: null, image_url: g.url, reply_to: replied?.id || null }).select().single()
+      if (error) { if (replied) chatReplyTo(replied); toast('Could not send that GIF.'); return }
+      if (!chat.msgs.some((m) => m.id === data.id)) { chat.msgs.push(data); renderLog(true) }
+      if (chat.cur.type === 'dm') { const dm = chat.dms.find((d) => d.id === chat.cur.id); if (dm) { dm.last_at = data.created_at; chat.dms.sort((a, b) => (a.last_at < b.last_at ? 1 : -1)); renderChatRail() } }
+    }
+    let gpOpen = null
+    function closeGifPicker() { if (!gpOpen) return; gpOpen.io?.disconnect(); gpOpen.wrap.remove(); gpOpen.scrim?.remove(); gpOpen = null }
+    function openGifPicker(anchor) {
+      closeGifPicker(); closeEmojiPicker(); closeRxPicker()
+      const phone = matchMedia('(max-width: 840px)').matches || !anchor
+      const wrap = document.createElement('div'); wrap.className = 'ep-pop gp-pop' + (phone ? ' sheet' : ''); wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-label', 'Choose a GIF')
+      let scrim = null
+      if (phone) { scrim = document.createElement('div'); scrim.className = 'ep-scrim'; scrim.addEventListener('click', closeGifPicker); document.body.appendChild(scrim) }
+      const top = document.createElement('div'); top.className = 'ep-top'
+      const sb = document.createElement('label'); sb.className = 'ep-search'
+      sb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>'
+      const input = document.createElement('input'); input.type = 'search'; input.placeholder = 'Search GIPHY'; input.setAttribute('enterkeyhint', 'search'); input.autocomplete = 'off'; input.spellcheck = false
+      sb.appendChild(input); top.appendChild(sb)
+      const body = document.createElement('div'); body.className = 'gp-body'
+      const colsWrap = document.createElement('div'); colsWrap.className = 'gp-cols'
+      const n = phone ? 2 : 3, cols = [], hs = new Array(n).fill(0)
+      for (let i = 0; i < n; i++) { const c = document.createElement('div'); cols.push(c); colsWrap.appendChild(c) }
+      const more = document.createElement('div'); more.className = 'gp-more'
+      body.append(colsWrap, more)
+      const foot = document.createElement('div'); foot.className = 'gp-foot'; foot.innerHTML = 'Powered by <b>GIPHY</b>'
+      wrap.append(top, body, foot); document.body.appendChild(wrap)
+      wrap.addEventListener('click', (e) => e.stopPropagation())
+      const me = { wrap, scrim, q: '', next: 0, busy: false, seq: 0, io: null }; gpOpen = me
+      if (!phone && anchor) {
+        const r = R(anchor), w = wrap.offsetWidth, h = wrap.offsetHeight, vh = innerHeight / UIZ()
+        const t = r.top - h - 8 >= 8 ? r.top - h - 8 : Math.min(vh - h - 8, r.bottom + 8)
+        wrap.style.top = Math.max(8, t) + 'px'; wrap.style.left = Math.max(8, Math.min(VW() - w - 8, r.left)) + 'px'
+      }
+      const note = (t) => { body.querySelector('.ep-none')?.remove(); const p = document.createElement('p'); p.className = 'ep-none'; p.textContent = t; body.insertBefore(p, colsWrap) }
+      const reset = () => { cols.forEach((c) => { c.textContent = '' }); hs.fill(0); body.scrollTop = 0; body.querySelector('.ep-none')?.remove() }
+      const skeleton = () => { for (let i = 0; i < n * 3; i++) { const k = i % n, sk = document.createElement('i'); sk.className = 'skel gp-sk'; sk.style.aspectRatio = ['1 / 1', '4 / 3', '3 / 4'][i % 3]; cols[k].appendChild(sk) } }
+      const add = (items) => {
+        cols.forEach((c) => c.querySelectorAll('.gp-sk').forEach((x) => x.remove()))
+        for (const g of items) {
+          let k = 0; for (let i = 1; i < n; i++) if (hs[i] < hs[k]) k = i
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'gp-item'; b.style.aspectRatio = `${g.w} / ${g.h}`
+          b.title = g.title || 'GIF'; b.setAttribute('aria-label', g.title || 'GIF')
+          const img = document.createElement('img'); img.src = g.preview; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async'; b.appendChild(img)
+          b.addEventListener('click', () => { closeGifPicker(); sendGif(g) })
+          cols[k].appendChild(b); hs[k] += g.h / g.w
+        }
+      }
+      const load = async (fresh) => {
+        if (fresh) { me.seq++; reset(); me.next = 0; me.busy = false; skeleton() }
+        if (me.busy || me.next == null) return
+        me.busy = true; const seq = me.seq
+        try {
+          const d = !me.q && me.next === 0 && GIF.first ? GIF.first : await gifFetch(me.q, me.next)
+          if (gpOpen !== me || seq !== me.seq) return
+          if (me.next === 0 && !d.items.length) { reset(); note(`No GIFs for "${me.q}"`) }
+          add(d.items); me.next = d.next
+        } catch { if (gpOpen === me && seq === me.seq) { reset(); note('GIFs are not reachable right now.') } }
+        finally { if (seq === me.seq) me.busy = false }
+      }
+      let deb = 0
+      input.addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(() => { me.q = input.value.trim(); load(true) }, 320) })
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(deb); me.q = input.value.trim(); load(true) } })
+      me.io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting) && me.next) load(false) }, { root: body, rootMargin: '240px' })
+      me.io.observe(more)
+      load(true)
+      if (!phone) setTimeout(() => input.focus({ preventScroll: true }), 40)
+    }
+    document.addEventListener('click', (e) => { if (gpOpen && !gpOpen.scrim && !gpOpen.wrap.contains(e.target)) closeGifPicker() })
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && gpOpen) { e.stopPropagation(); closeGifPicker() } }, true)
+    window.__gif = { state: () => ({ ok: GIF.ok }) }   // the harness
+
     // ── a hold on a phone: the action sheet (the message, quick reactions and every action its bar carries) ──
     window.__chatSheet = (row) => openMsgSheet(row)   // the harness: headless WebKit has no Touch constructor to hold with
     function closeMsgSheet() { document.querySelectorAll('.ms-scrim, .ms-sheet').forEach((n) => n.remove()); document.querySelectorAll('.msg.held').forEach((n) => n.classList.remove('held')) }
@@ -22917,7 +23029,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const sheet = document.createElement('div'); sheet.className = 'ms-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Message')
       const prev = document.createElement('div'); prev.className = 'ms-prev'
       const who = document.createElement('b'); who.textContent = chatUser(m.user_id)?.username || 'member'
-      const tx = document.createElement('p'); tx.textContent = m.body || (m.image_url ? 'Photo' : m.poll ? 'Poll' : '')
+      const tx = document.createElement('p'); tx.textContent = m.body || (m.image_url ? (isGif(m.image_url) ? 'GIF' : 'Photo') : m.poll ? 'Poll' : '')
       prev.append(who, tx)
       const rx = document.createElement('div'); rx.className = 'ms-rx'
       const per = chat.rx?.get(m.id)
@@ -23204,6 +23316,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function ccReady() { el('chat-composer').classList.toggle('ready', !!(el('chat-input').value.trim() || pendingImage)) }
     el('chat-input').addEventListener('input', ccReady)
     new MutationObserver(ccReady).observe(el('cc-pending'), { attributes: true, attributeFilter: ['class'] })
+    el('cc-gif-btn').addEventListener('click', (e) => { e.stopPropagation(); hap('light'); openGifPicker(el('cc-gif-btn')) })
+    el('cc-menu-gif').addEventListener('click', (e) => { e.stopPropagation(); el('cc-menu').hidden = true; openGifPicker(null) })
     el('cc-emoji-btn').addEventListener('click', (e) => {
       e.stopPropagation(); hap('light')
       const input = el('chat-input')
