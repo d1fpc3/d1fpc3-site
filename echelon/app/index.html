@@ -3784,6 +3784,43 @@
     .gi-body p b { color: var(--ink); }
     .gi-body .btn { justify-content: center; margin-top: 4px; }
 
+    /* ── the site tour: a live walk through every page. The welcome card starts it, Settings replays it. The page
+       opens behind a spotlight on the place you would tap for it; one card says what it is for. ── */
+    /* above everything a page can raise (the phone chart, dialogs at 400), under the lock screen */
+    .stour-shield { position: fixed; inset: 0; z-index: 450; }
+    .stour-veil { position: fixed; inset: 0; z-index: 450; pointer-events: none; background: rgba(0, 0, 0, 0.46); opacity: 0; transition: opacity .3s ease; }
+    .stour-veil.on { opacity: 1; }
+    .stour-ring { position: fixed; z-index: 451; pointer-events: none; border-radius: 12px; box-shadow: 0 0 0 2px var(--gold), 0 0 24px 3px color-mix(in srgb, var(--gold) 30%, transparent), 0 0 0 9999px rgba(0, 0, 0, 0.46); transition: left .45s cubic-bezier(.2,.8,.2,1), top .45s cubic-bezier(.2,.8,.2,1), width .45s cubic-bezier(.2,.8,.2,1), height .45s cubic-bezier(.2,.8,.2,1), border-radius .3s ease, opacity .25s ease; }
+    .stour-ring.off { opacity: 0; }
+    .stour-card { position: fixed; z-index: 452; width: min(380px, calc(calc(100 * var(--vw)) - 24px)); padding: 16px 18px 14px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line-bright); box-shadow: 0 30px 70px -24px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.04); transition: left .45s cubic-bezier(.2,.8,.2,1), top .45s cubic-bezier(.2,.8,.2,1); animation: stour-pop .42s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes stour-pop { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+    .stour-card.out, .stour-ring.out, .stour-veil.out { opacity: 0 !important; transition: opacity .2s ease; }
+    .stour-bar { display: flex; gap: 3px; margin: 0 0 15px; }
+    .stour-bar i { flex: 1; height: 3px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 10%, transparent); transition: background .35s ease; }
+    .stour-bar i.done { background: color-mix(in srgb, var(--gold) 50%, transparent); }
+    .stour-bar i.on { background: var(--gold); }
+    .stour-in { animation: stour-in .38s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes stour-in { from { opacity: 0; transform: translateX(var(--stour-dx, 10px)); } }
+    .stour-head { display: flex; align-items: center; gap: 12px; }
+    .stour-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: none; color: var(--gold); background: color-mix(in srgb, var(--gold) 13%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 24%, transparent); }
+    .stour-ic svg { width: 20px; height: 20px; display: block; }
+    .stour-head h4 { margin: 0; font-size: 16.5px; font-weight: 650; letter-spacing: -0.015em; color: var(--ink); }
+    .stour-head small { display: block; margin-top: 2px; font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+    .stour-body { margin: 12px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+    .stour-note { margin: 10px 0 0; padding: 9px 12px; border-radius: 10px; background: color-mix(in srgb, var(--ink) 4.5%, transparent); font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+    .stour-note b { color: var(--gold); font-weight: 600; margin-right: 7px; }
+    .stour-foot { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+    .stour-skip { margin-right: auto; background: none; border: 0; padding: 8px 2px; color: var(--faint); font: inherit; font-size: 12.5px; cursor: pointer; transition: color .2s ease; }
+    .stour-skip:hover { color: var(--ink); }
+    .stour-back { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; flex: none; background: none; border: 1px solid var(--line-bright); color: var(--muted); cursor: pointer; transition: border-color .2s ease, color .2s ease, transform .2s ease, opacity .2s ease; }
+    .stour-back:hover:not(:disabled) { color: var(--ink); border-color: color-mix(in srgb, var(--gold) 45%, var(--line-bright)); }
+    .stour-back:disabled { opacity: 0.3; cursor: default; }
+    .stour-back svg { width: 16px; height: 16px; }
+    .stour-next.btn { padding: 10px 22px; min-height: 38px; justify-content: center; }
+    .stour-back:active:not(:disabled), .stour-next:active { transform: scale(0.96); }
+    @media (max-width: 840px) { .stour-card { border-radius: 22px; padding: 16px 16px 14px; transition: none; } .stour-back { width: 42px; height: 42px; } .stour-next.btn { min-height: 42px; padding: 10px 24px; } .stour-skip { padding: 12px 4px; } }
+    @media (prefers-reduced-motion: reduce) { .stour-ring, .stour-card, .stour-veil { transition: none; } .stour-card, .stour-in { animation: none; } }
+
     /* ── mobile: the sidebar becomes a drawer ──────────────────
        A spring in JS drives the panel (see "phone drawer" below): it follows
        the finger, can be grabbed mid-flight, and settles with the swipe's
@@ -6191,6 +6228,11 @@
               <span class="txt"><b>Invite friends</b></span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
             </button>
+            <button class="set-row" type="button" id="set-tour-row">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg></span>
+              <span class="txt"><b>Tour of Echelon</b></span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
             <button class="set-row" type="button" data-go="set-desktop" id="set-desktop-row" hidden>
               <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
               <span class="txt"><b>Echelon for Windows</b></span>
@@ -7304,7 +7346,7 @@
       if (!ind.classList.contains('live')) requestAnimationFrame(() => requestAnimationFrame(() => ind.classList.add('live')))
     }
     /* Today, phones: chips for the pages without a dock slot */
-    const TD_CHIPS = [['chart', 'Chart'], ['gex', 'GEX'], ['news', 'News'], ['journal', 'Journal'], ['library', 'Library'], ['members', 'Members']]
+    const TD_CHIPS = [['chart', 'Chart'], ['gex', 'GEX'], ['news', 'News'], ['journal', 'Journal'], ['indicators', 'Indicators'], ['propfirms', 'Prop firms'], ['library', 'Library'], ['members', 'Members']]
     function tdChips() {
       const host = el('td-chips'); if (!host) return
       host.textContent = ''
@@ -9586,21 +9628,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         ['discord', 'Discord'], ['instagram', 'Instagram'], ['twitter', 'Twitter / X'], ['youtube', 'YouTube'], ['friend', 'A friend'], ['other', 'Somewhere else'],
       ]},
     ]
-    // What the membership includes, one row per tab. Icons are cloned from
-    // the sidebar so the intro and the nav always agree.
-    const ONB_INSIDE = [
-      { view: 'course', name: 'Study', text: 'The lessons, in order, with homework where it matters. Overview always knows where you left off.', when: () => state.hasCourse },
-      { view: 'library', name: 'Video library', text: 'Trade recaps, breakdowns and concept videos. New ones light up the tab.' },
-      { view: 'chat', name: 'Chat', text: 'Announcements, general, wins, trades, and direct messages.' },
-      { view: 'journal', name: 'Journal', text: 'A page a day. Write the session, drop the chart, it saves as you type.' },
-      { view: 'indicators', name: 'D1 LIT', tag: 'Included', text: 'Echelon comes with the D1 LIT indicator on TradingView. Add your username once and it is added to your account.' },
-      { view: 'gex', name: 'GEX', text: 'The gamma board: where dealer hedging sits, mapped onto NQ, refreshed through the day.', when: () => !el('gex-tab').hidden },
-      { view: 'news', name: 'News', text: "Today's red and orange USD folders, so nothing surprises you at 8:30." },
-      { view: 'propfirms', name: 'Prop firms', text: 'The main prop firms compared at every account size, codes included.' },
-      { view: 'feed', name: 'Feed', text: 'Everyone\'s trades, newest first. Like, comment, follow the people worth following.' },
-      { view: 'members', name: 'Members', text: 'Who else is in here. Tap a name to message them.' },
-    ]
-    const ONB_STEPS = ONB_QS.length + 3   // welcome, what's inside, questions, username
+    const ONB_STEPS = ONB_QS.length + 2   // welcome (the site tour runs from it), questions, username
     let onbDraft = {}
     async function saveOnboarding(completed) {
       const payload = { user_id: state.user.id, answers: onbDraft, completed_at: completed ? new Date().toISOString() : null, updated_at: new Date().toISOString() }
@@ -9623,6 +9651,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (el('quotemodal')) el('quotemodal').hidden = true   // (the daily quote is retired; the node is gone)
       document.body.classList.add('onb-open')
       renderOnbStep(0)
+    }
+    // back into the intake after the tour, on Today
+    function onbResume(i) {
+      if (curView() !== 'overview') showView('overview')
+      el('onb').hidden = false
+      document.body.classList.add('onb-open')
+      renderOnbStep(i)
     }
     function finishOnboarding(msg) {
       saveOnboarding(true)
@@ -9652,7 +9687,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         b.addEventListener('click', onPrimary); foot.appendChild(b)
       }
       const skip = document.createElement('button'); skip.className = 'skip'; skip.type = 'button'; skip.textContent = skipLabel
-      skip.addEventListener('click', () => finishOnboarding('All of this lives in the sidebar whenever you want it.'))
+      skip.addEventListener('click', () => finishOnboarding('The tour of Echelon is in Settings whenever you want it.'))
       foot.appendChild(skip); card.appendChild(foot)
     }
     function renderOnbStep(i) {
@@ -9660,32 +9695,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('onb').scrollTop = 0
       if (i === 0) {
         const card = onbCard(0, 'Welcome to Echelon', "You're in.",
-          'A minute to show you around and learn who you are, so Echelon fits you. Skip any of it; nothing here is a test.')
-        onbFoot(card, "Show me what's inside", () => renderOnbStep(1), 'Skip the intro')
+          "Echelon is D1's trading floor: his chart and levels, the lessons, and the people trading NQ with you. One minute to show you where everything lives.")
+        onbFoot(card, 'Show me around', () => {
+          el('onb').hidden = true; document.body.classList.remove('onb-open')
+          startSiteTour({ onEnd: () => onbResume(1) })
+        }, 'Skip the intro')
         host.appendChild(card); return
       }
-      if (i === 1) {
-        const card = onbCard(1, 'What you have', 'Everything in Echelon.', 'Each of these is a tab on the left.')
-        const list = document.createElement('div'); list.className = 'onb-inside'
-        for (const it of ONB_INSIDE) {
-          if (it.when && !it.when()) continue
-          const row = document.createElement('div'); row.className = 'onb-row'
-          const ic = document.querySelector(`.tab[data-view="${it.view}"] .ic`)?.cloneNode(true)
-          if (ic) row.appendChild(ic)
-          const txt = document.createElement('div')
-          const b = document.createElement('b'); b.textContent = it.name
-          if (it.tag) { const t = document.createElement('em'); t.className = 'inc'; t.textContent = it.tag; b.appendChild(t) }
-          const s = document.createElement('span'); s.textContent = it.text
-          txt.append(b, s); row.appendChild(txt); list.appendChild(row)
-        }
-        card.appendChild(list)
-        onbFoot(card, 'Continue', () => renderOnbStep(2), 'Skip the rest')
-        host.appendChild(card); return
-      }
-      const qi = i - 2
+      const qi = i - 1
       if (qi < ONB_QS.length) {
         const c = ONB_QS[qi]
-        const card = onbCard(i, 'About you', c.q)
+        const card = onbCard(i, 'About you', c.q, qi === 0 ? 'Five quick taps so Echelon fits you. Skip any of them.' : '')
         const choices = document.createElement('div'); choices.className = 'choices'
         for (const [v, label] of c.choices) {
           const b = document.createElement('button'); b.className = 'choice'; b.type = 'button'; b.textContent = label
@@ -9714,6 +9734,165 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       host.appendChild(card)
       setTimeout(() => input.focus(), 50)
     }
+
+    // ── the site tour (D1, 09-29: "a clear onboarding flow for new members so that they understand the entire site") ──
+    // A live walk through every page, in sidebar order: the page opens behind a spotlight on the place you would tap
+    // for it (the sidebar on a desk; the dock on a phone, or a line saying where), and one card says what it is for
+    // and the first thing to do there. New members get it from the welcome card; Settings > Tour of Echelon replays it.
+    const SITE_TOUR = [
+      { view: 'overview', t: 'Today', b: "Your briefing for the session: the clock to the open, D1's gamma levels on NQ, the day's red news, d1's latest word and who is trading.", tip: 'Start every session here.' },
+      { view: 'chart', t: 'Chart', b: 'A full NQ chart built around how D1 trades: D1 LIT, the GEX levels, drawing tools, alerts and bar replay, right here.', tip: 'Open Indicators on the chart to switch D1 LIT and the GEX levels on. Replay walks any past session bar by bar.' },
+      { view: 'gex', t: 'GEX', b: 'The gamma board: where dealers are hedging, turned into NQ prices and refreshed through the day. The call wall, the put wall and the flip are the three to know.', tip: 'If D1 GEX on TradingView ever lags, the card at the bottom copies the live levels into it.' },
+      { view: 'news', t: 'News', b: "This week's USD calendar, high and medium impact only, in New York time, so nothing surprises you at 8:30.", tip: 'Red is high impact. Be flat, or ready, before it prints.' },
+      { view: 'feed', t: 'Feed', b: "Everyone's posts, newest first. Like, comment and follow the traders worth following." },
+      { view: 'chat', t: 'Chat', b: 'Announcements from d1, the general chat, wins, trade ideas and direct messages.', tip: "Say hi in general. Tap anyone's name to message them." },
+      { view: 'course', t: 'Study', b: 'The lessons, in order, with homework where it matters. It remembers where you left off.', tip: 'Start at lesson one, even if you have traded for years. Everything after it builds on it.' },
+      { view: 'journal', t: 'Journal', b: 'A page a day. Write up the session and drop your chart in; it saves as you type.', tip: 'Two honest lines a day beat a perfect page once a week.' },
+      { view: 'indicators', t: 'Indicators', b: 'D1 LIT comes with your membership. Add your TradingView username once and it lands on your TradingView account, usually within the hour.' },
+      { view: 'propfirms', t: 'Prop firms', b: 'The main prop firms side by side at every account size, with the discount codes.' },
+      { id: 'discord-link', t: 'Discord', b: 'The Echelon Discord server. Connect your Discord in Settings and your member role comes with you.' },
+      { id: 'tb-search', t: 'Search', b: 'Jump to any page, lesson or member from anywhere.', tip: 'On a keyboard: Ctrl K.' },
+      { you: true, view: 'settings', t: 'You', b: 'Your profile and your posts, notifications, appearance and account. This tour is in Settings too, whenever you want it again.' },
+      { id: 'nu-pill', view: 'overview', t: "What's next", b: 'Your first three steps: pick a username, add a photo, share your first post. This goes away once they are done.' },
+    ]
+    const ST = { on: false, i: 0, steps: [], opts: {}, from: 'overview', dir: 1 }
+    const stPhone = () => matchMedia('(max-width: 840px)').matches
+    const stShown = (n) => {
+      if (!n || n.hidden || n.closest('[hidden]')) return false
+      const r = n.getBoundingClientRect()
+      return r.width > 4 && r.height > 4 && r.right > 0 && r.bottom > 0 && r.left < innerWidth && r.top < innerHeight
+    }
+    function stAvail(s) {
+      if (s.id === 'nu-pill') return !el('nextup')?.hidden
+      if (s.id) return !!el(s.id) && !el(s.id).hidden && (s.id !== 'tb-search' || stShown(el(s.id)))
+      if (s.you) return true
+      const t = tabOf(s.view); return !!t && !t.hidden
+    }
+    function stTarget(s) {
+      let n = null
+      if (stPhone()) {
+        if (s.you) n = document.querySelector('#bnav button[data-view="set-profile"]')
+        else if (s.id) n = el(s.id)
+        else if (BNAV.includes(s.view)) n = document.querySelector(`#bnav button[data-view="${s.view}"]`)
+      } else {
+        if (s.you) n = document.querySelector('.side-user')
+        else if (s.id) n = el(s.id)
+        else n = document.querySelector(`.side-nav .tab[data-view="${s.view}"]`)
+      }
+      return stShown(n) ? n : null
+    }
+    // on a phone, the pages without a dock slot say where they live
+    function stWhere(s) {
+      if (s.you) return 'The last button in the bar at the bottom. Settings is the gear at the top of it.'
+      if (s.id === 'discord-link') return 'Your profile, the gear at the top, then Discord.'
+      if (s.id || BNAV.includes(s.view)) return ''
+      return TD_CHIPS.some(([v]) => v === s.view) ? `On Today, the ${s.t} chip under the date.` : ''
+    }
+    function stIcon(s) {
+      const src = s.you ? el('u-gear')?.querySelector('svg') : s.id === 'nu-pill' ? null : s.id ? el(s.id)?.querySelector('svg') : tabOf(s.view)?.querySelector('.ic')
+      if (src) { const c = src.cloneNode(true); c.removeAttribute('class'); c.removeAttribute('style'); return c }
+      const w = document.createElement('span')
+      w.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z"/></svg>'
+      return w.firstChild
+    }
+    function startSiteTour(opts = {}) {
+      if (ST.on) return
+      ST.steps = SITE_TOUR.filter(stAvail)
+      if (!ST.steps.length) return opts.onEnd?.(false)
+      ST.on = true; ST.opts = opts; ST.from = curView()
+      const mk = (c) => { const n = document.createElement('div'); n.className = c; return n }
+      ST.shield = mk('stour-shield'); ST.veil = mk('stour-veil'); ST.ring = mk('stour-ring off'); ST.card = mk('stour-card')
+      ST.card.setAttribute('role', 'dialog'); ST.card.setAttribute('aria-label', 'Tour of Echelon')
+      document.body.append(ST.shield, ST.veil, ST.ring, ST.card)
+      addEventListener('resize', stPlace); addEventListener('scroll', stPlace, true); addEventListener('keydown', stKey, true)
+      stGo(0)
+    }
+    function stGo(i) {
+      if (!ST.on) return
+      if (i >= ST.steps.length) return endSiteTour(true)
+      i = Math.max(0, i); ST.dir = i >= ST.i ? 1 : -1; ST.i = i
+      const s = ST.steps[i], n = ST.steps.length, last = i === n - 1
+      if (s.view && curView() !== s.view) showView(s.view)
+      if (document.activeElement && document.activeElement !== document.body && !ST.card.contains(document.activeElement)) document.activeElement.blur?.()
+      const c = ST.card; c.textContent = ''
+      const bar = document.createElement('div'); bar.className = 'stour-bar'
+      for (let k = 0; k < n; k++) { const d = document.createElement('i'); if (k < i) d.className = 'done'; else if (k === i) d.className = 'on'; bar.appendChild(d) }
+      const inner = document.createElement('div'); inner.className = 'stour-in'; inner.style.setProperty('--stour-dx', ST.dir > 0 ? '10px' : '-10px')
+      const head = document.createElement('div'); head.className = 'stour-head'
+      const ic = document.createElement('span'); ic.className = 'stour-ic'; ic.appendChild(stIcon(s))
+      const ht = document.createElement('div'), h = document.createElement('h4'), sm = document.createElement('small')
+      h.textContent = s.t; sm.textContent = `${i + 1} of ${n}`; ht.append(h, sm); head.append(ic, ht)
+      const body = document.createElement('p'); body.className = 'stour-body'; body.textContent = s.b
+      inner.append(head, body)
+      const note = (label, text) => { const p = document.createElement('p'); p.className = 'stour-note'; const b = document.createElement('b'); b.textContent = label; p.append(b, document.createTextNode(text)); inner.appendChild(p) }
+      const where = stPhone() ? stWhere(s) : ''
+      if (where) note('Find it', where)
+      if (s.tip) note('Try', s.tip)
+      const foot = document.createElement('div'); foot.className = 'stour-foot'
+      const skip = document.createElement('button'); skip.type = 'button'; skip.className = 'stour-skip'; skip.textContent = 'Skip tour'; skip.hidden = last
+      skip.addEventListener('click', () => endSiteTour(false))
+      const back = document.createElement('button'); back.type = 'button'; back.className = 'stour-back'; back.disabled = i === 0; back.setAttribute('aria-label', 'Back')
+      back.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>'
+      back.addEventListener('click', () => stGo(ST.i - 1))
+      const next = document.createElement('button'); next.type = 'button'; next.className = 'btn stour-next'
+      next.textContent = last ? (ST.opts.onEnd ? 'Continue' : 'Done') : 'Next'
+      next.addEventListener('click', () => { hap('light'); stGo(ST.i + 1) })
+      if (last) { const sp = document.createElement('span'); sp.style.marginRight = 'auto'; foot.appendChild(sp) }
+      foot.append(skip, back, next)
+      c.append(bar, inner, foot)
+      next.focus({ preventScroll: true })
+      // the page lays out as it opens (the chart and the GEX board build on arrival): place now and as it settles
+      stPlace(); requestAnimationFrame(stPlace); setTimeout(stPlace, 200); setTimeout(stPlace, 520)
+    }
+    function stPlace() {
+      if (!ST.on) return
+      const s = ST.steps[ST.i], t = stTarget(s), z = UIZ(), vw = innerWidth / z, vh = innerHeight / z, phone = stPhone()
+      const pad = phone ? 5 : 6, c = ST.card, cw = c.offsetWidth, ch = c.offsetHeight
+      const r = t ? R(t) : null
+      if (r) {
+        // kept inside the screen: a row flush with an edge (the profile row, bottom left) still shows all four sides
+        const x0 = Math.max(2, r.left - pad), y0 = Math.max(2, r.top - pad), x1 = Math.min(vw - 2, r.right + pad), y1 = Math.min(vh - 2, r.bottom + pad)
+        Object.assign(ST.ring.style, { left: `${x0}px`, top: `${y0}px`, width: `${x1 - x0}px`, height: `${y1 - y0}px`, borderRadius: t.closest('#bnav') || t.id === 'nu-pill' || t.id === 'tb-search' ? '999px' : '12px' })
+        ST.ring.classList.remove('off'); ST.veil.classList.remove('on')
+      } else { ST.ring.classList.add('off'); ST.veil.classList.add('on') }
+      let left, top
+      if (phone) {
+        const dock = el('bnav'), dr = stShown(dock) ? R(dock) : null
+        const floor = r && r.top > vh / 2 ? r.top - pad : dr ? dr.top : vh - 8
+        left = (vw - cw) / 2
+        top = r && r.bottom < vh / 3 ? r.bottom + pad + 14 : floor - 14 - ch
+      } else if (r && r.left < vw * 0.3 && r.right + pad + 20 + cw < vw - 12) {
+        left = r.right + pad + 18; top = r.top + r.height / 2 - ch / 2          // beside the sidebar row
+      } else if (r) {
+        left = r.left + r.width / 2 - cw / 2; top = r.bottom + pad + 14
+        if (top + ch > vh - 12) top = r.top - pad - 14 - ch
+      } else { left = (vw - cw) / 2; top = vh - ch - 40 }
+      c.style.left = `${Math.round(Math.min(Math.max(12, left), Math.max(12, vw - cw - 12)))}px`
+      c.style.top = `${Math.round(Math.min(Math.max(12, top), Math.max(12, vh - ch - 12)))}px`
+    }
+    function stKey(e) {
+      if (!ST.on) return
+      if (e.key === 'Escape') endSiteTour(false)
+      else if (e.key === 'ArrowRight' || (e.key === 'Enter' && !e.target?.closest?.('.stour-card button'))) stGo(ST.i + 1)
+      else if (e.key === 'ArrowLeft') stGo(ST.i - 1)
+      else if (e.key !== 'Tab' && e.key !== 'Enter' && e.key !== ' ') { e.preventDefault(); e.stopPropagation(); return }   // the page under the tour stays still (the chart's keys)
+      else return
+      e.preventDefault(); e.stopPropagation()
+    }
+    function endSiteTour(done) {
+      if (!ST.on) return
+      ST.on = false
+      removeEventListener('resize', stPlace); removeEventListener('scroll', stPlace, true); removeEventListener('keydown', stKey, true)
+      const nodes = [ST.shield, ST.veil, ST.ring, ST.card]
+      for (const n of nodes) n?.classList.add('out')
+      ST.shield?.remove()
+      setTimeout(() => nodes.forEach((n) => n?.remove()), 220)
+      saveOnbFlags({ site_tour: done ? 'done' : 'skipped' })
+      const then = ST.opts.onEnd; ST.opts = {}
+      if (then) then(done)
+      else if (ST.from && curView() !== ST.from) showView(ST.from)
+    }
+    window.__siteTour = { start: (o) => startSiteTour(o), state: () => ({ on: ST.on, i: ST.i, n: ST.steps.length, t: ST.steps[ST.i]?.t }) }   // for the harness
 
     // ── member recaps: anyone signed in can post their own ──
 
@@ -21913,6 +22092,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ntUpdateState()
       ntRenderChannels()
       document.querySelectorAll('.set-row[data-go]').forEach((b) => b.addEventListener('click', () => showView(b.dataset.go)))
+      el('set-tour-row')?.addEventListener('click', () => startSiteTour())
       document.querySelectorAll('.set-back, #notifs-back').forEach((b) => b.addEventListener('click', () => showView('settings')))
     }
     /* ── custom GEX alerts (public.gex_alerts, evaluated by send-push every minute) ── */

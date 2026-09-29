@@ -2,8 +2,8 @@
 //   1. from the repo root:  python -m http.server 8080
 //   2. node tests/onboarding-visual.mjs        (APP_URL / OUT / EMAIL / W / H env)
 // Mints a session for EMAIL (default: the App Review test account), resets its
-// member_onboarding row so the flow starts fresh, then walks: welcome → what's
-// inside → five questions → the LIT username step (skipped, so no fake
+// member_onboarding row so the flow starts fresh, then walks: welcome → the site
+// tour (skipped here) → five questions → the LIT username step (skipped, so no fake
 // TradingView grant is queued) → asserts the row persisted and that a reload
 // does NOT bring the onboarding back. Then, as the owner, opens GEX, ends the
 // tour, and asserts flags.gex_tour landed server-side and a reload with empty
@@ -70,22 +70,16 @@ await sql(`update member_onboarding o set completed_at = null, answers = '{}'::j
 
   if (!/You're in/.test(await text())) fails.push("welcome step missing: " + (await text()));
   await shot("01-welcome"); await noOverflow(page, "welcome");
+  // the welcome card starts the site tour (tests/onboarding-tour-visual.mjs walks it); skipping it hands back to the questions
   await page.click("#onb-host .foot .btn");
-  await page.waitForTimeout(250);
-  const rows = await page.locator("#onb-host .onb-row").count();
-  if (rows < 6) fails.push(`what's-inside rows ${rows}`);
-  const litRow = await page.locator("#onb-host .onb-row", { hasText: "D1 LIT" }).count();
-  if (!litRow) fails.push("LIT row missing from what's inside");
-  // tall step: the card top must be visible and the scrim must scroll, not clip
-  const geo = await page.evaluate(() => { const c = document.querySelector("#onb-host .intake-card").getBoundingClientRect(); const s = document.getElementById("onb"); return { top: c.top, bottom: c.bottom, ih: innerHeight, sh: s.scrollHeight, ch: s.clientHeight }; });
-  if (geo.top < 0) fails.push(`inside card clipped at top ${geo.top}`);
-  if (geo.bottom > geo.ih && geo.sh <= geo.ch) fails.push("inside card overflows but the scrim does not scroll");
-  await shot("02-inside"); await noOverflow(page, "inside");
-  await page.click("#onb-host .foot .btn");
+  await page.waitForSelector(".stour-card", { timeout: 8000 });
+  await page.click(".stour-skip");
+  await page.waitForSelector("#onb:not([hidden]) .choice", { timeout: 8000 });
+  await shot("02-questions-after-tour"); await noOverflow(page, "questions");
   for (let i = 0; i < 5; i++) {
     await page.waitForTimeout(200);
     const dots = await page.locator("#onb-host .dots i").count();
-    if (dots !== 8) fails.push(`dots ${dots} on q${i + 1}`);
+    if (dots !== 7) fails.push(`dots ${dots} on q${i + 1}`);
     if (i === 0) await shot("03-question");
     await page.click("#onb-host .choice >> nth=1");
   }
