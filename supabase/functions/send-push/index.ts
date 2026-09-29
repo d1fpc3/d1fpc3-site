@@ -161,7 +161,7 @@ async function prefsFor(ids: string[]) {
 }
 
 // ── the vol side of the GEX read: gex-worker /vol.json (VXN, the VIX curve, VXN against its year)
-type Vol = { vxn?: { last?: number; chg?: number; chgPct?: number }; vix?: { last?: number }; vix3m?: { last?: number }; trend?: string; level?: { label?: string; pct?: number } | null; term?: { state?: string } | null; dailySd?: number }
+type Vol = { vxn?: { last?: number; chg?: number; chgPct?: number }; vix?: { last?: number; chgPct?: number }; vix3m?: { last?: number }; trend?: string; level?: { label?: string; pct?: number } | null; term?: { state?: string } | null; dailySd?: number }
 async function getVol(): Promise<Vol | null> {
   try { const r = await fetch('https://gex-worker.d1fpc3.workers.dev/vol.json', { headers: { 'cache-control': 'no-store' } }); return r.ok ? await r.json() as Vol : null } catch { return null }
 }
@@ -177,16 +177,22 @@ function volLine(v: Vol | null, nq?: number): string {
   return `Vol: VXN ${v.vxn.last.toFixed(1)}${lv}${dir}${sd}${curve}`
 }
 // live NQ from TradingView's futures scanner (the same read sweep_check trusts)
-async function nqLive(): Promise<number | null> {
+async function futLive(ticker = 'CME_MINI:NQ1!'): Promise<number | null> {
   try {
     const r = await fetch('https://scanner.tradingview.com/futures/scan', {
       method: 'POST', headers: { 'content-type': 'application/json', 'user-agent': 'Mozilla/5.0' },
-      body: JSON.stringify({ symbols: { tickers: ['CME_MINI:NQ1!'] }, columns: ['close'] }),
+      body: JSON.stringify({ symbols: { tickers: [ticker] }, columns: ['close'] }),
     })
     const c = r.ok ? (await r.json())?.data?.[0]?.d?.[0] : null
     return typeof c === 'number' ? c : null
   } catch { return null }
 }
+const nqLive = () => futLive('CME_MINI:NQ1!')
+// the two gamma books (D1, 09-29: "customizable notifications for gamma for ES and NQ"): the same board shape,
+// futures prices in the `nq` fields for both (gex.json?book=es), ES read against the VIX where NQ reads the VXN
+const BOOKS = { nq: { fut: 'NQ', q: '', live: 'CME_MINI:NQ1!', vix: 'VXN' }, es: { fut: 'ES', q: '?book=es', live: 'CME_MINI:ES1!', vix: 'VIX' } } as const
+type Book = keyof typeof BOOKS
+const gexBoard = (b: Book) => fetch(`https://gex-worker.d1fpc3.workers.dev/gex.json${BOOKS[b].q}`, { headers: { 'cache-control': 'no-store' } })
 
 Deno.serve(async (req) => {
   const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'content-type': 'application/json' } })
@@ -218,12 +224,12 @@ Deno.serve(async (req) => {
     const { data: actor } = n.actor_id ? await admin.from('profiles').select('username').eq('user_id', n.actor_id).maybeSingle() : { data: null }
     const who = actor?.username ? `@${actor.username}` : 'Someone'
     const emoji = act === 'reaction' ? body0.split(' ')[0] : ''
-    const title = act === 'like' ? `${who} liked your trade`
-      : act === 'comment' ? `${who} commented on your trade`
+    const title = act === 'like' ? `${who} liked your post`
+      : act === 'comment' ? `${who} commented on your post`
       : act === 'reply' ? `${who} replied to your comment`
       : act === 'mention' ? `${who} mentioned you`
       : act === 'follow' ? `${who} started following you`
-      : act === 'post' ? `${who} posted a trade`
+      : act === 'post' ? `${who} shared a post`
       : act === 'reaction' ? `${who} reacted ${emoji} to your message`
       : 'Echelon'
     const text = act === 'comment' || act === 'post' ? body0
@@ -459,24 +465,33 @@ Deno.serve(async (req) => {
     if (!live.length) return json({ ok: true, skipped: 'no holders with alerts' })
 
     type Gx = { nq?: number; zdte?: { netGexM?: number; flip?: { nq?: number }; callWall?: { nq?: number }; putWall?: { nq?: number } }; swing?: { flip?: { nq?: number } } }
-    const [gRes, vol, nqTv] = await Promise.all([fetch('https://gex-worker.d1fpc3.workers.dev/gex.json', { headers: { 'cache-control': 'no-store' } }), getVol(), nqLive()])
-    const gx = gRes.ok ? await gRes.json() as Gx : null
-    const nq = nqTv ?? gx?.nq ?? null
+    // an alert reads its own book (params.book 'es'; absent = NQ); the ES board and price are fetched only when a row asks
+    const needEs = live.some((r) => ((r.params ?? {}) as Record<string, unknown>).book === 'es')
+    const [gRes, eRes, vol, nqTv, esTv] = await Promise.all([gexBoard('nq'), needEs ? gexBoard('es') : Promise.resolve(null), getVol(), nqLive(), needEs ? futLive(BOOKS.es.live) : Promise.resolve(null)])
     const fmt = (n: number) => Math.round(n).toLocaleString('en-US')
-    const z = gx?.zdte ?? {}
-    const flip = z.flip?.nq ?? gx?.swing?.flip?.nq ?? null, cw = z.callWall?.nq ?? null, pw = z.putWall?.nq ?? null, net = z.netGexM ?? null
-    // same read as the chart's regime pill
-    const regime = nq == null || net == null ? null
-      : cw != null && pw != null && cw > pw && nq > cw ? 'past_call' : cw != null && pw != null && cw > pw && nq < pw ? 'past_put'
-      : net >= 0 && (flip == null || nq >= flip) ? 'damp' : net < 0 && flip != null && nq < flip ? 'amp' : 'mixed'
-    const LVL: Record<string, [string, number | null]> = { flip: ['the gamma flip', flip], call_wall: ['the call wall', cw], put_wall: ['the put wall', pw] }
-    const vx = vol?.vxn?.last ?? null
+    const read = (gx: Gx | null, tv: number | null) => {
+      const z = gx?.zdte ?? {}, px = tv ?? gx?.nq ?? null
+      const flip = z.flip?.nq ?? gx?.swing?.flip?.nq ?? null, cw = z.callWall?.nq ?? null, pw = z.putWall?.nq ?? null, net = z.netGexM ?? null
+      // same read as the chart's regime pill
+      const regime = px == null || net == null ? null
+        : cw != null && pw != null && cw > pw && px > cw ? 'past_call' : cw != null && pw != null && cw > pw && px < pw ? 'past_put'
+        : net >= 0 && (flip == null || px >= flip) ? 'damp' : net < 0 && flip != null && px < flip ? 'amp' : 'mixed'
+      return { px, flip, cw, pw, regime }
+    }
+    const RD: Record<Book, ReturnType<typeof read>> = {
+      nq: read(gRes.ok ? await gRes.json() as Gx : null, nqTv),
+      es: read(eRes && eRes.ok ? await eRes.json() as Gx : null, esTv),
+    }
+    const vx = vol?.vxn?.last ?? null, vixNow = vol?.vix?.last ?? null
 
     const COOLDOWN = 20 * 60e3, now = Date.now()
     const fires: { row: typeof live[number]; title: string; line: string }[] = []
     const updates: { id: string; last_state: string; fired: boolean }[] = []
     for (const r of live) {
       const pr = (r.params ?? {}) as Record<string, unknown>
+      const bk: Book = pr.book === 'es' ? 'es' : 'nq', F = BOOKS[bk].fut, M = RD[bk]
+      const nq = M.px, flip = M.flip, cw = M.cw, pw = M.pw, regime = M.regime
+      const LVL: Record<string, [string, number | null]> = { flip: ['the gamma flip', flip], call_wall: ['the call wall', cw], put_wall: ['the put wall', pw] }
       let state: string | null = null, title = '', line = ''
       let edge = (prev: string | null, cur: string) => prev != null && prev !== cur && cur === 'in'
       if (r.kind === 'regime') {
@@ -484,22 +499,26 @@ Deno.serve(async (req) => {
         state = regime
         edge = (prev, cur) => prev != null && prev !== cur
         const word = { damp: 'Dampening', amp: 'Amplifying', past_call: 'past the call wall', past_put: 'past the put wall' }[regime]
-        title = regime === 'damp' || regime === 'amp' ? `NQ · gamma now ${word}` : `NQ · ${word}`
-        line = regime === 'damp' ? `NQ ${fmt(nq!)} is above the flip ${flip != null ? fmt(flip) : ''}. Dealer hedging now leans against moves.`
-          : regime === 'amp' ? `NQ ${fmt(nq!)} is below the flip ${fmt(flip!)}. Dealer hedging now leans with moves.`
-          : regime === 'past_call' ? `NQ ${fmt(nq!)} is above the call wall ${fmt(cw!)}, outside the heaviest call gamma.` : `NQ ${fmt(nq!)} is below the put wall ${fmt(pw!)}, outside the heaviest put gamma.`
+        title = regime === 'damp' || regime === 'amp' ? `${F} · gamma now ${word}` : `${F} · ${word}`
+        line = regime === 'damp' ? `${F} ${fmt(nq!)} is above the flip ${flip != null ? fmt(flip) : ''}. Dealer hedging now leans against moves.`
+          : regime === 'amp' ? `${F} ${fmt(nq!)} is below the flip ${fmt(flip!)}. Dealer hedging now leans with moves.`
+          : regime === 'past_call' ? `${F} ${fmt(nq!)} is above the call wall ${fmt(cw!)}, outside the heaviest call gamma.` : `${F} ${fmt(nq!)} is below the put wall ${fmt(pw!)}, outside the heaviest put gamma.`
       } else if (r.kind === 'level') {
         const [name, lv] = LVL[String(pr.target)] ?? ['', null]
         const pts = Math.max(1, Number(pr.pts) || 20)
         if (nq == null || lv == null) continue
         state = Math.abs(nq - lv) <= pts ? 'in' : 'out'
-        title = `NQ · near ${name}`
-        line = `NQ ${fmt(nq)} is ${fmt(Math.abs(nq - lv))} pts ${nq >= lv ? 'above' : 'below'} ${name} ${fmt(lv)}.`
+        title = `${F} · near ${name}`
+        line = `${F} ${fmt(nq)} is ${fmt(Math.abs(nq - lv))} pts ${nq >= lv ? 'above' : 'below'} ${name} ${fmt(lv)}.`
       } else if (r.kind === 'vxn_above' || r.kind === 'vxn_below') {
-        const v = Number(pr.value); if (vx == null || !isFinite(v)) continue
-        state = (r.kind === 'vxn_above' ? vx > v : vx < v) ? 'in' : 'out'
-        title = r.kind === 'vxn_above' ? `Volatility · VXN above ${v}` : `Volatility · VXN below ${v}`
-        line = `VXN is ${vx.toFixed(2)}${vol?.level?.label ? `, ${volWord(vol)} for its year (${ord(vol.level.pct!)} pct)` : ''}.${vol?.dailySd && nq ? ` 1σ for a session is ±${fmt(nq * vol.dailySd)} pts.` : ''}`
+        // NQ reads the VXN, ES the VIX
+        const idx = BOOKS[bk].vix, cur = bk === 'es' ? vixNow : vx
+        const v = Number(pr.value); if (cur == null || !isFinite(v)) continue
+        state = (r.kind === 'vxn_above' ? cur > v : cur < v) ? 'in' : 'out'
+        title = r.kind === 'vxn_above' ? `Volatility · ${idx} above ${v}` : `Volatility · ${idx} below ${v}`
+        line = bk === 'es'
+          ? `The VIX is ${cur.toFixed(2)}${vol?.vix?.chgPct != null ? `, ${vol.vix.chgPct > 0 ? '+' : ''}${vol.vix.chgPct}% on the day` : ''}.`
+          : `VXN is ${cur.toFixed(2)}${vol?.level?.label ? `, ${volWord(vol)} for its year (${ord(vol.level.pct!)} pct)` : ''}.${vol?.dailySd && nq ? ` 1σ for a session is ±${fmt(nq * vol.dailySd)} pts.` : ''}`
       } else if (r.kind === 'vol_level') {
         const lab = vol?.level?.label; if (!lab) continue
         const want = pr.to === 'low' ? ['low'] : ['high', 'extreme']
@@ -525,64 +544,80 @@ Deno.serve(async (req) => {
     await Promise.all(updates.map((u) => admin.from('gex_alerts').update(u.fired ? { last_state: u.last_state, last_fired_at: new Date().toISOString() } : { last_state: u.last_state }).eq('id', u.id)))
     let delivered = 0
     if (fires.length) {
-      await admin.from('notifications').insert(fires.map((f) => ({ user_id: f.row.user_id, kind: 'gex', body: `${f.title.replace(/^(NQ|Volatility) · /, '')}: ${f.line}`.slice(0, 1000) })))
+      await admin.from('notifications').insert(fires.map((f) => ({ user_id: f.row.user_id, kind: 'gex', body: `${f.title.replace(/^(NQ|ES|Volatility) · /, '')}: ${f.line}`.slice(0, 1000) })))
       for (const f of fires) { const r = await deliver([f.row.user_id], f.title, f.line.slice(0, 160), `${APP_PATH}?start=gex`); delivered += r.sent }
     }
-    return json({ ok: true, evaluated: live.length, changed: updates.length, fired: fires.map((f) => ({ id: f.row.id, kind: f.row.kind, title: f.title })), delivered, nq, regime, vxn: vx, errors: ERRORS.splice(0, 5) })
+    return json({ ok: true, evaluated: live.length, changed: updates.length, fired: fires.map((f) => ({ id: f.row.id, kind: f.row.kind, title: f.title })), delivered, nq: RD.nq.px, regime: RD.nq.regime, es: needEs ? RD.es.px : undefined, esRegime: needEs ? RD.es.regime : undefined, vxn: vx, vix: vixNow, errors: ERRORS.splice(0, 5) })
   }
+
+  // Routine GEX pushes run per BOOK (D1, 09-29: "customizable notifications for gamma for ES and NQ"). NQ keeps its
+  // switches (the 8:30 sheet = prefs.gex, a slot = alerts.gex_<slot>, absent = on); ES is opt-in (alerts.gex_es_sheet,
+  // alerts.gex_es_<slot>, absent = off), so nobody who never asked for ES gets a second push.
+  const gexHolders = async () => {
+    const { data: ents } = await admin.from('entitlements').select('user_id').eq('product', 'd1-gex').eq('status', 'active').not('user_id', 'is', null)
+    return [...new Set((ents ?? []).map((e) => e.user_id as string))]
+  }
+  const vixLine = (v: Vol | null) => v?.vix?.last ? `Vol: VIX ${v.vix.last.toFixed(1)}${v.term?.state === 'stressed' ? ' · VIX curve inverted' : ''}` : ''
 
   // ── a timed GEX refresh landed (tos-gex slot publish) ─────────────
   if (body.gex_refresh) {
     const slot = typeof body.gex_refresh === 'string' ? body.gex_refresh : 'update'
-    const label = slot === 'open' ? 'Open update' : slot === 'mid' ? 'Midday update' : slot === 'close' ? 'Close update' : 'GEX update'
-    const [res, vol] = await Promise.all([fetch('https://gex-worker.d1fpc3.workers.dev/gex.json', { headers: { 'cache-control': 'no-store' } }), getVol()])
-    if (!res.ok) return json({ ok: false, error: `gex-worker ${res.status}` }, 502)
-    const d = await res.json() as { regime?: string; nq?: number; zdte?: { netGexM?: number } }
-    const neg = (d.regime ?? '').startsWith('negative')
-    const net = d.zdte?.netGexM
-    const vw = volWord(vol)
-    const title = `GEX refreshed · ${neg ? 'NEGATIVE' : 'POSITIVE'} gamma${vw ? ` · vol ${vw}` : ''}`
-    const text = `${label}: ${neg ? 'dealers chase price, moves accelerate' : 'dealers fade price, moves pin'}`
-      + (typeof net === 'number' ? ` · 0DTE net ${net > 0 ? '+' : ''}${net}M` : '')
-      + (d.nq ? ` · NQ ${d.nq}` : '')
-      + (vol?.vxn?.last ? `\n${volLine(vol, d.nq)}` : '')
-    // once per slot per day, even if the workflow's backstop cron re-fires
-    const dayStart = new Date(); dayStart.setUTCHours(0, 0, 0, 0)
-    const { data: had } = await admin.from('notifications').select('id').eq('kind', 'gex')
-      .gte('created_at', dayStart.toISOString()).ilike('body', `${label}%`).limit(1)
-    if (had?.length) return json({ ok: true, skipped: 'already sent for this slot' })
-    const { data: ents } = await admin.from('entitlements').select('user_id').eq('product', 'd1-gex').eq('status', 'active').not('user_id', 'is', null)
-    const ids = [...new Set((ents ?? []).map((e) => e.user_id as string))]
+    const base = slot === 'open' ? 'Open update' : slot === 'mid' ? 'Midday update' : slot === 'close' ? 'Close update' : 'GEX update'
+    const [nqRes, esRes, vol] = await Promise.all([gexBoard('nq'), gexBoard('es'), getVol()])
+    const ids = await gexHolders()
     const pref = await prefsFor(ids)
-    const slotKey = `gex_${slot}`
-    const targets = ids.filter((id) => (pref(id).alerts ?? {})[slotKey] !== false)
-    if (targets.length) {
-      await admin.from('notifications').insert(targets.map((uid) => ({ user_id: uid, kind: 'gex', body: text.slice(0, 1000) })))
+    const vw = volWord(vol)
+    const dayStart = new Date(); dayStart.setUTCHours(0, 0, 0, 0)
+    const out: Record<string, unknown> = { ok: true, slot }
+    for (const bk of ['nq', 'es'] as Book[]) {
+      const res = bk === 'nq' ? nqRes : esRes, F = BOOKS[bk].fut
+      if (!res.ok) { out[bk] = { error: `gex-worker ${res.status}` }; continue }
+      const d = await res.json() as { regime?: string; nq?: number; zdte?: { netGexM?: number } }
+      const neg = (d.regime ?? '').startsWith('negative'), net = d.zdte?.netGexM
+      // the NQ push reads exactly as before; the ES one names its book up front
+      const label = bk === 'nq' ? base : `ES ${base.charAt(0).toLowerCase()}${base.slice(1)}`
+      const title = bk === 'nq' ? `GEX refreshed · ${neg ? 'NEGATIVE' : 'POSITIVE'} gamma${vw ? ` · vol ${vw}` : ''}` : `ES GEX refreshed · ${neg ? 'NEGATIVE' : 'POSITIVE'} gamma`
+      const vl = bk === 'nq' ? (vol?.vxn?.last ? volLine(vol, d.nq) : '') : vixLine(vol)
+      const text = `${label}: ${neg ? 'dealers chase price, moves accelerate' : 'dealers fade price, moves pin'}`
+        + (typeof net === 'number' ? ` · 0DTE net ${net > 0 ? '+' : ''}${net}M` : '')
+        + (d.nq ? ` · ${F} ${d.nq}` : '')
+        + (vl ? `\n${vl}` : '')
+      // once per slot per day per book, even if the workflow's backstop cron re-fires
+      const { data: had } = await admin.from('notifications').select('id').eq('kind', 'gex')
+        .gte('created_at', dayStart.toISOString()).ilike('body', `${label}%`).limit(1)
+      if (had?.length) { out[bk] = { skipped: 'already sent for this slot' }; continue }
+      const al = (id: string) => pref(id).alerts ?? {}
+      const targets = ids.filter((id) => bk === 'nq' ? al(id)[`gex_${slot}`] !== false : al(id)[`gex_es_${slot}`] === true)
+      if (targets.length) await admin.from('notifications').insert(targets.map((uid) => ({ user_id: uid, kind: 'gex', body: text.slice(0, 1000) })))
+      const r = await deliver(targets, title, text.slice(0, 160), `${APP_PATH}?start=gex`)
+      out[bk] = { targets: targets.length, ...r }
     }
-    const r = await deliver(targets, title, text.slice(0, 160), `${APP_PATH}?start=gex`)
-    return json({ ok: true, slot, targets: targets.length, ...r, errors: ERRORS.splice(0, 5) })
+    return json({ ...out, errors: ERRORS.splice(0, 5) })
   }
 
   // ── the morning GEX sheet ─────────────────────────────────────────
   if (body.gex_sheet) {
-    const res = await fetch('https://gex-worker.d1fpc3.workers.dev/gex.json', { headers: { 'cache-control': 'no-store' } })
-    if (!res.ok) return json({ ok: false, error: `gex-worker ${res.status}` }, 502)
-    const d = await res.json() as { levelsText?: string; regime?: string; spot?: number; nq?: number }
-    const vol = await getVol()
-    const vl = volLine(vol, d.nq), vw = volWord(vol)
-    const sheet = [(d.levelsText || '').trim(), vl].filter(Boolean).join('\n')
-    if (!sheet) return json({ ok: true, skipped: 'no sheet yet' })
+    const [nqRes, esRes, vol] = await Promise.all([gexBoard('nq'), gexBoard('es'), getVol()])
     // everyone holding D1 GEX right now (mods / owner included via their comped rows)
-    const { data: ents } = await admin.from('entitlements').select('user_id').eq('product', 'd1-gex').eq('status', 'active').not('user_id', 'is', null)
-    const ids = [...new Set((ents ?? []).map((e) => e.user_id as string))]
+    const ids = await gexHolders()
     const pref = await prefsFor(ids)
-    const targets = ids.filter((id) => pref(id).gex)
-    // the inbox copy, so the sheet is there even if the push never lands
-    if (targets.length) {
-      await admin.from('notifications').insert(targets.map((uid) => ({ user_id: uid, kind: 'gex', body: sheet.slice(0, 1000) })))
+    const vw = volWord(vol)
+    const out: Record<string, unknown> = { ok: true }
+    for (const bk of ['nq', 'es'] as Book[]) {
+      const res = bk === 'nq' ? nqRes : esRes
+      if (!res.ok) { out[bk] = { error: `gex-worker ${res.status}` }; continue }
+      const d = await res.json() as { levelsText?: string; regime?: string; spot?: number; nq?: number }
+      const vl = bk === 'nq' ? volLine(vol, d.nq) : vixLine(vol)
+      const sheet = [(d.levelsText || '').trim(), vl].filter(Boolean).join('\n')
+      if (!sheet) { out[bk] = { skipped: 'no sheet yet' }; continue }
+      const targets = ids.filter((id) => bk === 'nq' ? pref(id).gex : (pref(id).alerts ?? {}).gex_es_sheet === true)
+      // the inbox copy, so the sheet is there even if the push never lands
+      if (targets.length) await admin.from('notifications').insert(targets.map((uid) => ({ user_id: uid, kind: 'gex', body: sheet.slice(0, 1000) })))
+      const title = bk === 'nq' ? `D1 GEX · today's sheet${vw ? ` · vol ${vw}` : ''}` : `D1 GEX · today's ES sheet`
+      const r = await deliver(targets, title, [vl, (d.levelsText || '').trim()].filter(Boolean).join(' · ').replace(/\s+/g, ' ').slice(0, 160), `${APP_PATH}?start=gex`)
+      out[bk] = { targets: targets.length, ...r }
     }
-    const r = await deliver(targets, `D1 GEX · today's sheet${vw ? ` · vol ${vw}` : ''}`, [vl, (d.levelsText || '').trim()].filter(Boolean).join(' · ').replace(/\s+/g, ' ').slice(0, 160), `${APP_PATH}?start=gex`)
-    return json({ ok: true, targets: targets.length, ...r, errors: ERRORS.splice(0, 5) })
+    return json({ ...out, errors: ERRORS.splice(0, 5) })
   }
 
   // ── a chat message ────────────────────────────────────────────────
