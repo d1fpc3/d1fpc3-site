@@ -81,12 +81,20 @@ async function run(vpName) {
     // 2. the sidebar folds with a transition, the stage grows, the canvas repaints at the new width
     const g0 = await geo(page);
     check(g0.side > 100 && !g0.hid, `sidebar open at ${Math.round(g0.side)}px`);
-    await page.click("#ch-side");
-    await page.waitForTimeout(140);
-    const gMid = await geo(page);
+    // sampled in the page every frame: the fold is a steep ease-out (90% done by ~140ms), so one sample taken
+    // 140ms after a Playwright click landed on 0 whenever the round trip ran long, and read a smooth fold as none
+    // and the running width transition is read straight off the aside, so a loaded machine dropping frames cannot fail it
+    const fold = await page.evaluate(() => new Promise((res) => {
+      const side = document.querySelector("aside.side"), w0 = side.getBoundingClientRect().width, t0 = performance.now(), m = [];
+      document.getElementById("ch-side").click();
+      getComputedStyle(side).width;
+      const tr = side.getAnimations().some((a) => a.transitionProperty === "width");
+      const tick = () => { const w = side.getBoundingClientRect().width; if (w > 0.5 && w < w0 - 0.5) m.push(Math.round(w)); if (performance.now() - t0 < 320) requestAnimationFrame(tick); else res({ tr, m }) };
+      requestAnimationFrame(tick);
+    }));
     await page.waitForTimeout(700);
     const g1 = await geo(page);
-    check(gMid.side > 0 && gMid.side < g0.side, `sidebar animates (mid ${Math.round(gMid.side)}px of ${Math.round(g0.side)})`);
+    check(fold.tr && fold.m.length >= 1, `sidebar animates (width transition ${fold.tr ? "running" : "missing"}, ${fold.m.length} in-between frames: ${fold.m.slice(0, 5).join(", ")}px of ${Math.round(g0.side)})`);
     check(g1.side === 0 && g1.hid && g1.stage - g0.stage > g0.side * 0.9, `sidebar folded: stage ${Math.round(g0.stage)} to ${Math.round(g1.stage)}px`);
     check(g1.canvas === Math.round(g1.stageClient * g1.dpr), `canvas repainted at the new width (${g1.canvas} = ${g1.stageClient} x ${g1.dpr})`);
     check(await page.evaluate(() => document.getElementById("ch-side").getAttribute("aria-pressed") === "true" && localStorage.getItem("echelon-chart-side") === "1"), "fold state saved");
@@ -159,8 +167,8 @@ async function run(vpName) {
   check(await page.evaluate(() => document.getElementById("v-chart").style.getPropertyValue("--acc") === "" && getComputedStyle(document.querySelector("#ch-tf button.on")).color === "rgb(201, 162, 74)"), "accent back to gold");
 
   // 9. Done plays the dialog out
-  await page.click(".ch-dlg-foot .ok"); await page.waitForTimeout(40);
-  const out = await page.evaluate(() => document.getElementById("ch-menu").classList.contains("out") && !document.getElementById("ch-menu").hidden);
+  // read in the same task as the click: the play-out is 150ms, shorter than a Playwright round trip on a loaded machine
+  const out = await page.evaluate(() => { document.querySelector(".ch-dlg-foot .ok").click(); const m = document.getElementById("ch-menu"); return m.classList.contains("out") && !m.hidden });
   await page.waitForTimeout(300);
   check(out && await page.evaluate(() => document.getElementById("ch-menu").hidden && document.getElementById("ch-scrim").hidden), "Done plays the dialog out, then hides it");
 
