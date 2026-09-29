@@ -716,6 +716,24 @@
     #v-gex .gex-sheet-tog small { display: block; font-size: 12px; color: var(--faint); margin-top: 2px; }
     #v-gex .gex-sheetcard:not(.open) .gex-sheet { display: none; }
     #v-gex .gex-sheet { border-top: 1px solid var(--line); padding: 14px 20px 18px; max-height: none; }
+    /* the TradingView line: the live print as the one string D1 GEX eats, for when its own refresh lags */
+    #v-gex .gex-tvcard { padding: 16px 18px 16px; }
+    #v-gex .gex-tv-head { display: flex; align-items: center; gap: 14px; }
+    #v-gex .gex-tv-t { flex: 1; min-width: 0; }
+    #v-gex .gex-tv-t b { display: block; font-size: 14.5px; font-weight: 600; color: var(--ink); }
+    #v-gex .gex-tv-t small { display: block; font-size: 12.5px; color: var(--faint); margin-top: 3px; line-height: 1.45; }
+    #v-gex .gex-ibtn.pri { background: var(--gold); border-color: transparent; color: #14110a; font-weight: 600; box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--gold) 70%, transparent); }
+    #v-gex .gex-ibtn.pri:hover { background: color-mix(in srgb, var(--gold) 88%, #fff); border-color: transparent; }
+    #v-gex .gex-ibtn.pri.copied { background: var(--good); color: #06140c; box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--good) 70%, transparent); }
+    #v-gex .gex-tv-line { margin-top: 13px; padding: 11px 14px; border-radius: 10px; background: color-mix(in srgb, var(--ink) 3.5%, var(--panel)); border: 1px solid var(--line); font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); white-space: nowrap; overflow: hidden; -webkit-user-select: all; user-select: all; cursor: text; -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); mask-image: linear-gradient(90deg, #000 82%, transparent); transition: border-color .2s ease; }
+    #v-gex .gex-tv-line:hover { border-color: var(--line-bright); }
+    #v-gex .gex-tv-line:focus-visible { outline: 2px solid color-mix(in srgb, var(--gold) 60%, transparent); outline-offset: 2px; }
+    #v-gex .gex-tvcard.flash .gex-tv-line { border-color: color-mix(in srgb, var(--good) 65%, var(--line)); }
+    #v-gex .gex-tv-steps { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 13px 0 0; padding: 0; list-style: none; counter-reset: tv; font-size: 12.5px; color: var(--muted); }
+    #v-gex .gex-tv-steps li { counter-increment: tv; display: flex; align-items: flex-start; gap: 9px; line-height: 19px; }
+    #v-gex .gex-tv-steps li::before { content: counter(tv); display: grid; place-items: center; width: 19px; height: 19px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line)); font-size: 11px; font-weight: 600; color: var(--gold); flex: none; font-variant-numeric: tabular-nums; }
+    #v-gex .gex-tv-steps b { color: var(--ink); font-weight: 600; }
+    #v-gex .gex-tv-note { margin: 11px 0 0; font-size: 12px; color: var(--faint); line-height: 1.5; }
 
     #v-gex .gex-pxage { color: var(--muted); }
     #v-gex .gx-up { animation: gx-up 1.1s ease-out; } #v-gex .gx-dn { animation: gx-dn 1.1s ease-out; }
@@ -744,6 +762,10 @@
       #v-gex #gex-refresh { width: 34px; padding: 0; justify-content: center; }
       #v-gex #gex-refresh, #v-gex #gex-whatis { order: 6; }
       #v-gex .gex-sheet-tog small { display: none; }
+      #v-gex .gex-tvcard { padding: 14px 14px 14px; }
+      #v-gex .gex-tv-head { align-items: flex-start; }
+      #v-gex .gex-tv-steps { flex-direction: column; gap: 8px; }
+      #v-gex #gex-tv-copy { height: 40px; padding: 0 16px; }   /* a thumb-sized target on a phone */
       #v-gex .gex-hero-top { padding: 18px 16px 16px; }
       #v-gex .gex-read > div { padding: 14px 16px 15px; }
       #v-gex .gex-read > div::before { left: 16px; }
@@ -5985,6 +6007,15 @@
               <button class="gex-ibtn" id="gex-sheet-copy" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg><span>Copy sheet</span></button>
             </div>
             <pre class="gex-sheet" id="gex-sheet" hidden></pre>
+          </div>
+          <div class="gex-card gex-tvcard" id="gex-tvcard" hidden>
+            <div class="gex-tv-head">
+              <div class="gex-tv-t"><b>Levels for TradingView</b><small>If D1 GEX on TradingView shows old levels, paste this line into it.</small></div>
+              <button class="gex-ibtn pri" id="gex-tv-copy" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg><span>Copy line</span></button>
+            </div>
+            <div class="gex-tv-line" id="gex-tv-line" tabindex="0" title="The whole line: tap to select it"></div>
+            <ol class="gex-tv-steps"><li><span>Copy the line</span></li><li><span>Open <b>D1 GEX</b> settings on TradingView, then <b>Levels feed override</b></span></li><li><span>Paste it and press <b>Ok</b></span></li></ol>
+            <p class="gex-tv-note" id="gex-tv-note"></p>
           </div>
         </section>
 
@@ -14400,6 +14431,23 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderGex()
     }
 
+    // the TradingView line (D1, 09-29): the LIVE print, whatever day or book is on screen, as the one string the
+    // D1 GEX indicator eats in "Levels feed override". Always the NQ print: it carries both books (NQ keys and ES.*);
+    // an ES-only line has no DGEN, so the indicator would ignore it. It wins there only while it is newer than the
+    // levels built into the script, so a member can leave it pasted.
+    function gexTvCard() {
+      const card = el('gex-tvcard'); if (!card) return
+      const d = gexStoreFor('NQ').live
+      if (!d?.pineData) {
+        card.hidden = true
+        if (!GEX.tvAsked) { GEX.tvAsked = true; loadGex(false, 'NQ').then(gexTvCard, () => {}) }
+        return
+      }
+      card.hidden = false
+      el('gex-tv-line').textContent = d.pineData
+      el('gex-tv-note').textContent = `Printed ${etStamp(d.generatedAt)}. D1 GEX only uses it while it is newer than the levels built into the script, so it can stay there.`
+    }
+
     /* ── back in time: the worker archives every RTH print (snap:<day>:<HHMM>)
        from Sep 4, 2026; earlier days carry only the logged trail. ‹ › walk the
        days, the picker walks the prints within a day. ── */
@@ -14483,6 +14531,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('gex-railcard').hidden = true; el('gex-signals').hidden = true
       const sess = el('gex-sess'); sess.hidden = true; sess.parentElement.classList.remove('has-sess')
       el('gex-sheet').hidden = true; el('gex-sheetcard').hidden = true
+      gexTvCard()
       el('gex-live').classList.remove('on')
       el('gex-stamp').textContent = `Trail only for ${gexDayLabel(entry.date)}. Full boards are archived from Sep 4, 2026.`
       el('gex-histnote').textContent = 'Only the logged trail exists for this day: the board itself was not archived yet.'
@@ -20121,6 +20170,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('gex-sheet').textContent = d.levelsText || ''
       el('gex-sheet').hidden = !d.levelsText
       el('gex-sheetcard').hidden = !d.levelsText
+      gexTvCard()
       el('gex-stamp').textContent = GEX.hist ? `Viewing the ${etStamp(d.generatedAt)} print` : `Updated ${etStamp(d.generatedAt)}`
       gexLivePaint()
       // The member is looking at this print: clear the new-levels dot.
@@ -20960,6 +21010,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const btn = el('gex-copy')
         try { await navigator.clipboard.writeText(GEX.data.pineData); btn.textContent = 'Copied' } catch { btn.textContent = 'Copy failed' }
         setTimeout(() => { btn.textContent = 'Copy pineData' }, 1400)
+      })
+      el('gex-tv-copy').addEventListener('click', async () => {
+        const line = gexStoreFor('NQ').live?.pineData; if (!line) return
+        const b = el('gex-tv-copy'), lbl = b.querySelector('span'), card = el('gex-tvcard')
+        let ok = true
+        try { await navigator.clipboard.writeText(line) } catch { ok = false; const r = document.createRange(); r.selectNodeContents(el('gex-tv-line')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r) }
+        lbl.textContent = ok ? 'Copied' : 'Line selected'; b.classList.toggle('copied', ok); card.classList.toggle('flash', ok)
+        clearTimeout(b._t); b._t = setTimeout(() => { lbl.textContent = 'Copy line'; b.classList.remove('copied'); card.classList.remove('flash') }, 1600)
       })
       el('gex-sheet-copy').addEventListener('click', async () => {
         if (!GEX.data?.levelsText) return
