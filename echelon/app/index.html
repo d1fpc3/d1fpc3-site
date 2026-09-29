@@ -1122,6 +1122,11 @@
     .ch-tip b { display: block; font-size: 12.5px; font-weight: 650; margin-bottom: 2px; }
     .ch-tip span { color: var(--muted); }
     .ch-tip kbd { font: inherit; font-size: 11px; color: var(--faint); }
+    /* beside the rail: the name and its key cap on one line, sliding in from the rail */
+    .ch-tip.side { padding: 6px 10px; transform: translateX(-4px); }
+    .ch-tip.side.on { transform: none; }
+    .ch-tip.side b { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+    .ch-tip.side kbd { padding: 1px 6px; border-radius: 5px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line-bright); color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0.01em; }
     @media (prefers-reduced-motion: reduce) { .ch-tip { transition: none; } }
     @media (hover: none) { .ch-tip { display: none; } }
 
@@ -1372,6 +1377,52 @@
     .ch-replay #ch-rp-exit { color: var(--bad); font-size: 12px; }
     .ch-replay .seg button { padding: 4px 6px 3px; }
     .ch-replay button svg { display: block; width: 16px; height: 16px; margin: auto; }
+    /* the replay dock: one floating panel, the transport in the middle with the play button in the accent, the
+       speed as a segmented control, where the tape stands on the left, the way back to live on the right, and the
+       progress along its foot (click or drag it) */
+    #v-chart .ch-replay { bottom: 40px; z-index: 6; display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 0; border-radius: 16px; overflow: hidden; background: color-mix(in srgb, var(--panel) 94%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); border: 1px solid var(--line-bright); box-shadow: 0 22px 48px -18px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.22); animation: rp-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    @keyframes rp-in { from { opacity: 0; transform: translate(-50%, 10px); } }
+    #v-chart .ch-replay .rp-row { display: flex; align-items: center; gap: 14px; height: 56px; padding: 0 10px 0 16px; box-sizing: border-box; }
+    #v-chart .ch-replay .rp-meta { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 128px; }
+    #v-chart .ch-replay .rp-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+    #v-chart .ch-replay .rp-tag i { width: 7px; height: 7px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 22%, transparent); }
+    #v-chart .ch-replay[data-playing] .rp-tag i { animation: rp-pulse 1.1s ease-in-out infinite; }
+    @keyframes rp-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--acc) 0%, transparent); } }
+    #v-chart .ch-replay .ch-rp-at { display: flex; align-items: baseline; gap: 7px; margin: 0; font-size: 13.5px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    #v-chart .ch-replay .ch-rp-at span { color: var(--muted); font-weight: 500; }
+    #v-chart .ch-replay .rp-ctl { display: flex; align-items: center; gap: 4px; }
+    #v-chart .ch-replay .rp-div { display: block; width: 1px; height: 22px; margin: 0 6px; background: var(--line-bright); }
+    #v-chart .ch-replay button { font: inherit; cursor: pointer; border: 0; padding: 0; min-width: 0; min-height: 0; }
+    #v-chart .ch-replay .rp-ib { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: none; color: color-mix(in srgb, var(--ink) 80%, transparent); transition: background 0.14s ease, color 0.14s ease, transform 0.12s ease; }
+    #v-chart .ch-replay .rp-ib svg { width: 20px; height: 20px; }
+    #v-chart .ch-replay .rp-play { width: 42px; height: 42px; margin: 0 4px; display: grid; place-items: center; border-radius: 50%; background: var(--acc); color: var(--acc-ink, #14110a); box-shadow: 0 8px 20px -8px var(--acc), inset 0 1px 0 rgba(255, 255, 255, 0.28); transition: filter 0.14s ease, transform 0.12s ease, opacity 0.2s ease; }
+    #v-chart .ch-replay .rp-play svg { width: 20px; height: 20px; }
+    #v-chart .ch-replay .rp-play[data-st="play"] svg { transform: translateX(1px); }
+    #v-chart .ch-replay .rp-play:disabled { opacity: 0.35; cursor: default; box-shadow: none; }
+    #v-chart .ch-replay .rp-ib:active, #v-chart .ch-replay .rp-play:active:not(:disabled) { transform: scale(0.92); }
+    @media (hover: hover) { #v-chart .ch-replay .rp-ib:hover { background: var(--panel-2); color: var(--ink); } #v-chart .ch-replay .rp-play:hover:not(:disabled) { filter: brightness(1.08); } }
+    #v-chart .ch-replay .rp-speed { position: relative; display: inline-flex; gap: 2px; padding: 3px; border-radius: 11px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); }
+    #v-chart .ch-replay .rp-speed button { height: 28px; padding: 0 9px; border-radius: 8px; background: none; color: var(--muted); font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; transition: background 0.16s ease, color 0.16s ease; }
+    #v-chart .ch-replay .rp-speed button.on { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 0 0 1px var(--line-bright); }
+    @media (hover: hover) { #v-chart .ch-replay .rp-speed button:not(.on):hover { color: var(--ink); } }
+    #v-chart .ch-replay .rp-exit { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 12px; border-radius: 999px; background: var(--panel-2); color: var(--ink); font-size: 13px; font-weight: 600; box-shadow: inset 0 0 0 1px var(--line-bright); transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease; }
+    #v-chart .ch-replay .rp-exit i { width: 7px; height: 7px; border-radius: 50%; background: #22b35a; box-shadow: 0 0 0 3px rgba(34, 179, 90, 0.2); }
+    #v-chart .ch-replay .rp-exit b { font-weight: 600; }
+    @media (hover: hover) { #v-chart .ch-replay .rp-exit:hover { background: var(--panel); box-shadow: inset 0 0 0 1px var(--muted); } }
+    #v-chart .ch-replay[data-done] .rp-exit { background: var(--acc); color: var(--acc-ink, #14110a); box-shadow: 0 8px 20px -8px var(--acc); }
+    /* the progress: a slim rail inset under the controls (full bleed, the dock's round corners clipped its ends out of reach) */
+    #v-chart .ch-replay .rp-track { position: relative; height: 3px; margin: -2px 16px 10px; border-radius: 2px; background: color-mix(in srgb, var(--ink) 10%, transparent); cursor: pointer; touch-action: none; }
+    #v-chart .ch-replay .rp-track::before { content: ''; position: absolute; left: -6px; right: -6px; top: -6px; bottom: -6px; }
+    #v-chart .ch-replay .rp-track i { position: absolute; left: 0; top: 0; bottom: 0; width: var(--p, 0%); border-radius: 2px; background: var(--acc); transition: width 0.18s ease; }
+    #v-chart .ch-replay .rp-track i::after { content: ''; position: absolute; right: -4px; top: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--acc); opacity: 0; transition: opacity 0.14s ease; }
+    #v-chart .ch-replay .rp-track:hover i::after { opacity: 1; }
+    /* choosing a start: a pill at the top of the chart says how, with the way out */
+    .ch-rp-hint { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 6px 0 14px; border-radius: 999px; background: color-mix(in srgb, var(--panel) 94%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--line-bright); box-shadow: 0 16px 34px -16px rgba(0, 0, 0, 0.65); color: var(--ink); font-size: 13px; font-weight: 600; white-space: nowrap; animation: rp-hint-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    @keyframes rp-hint-in { from { opacity: 0; transform: translate(-50%, -8px); } }
+    .ch-rp-hint svg { width: 18px; height: 18px; color: var(--acc, var(--gold)); }
+    .ch-rp-hint button { height: 30px; padding: 0 13px; border: 0; border-radius: 999px; background: var(--panel-2); color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+    @media (hover: hover) { .ch-rp-hint button:hover { background: var(--line-bright); } }
+    @media (prefers-reduced-motion: reduce) { #v-chart .ch-replay, .ch-rp-hint, #v-chart .ch-replay .rp-tag i { animation: none; } }
     .ch-menu { position: absolute; top: 0; right: 0; bottom: 0; width: min(320px, 100%); background: var(--panel); border-left: 1px solid var(--line); z-index: 5; display: flex; flex-direction: column; box-shadow: -20px 0 40px rgba(0,0,0,0.3); }
     .ch-menu-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); }
     .ch-menu-head b { font-size: 14px; }
@@ -1451,10 +1502,24 @@
     #v-chart .ch-tfs button::after, #v-chart .ch-tfs button::before { display: none; }
     #v-chart .ch-tfs button:hover { background: var(--panel-2); }
     #v-chart .ch-tfs button.on { color: var(--tv-blue); background: none; font-weight: 600; }
-    #v-chart .ch-tools { width: 52px; box-sizing: border-box; padding: 6px 0; gap: 0; align-items: center; }
-    #v-chart .ch-tools button { width: 40px; height: 36px; border-radius: 4px; color: var(--ink); }
-    #v-chart .ch-tools button svg { width: 20px; height: 20px; stroke-width: 1.5; }
-    #v-chart .ch-tools .ch-tgc { width: 10px; height: 10px; }
+    #v-chart .ch-tools { width: 52px; box-sizing: border-box; padding: 6px 0 8px 5px; gap: 2px; align-items: flex-start; }   /* 51px inside the border: centred, a 40px button sat on x.5 and every icon went soft */
+    #v-chart .ch-tools button { width: 40px; height: 38px; border-radius: 8px; color: color-mix(in srgb, var(--ink) 86%, transparent); }
+    #v-chart .ch-tools button svg { width: 28px; height: 28px; }
+    #v-chart .ch-tools button:hover { color: var(--ink); background: var(--panel-2); }
+    #v-chart .ch-tools button.on, #v-chart .ch-tools #ch-stay.on, #v-chart .ch-tools #ch-lockall.on { color: var(--acc); background: color-mix(in srgb, var(--acc) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--acc) 30%, transparent); }
+    #v-chart .ch-tools .danger:hover { color: #f23645; background: color-mix(in srgb, #f23645 12%, transparent); }
+    #v-chart .ch-tools .ch-tg { position: relative; }
+    /* the corner triangle says the family has more tools: always there, brighter on hover */
+    #v-chart .ch-tools .ch-tgc { width: 12px; height: 12px; right: 1px; bottom: 1px; opacity: 0.5; border-radius: 0 0 8px 0; }
+    #v-chart .ch-tools .ch-tgc::after { right: 3px; bottom: 3px; border-width: 2.5px; border-right-color: currentColor; border-bottom-color: currentColor; color: var(--muted); }
+    #v-chart .ch-tools .ch-tg:hover .ch-tgc { opacity: 1; }
+    #v-chart .ch-tools .ch-tgc:hover::after { color: var(--ink); }
+    #v-chart .ch-rail-sep { display: block; flex: 0 0 auto; width: 24px; height: 1px; margin: 5px auto; background: var(--line); }
+    #v-chart .ch-tools > .ch-tools-gap:first-of-type { width: 24px; }
+    /* the 28px icons draw a 1px line wherever they are, never a scaled blur of one */
+    .ti { stroke-width: 1; } .ti * { vector-effect: non-scaling-stroke; }
+    #v-chart .ch-fly button svg { width: 28px; height: 28px; margin: -4px 0; }
+    .ch-obj .ic svg.ti { width: 22px; height: 22px; }
     #v-chart .ch-fly, #v-chart .ch-ctx { border: 0; border-radius: 6px; padding: 6px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
     #v-chart .ch-fly button { border-radius: 0; padding: 8px 14px; font-size: 14px; }
     #v-chart .ch-fly button.on, #v-chart .ch-fly button.on svg { color: var(--tv-blue); }
@@ -1612,6 +1677,8 @@
     #v-chart .ch-foot .ch-sp { order: 0; display: block; }
 
     .ch-tpl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 0 2px; }
+    #v-chart .ch-gexman-in { width: 120px; height: 32px; padding: 0 10px; font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; }
+    #v-chart .ch-gexman-in[type="text"] { width: 200px; text-align: left; }
     .ch-tpl-l { font-size: 12.5px; font-weight: 600; color: var(--faint); margin-right: 4px; }
     .ch-tpl-b { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px 0 10px; border: 1px solid var(--line-bright); border-radius: 6px; background: var(--panel); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease; }
     .ch-tpl-b:hover { background: var(--panel-2); border-color: var(--ink); } .ch-tpl-b i { font-style: normal; color: var(--faint); font-size: 15px; line-height: 1; padding: 0 2px; border-radius: 4px; } .ch-tpl-b i:hover { color: #f23645; }
@@ -1947,6 +2014,7 @@
       #v-chart.pr-on .ch-selbar, #v-chart.pr-on .ch-replay { left: 62px; }
       #v-chart .ch-prail button { position: relative; flex: 0 0 auto; width: 42px; height: 42px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 11px; background: none; color: var(--muted); -webkit-tap-highlight-color: transparent; transition: color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease, transform 0.12s ease, opacity 0.16s ease; }
       #v-chart .ch-prail button svg { width: 21px; height: 21px; }
+      #v-chart .ch-prail .ti, .ch-sheet-grid .ti { stroke-width: 1.6; } #v-chart .ch-prail button svg.ti { width: 26px; height: 26px; } .ch-sheet-grid button svg.ti { width: 26px; height: 26px; }
       #v-chart .ch-prail button:active:not(:disabled) { transform: scale(0.9); }
       #v-chart .ch-prail button.on { color: var(--acc); background: color-mix(in srgb, var(--acc) 15%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--acc) 42%, transparent); }
       #v-chart .ch-prail button:disabled { opacity: 0.28; }
@@ -2214,6 +2282,34 @@
       #v-chart .ch-selbar .lbl { border: 0; border-radius: 12px; background: var(--i-fill3); color: var(--i-label); }
       #v-chart .ch-replay button { color: var(--i-label); border-radius: 20px; }
       #v-chart .ch-replay #ch-rp-exit { color: var(--i-red); }
+      #v-chart .ch-replay { left: 10px; right: 10px; bottom: 10px; transform: none; border-radius: 24px; background: var(--i-sheet, var(--i-glass-hi)); box-shadow: var(--i-rim), var(--i-float); animation-name: rp-in-phone; }
+      @keyframes rp-in-phone { from { opacity: 0; transform: translateY(12px); } }
+      #v-chart .ch-replay .rp-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "meta exit" "ctl ctl"; gap: 8px 10px; height: auto; padding: 12px 12px 12px 16px; }
+      #v-chart .ch-replay .rp-meta { grid-area: meta; flex-direction: row; justify-content: flex-start; align-items: center; gap: 10px; min-width: 0; }
+      /* a phone on its side has the width and not the height: one row, as on a desk */
+      @media (max-height: 500px) { #v-chart .ch-replay { left: 50%; right: auto; transform: translateX(-50%); width: min(760px, calc(100% - 20px)); bottom: 8px; animation-name: rp-in; } #v-chart .ch-replay .rp-row { grid-template-columns: auto 1fr auto; grid-template-areas: "meta ctl exit"; padding: 8px 10px 8px 16px; } #v-chart .ch-replay .rp-meta { flex-direction: column; align-items: flex-start; gap: 1px; } #v-chart .ch-replay .rp-tag { font-size: 12px; } #v-chart .ch-replay .ch-rp-at { font-size: 14px; } #v-chart .ch-replay .rp-ctl { justify-content: center; gap: 6px; } #v-chart .ch-replay .rp-ib { width: 40px; height: 40px; } #v-chart .ch-replay .rp-play { width: 44px; height: 44px; } #v-chart .ch-replay .rp-track { margin: 0 16px 8px; } }
+      #v-chart .ch-replay .rp-tag { font-size: 13px; color: var(--i-label2); }
+      #v-chart .ch-replay .ch-rp-at { font-size: 15px; color: var(--i-label); }
+      #v-chart .ch-replay .rp-exit { grid-area: exit; height: 34px; background: var(--i-fill3); box-shadow: none; color: var(--i-label); font-size: 15px; }
+      #v-chart .ch-replay #ch-rp-exit { color: var(--i-label); }
+      #v-chart .ch-replay[data-done] .rp-exit { background: var(--acc); color: var(--acc-ink, #14110a); }
+      #v-chart .ch-replay .rp-ctl { grid-area: ctl; justify-content: space-between; }
+      #v-chart .ch-replay .rp-ib { width: 44px; height: 44px; border-radius: 22px; color: var(--i-label); }
+      #v-chart .ch-replay .rp-ib svg { width: 22px; height: 22px; }
+      #v-chart .ch-replay .rp-play { width: 50px; height: 50px; }
+      #v-chart .ch-replay .rp-play svg { width: 22px; height: 22px; }
+      #v-chart .ch-replay .rp-div { display: none; }
+      #v-chart .ch-replay .rp-speed { background: var(--i-fill3); box-shadow: none; border-radius: 18px; padding: 3px; }
+      #v-chart .ch-replay .rp-speed button { height: 40px; min-width: 44px; min-height: 0; padding: 0 12px; border-radius: 20px; font-size: 15px; color: var(--i-label2); }
+      #v-chart .ch-replay .rp-exit { min-width: 0; min-height: 0; height: 40px; }
+      /* upright, the speed is one pill that steps on each tap */
+      @media (min-height: 501px) { #v-chart .ch-replay .rp-speed { padding: 0; background: none; } #v-chart .ch-replay .rp-speed button:not(.on) { display: none; } #v-chart .ch-replay .rp-speed button.on { min-width: 56px; background: var(--i-fill3); box-shadow: none; } }
+      #v-chart .ch-replay .rp-speed button.on { background: var(--i-thumb); color: var(--i-label); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
+      #v-chart .ch-replay .rp-track { height: 4px; margin: 0 16px 10px; border-radius: 2px; background: var(--i-fill3); }
+      #v-chart .ch-replay .rp-track i { border-radius: 2px; }
+      #v-chart .ch-replay .rp-track i::after { opacity: 1; width: 12px; height: 12px; top: -4px; right: -6px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); }
+      .ch-rp-hint { top: 10px; height: 44px; font-size: 15px; background: var(--i-sheet, var(--i-glass-hi)); border: 0; box-shadow: var(--i-rim), var(--i-float); }
+      .ch-rp-hint button { height: 34px; background: var(--i-fill3); color: var(--i-label); font-size: 15px; }
       #v-chart .ch-latest { border: 0; border-radius: 50%; background: var(--i-glass-hi); -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); box-shadow: var(--i-rim), var(--i-float); color: var(--i-label); }
       #v-chart .ch-loupe { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9), 0 10px 28px rgba(0, 0, 0, 0.5); }
       .ch-cpick { background: var(--i-glass-hi); -webkit-backdrop-filter: var(--i-blur); backdrop-filter: var(--i-blur); border: 0; border-radius: 26px; box-shadow: var(--i-rim), var(--i-float); }
@@ -5741,11 +5837,22 @@
                 <div class="ch-selbar" id="ch-selbar" hidden></div>
                 <div class="ch-textin" id="ch-textin" hidden><textarea rows="1" aria-label="Note text" placeholder="Note…"></textarea></div>
                 <div class="ch-replay" id="ch-replay" hidden>
-                  <span class="label">Replay</span><span class="ch-rp-at" id="ch-rp-at"></span>
-                  <button type="button" id="ch-rp-back" title="Back one bar (,)" aria-label="Back one bar"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2.4v14H6z"/><path d="M19 5.5v13L9.5 12z"/></svg></button><button type="button" id="ch-rp-play" title="Play or pause (space)" aria-label="Play"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg></button><button type="button" id="ch-rp-fwd" title="Forward one bar (.)" aria-label="Forward one bar"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.6 5H18v14h-2.4z"/><path d="M5 5.5v13l9.5-6.5z"/></svg></button>
-                  <span class="seg" id="ch-rp-speed"><button type="button" data-s="1" class="on">1&times;</button><button type="button" data-s="3">3&times;</button><button type="button" data-s="10">10&times;</button></span>
-                  <button type="button" id="ch-rp-exit">Exit</button>
+                  <div class="rp-row">
+                    <div class="rp-meta"><span class="rp-tag"><i></i>Replay</span><span class="ch-rp-at" id="ch-rp-at"></span></div>
+                    <div class="rp-ctl">
+                      <button type="button" class="rp-ib" id="ch-rp-pick" aria-label="Choose another start" data-tip="Choose another start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3.5v17" stroke-dasharray="2 2.6"/><rect x="4.5" y="8" width="4.5" height="8" rx="1.2"/><path d="M6.75 5v3M6.75 16v3M16 12h5M19 9.5l2.5 2.5-2.5 2.5"/></svg></button>
+                      <i class="rp-div"></i>
+                      <button type="button" class="rp-ib" id="ch-rp-back" aria-label="Back one bar" data-tip="Back one bar" data-tipk="Shift+&larr;"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5.5" y="5.5" width="2.4" height="13" rx="1"/><path d="M18.5 6.4v11.2a.9.9 0 0 1-1.4.74L9.3 12.74a.9.9 0 0 1 0-1.48l7.8-5.6a.9.9 0 0 1 1.4.74z"/></svg></button>
+                      <button type="button" class="rp-play" id="ch-rp-play" aria-label="Play" data-tip="Play" data-tipk="Space"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.5 5.9v12.2a1 1 0 0 0 1.5.86l9.7-6.1a1 1 0 0 0 0-1.72L10 5.04a1 1 0 0 0-1.5.86z"/></svg></button>
+                      <button type="button" class="rp-ib" id="ch-rp-fwd" aria-label="Forward one bar" data-tip="Forward one bar" data-tipk="Shift+&rarr;"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="16.1" y="5.5" width="2.4" height="13" rx="1"/><path d="M5.5 6.4v11.2a.9.9 0 0 0 1.4.74l7.8-5.6a.9.9 0 0 0 0-1.48l-7.8-5.6a.9.9 0 0 0-1.4.74z"/></svg></button>
+                      <i class="rp-div"></i>
+                      <span class="rp-speed" id="ch-rp-speed" role="group" aria-label="Speed"><button type="button" data-s="0.5">0.5&times;</button><button type="button" data-s="1" class="on">1&times;</button><button type="button" data-s="3">3&times;</button><button type="button" data-s="10">10&times;</button></span>
+                    </div>
+                    <button type="button" class="rp-exit" id="ch-rp-exit" aria-label="Exit replay" data-tip="Back to the live chart"><i></i><b>Exit</b></button>
+                  </div>
+                  <div class="rp-track" id="ch-rp-track" role="slider" aria-label="Replay progress" tabindex="-1"><i></i></div>
                 </div>
+                <div class="ch-rp-hint" id="ch-rp-hint" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3.5v17" stroke-dasharray="2 2.6"/><rect x="4.5" y="8" width="4.5" height="8" rx="1.2"/><path d="M6.75 5v3M6.75 16v3M16 12h5M19 9.5l2.5 2.5-2.5 2.5"/></svg><span id="ch-rp-hint-t">Click the bar to replay from</span><button type="button" id="ch-rp-cancel">Cancel</button></div>
                 <div class="ch-scrim" id="ch-scrim" hidden></div>
                 <div class="ch-menu" id="ch-menu" hidden><div class="ch-menu-head"><span class="l"><button type="button" class="ch-back" id="ch-menu-back" aria-label="Back" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b id="ch-menu-title"></b></span><button type="button" id="ch-menu-close" aria-label="Close">&times;</button></div><div class="ch-menu-body" id="ch-menu-body"></div></div>
               </div>
@@ -14768,7 +14875,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       hover: null, drag: null, pointers: new Map(), pinch: null, lastTap: 0,
       tool: 'cross', drawings: [], sel: null, pending: null, measure: null, handle: null,
       hist: [], redo: [], ctrl: false, hideDr: false, toolLock: false, snap: null, hoverDr: null, clip: null, kin: null, alerts: [], multi: new Set(),
-      replay: { on: false, cut: null, playing: false, speed: 1, timer: null, arm: false },
+      replay: { on: false, cut: null, at: null, startT: null, playing: false, done: false, speed: 1, timer: null, arm: false },
       s: null, gexLive: null, menu: null,
     }
     // symbols: NQ and MNQ trade the same prices (one family, shared drawings and alerts), ES and MES another
@@ -15101,6 +15208,25 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     /* ── geometry ── */
     const CH_PANES = { rsi: 'RSI', macd: 'MACD', atr: 'ATR' }
     const chPaneKeys = () => Object.keys(CH_PANES).filter((k) => CH.s['p_' + k])
+    /* The page zoom on a wide monitor puts the chart at a fraction of a pixel (x = 424.19 at 2560) and sizes its canvas
+       box to a fraction (2135.81 over a 2136 px bitmap): the browser then resamples every line and letter, the "grain".
+       The chart's frame steps onto a whole device pixel and the canvas box is sized to whole pixels, so one canvas
+       pixel is one screen pixel again. Cheap: it measures only when the stage has changed size or place. */
+    function chSnapPx(cv) {
+      const st = cv.parentElement, wrap = cv.closest('.ch-wrap'); if (!st || !wrap) return
+      const dpr = window.devicePixelRatio || 1, r = st.getBoundingClientRect(), sig = r.left + '|' + r.top + '|' + r.width + '|' + r.height + '|' + dpr
+      if (CH.snapSig === sig) return
+      const w0 = wrap.getBoundingClientRect(), mx = parseFloat(wrap.style.marginLeft) || 0, my = parseFloat(wrap.style.marginTop) || 0
+      const bx = w0.left - mx, by = w0.top - my, dx = (Math.round(bx * dpr) - bx * dpr) / dpr, dy = (Math.round(by * dpr) - by * dpr) / dpr
+      const fixed = getComputedStyle(wrap).position === 'fixed'
+      const nx = fixed || Math.abs(dx) < 0.004 ? '' : dx.toFixed(3) + 'px', ny = fixed || Math.abs(dy) < 0.004 ? '' : dy.toFixed(3) + 'px'
+      if (wrap.style.marginLeft !== nx) wrap.style.marginLeft = nx
+      if (wrap.style.marginTop !== ny) wrap.style.marginTop = ny
+      const r2 = st.getBoundingClientRect(), W = Math.max(0, Math.floor(r2.width)), H = Math.max(0, Math.floor(r2.height))
+      if (cv.style.width !== W + 'px') cv.style.width = W + 'px'
+      if (cv.style.height !== H + 'px') cv.style.height = H + 'px'
+      CH.snapSig = r2.left + '|' + r2.top + '|' + r2.width + '|' + r2.height + '|' + dpr
+    }
     function chLayout() {
       const cv = el('ch-canvas'); const W = cv.clientWidth, H = cv.clientHeight
       const ax = W < 520 ? 60 : 78, tx = 24, plotH = H - tx
@@ -15160,7 +15286,6 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     }
     const chVisible = () => CH.vis || CH.bars
-    function chSetVis() { CH.vis = CH.replay.on && CH.replay.cut != null ? CH.bars.filter((b) => b.t <= CH.replay.cut) : CH.bars }
     function chX(i, L) { const n = chVisible().length; return L.plotW - (n - 1 + CH.offset - i + 0.5) * CH.barW }
     function chI(x, L) { const n = chVisible().length; return n - 1 + CH.offset - (L.plotW - x) / CH.barW + 0.5 }
     function chY(p, L) { return (CH.pMax - p) / (CH.pMax - CH.pMin || 1) * L.mainH }
@@ -15286,7 +15411,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chCompare() {
       const S = CH.s, A = chVisible(), n = A.length; if (!S.cmp || !n) return null
       const peer = chCmpSym(), st = chStoreFor(peer)
-      const key = `${CH.sym}|${peer}|${CH.tf}|${n}|${A[n - 1].t}|${st.base['1m'].length}|${st.base[CH_TF[CH.tf][0]]?.length}|${S.badj}|${CH.replay.cut}`
+      const key = `${CH.sym}|${peer}|${CH.tf}|${n}|${A[n - 1].t}|${st.base['1m'].length}|${st.base[CH_TF[CH.tf][0]]?.length}|${S.badj}|${CH.replay.at}`
       if (chCmpLineCache.key === key) return chCmpLineCache.v
       const B = chBarsOf(peer), idx = new Map(); for (let j = 0; j < B.length; j++) idx.set(B[j].t, j)
       const v = new Array(n); let last = null
@@ -15313,7 +15438,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chSmt() {
       const S = CH.s, A = chVisible(), n = A.length; if (!S.smt || !n) return []
       const peer = chSmtPeer(), st = chStoreFor(peer)
-      const key = `${CH.sym}|${peer}|${CH.tf}|${n}|${A[n - 1].t}|${st.base['1m'].length}|${st.base[CH_TF[CH.tf][0]]?.length}|${S.smtLen}|${S.smtBack}|${S.badj}|${CH.replay.cut}`
+      const key = `${CH.sym}|${peer}|${CH.tf}|${n}|${A[n - 1].t}|${st.base['1m'].length}|${st.base[CH_TF[CH.tf][0]]?.length}|${S.smtLen}|${S.smtBack}|${S.badj}|${CH.replay.at}`
       if (chSmtCache.key === key) return chSmtCache.v
       if (chCmpCache.key !== `${peer}|${CH.tf}|${st.base['1m'].length}|${st.base[CH_TF[CH.tf][0]]?.length}|${S.badj}`) chCmpCache = { key: `${peer}|${CH.tf}|${st.base['1m'].length}|${st.base[CH_TF[CH.tf][0]]?.length}|${S.badj}`, v: chBarsOf(peer) }
       const B = chCmpCache.v, out = []
@@ -16460,12 +16585,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function chHtf() {
       const st = chStoreFor(CH.sym), tail = st.base['1m']
-      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${tail.length}|${tail[tail.length - 1]?.[4]}|${st.base['1d'].length}|${CH.tfSec}`
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${tail.length}|${tail[tail.length - 1]?.[4]}|${st.base['1d'].length}|${CH.tfSec}|${CH.replay.on ? CH.replay.at : ''}`
       if (chHtfCache.key === key) return chHtfCache.v
+      const cutAt = CH.replay.on && CH.replay.at != null ? CH.replay.at : null   // in replay only the bars already closed
       const rows = [], mins = CH.tfSec / 60
       for (const [name, src, m, skey] of CH_HTF_ROWS) {
         const row = { name, m, skey, elig: mins <= m }; rows.push(row)
-        const bars = chHtfBars(st, src, m), n = bars.length
+        const all = chHtfBars(st, src, m), bars = cutAt == null ? all : all.filter((b) => (m >= 1440 ? b.t + 17 * 3600 : b.t + m * 60) <= cutAt), n = bars.length
         if (n < 51) { row.na = true; continue }
         const c = new Array(n); for (let i = 0; i < n; i++) c[i] = bars[i].c
         const ema = (len) => { const k = 2 / (len + 1); let e = c[0]; for (let i = 1; i < n; i++) e = c[i] * k + e * (1 - k); return e }
@@ -16520,11 +16646,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chNewsDay() {
       const S = CH.s, bars = chVisible(), last = bars[bars.length - 1]
       const barDay = ET_DAY.format(last ? new Date(last.t * 1000) : new Date()), today = ET_DAY.format(new Date())
-      const day = barDay < today ? today : barDay
+      const day = CH.replay.on ? barDay : barDay < today ? today : barDay   // a replayed day shows its own releases
       const want = { hi: S.newsHigh !== false, med: S.newsMed !== false, hol: S.newsHol !== false }
       const all = (Array.isArray(newsEvents) ? newsEvents : []).filter((e) => e.at && want[CH_NEWS_IMP[e.impact]])
       const list = all.filter((e) => ET_DAY.format(e.at) === day)
-      const next = list.length ? null : all.find((e) => e.at.getTime() > Date.now())
+      const now = CH.replay.on && CH.replay.at != null ? CH.replay.at * 1000 : Date.now(), next = list.length ? null : all.find((e) => e.at.getTime() > now)
       return { day, next, list: list.slice(0, Math.max(1, +S.newsMax || 10)), fed: all.length > 0 || newsEvents?.length > 0 }
     }
     function chNewsHtml() {
@@ -16644,6 +16770,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // Same rules as the D1 GEX Pine. Kinds in priority order: 1 call wall, 2 put wall, 3 flip, 4 major wall,
     // 5 ranked gamma level, 6 session ceiling / floor. Levels that land on one NQ price merge into ONE zone
     // with a joined name (the strongest kind keeps the colour) instead of stacking names on each other.
+    // your own levels as a print: the shape the feed's has, so the zones, names and colours are the feed's own
+    const CH_GEX_MAN = [['cw', 'Call wall'], ['pw', 'Put wall'], ['fl', 'Gamma flip'], ['mw', 'Major wall'], ['cws', 'Swing call wall'], ['pws', 'Swing put wall'], ['fls', 'Swing gamma flip']]
+    function chGexManual() {
+      const M = CH.s.gexMan || {}, v = (x) => +x > 0 ? { nq: +x, tier: 0 } : null
+      const rl = String(M.levels || '').split(/[,;\s]+/).map(Number).filter((x) => x > 0).map((nq, i) => ({ nq, rank: i + 1, tier: 0 }))
+      return { manual: true, generatedAt: new Date().toISOString(), zdte: { callWall: v(M.cw), putWall: v(M.pw), flip: v(M.fl) }, swing: { callWall: v(M.cws), putWall: v(M.pws), flip: v(M.fls) }, majorWall: v(M.mw), rLevels: rl }
+    }
+    const chGexManOn = () => !!CH.s.gexManOn && CH_GEX_MAN.some(([k]) => +(CH.s.gexMan || {})[k] > 0) || (!!CH.s.gexManOn && /\d/.test((CH.s.gexMan || {}).levels || ''))
     function chGexZones(g, S) {
       const out = [], z = g.zdte || {}, sw = g.swing || {}, cv = g.conversion
       const nqOf = (l) => l == null ? null : l.nq ?? ((l.qqq ?? l.strike) != null && cv ? Math.round((l.qqq ?? l.strike) * cv.divisor + cv.basis) : null)
@@ -16656,13 +16790,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (lead) hit.kind = kind
         hit.tier = Math.max(hit.tier, tier || 0); hit.dim = hit.dim && !!dim
       }
-      if (S.gexCall !== false) add(nqOf(z.callWall), 'Call Wall 0DTE', 1, z.callWall?.tier)
-      if (S.gexPut !== false) add(nqOf(z.putWall), 'Put Wall 0DTE', 2, z.putWall?.tier)
-      if (S.gexFlip !== false) add(nqOf(z.flip), 'Gamma Flip 0DTE', 3, z.flip?.tier)
-      if (S.gexSwing !== false) {
-        if (S.gexCall !== false) add(nqOf(sw.callWall), 'Call Wall', 1, sw.callWall?.tier)
-        if (S.gexPut !== false) add(nqOf(sw.putWall), 'Put Wall', 2, sw.putWall?.tier)
-        if (S.gexFlip !== false) add(nqOf(sw.flip), 'Gamma Flip', 3, sw.flip?.tier, true)
+      const d0 = g.manual ? '' : ' 0DTE', sn = g.manual ? 'Swing ' : ''   // your own levels read plainly: Call Wall, Swing Call Wall
+      if (S.gexCall !== false) add(nqOf(z.callWall), 'Call Wall' + d0, 1, z.callWall?.tier)
+      if (S.gexPut !== false) add(nqOf(z.putWall), 'Put Wall' + d0, 2, z.putWall?.tier)
+      if (S.gexFlip !== false) add(nqOf(z.flip), 'Gamma Flip' + d0, 3, z.flip?.tier)
+      if (S.gexSwing !== false || g.manual) {
+        if (S.gexCall !== false) add(nqOf(sw.callWall), sn + 'Call Wall', 1, sw.callWall?.tier)
+        if (S.gexPut !== false) add(nqOf(sw.putWall), sn + 'Put Wall', 2, sw.putWall?.tier)
+        if (S.gexFlip !== false) add(nqOf(sw.flip), sn + 'Gamma Flip', 3, sw.flip?.tier, true)
       }
       if (S.gexMajor !== false) add(nqOf(g.majorWall), 'Major Wall', 4, 0)
       if (S.gexR !== false) for (const r of (g.rLevels || []).slice(0, S.gexRn ?? 10)) add(nqOf(r), `Γ-${r.rank ?? '?'}`, 5, r.tier, (r.rank ?? 9) > 3)
@@ -16727,12 +16862,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chGexDay(t) { const d = new Date((t + chEtOff(t) + 6 * 3600) * 1000); return d.toISOString().slice(0, 10) }
     // the print the newest session is painted from: live while it trades, that session's morning print once the market is
     // shut. t is the newest bar, so the legend reads the same print chPaintGex draws on it.
-    function chGexNow(t) { const live = chGexLiveFor(); if (!live || chSession().key === 'open') return live; return chGexPrint(t != null ? chGexDay(t) : live.generatedAt.slice(0, 10)) || live }
+    function chGexNow(t) { const live = chGexLiveFor(); if (CH.replay?.on && t != null) return chGexPrint(chGexDay(t)) || null   // a replayed day wears its own morning print, never today's live one
+      if (!live || chSession().key === 'open') return live; return chGexPrint(t != null ? chGexDay(t) : live.generatedAt.slice(0, 10)) || live }
     /* Is the market open at the moment the chart stands at: now, or in replay the replayed bar's close. Asked of
        the moment, never of a bar's open: a 4h bar that opened at 14:00 runs to 18:00 (D1, 09-27: "it shows on
        the four hour time frame ... it shouldn't be on during after hours"). 09:30 to 16:00 ET, weekdays. */
     function chGexOpenNow() {
-      const ms = CH.replay?.on && CH.replay.cut != null ? Math.min(Date.now(), (CH.replay.cut + (CH.tfSec || 60)) * 1000 - 1) : Date.now()
+      const ms = CH.replay?.on && CH.replay.at != null ? Math.min(Date.now(), CH.replay.at * 1000 - 1) : Date.now()
       const p = gexNy(ms)
       return p.wd !== 'Sat' && p.wd !== 'Sun' && p.min >= 9 * 60 + 30 && p.min < 16 * 60
     }
@@ -16763,7 +16899,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         // nothing at all: no print to fall back on, and the newest bars need not carry today's
         // session key out of hours. The newest span always gets the live print rather than blank.
         const isLive = sp.k === todayKey || day === liveDay || sp.i1 === n - 1
-        const g = isLive && chSession().key === 'open' ? gLive : (chGexPrint(day) || (isLive ? gLive : null))
+        const g = chGexManOn() ? ((sp.k === todayKey || sp.i1 === n - 1) && !CH.replay.on ? chGexManual() : null) : CH.replay.on ? chGexPrint(day) : isLive && chSession().key === 'open' ? gLive : (chGexPrint(day) || (isLive ? gLive : null))   // your own levels: today's session, never a replayed day   // in replay only the day's own print: the live one is the future
         if (!g) continue
         if (g.zdte?.callWall?.qqq != null && g.zdte.callWall.qqq === g.zdte?.putWall?.qqq) continue   // a degenerate print (both walls on one strike) is not drawn
         // old levels on the newest session (an earlier day's print, or the prints stopped) draw faded with dashed borders,
@@ -16826,9 +16962,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function chPaint() {
       const cv = el('ch-canvas'); if (!cv || !CH.on) return
+      chSnapPx(cv)
       const L = chLayout(); if (!L.W || !L.H) return
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      if (cv.width !== Math.round(L.W * dpr) || cv.height !== Math.round(L.H * dpr)) { cv.width = Math.round(L.W * dpr); cv.height = Math.round(L.H * dpr) }
+      if (cv.width !== Math.round(L.W * dpr) || cv.height !== Math.round(L.H * dpr)) { cv.width = Math.round(L.W * dpr); cv.height = Math.round(L.H * dpr) }   // W and H are whole device pixels (chSnapPx), so this is one to one
       const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       const T = gexTokens(), S = CH.s, themeLight = document.documentElement.getAttribute('data-theme') === 'light'
       const BG = S.bg || chBgDefault(themeLight); CH.bgNow = BG
@@ -17138,7 +17275,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
       }
       // replay cut marker
-      if (CH.replay.on && CH.replay.cut != null && lastBar) { const x = Math.round(chX(n - 1, L) + CH.barW / 2) + 0.5; ctx.strokeStyle = alpha(T.gold, 0.8); ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.plotH); ctx.stroke(); ctx.setLineDash([]) }
+      if (CH.replay.on && !CH.replay.arm && CH.replay.cut != null && lastBar) {
+        // where the tape stops: a hairline in the accent past the last bar and a soft glow fading into the hidden future
+        const x = Math.round(chX(n - 1, L) + Math.max(3, CH.barW * 0.7)) + 0.5, acc = (/^#[0-9a-f]{6}$/i.test(CH.s.accentC || '') ? CH.s.accentC : T.gold)
+        if (x < L.plotW) { const g = ctx.createLinearGradient(x, 0, x + 56, 0); g.addColorStop(0, alpha(acc, 0.1)); g.addColorStop(1, alpha(acc, 0)); ctx.fillStyle = g; ctx.fillRect(x, 0, Math.min(56, L.plotW - x), L.plotH)
+          ctx.strokeStyle = alpha(acc, 0.55); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.plotH); ctx.stroke() }
+      }
       // crosshair
       const hv = CH.hover
       if (hv && hv.x >= 0 && hv.x <= L.plotW && hv.y <= L.H - L.tx) {
@@ -17156,7 +17298,16 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         chLegend(b || lastBar, b ? i : n - 1)
       } else chLegend(lastBar, n - 1)
       if (CH.measure?.b) chPaintMeasure(ctx, L, T)
-      if (CH.replay.arm && hv && hv.x <= L.plotW) { ctx.fillStyle = alpha(T.gold, 0.12); ctx.fillRect(hv.x, 0, L.plotW - hv.x, L.plotH) }
+      if (CH.replay.arm && hv && hv.x <= L.plotW && n) {
+        // choosing a start: the bars after the pointer fade under the canvas colour, a line in the accent marks the cut,
+        // and the time axis names the bar the replay would open on
+        const i = Math.max(0, Math.min(n - 1, Math.round(chI(hv.x, L)))), acc = (/^#[0-9a-f]{6}$/i.test(CH.s.accentC || '') ? CH.s.accentC : T.gold), x = Math.round(chX(i, L) + Math.max(2, CH.barW / 2)) + 0.5
+        ctx.fillStyle = alpha(BG, 0.72); ctx.fillRect(x, 0, L.plotW - x, L.plotH)
+        ctx.strokeStyle = acc; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.plotH); ctx.stroke()
+        ctx.fillStyle = acc; ctx.beginPath(); ctx.moveTo(x - 5, 0); ctx.lineTo(x + 5, 0); ctx.lineTo(x, 7); ctx.closePath(); ctx.fill()
+        const label = 'Replay from ' + chFmtFull(bars[i].t); ctx.font = `600 11px ${GEX_FONT}`; const tw = ctx.measureText(label).width + 16, tx0 = Math.min(Math.max(0, x - tw / 2), L.W - tw)
+        ctx.fillStyle = acc; ctx.beginPath(); ctx.roundRect(tx0, L.H - L.tx + 2, tw, L.tx - 4, 4); ctx.fill(); ctx.fillStyle = (chLum(acc) > 0.35 ? '#14110a' : '#ffffff'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, tx0 + tw / 2, L.H - L.tx / 2); ctx.textBaseline = 'alphabetic'
+      }
       // latest button
       // only on a change: writing hidden every frame is a DOM mutation every frame, and it restyled the page mid-pan
       const lb = el('ch-latest'), lbHide = CH.offset >= -2; if (lb && lb.hidden !== lbHide) lb.hidden = lbHide
@@ -17210,7 +17361,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.s.cmp) { const cmp = chCompare(); const cv = cmp?.v[i]; const c0 = cmp ? [...cmp.v].slice(0, Math.max(0, i)).reverse().find((x) => x != null) : null; rows.push(`<div class="ln" data-ind="cmp"><span class="nm" style="color:${CH.s.cmpC || '#ff9800'}">${cmp?.peer || chCmpSym()}</span><i>${cv != null ? chPx(cv) : '–'}</i>${cv != null && c0 != null ? `<span class="${cv >= c0 ? 'up' : 'down'}">${chPts(cv - c0)}</span>` : ''}${ic('cmp', 'ind:cmp')}</div>`) }
       if (CH.s.smt) rows.push(`<div class="ln" data-ind="smt"><span class="nm">SMT</span><span>${chSmtPeer()} ${CH.s.smtLen || 5}</span>${ic('smt', 'ind:smt')}</div>`)
       if (CH.s.prevDay && !CH.s.lit) rows.push(`<div class="ln" data-ind="prev"><span class="nm">PDH / PDL</span>${ic('prevDay', 'ind:prev')}</div>`)
-      if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(bars[bars.length - 1]?.t), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${[chGexRead(g, last), chVolRead(last)].filter(Boolean).join(' ')}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${chVolBits(last)}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${chGexHidden() ? '<span class="gx-at">off after hours</span>' : ''}${ic('gex', 'ind:gex')}</div>`) }
+      if (CH.s.gex && chGexManOn() && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) rows.push(`<div class="ln" data-ind="gex"><span class="nm">D1 GEX</span><span>your own levels</span>${ic('gex', 'ind:gex')}</div>`)
+      else if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(bars[bars.length - 1]?.t), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${[chGexRead(g, last), chVolRead(last)].filter(Boolean).join(' ')}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${chVolBits(last)}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${chGexHidden() ? '<span class="gx-at">off after hours</span>' : ''}${ic('gex', 'ind:gex')}</div>`) }
       const html = rows.join('')
       const shape = (CH.s.legendOhlc === false ? 'o' : '') + (CH.s.legendInds === false ? 'i' : '') + (CH.s.legendVals === false ? 'v' : '')
       if (lg._html !== html || lg._shape !== shape) { lg._html = html; lg._shape = shape; lg.innerHTML = html; chLegendTrim(lg); requestAnimationFrame(chWmRecheck) }
@@ -17226,44 +17378,55 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const CH_SWATCHES = { get list() { return Array.isArray(CH.s?.swatches) && CH.s.swatches.length === 8 ? CH.s.swatches : document.documentElement.getAttribute('data-theme') === 'light' ? CH_SWATCHES_LIGHT : CH_SWATCHES_DARK }, map(fn) { return this.list.map(fn) } }   // a theme brings its own palette
     /* the tool rail: groups with a flyout, the way the platform does it; the group button carries the last tool picked */
     const CH_I = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`
+    // the drawing tools' icons: a 28px grid drawn for a 1px line (sharp at 1x; the stroke never scales, CSS sets it per place)
+    const CH_I28 = (d) => `<svg class="ti" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`
+    const CH_RI = {
+      magnet: '<path d="M7.5 5.5v8a7 7 0 0 0 14 0v-8h-4v8a3 3 0 0 1-6 0v-8zM7.5 9.5h4M17.5 9.5h4" stroke-linejoin="round"/>',
+      angle: '<path d="M5.5 22.5h18M5.5 22.5l14-14M11.5 22.5a6 6 0 0 0-1.8-4.2"/><circle cx="19.5" cy="8.5" r="2.2"/>',
+      stay: '<path d="M14.5 18.5V24M10.5 4.5h8l-1.3 6.5 3.8 3.5v2h-13v-2l3.8-3.5z" stroke-linejoin="round"/>',
+      lock: '<path d="M9.5 12.5v-3a5 5 0 0 1 10 0v3M14.5 16.5v2.5"/><rect x="6.5" y="12.5" width="16" height="11" rx="2"/>',
+      eye: '<path d="M3.5 14.5C6.5 9.3 10 7.5 14.5 7.5s8 1.8 11 7c-3 5.2-6.5 7-11 7s-8-1.8-11-7z" stroke-linejoin="round"/><circle cx="14.5" cy="14.5" r="3.5"/><path class="slash" d="M5.5 5.5l18 18"/>',
+      trash: '<path d="M5.5 8.5h18M11.5 8.5v-2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M8 8.5l1 14a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5l1-14M12.5 12.5v8M16.5 12.5v8" stroke-linejoin="round"/>',
+      clear: '<path d="M8.5 8.5l12 12M20.5 8.5l-12 12"/>',
+    }
     const CH_TOOLS = {
-      cross: { name: 'Cross', key: 'Esc', icon: '<path d="M12 3v6M12 15v6M3 12h6M15 12h6"/>' },
-      dot: { name: 'Dot', key: '', icon: '<circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4" opacity=".4"/>' },
-      arrow: { name: 'Arrow', key: '', icon: '<path d="M5 3l14 9-6 1.5L9 20z"/>' },
-      eraser: { name: 'Eraser', key: '', icon: '<path d="M20 20H8l-5-5 10-10 7 7z"/><path d="M6 12l6 6"/>' },
-      trend: { name: 'Trend line', key: 'Alt+T', icon: '<path d="M4 19L20 5"/><circle cx="4" cy="19" r="2" fill="currentColor"/><circle cx="20" cy="5" r="2" fill="currentColor"/>' },
-      ray: { name: 'Ray', key: '', icon: '<path d="M4 18L21 6"/><circle cx="4" cy="18" r="2" fill="currentColor"/><circle cx="12" cy="12.3" r="2" fill="currentColor"/>' },
-      arrowline: { name: 'Arrow', key: '', icon: '<path d="M4 19L19 6"/><path d="M11 5h8v8"/>' },
-      hline: { name: 'Horizontal line', key: 'Alt+H', icon: '<path d="M3 12h18"/><circle cx="12" cy="12" r="2" fill="currentColor"/>' },
-      hray: { name: 'Horizontal ray', key: 'Alt+J', icon: '<path d="M6 12h15"/><circle cx="6" cy="12" r="2" fill="currentColor"/>' },
-      vline: { name: 'Vertical line', key: 'Alt+V', icon: '<path d="M12 3v18"/><circle cx="12" cy="12" r="2" fill="currentColor"/>' },
-      channel: { name: 'Parallel channel', key: '', icon: '<path d="M3 15L17 4"/><path d="M7 20L21 9"/><circle cx="3" cy="15" r="1.8" fill="currentColor"/><circle cx="17" cy="4" r="1.8" fill="currentColor"/><circle cx="14" cy="14.5" r="1.8" fill="currentColor"/>' },
-      fib: { name: 'Fib retracement', key: 'Alt+F', icon: '<path d="M4 5h16M4 10h16M4 13h16M4 19h16"/>' },
-      rect: { name: 'Rectangle', key: 'Alt+Shift+R', icon: '<rect x="4" y="6" width="16" height="12" rx="1"/>' },
-      range: { name: 'Price range', key: '', icon: '<path d="M12 4v16"/><path d="M8 8l4-4 4 4M8 16l4 4 4-4"/><path d="M4 12h16" opacity=".45"/>' },
-      long: { name: 'Long position', key: 'Alt+L', icon: '<path d="M4 13h16"/><path d="M12 13V5"/><path d="M8.5 8.5L12 5l3.5 3.5"/><path d="M4 19h16" opacity=".45"/>' },
-      short: { name: 'Short position', key: 'Alt+Shift+S', icon: '<path d="M4 11h16"/><path d="M12 11v8"/><path d="M8.5 15.5L12 19l3.5-3.5"/><path d="M4 5h16" opacity=".45"/>' },
-      text: { name: 'Text', key: 'Alt+N', icon: '<path d="M5 7V4h14v3"/><path d="M12 4v16"/><path d="M9 20h6"/>' },
-      plabel: { name: 'Price label', key: '', icon: '<path d="M4 8h12l4 4-4 4H4z"/><path d="M4 12h12" opacity=".45"/>' },
-      xcross: { name: 'Cross line', key: 'Alt+C', icon: '<path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/>' },
-      fibext: { name: 'Fib extension', key: '', icon: '<path d="M4 18L10 8l4 6"/><path d="M14 14h6M14 10h6M14 6h6" opacity=".7"/>' },
-      ellipse: { name: 'Ellipse', key: '', icon: '<ellipse cx="12" cy="12" rx="8" ry="5.5"/>' },
-      brush: { name: 'Brush', key: '', icon: '<path d="M4 20c3-1 3-4 5-6s4-2 6-4 3-5 3-5l1 1s-2 1-3 3-2 4-4 6-4 3-8 5z"/>' },
-      hilite: { name: 'Highlighter', key: '', icon: '<path d="M4 17l9-9 3 3-9 9H4z" fill="currentColor" opacity=".35"/><path d="M4 17l9-9 3 3-9 9H4z"/><path d="M13 8l3 3"/>' },
-      avwap: { name: 'Anchored VWAP', key: '', icon: '<path d="M4 18c4-1 5-6 8-7s5 2 8 0"/><circle cx="4" cy="18" r="2" fill="currentColor"/>' },
-      xline: { name: 'Extended line', key: '', icon: '<path d="M2 20L22 4"/><circle cx="8" cy="15.2" r="1.8" fill="currentColor"/><circle cx="16" cy="8.8" r="1.8" fill="currentColor"/>' },
-      regression: { name: 'Regression trend', key: '', icon: '<path d="M3 17L21 9"/><path d="M3 12L21 4" opacity=".5"/><path d="M3 22l18-8" opacity=".5"/>' },
-      pitchfork: { name: 'Pitchfork', key: '', icon: '<path d="M4 12h6"/><path d="M10 12L21 5"/><path d="M10 12l11 0" opacity=".6"/><path d="M10 12l11 7" opacity=".6"/><circle cx="4" cy="12" r="1.8" fill="currentColor"/>' },
-      triangle: { name: 'Triangle', key: '', icon: '<path d="M12 4l9 16H3z"/>' },
-      path: { name: 'Path', key: '', icon: '<path d="M3 18l5-8 5 5 8-11"/><circle cx="3" cy="18" r="1.6" fill="currentColor"/><circle cx="8" cy="10" r="1.6" fill="currentColor"/><circle cx="13" cy="15" r="1.6" fill="currentColor"/><circle cx="21" cy="4" r="1.6" fill="currentColor"/>' },
-      xabcd: { name: 'XABCD pattern', key: '', icon: '<path d="M2 18l5-13 5 9 5-10 5 14"/><path d="M2 18l10-4 10 0" opacity=".45"/>' },
-      callout: { name: 'Callout', key: '', icon: '<rect x="8" y="4" width="13" height="9" rx="2"/><path d="M8 9L3 19l8-6"/>' },
-      flag: { name: 'Flag', key: '', icon: '<path d="M5 21V4"/><path d="M5 4h13l-3 4 3 4H5"/>' },
-      markup: { name: 'Arrow up marker', key: '', icon: '<path d="M12 20V6"/><path d="M6 12l6-6 6 6"/>' },
-      markdown: { name: 'Arrow down marker', key: '', icon: '<path d="M12 4v14"/><path d="M6 12l6 6 6-6"/>' },
-      daterange: { name: 'Date range', key: '', icon: '<path d="M4 12h16"/><path d="M4 8v8M20 8v8"/><path d="M8 12l-4 0M16 12l4 0" opacity=".4"/>' },
-      vprofile: { name: 'Fixed range volume profile', key: '', icon: '<path d="M4 4v16"/><path d="M4 7h9M4 10h14M4 13h11M4 16h6" stroke-width="2.4"/>' },
-      measure: { name: 'Measure', key: 'Alt+M', icon: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M8 12l2 2M11 9l2 2M14 6l2 2"/>' },
+      cross: { name: 'Cross', key: 'Esc', icon: '<path d="M13.5 4.5v7M13.5 15.5v8M4.5 13.5h7M15.5 13.5h8"/>' },
+      dot: { name: 'Dot', key: '', icon: '<circle cx="13.5" cy="13.5" r="2.6" fill="currentColor" stroke="none"/><path d="M13.5 4.5v5M13.5 17.5v5M4.5 13.5h5M17.5 13.5h5" opacity=".5"/>' },
+      arrow: { name: 'Arrow', key: '', icon: '<path d="M9.5 5.5v15l3.6-3.4 2.7 5.6 2.3-1-2.6-5.5h5z" stroke-linejoin="round"/>' },
+      eraser: { name: 'Eraser', key: '', icon: '<path d="M9.2 21.5l-4-4a1.5 1.5 0 0 1 0-2.1L15.3 5.3a1.5 1.5 0 0 1 2.1 0l4.4 4.4a1.5 1.5 0 0 1 0 2.1l-9.8 9.7zM10.5 10.1l7.4 7.4M12 21.5h11" stroke-linejoin="round"/>' },
+      trend: { name: 'Trend line', key: 'Alt+T', icon: '<path d="M8.9 19.1L19.1 8.9"/><circle cx="6.5" cy="21.5" r="2.5"/><circle cx="21.5" cy="6.5" r="2.5"/>' },
+      ray: { name: 'Ray', key: '', icon: '<path d="M8.9 19.1L11.1 16.9M15.9 12.1L24.5 3.5"/><circle cx="6.5" cy="21.5" r="2.5"/><circle cx="13.5" cy="14.5" r="2.5"/>' },
+      arrowline: { name: 'Arrow', key: '', icon: '<path d="M5.5 22.5L21.5 6.5M13.5 6.5h8v8"/>' },
+      hline: { name: 'Horizontal line', key: 'Alt+H', icon: '<path d="M3.5 13.5L10.1 13.5M16.9 13.5L24.5 13.5"/><circle cx="13.5" cy="13.5" r="2.5"/>' },
+      hray: { name: 'Horizontal ray', key: 'Alt+J', icon: '<path d="M9.9 13.5L24.5 13.5"/><circle cx="6.5" cy="13.5" r="2.5"/>' },
+      vline: { name: 'Vertical line', key: 'Alt+V', icon: '<path d="M13.5 3.5L13.5 10.1M13.5 16.9L13.5 24.5"/><circle cx="13.5" cy="13.5" r="2.5"/>' },
+      channel: { name: 'Parallel channel', key: '', icon: '<path d="M6.9 14.1L14.1 6.9M11.5 23.5L21.1 13.9"/><circle cx="4.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="4.5" r="2.5"/><circle cx="23.5" cy="11.5" r="2.5"/>' },
+      fib: { name: 'Fib retracement', key: 'Alt+F', icon: '<path d="M4.5 5.5L17.1 5.5M4.5 10.5H23.5M4.5 14.5H23.5M4.5 18.5H23.5M10.9 22.5L23.5 22.5"/><path d="M9.57 19.8L18.43 8.2" stroke-dasharray="1.6 2" opacity=".5"/><circle cx="7.5" cy="22.5" r="2.5"/><circle cx="20.5" cy="5.5" r="2.5"/>' },
+      rect: { name: 'Rectangle', key: 'Alt+Shift+R', icon: '<rect x="5.5" y="7.5" width="17" height="13" rx="1.5"/>' },
+      range: { name: 'Price range', key: '', icon: '<path d="M8.5 4.5h12M8.5 23.5h12M14.5 7v14M12 9.5l2.5-2.5L17 9.5M12 18.5l2.5 2.5 2.5-2.5"/>' },
+      long: { name: 'Long position', key: 'Alt+L', icon: '<rect x="6.5" y="16.5" width="16" height="7" fill="currentColor" stroke="none" opacity=".2"/><path d="M6.5 4.5h16v19h-16zM6.5 16.5h16M14.5 13.5v-6M12 10l2.5-2.5L17 10"/>' },
+      short: { name: 'Short position', key: 'Alt+Shift+S', icon: '<rect x="6.5" y="4.5" width="16" height="7" fill="currentColor" stroke="none" opacity=".2"/><path d="M6.5 4.5h16v19h-16zM6.5 11.5h16M14.5 14.5v6M12 18l2.5 2.5L17 18"/>' },
+      text: { name: 'Text', key: 'Alt+N', icon: '<path d="M7.5 8.5v-2h14v2M14.5 6.5v15M12 21.5h5"/>' },
+      plabel: { name: 'Price label', key: '', icon: '<path d="M4.5 9.5h13l5 5-5 5h-13zM8 14.5h6" stroke-linejoin="round"/>' },
+      xcross: { name: 'Cross line', key: 'Alt+C', icon: '<path d="M3.5 13.5L10.1 13.5M16.9 13.5L24.5 13.5M13.5 3.5L13.5 10.1M13.5 16.9L13.5 24.5"/><circle cx="13.5" cy="13.5" r="2.5"/>' },
+      fibext: { name: 'Fib extension', key: '', icon: '<path d="M5.69 17.64L8.31 11.36M11.3 11.02L12.7 12.98"/><circle cx="4.5" cy="20.5" r="2.2"/><circle cx="9.5" cy="8.5" r="2.2"/><circle cx="14.5" cy="15.5" r="2.2"/><path d="M17.5 6.5H24.5M17.5 11.5H24.5M17.5 16.5H24.5M17.5 21.5H24.5" opacity=".5"/>' },
+      ellipse: { name: 'Ellipse', key: '', icon: '<ellipse cx="14" cy="14" rx="9.5" ry="6.5"/>' },
+      brush: { name: 'Brush', key: '', icon: '<path d="M22.7 5.3a1.6 1.6 0 0 1 0 2.3l-8.9 8.9-2.3-2.3 8.9-8.9a1.6 1.6 0 0 1 2.3 0zM11.5 14.2c-2.8-.3-4.6 1.4-4.6 3.9 0 1.8-.9 2.9-2.4 3.4 3.4 1.3 7.4.4 8.7-2.3.8-1.7.4-3.6-1.7-5" stroke-linejoin="round"/>' },
+      hilite: { name: 'Highlighter', key: '', icon: '<path d="M8.5 19.5l1.8-5.3 9.2-9.2a1.6 1.6 0 0 1 2.3 0l1.2 1.2a1.6 1.6 0 0 1 0 2.3l-9.2 9.2zM10.3 14.2l3.5 3.5M5.5 23.5h17" stroke-linejoin="round"/><path d="M8.5 19.5l1.8-5.3 3.5 3.5z" fill="currentColor" stroke="none" opacity=".5"/>' },
+      avwap: { name: 'Anchored VWAP', key: '', icon: '<path d="M7.3 18.8C10.5 15 12.3 18.7 15.3 14.8S20.5 8.8 24.5 8.5"/><circle cx="5.5" cy="20.5" r="2.5"/>' },
+      xline: { name: 'Extended line', key: '', icon: '<path d="M3.5 24.5L8.1 19.9M12.9 15.1L15.1 12.9M19.9 8.1L24.5 3.5"/><circle cx="10.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/>' },
+      regression: { name: 'Regression trend', key: '', icon: '<path d="M7.57 17.04L20.43 10.96"/><path d="M4.5 13.5L23.5 4.5M4.5 23.5L23.5 14.5" stroke-dasharray="1.6 2" opacity=".5"/><circle cx="4.5" cy="18.5" r="2.5"/><circle cx="23.5" cy="9.5" r="2.5"/>' },
+      pitchfork: { name: 'Pitchfork', key: '', icon: '<path d="M8.06 19.26L13.5 14.5M16.9 7.5L24.5 7.5M13.5 14.5H24.5M16.9 21.5L24.5 21.5"/><path d="M13.5 10.9L13.5 18.1" opacity=".5"/><circle cx="5.5" cy="21.5" r="2.5"/><circle cx="13.5" cy="7.5" r="2.5"/><circle cx="13.5" cy="21.5" r="2.5"/>' },
+      triangle: { name: 'Triangle', key: '', icon: '<path d="M7.03 18.8L12.47 9.2M15.53 9.2L20.97 18.8M19.4 21.5L8.6 21.5"/><circle cx="5.5" cy="21.5" r="2.2"/><circle cx="14" cy="6.5" r="2.2"/><circle cx="22.5" cy="21.5" r="2.2"/>' },
+      path: { name: 'Path', key: '', icon: '<path d="M6.09 16.84L8.91 12.16M12.36 11.98L14.64 15.02M18.16 14.88L21.84 9.12"/><circle cx="4.5" cy="19.5" r="2.2"/><circle cx="10.5" cy="9.5" r="2.2"/><circle cx="16.5" cy="17.5" r="2.2"/><circle cx="23.5" cy="6.5" r="2.2"/>' },
+      xabcd: { name: 'XABCD pattern', key: '', icon: '<path d="M4.62 16.82L7.38 10.18M9.91 10.04L12.09 13.96M14.7 13.86L17.3 8.14M19.72 8.13L23.28 15.87"/><circle cx="3.5" cy="19.5" r="2"/><circle cx="8.5" cy="7.5" r="2"/><circle cx="13.5" cy="16.5" r="2"/><circle cx="18.5" cy="5.5" r="2"/><circle cx="24.5" cy="18.5" r="2"/>' },
+      callout: { name: 'Callout', key: '', icon: '<path d="M9.5 5.5h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-8l-6.5 5 1.5-5a2 2 0 0 1-1-1.7V7.5a2 2 0 0 1 2-2zM11 9.5h8M11 12.5h5" stroke-linejoin="round"/>' },
+      flag: { name: 'Flag', key: '', icon: '<path d="M7.5 24V4.5M7.5 5.5h13l-3 4.5 3 4.5h-13" stroke-linejoin="round"/>' },
+      markup: { name: 'Arrow up marker', key: '', icon: '<path d="M14.5 22.5v-15M8.5 13l6-6 6 6"/>' },
+      markdown: { name: 'Arrow down marker', key: '', icon: '<path d="M14.5 5.5v15M8.5 15l6 6 6-6"/>' },
+      daterange: { name: 'Date range', key: '', icon: '<path d="M4.5 8.5v12M23.5 8.5v12M7 14.5h14M9.5 12L7 14.5 9.5 17M18.5 12l2.5 2.5-2.5 2.5"/>' },
+      vprofile: { name: 'Fixed range volume profile', key: '', icon: '<path d="M5.5 3.5v21"/><g fill="currentColor" fill-opacity=".22"><rect x="5.5" y="5.5" width="11" height="3"/><rect x="5.5" y="10.5" width="17" height="3"/><rect x="5.5" y="15.5" width="13" height="3"/><rect x="5.5" y="20.5" width="7" height="3"/></g>' },
+      measure: { name: 'Measure', key: 'Alt+M', icon: '<path d="M4.5 19.5l15-15 4 4-15 15zM8.8 15.2l2 2M11.8 12.2l2.5 2.5M14.8 9.2l2 2" stroke-linejoin="round"/>' },
     }
     const CH_GROUPS = [['cursor', ['cross', 'dot', 'arrow', 'eraser']], ['lines', ['trend', 'ray', 'xline', 'hline', 'hray', 'vline', 'xcross', 'channel', 'regression', 'pitchfork']], ['fib', ['fib', 'fibext']], ['patterns', ['xabcd', 'triangle']], ['pos', ['long', 'short', 'range', 'daterange', 'avwap', 'vprofile']], ['shapes', ['rect', 'ellipse', 'path', 'arrowline', 'brush', 'hilite']], ['text', ['text', 'callout', 'plabel', 'flag', 'markup', 'markdown']], ['measure', ['measure']]]
     const CH_BOXES = ['rect', 'ellipse', 'range']   // two opposite corners; eight handles when selected
@@ -17273,18 +17436,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chRailBuild() {
       const rail = el('ch-tools'); if (!rail || rail.dataset.built) return; rail.dataset.built = '1'
       const S = CH.s; S.rail = S.rail || {}
-      const btn = (t) => `<button type="button" data-tool="${t}" title="${CH_TOOLS[t].name}${CH_TOOLS[t].key ? ' (' + CH_TOOLS[t].key + ')' : ''}">${CH_I(CH_TOOLS[t].icon)}</button>`
-      const fixed = (id, title, icon, cls = '') => `<button type="button" id="${id}" class="${cls}" title="${title}">${CH_I(icon)}</button>`
-      rail.innerHTML = CH_GROUPS.map(([g, ts]) => { const cur = ts.includes(S.rail[g]) ? S.rail[g] : ts[0]; return `<div class="ch-tg" data-group="${g}">${btn(cur)}${ts.length > 1 ? '<button type="button" class="ch-tgc" aria-label="More tools" tabindex="-1"></button>' : ''}</div>` }).join('')
+      const btn = (t) => `<button type="button" data-tool="${t}" aria-label="${CH_TOOLS[t].name}" data-tip="${CH_TOOLS[t].name}" data-tipk="${CH_TOOLS[t].key || ''}" data-tipside="right">${CH_I28(CH_TOOLS[t].icon)}</button>`
+      const fixed = (id, tip, icon, cls = '', key = '') => `<button type="button" id="${id}" class="${cls}" aria-label="${tip}" data-tip="${tip}" data-tipk="${key}" data-tipside="right">${CH_I28(icon)}</button>`
+      // the families, as TradingView parts them: cursors | lines, fibs, patterns, positions | shapes, notes | measure
+      const sepAfter = new Set(['cursor', 'pos', 'text'])
+      rail.innerHTML = CH_GROUPS.map(([g, ts]) => { const cur = ts.includes(S.rail[g]) ? S.rail[g] : ts[0]; return `<div class="ch-tg" data-group="${g}">${btn(cur)}${ts.length > 1 ? '<button type="button" class="ch-tgc" aria-label="More tools" tabindex="-1"></button>' : ''}</div>${sepAfter.has(g) ? '<i class="ch-rail-sep"></i>' : ''}` }).join('')
         + '<span class="ch-tools-gap"></span>'
-        + fixed('ch-magnet', 'Magnet', '<path d="M6 4v7a6 6 0 0 0 12 0V4"/><path d="M6 4h4v7a2 2 0 0 0 4 0V4h4"/>')
-        + fixed('ch-angle', 'Straight lines: snap every line flat, to 45° or upright', CH_PR.ang)
-        + fixed('ch-stay', 'Stay in drawing mode', '<path d="M12 17v5"/><path d="M8 3h8l-1 7 3 3v1H6v-1l3-3z"/>')
-        + fixed('ch-lockall', 'Lock all drawings', '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>')
-        + fixed('ch-eye', 'Hide drawings', '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M4 4l16 16"/>')
+        + fixed('ch-magnet', 'Magnet', CH_RI.magnet)
+        + fixed('ch-angle', 'Straight lines', CH_RI.angle)
+        + fixed('ch-stay', 'Stay in drawing mode', CH_RI.stay)
+        + fixed('ch-lockall', 'Lock all drawings', CH_RI.lock)
+        + fixed('ch-eye', 'Hide drawings', CH_RI.eye)
         + '<span class="ch-tools-gap"></span>'
-        + fixed('ch-trash', 'Delete the selected drawing (Del)', '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>', 'danger')
-        + fixed('ch-clear', 'Remove every drawing', '<path d="M18 6L6 18M6 6l12 12"/>', 'danger')
+        + fixed('ch-trash', 'Delete the selected drawing', CH_RI.trash, 'danger', 'Del')
+        + fixed('ch-clear', 'Remove every drawing', CH_RI.clear, 'danger')
       rail.querySelectorAll('.ch-tg').forEach((g) => {
         const main = g.querySelector('button[data-tool]'), caret = g.querySelector('.ch-tgc'), ts = CH_GROUPS.find(([k]) => k === g.dataset.group)[1]
         main.addEventListener('click', () => chSetTool(main.dataset.tool))
@@ -17296,7 +17461,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chFly(group, tools) {
       const fly = el('ch-fly'); if (!fly.hidden && fly.dataset.group === group.dataset.group) { fly.hidden = true; return }
       fly.dataset.group = group.dataset.group
-      fly.innerHTML = tools.map((t) => `<button type="button" data-tool="${t}" class="${CH.tool === t ? 'on' : ''}">${CH_I(CH_TOOLS[t].icon)}<span>${CH_TOOLS[t].name}</span>${CH_TOOLS[t].key ? `<kbd>${CH_TOOLS[t].key}</kbd>` : ''}</button>`).join('')
+      fly.innerHTML = tools.map((t) => `<button type="button" data-tool="${t}" class="${CH.tool === t ? 'on' : ''}">${CH_I28(CH_TOOLS[t].icon)}<span>${CH_TOOLS[t].name}</span>${CH_TOOLS[t].key ? `<kbd>${CH_TOOLS[t].key}</kbd>` : ''}</button>`).join('')
       fly.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { chSetTool(b.dataset.tool); fly.hidden = true }))
       const body = fly.parentElement, gb = group.getBoundingClientRect(), bb = body.getBoundingClientRect()
       fly.hidden = false
@@ -17325,7 +17490,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function chPrailBuild() {
       const r = el('ch-prail'); if (!r) return
-      const b = (id, cls, label, icon, attrs = '') => `<button type="button"${id ? ` id="${id}"` : ''} class="${cls}" aria-label="${label}" title="${label}"${attrs}>${CH_I(icon)}</button>`
+      const b = (id, cls, label, icon, attrs = '') => `<button type="button"${id ? ` id="${id}"` : ''} class="${cls}" aria-label="${label}" title="${label}"${attrs}>${/data-tool=/.test(attrs) ? CH_I28(icon) : CH_I(icon)}</button>`
       r.innerHTML = '<button type="button" id="ch-pr-grip" class="pr-grip" aria-label="Hide the drawing tools" title="Hide the drawing tools"><svg viewBox="0 0 18 8" fill="currentColor" aria-hidden="true"><circle cx="3" cy="2" r="1.3"/><circle cx="9" cy="2" r="1.3"/><circle cx="15" cy="2" r="1.3"/><circle cx="3" cy="6" r="1.3"/><circle cx="9" cy="6" r="1.3"/><circle cx="15" cy="6" r="1.3"/></svg></button>'
         + b('', 'pr-tool', 'Cursor', CH_TOOLS.cross.icon, ' data-tool="cross"')
         + chToolFavs().map((t) => b('', 'pr-tool', CH_TOOLS[t].name, CH_TOOLS[t].icon, ` data-tool="${t}"`)).join('')
@@ -17450,7 +17615,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const grid = document.createElement('div'); grid.className = 'ch-sheet-grid'
           for (const t of ts) {
             const w = document.createElement('div'); w.className = 'ch-tile' + ((CH.tool === 'cross' ? CH.s.cursor : CH.tool) === t ? ' on' : '')
-            const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `${CH_I(CH_TOOLS[t].icon)}<span>${CH_TOOLS[t].name}</span>`; b.classList.toggle('on', (CH.tool === 'cross' ? CH.s.cursor : CH.tool) === t); b.addEventListener('click', () => { chSetTool(t); chSheet(null); if (t !== 'cross' && t !== 'dot' && t !== 'arrow' && t !== 'eraser') toast(`${CH_TOOLS[t].name}: tap the chart, or press and drag.`, 1800) })
+            const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `${CH_I28(CH_TOOLS[t].icon)}<span>${CH_TOOLS[t].name}</span>`; b.classList.toggle('on', (CH.tool === 'cross' ? CH.s.cursor : CH.tool) === t); b.addEventListener('click', () => { chSetTool(t); chSheet(null); if (t !== 'cross' && t !== 'dot' && t !== 'arrow' && t !== 'eraser') toast(`${CH_TOOLS[t].name}: tap the chart, or press and drag.`, 1800) })
             w.appendChild(b)
             if (!['cross', 'dot', 'arrow'].includes(t)) { const st = document.createElement('button'); st.type = 'button'; st.className = 'ch-star' + (chToolFavs().includes(t) ? ' on' : ''); st.innerHTML = CH_STAR; st.setAttribute('aria-label', 'Keep ' + CH_TOOLS[t].name + ' on the rail'); st.addEventListener('click', (e) => { e.stopPropagation(); chToolFavToggle(t); st.classList.toggle('on', chToolFavs().includes(t)) }); w.appendChild(st); w.classList.add('st') }
             grid.appendChild(w)
@@ -17523,9 +17688,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const name = target.dataset.tip, text = target.dataset.tipx || ''
       const box = document.createElement('div'); box.className = 'ch-tip'
       const b = document.createElement('b'); b.textContent = name
+      if (target.dataset.tipk) { const k = document.createElement('kbd'); k.textContent = target.dataset.tipk; b.appendChild(k) }
       const sp = document.createElement('span'); sp.textContent = text
-      box.append(b, sp); document.body.appendChild(box); chTipEl = box
+      box.append(b); if (text) box.append(sp); document.body.appendChild(box); chTipEl = box
       const r = target.getBoundingClientRect(), bw = box.offsetWidth, bh = box.offsetHeight
+      if (target.dataset.tipside === 'right') { box.classList.add('side'); box.style.left = Math.round(r.right + 10) + 'px'; box.style.top = Math.round(Math.max(8, Math.min(window.innerHeight - bh - 8, r.top + r.height / 2 - bh / 2))) + 'px'; requestAnimationFrame(() => box.classList.add('on')); return }
       let x = Math.round(r.left + r.width / 2 - bw / 2)
       x = Math.max(8, Math.min(x, window.innerWidth - bw - 8))
       const below = r.bottom + 8 + bh < window.innerHeight
@@ -17988,7 +18155,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       CH.tool = t; CH.pending = null; CH.snap = null; if (!keepMeasure) CH.measure = null
       if (t !== 'cross') { CH.sel = null; CH.multi.clear(); chSelBar() }
       const g = chGroupOf(shown); if (g) { CH.s.rail = CH.s.rail || {}; if (CH.s.rail[g] !== shown) { CH.s.rail[g] = shown; chSave() } }
-      document.querySelectorAll('#ch-tools .ch-tg').forEach((wrap) => { const main = wrap.querySelector('button[data-tool]'); const mine = wrap.dataset.group === g; if (mine && main.dataset.tool !== shown) { main.dataset.tool = shown; main.title = CH_TOOLS[shown].name + (CH_TOOLS[shown].key ? ` (${CH_TOOLS[shown].key})` : ''); main.innerHTML = CH_I(CH_TOOLS[shown].icon) } main.classList.toggle('on', mine); main.classList.toggle('lock', mine && CH.toolLock) })
+      document.querySelectorAll('#ch-tools .ch-tg').forEach((wrap) => { const main = wrap.querySelector('button[data-tool]'); const mine = wrap.dataset.group === g; if (mine && main.dataset.tool !== shown) { main.dataset.tool = shown; main.dataset.tip = CH_TOOLS[shown].name; main.dataset.tipk = CH_TOOLS[shown].key || ''; main.setAttribute('aria-label', CH_TOOLS[shown].name); main.innerHTML = CH_I28(CH_TOOLS[shown].icon) } main.classList.toggle('on', mine); main.classList.toggle('lock', mine && CH.toolLock) })
       const fly = el('ch-fly'); if (fly && !fly.hidden) fly.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tool === shown))
       el('ch-canvas').style.cursor = chCursorCss()
       chPrailSync(); chDraw()
@@ -18718,7 +18885,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (e.pointerType === 'touch' && zone === 'plot' && CH.tool !== 'cross' && CH.tool !== 'eraser') chLoupe(p)
         if (zone === 'plot' && CH.tool === 'cross') { const sep = chSepAt(p.y, L); if (sep) { CH.drag.sep = sep; CH.drag.frac0 = sep === 'vol' ? (CH.s.volFrac || { small: 0.1, normal: 0.16, tall: 0.24 }[CH.s.volSize] || 0.16) : (CH.s.paneFrac || (L.W < 520 ? 0.13 : 0.15)); CH.drag.plotH = L.plotH; return } }
         if (zone !== 'plot') return
-        if (CH.replay.arm) { const i = Math.round(chI(p.x, L)); const b = CH.bars[Math.max(0, Math.min(CH.bars.length - 1, i))]; if (b) { CH.replay.arm = false; CH.replay.on = true; CH.replay.cut = b.t; chSetVis(); chReplayUi(); CH.offset = 6; CH.auto = true; chDraw() } CH.drag = null; return }
+        if (CH.replay.arm) { chReplayStart(Math.round(chI(p.x, L))); CH.drag = null; return }   // choosing shows the whole tape, so the visible index is the bar's
         if (CH.measure && !CH.measure.live) CH.measure = null
         if (CH.editing) chTextDone(true)
         if (CH.tool === 'cross' && e.shiftKey && e.button === 0 && !chHit(p.x, p.y, L)) { CH.sel = null; chSelBar(); CH.measure = { a: chPoint(p.x, p.y, L), b: null, live: true }; CH.drag.measure = true; chDraw(); return }
@@ -18902,17 +19069,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         else if (e.altKey && !mod && ka === 's') chShot('save')
         else if (e.altKey && !mod && ka === 'o') chMenu(CH.menu === 'objects' ? null : 'objects')
         else if (!mod && !e.altKey && /^[0-9]$/.test(e.key)) chIntervalKey(e.key)
-        else if (e.key === 'ArrowLeft') { CH.offset += e.shiftKey ? 20 : 5; chClampOffset(L); chDraw() }
-        else if (e.key === 'ArrowRight') { CH.offset -= e.shiftKey ? 20 : 5; chClampOffset(L); chDraw() }
+        else if (e.key === 'ArrowLeft' && !(e.shiftKey && CH.replay.on)) { CH.offset += e.shiftKey ? 20 : 5; chClampOffset(L); chDraw() }
+        else if (e.key === 'ArrowRight' && !(e.shiftKey && CH.replay.on)) { CH.offset -= e.shiftKey ? 20 : 5; chClampOffset(L); chDraw() }
         else if (e.key === '+' || e.key === '=') { CH.barW = Math.min(60, CH.barW * 1.2); chDraw() }
         else if (e.key === '-' || e.key === '_') { CH.barW = Math.max(CH_MIN_BW, CH.barW / 1.2); chClampOffset(L); chDraw() }
         else if (e.key === 'Home') { CH.offset = 6; chDraw() }
-        else if (e.key === 'Escape') { CH.pending = null; CH.measure = null; CH.sel = null; CH.multi.clear(); CH.replay.arm = false; CH.toolLock = false; chSetTool('cross'); chMenu(null); chSelBar(); chReplayUi() }
+        else if (e.key === 'Escape') { CH.pending = null; CH.measure = null; CH.sel = null; CH.multi.clear(); CH.toolLock = false; chSetTool('cross'); chMenu(null); chSelBar(); if (CH.replay.arm) chReplayArm(false) }
         else if (e.key === 'Enter' && CH.pending && CH.pending.type === 'path') { CH.pending.p.pop(); chPendingCommit() }
         else if (e.key === 'Delete' || e.key === 'Backspace') { chDeleteSel() }
         else if (e.key === ' ' && CH.replay.on) { e.preventDefault(); chReplayPlay(!CH.replay.playing) }
-        else if (e.key === '.' && CH.replay.on) chReplayStep(1)
-        else if (e.key === ',' && CH.replay.on) chReplayStep(-1)
+        else if ((e.key === '.' || (e.shiftKey && e.key === 'ArrowRight')) && CH.replay.on) chReplayStep(1)
+        else if ((e.key === ',' || (e.shiftKey && e.key === 'ArrowLeft')) && CH.replay.on) chReplayStep(-1)
         else return
         e.preventDefault()
       })
@@ -18988,7 +19155,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-type-btn').addEventListener('click', () => chMenu('type'))
       el('ch-ind-btn').addEventListener('click', () => chMenu('ind'))
       el('ch-settings-btn').addEventListener('click', () => chMenu('settings'))
-      el('ch-replay-btn').addEventListener('click', () => { if (CH.replay.on) chReplayExit(); else { CH.replay.arm = !CH.replay.arm; chReplayUi(); toast(CH.replay.arm ? (matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click') + ' the bar to start replaying from.' : 'Replay cancelled.', 2500) } })
+      el('ch-replay-btn').addEventListener('click', () => { if (CH.replay.on && !CH.replay.arm) chReplayExit(); else chReplayArm(!CH.replay.arm) })
       el('ch-back').addEventListener('click', () => { if (el('v-chart').classList.contains('ch-fullscreen')) el('ch-full').click(); showView(CH_FROM && CH_FROM !== 'chart' && tabOf(CH_FROM) ? CH_FROM : 'overview') })
       el('ch-full').addEventListener('click', () => { const full = el('v-chart').classList.toggle('ch-fullscreen'); document.body.classList.toggle('ch-fs', full); el('ch-full').setAttribute('aria-pressed', String(full)); el('ch-full').setAttribute('aria-label', full ? 'Exit fullscreen' : 'Fullscreen'); chFit(); setTimeout(chDraw, 50) })
       el('ch-menu-close').addEventListener('click', () => chMenu(null)); chDlgWire()
@@ -19006,7 +19173,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-rp-back').addEventListener('click', () => chReplayStep(-1))
       el('ch-rp-fwd').addEventListener('click', () => chReplayStep(1))
       el('ch-rp-exit').addEventListener('click', chReplayExit)
-      el('ch-rp-speed').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { CH.replay.speed = +b.dataset.s; el('ch-rp-speed').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); if (CH.replay.playing) chReplayPlay(true) }))
+      el('ch-rp-pick').addEventListener('click', () => chReplayArm(true))
+      el('ch-rp-cancel').addEventListener('click', () => chReplayArm(false))
+      // on a phone the speed is one pill that steps through 0.5, 1, 3 and 10 on each tap (four 40px targets do not fit beside the transport)
+      el('ch-rp-speed').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { const all = [...el('ch-rp-speed').querySelectorAll('button')], compact = chPhone() && getComputedStyle(all.find((x) => x !== b) || b).display === 'none'; const pick = compact && b.classList.contains('on') ? all[(all.indexOf(b) + 1) % all.length] : b; CH.replay.speed = +pick.dataset.s; if (CH.replay.playing) chReplayPlay(true); else chReplayUi() }))
+      // the track under the dock: click anywhere on it, or drag along it, to move the replay there
+      { const tr = el('ch-rp-track'); let down = false; const at = (e) => { const r = tr.getBoundingClientRect(); if (!r.width || !CH.replay.on) return; chReplaySeek(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width))) }
+        tr.addEventListener('pointerdown', (e) => { down = true; tr.setPointerCapture?.(e.pointerId); chReplayPlay(false); at(e) }); tr.addEventListener('pointermove', (e) => { if (down) at(e) }); tr.addEventListener('pointerup', () => { down = false }); tr.addEventListener('pointercancel', () => { down = false }) }
       document.addEventListener('click', (e) => { if (!CH.menu) return; const path = e.composedPath(); if (path.some((n) => ['ch-menu', 'ch-ctx', 'ch-selbar', 'ch-textin', 'ch-legend', 'ch-fly', 'ch-goto-pop'].includes(n.id) || (n.classList && n.classList.contains('ch-bar')))) return; chMenu(null) })
       document.addEventListener('visibilitychange', () => { if (!document.hidden && CH.on) chTick() })
     }
@@ -19312,6 +19485,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         header('Levels')
         for (const [key, label, cKey] of CH_GEX_PARTS) { const els = [colorEl(cKey, 'default')]; if (key === 'gexGtbr') { const r = rangeEl('gexGtbrF', 0, 0.4, 0.01, 0.06); r.title = 'Fill'; const fl = document.createElement('span'); fl.className = 'fl'; fl.textContent = 'Fill'; els.push(fl, r) } partRow(label, '', els, tglEl(key), { key, colors: [cKey], fKey: key === 'gexGtbr' ? 'gexGtbrF' : key === 'gexMajor' ? null : key + 'F', fDef: key === 'gexGtbr' ? 0.06 : key === 'gexR' ? 0.12 : 0.15, fMax: 0.5, box: !['gexGtbr', 'gexMajor'].includes(key), noText: key === 'gexGtbr' }) }
         button('Reset every GEX colour', () => { for (const [key, , cKey] of CH_GEX_PARTS) { S[cKey] = ''; S[key] = true } S.gexGtbrF = 0.06; S.gexW = 1; chSave(); chDraw(); chMenu('ind:gex') }).classList.add('warn')
+        header('Your own levels')
+        hint('For a day the feed is out of date, or your own read of the book. On, these replace the feed on today\'s session. NQ prices; leave a box empty to skip that level.')
+        toggle('gexManOn', 'Use my own levels', '', () => chDraw())
+        { const M = S.gexMan = S.gexMan || {}
+          const box = (k, ph, wide) => { const i = document.createElement('input'); i.type = wide ? 'text' : 'number'; i.className = 'inp ch-gexman-in'; if (!wide) { i.step = '0.25'; i.min = '0'; i.inputMode = 'decimal' } i.placeholder = ph; i.value = M[k] ?? ''; i.setAttribute('aria-label', ph); i.addEventListener('change', () => { const v = wide ? i.value.trim() : (+i.value > 0 ? +i.value : ''); if (v === '' || v == null) delete M[k]; else M[k] = v; chSave(); chDraw() }); i.addEventListener('keydown', (e) => e.stopPropagation()); return i }
+          for (const [k, label] of CH_GEX_MAN) row(label, box(k, 'None'))
+          row('Other levels', box('levels', '30540, 30910, 31050', true), 'Largest first, drawn as Γ-1, Γ-2 and on')
+          button('Clear my levels', () => { S.gexMan = {}; S.gexManOn = false; chSave(); chDraw(); chMenu('ind:gex') }).classList.add('warn') }
       } else if (which === 'ind:eng') {
         toggle('eng', 'Show the LIT Engine')
         hint('Mechanical structure, not the discretionary read. Vector candles and the Asia / PDH / PDL levels stay in D1 LIT, which already draws them.')
@@ -19475,7 +19656,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const desc = (d) => d.text ? d.text : (d.type === 'hline' || d.type === 'hray' || d.type === 'plabel') ? chPx(d.p[0].p) : d.type === 'vline' ? chFmtFull(d.p[0].t) : (d.type === 'long' || d.type === 'short') ? `${chPx(d.p[0].p)} · R ${chPosStats(d).rr.toFixed(2)}` : d.p.length > 1 ? `${chPx(d.p[0].p)} to ${chPx(d.p[d.p.length - 1].p)}` : chPx(d.p[0].p)
         for (const d of [...CH.drawings].reverse()) {
           const r = document.createElement('div'); r.className = 'ch-obj' + (chIsSel(d) ? ' on' : '') + (d.hidden ? ' hid' : '')
-          r.innerHTML = `<span class="dot" style="--c:${escH(chDrawColor(d))}"></span><span class="ic">${CH_I(CH_TOOLS[d.type]?.icon || '')}</span><span class="t"><b>${CH_TOOL_NAMES[d.type] || d.type}</b><small>${escH(desc(d))}</small></span><span class="acts"><button type="button" data-a="eye" class="${d.hidden ? '' : 'on'}" title="${d.hidden ? 'Show' : 'Hide'}">${eyeI}</button><button type="button" data-a="lock" class="${d.lock ? 'on' : ''}" title="${d.lock ? 'Unlock' : 'Lock'}">${lockI}</button><button type="button" data-a="x" class="danger" title="Remove">${xI}</button></span>`
+          r.innerHTML = `<span class="dot" style="--c:${escH(chDrawColor(d))}"></span><span class="ic">${CH_I28(CH_TOOLS[d.type]?.icon || '')}</span><span class="t"><b>${CH_TOOL_NAMES[d.type] || d.type}</b><small>${escH(desc(d))}</small></span><span class="acts"><button type="button" data-a="eye" class="${d.hidden ? '' : 'on'}" title="${d.hidden ? 'Show' : 'Hide'}">${eyeI}</button><button type="button" data-a="lock" class="${d.lock ? 'on' : ''}" title="${d.lock ? 'Unlock' : 'Lock'}">${lockI}</button><button type="button" data-a="x" class="danger" title="Remove">${xI}</button></span>`
           r.addEventListener('click', (e) => { const b = e.target.closest('button[data-a]'); if (b) { const a = b.dataset.a; chPush(); if (a === 'eye') { d.hidden = !d.hidden; if (d.hidden && CH.sel === d) CH.sel = null } else if (a === 'lock') d.lock = !d.lock; else if (a === 'x') { CH.drawings = CH.drawings.filter((x) => x !== d); if (CH.sel === d) CH.sel = null; CH.multi.delete(d) } chSave(); chSelBar(); chLockAllUi(); chDraw(); chMenu('objects'); return } if (d.hidden) return; CH.sel = d; CH.multi.clear(); chSelBar(); chDraw(); chMenu('objects') })
           body.appendChild(r)
         }
@@ -19703,17 +19884,103 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function chAdjUi() { const b = el('ch-adj'); if (b) b.classList.toggle('on', !!CH.s.badj) }
 
-    /* ── replay ── */
-    function chReplayUi() { const rp = el('ch-replay'); rp.hidden = !CH.replay.on; el('ch-replay-btn').classList.toggle('on', CH.replay.on || CH.replay.arm); { const pb = el('ch-rp-play'), want = CH.replay.playing ? 'pause' : 'play'; if (pb.dataset.st !== want) { pb.dataset.st = want; pb.setAttribute('aria-label', want === 'pause' ? 'Pause' : 'Play'); pb.innerHTML = want === 'pause' ? '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5.5h3.6v13H7zM13.4 5.5H17v13h-3.6z"/></svg>' : '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>' } } el('ch-canvas').style.cursor = CH.replay.arm ? 'col-resize' : (CH.tool === 'cross' ? 'crosshair' : 'cell'); if (CH.replay.on && CH.replay.cut != null) el('ch-rp-at').textContent = `${chFmtDate(CH.replay.cut)} ${chFmtTime(CH.replay.cut)}` }
-    function chReplayStep(dir) {
-      if (!CH.replay.on) return
-      const all = CH.bars; let i = all.findIndex((b) => b.t > CH.replay.cut); if (i < 0) i = all.length
-      const cur = i - 1; const next = Math.max(0, Math.min(all.length - 1, cur + dir))
-      if (next === cur && dir > 0) { chReplayPlay(false); toast('Caught up to the live tape.', 2500); return }
-      CH.replay.cut = all[next].t; chSetVis(); if (CH.offset < 0) CH.offset = 6; chReplayUi(); chDraw()
+    /* ── replay ──
+       The replay point is a moment, CH.replay.at: the end of the last bar revealed. Every interval shows what had
+       happened by then, so switching from 5m to 1h mid-replay builds the hour so far from the minutes instead of
+       handing over the whole hour (it used to: 25 minutes of the future on a 1h chart). Stepping moves the moment
+       one bar of the chart's interval; playing steps on a timer; the live tape keeps arriving underneath. */
+    const chBarStart = (b) => CH.tfSec >= 86400 ? b.t - 6 * 3600 : b.t   // a day opens at 18:00 the evening before its date
+    function chBarEnd(bars, i) { const b = bars[i], m = CH.tfSec; if (m < 86400) return b.t + m; if (m === 86400) return b.t + 17 * 3600; return bars[i + 1] ? chBarStart(bars[i + 1]) : b.t + m }
+    function chReplayCount(at) { const bars = CH.bars; let lo = 0, hi = bars.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (chBarStart(bars[mid]) < at) lo = mid + 1; else hi = mid } return lo }
+    // the bar the moment falls inside, built from the finest data that covers it; none (so no bar) when nothing does
+    function chReplayPartial(b, at) {
+      const st = chStoreFor(CH.sym), m = CH.tfSec / 60, start = chBarStart(b)
+      for (const [src, g] of [['1m', 60], ['5m', 300], ['60m', 3600]]) {
+        if (g >= CH.tfSec) break
+        const rows = chAdjBase(st, src); if (!rows.length || rows[0][0] > start) continue
+        let lo = 0, hi = rows.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (rows[mid][0] < start) lo = mid + 1; else hi = mid }
+        const take = []; for (let i = lo; i < rows.length && rows[i][0] + g <= at; i++) take.push(rows[i])
+        if (!take.length) continue
+        const p = chAggregate(take, m).find((x) => x.k === b.k); if (p) return { ...p, t: b.t, partial: true }
+      }
+      return null
     }
-    function chReplayPlay(on) { clearInterval(CH.replay.timer); CH.replay.playing = on; if (on) CH.replay.timer = setInterval(() => chReplayStep(1), Math.max(60, 700 / CH.replay.speed)); chReplayUi() }
-    function chReplayExit() { chReplayPlay(false); CH.replay.on = false; CH.replay.cut = null; CH.replay.arm = false; chSetVis(); CH.offset = 6; CH.auto = true; chReplayUi(); chDraw() }
+    function chSetVis() {
+      const R = CH.replay
+      if (R.on && R.at == null && R.cut != null) { const i = CH.bars.findIndex((b) => b.t === R.cut); R.at = i >= 0 ? chBarEnd(CH.bars, i) : R.cut + CH.tfSec }
+      if (!R.on || R.arm || R.at == null) { CH.vis = CH.bars; return }   // choosing a new start shows the whole tape
+      const bars = CH.bars, n = chReplayCount(R.at); let vis = bars.slice(0, n)
+      if (n && chBarEnd(bars, n - 1) > R.at) { const p = chReplayPartial(bars[n - 1], R.at); vis = p ? vis.slice(0, -1).concat(p) : vis.slice(0, -1) }
+      CH.vis = vis; R.cut = vis.length ? vis[vis.length - 1].t : null
+    }
+    function chReplayStart(i) {
+      const R = CH.replay, bars = CH.bars; if (!bars.length) return
+      i = Math.max(0, Math.min(bars.length - 1, i))
+      R.arm = false; R.on = true; R.done = false; R.at = chBarEnd(bars, i); R.startT = bars[i].t
+      chReplayPlay(false); CH.offset = 6; CH.auto = true; chSetVis(); chReplayUi(); chDraw()
+    }
+    function chReplayGo(at) { const R = CH.replay; R.at = at; R.done = chReplayCount(at) >= CH.bars.length && chBarEnd(CH.bars, CH.bars.length - 1) <= at; chSetVis(); if (CH.offset < 0) CH.offset = 6; chReplayUi(); chDraw() }
+    function chReplayStep(dir) {
+      const R = CH.replay; if (!R.on || R.at == null || R.arm) return
+      const bars = CH.bars, n = chReplayCount(R.at)
+      if (dir > 0) {
+        if (n && chBarEnd(bars, n - 1) > R.at) return chReplayGo(chBarEnd(bars, n - 1))   // first finish the bar the moment sits in
+        if (n >= bars.length) { R.done = true; chReplayPlay(false); chReplayUi(); return }
+        return chReplayGo(chBarEnd(bars, n))
+      }
+      if (n <= 1) return
+      chReplayGo(chBarEnd(bars, n - 2))
+    }
+    function chReplayPlay(on) {
+      const R = CH.replay; clearTimeout(R.timer); R.timer = null
+      R.playing = !!on && R.on && !R.arm && !R.done
+      const tick = () => {
+        if (!R.playing) return
+        if (!CH.on || document.hidden) { R.playing = false; chReplayUi(); return }   // off the chart, it waits
+        chReplayStep(1)
+        if (R.playing) R.timer = setTimeout(tick, 1000 / R.speed)
+      }
+      if (R.playing) R.timer = setTimeout(tick, Math.min(350, 1000 / R.speed))
+      chReplayUi()
+    }
+    // choose a start: from scratch, or again mid-replay (Esc or Cancel goes back to where it was)
+    function chReplayArm(on) { const R = CH.replay; if (on) chReplayPlay(false); R.arm = !!on; chSetVis(); chReplayUi(); chDraw() }
+    function chReplayExit() { const R = CH.replay; chReplayPlay(false); R.on = false; R.at = null; R.cut = null; R.arm = false; R.done = false; R.startT = null; chSetVis(); CH.offset = 6; CH.auto = true; chReplayUi(); chDraw() }
+    // how far the replay has come, from its start to the live bar, 0 to 1
+    function chReplayProgress() {
+      const R = CH.replay, bars = CH.bars; if (!R.on || R.at == null || !bars.length) return 0
+      let s = bars.findIndex((b) => b.t >= (R.startT ?? 0)); if (s < 0) s = 0
+      const n = chReplayCount(R.at), span = bars.length - 1 - s
+      return span <= 0 ? 1 : Math.max(0, Math.min(1, (n - 1 - s) / span))
+    }
+    function chReplaySeek(frac) {
+      const R = CH.replay, bars = CH.bars; if (!R.on || !bars.length || !Number.isFinite(frac)) return
+      let s = bars.findIndex((b) => b.t >= (R.startT ?? 0)); if (s < 0) s = 0
+      const i =Math.max(s, Math.min(bars.length - 1, s + Math.round(frac * (bars.length - 1 - s))))
+      chReplayGo(chBarEnd(bars, i))
+    }
+    const CH_RP_ICON = {
+      play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.5 5.9v12.2a1 1 0 0 0 1.5.86l9.7-6.1a1 1 0 0 0 0-1.72L10 5.04a1 1 0 0 0-1.5.86z"/></svg>',
+      pause: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5.5" width="3.8" height="13" rx="1.2"/><rect x="13.7" y="5.5" width="3.8" height="13" rx="1.2"/></svg>',
+    }
+    function chReplayUi() {
+      const R = CH.replay, rp = el('ch-replay'), hint = el('ch-rp-hint')
+      rp.hidden = !R.on || R.arm
+      el('ch-replay-btn').classList.toggle('on', R.on || R.arm)
+      if (hint) { hint.hidden = !R.arm; const t = el('ch-rp-hint-t'); if (t) t.textContent = (matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click') + ' the bar to replay from' }
+      const pb = el('ch-rp-play'), want = R.playing ? 'pause' : 'play'
+      if (pb.dataset.st !== want) { pb.dataset.st = want; pb.setAttribute('aria-label', want === 'pause' ? 'Pause' : 'Play'); pb.dataset.tip = want === 'pause' ? 'Pause' : 'Play'; pb.innerHTML = CH_RP_ICON[want] }
+      pb.disabled = !!R.done
+      rp.toggleAttribute('data-playing', !!R.playing); rp.toggleAttribute('data-done', !!R.done)
+      el('ch-rp-speed').querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.s === R.speed))
+      const ex = el('ch-rp-exit'); if (ex) { const t = R.done ? 'Back to live' : 'Exit'; if (ex.querySelector('b').textContent !== t) ex.querySelector('b').textContent = t }
+      if (R.on && R.cut != null) {
+        const at = el('ch-rp-at'), day = chFmtDate(R.cut), tm = CH.tfSec >= 86400 ? '' : chFmtTime(R.cut)
+        const html = `<span>${day}</span>${tm ? `<b>${tm}</b>` : ''}`; if (at._h !== html) { at._h = html; at.innerHTML = html }
+        el('ch-rp-track').style.setProperty('--p', (chReplayProgress() * 100).toFixed(2) + '%')
+      }
+      el('ch-canvas').style.cursor = R.arm ? 'col-resize' : chCursorCss()
+    }
 
     /* ── life cycle ── */
     // the chart fills the window below the top bar, whatever the padding is
