@@ -3,7 +3,7 @@
 //   2. node tests/app-reactions-visual.mjs        (APP_URL / OUT / EMAIL env)
 // Signs in as EMAIL (default: the App Review account), opens the chat on desktop
 // and on a phone, finds a message with reactions and checks: the pills are
-// 26px rounded chips with an emoji and a count, a trailing "+" chip opens the
+// 28px rounded chips with an emoji and a count, a trailing "+" chip opens the
 // quick picker, resting the mouse on a pill shows the who-reacted card (names
 // plus avatars, positioned over the pill) and leaving hides it, and on a phone
 // a half-second hold on a pill shows the same card without toggling the
@@ -78,7 +78,7 @@ const chipInfo = (page) => page.evaluate(() => {
   if (!(await openReactedMessage(page, false))) { console.log("(no reacted message found on desktop)"); }
   else {
     const info = await chipInfo(page);
-    if (Math.abs(info.h - 26) > 1) fails.push("desktop pill height: " + info.h);
+    if (Math.abs(info.h - 28) > 1) fails.push("desktop pill height: " + info.h);   // 28px since the 09-29 chat refine
     if (!/999|9999px/.test(info.radius) && parseFloat(info.radius) < 13) fails.push("pill not rounded: " + info.radius);
     if (!info.emoji || !/^\d+$/.test(info.count)) fails.push("pill content odd: " + JSON.stringify(info));
     if (!/reacted/.test(info.label || "")) fails.push("pill aria-label missing names: " + info.label);
