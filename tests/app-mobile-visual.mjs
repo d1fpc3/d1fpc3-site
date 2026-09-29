@@ -5,7 +5,7 @@
 // Supabase admin generate_link API using the Management API token at
 // ~/.supabase/access-token, injects it into localStorage (memory only, never
 // written to disk), then walks every view at an iPhone viewport: Overview,
-// drawer, Course TOC + a lesson, Recaps, Members, Settings. Screenshots land in
+// the dock, Course TOC + a lesson, Library, Members, Settings. Screenshots land in
 // OUT; the run fails on horizontal overflow, page errors, or a view that never
 // left its skeletons. Pass PTR=1 to also exercise pull-to-refresh.
 import { createRequire } from "module";
@@ -88,14 +88,15 @@ const check = async (name, full = true) => {
 const go = async (view) => {
   await page.evaluate((v) => document.querySelector(`.tab[data-view="${v}"]`).click(), view);
   await page.waitForTimeout(450);
+  // a view is judged once its skeletons have had a fair chance to clear (the library's took longer than 450ms)
+  await page.waitForFunction(() => document.querySelectorAll(".view.on .skel").length === 0, null, { timeout: 10000 }).catch(() => {});
 };
 
 await check("1-overview");
-await page.evaluate(() => document.getElementById("menu-btn").click());
-await page.waitForTimeout(400);
-await page.screenshot({ path: `${OUT}/2-drawer.png` });
-await page.evaluate(() => document.getElementById("scrim").click());
-await page.waitForTimeout(350);
+// the dock is the phone's navigation since 09-27 (no hamburger, no drawer)
+if (await page.evaluate(() => { const b = document.getElementById("menu-btn"); return !!b && getComputedStyle(b).display !== "none" })) fails.push("hamburger visible on a phone");
+if (!(await page.evaluate(() => document.querySelectorAll("#bnav button").length >= 5))) fails.push("the dock is missing");
+await page.screenshot({ path: `${OUT}/2-dock.png` });
 
 await go("course");
 await check("3-course");

@@ -1,14 +1,12 @@
-// Phone drawer + floating tab bar (manual, not a node:test).
+// Phone dock + Today's chips (manual, not a node:test). Was the drawer harness until phones lost the drawer (09-27).
 //   1. from the repo root:  python -m http.server 8123
 //   2. node tests/app-drawer-spring-visual.mjs        (APP_URL / OUT / EMAIL env)
 // Signs in as EMAIL (default: the App Review account) at 390x844 and checks:
-// the tab-bar pill sits under the lit slot and follows every tap, the drawer
-// opens on a spring (mid-flight frame, settled, scrim in, nav-open set), a
-// touch swipe drags it shut and a short slow swipe snaps it back open, a
-// vertical pan inside the list neither moves the drawer nor scrolls the page
-// underneath, a row tap switches view + closes, the lit row shows its gold
-// marker, the bar leaves the screen inside a chat conversation, light theme
-// shots, and the desktop hover rail is untouched. Screenshots in OUT.
+// the tab-bar pill sits under the lit slot and follows every tap; there is no
+// hamburger and the old drawer stays shut; Today's chips reach every page the
+// dock has no slot for (Chart, News, Journal, Indicators, Prop firms, GEX when
+// owned) and a chip opens its page; the bar leaves the screen inside a chat
+// conversation; light theme shots; the desk sidebar stays open with labels.
 // Needs SUPABASE_ACCESS_TOKEN (or ~/.supabase/access-token) for the magic link.
 import { createRequire } from "module";
 import { existsSync, mkdirSync, readFileSync } from "fs";
@@ -69,65 +67,19 @@ const scrimA = (page) => page.evaluate(() => +getComputedStyle(document.getEleme
   if (!pill.live) fails.push("pill not live");
   if (Math.abs((pill.ix + pill.iw / 2) - (pill.bx + pill.bw / 2)) > 2) fails.push("pill not centred under overview: " + JSON.stringify(pill));
 
-  // open the drawer: frames mid-spring, then settled
-  await page.tap("#menu-btn");
-  await page.waitForTimeout(90); await shot("02-drawer-t90");
-  const midX = await sideX(page);
-  await page.waitForTimeout(110); await shot("03-drawer-t200");
-  await page.waitForTimeout(500); await shot("04-drawer-open");
-  const openX = await sideX(page), a = await scrimA(page);
-  if (!(midX < 0 && midX > -312)) fails.push("drawer not mid-flight at 90ms: " + midX);
-  if (Math.abs(openX) > 0.5) fails.push("drawer not settled open: " + openX);
-  if (a < 0.98) fails.push("scrim not fully in: " + a);
-  if (!(await page.evaluate(() => document.getElementById("app").classList.contains("nav-open")))) fails.push("nav-open class missing while open");
-
-  // drag it shut with a touch swipe (CDP touch events, pointerType touch)
-  const cdp = await ctx.newCDPSession(page);
-  const pts = (x, y) => [{ x, y, radiusX: 3, radiusY: 3, force: 1, id: 1 }];
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: pts(240, 500) });
-  for (let i = 1; i <= 8; i++) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: pts(240 - i * 14, 500) }); await page.waitForTimeout(16); }
-  const dragX = await sideX(page);
-  await shot("05-drag-mid");
-  if (!(dragX < -60 && dragX > -200)) fails.push("drawer did not follow the finger: " + dragX);
-  for (let i = 9; i <= 14; i++) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: pts(240 - i * 14, 500) }); await page.waitForTimeout(16); }
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await page.waitForTimeout(700);
-  const closedX = await sideX(page);
-  if (closedX > -311) fails.push("swipe did not close the drawer: " + closedX);
-  if (await page.evaluate(() => document.getElementById("app").classList.contains("nav-open"))) fails.push("nav-open still set after swipe close");
-  if (await scrimA(page) > 0.01) fails.push("scrim still visible after close");
-
-  // a short swipe that stays past halfway snaps back open
-  await page.tap("#menu-btn"); await page.waitForTimeout(700);
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: pts(240, 500) });
-  for (let i = 1; i <= 4; i++) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: pts(240 - i * 10, 500) }); await page.waitForTimeout(40); }
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await page.waitForTimeout(700);
-  if (Math.abs(await sideX(page)) > 0.5) fails.push("short slow swipe should snap back open: " + await sideX(page));
-
-  // vertical scroll intent inside the list must not grab the drawer
-  // (a slow pan: a 1250px/s synthetic flick makes Chromium eat the NEXT tap as
-  // a fling-cancel even with touch-action none, a CDP artifact unrelated to us)
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: pts(150, 400) });
-  for (let i = 1; i <= 4; i++) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: pts(150 - i * 2, 400 + i * 8) }); await page.waitForTimeout(60); }
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await page.waitForTimeout(300);
-  if (Math.abs(await sideX(page)) > 0.5) fails.push("vertical pan moved the drawer: " + await sideX(page));
-  const pageY = await page.evaluate(() => document.scrollingElement.scrollTop);
-  if (pageY > 0) fails.push("vertical pan on the drawer scrolled the page underneath: " + pageY);
-
-  // tapping a row closes the drawer and switches the view; the row shows as lit next time
-  if (Math.abs(await sideX(page)) > 0.5) { fails.push("drawer not open before the row tap: " + await sideX(page)); await page.tap("#menu-btn"); await page.waitForTimeout(700); }
-  await page.tap('.tab[data-view="journal"]'); await page.waitForTimeout(700);
-  if (await page.$eval(".view.on", (v) => v.id) !== "v-journal") fails.push("journal tab did not switch view");
-  if (await page.evaluate(() => document.getElementById("app").classList.contains("nav-open"))) fails.push("drawer still open after tab tap");
-  await page.tap("#menu-btn"); await page.waitForTimeout(700);
-  const bar = await page.evaluate(() => getComputedStyle(document.querySelector('.tab[data-view="journal"]'), "::before").width);
-  if (bar !== "3px") fails.push("active row marker missing: " + bar);
-  await shot("06-drawer-journal-lit");
-  // scrim tap closes
-  await page.tap("#scrim", { position: { x: 350, y: 400 } }); await page.waitForTimeout(700);
-  if (await page.evaluate(() => document.getElementById("app").classList.contains("nav-open"))) fails.push("scrim tap did not close");
+  // no hamburger: the dock and Today's chips are the navigation, and the old drawer stays shut
+  if (await page.locator("#menu-btn").isVisible()) fails.push("hamburger visible on a phone");
+  const shut = await sideX(page), w = await page.evaluate(() => document.querySelector(".side").getBoundingClientRect().width);
+  if (shut > -w + 1) fails.push("the drawer is not shut: " + shut);
+  const chips = await page.$$eval("#td-chips .td-chip", (cs) => cs.map((c) => c.dataset.view));
+  for (const v of ["chart", "news", "journal", "indicators", "propfirms"]) if (!chips.includes(v)) fails.push("Today has no chip for " + v + ": " + chips);
+  await shot("02-today-chips");
+  await page.tap('#td-chips .td-chip[data-view="journal"]'); await page.waitForTimeout(700);
+  if (await page.$eval(".view.on", (v) => v.id) !== "v-journal") fails.push("the Journal chip did not open the journal");
+  await shot("03-journal-from-chip");
+  await page.tap('#bnav button[data-view="overview"]'); await page.waitForTimeout(600);
+  await page.tap('#td-chips .td-chip[data-view="indicators"]'); await page.waitForTimeout(700);
+  if (await page.$eval(".view.on", (v) => v.id) !== "v-indicators") fails.push("the Indicators chip did not open Indicators");
 
   // pill slides across the bar
   for (const v of ["feed", "course", "chat", "set-profile"]) {
@@ -156,8 +108,8 @@ const scrimA = (page) => page.evaluate(() => +getComputedStyle(document.getEleme
 {
   const { ctx, page } = await ctxFor(true, "light");
   await page.screenshot({ path: `${OUT}/after-11-light-overview.png` });
-  await page.tap("#menu-btn"); await page.waitForTimeout(700);
-  await page.screenshot({ path: `${OUT}/after-12-light-drawer.png` });
+  await page.evaluate(() => document.getElementById("td-chips").scrollIntoView({ block: "center" })); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT}/after-12-light-chips.png` });
   await ctx.close();
 }
 
@@ -167,11 +119,12 @@ const scrimA = (page) => page.evaluate(() => +getComputedStyle(document.getEleme
   const t = await page.evaluate(() => document.querySelector(".side").style.transform);
   if (t) fails.push("desktop .side has an inline transform: " + t);
   if (await page.locator("#bnav").isVisible()) fails.push("bottom nav visible on desktop");
-  await page.hover(".side"); await page.waitForTimeout(400);
-  if (!(await page.evaluate(() => document.querySelector(".side").classList.contains("open")))) fails.push("desktop rail no longer opens on hover");
-  await page.screenshot({ path: `${OUT}/after-13-desktop-rail.png` });
+  // the desk sidebar is always open with labels since 09-22 (it used to be a hover rail)
+  const side = await page.evaluate(() => { const sd = document.querySelector(".side"); return { open: sd.classList.contains("open"), w: sd.getBoundingClientRect().width, label: getComputedStyle(document.querySelector('.side-nav .tab[data-view="chart"]')).display !== "none" }; });
+  if (!side.open || side.w < 200 || !side.label) fails.push("desktop sidebar is not the open, labelled one: " + JSON.stringify(side));
   await page.mouse.move(700, 400); await page.waitForTimeout(400);
-  if (await page.evaluate(() => document.querySelector(".side").classList.contains("open"))) fails.push("desktop rail stays open");
+  if (!(await page.evaluate(() => document.querySelector(".side").classList.contains("open")))) fails.push("desktop sidebar folded when the mouse left");
+  await page.screenshot({ path: `${OUT}/after-13-desktop-sidebar.png` });
   await ctx.close();
 }
 

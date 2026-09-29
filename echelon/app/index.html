@@ -22935,6 +22935,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function gifFetch(q = '', offset = 0) {
       const { data, error } = await supabase.functions.invoke(`gif-search?q=${encodeURIComponent(q)}&offset=${offset}`, { method: 'GET' })
       if (error) { if (error.context?.status === 503) GIF.ok = false; throw error }
+      if (data?.error === 'not_configured') { GIF.ok = false; throw new Error('not_configured') }
       GIF.ok = true
       return data
     }

@@ -7,8 +7,9 @@
 // glow, the settings sub-page back link is text-only, the store card reads
 // "D1 LIT indicator" with no blurb, the Overview has no "The room" / "Pick up
 // where you left off", and the library modal mounts the custom player (.vp)
-// with its control bar. Also checks the desktop sidebar brand no longer says
-// "Members" and the pull-to-refresh dial markup exists. Screenshots in OUT.
+// with its control bar (the video only signs on origins media-url allows: run it on 127.0.0.1:8123 or live).
+// Also checks the desktop sidebar brand no longer says "Members", the member row opens your profile, and the
+// pull-to-refresh dial markup exists. Screenshots in OUT.
 import { createRequire } from "module";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import { tmpdir, homedir } from "os";
@@ -84,7 +85,8 @@ const noOverflow = async (page, label) => {
   }
   // library: visible + custom player
   await view("library");
-  if (await page.locator('.tab[data-view="library"]').isHidden()) fails.push("library tab hidden");
+  // Library has no row of its own since the dock (it lives in Study); on a phone Today's chips reach it
+  if (!(await page.evaluate(() => !!document.querySelector('#td-chips .td-chip[data-view="library"]')))) fails.push("Today has no Library chip");
   await page.waitForTimeout(1200);
   await shot("02-library"); await noOverflow(page, "library");
   const cards = await page.locator("#lib-grid .lib-card, .lib-card").count();
@@ -144,8 +146,9 @@ const noOverflow = async (page, label) => {
   if (/Members/.test(brand)) fails.push('sidebar brand still says "Members"');
   if (await page.locator("#bnav").isVisible()) fails.push("bottom nav visible on desktop");
   await page.hover(".side"); await page.waitForTimeout(400);
-  await page.click("#u-name"); await page.waitForTimeout(500);
-  if (!(await page.evaluate(() => document.getElementById("mm-scrim").classList.contains("on")))) fails.push("clicking your name did not open the profile card");
+  await page.click("#u-name"); await page.waitForTimeout(700);
+  // the member row is your profile now (a page, not the card): it opens it
+  if (!(await page.evaluate(() => document.querySelector(".view.on")?.id === "v-set-profile"))) fails.push("clicking your name did not open your profile");
   await page.screenshot({ path: `${OUT}/desk-01-profile.png` });
   await ctx.close();
 }

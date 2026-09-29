@@ -161,10 +161,11 @@ const lift = (cdp) => cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", t
     globalThis.Capacitor = { isNativePlatform: () => true, getPlatform: () => "ios", Plugins: { Haptics: { impact: (o) => window.__haps.push("impact:" + o.style), notification: (o) => window.__haps.push("notify:" + o.type) } } };
   });
   await page.tap('#bnav button[data-view="course"]'); await page.waitForTimeout(300);
-  await page.tap("#menu-btn"); await page.waitForTimeout(700);
+  await page.tap('#bnav button[data-view="overview"]'); await page.waitForTimeout(500);
+  await page.tap('#td-chips .td-chip[data-view="journal"]'); await page.waitForTimeout(700);   // the drawer is gone on phones: a chip ticks too
   const haps = await page.evaluate(() => window.__haps);
   if (!haps.includes("impact:LIGHT")) fails.push("no light impact on a tab-bar tap: " + JSON.stringify(haps));
-  if (haps.length < 2) fails.push("drawer open did not tick: " + JSON.stringify(haps));
+  if (haps.length < 3) fails.push("a Today chip did not tick: " + JSON.stringify(haps));
   await ctx.close();
 }
 

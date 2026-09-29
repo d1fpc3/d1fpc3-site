@@ -1,6 +1,6 @@
 // gif-search: GIPHY behind our own endpoint (D1, 09-29: "should also have gifs"), so the key stays on the server
 // and every member shares one cache. GET ?q=&offset= (no q = trending). Signed-in members only.
-// Needs the GIPHY_API_KEY secret; without it every call answers 503 { error: 'not_configured' } and the app hides
+// Needs the GIPHY_API_KEY secret; without it every call answers { error: 'not_configured' } and the app hides
 // its GIF buttons. Deployed with JWT verification on (the default).
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
@@ -19,7 +19,8 @@ Deno.serve(async (req) => {
   const token = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '')
   const { data: who } = token ? await admin.auth.getUser(token) : { data: { user: null } }
   if (!who?.user) return json({ error: 'sign in' }, 401)
-  if (!KEY) return json({ error: 'not_configured' }, 503)
+  // a 200, not a 503: the app probes this on every conversation, and an error status would print in every console
+  if (!KEY) return json({ error: 'not_configured', items: [], next: null })
 
   const url = new URL(req.url)
   const q = (url.searchParams.get('q') || '').trim().slice(0, 60)

@@ -47,7 +47,7 @@ try {
       if (!LIVE) await ctx.route("**/functions/v1/gif-search**", (route) => {
         const u = new URL(route.request().url()), q = u.searchParams.get("q") || "";
         if (route.request().method() === "OPTIONS") return route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "GET, OPTIONS" } });
-        if (!configured) return route.fulfill({ status: 503, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ error: "not_configured" }) });
+        if (!configured) return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ error: "not_configured", items: [], next: null }) });
         return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ items: stubItems(q || "trending"), next: q ? null : 12 }) });
       });
       const page = await ctx.newPage();
