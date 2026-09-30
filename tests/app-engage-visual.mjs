@@ -39,7 +39,7 @@ for (const tag of (process.env.ONLY || "iphone,desk").split(",")) {
   console.log(`== ${tag}`);
   const browser = await eng.launch();
   const ctx = await browser.newContext(opt);
-  await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", "dark"); try { if (window.Notification) Notification.requestPermission = () => Promise.resolve("default"); } catch (e) {} }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
+  await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-theme", "dark"); try { if (window.Notification) { Notification.requestPermission = () => Promise.resolve("default"); Object.defineProperty(Notification, "permission", { get: () => "default", configurable: true }); } } catch (e) {} }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
   const page = await ctx.newPage();
   const errors = []; page.on("pageerror", (e) => errors.push(e.message));
   await boot(page);
@@ -63,9 +63,9 @@ for (const tag of (process.env.ONLY || "iphone,desk").split(",")) {
     else {
       check(c.shown && c.mode === "web" && c.on, `the web ask shows: "${c.title}"`);
       await page.click("#tp-on"); await page.waitForTimeout(700);
-      const sheet = await page.evaluate(() => [...document.querySelectorAll(".asheet, .ask, [role=dialog]")].some((n) => n.offsetParent && /Turn on notifications/.test(n.textContent)));
+      const sheet = await page.evaluate(() => { const m = document.getElementById("cfmodal"); return !!m && m.getBoundingClientRect().width > 0 && document.getElementById("cf-title")?.textContent === "Turn on notifications"; });
       check(sheet, "Turn on explains first, in our own sheet");
-      await page.evaluate(() => { const b = [...document.querySelectorAll("button")].find((x) => x.offsetParent && /^Not now$/.test(x.textContent.trim()) && !x.closest("#td-push")); b?.click(); });
+      await page.click("#cf-no");
       await page.waitForTimeout(700);
       const subs = await page.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration("/echelon/app/"); return !!(r && await r.pushManager.getSubscription()); });
       check(!subs, "saying Not now in the sheet subscribes nothing");
