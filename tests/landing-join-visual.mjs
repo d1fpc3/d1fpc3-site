@@ -2,8 +2,8 @@
 // old pricing"); manual, not a node:test. Replaces landing-apply-visual.mjs.
 //   node tests/landing-join-visual.mjs        (URL / OUT env; ONLY=desk,wide,iphone)
 // Proves at 1440, 2560 and on an iPhone (WebKit): no Apply anywhere and no application pop-up; Join in the nav, the
-// hero and the card; the card shows $500 once and the D1 code; Pricing in the nav and the footer; Join lands on
-// /pricing/ with Echelon at $500 and its Get Echelon button (it stops there: no live Stripe session is opened);
+// hero and the card; the card shows $400 once and the D1 code ($320); Pricing in the nav and the footer; Join lands on
+// /pricing/ with Echelon at $400 and its Get Echelon button (it stops there: no live Stripe session is opened);
 // an invite link (?ref=) is kept; the old /echelon/apply/ page sends people to /pricing/ with the invite kept.
 import { createRequire } from "module";
 import { existsSync, mkdirSync } from "fs";
@@ -41,7 +41,7 @@ for (const tag of (process.env.ONLY || "desk,wide,iphone").split(",")) {
   ok(!st.apply, `[${tag}] no Apply and no application pop-up anywhere`);
   ok(st.buys.length >= 3 && st.buys.every((b) => /^Join/.test(b)), `[${tag}] Join in the nav, the hero and the card (${st.buys.join(" | ")})`);
   ok(st.navPricing && st.footPricing, `[${tag}] Pricing in the nav and the footer`);
-  ok(/\$500\s*once/.test(st.card) && /Code D1 takes 20% off at checkout: \$400/.test(st.card), `[${tag}] the card: "${st.card.slice(0, 120)}"`);
+  ok(/\$400\s*once/.test(st.card) && /Code D1 takes 20% off at checkout: \$320/.test(st.card), `[${tag}] the card: "${st.card.slice(0, 120)}"`);
   ok(/lifetime access/.test(st.fine) && !/application/.test(st.fine), `[${tag}] the hero line: "${st.fine}"`);
   ok(st.ref === "HARNESS1", `[${tag}] an invite link is kept (echelon-ref ${st.ref})`);
   ok(st.sw <= st.vw, `[${tag}] no sideways scroll (${st.sw} in ${st.vw})`);
@@ -55,7 +55,7 @@ for (const tag of (process.env.ONLY || "desk,wide,iphone").split(",")) {
   await page.waitForURL(/\/pricing\/$/, { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1200);
   const pr = await page.evaluate(() => ({ url: location.pathname, price: document.querySelector("#course .price")?.textContent.trim(), btn: document.getElementById("buy-course")?.textContent.trim() }));
-  ok(pr.url === "/pricing/" && pr.price === "$500" && pr.btn === "Get Echelon", `[${tag}] Join lands on the pricing page: Echelon ${pr.price}, "${pr.btn}"`);
+  ok(pr.url === "/pricing/" && pr.price === "$400" && pr.btn === "Get Echelon", `[${tag}] Join lands on the pricing page: Echelon ${pr.price}, "${pr.btn}"`);
   await page.screenshot({ path: `${OUT}/${tag} 2 pricing.png` });
   // the old join page
   await page.goto(BASE + "echelon/apply/?ref=HARNESS2", { waitUntil: "domcontentloaded" });

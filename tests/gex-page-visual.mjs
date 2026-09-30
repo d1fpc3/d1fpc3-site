@@ -48,7 +48,7 @@ for (const [name, eng, dev] of VPS) {
   console.log("  " + JSON.stringify(s));
   // what the real feed should say right now, by the page's own rule (the feed on a weekend night is old)
   ok(/Positive gamma|Negative gamma/.test(s.regime) && s.levels.every((v) => /^[\d,]+$/.test(v)), `the card filled from the feed: ${s.regime}, ${s.levels.join(" / ")}`);
-  ok(/^(Live|Pre-open|Old levels|Behind)/.test(s.state), `the card states its freshness: "${s.state}"`);
+  ok(/^(Live|Pre-open|Closed|Old levels|Behind)/.test(s.state), `the card states its freshness: "${s.state}"`);   // Closed: after the bell (9/29; it used to say Pre-open)
   // ES
   await page.click('.seg button[data-book="es"]'); await page.waitForTimeout(1500);
   const es = await state(page);
