@@ -122,8 +122,14 @@ if (poster) {
       if (sc.ov !== "auto" && sc.ov !== "scroll") fails.push("feed not scrollable: " + JSON.stringify(sc));
       if (sc.sh > sc.ch) { await page.evaluate(() => { document.getElementById("rv-body").scrollTop = 400; }); await page.waitForTimeout(100); const st = await page.evaluate(() => document.getElementById("rv-body").scrollTop); if (st < 100) fails.push("feed did not scroll: " + st); }
       if (await page.locator(".rv-del").count()) fails.push("delete button still rendered");
-      // the viewer (not the owner) gets no menu on someone else's post
-      if (await page.locator("#rv-body .rv-menu-btn").count()) fails.push("menu button shown to a non-owner");
+      // the viewer (not the owner) never gets Edit or Delete on someone else's post
+      // (since App Review 1.2 everyone gets the menu: on someone else's post it is Report and Block, never Edit or Delete)
+      if (await page.locator("#rv-body .rv-menu-btn").count()) {
+        await page.locator("#rv-body .rv-menu-btn").first().click(); await page.waitForTimeout(300);
+        const items = await page.evaluate(() => [...document.querySelectorAll("#rv-body .rv-menu button")].map((b) => b.textContent.trim()));
+        if (!items.includes("Report post") || items.some((t) => /^(Edit|Delete)$/.test(t))) fails.push("non-owner menu: " + items.join(", "));
+        await page.locator("#rv-body .rv-menu-btn").first().click(); await page.waitForTimeout(200);
+      }
       await shot("06-recap-view");
       // Back closes the trade view, then the member card
       await page.goBack(); await page.waitForTimeout(800);

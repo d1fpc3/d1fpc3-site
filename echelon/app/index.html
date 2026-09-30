@@ -9,6 +9,12 @@
   <title>Echelon</title>
   <link rel="icon" type="image/svg+xml" href="/echelon-favicon.svg">
   <link rel="apple-touch-icon" href="/echelon/assets/logo-mark.png">
+  <!-- a Home Screen app on iPhone (and an installable one elsewhere): Safari only allows web push inside one -->
+  <link rel="manifest" href="/echelon/app/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Echelon">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#0b0a09">
   <script>
@@ -2504,6 +2510,42 @@
     .td-gx-head svg { margin-left: auto; flex: none; width: 16px; height: 16px; color: var(--faint); }
     .td-gx-stamp { font-size: 11.5px; color: var(--faint); margin-top: 12px; font-variant-numeric: tabular-nums; }
     .td-gx-levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+    /* Today: the streak, under the hero line */
+    .td-streak { display: inline-flex; align-items: center; gap: 7px; margin-top: 12px; padding: 6px 12px 6px 9px; border-radius: 999px; font-size: 13px; color: var(--muted); background: color-mix(in srgb, var(--gold) 10%, var(--panel)); border: 1px solid color-mix(in srgb, var(--gold) 24%, transparent); }
+    .td-streak .fl { width: 16px; height: 16px; color: var(--gold); }
+    .td-streak b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+    /* Today: Get started, first for new members */
+    .td-start { padding: 18px 18px 8px; }
+    .td-start.gone, .td-push.gone { animation: tp-done 0.36s cubic-bezier(.4,0,.2,1) forwards; }
+    .gs-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .gs-h b { display: block; font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+    .gs-h span { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .gs-hide { height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--faint); font: inherit; font-size: 13px; font-weight: 550; cursor: pointer; }
+    @media (hover: hover) { .gs-hide:hover { color: var(--ink); background: var(--panel-2); } }
+    .gs-bar { height: 5px; margin: 12px 0 6px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+    .gs-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--gold), color-mix(in srgb, var(--gold) 60%, #fff)); transition: width 0.6s cubic-bezier(.2,.8,.2,1); }
+    .gs-list { display: flex; flex-direction: column; }
+    .gs-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 2px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; border-top: 1px solid var(--line); -webkit-tap-highlight-color: transparent; transition: opacity 0.2s ease; }
+    .gs-row:first-child { border-top: 0; }
+    .gs-row:active { opacity: 0.6; }
+    .gs-ck { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--gold); border: 1.5px solid color-mix(in srgb, var(--gold) 55%, transparent); font-variant-numeric: tabular-nums; }
+    .gs-row.done .gs-ck { background: var(--gold); border-color: var(--gold); color: #111; }
+    .gs-ck svg { width: 15px; height: 15px; }
+    .gs-tx { flex: 1; min-width: 0; }
+    .gs-tx b { display: block; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    .gs-tx small { display: block; margin-top: 1px; font-size: 12.5px; color: var(--muted); }
+    .gs-row.done .gs-tx b { color: var(--muted); }
+    .gs-chev { width: 16px; height: 16px; color: var(--faint); flex: none; }
+    /* wide screens: the five steps as a row of tiles */
+    @media (min-width: 841px) {
+      .td-grid > .td-wide { grid-column: 1 / -1; }
+      .gs-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; padding: 6px 0 10px; }
+      .gs-row, .gs-row:first-child { flex-direction: column; align-items: flex-start; gap: 10px; min-height: 124px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; transition: border-color 0.2s ease, background 0.2s ease; }
+      .gs-row:hover { border-color: color-mix(in srgb, var(--gold) 45%, transparent); background: color-mix(in srgb, var(--gold) 5%, transparent); }
+      .gs-row.done { opacity: 0.7; }
+      .gs-row .gs-chev { display: none; }
+    }
+
     /* Today: the ask for pushes, under the levels it would deliver (D1, 9/30: get people using it) */
     .td-push { display: flex; align-items: center; gap: 14px; padding: 16px 16px 16px 18px; background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 13%, var(--panel)), var(--panel) 70%); border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent); }
     .td-push .tp-ic { flex: none; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, transparent); }
@@ -2934,7 +2976,7 @@
     /* journal: the whole pane is the page, a document, not a panel.
        The topbar title goes away on this view (desktop hides the bar
        entirely; mobile keeps it for the menu button). */
-    .journal-full .tb-title { display: none; }
+    @media (min-width: 761px) { .journal-full .tb-title { display: none; } }   /* phones keep the title: the bar is there anyway */
     @media (min-width: 761px) { .journal-full .topbar { display: none; } .journal-full .pane { padding-top: 30px; } }
     #v-journal .block { max-width: none; background: none; border: 0; border-radius: 0; overflow: visible; }
     .j-wrap { display: block; }
@@ -3006,6 +3048,32 @@
     .pro-tile .oc.win { color: var(--good); } .pro-tile .oc.loss { color: var(--bad); }
     .pro-tile .multi { position: absolute; top: 6px; right: 6px; width: 14px; height: 14px; color: #fff; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
     .pro-empty { max-width: 640px; margin-top: 18px; }
+    /* your profile, Instagram-shaped (9/30): the photo beside four counts, then the name, the bio and two buttons */
+    #v-set-profile .pro-head { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "av counts" "name name" "bio bio" "btns btns"; column-gap: 24px; row-gap: 0; align-items: center; padding-bottom: 20px; }
+    #v-set-profile .pro-meta { display: contents; }
+    #v-set-profile .pro-av { grid-area: av; }
+    #v-set-profile .pro-follow { grid-area: counts; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; margin: 0; font-size: 12.5px; color: var(--muted); }
+    #v-set-profile .pro-follow span { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px; border-radius: 12px; text-align: center; line-height: 1.15; white-space: nowrap; transition: background 0.2s ease; -webkit-tap-highlight-color: transparent; }
+    #v-set-profile .pro-follow span[style*="pointer"]:active { background: var(--panel-2); }
+    @media (hover: hover) { #v-set-profile .pro-follow span[style*="pointer"]:hover { background: var(--panel-2); } }
+    #v-set-profile .pro-follow b { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+    #v-set-profile .pro-follow .pc-streak b { display: inline-flex; align-items: center; gap: 3px; color: var(--gold); }
+    #v-set-profile .pro-follow .pc-streak .fl { width: 16px; height: 16px; }
+    #v-set-profile .pro-name-row { grid-area: name; margin-top: 16px; }
+    #v-set-profile .pro-stats { display: none; }
+    #v-set-profile .pro-bio { grid-area: bio; margin-top: 4px; }
+    #v-set-profile .pro-btns { grid-area: btns; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .pro-btn { height: 38px; border: 0; border-radius: 11px; background: var(--panel-2); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background 0.2s ease, transform 0.15s ease; }
+    @media (hover: hover) { .pro-btn:hover { background: color-mix(in srgb, var(--ink) 12%, var(--panel-2)); } }
+    .pro-btn:active { transform: scale(0.98); }
+    .pro-empty-card { margin-top: 22px; padding: 30px 22px 26px; border-radius: 20px; background: var(--panel); border: 1px dashed color-mix(in srgb, var(--gold) 38%, transparent); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
+    .pro-empty-card[hidden] { display: none; }
+    .pro-empty-card .pe-ic { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, transparent); margin-bottom: 6px; }
+    .pro-empty-card .pe-ic svg { width: 24px; height: 24px; }
+    .pro-empty-card b { font-size: 16px; font-weight: 650; color: var(--ink); }
+    .pro-empty-card > span:not(.pe-ic) { font-size: 13.5px; color: var(--muted); max-width: 34ch; line-height: 1.5; }
+    .pro-empty-card .pe-go { margin-top: 10px; }
+    @media (max-width: 640px) { #v-set-profile .pro-head { column-gap: 14px; } #v-set-profile .pro-follow b { font-size: 17px; } #v-set-profile .pro-follow { font-size: 11.5px; } }
     @media (max-width: 640px) { .pro-head { gap: 16px; } .pro-av { width: 76px; height: 76px; font-size: 26px; } .pro-stats { gap: 14px; font-size: 12.5px; } }
     /* ── a single trade, opened from a tile: the post view ── */
     .rv { position: fixed; inset: 0; z-index: 200; background: rgba(6,5,4,0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 24px; }
@@ -3662,6 +3730,11 @@
     #j-status { margin: 0; }
     .j-tools { display: flex; align-items: center; gap: 12px; }
     .j-bar { display: flex; align-items: center; gap: 2px; }
+    @media (max-width: 640px) {
+      .j-head { flex-wrap: wrap; align-items: center; row-gap: 10px; padding: 18px 16px 0; }
+      .j-head h3 { font-size: 15px; font-weight: 650; color: var(--ink); letter-spacing: -0.01em; white-space: nowrap; }
+      .j-tools { width: 100%; justify-content: space-between; }
+    }
     .j-tb { background: none; border: 0; color: var(--faint); cursor: pointer; font: inherit; font-size: 13px; width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
     .j-tb:hover { color: var(--ink); background: var(--panel-2); }
     .j-tb.j-plus { font-size: 19px; font-weight: 300; }
@@ -5117,6 +5190,9 @@
       .msg .m-sw { position: absolute; right: -46px; top: 50%; width: 32px; height: 32px; margin-top: -16px; border-radius: 50%; display: grid; place-items: center; color: var(--gold); background: var(--panel-2); opacity: 0.35; transform: scale(0.7); transition: opacity 0.15s ease, transform 0.22s cubic-bezier(.34,1.56,.64,1); pointer-events: none; }
       .msg .m-sw svg { width: 17px; height: 17px; }
       .msg .m-sw.on { opacity: 1; transform: none; background: color-mix(in srgb, var(--gold) 18%, var(--panel-2)); }
+      .msg .m-heart { position: absolute; z-index: 3; font-size: 38px; line-height: 1; margin: -19px 0 0 -19px; pointer-events: none; animation: m-heart 0.8s cubic-bezier(.2,.8,.2,1) forwards; }
+      @keyframes m-heart { 0% { opacity: 0; transform: scale(0.3); } 25% { opacity: 1; transform: scale(1.15); } 45% { transform: scale(0.95); } 70% { opacity: 1; transform: scale(1) translateY(-6px); } 100% { opacity: 0; transform: scale(0.9) translateY(-26px); } }
+      @media (prefers-reduced-motion: reduce) { .msg .m-heart { animation-duration: 0.01s; } }
       .chat.open-convo .chat-log { overflow-x: hidden; }
       .chat-head { position: relative; z-index: 6; min-height: 54px; gap: 2px; padding: calc(env(safe-area-inset-top) + 4px) 6px 6px;
         background: color-mix(in srgb, var(--bg) 80%, transparent) !important; -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6); border-bottom: 0.5px solid var(--line); }
@@ -5766,6 +5842,7 @@
             <p class="td-date td-in" id="td-date"></p>
             <h1 class="td-h1 td-in" id="td-h1">Welcome back.</h1>
             <p class="td-sub td-in" id="td-sub" hidden></p>
+            <p class="td-streak td-in" id="td-streak" hidden><svg class="fl" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.8 2.2c.3 2.4-.6 4-1.9 5.5-1.4 1.6-3.4 3.3-3.4 6.2 0 1.4.5 2.6 1.3 3.5-.1-.4-.2-.8-.2-1.2 0-1.9 1.3-3 2.4-4.1.9-.9 1.7-1.9 1.9-3.3 1.8 1.4 3.3 3.6 3.3 6.3 0 .8-.2 1.6-.5 2.3 1.5-1 2.5-2.7 2.5-4.7 0-4.8-3.4-8.5-5.4-10.5z"/><path d="M12 22c-2.5 0-4.5-1.9-4.5-4.3 0-.6.1-1.1.3-1.6.6 1.7 2.2 2.5 3.4 2.5-.6-.6-.9-1.4-.9-2.3 0-1.7 1.2-2.7 2.1-3.6.6 1.3 2.2 2.4 2.2 4.6 0 2.6-1.1 4.7-2.6 4.7z" opacity=".55"/></svg><span><b>0</b> trading days in a row</span></p>
             <button class="rc-btn" id="rc-open" type="button" title="Calculators" aria-label="Calculators">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8.01" y2="11"/><line x1="12" y1="11" x2="12.01" y2="11"/><line x1="16" y1="11" x2="16.01" y2="11"/><line x1="8" y1="15" x2="8.01" y2="15"/><line x1="12" y1="15" x2="12.01" y2="15"/><line x1="16" y1="15" x2="16.01" y2="15"/><line x1="8" y1="19" x2="8.01" y2="19"/><line x1="12" y1="19" x2="12.01" y2="19"/><line x1="16" y1="19" x2="16.01" y2="19"/></svg>
             </button>
@@ -5776,6 +5853,13 @@
           <p class="ov-lit" id="ov-lit" hidden>D1 LIT is on your account. <button type="button" id="ov-lit-go">Add your TradingView username →</button></p>
 
           <div class="td-grid">
+            <section class="td-sec td-in td-wide" id="td-start-sec" hidden>
+              <div class="td-card td-start" id="td-start">
+                <div class="gs-top"><div class="gs-h"><b>Get started</b><span id="gs-count">0 of 5</span></div><button class="gs-hide" id="gs-hide" type="button">Hide</button></div>
+                <div class="gs-bar" aria-hidden="true"><i id="gs-fill"></i></div>
+                <div class="gs-list" id="gs-list"></div>
+              </div>
+            </section>
             <section class="td-sec td-in" id="td-gex-sec" hidden>
               <div class="td-cap"><span class="label">Context</span><button class="td-more" type="button" data-go="gex">Full board →</button></div>
               <div class="td-card td-gex" id="td-gex"></div>
@@ -6618,15 +6702,14 @@
               <div class="pro-name-row">
                 <h2 class="pro-name" id="pro-name">–</h2>
                 <button class="pro-plus" id="pro-post" type="button" title="New post" aria-label="New post"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-                <button class="pro-ic" id="pro-edit" type="button" title="Edit profile" aria-label="Edit profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-                <button class="pro-ic" id="pro-share" type="button" title="Share profile" aria-label="Share profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
-                <button class="pro-gear" id="pro-settings-old" type="button" hidden aria-hidden="true">
+                                                <button class="pro-gear" id="pro-settings-old" type="button" hidden aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 </button>
               </div>
               <div class="pro-stats" id="pro-stats"></div>
               <p class="pro-bio" id="pro-bio"></p>
               <div class="pro-follow" id="pro-follow"></div>
+              <div class="pro-btns"><button class="pro-btn" id="pro-edit" type="button">Edit profile</button><button class="pro-btn" id="pro-share" type="button">Share profile</button></div>
 
             </div>
           </div>
@@ -6666,7 +6749,12 @@
             </div>
           </div>
           <div class="pro-grid" id="pro-grid"></div>
-          <p class="hint pro-empty" id="pro-empty" hidden>No posts yet. <button class="pro-empty-go" id="pro-empty-go" type="button">Share your first post</button></p>
+          <div class="pro-empty pro-empty-card" id="pro-empty" hidden>
+            <span class="pe-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span>
+            <b>Share your first post</b>
+            <span>A chart, a trade idea, a lesson you learned. It lands in Posts for every member.</span>
+            <button class="btn pe-go" id="pro-empty-go" type="button">New post</button>
+          </div>
         </section>
 
         <section class="view setpage" id="v-set-appearance">
@@ -12851,7 +12939,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const pn = el('pro-name'); pn.textContent = '@' + (p?.username || 'you')
       if (state.isAdmin || state.isMod) pn.insertAdjacentHTML('beforeend', CHECK_SVG)
       el('pro-bio').textContent = p?.bio || ''
-      followCounts(state.user.id).then((c) => followLine(el('pro-follow'), c, null, state.user.id))
+      followCounts(state.user.id).then((c) => { followLine(el('pro-follow'), c, null, state.user.id); proCounts() })
       recapTiles(el('pro-grid'), state.memberRecaps, el('pro-empty'), (r, t) => openRecapView(r, state.memberRecaps, t))
     }
     el('pro-settings').addEventListener('click', () => showView('settings'))
@@ -14786,7 +14874,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function tdShown() {
       if (!el('td-h1')) return
       TD.on = true
-      globalThis.__tdPush?.()
+      Promise.resolve(globalThis.__gsPaint?.()).catch(() => false).then(() => globalThis.__tdPush?.())
       markFresh('v-overview')
       tdRefresh(false)
       clearInterval(TD.timer); clearInterval(TD.clock)
@@ -22494,6 +22582,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        "Not now" puts it away for two weeks. */
     async function tdPushPaint() {
       const sec = el('td-push-sec'); if (!sec) return
+      if (el('td-start-sec') && !el('td-start-sec').hidden) { sec.hidden = true; return }   // Get started carries the ask
       let snooze = 0; try { snooze = +localStorage.getItem('echelon-push-ask') || 0 } catch {}
       let mode = null
       try {
@@ -22527,6 +22616,112 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       globalThis.__tdPush = tdPushPaint
       queueMicrotask(() => { try { if (curView() === 'overview') tdPushPaint() } catch {} })
     }
+    /* ── the trading-day streak (member_days, touch_member_day) ──
+       Written once a New York day when the app opens (again if it stays open past midnight). The count is weekdays in a
+       row you opened Echelon: weekends never break it. Today shows it from two days on; the profile always. */
+    let STREAK_DAY = ''
+    const FLAME_SVG = '<svg class="fl" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.8 2.2c.3 2.4-.6 4-1.9 5.5-1.4 1.6-3.4 3.3-3.4 6.2 0 1.4.5 2.6 1.3 3.5-.1-.4-.2-.8-.2-1.2 0-1.9 1.3-3 2.4-4.1.9-.9 1.7-1.9 1.9-3.3 1.8 1.4 3.3 3.6 3.3 6.3 0 .8-.2 1.6-.5 2.3 1.5-1 2.5-2.7 2.5-4.7 0-4.8-3.4-8.5-5.4-10.5z"/><path d="M12 22c-2.5 0-4.5-1.9-4.5-4.3 0-.6.1-1.1.3-1.6.6 1.7 2.2 2.5 3.4 2.5-.6-.6-.9-1.4-.9-2.3 0-1.7 1.2-2.7 2.1-3.6.6 1.3 2.2 2.4 2.2 4.6 0 2.6-1.1 4.7-2.6 4.7z" opacity=".55"/></svg>'
+    async function streakTouch() {
+      if (!state.user) return
+      const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date())
+      if (day === STREAK_DAY) return
+      STREAK_DAY = day
+      const { data, error } = await supabase.rpc('touch_member_day')
+      if (error) { STREAK_DAY = ''; return }
+      const r = Array.isArray(data) ? data[0] : data
+      state.streak = r?.streak ?? 0; state.days30 = r?.days_30 ?? 0
+      streakPaint()
+    }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) streakTouch() })
+    function streakPaint() {
+      const t = el('td-streak'), n = state.streak || 0
+      if (t) { t.hidden = n < 2; t.querySelector('b').textContent = String(n) }
+      if (curView() === 'set-profile') proCounts()
+    }
+    // the profile's counts: posts, followers, following (followLine), and the streak
+    function proCounts() {
+      const host = el('pro-follow'); if (!host || !host.children.length) return
+      host.querySelector('.pc-posts')?.remove(); host.querySelector('.pc-streak')?.remove()
+      const n = (state.memberRecaps || []).length
+      const ps = document.createElement('span'); ps.className = 'pc-posts'; const pb = document.createElement('b'); pb.textContent = String(n); ps.append(pb, n === 1 ? 'post' : 'posts')
+      ps.style.cursor = 'pointer'; ps.addEventListener('click', () => (el('pro-grid')?.children.length ? el('pro-grid') : el('pro-empty'))?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+      host.prepend(ps)
+      const st = document.createElement('span'); st.className = 'pc-streak'; st.title = 'Trading days in a row you opened Echelon. Weekends never break it.'
+      const sb = document.createElement('b'); sb.innerHTML = FLAME_SVG; sb.append(String(state.streak || 0)); st.append(sb, 'day streak')
+      host.appendChild(st)
+    }
+
+    /* ── Get started: the first things worth doing, for a member's first month ──
+       Onboarding is where a paid community keeps people (strong onboarding: 40 to 60% still active at 30 days). Five
+       steps, each one tap from done: alerts (the biggest single lever), lesson one, hi in General, a photo, a first
+       post. Shown first on Today until they are done or hidden (member_onboarding.flags.get_started); the alerts
+       card stands down while it shows. */
+    let GS_HI = null
+    async function pushOnHere() {
+      try {
+        if (ntNative()) return (await ntNativeState()) === 'granted'
+        if (webPushOk() && Notification.permission === 'granted') { const reg = await navigator.serviceWorker.getRegistration('/echelon/app/'); return !!(reg && await reg.pushManager.getSubscription()) }
+      } catch {}
+      return false
+    }
+    async function pushEnable() {
+      if (ntNative()) return ntNativeEnable()
+      if (webPushOk()) {
+        if (Notification.permission === 'default' && !(await ntAsk())) return false
+        return Notification.permission === 'granted' ? await webPushSubscribe().catch(() => false) : false
+      }
+      if (/iP(hone|ad|od)/.test(navigator.userAgent) && !navigator.standalone) { toast('On iPhone: tap Share, then Add to Home Screen. Open Echelon from there and turn alerts on.', 5000); return false }
+      toast('This browser cannot take alerts. Try Chrome, or the app on your phone.', 3600); return false
+    }
+    async function gsHi() {
+      showView('chat')
+      if (!chat.loaded) { try { await loadChat() } catch {} }
+      const cs = chat.channels || [], g = cs.find((c) => c.kind !== 'announcement' && /general/i.test(c.name)) || cs.find((c) => c.kind !== 'announcement')
+      if (!g) return
+      await openConversation('channel', g.id)
+      const i = el('chat-input'); if (i && !i.value) { i.value = 'Hey everyone, '; i.dispatchEvent(new Event('input')) }
+      i?.focus()
+    }
+    const GS = [
+      { k: 'alerts', t: 'Turn on alerts', s: 'The day\u2019s GEX levels and replies to you, on your phone', go: async () => { if (await pushEnable()) { hap('success'); toast('Alerts are on. Pick which ones in Settings > Notifications.', 3200) } gsPaint() } },
+      { k: 'lesson', t: 'Start lesson one', s: 'Study, chapter 01', done: () => (state.started || 0) > 0 || (state.done?.size || 0) > 0, go: () => showView('course') },
+      { k: 'hi', t: 'Say hi in General', s: 'Tell the members what you trade', done: () => GS_HI === true, go: () => gsHi() },
+      { k: 'photo', t: 'Add a photo', s: 'So people know who they\u2019re talking to', done: () => !!state.profile?.avatar_url, go: () => { showView('set-profile'); setTimeout(() => openProfileEditor(), 380) } },
+      { k: 'post', t: 'Share your first post', s: 'A chart or an idea, for everyone on Posts', done: () => (state.memberRecaps || []).length > 0, go: () => openPostSheet() },
+    ]
+    async function gsPaint() {
+      const sec = el('td-start-sec'); if (!sec || !state.user) return false
+      const flags = state.onboarding?.flags || {}
+      const age = Date.now() - new Date(state.user.created_at || 0).getTime()
+      if (!globalThis.__gsForce && (flags.get_started || age > 30 * 864e5)) { sec.hidden = true; return false }
+      if (GS_HI === null) {
+        GS_HI = false
+        supabase.from('messages').select('id', { count: 'exact', head: true }).eq('user_id', state.user.id).then(({ count }) => { if ((count || 0) > 0) { GS_HI = true; gsPaint() } })
+      }
+      const push = await pushOnHere()
+      const done = GS.map((x) => (x.k === 'alerts' ? push : !!x.done()))
+      const n = done.filter(Boolean).length
+      el('gs-count').textContent = n === GS.length ? 'All done' : `${n} of ${GS.length}`
+      el('gs-fill').style.width = Math.round((n / GS.length) * 100) + '%'
+      const list = el('gs-list'); list.textContent = ''
+      GS.forEach((x, i) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'gs-row' + (done[i] ? ' done' : ''); b.dataset.k = x.k
+        b.innerHTML = `<span class="gs-ck" aria-hidden="true">${done[i] ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>' : i + 1}</span><span class="gs-tx"><b></b><small></small></span><svg class="gs-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>`
+        b.querySelector('b').textContent = x.t; b.querySelector('small').textContent = done[i] ? 'Done' : x.s
+        b.setAttribute('aria-label', x.t + (done[i] ? ', done' : ''))
+        b.addEventListener('click', () => { hap('light'); x.go() })
+        list.appendChild(b)
+      })
+      sec.hidden = false
+      if (n === GS.length && !globalThis.__gsForce) { saveOnbFlags({ get_started: 'done' }); setTimeout(() => { el('td-start')?.classList.add('gone'); setTimeout(() => { sec.hidden = true }, 360) }, 2600) }
+      return true
+    }
+    el('gs-hide')?.addEventListener('click', () => { hap('light'); saveOnbFlags({ get_started: 'hidden' }); el('td-start').classList.add('gone'); setTimeout(() => { el('td-start-sec').hidden = true; globalThis.__tdPush?.() }, 360) })
+    globalThis.__gsPaint = gsPaint
+    // harness hooks (the app is a module: nothing is global)
+    globalThis.__streak = { get: () => state.streak ?? null, set: (n) => { state.streak = n; streakPaint() } }
+    globalThis.__chatOpen = async (type, id) => { if (!chat.loaded) await loadChat(); return openConversation(type, id) }
+
     async function ntUpdateState() {
       const st = el('nt-state'); if (!st) return
       if (ntNative()) { st.textContent = (await ntNativeState()) === 'denied' ? 'Blocked' : ''; return }
@@ -23343,6 +23538,25 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       log.addEventListener('touchend', cancel, { passive: true })
       log.addEventListener('touchcancel', cancel, { passive: true })
       document.addEventListener('touchstart', (e) => { if (!e.target.closest('.msg.acts-open') && !e.target.closest('.m-acts')) closeActs() }, { passive: true })
+    }
+
+    // Double-tap a message on a phone: a heart on it, the way Instagram's DMs do it; again takes it off. Touch only: a
+    // mouse double-click selects text, and the desk has the hover bar.
+    {
+      const log = el('chat-log'); let last = 0, lx = 0, ly = 0, lrow = null
+      log.addEventListener('pointerup', (e) => {
+        if (e.pointerType === 'mouse') return
+        const row = e.target.closest('.msg[data-mid]')
+        if (!row || e.target.closest('a, button, img, video, .rx-chip, .m-acts, .m-name, input, textarea, .poll') || row.classList.contains('sw')) { last = 0; return }
+        if (row === lrow && e.timeStamp - last < 330 && Math.hypot(e.clientX - lx, e.clientY - ly) < 32) {
+          last = 0
+          const m = chat.msgs.find((x) => String(x.id) === row.dataset.mid); if (!m || m.deleted_at) return
+          toggleReaction(m.id, RX_QUICK[1]); hap('light')
+          const r = R(row), h = document.createElement('span'); h.className = 'm-heart'; h.textContent = RX_QUICK[1]
+          h.style.left = Math.round(e.clientX / UIZ() - r.left) + 'px'; h.style.top = Math.round(e.clientY / UIZ() - r.top) + 'px'
+          row.appendChild(h); setTimeout(() => h.remove(), 800)
+        } else { last = e.timeStamp; lx = e.clientX; ly = e.clientY; lrow = row }
+      })
     }
 
     // Click a name in the log -> the same profile card the directory uses.
@@ -24580,6 +24794,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       state.rrPool = rrPool ?? []
       state.journal = journal ?? []
       state.hw = hw ?? []
+      state.started = (progress ?? []).length
+      streakTouch()
 
       renderSidebarUser()
       fillSettings()

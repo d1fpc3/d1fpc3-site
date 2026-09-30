@@ -413,7 +413,7 @@
     /* headline figures: the same flat strip Growth and Statistics use, hairlines
        between figures, nothing boxed. A figure can carry a delta and a sparkline. */
     .cards {
-      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);   /* four or five cards, one row */
       border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 26px;
     }
     .scard { position: relative; min-width: 0; padding: 16px 18px 14px 0; border-right: 1px solid var(--line); margin-right: 18px; }
@@ -428,7 +428,7 @@
     .scard .spark path.l { fill: none; stroke: var(--gold); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
     .scard .spark circle { fill: var(--gold); }
     @media (max-width: 900px) {
-      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cards { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .scard:nth-child(2) { border-right: 0; margin-right: 0; }
       .scard:nth-child(n+3) { border-top: 1px solid var(--line); }
     }
@@ -3253,7 +3253,7 @@
         if (typeof d === 'string') dd.textContent = d; else dd.append(...d)
         c.appendChild(dd)
       }
-      if (opts.spark?.length) c.appendChild(sparkline(opts.spark))
+      if (opts.spark?.length) c.appendChild(sparkline(opts.spark, 30, !!opts.daily))
       host.appendChild(c)
     }
     // "+3" in green (or gold), the rest of the sentence faint
@@ -3273,14 +3273,14 @@
     }
 
     // cumulative count over the last 30 days, as a small gold line
-    function sparkline(dates, days = 30) {
+    function sparkline(dates, days = 30, daily = false) {   // daily: each day on its own (activity), else the running total
       const NS = 'http://www.w3.org/2000/svg'
       const end = new Date(); end.setHours(23, 59, 59, 999)
       const start = end.getTime() - days * 864e5
       const ts = dates.map((d) => new Date(d).getTime()).filter((t) => !Number.isNaN(t)).sort((a, b) => a - b)
       const counts = []
-      for (let i = 0; i <= days; i++) { const t = start + i * 864e5; counts.push(ts.filter((x) => x <= t).length) }
-      const lo = counts[0], hi = Math.max(counts[counts.length - 1], lo + 1)
+      for (let i = 0; i <= days; i++) { const t = start + i * 864e5; counts.push(ts.filter((x) => x <= t && (!daily || x > t - 864e5)).length) }
+      const lo = daily ? 0 : counts[0], hi = Math.max(daily ? Math.max(...counts) : counts[counts.length - 1], lo + 1)
       const W = 84, H = 30, P = 2
       const X = (i) => P + (i / days) * (W - P * 2), Y = (v) => H - P - ((v - lo) / (hi - lo)) * (H - P * 2)
       const line = counts.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ')
@@ -3463,6 +3463,7 @@
       return td
     }
 
+    let ACT = null   // admin_member_activity(): today / week / month and the days behind them
     function renderOverview() {
       const s = computeStats()
       const host = el('cards'); const first = !host.dataset.painted; host.dataset.painted = '1'; host.textContent = ''
@@ -3471,6 +3472,9 @@
       scard(host, 'Revenue', money(s.revenue), `${s.paidCount} paid ${s.paidCount === 1 ? 'order' : 'orders'}`, anim)
       scard(host, 'Course', s.course, `${s.courseComp} comped · ${s.course - s.courseComp} paid`, anim)
       scard(host, 'Indicators', s.indicators, `GEX ${s.gex} · LIT ${s.lit}${s.gexMonthly ? ` · ${s.gexMonthly} monthly` : ''}`, anim)
+      // who opens it (member_days, written when the app opens; test and staff accounts left out): the number to move
+      if (ACT) scard(host, 'Active today', ACT.today, `${ACT.week} this week · ${ACT.month} in 30 days`, { ...anim, daily: true, spark: (ACT.days || []).flatMap((x) => Array(x.n).fill(x.d + 'T12:00:00Z')) })
+      else if (ACT === null) { ACT = false; supabase.rpc('admin_member_activity').then(({ data, error }) => { if (!error && data) { ACT = data; renderOverview() } }) }
 
       const recent = PEOPLE.slice(0, 6)
       el('recent-empty').hidden = recent.length > 0

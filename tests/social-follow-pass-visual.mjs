@@ -38,7 +38,9 @@ const admin = (await sql("select user_id from admins order by added_at limit 1")
 await sql(`delete from follows where follower_id = '${admin}' and followee_id = '${uid}'`);
 await sql(`insert into follows (follower_id, followee_id) values ('${admin}', '${uid}')`);
 await sql(`delete from notifications where user_id = '${uid}' and kind = 'follow' and actor_id = '${admin}'`);
-const chMsg = await sql(`insert into messages (channel_id, user_id, body) select id, '${admin}', 'Harness message — ignore.' from channels where is_active and not staff_only order by position limit 1 returning id`);
+// (2026-09-30) it used to insert a message as the OWNER into the first channel, which is Announcements: that fires
+// push_on_message for every member. The long-press needs any message on screen, so it uses the ones already there.
+const chMsg = [];
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ ...devices["iPhone 13"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
@@ -107,10 +109,13 @@ if (hasMsg) {
     const t = new Touch({ identifier: 1, target: row, clientX: 200, clientY: 400 });
     row.dispatchEvent(new TouchEvent("touchstart", { touches: [t], changedTouches: [t], bubbles: true }));
     await new Promise((r) => setTimeout(r, 700));
-    const open = document.querySelector("#chat-log .msg.acts-open");
-    return open ? getComputedStyle(open.querySelector(".m-acts")).opacity : null;
+    // since 9/29 a hold opens the message sheet (iOS action sheet) instead of the inline buttons
+    const sheet = document.querySelector(".ms-sheet");
+    const out = sheet && sheet.getBoundingClientRect().height > 0 ? "sheet" : null;
+    document.querySelector(".ms-scrim")?.click();
+    return out;
   });
-  if (after !== "1") fails.push(`long-press did not reveal actions: ${after}`);
+  if (after !== "sheet") fails.push(`long-press did not open the message sheet: ${after}`);
   await page.screenshot({ path: `${OUT}/2-chat-longpress.png` });
 } else console.log("note: no chat messages visible; long-press checked only for CSS default");
 await browser.close();
