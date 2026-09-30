@@ -81,7 +81,7 @@ async function checkToday(page, label) {
   if (t.title !== "Today") fails.push(`${label}: pane title is ${t.title}`);
   if (!/^(Open in .+\.|Live, .+ in\.|Reopens 6:00 PM\.|Opens Monday 9:30\.|Closed for .+\.)$/.test(t.h1)) fails.push(`${label}: headline not a session state: ${t.h1}`);
   if (!t.gex) fails.push(`${label}: context section hidden`);
-  if (!/(NEGATIVE|POSITIVE|MIXED) GAMMA/.test(t.pill || "")) fails.push(`${label}: regime pill: ${t.pill}`);
+  if (!/^(Negative|Positive|Mixed) gamma$/.test(t.pill || "")) fails.push(`${label}: regime pill: ${t.pill}`);
   if (t.gexLevels.length < 2 || t.gexLevels.length > 3 || t.gexLevels.some((v) => !/^\d{1,3}(,\d{3})*$/.test(v))) fails.push(`${label}: gex levels odd: ${t.gexLevels}`);
   if (!/^Updated \d{1,2}:\d{2}/.test(t.stamp || "")) fails.push(`${label}: no updated stamp on the gamma card: ${t.stamp}`);
   if (!t.news && !t.h1.startsWith("Opens Monday")) fails.push(`${label}: calendar section hidden on a trading day`);

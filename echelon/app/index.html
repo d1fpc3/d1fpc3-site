@@ -411,9 +411,13 @@
     .view.on.back { animation: pageback 0.3s cubic-bezier(0.22, 0.7, 0.2, 1); }
     /* edge-swipe back on a sub-page: the page follows the finger (no transition),
        then either pops off to the right or settles back on a spring-ish ease */
-    .view.setpage.dragging { transition: none; }
-    .view.setpage.popping { transition: transform 0.24s cubic-bezier(0.4, 0, 0.6, 1), opacity 0.24s ease; }
-    .view.setpage.settle { transition: transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .view.dragging { transition: none; }
+    .view.popping { transition: transform 0.24s cubic-bezier(0.4, 0, 0.6, 1), opacity 0.24s ease; }
+    .view.settle { transition: transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    /* a page swipe drags the dock's pill and the segment's pill with the finger */
+    .bnav.pg-drag .bnav-ind, .tbseg.pg-drag .tbseg-ind { transition: none !important; }
+    /* the page a swipe is heading for, riding beside the one it leaves */
+    .view.pg-peek { display: block !important; pointer-events: none; animation: none !important; }
     /* overlays that used to snap in: scrim fades, the sheet grows from 0.96 */
     @keyframes scrim-in { from { opacity: 0; } }
     @keyframes sheet-in { from { opacity: 0; transform: scale(0.96) translateY(10px); } }
@@ -2492,7 +2496,7 @@
 
     /* context: the gamma read */
     .td-gx-head { display: flex; align-items: center; gap: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-    .td-pill { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+    .td-pill { font-size: 12.5px; font-weight: 650; letter-spacing: -0.005em; padding: 5px 11px; border-radius: 999px; white-space: nowrap; }
     .td-pill.neg { background: rgba(217,139,122,0.12); color: var(--bad); border: 1px solid rgba(217,139,122,0.3); }
     .td-pill.pos { background: rgba(134,181,127,0.12); color: var(--good); border: 1px solid rgba(134,181,127,0.3); }
     .td-pill.mix { background: rgba(201,162,74,0.12); color: var(--gold); border: 1px solid rgba(201,162,74,0.3); }
@@ -2500,8 +2504,22 @@
     .td-gx-head svg { margin-left: auto; flex: none; width: 16px; height: 16px; color: var(--faint); }
     .td-gx-stamp { font-size: 11.5px; color: var(--faint); margin-top: 12px; font-variant-numeric: tabular-nums; }
     .td-gx-levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
-    .td-gx-levels div { background: var(--panel-2); border-radius: 10px; padding: 9px 9px; min-width: 0; }
-    .td-gx-levels .k { font-size: 10px; color: var(--faint); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; white-space: nowrap; }
+    /* Today: the ask for pushes, under the levels it would deliver (D1, 9/30: get people using it) */
+    .td-push { display: flex; align-items: center; gap: 14px; padding: 16px 16px 16px 18px; background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 13%, var(--panel)), var(--panel) 70%); border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent); }
+    .td-push .tp-ic { flex: none; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, transparent); }
+    .td-push .tp-ic svg { width: 21px; height: 21px; }
+    .td-push .tp-tx { flex: 1; min-width: 0; }
+    .td-push .tp-tx b { display: block; font-size: 15px; font-weight: 650; letter-spacing: -0.012em; color: var(--ink); }
+    .td-push .tp-tx span { display: block; margin-top: 3px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+    .td-push .tp-act { display: flex; align-items: center; gap: 4px; flex: none; }
+    .td-push .tp-later { height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--faint); font: inherit; font-size: 13px; font-weight: 550; cursor: pointer; transition: color 0.2s ease, background 0.2s ease; }
+    @media (hover: hover) { .td-push .tp-later:hover { color: var(--ink); background: var(--panel-2); } }
+    .td-push .tp-on { white-space: nowrap; }
+    .td-push.done { animation: tp-done 0.36s cubic-bezier(.4,0,.2,1) forwards; }
+    @keyframes tp-done { to { opacity: 0; transform: translateY(-6px) scale(0.98); } }
+    @media (max-width: 560px) { .td-push { flex-wrap: wrap; align-items: flex-start; } .td-push .tp-act { width: 100%; justify-content: flex-end; margin-top: 2px; } }
+    .td-gx-levels > div { background: var(--panel-2); border-radius: 12px; padding: 10px 12px 11px; min-width: 0; }
+    .td-gx-levels .k { font-size: 12px; color: var(--faint); font-weight: 550; white-space: nowrap; }
     .td-gx-levels .v { font-size: 15px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
     .td-gx-levels .v.flip { color: var(--gold); } .td-gx-levels .v.call { color: var(--good); } .td-gx-levels .v.put { color: var(--bad); }
     .td-gx-read { font-size: 13px; color: var(--muted); line-height: 1.55; margin-top: 12px; }
@@ -5090,6 +5108,16 @@
       body:has(.chat.open-convo) .topbar, body:has(.chat.open-convo) .nextup { display: none !important; }
       .chat.open-convo { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, calc(100 * var(--dvh))) !important; min-height: 0; z-index: 60; background: var(--bg); }
       .chat.open-convo .chat-main { height: 100%; }
+      /* swipe a conversation right to go back: the inbox waits underneath, a step to the left */
+      .chat.open-convo > .cv-under { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: var(--bg); pointer-events: none; transform: translateX(calc(-24% + var(--pk, 0) * 24%)); opacity: calc(0.45 + var(--pk, 0) * 0.55); }
+      .chat.open-convo .cv-under .chat-rail { display: block !important; }
+      .chat.open-convo.cv-peek .chat-main { position: relative; z-index: 1; transform: translateX(var(--cvx, 0px)); box-shadow: -18px 0 40px -10px rgba(0, 0, 0, 0.6); will-change: transform; }
+      /* swipe a message left to reply: a reply arrow comes up beside it */
+      .msg.sw { transition: none; }
+      .msg .m-sw { position: absolute; right: -46px; top: 50%; width: 32px; height: 32px; margin-top: -16px; border-radius: 50%; display: grid; place-items: center; color: var(--gold); background: var(--panel-2); opacity: 0.35; transform: scale(0.7); transition: opacity 0.15s ease, transform 0.22s cubic-bezier(.34,1.56,.64,1); pointer-events: none; }
+      .msg .m-sw svg { width: 17px; height: 17px; }
+      .msg .m-sw.on { opacity: 1; transform: none; background: color-mix(in srgb, var(--gold) 18%, var(--panel-2)); }
+      .chat.open-convo .chat-log { overflow-x: hidden; }
       .chat-head { position: relative; z-index: 6; min-height: 54px; gap: 2px; padding: calc(env(safe-area-inset-top) + 4px) 6px 6px;
         background: color-mix(in srgb, var(--bg) 80%, transparent) !important; -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6); border-bottom: 0.5px solid var(--line); }
       .chat-back { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%; color: var(--gold); -webkit-tap-highlight-color: transparent; }
@@ -5606,9 +5634,9 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           News
         </button>
-        <button class="tab" data-view="feed" data-title="Feed" data-crumb="">
+        <button class="tab" data-view="feed" data-title="Posts" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3.5"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor"/></svg>
-          Feed
+          Posts
         </button>
         <button class="tab" data-view="chat" data-title="Chat" data-crumb="">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
@@ -5751,6 +5779,13 @@
             <section class="td-sec td-in" id="td-gex-sec" hidden>
               <div class="td-cap"><span class="label">Context</span><button class="td-more" type="button" data-go="gex">Full board →</button></div>
               <div class="td-card td-gex" id="td-gex"></div>
+            </section>
+            <section class="td-sec td-in" id="td-push-sec" hidden>
+              <div class="td-card td-push" id="td-push">
+                <span class="tp-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+                <div class="tp-tx"><b id="tp-title">Get the levels on your phone</b><span id="tp-sub">A push when the day's GEX levels land, and when someone replies to you. You choose which in Settings.</span></div>
+                <div class="tp-act"><button class="tp-later" id="tp-later" type="button">Not now</button><button class="btn tp-on" id="tp-on" type="button">Turn on</button></div>
+              </div>
             </section>
             <section class="td-sec td-in" id="td-news-sec" hidden>
               <div class="td-cap"><span class="label">Today's calendar</span><button class="td-more" type="button" data-go="news">Week →</button></div>
@@ -6374,7 +6409,7 @@
                   <label class="tgl"><input type="checkbox" aria-label="New followers"><span class="track"></span></label>
                 </div>
                 <div class="nt-cell" data-act="post">
-                  <div class="nt-tx"><b>New trades</b><small>From people you follow</small></div>
+                  <div class="nt-tx"><b>New posts</b><small>From people you follow</small></div>
                   <label class="tgl"><input type="checkbox" aria-label="New trades from people you follow"><span class="track"></span></label>
                 </div>
                 <div class="nt-cell" data-act="reaction">
@@ -7403,6 +7438,7 @@
       } finally { navSilent = false }
     })
     const VIEW_SCROLL = {}   // where you left each view; apps keep your place, websites reset
+    let swipeNav = 0         // set while a page swipe hands over: the arriving page slides in by itself
     // entrance motion plays once per view per page load; after that a view just appears
     const SEEN_VIEWS = new Set()
     function markFresh(id) {
@@ -7464,9 +7500,9 @@
       // settings pops back from a sub-page (slides in from the left); everything else pushes
       el('v-settings')?.classList.toggle('back', view === 'settings' && !!el(`v-${prev}`)?.classList.contains('setpage'))
       tabs.forEach((t) => { const on = t.dataset.view === view || t.dataset.view === rowOf(view); t.classList.toggle('on', on); if (on) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current') })
-      document.querySelectorAll('.view').forEach((v) => v.classList.toggle('on', v.id === `v-${view}`))
+      document.querySelectorAll('.view').forEach((v) => { const on = v.id === `v-${view}`; v.classList.toggle('on', on); if (!on && v.style.animation) v.style.animation = '' })
       markFresh(`v-${view}`)
-      if (prev !== view && !['chart', 'chat', 'feed'].includes(view)) { const nv = el(`v-${view}`); if (nv && !nv.classList.contains('fresh')) { nv.classList.remove('enter'); void nv.offsetWidth; nv.classList.add('enter'); setTimeout(() => nv.classList.remove('enter'), 240) } }
+      if (prev !== view && !swipeNav && !['chart', 'chat', 'feed'].includes(view)) { const nv = el(`v-${view}`); if (nv && !nv.classList.contains('fresh')) { nv.classList.remove('enter'); void nv.offsetWidth; nv.classList.add('enter'); setTimeout(() => nv.classList.remove('enter'), 240) } }
       // a view left behind must not keep narrating in the background
       document.querySelectorAll('.view:not(.on) video').forEach((v) => v.pause())
       const tab = tabs.find((t) => t.dataset.view === view)
@@ -7489,6 +7525,7 @@
       globalThis.__navJumpAt = performance.now(); document.body.classList.remove('nu-away')
       // sub-pages always open at the top (a push); top-level views resume where you were
       window.scrollTo({ top: (prev !== view && !el(`v-${view}`)?.classList.contains('setpage')) ? (VIEW_SCROLL[view] ?? 0) : 0 })
+      requestAnimationFrame(() => globalThis.__pgGeo?.(view))
       globalThis.__syncBarEdge?.()
       if (view === 'chat' && !chat.loaded) loadChat()
       if (view === 'library') { if (!LIB.loaded) loadLibrary(); markRead('recaps') }
@@ -7647,7 +7684,7 @@
       if (nav && 'ResizeObserver' in window) new ResizeObserver(() => syncRail()).observe(nav)
     }
 
-    /* ── phone dock: Today, Feed, Chat, Study, you ── */
+    /* ── phone dock: Today, Posts, Chat, Study, you ── */
     const BNAV = ['overview', 'feed', 'chat', 'course', 'set-profile']
     const dockSlot = (view) => { const r = rowOf(view); return r === 'profile' || r === 'gear' ? 'set-profile' : r }
     function buildBnav() {
@@ -7788,12 +7825,22 @@
       }
       // edge swipe: from the left 28px on an open sub-page, no overlay up
       let eg = null
-      const goBack = (page) => { hap('light'); const b = page.querySelector('.set-back, .fol-back, #notifs-back'); if (b) b.click(); else showView('settings') }
+      // a settings sub-page pops to Settings; a page pushed from Today (News, GEX, Journal...) goes back where it came from
+      const goBack = (page) => {
+        hap('light')
+        if (!page.classList.contains('setpage')) { if (history.state?.view && history.length > 1) history.back(); else showView('overview'); return }
+        const b = page.querySelector('.set-back, .fol-back, #notifs-back'); if (b) b.click(); else showView('settings')
+      }
       document.addEventListener('touchstart', (e) => {
         eg = null
         if (!phone.matches || e.touches.length !== 1 || document.body.style.overflow === 'hidden') return
         const t = e.touches[0]; if (t.clientX > 28) return
-        const page = document.querySelector('.view.setpage.on'); if (!page) return
+        let page = document.querySelector('.view.setpage.on')
+        if (!page) {   // a page with no dock slot (the swipe pages own theirs; the chart owns every drag)
+          const v = document.querySelector('.view.on'), id = v?.id.slice(2)
+          if (v && id !== 'chart' && !pagerOrder().includes(id) && !e.target.closest?.('canvas, input, textarea, select, [data-noswipe]')) page = v
+        }
+        if (!page || page.id === 'v-set-profile') return
         eg = { page, x0: t.clientX, y0: t.clientY, cx: t.clientX, t: e.timeStamp, vx: 0, dx: 0, live: false, w: innerWidth }
       }, { passive: true })
       document.addEventListener('touchmove', (e) => {
@@ -7865,6 +7912,168 @@
         setTimeout(() => { if (g.host) g.host.style.transition = '' }, 340)
       }
       document.addEventListener('touchend', sgEnd); document.addEventListener('touchcancel', sgEnd)
+    }
+
+    /* ── swipe between pages (phones), the way Instagram and Discord move ──
+       D1, 9/30: "swipe left, swipe right, easy to use pages, just like Discord and Instagram". A
+       sideways swipe on a page moves to the page beside it, in the dock's order with each family's
+       pages in between: Today, Posts, Chat (Channels, Members), Study (Lessons, Lab, Library,
+       Homework), you. The page follows the finger and the dock's pill (and, inside a family, the
+       top bar's segment pill) rides along with it; past 30% of the width or on a flick it carries
+       on and the next page slides in from the side it was pulled from; short of that it springs
+       back. Past the first or the last page it rubber-bands. Tuned on ORC's tab swipe: claim after
+       12px sideways, vertical intent cedes to the scroll, a move the browser will not let us cancel
+       means it already owns the gesture (never fight it), the left edge stays with the system's
+       back swipe. A gesture that starts in a sideways scroller, a field, a canvas or video, a
+       lesson (it turns its own pages) or anything marked data-noswipe is left alone. */
+    const SWIPE = { claim: 12, lock: 10, commit: 0.3, flick: 0.4, flickMin: 40, fly: 200, snap: 280, edge: 22 }
+    const pagerOrder = () => BNAV.flatMap((v) => (FAMILY[v] || [v]).filter(pageVisible))
+    {
+      const phone = matchMedia('(max-width: 840px)')
+      const still = matchMedia('(prefers-reduced-motion: reduce)')
+      const NO = 'input, textarea, select, button.tgl, [contenteditable="true"], canvas, video, iframe, [data-noswipe], #lesson-block'
+      const sideScroller = (node, stop) => {
+        for (let n = node; n && n !== stop; n = n.parentElement) {
+          const ox = getComputedStyle(n).overflowX
+          if ((ox === 'auto' || ox === 'scroll') && n.scrollWidth > n.clientWidth + 2) return n
+        }
+        return null
+      }
+      const reset = (v) => { if (!v) return; v.style.transition = ''; v.style.transform = ''; v.style.opacity = ''; v.style.willChange = '' }
+      // the pills: from the lit button towards the one the swipe is heading for
+      const pillAt = (from, to, p) => {
+        const nav = el('bnav'), ind = nav?.querySelector('.bnav-ind')
+        const a = nav?.querySelector(`button[data-view="${dockSlot(from)}"]`), b = to ? nav?.querySelector(`button[data-view="${dockSlot(to)}"]`) : null
+        if (ind && a && b && a !== b) {
+          nav.classList.add('pg-drag')
+          const x = (a.offsetLeft + 5) + ((b.offsetLeft + 5) - (a.offsetLeft + 5)) * p
+          const w = (a.offsetWidth - 10) + ((b.offsetWidth - 10) - (a.offsetWidth - 10)) * p
+          ind.style.setProperty('--x', x + 'px'); ind.style.width = w + 'px'
+        }
+        const seg = el('tb-seg'), sInd = seg?.querySelector('.tbseg-ind')
+        if (sInd && to && FAMILY_OF[from] && FAMILY_OF[from] === FAMILY_OF[to]) {
+          const sa = seg.querySelector(`button[data-view="${from}"]`), sb = seg.querySelector(`button[data-view="${to}"]`)
+          if (sa && sb) {
+            seg.classList.add('pg-drag')
+            sInd.style.transform = `translateX(${sa.offsetLeft + (sb.offsetLeft - sa.offsetLeft) * p}px)`
+            sInd.style.width = (sa.offsetWidth + (sb.offsetWidth - sa.offsetWidth) * p) + 'px'
+          }
+        }
+      }
+      const pillsLive = () => { el('bnav')?.classList.remove('pg-drag'); el('tb-seg')?.classList.remove('pg-drag') }
+      let g = null, busy = false
+      // the page it is heading for comes along beside it, placed where it will sit once it is the page:
+      // same spot in the pane, scrolled where you left it (sub-pages open at the top)
+      const GEO = {}
+      globalThis.__pgGeo = (view) => { const v = el('v-' + view); if (!v || !v.offsetWidth || v.classList.contains('pg-peek')) return; const r = v.getBoundingClientRect(); GEO[view] = { top: r.top + scrollY, left: r.left, width: r.width } }
+      const WARM = { feed: () => { if (!FEED.rows.length) loadFeed(true) }, chat: () => { if (!chat.loaded) loadChat() }, library: () => { if (typeof LIB !== 'undefined' && !LIB.loaded) loadLibrary() }, 'set-profile': () => renderProfilePage() }
+      function peekOff(s) {
+        if (!s?.pk) return
+        const p = s.pk; s.pk = null
+        p.classList.remove('pg-peek')
+        for (const k of ['position', 'top', 'left', 'width', 'transform', 'transition', 'zIndex', 'opacity', 'willChange']) p.style[k] = ''
+      }
+      function peek(s, next) {
+        peekOff(s)
+        const nv = next ? el('v-' + next) : null; if (!nv) return
+        try { WARM[next]?.() } catch {}
+        const cr = s.v.getBoundingClientRect()
+        let geo = GEO[next]
+        if (!geo) { geo = { top: cr.top + scrollY, left: cr.left, width: cr.width }; if (next === 'chat' && innerWidth <= 640) geo = { top: geo.top - 16, left: geo.left - 16, width: geo.width + 32 } }
+        const sN = nv.classList.contains('setpage') ? 0 : (VIEW_SCROLL[next] ?? 0)
+        nv.classList.add('pg-peek')
+        Object.assign(nv.style, { position: 'fixed', top: (geo.top - sN) + 'px', left: geo.left + 'px', width: geo.width + 'px', zIndex: '1', transition: 'none', willChange: 'transform' })
+        s.pk = nv; s.pkDir = s.dx < 0 ? 1 : -1
+      }
+      const peekAt = (s) => { if (s.pk) s.pk.style.transform = `translate3d(${s.dx + s.pkDir * s.w}px, 0, 0)` }
+      document.addEventListener('touchstart', (e) => {
+        g = null
+        if (!phone.matches || busy || e.touches.length !== 1) return
+        // on the page, or on the empty space under a short page (the pane and the app shell around it)
+        const v = document.querySelector('.view.on'); if (!v || !(v.contains(e.target) || e.target.matches?.('#app, main, .pane'))) return
+        const view = v.id.slice(2), order = pagerOrder(), i = order.indexOf(view); if (i < 0) return
+        if (document.body.style.overflow === 'hidden' || el('chat')?.classList.contains('open-convo')) return
+        const t = e.touches[0]
+        if (t.clientX <= SWIPE.edge || t.clientX >= innerWidth - 6) return
+        if (e.target.closest?.(NO) || sideScroller(e.target, v)) return
+        g = { v, view, i, order, id: t.identifier, x0: t.clientX, y0: t.clientY, claimed: false, samples: [{ x: t.clientX, t: e.timeStamp }], w: innerWidth, dx: 0 }
+      }, { passive: true })
+      const touchOf = (e) => { for (const t of e.changedTouches) if (t.identifier === g.id) return t; return null }
+      document.addEventListener('touchmove', (e) => {
+        if (!g) return
+        const t = touchOf(e); if (!t) return
+        let dx = t.clientX - g.x0
+        const dy = t.clientY - g.y0
+        if (!g.claimed) {
+          if (Math.abs(dy) > SWIPE.lock && Math.abs(dy) > Math.abs(dx)) { g = null; return }   // reading: the page scrolls
+          if (e.cancelable === false) { g = null; return }                                     // the browser already owns it
+          if (Math.abs(dx) <= SWIPE.claim) return
+          g.claimed = true; g.x0 += Math.sign(dx) * SWIPE.claim; dx = t.clientX - g.x0
+          g.v.style.animation = 'none'; g.v.style.transition = 'none'; g.v.style.willChange = 'transform'
+        }
+        if (e.cancelable === false) { const s = g; g = null; back(s); return }
+        e.preventDefault()
+        g.samples.push({ x: t.clientX, t: e.timeStamp })
+        while (g.samples.length > 1 && g.samples[0].t < e.timeStamp - 100) g.samples.shift()
+        const toI = g.i + (dx < 0 ? 1 : -1), has = toI >= 0 && toI < g.order.length
+        g.dx = has ? dx : Math.sign(dx) * Math.pow(Math.abs(dx), 0.72) * 0.7   // nothing that way: it gives, then holds
+        const nx = has ? g.order[toI] : null
+        if (nx !== g.next) { g.next = nx; peek(g, nx) }
+        g.v.style.transform = `translate3d(${g.dx}px, 0, 0)`
+        g.v.style.opacity = g.pk ? '' : String(1 - Math.min(0.4, Math.abs(g.dx) / g.w * 0.55))
+        peekAt(g)
+        pillAt(g.view, nx, Math.min(1, Math.abs(g.dx) / g.w))
+      }, { passive: false })
+      function back(s) {
+        pillsLive(); syncBnav(); segInd()
+        s.v.style.transition = `transform ${SWIPE.snap}ms cubic-bezier(.32,.72,0,1), opacity ${SWIPE.snap}ms ease`
+        s.v.style.transform = ''; s.v.style.opacity = ''
+        if (s.pk) { s.pk.style.transition = `transform ${SWIPE.snap}ms cubic-bezier(.32,.72,0,1)`; s.pk.style.transform = `translate3d(${s.pkDir * s.w}px, 0, 0)` }
+        setTimeout(() => { if (!g || g.v !== s.v) { reset(s.v); peekOff(s) } }, SWIPE.snap + 30)
+      }
+      function commit(s, next, dir) {
+        busy = true; hap('light')
+        const v = s.v
+        const land = () => {
+          reset(v)
+          pillsLive()
+          const peeked = s.pk
+          if (peeked) peeked.style.animation = 'none'   // already on screen: no entrance (cleared once it is hidden again)
+          swipeNav = dir
+          try { showView(next) } finally { swipeNav = 0 }
+          peekOff(s)
+          const nv = el('v-' + next)
+          if (nv && !still.matches && !peeked) {
+            nv.style.animation = 'none'; nv.style.transition = 'none'
+            nv.style.transform = `translate3d(${dir * Math.round(s.w * 0.3)}px, 0, 0)`; nv.style.opacity = '0.35'
+            void nv.offsetWidth
+            nv.style.transition = 'transform 340ms cubic-bezier(.32,.72,0,1), opacity 260ms ease-out'
+            nv.style.transform = ''; nv.style.opacity = ''
+            setTimeout(() => { nv.style.transition = ''; nv.style.willChange = '' }, 360)
+          }
+          busy = false
+        }
+        if (still.matches) { peekOff(s); land(); return }
+        const ease = `${SWIPE.fly}ms cubic-bezier(.25,.7,.35,1)`
+        v.style.transition = `transform ${ease}, opacity ${ease}`
+        v.style.transform = `translate3d(${-dir * s.w}px, 0, 0)`; v.style.opacity = s.pk ? '' : '0.15'
+        if (s.pk) { s.pk.style.transition = `transform ${ease}`; s.pk.style.transform = 'translate3d(0, 0, 0)' }
+        pillAt(s.view, next, 1)
+        setTimeout(land, SWIPE.fly)
+      }
+      const end = (e) => {
+        if (!g) return
+        const s = g, t = touchOf(e); g = null
+        if (!s.claimed) return
+        if (e.type === 'touchcancel' || !t) { back(s); return }
+        const a = s.samples[0], z = s.samples[s.samples.length - 1]
+        const vx = (z.x - a.x) / Math.max(1, z.t - a.t)
+        const dir = s.dx < 0 ? 1 : -1, toI = s.i + dir, has = toI >= 0 && toI < s.order.length
+        const go = has && (Math.abs(s.dx) > s.w * SWIPE.commit || (Math.abs(vx) > SWIPE.flick && Math.sign(vx) === Math.sign(s.dx) && Math.abs(s.dx) > SWIPE.flickMin))
+        if (go) commit(s, s.order[toI], dir); else back(s)
+      }
+      document.addEventListener('touchend', end, { passive: true }); document.addEventListener('touchcancel', end, { passive: true })
+      globalThis.__pager = { SWIPE, order: pagerOrder, live: () => !!(g && g.claimed), busy: () => busy }
     }
 
     /* ── the bar's edge: plain at the top, material once content is under it ── */
@@ -10001,7 +10210,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       { view: 'chart', t: 'Chart', b: 'A full NQ chart built around how D1 trades: D1 LIT, the GEX levels, drawing tools, alerts and bar replay, right here.', tip: 'Open Indicators on the chart to switch D1 LIT and the GEX levels on. Replay walks any past session bar by bar.' },
       { view: 'gex', t: 'GEX', b: 'The gamma board: where dealers are hedging, turned into NQ prices and refreshed through the day. The call wall, the put wall and the flip are the three to know.', tip: 'If D1 GEX on TradingView ever lags, the card at the bottom copies the live levels into it.' },
       { view: 'news', t: 'News', b: "This week's USD calendar, high and medium impact only, in New York time, so nothing surprises you at 8:30.", tip: 'Red is high impact. Be flat, or ready, before it prints.' },
-      { view: 'feed', t: 'Feed', b: "Everyone's posts, newest first. Like, comment and follow the traders worth following." },
+      { view: 'feed', t: 'Posts', b: "Everyone's posts, newest first. Like, comment and follow the traders worth following. On a phone, swipe left and right to move between pages." },
       { view: 'chat', t: 'Chat', b: 'Announcements from d1, the general chat, wins, trade ideas and direct messages.', tip: "Say hi in general. Tap anyone's name to message them." },
       { view: 'course', t: 'Study', b: 'The lessons, in order, with homework where it matters. It remembers where you left off.', tip: 'Start at lesson one, even if you have traded for years. Everything after it builds on it.' },
       { view: 'journal', t: 'Journal', b: 'A page a day. Write up the session and drop your chart in; it saves as you type.', tip: 'Two honest lines a day beat a perfect page once a week.' },
@@ -11210,7 +11419,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const hasR = rs.some((r) => r.r !== null && r.r !== undefined)
       const netR = Math.round(rs.reduce((s, r) => s + (Number(r.r) || 0), 0) * 10) / 10
       const put = (v, k) => { const s = document.createElement('span'); const b = document.createElement('b'); b.textContent = v; s.append(b, k); host.appendChild(s) }
-      put(String(rs.length), rs.length === 1 ? 'trade' : 'trades')
+      put(String(rs.length), rs.length === 1 ? 'post' : 'posts')
       put(decided ? `${Math.round((wins / decided) * 100)}%` : '–', 'win rate')
       put(hasR ? `${netR > 0 ? '+' : ''}${netR}R` : '–', 'net R')
     }
@@ -11293,7 +11502,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         m = document.createElement('div'); m.className = 'rv'; m.id = 'rvmodal'; m.hidden = true
         m.innerHTML = '<div class="rv-sheet"><div class="rv-top">'
           + '<button class="rv-back" id="rv-x" type="button" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>'
-          + '<span class="rv-topname" id="rv-topname">Trades</span><span class="rv-topdate" id="rv-topdate"></span></div>'
+          + '<span class="rv-topname" id="rv-topname">Posts</span><span class="rv-topdate" id="rv-topdate"></span></div>'
           + '<div class="rv-scroll" id="rv-body"></div></div>'
         document.body.appendChild(m)
         m.addEventListener('click', (e) => { if (e.target === m) closeRecapView() })
@@ -14367,7 +14576,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const reg = String(d.regime || (z.netGexM != null ? (z.netGexM >= 0 ? 'positive' : 'negative') : '')).toLowerCase()
       const neg = /neg/.test(reg), pos = /pos/.test(reg)
       const cls = neg ? 'neg' : pos ? 'pos' : 'mix'
-      const label = neg ? 'NEGATIVE GAMMA' : pos ? 'POSITIVE GAMMA' : 'MIXED GAMMA'
+      const label = neg ? 'Negative gamma' : pos ? 'Positive gamma' : 'Mixed gamma'
       const tagline = neg ? 'Dealers chase price' : pos ? 'Dealers dampen moves' : 'Regime undecided'
       const last = d.nq != null ? Number(d.nq) : null
       let read = ''
@@ -14577,6 +14786,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function tdShown() {
       if (!el('td-h1')) return
       TD.on = true
+      globalThis.__tdPush?.()
       markFresh('v-overview')
       tdRefresh(false)
       clearInterval(TD.timer); clearInterval(TD.clock)
@@ -15089,7 +15299,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ['Keyboard shortcuts', 'the sheet', () => keysToggle()],
       ['Sign out', '', () => el('signout')?.click()],
     ]
-    const PAL_PLACES = [['overview', 'Today', 'the morning briefing'], ['chart', 'Chart', 'NQ, MNQ, ES, MES'], ['feed', 'Feed', 'posts from members'], ['journal', 'Journal', 'your session notes'], ['course', 'Study', 'the lessons'], ['chat', 'Chat', 'channels and messages'], ['library', 'Video library', 'recaps and breakdowns'], ['news', 'News', 'the USD calendar'], ['gex', 'D1 GEX', 'the gamma board'], ['propfirms', 'Prop firms', 'the comparison sheet'], ['lab', 'Tape and gamma', 'order book, stops, absorption, dealer gamma'], ['indicators', 'Indicators', 'the store'], ['members', 'Members', 'everyone here'], ['set-profile', 'Profile', 'your page'], ['inbox', 'Notifications', ''], ['settings', 'Settings', '']]
+    const PAL_PLACES = [['overview', 'Today', 'the morning briefing'], ['chart', 'Chart', 'NQ, MNQ, ES, MES'], ['feed', 'Posts', 'everyone\'s posts'], ['journal', 'Journal', 'your session notes'], ['course', 'Study', 'the lessons'], ['chat', 'Chat', 'channels and messages'], ['library', 'Video library', 'recaps and breakdowns'], ['news', 'News', 'the USD calendar'], ['gex', 'D1 GEX', 'the gamma board'], ['propfirms', 'Prop firms', 'the comparison sheet'], ['lab', 'Tape and gamma', 'order book, stops, absorption, dealer gamma'], ['indicators', 'Indicators', 'the store'], ['members', 'Members', 'everyone here'], ['set-profile', 'Profile', 'your page'], ['inbox', 'Notifications', ''], ['settings', 'Settings', '']]
     function palEl() {
       let m = el('palette'); if (m) return m
       m = document.createElement('div'); m.className = 'pal'; m.id = 'palette'; m.hidden = true
@@ -15212,7 +15422,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       } catch {}
     }
     const JUMP = { t: 'overview', c: 'chart', g: 'gex', n: 'news', s: 'course', l: 'library', f: 'feed', h: 'chat', m: 'members', j: 'journal', p: 'set-profile', ',': 'settings' }
-    const JUMP_LABEL = { t: 'Today', c: 'Chart', g: 'GEX', n: 'News', s: 'Study', l: 'Library', f: 'Feed', h: 'Chat', m: 'Members', j: 'Journal', p: 'Profile', ',': 'Settings' }
+    const JUMP_LABEL = { t: 'Today', c: 'Chart', g: 'GEX', n: 'News', s: 'Study', l: 'Library', f: 'Posts', h: 'Chat', m: 'Members', j: 'Journal', p: 'Profile', ',': 'Settings' }
     for (const [k, v] of Object.entries(JUMP)) { const t = tabOf(v); if (t) t.title = (t.dataset.title || '') + ' (g ' + k + ')' }
     let jumpAt = 0
     const keysTyping = (e) => { const t = e.target; return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')) }
@@ -15234,7 +15444,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         m = document.createElement('div'); m.className = 'keys'; m.id = 'keys'; m.hidden = true
         m.innerHTML = '<div class="keys-box" role="dialog" aria-label="Keyboard shortcuts"><div class="keys-h"><span>Shortcuts</span><button type="button" class="keys-x" aria-label="Close">×</button></div><div class="keys-grid"></div></div>'
         const g = m.querySelector('.keys-grid')
-        const rows = [['Ctrl', 'K', 'Search, jump anywhere'], ['?', '', 'This sheet'], ['Esc', '', 'Close'], ...Object.keys(JUMP).map((k) => ['g', k, JUMP_LABEL[k]])]
+        const rows = [['Ctrl', 'K', 'Search, jump anywhere'], ['?', '', 'This sheet'], ['Esc', '', 'Close'], ['Alt', '\u2191 \u2193', 'Chat: the next channel or message'], ...Object.keys(JUMP).map((k) => ['g', k, JUMP_LABEL[k]])]
         for (const [a, b, label] of rows) {
           const r = document.createElement('div'); r.className = 'keys-row'
           const ks = document.createElement('span'); ks.className = 'keys-k'
@@ -19705,7 +19915,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // while a sheet, a panel or the press-and-hold menu is up, the tab bar tucks under the chart so it is covered like on iOS
       { const ids = ['ch-sheet', 'ch-menu', 'ch-ctx'], sync = () => document.body.classList.toggle('ch-over', ids.some((i) => !el(i).hidden)), mo = new MutationObserver(sync); for (const i of ids) mo.observe(el(i), { attributes: true, attributeFilter: ['hidden'] }) }
       window.addEventListener('resize', () => { if (CH.on && chPhone()) chWheels() })
-      el('ch-snap-btn').addEventListener('click', (e) => { e.stopPropagation(); const r = el('ch-snap-btn').getBoundingClientRect(), st = el('ch-stage').getBoundingClientRect(); chCtx([{ label: 'Post to the feed', fn: () => chShot('post') }, { label: 'Send in chat', fn: () => chShot('chat') }, { sep: true }, { label: 'Save image', kbd: 'Alt+S', fn: () => chShot('save') }, { label: 'Copy image', fn: () => chShot('copy') }], r.left - st.left - 140, 4) })
+      el('ch-snap-btn').addEventListener('click', (e) => { e.stopPropagation(); const r = el('ch-snap-btn').getBoundingClientRect(), st = el('ch-stage').getBoundingClientRect(); chCtx([{ label: 'Share as a post', fn: () => chShot('post') }, { label: 'Send in chat', fn: () => chShot('chat') }, { sep: true }, { label: 'Save image', kbd: 'Alt+S', fn: () => chShot('save') }, { label: 'Copy image', fn: () => chShot('copy') }], r.left - st.left - 140, 4) })
       const ib = el('ch-int'), ibi = ib.querySelector('input')
       ibi.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { chIntervalApply(ibi.value); ib.hidden = true } else if (e.key === 'Escape') ib.hidden = true })
       ibi.addEventListener('blur', () => { ib.hidden = true })
@@ -22053,6 +22263,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chat.cur = { type, id }
       chat.newFrom = chat.unread?.get(type + ':' + id) || 0
       chat.unread?.delete(type + ':' + id)
+      if (!el('chat').classList.contains('open-convo')) globalThis.__cvSnap?.()   // where the inbox sits, for the swipe back
       el('chat').classList.add('open-convo')
       renderChatRail()
 
@@ -22275,6 +22486,46 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     async function ntNativeState() {
       const P = ntNative(); if (!P) return null
       try { return (await P.checkPermissions()).receive } catch { return null }
+    }
+    /* Today's ask for pushes. No member had pushes on (0 of 15 on 9/30); people who get even one push in their
+       first 90 days come back about three times as often (Airship's benchmarks). So Today asks once, with a
+       reason, right under the levels it would deliver: web push where the browser has it, the native prompt in
+       the iOS app, and on iPhone Safari (no web push outside a Home Screen app) the two taps that get there.
+       "Not now" puts it away for two weeks. */
+    async function tdPushPaint() {
+      const sec = el('td-push-sec'); if (!sec) return
+      let snooze = 0; try { snooze = +localStorage.getItem('echelon-push-ask') || 0 } catch {}
+      let mode = null
+      try {
+        if (Date.now() < snooze) mode = null
+        else if (ntNative()) { const st = await ntNativeState(); mode = st === 'granted' || st === 'denied' ? null : 'native' }
+        else if (webPushOk()) {
+          if (Notification.permission === 'default') mode = 'web'
+          else if (Notification.permission === 'granted') { const reg = await navigator.serviceWorker.getRegistration('/echelon/app/'); mode = reg && await reg.pushManager.getSubscription() ? null : 'web' }
+        } else if (/iP(hone|ad|od)/.test(navigator.userAgent) && !navigator.standalone) mode = 'ios'
+      } catch { mode = null }
+      sec.dataset.mode = mode || ''
+      if (!mode) { sec.hidden = true; return }
+      el('tp-title').textContent = mode === 'ios' ? 'Get Echelon\u2019s alerts on your iPhone' : 'Get the levels on your phone'
+      el('tp-sub').textContent = mode === 'ios' ? 'Tap Share, then Add to Home Screen. Open Echelon from there and turn alerts on: the day\u2019s GEX levels, and replies to you.' : 'A push when the day\u2019s GEX levels land, and when someone replies to you. You choose which in Settings.'
+      el('tp-on').hidden = mode === 'ios'
+      el('tp-later').textContent = mode === 'ios' ? 'Got it' : 'Not now'
+      el('td-push').classList.remove('done')
+      sec.hidden = false
+    }
+    {
+      const away = (days) => { try { localStorage.setItem('echelon-push-ask', String(Date.now() + days * 864e5)) } catch {} const c = el('td-push'); c?.classList.add('done'); setTimeout(() => { el('td-push-sec').hidden = true }, 360) }
+      el('tp-later')?.addEventListener('click', () => { hap('light'); away(14) })
+      el('tp-on')?.addEventListener('click', async () => {
+        const mode = el('td-push-sec').dataset.mode
+        let ok = false
+        if (mode === 'native') ok = await ntNativeEnable()
+        else if (mode === 'web') { if (Notification.permission === 'default' && !(await ntAsk())) return; if (Notification.permission === 'granted') ok = await webPushSubscribe().catch(() => false) }
+        if (ok) { hap('success'); toast('Alerts are on. Pick which ones in Settings > Notifications.', 3200); away(3650) }
+        else { toast(Notification?.permission === 'denied' ? 'Alerts are blocked for this site in your browser settings.' : 'Could not turn that on here.'); tdPushPaint() }
+      })
+      globalThis.__tdPush = tdPushPaint
+      queueMicrotask(() => { try { if (curView() === 'overview') tdPushPaint() } catch {} })
     }
     async function ntUpdateState() {
       const st = el('nt-state'); if (!st) return
@@ -23354,12 +23605,130 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     el('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } })
     el('chat-search-btn').addEventListener('click', chatSearchToggle); mentionAttach(el('chat-input'))
+    // Alt+Up / Alt+Down steps through the channels and messages in the list, the way Discord does
+    document.addEventListener('keydown', (e) => {
+      if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') || curView() !== 'chat') return
+      const items = [...document.querySelectorAll('#v-chat .chat-rail .cr-item')].filter((b) => b.offsetParent)
+      if (!items.length) return
+      const i = items.findIndex((b) => b.classList.contains('on'))
+      const n = items[i < 0 ? 0 : (i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]
+      e.preventDefault(); n.click(); n.scrollIntoView({ block: 'nearest' })
+    })
     el('chat-input').addEventListener('keydown', (e) => { if (e.key === 'Escape' && chat.replyTo) { e.stopPropagation(); chatReplyTo(null) } })
     el('chat-input').addEventListener('input', (e) => { e.target.style.height = 'auto'; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px'; if (e.target.value.trim()) chatTypingSend(false); else chatTypingSend(true) })
     el('chat-back').addEventListener('click', () => {
       if (navPopLayer('convo')) return
       el('chat').classList.remove('open-convo'); chat.cur = null; renderChatRail()
     })
+    /* ── a conversation on a phone, the way Discord and iMessage handle it ──
+       Swipe right anywhere in it to go back: the conversation follows the finger and the inbox
+       waits underneath, a step to the left, the way iOS pops a page. Swipe a message left to reply
+       to it: it slides, a reply arrow comes up, let go past the mark and the composer is replying
+       to it. The half-second hold for the message sheet still works (any movement cancels it). */
+    {
+      const phone = matchMedia('(max-width: 840px)'), still = matchMedia('(prefers-reduced-motion: reduce)')
+      const c = el('chat'), main = c.querySelector('.chat-main')
+      const REPLY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>'
+      let snap = null, g = null
+      globalThis.__cvSnap = () => {
+        try {
+          const tb = document.querySelector('.topbar'), rail = c.querySelector('.chat-rail')
+          if (!tb || !rail || !phone.matches) return
+          snap = { tb: tb.getBoundingClientRect(), tbDisp: getComputedStyle(tb).display, rail: rail.getBoundingClientRect(), railTop: rail.scrollTop }
+        } catch {}
+      }
+      const place = (n, r) => { n.querySelectorAll('[id]').forEach((x) => x.removeAttribute('id')); n.removeAttribute('id'); Object.assign(n.style, { position: 'absolute', top: r.top + 'px', left: r.left + 'px', width: r.width + 'px', height: r.height + 'px', margin: '0' }) }
+      const under = () => {
+        c.querySelector(':scope > .cv-under')?.remove()
+        const u = document.createElement('div'); u.className = 'cv-under'; u.setAttribute('aria-hidden', 'true')
+        const tb = document.querySelector('.topbar'), rail = c.querySelector('.chat-rail')
+        if (snap && tb && snap.tb.height) { const k = tb.cloneNode(true); place(k, snap.tb); k.style.setProperty('display', snap.tbDisp, 'important'); u.appendChild(k) }
+        if (snap && rail && snap.rail.height) { const k = rail.cloneNode(true); place(k, snap.rail); k.style.setProperty('display', 'block', 'important'); k.style.overflow = 'hidden'; u.appendChild(k); k.scrollTop = snap.railTop || 0 }
+        c.prepend(u); return u
+      }
+      // classList.remove rewrites the class attribute even when the class is absent, which would wake
+      // the observer below again and again: only touch what is there
+      const clean = () => {
+        if (c.classList.contains('cv-peek')) c.classList.remove('cv-peek')
+        c.style.removeProperty('--cvx'); c.style.removeProperty('--pk')
+        main.style.transition = ''; c.querySelector(':scope > .cv-under')?.remove()
+      }
+      new MutationObserver(() => { if (!c.classList.contains('open-convo') && (c.classList.contains('cv-peek') || c.querySelector(':scope > .cv-under'))) clean() }).observe(c, { attributes: true, attributeFilter: ['class'] })
+      const canReply = (row) => row && row.dataset.mid && el('chat-composer').style.display !== 'none' && !row.querySelector('.m-deleted')
+      c.addEventListener('touchstart', (e) => {
+        g = null
+        if (!phone.matches || !c.classList.contains('open-convo') || e.touches.length !== 1) return
+        if (e.target.closest('textarea, input, select, [contenteditable="true"], .chat-composer, .chat-search, [data-noswipe]')) return
+        const t = e.touches[0]; if (t.clientX <= 16) return   // the system's own back swipe
+        g = { id: t.identifier, x0: t.clientX, y0: t.clientY, claimed: false, mode: null, row: e.target.closest('.msg'), samples: [{ x: t.clientX, t: e.timeStamp }], w: innerWidth, dx: 0, armed: false }
+      }, { passive: true })
+      const touchOf = (e) => { for (const t of e.changedTouches) if (t.identifier === g.id) return t; return null }
+      c.addEventListener('touchmove', (e) => {
+        if (!g) return
+        const t = touchOf(e); if (!t) return
+        let dx = t.clientX - g.x0
+        const dy = t.clientY - g.y0
+        if (!g.claimed) {
+          if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { g = null; return }
+          if (e.cancelable === false) { g = null; return }
+          if (Math.abs(dx) <= 12) return
+          g.mode = dx > 0 ? 'back' : canReply(g.row) ? 'reply' : null
+          if (!g.mode) { g = null; return }
+          g.claimed = true; g.x0 += Math.sign(dx) * 12; dx = t.clientX - g.x0
+          if (g.mode === 'back') { const u = under(); u.style.transition = 'none'; main.style.transition = 'none'; c.classList.add('cv-peek') }
+          else {
+            g.row.classList.add('sw'); g.row.classList.remove('held')
+            g.ic = document.createElement('span'); g.ic.className = 'm-sw'; g.ic.innerHTML = REPLY_SVG; g.row.appendChild(g.ic)
+          }
+        }
+        e.preventDefault()
+        g.samples.push({ x: t.clientX, t: e.timeStamp })
+        while (g.samples.length > 1 && g.samples[0].t < e.timeStamp - 100) g.samples.shift()
+        if (g.mode === 'back') {
+          g.dx = Math.max(0, dx)
+          c.style.setProperty('--cvx', g.dx + 'px'); c.style.setProperty('--pk', (g.dx / g.w).toFixed(3))
+        } else {
+          g.dx = Math.min(0, dx)
+          const pull = Math.max(-72, g.dx * 0.6)
+          g.row.style.transform = `translateX(${pull}px)`
+          const on = pull <= -48
+          if (on !== g.armed) { g.armed = on; g.ic.classList.toggle('on', on); if (on) hap('light') }
+        }
+      }, { passive: false })
+      const end = (e) => {
+        if (!g) return
+        const s = g, t = touchOf(e); g = null
+        if (!s.claimed) return
+        if (s.mode === 'reply') {
+          const row = s.row
+          row.style.transition = 'transform 0.3s cubic-bezier(.32,.72,0,1)'; row.style.transform = ''
+          setTimeout(() => { row.classList.remove('sw'); row.style.transition = ''; s.ic?.remove() }, 320)
+          if (s.armed && e.type !== 'touchcancel') {
+            const m = chat.msgs.find((x) => String(x.id) === row.dataset.mid)
+            if (m) { chatReplyTo(m); el('chat-input')?.focus() }
+          }
+          return
+        }
+        const a = s.samples[0], z = s.samples[s.samples.length - 1]
+        const vx = (z.x - a.x) / Math.max(1, z.t - a.t)
+        const go = t && e.type !== 'touchcancel' && (s.dx > s.w * 0.3 || (vx > 0.4 && s.dx > 40))
+        const u = c.querySelector(':scope > .cv-under')
+        const ease = 'cubic-bezier(.32,.72,0,1)'
+        if (go) {
+          hap('light')
+          if (still.matches) { clean(); el('chat-back').click(); return }
+          main.style.transition = `transform 210ms ${ease}`; if (u) u.style.transition = `transform 210ms ${ease}, opacity 210ms ease`
+          c.style.setProperty('--cvx', s.w + 'px'); c.style.setProperty('--pk', '1')
+          setTimeout(() => { el('chat-back').click(); setTimeout(() => { if (c.classList.contains('cv-peek')) clean() }, 700) }, 200)
+        } else {
+          main.style.transition = `transform 280ms ${ease}`; if (u) u.style.transition = `transform 280ms ${ease}, opacity 280ms ease`
+          c.style.setProperty('--cvx', '0px'); c.style.setProperty('--pk', '0')
+          setTimeout(() => { if (!g) clean() }, 300)
+        }
+      }
+      c.addEventListener('touchend', end, { passive: true }); c.addEventListener('touchcancel', end, { passive: true })
+      globalThis.__convoSwipe = { live: () => !!(g && g.claimed), mode: () => g?.mode || null }
+    }
 
     // DM picker
     function renderDmPick(q = '') {

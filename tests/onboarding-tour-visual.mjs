@@ -46,7 +46,7 @@ const geo = (page) => page.evaluate(() => {
   const view = document.querySelector(".view.on")?.id.replace(/^v-/, "");
   return { st, view, card: cr && { l: cr.left, t: cr.top, r: cr.right, b: cr.bottom }, ring: ringOn ? { l: rr.left, t: rr.top, r: rr.right, b: rr.bottom } : null, vw: innerWidth, vh: innerHeight, sw: document.documentElement.scrollWidth, note: [...(card?.querySelectorAll(".stour-note") || [])].map((n) => n.textContent).join(" / "), title: card?.querySelector("h4")?.textContent };
 });
-const VIEW_OF = { Today: "overview", Chart: "chart", GEX: "gex", News: "news", Feed: "feed", Chat: "chat", Study: "course", Journal: "journal", Indicators: "indicators", "Prop firms": "propfirms", You: "settings", "What's next": "overview" };
+const VIEW_OF = { Today: "overview", Chart: "chart", GEX: "gex", News: "news", Feed: "feed", Posts: "feed", Chat: "chat", Study: "course", Journal: "journal", Indicators: "indicators", "Prop firms": "propfirms", You: "settings", "What's next": "overview" };
 
 for (const tag of ONLY) {
   const [eng, opt] = VPS[tag];
@@ -76,7 +76,7 @@ for (const tag of ONLY) {
     const overlap = g.ring && g.card && !(g.card.r <= g.ring.l || g.card.l >= g.ring.r || g.card.b <= g.ring.t || g.card.t >= g.ring.b);
     const want = VIEW_OF[g.title];
     const phone = tag === "iphone";
-    const pointed = !!g.ring || (phone && (g.note.startsWith("Find it") || ["Today", "Feed", "Chat", "Study"].includes(g.title)));
+    const pointed = !!g.ring || (phone && (g.note.startsWith("Find it") || ["Today", "Feed", "Posts", "Chat", "Study"].includes(g.title)));
     check(inView && !overlap && (!want || g.view === want) && (phone || g.ring || g.title === "Discord") && pointed,
       `[${tag}] ${k + 1}/${g.st.n} ${g.title}: page ${g.view}${want ? "" : " (stays)"}, ${g.ring ? "spotlight on" : "no spotlight"}, card ${inView ? "on screen" : "OFF SCREEN"}${overlap ? ", COVERS THE SPOTLIGHT" : ""}${g.note ? `, "${g.note.slice(0, 70)}"` : ""}`);
     await page.screenshot({ path: `${OUT}/${tag} ${String(k + 1).padStart(2, "0")} ${g.title.replace(/'/g, "")}.png` });
