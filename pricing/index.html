@@ -114,6 +114,24 @@
     .course .what { color: var(--muted); font-size: 13.5px; line-height: 1.65; margin-top: 8px; max-width: 60ch; }
     .price { font-size: 42px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
     .per { color: var(--faint); font-size: 12.5px; margin-top: 5px; }
+    /* the old price with an X drawn over it, and the D1 code one tap from applied (D1, 9/29) */
+    .price-row { display: flex; align-items: center; gap: 14px; }
+    .was { position: relative; font-size: 24px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; color: var(--faint); text-decoration: none; font-variant-numeric: tabular-nums; }
+    .was i { position: absolute; left: -10%; top: 50%; width: 120%; height: 2px; margin-top: -1px; border-radius: 2px; background: #ef6b64; box-shadow: 0 0 10px rgba(239,107,100,0.5); }
+    .was i:nth-of-type(1) { transform: rotate(24deg); }
+    .was i:nth-of-type(2) { transform: rotate(-24deg); }
+    @media (prefers-reduced-motion: no-preference) {
+      .was i { animation: was-x 0.5s cubic-bezier(0.65, 0, 0.35, 1) 0.35s both; }
+      .was i:nth-of-type(2) { animation-delay: 0.6s; }
+      @keyframes was-x { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+    }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .use-code { margin-top: 12px; width: 100%; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 6px 0 13px; border: 0; border-radius: 10px; background: rgba(201,162,74,0.1); box-shadow: inset 0 0 0 1px rgba(201,162,74,0.4); color: var(--ink); font: inherit; font-size: 13px; text-align: left; cursor: pointer; transition: background 0.2s ease, box-shadow 0.2s ease; }
+    .use-code b { color: var(--gold); font-weight: 700; }
+    .use-code .uc-tap { margin-left: auto; padding: 6px 10px; border-radius: 7px; background: rgba(201,162,74,0.16); color: var(--gold); font-size: 12px; font-weight: 650; transition: background 0.2s ease, color 0.2s ease; }
+    .use-code:hover { background: rgba(201,162,74,0.15); box-shadow: inset 0 0 0 1px var(--gold); }
+    .use-code.on { cursor: default; background: rgba(52,179,154,0.1); box-shadow: inset 0 0 0 1px rgba(52,179,154,0.45); }
+    .use-code.on .uc-tap { background: none; color: #34b39a; }
     .course-side { display: flex; flex-direction: column; gap: 12px; }
     .course-side .btn { min-height: 44px; }
     .code-row { font-size: 12.5px; }
@@ -201,9 +219,9 @@
       </div>
       <div class="course-side">
         <div>
-          <div class="price">$400</div>
+          <div class="price-row"><s class="was"><span class="sr">Was </span>$500<i aria-hidden="true"></i><i aria-hidden="true"></i></s><div class="price">$400</div></div>
           <div class="per">once</div>
-          <div class="per" style="color:var(--gold);">code <b>D1</b> · 20% off</div>
+          <button class="use-code" id="use-d1" type="button">Use code <b>D1</b> for $320<span class="uc-tap">Apply</span></button>
         </div>
         <button class="btn" id="buy-course" type="button">Get Echelon</button>
         <div class="code-row" id="code-row">
@@ -360,6 +378,14 @@
         e.preventDefault(); history.back();
       }
     });
+
+    /* Use code D1: one tap puts it in the code field the checkout reads */
+    (function () {
+      var use = document.getElementById('use-d1'), field = document.getElementById('promo-code');
+      function sync() { var on = (field.value || '').trim().toUpperCase() === 'D1'; use.classList.toggle('on', on); use.querySelector('.uc-tap').textContent = on ? 'Applied' : 'Apply'; }
+      use.addEventListener('click', function () { field.value = 'D1'; document.getElementById('code-row').classList.add('open'); sync(); });
+      field.addEventListener('input', sync);
+    })();
 
     document.getElementById('code-toggle').addEventListener('click', function () {
       var row = document.getElementById('code-row');

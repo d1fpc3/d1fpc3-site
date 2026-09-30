@@ -2,8 +2,9 @@
 // old pricing"); manual, not a node:test. Replaces landing-apply-visual.mjs.
 //   node tests/landing-join-visual.mjs        (URL / OUT env; ONLY=desk,wide,iphone)
 // Proves at 1440, 2560 and on an iPhone (WebKit): no Apply anywhere and no application pop-up; Join in the nav, the
-// hero and the card; the card shows $400 once and the D1 code ($320); Pricing in the nav and the footer; Join lands on
-// /pricing/ with Echelon at $400 and its Get Echelon button (it stops there: no live Stripe session is opened);
+// hero and the card; the card shows $500 with an X drawn over it, $400 once, and "Use code D1" for $320 (the chip copies D1); Pricing in the nav and the footer; Join lands on
+// /pricing/ with Echelon at $400 (the $500 crossed out there too); "Use code D1" applies the code and the checkout
+// request carries promo D1 (the request is answered locally: no live Stripe session is opened);
 // an invite link (?ref=) is kept; the old /echelon/apply/ page sends people to /pricing/ with the invite kept.
 import { createRequire } from "module";
 import { existsSync, mkdirSync } from "fs";
@@ -33,6 +34,7 @@ for (const tag of (process.env.ONLY || "desk,wide,iphone").split(",")) {
       navPricing: !!document.querySelector('header a[href="/pricing/"]'),
       footPricing: !!document.querySelector('footer a[href="/pricing/"]'),
       card: card ? card.innerText.replace(/\s+/g, " ").trim() : "",
+      x: (() => { const w = card.querySelector(".was"), r = w.getBoundingClientRect(); return [...w.querySelectorAll("i")].map((i) => { const b = i.getBoundingClientRect(); return { over: b.left < r.right && b.right > r.left && b.top < r.bottom && b.bottom > r.top, tall: Math.round(b.height) }; }); })(),
       fine: txt(".hero .fine")[0] || "",
       ref: localStorage.getItem("echelon-ref"),
       sw: document.documentElement.scrollWidth, vw: innerWidth,
@@ -41,12 +43,20 @@ for (const tag of (process.env.ONLY || "desk,wide,iphone").split(",")) {
   ok(!st.apply, `[${tag}] no Apply and no application pop-up anywhere`);
   ok(st.buys.length >= 3 && st.buys.every((b) => /^Join/.test(b)), `[${tag}] Join in the nav, the hero and the card (${st.buys.join(" | ")})`);
   ok(st.navPricing && st.footPricing, `[${tag}] Pricing in the nav and the footer`);
-  ok(/\$400\s*once/.test(st.card) && /Code D1 takes 20% off at checkout: \$320/.test(st.card), `[${tag}] the card: "${st.card.slice(0, 120)}"`);
+  ok(/\$500\s*\$400\s*once/.test(st.card) && /Use code\s*D1\s*(Copied\s*)?for \$320/.test(st.card), `[${tag}] the card: "${st.card.slice(0, 120)}"`);
   ok(/lifetime access/.test(st.fine) && !/application/.test(st.fine), `[${tag}] the hero line: "${st.fine}"`);
   ok(st.ref === "HARNESS1", `[${tag}] an invite link is kept (echelon-ref ${st.ref})`);
   ok(st.sw <= st.vw, `[${tag}] no sideways scroll (${st.sw} in ${st.vw})`);
   await page.evaluate(() => document.getElementById("access").scrollIntoView({ block: "center" }));
   await page.waitForTimeout(900);
+  // the X draws in a beat after the card lands (two strokes, 0.75s and 1.05s in, 0.55s each)
+  await page.waitForFunction(() => [...document.querySelectorAll("#access .was i")].every((i) => !/[1-9][0-9.]*%/.test(getComputedStyle(i).clipPath)), null, { timeout: 5000 }).catch(() => {});
+  const x = await page.evaluate(() => [...document.querySelectorAll("#access .was i")].map((i) => getComputedStyle(i).clipPath));
+  ok(st.x.length === 2 && st.x.every((l) => l.over && l.tall > 8) && x.every((c) => !/[1-9][0-9.]*%/.test(c)), `[${tag}] the X is drawn over $500 once the card is in (${x.join(" | ")})`);
+  const chip = page.locator("#access .code-copy");
+  if (tag === "iphone") await chip.tap(); else await chip.click();
+  await page.waitForTimeout(250);
+  ok(await chip.evaluate((b) => b.classList.contains("is-done")), `[${tag}] the D1 chip copies (shows Copied)`);
   await page.screenshot({ path: `${OUT}/${tag} 1 the card.png` });
   // Join -> the pricing page and its checkout button (no session opened)
   const heroJoin = page.locator(".hero [data-buy]").first();
@@ -54,9 +64,21 @@ for (const tag of (process.env.ONLY || "desk,wide,iphone").split(",")) {
   if (tag === "iphone") await heroJoin.tap(); else await heroJoin.click();
   await page.waitForURL(/\/pricing\/$/, { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1200);
-  const pr = await page.evaluate(() => ({ url: location.pathname, price: document.querySelector("#course .price")?.textContent.trim(), btn: document.getElementById("buy-course")?.textContent.trim() }));
-  ok(pr.url === "/pricing/" && pr.price === "$400" && pr.btn === "Get Echelon", `[${tag}] Join lands on the pricing page: Echelon ${pr.price}, "${pr.btn}"`);
+  const pr = await page.evaluate(() => ({ url: location.pathname, price: document.querySelector("#course .price")?.textContent.trim(), was: document.querySelector("#course .was")?.textContent.trim(), btn: document.getElementById("buy-course")?.textContent.trim() }));
+  ok(pr.url === "/pricing/" && pr.price === "$400" && /\$500/.test(pr.was) && pr.btn === "Get Echelon", `[${tag}] Join lands on the pricing page: ${pr.was} crossed, Echelon ${pr.price}, "${pr.btn}"`);
+  const use = page.locator("#use-d1");
+  if (tag === "iphone") await use.tap(); else await use.click();
+  await page.waitForTimeout(300);
+  const u = await page.evaluate(() => ({ field: document.getElementById("promo-code").value, text: document.getElementById("use-d1").textContent.replace(/\s+/g, " ").trim(), on: document.getElementById("use-d1").classList.contains("on") }));
+  ok(u.field === "D1" && u.on && /Applied/.test(u.text), `[${tag}] "Use code D1" applies it: field "${u.field}", "${u.text}"`);
   await page.screenshot({ path: `${OUT}/${tag} 2 pricing.png` });
+  let body = null;
+  await page.route("**/functions/v1/create-checkout", (r) => { if (r.request().method() === "POST") body = r.request().postDataJSON(); r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*" }, body: JSON.stringify({ error: "harness stop" }) }); });
+  await page.evaluate(() => { window.Stripe = () => ({ initEmbeddedCheckout: async (o) => { await o.fetchClientSecret(); return { mount() {}, destroy() {} }; } }); });
+  const buy = page.locator("#buy-course");
+  if (tag === "iphone") await buy.tap(); else await buy.click();
+  await page.waitForTimeout(1500);
+  ok(body && body.product === "course" && body.promo === "D1", `[${tag}] the checkout request carries the code: ${JSON.stringify(body)}`);
   // the old join page
   await page.goto(BASE + "echelon/apply/?ref=HARNESS2", { waitUntil: "domcontentloaded" });
   await page.waitForURL(/\/pricing\/$/, { timeout: 15000 }).catch(() => {});
