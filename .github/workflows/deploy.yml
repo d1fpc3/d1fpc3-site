@@ -20,6 +20,9 @@ jobs:
       # retry attempts) on 2026-09-18. It compares the server against the repo
       # on every run, so there is no sync-state file and no retry ladder.
       #
+      # /zombies/ is D1 Zombie, deployed by its own repo (d1fpc3/Game) into this
+      # web root; it is protected here so this deploy's --delete never removes it.
+      #
       # supabase/, tests/, docs/ and scripts/ are dev-only. The FTP deploy used
       # to publish them at d1fpc3.com/supabase/... for anyone to read, so they
       # are excluded here and must stay excluded.
@@ -40,6 +43,7 @@ jobs:
             --exclude '.git*' --exclude '/.github/' --exclude '/README.md' \
             --exclude '/supabase/' --exclude '/tests/' --exclude '/docs/' --exclude '/scripts/' \
             --filter 'P /.well-known/' --filter 'P /.well-known/**' \
+            --filter 'P /zombies/' --filter 'P /zombies/**' \
             -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=yes" \
             ./ "$SSH_USER@$SSH_HOST:$DEPLOY_DIR"
 
