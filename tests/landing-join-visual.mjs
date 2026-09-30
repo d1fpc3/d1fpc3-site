@@ -65,7 +65,7 @@ for (const tag of (process.env.ONLY || "desk,wide,iphone").split(",")) {
   await page.waitForURL(/\/pricing\/$/, { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1200);
   const pr = await page.evaluate(() => ({ url: location.pathname, price: document.querySelector("#course .price")?.textContent.trim(), was: document.querySelector("#course .was")?.textContent.trim(), btn: document.getElementById("buy-course")?.textContent.trim() }));
-  ok(pr.url === "/pricing/" && pr.price === "$400" && /\$500/.test(pr.was) && pr.btn === "Get Echelon", `[${tag}] Join lands on the pricing page: ${pr.was} crossed, Echelon ${pr.price}, "${pr.btn}"`);
+  ok(pr.url === "/pricing/" && pr.price === "$400" && /\$500/.test(pr.was) && /^Join Echelon/.test(pr.btn), `[${tag}] Join lands on the pricing page: ${pr.was} crossed, Echelon ${pr.price}, "${pr.btn}"`);
   const use = page.locator("#use-d1");
   if (tag === "iphone") await use.tap(); else await use.click();
   await page.waitForTimeout(300);
