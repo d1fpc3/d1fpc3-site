@@ -2558,7 +2558,10 @@
       const wg = paper.filter((r) => r.rule === 'dogwe1615u' && r.won != null), wc = wg.length ? wg.reduce((t, r) => t + Number(r.pnl_c ?? 0), 0) / wg.length : null
       const bf = Number(sw?.open_dog_bell_frac ?? 0.04)
       const wkd = mode === 'off' ? '' : ` Weekend underdog, ${mode === 'live' ? 'live' : 'on paper'}: Saturdays and Sundays at the 16:15 UTC close while New York is on daylight time, 9 minutes out, priced 5 to 50c, the same size as the 9:45 rule; THE RULE stands aside at that close all year (backtest +7.6c a contract at about 29c; the winter version is weaker and records on paper from November 1)${wg.length ? `; ${fmt.format(wg.length)} legs graded, ${wc >= 0 ? '+' : ''}${wc.toFixed(2)}c a leg` : '; none graded yet'}.`
-      el('rl-dog').textContent = head + pp + lv + '.' + bell.replace('(backtest +5.3c a leg)', `(backtest +5.3c a leg; ${(100 * bf).toFixed(0)}% of the account a morning, x1.5 calm, x0.5 busy)`) + wkd
+      // the S&P 500 / Nasdaq-100 15m books (worker src/opendog.mjs dog945idx, dog1600idx): paper from the day Kalshi opens them
+      const ix = paper.filter((r) => (r.rule === 'dog945idx' || r.rule === 'dog1600idx') && r.won != null), ixc = ix.length ? ix.reduce((t, r) => t + Number(r.pnl_c ?? 0), 0) / ix.length : null
+      const idx = mode === 'off' ? '' : ix.length ? ` S&P / Nasdaq 15m underdog on paper (9:45 and 16:00 New York): ${fmt.format(ix.length)} legs graded, ${ixc >= 0 ? '+' : ''}${ixc.toFixed(2)}c a leg.` : ' S&P / Nasdaq 15m underdog: on paper from the day Kalshi opens those books (none open yet).'
+      el('rl-dog').textContent = head + pp + lv + '.' + bell.replace('(backtest +5.3c a leg)', `(backtest +5.3c a leg; ${(100 * bf).toFixed(0)}% of the account a morning, x1.5 calm, x0.5 busy)`) + wkd + idx
     }
     function renderSizing(sw, rt = [], equity = null) {
       if (sw?.risk_model === 'live' && sw?.risk_segments === 'table' && rt?.length) {
