@@ -2554,7 +2554,11 @@
       const bm = String(sw?.open_dog_bell ?? 'off').toLowerCase(), bg = paper.filter((r) => r.rule === 'bellbtc' && r.won != null)
       const bc = bg.length ? bg.reduce((t, r) => t + Number(r.pnl_c ?? 0), 0) / bg.length : null
       const bell = bm === 'off' ? '' : ` Bell strangle, ${bm === 'live' ? 'live' : 'on paper'}: at 9:25 New York on stock-market days, before the bell, the cheap side of the 6 BTC hourly strikes nearest the price for the 10:00 close (backtest +5.3c a leg)${bg.length ? `; ${fmt.format(bg.length)} legs graded, ${bc >= 0 ? '+' : ''}${bc.toFixed(2)}c a leg` : '; none graded yet'}.`
-      el('rl-dog').textContent = head + pp + lv + '.' + bell
+      // the summer-weekend underdog (worker src/opendog.mjs dogwe1615u), live with open_dog since 2026-09-29
+      const wg = paper.filter((r) => r.rule === 'dogwe1615u' && r.won != null), wc = wg.length ? wg.reduce((t, r) => t + Number(r.pnl_c ?? 0), 0) / wg.length : null
+      const bf = Number(sw?.open_dog_bell_frac ?? 0.04)
+      const wkd = mode === 'off' ? '' : ` Weekend underdog, ${mode === 'live' ? 'live' : 'on paper'}: Saturdays and Sundays at the 16:15 UTC close while New York is on daylight time, 9 minutes out, priced 5 to 50c, the same size as the 9:45 rule; THE RULE stands aside at that close (backtest +7.6c a contract at about 29c)${wg.length ? `; ${fmt.format(wg.length)} legs graded, ${wc >= 0 ? '+' : ''}${wc.toFixed(2)}c a leg` : '; none graded yet'}.`
+      el('rl-dog').textContent = head + pp + lv + '.' + bell.replace('(backtest +5.3c a leg)', `(backtest +5.3c a leg; ${(100 * bf).toFixed(0)}% of the account a morning, x1.5 calm, x0.5 busy)`) + wkd
     }
     function renderSizing(sw, rt = [], equity = null) {
       if (sw?.risk_model === 'live' && sw?.risk_segments === 'table' && rt?.length) {
@@ -2799,7 +2803,7 @@
     async function loadStatus() {
       const et = (d) => new Date(d).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
       const [sw, st, h, rt] = await Promise.all([
-        q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price,risk_model,risk_segments,open_skip,tokyo_skip,sol_btc_skip,hourly_rule,hourly_frac,seg_off,polyus,open_dog,open_dog_frac,open_dog_bell').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
+        q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price,risk_model,risk_segments,open_skip,tokyo_skip,sol_btc_skip,hourly_rule,hourly_frac,seg_off,polyus,open_dog,open_dog_frac,open_dog_bell,open_dog_bell_frac').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
         q('kalshi_executor_state', (b) => b.select('at,halted,realized_today,cash,at_risk,equity').eq('id', 1)).then((r) => r[0] ?? null).catch(() => null),
         supabase.rpc('kalshi_edge_health_desk').then((r) => r.data ?? null).catch(() => null),
         q('kalshi_risk_table', (b) => b.select('segment,n,mean,fraction,computed_at,kelly_mult,cap')).catch(() => []),
