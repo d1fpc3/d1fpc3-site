@@ -3,10 +3,12 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+// the page as read: tags out, whitespace folded (the 9/27 hero wraps each word in its own span)
+const text = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ');
 
 test('uses the software-first Echelon positioning', () => {
   assert.match(html, /<title>Echelon by d1 · The NQ trading software<\/title>/);
-  assert.match(html, /Trade with <em>clarity\.<\/em>/);
+  assert.ok(text.includes('Trade with clarity.'), 'the hero line');
   assert.ok(html.includes('one piece of software'), 'meta description sells the software');
 });
 
@@ -21,16 +23,17 @@ test('the feature index and phone screens stay OFF the landing (D1, 9/6)', () =>
   assert.doesNotMatch(html, /class="in-row"|id="inside"|id="screens"|screen-(overview|lesson|gex|news)\.webp/,
     'the numbered tab list and the app screenshots were cut; the who-is-d1 block and hero fine line stay');
   assert.doesNotMatch(html, /class="what"|one app for NQ/, 'the hero "one app" line stays deleted');
-  assert.match(html, /by application · <span data-discord-count>/);
+  assert.match(text, /lifetime access\s*no subscription\s*members in the Discord/, 'the hero fine line: lifetime, no subscription, the Discord count');
 });
 
-test('the landing takes applications, it does not sell (D1, 9/18)', () => {
-  assert.doesNotMatch(html, /data-buy|Join Echelon|buy\.stripe\.com/, 'no buy buttons or checkout on the landing');
-  assert.ok((html.match(/data-apply/g) || []).length >= 2, 'header and hero both say Apply');
-  assert.match(html, /id="apply-form"/);
-  assert.match(html, /rpc\/submit_application/);
-  for (const v of ['under_500', '500_1000', '1000_2500', '2500_5000', '5000_plus']) assert.ok(html.includes(`value="${v}"`), 'range ' + v);
-  assert.doesNotMatch(html, /href="\/pricing\/"/, 'the price list is reachable by link only, not from the landing');
+test('the landing sells again, no application (D1, 9/29: "not application based", "old pricing")', () => {
+  assert.ok((html.match(/data-buy/g) || []).length >= 3, 'the nav, the hero and the card all say Join');
+  assert.doesNotMatch(html, /data-apply|apply-form|submit_application|ap-modal/, 'the application is gone');
+  assert.match(html, /location\.href = '\/pricing\/'/, 'Join goes to the pricing page, where the checkout lives');
+  assert.ok((html.match(/href="\/pricing\/"/g) || []).length >= 3, 'Pricing is linked from the nav, the card and the footer');
+  assert.match(text, /\$500\s*once/, 'the price is on the card');
+  assert.match(text, /Code D1 takes 20% off at checkout: \$400\./);
+  assert.match(html, /"price": "500"/, 'the structured data carries the offer');
   assert.doesNotMatch(html, /D1 GEX/, 'it is just GEX on the landing');
   assert.doesNotMatch(html, /\u2014|&mdash;/, 'no long dashes');
 });
@@ -43,7 +46,7 @@ test('concepts and curriculum stay OFF the landing (D1 rule, 8/24)', () => {
 });
 
 test('states the discretionary teaching philosophy in the lead FAQ', () => {
-  assert.match(html, /<summary>What model will you teach me\?<span class="mk">\+<\/span><\/summary>/);
+  assert.match(html, /<summary>What model will you teach me\?<i class="pm" aria-hidden="true"><\/i><\/summary>/);
   assert.ok(html.includes("I don't teach a mechanical model. I teach discretionary concepts that help you see NQ clearly. I don't believe price can be reduced to rigid rules; context and judgment matter, and discretionary interpretation is the better way to read the market."));
 });
 
@@ -51,8 +54,9 @@ test('does not promise GEX inside the course purchase', () => {
   assert.match(html, /The GEX board sits in there too, for its subscribers\./);
 });
 
-test('keeps the numbers off the landing and the terms intact', () => {
-  assert.doesNotMatch(html, /\$\d+ ?(once|\/mo)/, 'prices belong on /pricing/');
+test('one price on the landing, the rest on /pricing/, and the terms intact', () => {
+  assert.equal((text.match(/\$\d[\d,]*/g) || []).filter((p) => p !== '$500' && p !== '$400').length, 0, 'only Echelon and its code price on the landing');
+  assert.doesNotMatch(text, /\/mo\b/, 'no subscriptions on the landing');
   assert.match(html, /href="\/echelon\/app\/"/);
   assert.match(html, /discordUrl: 'https:\/\/discord\.gg\/FAQD5Cr5p7'/);
   assert.match(html, /No refunds\. The product is information;/);
