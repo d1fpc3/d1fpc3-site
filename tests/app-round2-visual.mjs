@@ -107,7 +107,7 @@ try {
       else {
         await page.touchscreen.tap(box.x, box.y); await page.waitForTimeout(120); await page.touchscreen.tap(box.x, box.y);
         await page.waitForTimeout(250);
-        const pop = await page.evaluate(() => !!document.querySelector("#chat-log .m-heart"));
+        const pop = await page.evaluate(() => !!document.querySelector(".m-heart"));
         await page.waitForTimeout(1500);
         const n1 = (await sql(`select count(*)::int n from message_reactions where message_id = '${msgId}' and user_id = '${A}'`))[0].n;
         check(pop && n1 === 1, `a double-tap puts a heart on it (${n1} reaction, the heart popped: ${pop})`);

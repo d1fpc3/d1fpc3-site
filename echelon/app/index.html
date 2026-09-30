@@ -5190,9 +5190,9 @@
       .msg .m-sw { position: absolute; right: -46px; top: 50%; width: 32px; height: 32px; margin-top: -16px; border-radius: 50%; display: grid; place-items: center; color: var(--gold); background: var(--panel-2); opacity: 0.35; transform: scale(0.7); transition: opacity 0.15s ease, transform 0.22s cubic-bezier(.34,1.56,.64,1); pointer-events: none; }
       .msg .m-sw svg { width: 17px; height: 17px; }
       .msg .m-sw.on { opacity: 1; transform: none; background: color-mix(in srgb, var(--gold) 18%, var(--panel-2)); }
-      .msg .m-heart { position: absolute; z-index: 3; font-size: 38px; line-height: 1; margin: -19px 0 0 -19px; pointer-events: none; animation: m-heart 0.8s cubic-bezier(.2,.8,.2,1) forwards; }
+      .m-heart { position: fixed; z-index: 90; font-size: 38px; line-height: 1; margin: -19px 0 0 -19px; pointer-events: none; animation: m-heart 0.8s cubic-bezier(.2,.8,.2,1) forwards; }
       @keyframes m-heart { 0% { opacity: 0; transform: scale(0.3); } 25% { opacity: 1; transform: scale(1.15); } 45% { transform: scale(0.95); } 70% { opacity: 1; transform: scale(1) translateY(-6px); } 100% { opacity: 0; transform: scale(0.9) translateY(-26px); } }
-      @media (prefers-reduced-motion: reduce) { .msg .m-heart { animation-duration: 0.01s; } }
+      @media (prefers-reduced-motion: reduce) { .m-heart { animation-duration: 0.01s; } }
       .chat.open-convo .chat-log { overflow-x: hidden; }
       .chat-head { position: relative; z-index: 6; min-height: 54px; gap: 2px; padding: calc(env(safe-area-inset-top) + 4px) 6px 6px;
         background: color-mix(in srgb, var(--bg) 80%, transparent) !important; -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6); border-bottom: 0.5px solid var(--line); }
@@ -23552,9 +23552,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           last = 0
           const m = chat.msgs.find((x) => String(x.id) === row.dataset.mid); if (!m || m.deleted_at) return
           toggleReaction(m.id, RX_QUICK[1]); hap('light')
-          const r = R(row), h = document.createElement('span'); h.className = 'm-heart'; h.textContent = RX_QUICK[1]
-          h.style.left = Math.round(e.clientX / UIZ() - r.left) + 'px'; h.style.top = Math.round(e.clientY / UIZ() - r.top) + 'px'
-          row.appendChild(h); setTimeout(() => h.remove(), 800)
+          // on the page, not the row: the reaction re-renders the log, which would take the heart with it
+          const h = document.createElement('span'); h.className = 'm-heart'; h.textContent = RX_QUICK[1]
+          h.style.left = Math.round(e.clientX / UIZ()) + 'px'; h.style.top = Math.round(e.clientY / UIZ()) + 'px'
+          document.body.appendChild(h); setTimeout(() => h.remove(), 800)
         } else { last = e.timeStamp; lx = e.clientX; ly = e.clientY; lrow = row }
       })
     }
