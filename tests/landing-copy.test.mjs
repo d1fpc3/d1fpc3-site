@@ -31,10 +31,10 @@ test('the landing sells again, no application (D1, 9/29: "not application based"
   assert.doesNotMatch(html, /data-apply|apply-form|submit_application|ap-modal/, 'the application is gone');
   assert.match(html, /location\.href = '\/pricing\/'/, 'Join goes to the pricing page, where the checkout lives');
   assert.ok((html.match(/href="\/pricing\/"/g) || []).length >= 3, 'Pricing is linked from the nav, the card and the footer');
-  assert.match(text, /\$400\s*once/, 'the price is on the card (D1, 9/29: "make it $400")');
-  assert.match(text, /Was \$500\s*\$400\s*once/, 'the old price, crossed out (D1, 9/29: "a X on top of $500")');
-  assert.match(text, /Use code D1\s*Copied\s*for \$320/, '"use code D1" with what it comes to');
-  assert.match(html, /"price": "400"/, 'the structured data carries the offer');
+  assert.match(text, /\$400\s*once/, 'the price with the code is the big number on the card');
+  assert.match(text, /Full price \$500\s*With code D1: \$400\s*once/, '$500 crossed out, $400 with the code (D1, 9/29: "have it as 500, and then use the discount for the $400")');
+  assert.match(text, /Use code D1\s*Copied\s*at checkout/, '"use code D1"');
+  assert.match(html, /"price": "500"/, 'the structured data carries the offer: $500, what is charged without a code');
   assert.doesNotMatch(html, /D1 GEX/, 'it is just GEX on the landing');
   assert.doesNotMatch(html, /\u2014|&mdash;/, 'no long dashes');
 });
@@ -56,7 +56,7 @@ test('does not promise GEX inside the course purchase', () => {
 });
 
 test('one price on the landing, the rest on /pricing/, and the terms intact', () => {
-  assert.equal((text.match(/\$\d[\d,]*/g) || []).filter((p) => p !== '$500' && p !== '$400' && p !== '$320').length, 0, 'only Echelon (was, now, with the code) on the landing');
+  assert.equal((text.match(/\$\d[\d,]*/g) || []).filter((p) => p !== '$500' && p !== '$400').length, 0, 'only Echelon (full, and with the code) on the landing');
   assert.doesNotMatch(text, /\/mo\b/, 'no subscriptions on the landing');
   assert.match(html, /href="\/echelon\/app\/"/);
   assert.match(html, /discordUrl: 'https:\/\/discord\.gg\/FAQD5Cr5p7'/);

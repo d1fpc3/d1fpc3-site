@@ -2,8 +2,8 @@
 // old pricing"); manual, not a node:test. Replaces landing-apply-visual.mjs.
 //   node tests/landing-join-visual.mjs        (URL / OUT env; ONLY=desk,wide,iphone)
 // Proves at 1440, 2560 and on an iPhone (WebKit): no Apply anywhere and no application pop-up; Join in the nav, the
-// hero and the card; the card shows $500 with an X drawn over it, $400 once, and "Use code D1" for $320 (the chip copies D1); Pricing in the nav and the footer; Join lands on
-// /pricing/ with Echelon at $400 (the $500 crossed out there too); "Use code D1" applies the code and the checkout
+// hero and the card; the card shows $500 with an X drawn over it, $400 once, and "Use code D1 at checkout" (the chip copies D1); Pricing in the nav and the footer; Join lands on
+// /pricing/ with Echelon at $400 with code D1 (the $500 crossed out there too); "Use code D1" applies the code and the checkout
 // request carries promo D1 (the request is answered locally: no live Stripe session is opened);
 // an invite link (?ref=) is kept; the old /echelon/apply/ page sends people to /pricing/ with the invite kept.
 import { createRequire } from "module";
@@ -43,7 +43,7 @@ for (const tag of (process.env.ONLY || "desk,wide,iphone").split(",")) {
   ok(!st.apply, `[${tag}] no Apply and no application pop-up anywhere`);
   ok(st.buys.length >= 3 && st.buys.every((b) => /^Join/.test(b)), `[${tag}] Join in the nav, the hero and the card (${st.buys.join(" | ")})`);
   ok(st.navPricing && st.footPricing, `[${tag}] Pricing in the nav and the footer`);
-  ok(/\$500\s*\$400\s*once/.test(st.card) && /Use code\s*D1\s*(Copied\s*)?for \$320/.test(st.card), `[${tag}] the card: "${st.card.slice(0, 120)}"`);
+  ok(/\$500\s*With code D1:\s*\$400\s*once/.test(st.card) && /Use code\s*D1\s*(Copied\s*)?at checkout/.test(st.card) && !/\$320/.test(st.card), `[${tag}] the card: "${st.card.slice(0, 120)}"`);
   ok(/lifetime access/.test(st.fine) && !/application/.test(st.fine), `[${tag}] the hero line: "${st.fine}"`);
   ok(st.ref === "HARNESS1", `[${tag}] an invite link is kept (echelon-ref ${st.ref})`);
   ok(st.sw <= st.vw, `[${tag}] no sideways scroll (${st.sw} in ${st.vw})`);
