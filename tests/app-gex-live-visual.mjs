@@ -6,7 +6,8 @@
 // and stubs tape with a moving quote, then checks: the NQ figure says "NQ live" with the
 // quote, it flashes when the quote moves, the rail's gold pin and the ladder's distances
 // follow it, the stamp says "NQ live"; a stalled feed drops back to the print's price and
-// says how far behind it is; switching to ES follows ES's own quote. It also checks the
+// says how far behind it is; MNQ (same book, D1 10/01) follows MNQ's own quote under its own name; switching to ES
+// and MES follows theirs, and Today names the contract picked and shows its book. It also checks the
 // print poll asks the worker for gex.json again within a minute of the session.
 import { createRequire } from "module";
 import { existsSync, mkdirSync, readFileSync } from "fs";
@@ -32,7 +33,7 @@ if (!session.access_token) throw new Error("verify failed");
 const fails = [];
 const note = (s) => console.log("  " + s);
 const NOW = Date.UTC(2026, 8, 28, 15, 0, 0);          // the board's clock: Mon 2026-09-28 11:00 ET, the session is open
-const quote = { NQ: 30950.25, ES: 7810.75, stall: false };
+const quote = { NQ: 30950.25, MNQ: 30951, ES: 7810.75, MES: 7811.25, stall: false };
 let gexHits = 0;
 
 const browser = await chromium.launch();
@@ -95,11 +96,35 @@ if (st.label !== "NQ" || /\./.test(st.value || "")) fails.push("stalled feed sti
 if (!/NQ feed 10m behind/.test(st.age)) fails.push("stall note wrong: " + st.age);
 quote.stall = false;
 
-await page.click('#gex-book button[data-b="ES"]');
+await page.click('#gex-book button[data-f="MNQ"]');
+await page.waitForFunction(() => document.querySelector("#gex-fut-fig .label")?.textContent === "MNQ live", null, { timeout: 20000 }).catch(() => fails.push("MNQ never went live"));
+st = await read(); note("MNQ: " + JSON.stringify(st));
+if (st.value !== "30,951.00" || !/30,951.00/.test(st.pin || "") || st.age !== "· MNQ live") fails.push("MNQ not on the MNQ quote " + JSON.stringify(st));
+if (st.cwDist !== dist(st.cwFut, 30951)) fails.push("MNQ ladder distance did not follow the MNQ quote");
+const seg = await page.evaluate(() => ({ on: [...document.querySelectorAll("#gex-book button.on")].map((b) => b.dataset.f), saved: localStorage.getItem("echelon-gex-fut"), book: localStorage.getItem("echelon-gex-book"), axis: document.getElementById("gex-table")?.textContent.includes("MNQ") }));
+note("switch: " + JSON.stringify(seg));
+if (seg.on.join() !== "MNQ" || seg.saved !== "MNQ" || seg.book !== "NQ") fails.push("MNQ switch state wrong " + JSON.stringify(seg));
+await page.screenshot({ path: `${OUT}/3-mnq.png` });
+
+await page.click('#gex-book button[data-f="ES"]');
 await page.waitForFunction(() => document.querySelector("#gex-fut-fig .label")?.textContent === "ES live", null, { timeout: 20000 }).catch(() => fails.push("ES never went live"));
 st = await read(); note("ES: " + JSON.stringify(st));
 if (st.value !== "7,810.75") fails.push("ES figure not on the ES quote " + st.value);
-await page.screenshot({ path: `${OUT}/3-es.png` });
+await page.screenshot({ path: `${OUT}/4-es.png` });
+
+await page.click('#gex-book button[data-f="MES"]');
+await page.waitForFunction(() => document.querySelector("#gex-fut-fig .label")?.textContent === "MES live", null, { timeout: 20000 }).catch(() => fails.push("MES never went live"));
+st = await read(); note("MES: " + JSON.stringify(st));
+if (st.value !== "7,811.25" || st.age !== "· MES live") fails.push("MES not on the MES quote " + JSON.stringify(st));
+await page.screenshot({ path: `${OUT}/5-mes.png` });
+// Today follows the contract: MES, on the ES book (levels in the thousands, not the tens of thousands)
+await page.evaluate(() => document.querySelector('.tab[data-view="overview"]').click());
+await page.waitForFunction(() => document.querySelector("#td-gex .td-gx-sym")?.textContent === "MES", null, { timeout: 15000 }).catch(() => fails.push("Today never named MES"));
+const td = await page.evaluate(() => ({ sym: document.querySelector("#td-gex .td-gx-sym")?.textContent, lv: [...document.querySelectorAll("#td-gex .td-gx-levels .v")].map((v) => +v.textContent.replace(/,/g, "")) }));
+note("Today: " + JSON.stringify(td));
+if (!td.lv.length || td.lv.some((v) => v < 3000 || v > 15000)) fails.push("Today levels are not ES-scale under MES " + JSON.stringify(td));
+await page.screenshot({ path: `${OUT}/6-today-mes.png` });
+await page.evaluate(() => document.querySelector('.tab[data-view="gex"]').click());
 
 // the minute print poll: within ~65 s of the session the board asks for gex.json again
 const before = gexHits;

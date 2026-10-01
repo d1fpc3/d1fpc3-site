@@ -80,7 +80,7 @@ async function run(vpName) {
     // the vol side (worker /vol.json): direction pill, VXN with its change, the session 1 sd in points
     await page.waitForFunction(() => !!document.querySelector("#ch-legend .gx-vol"), null, { timeout: 15000 }).catch(() => {});
     const vol = await page.evaluate(() => { const r = document.querySelector('#ch-legend .ln[data-ind="gex"]'); const p = r?.querySelector(".gx-vol"); return p ? { k: p.dataset.k, text: r.textContent, title: r.getAttribute("title"), bg: getComputedStyle(p).backgroundColor } : null; });
-    check(!!vol && /Vol (rising|falling|steady)/.test(vol.text) && /VXN\s?\d+\.\d\d/.test(vol.text) && /1σ\s?±[\d,]+/.test(vol.text), `vol read: ${vol ? vol.text.replace(/^.*?(Vol)/, "$1").slice(0, 60) : "missing"}`);
+    check(!!vol && /Vol (rising|falling|steady)/.test(vol.text) && (/^M?ES$/.test(SYM) ? /VIX\s?\d+\.\d\d/ : /VXN\s?\d+\.\d\d/).test(vol.text) && /1σ\s?±[\d,]+/.test(vol.text), `vol read: ${vol ? vol.text.replace(/^.*?(Vol)/, "$1").slice(0, 60) : "missing"}`);
     check(!!vol && /Implied vol is (rising|falling|steady)/.test(vol.title) && /standard deviation for a session is about ±\d+ points/.test(vol.title), "hover explains the vol read");
     const lb = await page.locator('#ch-legend .ln[data-ind="gex"]').boundingBox();
     if (lb) await page.screenshot({ path: `${OUT}/${vpName}-${theme}-gex-legend.png`, clip: { x: lb.x - 6, y: lb.y - 30, width: Math.min(760, lb.width + 40), height: lb.height + 40 } });
