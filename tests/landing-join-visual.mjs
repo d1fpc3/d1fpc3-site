@@ -53,6 +53,16 @@ for (const tag of (process.env.ONLY || "desk,wide,iphone").split(",")) {
   await page.waitForFunction(() => [...document.querySelectorAll("#access .was i")].every((i) => !/[1-9][0-9.]*%/.test(getComputedStyle(i).clipPath)), null, { timeout: 5000 }).catch(() => {});
   const x = await page.evaluate(() => [...document.querySelectorAll("#access .was i")].map((i) => getComputedStyle(i).clipPath));
   ok(st.x.length === 2 && st.x.every((l) => l.over && l.tall > 8) && x.every((c) => !/[1-9][0-9.]*%/.test(c)), `[${tag}] the X is drawn over $500 once the card is in (${x.join(" | ")})`);
+  // what comes with it (D1, 9/30): the GEX line lands after the X, inside the card, on one line, before the button
+  await page.waitForTimeout(1200);
+  const plus = await page.evaluate(() => {
+    const p = document.getElementById("cta-plus"), c = document.querySelector("#access .cta"), b = document.querySelector("#access .cta [data-buy]");
+    const r = p.getBoundingClientRect(), cr = c.getBoundingClientRect(), br = b.getBoundingClientRect();
+    const rg = document.createRange(); rg.selectNodeContents(p.lastElementChild);
+    const lines = new Set([...rg.getClientRects()].filter((q) => q.width > 1).map((q) => Math.round(q.top / 4))).size;
+    return { text: p.textContent.replace(/\s+/g, " ").trim(), op: getComputedStyle(p).opacity, inside: r.left >= cr.left && r.right <= cr.right, above: r.bottom < br.top, lines };
+  });
+  ok(plus.text === "Comes with the GEX indicator for TradingView" && plus.op === "1" && plus.inside && plus.above && plus.lines === 1, `[${tag}] the card says GEX comes with it: "${plus.text}" (opacity ${plus.op}, ${plus.lines} line, in the card ${plus.inside}, above Join ${plus.above})`);
   const chip = page.locator("#access .code-copy");
   if (tag === "iphone") await chip.tap(); else await chip.click();
   await page.waitForTimeout(250);
@@ -66,6 +76,8 @@ for (const tag of (process.env.ONLY || "desk,wide,iphone").split(",")) {
   await page.waitForTimeout(1200);
   const pr = await page.evaluate(() => ({ url: location.pathname, price: document.querySelector("#course .price")?.textContent.trim(), was: document.querySelector("#course .was")?.textContent.trim(), btn: document.getElementById("buy-course")?.textContent.trim() }));
   ok(pr.url === "/pricing/" && pr.price === "$400" && /\$500/.test(pr.was) && /^Join Echelon/.test(pr.btn), `[${tag}] Join lands on the pricing page: ${pr.was} crossed, Echelon ${pr.price}, "${pr.btn}"`);
+  const gx = await page.evaluate(() => ({ gets: document.getElementById("gets-gex")?.textContent.replace(/\s+/g, " ").trim() || "", sub: document.querySelector("#gex-card .sub")?.textContent.trim(), faq: [...document.querySelectorAll(".faq summary")].map((s) => s.textContent.trim()) }));
+  ok(/^The D1 GEX indicatorIncluded/.test(gx.gets) && gx.sub === "Included with Echelon · or on its own" && gx.faq.includes("Does Echelon come with GEX?"), `[${tag}] the pricing page says GEX is included: "${gx.gets.slice(0, 60)}", card "${gx.sub}", FAQ asked`);
   const use = page.locator("#use-d1");
   if (tag === "iphone") await use.tap(); else await use.click();
   await page.waitForTimeout(300);

@@ -51,8 +51,11 @@ test('states the discretionary teaching philosophy in the lead FAQ', () => {
   assert.ok(html.includes("I don't teach a mechanical model. I teach discretionary concepts that help you see NQ clearly. I don't believe price can be reduced to rigid rules; context and judgment matter, and discretionary interpretation is the better way to read the market."));
 });
 
-test('does not promise GEX inside the course purchase', () => {
-  assert.match(html, /The GEX board sits in there too, for its subscribers\./);
+test('the purchase comes with the GEX indicator (D1, 9/30)', () => {
+  assert.match(text, /at checkout\s*Comes with the GEX indicator for TradingView\s*Join Echelon/, 'said on the price card, between the code and the button');
+  assert.match(html, /The GEX indicator for TradingView comes with it too, along with the live GEX board in the app\./, 'and in "What exactly do I get?"');
+  assert.match(html, /On TradingView\. Included with Echelon, or on its own\./, 'the GEX section says members have it');
+  assert.doesNotMatch(html, /for its subscribers|No membership needed/, 'the old "GEX is extra" lines are gone');
 });
 
 test('one price on the landing, the rest on /pricing/, and the terms intact', () => {

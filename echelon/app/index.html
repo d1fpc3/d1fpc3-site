@@ -10306,10 +10306,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         onbFoot(card, null, null, 'Skip the questions')
         host.appendChild(card); return
       }
-      // Last: the included indicator only needs a TradingView username.
-      if (tvRowFor('d1-lit')?.tv_username || !state.owned.has('d1-lit')) return finishOnboarding('Good to know you. Welcome in.')
-      const card = onbCard(i, 'One last thing', 'D1 LIT is included.',
-        'Echelon comes with the D1 LIT indicator on TradingView. Drop your TradingView username and it gets added to your account, usually within the hour.')
+      // Last: the included indicators (LIT, and GEX since 9/30) only need a TradingView username.
+      const onbInds = ['d1-lit', 'd1-gex'].filter((p) => state.owned.has(p) && !tvRowFor(p)?.tv_username)
+      if (!onbInds.length) return finishOnboarding('Good to know you. Welcome in.')
+      const both = onbInds.length > 1, one = onbInds[0] === 'd1-gex' ? 'D1 GEX' : 'D1 LIT'
+      const card = onbCard(i, 'One last thing', both ? 'D1 LIT and D1 GEX are included.' : `${one} is included.`,
+        both ? 'Echelon comes with the D1 LIT and D1 GEX indicators on TradingView. Drop your TradingView username and both get added to your account, usually within the hour.'
+          : `Echelon comes with the ${one} indicator on TradingView. Drop your TradingView username and it gets added to your account, usually within the hour.`)
       const form = document.createElement('div'); form.className = 'onb-tv'
       const input = document.createElement('input'); input.className = 'inp'; input.type = 'text'
       input.autocomplete = 'off'; input.spellcheck = false; input.placeholder = 'your TradingView username'
@@ -10338,7 +10341,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       { view: 'chat', t: 'Chat', b: 'Announcements from d1, the general chat, wins, trade ideas and direct messages.', tip: "Say hi in general. Tap anyone's name to message them." },
       { view: 'course', t: 'Study', b: 'The lessons, in order, with homework where it matters. It remembers where you left off.', tip: 'Start at lesson one, even if you have traded for years. Everything after it builds on it.' },
       { view: 'journal', t: 'Journal', b: 'A page a day. Write up the session and drop your chart in; it saves as you type.', tip: 'Two honest lines a day beat a perfect page once a week.' },
-      { view: 'indicators', t: 'Indicators', b: 'D1 LIT comes with your membership. Add your TradingView username once and it lands on your TradingView account, usually within the hour.' },
+      { view: 'indicators', t: 'Indicators', b: 'D1 LIT and D1 GEX come with your membership. Add your TradingView username once and both land on your TradingView account, usually within the hour.' },
       { view: 'propfirms', t: 'Prop firms', b: 'The main prop firms side by side at every account size, with the discount codes.' },
       { id: 'discord-link', t: 'Discord', b: 'The Echelon Discord server. Connect your Discord in Settings and your member role comes with you.' },
       { id: 'tb-search', t: 'Search', b: 'Jump to any page, lesson or member from anywhere.', tip: 'On a keyboard: Ctrl K.' },
@@ -22001,7 +22004,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (owned) {
           const own = document.createElement('div'); own.className = 'p-own'
           own.innerHTML = checkIcon
-          const included = p.key === 'd1-lit' && (state.owned.has('course') || state.isMod || state.isAdmin)
+          const included = (p.key === 'd1-lit' || p.key === 'd1-gex') && (state.owned.has('course') || state.isMod || state.isAdmin)
           const span = document.createElement('span'); span.textContent = p.kind === 'bundle' ? 'You own both' : included ? 'Included with Echelon' : 'You own this'
           own.appendChild(span); card.appendChild(own)
 
@@ -22056,9 +22059,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const input = el('tv-username')
         if (document.activeElement !== input) input.value = knownTvUsername()
       }
-      // Overview nudge until the included LIT has a username to go to.
+      // Overview nudge until the indicators that come with the membership (LIT, and GEX since 9/30) have a username to go to.
       const ovLit = el('ov-lit')
-      if (ovLit) ovLit.hidden = !(state.owned.has('d1-lit') && tvRowFor('d1-lit')?.state === 'needs_username')
+      const tvWait = ['d1-gex', 'd1-lit'].filter((p) => state.owned.has(p) && tvRowFor(p)?.state === 'needs_username')
+      if (ovLit) {
+        ovLit.hidden = !tvWait.length
+        if (tvWait.length) ovLit.firstChild.textContent = (tvWait.length > 1 ? 'D1 GEX and D1 LIT are' : tvWait[0] === 'd1-gex' ? 'D1 GEX is' : 'D1 LIT is') + ' on your account. '
+      }
     }
 
     function starsNode(rating, cls = '') {

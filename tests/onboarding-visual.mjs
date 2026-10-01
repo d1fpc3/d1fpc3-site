@@ -84,7 +84,8 @@ await sql(`update member_onboarding o set completed_at = null, answers = '{}'::j
     await page.click("#onb-host .choice >> nth=1");
   }
   await page.waitForTimeout(250);
-  if (!/D1 LIT is included/.test(await text())) fails.push("LIT username step missing: " + (await text()));
+  // the account holds LIT and GEX through the membership (9/30), so the step names both
+  if (!/D1 LIT and D1 GEX are included/.test(await text())) fails.push("indicator username step missing: " + (await text()));
   await shot("04-lit-username");
   await page.click("#onb-host .skip");
   await page.waitForTimeout(700);
@@ -92,17 +93,20 @@ await sql(`update member_onboarding o set completed_at = null, answers = '{}'::j
   const row = (await sql(`select o.answers, o.completed_at from member_onboarding o join auth.users u on u.id = o.user_id where u.email = '${q(email)}'`))[0];
   if (!row?.completed_at) fails.push("completed_at not persisted");
   if (Object.keys(row?.answers ?? {}).length !== 5) fails.push("answers not persisted: " + JSON.stringify(row?.answers));
-  // Overview nudge for the included LIT (this account has no TV username yet)
+  // Overview nudge for the included indicators (this account has no TV username yet)
   const nudge = await page.locator("#ov-lit").isVisible();
-  // the nudge only applies while the LIT row is waiting for a username; a revoked or granted row hides it on purpose
-  const litState = (await sql(`select state from tv_access where lower(email) = '${q(email.toLowerCase())}' and product = 'd1-lit' limit 1`))[0]?.state;
-  if (litState === "needs_username" && !nudge) fails.push("Overview LIT nudge hidden");
-  if (litState !== "needs_username" && nudge) fails.push("Overview LIT nudge showing for a " + litState + " row");
+  const nudgeText = nudge ? (await page.textContent("#ov-lit")).replace(/\s+/g, " ").trim() : "";
+  // the nudge only applies while a LIT or GEX row is waiting for a username; a revoked or granted row hides it on purpose
+  const waiting = (await sql(`select product from tv_access where lower(email) = '${q(email.toLowerCase())}' and product in ('d1-lit', 'd1-gex') and state = 'needs_username' order by product`)).map((r) => r.product);
+  const want = waiting.length > 1 ? "D1 GEX and D1 LIT are" : waiting[0] === "d1-gex" ? "D1 GEX is" : "D1 LIT is";
+  if (waiting.length && !nudgeText.startsWith(want + " on your account")) fails.push(`Overview nudge for ${waiting.join(", ")}: "${nudgeText}"`);
+  if (!waiting.length && nudge) fails.push("Overview nudge showing with nothing waiting");
+  console.log(`  nudge for [${waiting.join(", ")}]: "${nudgeText}"`);
   await shot("05-overview-nudge");
   await page.evaluate(() => document.querySelector('.tab[data-view="indicators"]').click());
   await page.waitForTimeout(500);
   const included = await page.locator(".p-own", { hasText: /Included with (Echelon|your membership)/ }).count();
-  if (!included) fails.push("LIT card does not say included");
+  if (included < 2) fails.push(`LIT and GEX cards do not both say included (${included})`);
   const bundle = await page.locator(".st-row:not(.owned) h3", { hasText: /bundle/i }).count();
   if (bundle) fails.push("bundle card still offered to a LIT holder");
   await shot("06-indicators");
@@ -118,5 +122,6 @@ await sql(`update member_onboarding o set completed_at = null, answers = '{}'::j
 // (Part 2 tested the GEX walkthrough. That walkthrough was retired on 2026-09-10, and the test
 // cleared a flag on the real owner account to run, so it is gone. Never edit the owner's rows here.)
 
+await browser.close(); // without it the run prints ok and then never exits
 if (fails.length) { console.error("FAIL\n - " + fails.join("\n - ")); process.exit(1); }
 console.log(`ok · shots in ${OUT}`);
