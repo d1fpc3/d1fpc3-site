@@ -30,6 +30,14 @@
 //   { gex_alerts: true } pg_cron every minute on weekdays: each member's custom
 //                        GEX alerts (gex_alerts rows), pushed on the edge.
 //                        { test_user } evaluates one member off-hours.
+//   { bias_poll: id }    bias_poll_post at 9:15 New York — "Bias today?" to every
+//                        member with alerts.bias on (absent = on).
+//   { live_check }       live_kick every 5 min — a live session 15 minutes out,
+//                        and at its start, once each (live_reminders), alerts.live.
+//   { study_check }      Wednesday evening — members behind the weekly pace they
+//                        set on Today, or stalled a week with no plan (once a
+//                        fortnight), alerts.study. { dry: true } on these three
+//                        counts and drafts without sending.
 //
 // Delivery: APNs for the iOS shell (push_tokens) and Web Push for browsers /
 // the PWA (push_subscriptions, VAPID). Dead endpoints are pruned.
@@ -194,12 +202,42 @@ const BOOKS = { nq: { fut: 'NQ', q: '', live: 'CME_MINI:NQ1!', vix: 'VXN' }, es:
 type Book = keyof typeof BOOKS
 const gexBoard = (b: Book) => fetch(`https://gex-worker.d1fpc3.workers.dev/gex.json${BOOKS[b].q}`, { headers: { 'cache-control': 'no-store' } })
 
+// ── the engagement loop (2026-10-01): who counts as a member, and the New York week ──
+// members = an active course plus the mods (staff read and post like members); the owner and admins are left out
+// of member pushes because they are the ones posting
+async function memberIds(opts: { staff?: boolean } = {}): Promise<string[]> {
+  const [{ data: ents }, { data: mods }, { data: admins }] = await Promise.all([
+    admin.from('entitlements').select('user_id').eq('product', 'course').eq('status', 'active').not('user_id', 'is', null),
+    admin.from('mods').select('user_id'),
+    admin.from('admins').select('user_id'),
+  ])
+  const owners = new Set((admins ?? []).map((r) => r.user_id as string))
+  const ids = new Set<string>((ents ?? []).map((r) => r.user_id as string))
+  if (opts.staff !== false) for (const r of mods ?? []) ids.add(r.user_id as string)
+  return [...ids].filter((id) => !owners.has(id))
+}
+// Monday 00:00 New York of the current week, as a UTC instant
+function nyWeekStart(now = new Date()): Date {
+  const p: Record<string, string> = {}
+  for (const x of new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short', hour: '2-digit', minute: '2-digit' }).formatToParts(now)) p[x.type] = x.value
+  const wd = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(p.weekday)
+  const nyMidnightAsUtc = Date.UTC(+p.year, +p.month - 1, +p.day)          // NY calendar day, as if it were UTC
+  const offset = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute) - Math.floor(now.getTime() / 60000) * 60000
+  return new Date(nyMidnightAsUtc - wd * 86400000 - offset)
+}
+// the next time a live session happens (mirrors public.live_next_at)
+function liveNextAt(s: { starts_at: string; duration_min: number; repeat_weekly: boolean }, now = Date.now()): number {
+  const t = Date.parse(s.starts_at), end = t + s.duration_min * 60000
+  if (!s.repeat_weekly || end > now) return t
+  return t + 7 * 86400000 * Math.ceil((now - end) / (7 * 86400000))
+}
+
 Deno.serve(async (req) => {
   const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'content-type': 'application/json' } })
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
   if (!WEBHOOK_SECRET || req.headers.get('x-webhook-secret') !== WEBHOOK_SECRET) return json({ error: 'unauthorized' }, 401)
 
-  let body: { kalshi?: { title?: string; body?: string; path?: string }; message_id?: string; notification_id?: string; gex_sheet?: boolean; gex_refresh?: string | boolean; news_check?: boolean; sweep_check?: boolean; seed?: boolean; gex_alerts?: boolean; test_user?: string } = {}
+  let body: { kalshi?: { title?: string; body?: string; path?: string }; message_id?: string; notification_id?: string; gex_sheet?: boolean; gex_refresh?: string | boolean; news_check?: boolean; sweep_check?: boolean; seed?: boolean; gex_alerts?: boolean; test_user?: string; bias_poll?: string; live_check?: boolean; study_check?: boolean; dry?: boolean } = {}
   try { body = await req.json() } catch { return json({ error: 'bad json' }, 400) }
 
   // ── a like / comment / follow ────────────────────────────────────
@@ -620,6 +658,90 @@ Deno.serve(async (req) => {
     return json({ ...out, errors: ERRORS.splice(0, 5) })
   }
 
+  // ── the daily bias poll (bias_poll_post, 9:15 New York) ───────────
+  // Its own push and switch (alerts.bias, absent = on): General chat pushes are off by default, and this one is the
+  // reason to open the app before the bell. { dry: true } counts the targets without sending.
+  if (body.bias_poll) {
+    const { data: m } = await admin.from('messages').select('id, user_id, poll, deleted_at').eq('id', body.bias_poll).maybeSingle()
+    if (!m || m.deleted_at || (m.poll as { kind?: string } | null)?.kind !== 'bias') return json({ ok: true, skipped: 'not a bias poll' })
+    const ids = (await memberIds()).filter((id) => id !== m.user_id)
+    const pref = await prefsFor(ids)
+    const targets = ids.filter((id) => (pref(id).alerts ?? {}).bias !== false)
+    if (body.dry) return json({ ok: true, kind: 'bias', dry: true, members: ids.length, targets: targets.length })
+    const r = await deliver(targets, 'Bias today?', 'Long, short or flat? One tap on Today, then see how everyone leans.', `${APP_PATH}?start=today`)
+    return json({ ok: true, kind: 'bias', targets: targets.length, ...r, errors: ERRORS.splice(0, 5) })
+  }
+
+  // ── live sessions: 15 minutes out, and at the start (live_kick every 5 minutes) ──
+  if (body.live_check) {
+    const now = Date.now()
+    const { data: rows } = await admin.from('live_sessions').select('id, title, starts_at, duration_min, repeat_weekly').is('canceled_at', null)
+    const out: unknown[] = []
+    for (const s of rows ?? []) {
+      const at = liveNextAt(s, now), mins = (at - now) / 60000
+      const kind = mins > 0 && mins <= 20 ? 'soon' : mins <= 0 && mins > -10 ? 'now' : null
+      if (!kind) continue
+      // once per occurrence and kind: the primary key refuses a second send
+      if (!body.dry) {
+        const { error } = await admin.from('live_reminders').insert({ session_id: s.id, occurs_at: new Date(at).toISOString(), kind })
+        if (error) { out.push({ id: s.id, kind, skipped: 'already sent' }); continue }
+      }
+      const ids = await memberIds()
+      const pref = await prefsFor(ids)
+      const targets = ids.filter((id) => (pref(id).alerts ?? {}).live !== false)
+      const hm = new Date(at).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
+      const title = kind === 'soon' ? `Live at ${hm} ET · ${s.title}` : `Live now · ${s.title}`
+      const text = kind === 'soon' ? `Starts in ${Math.max(1, Math.round(mins))} minutes. Tap to open it in Echelon.` : 'It just started. Tap to join from Echelon.'
+      if (body.dry) { out.push({ id: s.id, kind, targets: targets.length, title, text }); continue }
+      if (targets.length) await admin.from('notifications').insert(targets.map((uid) => ({ user_id: uid, kind: 'system', body: `${title}. ${text}`.slice(0, 1000) })))
+      const r = await deliver(targets, title.slice(0, 80), text, `${APP_PATH}?start=live`)
+      out.push({ id: s.id, kind, targets: targets.length, ...r })
+    }
+    return json({ ok: true, kind: 'live', sessions: rows?.length ?? 0, out, errors: ERRORS.splice(0, 5) })
+  }
+
+  // ── study plan: Wednesday evening, to members behind the weekly pace they picked (member_onboarding.flags.study)
+  // and, at most once a fortnight, to members with no plan who have not finished a lesson in a week ──
+  if (body.study_check) {
+    const ids = await memberIds({ staff: false })
+    if (!ids.length) return json({ ok: true, skipped: 'no members' })
+    const weekStart = nyWeekStart()
+    const [{ data: onb }, { data: prog }, { data: mods }, { data: lessons }, pref] = await Promise.all([
+      admin.from('member_onboarding').select('user_id, flags').in('user_id', ids),
+      admin.from('progress').select('user_id, completed_at').in('user_id', ids).not('completed_at', 'is', null),
+      admin.from('modules').select('id').eq('is_published', true),
+      admin.from('lessons').select('id, module_id').eq('is_published', true),
+      prefsFor(ids),
+    ])
+    const modIds = new Set((mods ?? []).map((m) => m.id))
+    const total = (lessons ?? []).filter((l) => modIds.has(l.module_id)).length
+    const flags = new Map((onb ?? []).map((o) => [o.user_id as string, (o.flags ?? {}) as { study?: { pace?: number } }]))
+    const fortnight = new Date(Date.now() - 13 * 86400000).toISOString()
+    const { data: recent } = await admin.from('notifications').select('user_id').eq('kind', 'system').gte('created_at', fortnight).ilike('body', 'Study plan%')
+    const nudged = new Set((recent ?? []).map((r) => r.user_id as string))
+    const sends: { uid: string; title: string; text: string }[] = []
+    for (const uid of ids) {
+      if ((pref(uid).alerts ?? {}).study === false) continue
+      const mine = (prog ?? []).filter((p) => p.user_id === uid)
+      if (total && mine.length >= total) continue                      // finished the course
+      const week = mine.filter((p) => Date.parse(p.completed_at as string) >= weekStart.getTime()).length
+      const last = Math.max(0, ...mine.map((p) => Date.parse(p.completed_at as string)))
+      const pace = Number(flags.get(uid)?.study?.pace) || 0
+      if (pace > 0) {
+        if (week >= pace) continue
+        const left = pace - week
+        sends.push({ uid, title: `Study plan · ${week} of ${pace} this week`, text: `${left} more ${left === 1 ? 'lesson keeps' : 'lessons keep'} you on your plan by Sunday. Your next one is on Today.` })
+      } else if (!nudged.has(uid) && Date.now() - last > 7 * 86400000) {
+        sends.push({ uid, title: 'Study plan · pick a pace', text: mine.length ? 'Your next lesson is waiting on Today. Set 2, 3 or 5 a week and Echelon keeps you on it.' : 'Lesson one is on Today. Set 2, 3 or 5 lessons a week and Echelon keeps you on it.' })
+      }
+    }
+    if (body.dry) return json({ ok: true, kind: 'study', dry: true, members: ids.length, total, weekStart, sends: sends.map((s) => ({ title: s.title, text: s.text })) })
+    let sent = 0, devices = 0
+    if (sends.length) await admin.from('notifications').insert(sends.map((s) => ({ user_id: s.uid, kind: 'system', body: `${s.title}. ${s.text}`.slice(0, 1000) })))
+    for (const s of sends) { const r = await deliver([s.uid], s.title, s.text, `${APP_PATH}?start=study`); sent += r.sent; devices += r.devices }
+    return json({ ok: true, kind: 'study', members: ids.length, targets: sends.length, sent, devices, errors: ERRORS.splice(0, 5) })
+  }
+
   // ── a chat message ────────────────────────────────────────────────
   // ── Kalshi bot: a trade on D1 own account, pushed to the admins who own it ──────
   if (body.kalshi) {
@@ -633,9 +755,11 @@ Deno.serve(async (req) => {
   }
   if (!body.message_id) return json({ error: 'message_id, notification_id, gex_sheet or kalshi required' }, 400)
   const { data: m } = await admin.from('messages')
-    .select('id, user_id, channel_id, dm_id, body, image_url, deleted_at')
+    .select('id, user_id, channel_id, dm_id, body, image_url, deleted_at, poll')
     .eq('id', body.message_id).maybeSingle()
   if (!m || m.deleted_at) return json({ ok: true, skipped: 'no such message' })
+  // the daily bias poll has its own push (bias_poll above), so chat-on members do not get it twice
+  if ((m.poll as { kind?: string } | null)?.kind === 'bias') return json({ ok: true, skipped: 'bias poll pushes on its own' })
 
   const { data: senderProfile } = await admin.from('profiles').select('username').eq('user_id', m.user_id).maybeSingle()
   const who = senderProfile?.username ?? 'A member'

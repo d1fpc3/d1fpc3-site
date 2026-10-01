@@ -489,6 +489,8 @@
 
     /* quiet row actions: text-only until hovered, the danger one goes red */
     .ract { display: inline-flex; gap: 2px; align-items: center; justify-content: flex-end; white-space: nowrap; }
+    .live-wk { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); color: var(--ink); font-size: 13.5px; white-space: nowrap; cursor: pointer; }
+    .live-wk input { width: 16px; height: 16px; accent-color: var(--gold, #c9a24a); }
     .ract .rowbtn { background: none; border-color: transparent; color: var(--faint); padding: 5px 8px; }
     .ract .rowbtn:hover:not(:disabled) { background: var(--panel-2); border-color: transparent; color: var(--ink); }
     .ract .rowbtn.danger:hover:not(:disabled) { color: var(--bad); }
@@ -2416,6 +2418,23 @@
         <!-- MONEY -->
         <!-- COMMUNITY: channels + moderators -->
         <section class="view" id="v-community">
+          <div class="block" id="live-block">
+            <div class="block-head"><h3>Live sessions</h3><span class="label" id="live-total"></span></div>
+            <p class="settings-note" style="margin:0 0 2px;">Members see the next one on Today with a countdown and Add to calendar. A push goes out 15 minutes before and when it starts, and the Sunday email names it. The join link shows in the app from 15 minutes before. Times are New York.</p>
+            <div class="field-row">
+              <input class="inp" id="live-title" placeholder="Title, e.g. Week-ahead levels" maxlength="80" style="flex:2;">
+              <input class="inp" id="live-when" type="datetime-local" aria-label="Starts, New York time">
+              <select class="inp" id="live-dur" aria-label="Length"><option value="30">30 min</option><option value="45">45 min</option><option value="60" selected>1 hour</option><option value="90">90 min</option><option value="120">2 hours</option></select>
+            </div>
+            <div class="field-row">
+              <input class="inp" id="live-url" type="url" placeholder="Join link, https:// (Zoom, a Discord stage, YouTube)" style="flex:2;">
+              <label class="live-wk"><input type="checkbox" id="live-weekly"> Every week</label>
+              <button class="btn" id="live-save">Schedule</button>
+            </div>
+            <p class="msg" id="live-msg"></p>
+            <div class="tbl-scroll"><table id="live-table"></table></div>
+            <div class="empty" id="live-empty" hidden>Nothing scheduled. Members see no live card until there is.</div>
+          </div>
           <div class="block">
             <div class="block-head"><h3>Reports</h3><span class="label" id="rep-total"></span></div>
             <p class="settings-note" style="margin:0 0 2px;">What members flag from chat, posts, comments and profiles in the app. The app promises a look within 24 hours. Remove takes the content down; Resolve closes the report either way.</p>
@@ -3839,7 +3858,67 @@
       loadReports()
       loadApplications()
       loadAffiliates()
+      loadLive()
     }
+    // Live sessions (public.live_sessions, admin-writable by RLS). A weekly one rolls forward a week once it ends,
+    // the same rule the app and send-push use (live_next_at).
+    let cmLive = []
+    const liveNext = (s, now = Date.now()) => { const t = Date.parse(s.starts_at), end = t + s.duration_min * 60000; return !s.repeat_weekly || end > now ? t : t + 7 * 86400000 * Math.ceil((now - end) / (7 * 86400000)) }
+    // a datetime-local value read as New York wall time, whatever this browser's zone is
+    function nyToUtc(v) {
+      const [d, t] = v.split('T'); const [y, mo, da] = d.split('-').map(Number); const [h, mi] = t.split(':').map(Number)
+      const want = Date.UTC(y, mo - 1, da, h, mi); let guess = want
+      for (let k = 0; k < 2; k++) {
+        const p = {}; for (const x of new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(guess))) p[x.type] = x.value
+        guess += want - Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute)
+      }
+      return new Date(guess)
+    }
+    async function loadLive() {
+      const { data } = await supabase.from('live_sessions').select('*').is('canceled_at', null).order('starts_at')
+      cmLive = data ?? []
+      renderLive()
+    }
+    function renderLive() {
+      const now = Date.now()
+      const rows = cmLive.map((s) => ({ ...s, next: liveNext(s, now) })).filter((s) => s.repeat_weekly || s.next + s.duration_min * 60000 > now).sort((a, b) => a.next - b.next)
+      el('live-total').textContent = rows.length ? `${rows.length} scheduled` : ''
+      el('live-empty').hidden = rows.length > 0
+      table(el('live-table'), ['Session', 'Next (New York)', 'Repeats', 'Link', ''], rows, (s) => {
+        const tr = document.createElement('tr')
+        const t = document.createElement('td'); t.className = 'ink'; t.textContent = s.title; t.style.fontWeight = '600'; tr.appendChild(t)
+        tr.appendChild(cell(new Date(s.next).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ` · ${s.duration_min} min`))
+        tr.appendChild(cell(s.repeat_weekly ? 'Every week' : 'Once'))
+        tr.appendChild(cell(s.url ? s.url.replace(/^https:\/\//, '').slice(0, 40) : 'None yet'))
+        const act = document.createElement('td'), ra = document.createElement('span'); ra.className = 'ract'; act.appendChild(ra)
+        const cancel = document.createElement('button'); cancel.className = 'rowbtn danger'; cancel.type = 'button'; cancel.textContent = 'Cancel'
+        cancel.addEventListener('click', async () => {
+          const ok = await appleAlert({ title: `Cancel "${s.title}"?`, message: s.repeat_weekly ? 'Every future week goes too. Members stop seeing it on Today.' : 'Members stop seeing it on Today.', buttons: [{ label: 'Keep it', value: false, cancel: true }, { label: 'Cancel session', value: true, cls: 'strong danger', default: true }] })
+          if (!ok) return
+          const { error } = await supabase.from('live_sessions').update({ canceled_at: new Date().toISOString() }).eq('id', s.id)
+          if (error) { tell(error.message); return }
+          await loadLive()
+        })
+        ra.appendChild(cancel); tr.appendChild(act)
+        return tr
+      })
+    }
+    el('live-save').addEventListener('click', async () => {
+      const msg = el('live-msg'), title = el('live-title').value.trim(), when = el('live-when').value, url = el('live-url').value.trim()
+      const bad = (t) => { msg.className = 'msg err'; msg.textContent = t }
+      if (title.length < 2) return bad('Give it a title.')
+      if (!when) return bad('Pick a day and time (New York).')
+      if (url && !/^https:\/\//.test(url)) return bad('The join link has to start with https://')
+      const at = nyToUtc(when)
+      if (at.getTime() < Date.now() - 60000 && !el('live-weekly').checked) return bad('That time has passed.')
+      el('live-save').disabled = true; msg.className = 'msg'; msg.textContent = 'Scheduling…'
+      const { error } = await supabase.from('live_sessions').insert({ title, starts_at: at.toISOString(), duration_min: +el('live-dur').value, url: url || null, repeat_weekly: el('live-weekly').checked })
+      el('live-save').disabled = false
+      if (error) return bad(error.message)
+      msg.className = 'msg ok'; msg.textContent = `Scheduled for ${at.toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} New York.`
+      el('live-title').value = ''; el('live-url').value = ''
+      await loadLive()
+    })
     // Reports (App Review 1.2): content_reports, admin-readable by RLS. Remove soft-deletes a message or
     // comment and deletes a post, the same writes the app's own mod tools make; Resolve stamps the report.
     let cmReports = []

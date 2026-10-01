@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Echelon email</title>
+  <link rel="icon" href="/echelon-favicon.svg" type="image/svg+xml">
+  <style>
+    /* The footer link of every Echelon email lands here (2026-10-01). It turns that one email off through the
+       member-mail function, which answers in JSON because Supabase serves no HTML pages from functions. */
+    :root { --bg: #0b0a08; --card: #16130e; --line: #2a251c; --ink: #f2ede3; --muted: #a49c8c; --faint: #7d7566; --gold: #c9a24a; --gold-2: #e5c679; --good: #7fc08a; --bad: #ef6b64; }
+    @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #f6f3ec; --card: #fffdf8; --line: #e6dfd0; --ink: #1a1712; --muted: #6b6457; --faint: #8f8676; --gold: #a8842c; --gold-2: #8c6d22; --good: #3f8a4c; --bad: #c4453e; } }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg); color: var(--ink); font: 16px/1.55 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    main { width: 100%; max-width: 420px; padding: 34px 28px 30px; border-radius: 24px; background: var(--card); border: 1px solid var(--line); text-align: center; box-shadow: 0 40px 90px -50px rgba(0, 0, 0, 0.8); animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+    .mark { width: 52px; height: 52px; border-radius: 14px; display: block; margin: 0 auto; }
+    .st { position: relative; width: 44px; height: 44px; margin: 22px auto 0; border-radius: 50%; display: grid; place-items: center; }
+    .st svg { width: 22px; height: 22px; }
+    .st.wait { border: 2px solid var(--line); border-top-color: var(--gold); animation: spin 0.8s linear infinite; }
+    .st.ok { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); animation: pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+    .st.no { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); animation: pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pop { from { transform: scale(0.6); opacity: 0; } }
+    h1 { margin: 16px 0 6px; font-size: 22px; letter-spacing: -0.02em; line-height: 1.25; }
+    p { margin: 0 auto; max-width: 32ch; color: var(--muted); font-size: 15px; }
+    .go { display: inline-flex; align-items: center; gap: 6px; margin-top: 24px; height: 44px; padding: 0 22px; border-radius: 999px; background: var(--gold); color: #141109; font-weight: 650; font-size: 15px; text-decoration: none; transition: transform 0.15s ease, filter 0.2s ease; }
+    .go:hover { filter: brightness(1.06); }
+    .go:active { transform: scale(0.97); }
+    .alt { display: block; margin-top: 14px; color: var(--faint); font-size: 13.5px; }
+    .alt a { color: var(--muted); }
+    @media (prefers-reduced-motion: reduce) { main, .st.ok, .st.no { animation: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <img class="mark" src="/echelon/assets/logo-mark.png" alt="" width="52" height="52">
+    <div class="st wait" id="st" aria-hidden="true"></div>
+    <h1 id="h">Turning that email off</h1>
+    <p id="p">One moment.</p>
+    <a class="go" href="https://d1fpc3.com/echelon/app/">Open Echelon <span aria-hidden="true">&rarr;</span></a>
+    <span class="alt">Every email has its own switch in the app, under <a href="https://d1fpc3.com/echelon/app/?start=notifs">Settings, Notifications</a>.</span>
+  </main>
+  <script>
+    (function () {
+      var FN = 'https://cqdignbleethroyxxvzr.supabase.co/functions/v1/member-mail';
+      var u = new URLSearchParams(location.search).get('u') || '';
+      var st = document.getElementById('st'), h = document.getElementById('h'), p = document.getElementById('p');
+      var CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+      var CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+      function show(ok, kind) {
+        st.className = 'st ' + (ok ? 'ok' : 'no'); st.innerHTML = ok ? CHECK : CROSS;
+        h.textContent = ok ? 'Done. No more of these.' : 'That link did not work.';
+        p.textContent = ok ? ('You will not get the ' + (kind === 'nudge' ? 'study reminder' : 'weekly') + ' email again. Turn it back on any time in Settings, Notifications.')
+          : 'It may be old or cut short. You can switch every email on or off in the app.';
+      }
+      if (!/^[0-9a-f-]{36}\.(digest|nudge)\.[A-Za-z0-9_-]{20,}$/.test(u)) { show(false); return; }
+      fetch(FN + '?u=' + encodeURIComponent(u), { method: 'POST' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { show(!!j.ok, j.kind); })
+        .catch(function () { show(false); });
+    })();
+  </script>
+</body>
+</html>
