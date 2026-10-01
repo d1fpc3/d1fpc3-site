@@ -64,9 +64,11 @@ for (const tag of (process.env.ONLY || "desk,wide,iphone").split(",")) {
   });
   ok(plus.text === "Comes with the GEX indicator for TradingView" && plus.op === "1" && plus.inside && plus.above && plus.lines === 1, `[${tag}] the card says GEX comes with it: "${plus.text}" (opacity ${plus.op}, ${plus.lines} line, in the card ${plus.inside}, above Join ${plus.above})`);
   const chip = page.locator("#access .code-copy");
+  // "Copied" lives 1.6s after the clipboard answers; on a loaded machine a fixed 250ms wait missed it either side, so record it
+  await chip.evaluate((b) => { window.__copied = false; new MutationObserver(() => { if (b.classList.contains("is-done")) window.__copied = true; }).observe(b, { attributes: true, attributeFilter: ["class"] }); });
   if (tag === "iphone") await chip.tap(); else await chip.click();
-  await page.waitForTimeout(250);
-  ok(await chip.evaluate((b) => b.classList.contains("is-done")), `[${tag}] the D1 chip copies (shows Copied)`);
+  const copied = await page.waitForFunction(() => window.__copied, null, { timeout: 4000 }).then(() => true, () => false);
+  ok(copied, `[${tag}] the D1 chip copies (shows Copied)`);
   await page.screenshot({ path: `${OUT}/${tag} 1 the card.png` });
   // Join -> the pricing page and its checkout button (no session opened)
   const heroJoin = page.locator(".hero [data-buy]").first();
