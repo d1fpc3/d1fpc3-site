@@ -2564,7 +2564,7 @@
       // the metals halt drift (worker src/opendog.mjs metal1615no, metal1715yes): gold and silver, a fixed side one minute into the round
       const md = paper.filter((r) => ['metal1615no', 'metal1715yes', 'metal0530no', 'metal1700yes', 'pd0530no', 'pd1715yes'].includes(r.rule) && r.won != null), mdc = md.length ? md.reduce((t, r) => t + Number(r.pnl_c ?? 0), 0) / md.length : null
       const mm = String(sw?.metal_drift ?? 'paper').toLowerCase(), ml = live.filter((o) => String(o.tag ?? '').startsWith('drift:') && Number(o.filled) > 0 && o.pnl != null), mlp = ml.reduce((t, o) => t + Number(o.pnl), 0)
-      const mtl = mm === 'off' ? '' : ` Gold, silver and palladium drift, ${mm === 'live' ? 'live' : 'on paper'}: NO on the 5:30 and 16:15 New York rounds and YES on the 17:15 round, bought one minute in at the open-dog size (the 17:00 round and palladium on paper) (Aug-Sep +16c a leg over 317 legs; a 2026 regime, it has its own switch and its own -25% stop)${md.length ? `; paper ${fmt.format(md.length)} legs graded, ${mdc >= 0 ? '+' : ''}${mdc.toFixed(2)}c a leg` : '; no paper leg graded yet'}${ml.length ? `; live ${ml.length} settled, ${mlp >= 0 ? '+' : '-'}${Math.abs(mlp).toFixed(2)}` : ''}.`
+      const mtl = mm === 'off' ? '' : ` Gold, silver and palladium drift, ${mm === 'live' ? 'live' : 'on paper'}: NO on the 5:30 and 16:15 New York rounds and YES on the 17:15 round, bought one minute in at ${(100 * (Number(sw?.metal_drift_frac) > 0 ? Math.min(0.10, Math.max(0.01, Number(sw.metal_drift_frac))) : frac)).toFixed(0)}% of the account a round${Number(sw?.metal_drift_frac) > 0 ? '' : ' (the open-dog size)'} (the 17:00 round and palladium on paper) (Aug-Sep +16c a leg over 317 legs; a 2026 regime, it has its own switch and its own -25% stop)${md.length ? `; paper ${fmt.format(md.length)} legs graded, ${mdc >= 0 ? '+' : ''}${mdc.toFixed(2)}c a leg` : '; no paper leg graded yet'}${ml.length ? `; live ${ml.length} settled, ${mlp >= 0 ? '+' : '-'}${Math.abs(mlp).toFixed(2)}` : ''}.`
       el('rl-dog').textContent = head + pp + lv + '.' + bell.replace('(backtest +5.3c a leg)', `(backtest +5.3c a leg; ${(100 * bf).toFixed(0)}% of the account a morning, x1.5 calm, x0.5 busy)`) + wkd + idx + mtl
     }
     function renderSizing(sw, rt = [], equity = null) {
@@ -2810,7 +2810,7 @@
     async function loadStatus() {
       const et = (d) => new Date(d).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
       const [sw, st, h, rt] = await Promise.all([
-        q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price,risk_model,risk_segments,open_skip,tokyo_skip,sol_btc_skip,hourly_rule,hourly_frac,seg_off,polyus,open_dog,open_dog_frac,open_dog_bell,open_dog_bell_frac,metal_drift').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
+        q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price,risk_model,risk_segments,open_skip,tokyo_skip,sol_btc_skip,hourly_rule,hourly_frac,seg_off,polyus,open_dog,open_dog_frac,open_dog_bell,open_dog_bell_frac,metal_drift,metal_drift_frac').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
         q('kalshi_executor_state', (b) => b.select('at,halted,realized_today,cash,at_risk,equity').eq('id', 1)).then((r) => r[0] ?? null).catch(() => null),
         supabase.rpc('kalshi_edge_health_desk').then((r) => r.data ?? null).catch(() => null),
         q('kalshi_risk_table', (b) => b.select('segment,n,mean,fraction,computed_at,kelly_mult,cap')).catch(() => []),
