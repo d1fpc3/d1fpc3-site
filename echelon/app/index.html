@@ -2457,45 +2457,59 @@
     @media (prefers-reduced-motion: reduce) { #v-chart .ch-prail { animation: none; } }
 
 
-    /* ── Backtest (10/01): the HUD and ticket float on the chart like the replay dock; the page is cards like Today ── */
-    /* the panel docks right of the chart, so nothing covers the candles; the account card leads it */
-    #v-chart .bt-side { flex: none; width: 304px; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow-y: auto; border-left: 1px solid var(--line-bright); background: var(--panel); animation: bt-slide 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    /* ── Backtest (10/01, redone 10/02): a trading column docked right of the chart, the page is cards like Today ──
+       The chart keeps TradingView's true size on a big monitor; the column scales part of the way with the app (at 2560
+       the 13 px text read as fine print beside a 1.6x sidebar). Its changes are contained, so a number ticking in it
+       relayouts the column, not the page. */
+    #v-chart { --bt-z: calc(1 + (var(--ui) - 1) * 0.45); }
+    #v-chart .bt-side { flex: none; width: 316px; zoom: var(--bt-z); display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden; border-left: 1px solid var(--line-bright); background: var(--panel); contain: layout style; animation: bt-slide 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both; font-variant-numeric: tabular-nums; }
     #v-chart .bt-side[hidden] { display: none; }
     @keyframes bt-slide { from { opacity: 0; transform: translateX(14px); } }
     @keyframes bt-rise { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
-    #v-chart .bt-hud { display: grid; gap: 10px; padding: 12px; border-radius: 16px; background: linear-gradient(150deg, color-mix(in srgb, var(--gold) 10%, var(--panel-2)), var(--panel-2) 65%); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 22%, var(--line)); font-variant-numeric: tabular-nums; }
-    .bt-acct-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
-    .bt-hud .bt-day { margin-top: -4px; font-size: 12.5px; color: var(--muted); } .bt-acct-top .bt-clock { margin-left: auto; font-weight: 650; font-size: 13px; color: var(--ink); }
-    .bt-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-    .bt-nums > div { min-width: 0; } .bt-nums span { display: block; font-size: 11.5px; color: var(--muted); }
-    .bt-nums b { display: block; margin-top: 2px; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bt-nums b small { font-size: 11px; font-weight: 600; color: var(--muted); }
-    .bt-nums .up, .bt-hud .up { color: var(--good); } .bt-nums .dn, .bt-hud .dn { color: var(--bad); }
-    .bt-propbar { display: flex; align-items: center; gap: 8px; } .bt-propbar .bt-pr { flex: 1; width: auto; }
-    .bt-badge { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 8px; background: color-mix(in srgb, var(--gold) 16%, transparent); color: var(--gold); font-weight: 650; font-size: 12px; }
-    .bt-badge i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 24%, transparent); }
+    /* the account: who, when, how it is going */
+    #v-chart .bt-hud { display: grid; gap: 12px; padding: 14px 14px 12px; background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--gold) 11%, transparent), transparent 62%); border-bottom: 1px solid var(--line); }
+    #v-chart .bt-hud > * { min-width: 0; }   /* a grid item sizes to its content by default: "Date hidden until you finish" pushed the clock off the card */
+    .bt-acct-top { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+    .bt-acct-top .bt-clock { margin-left: auto; font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+    .bt-badge { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 8px; background: color-mix(in srgb, var(--gold) 15%, transparent); color: var(--gold); font-weight: 650; font-size: 12px; }
+    .bt-badge i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 22%, transparent); }
     #v-chart.bt-play .bt-badge i { animation: bt-blink 1.1s ease-in-out infinite; }
     @keyframes bt-blink { 50% { opacity: 0.35; } }
     .bt-sym { font-weight: 700; }
-    /* the contract, the day and the session tools ride the account card: another day is one tap, never a form */
-    .bt-symsel { position: relative; display: inline-flex; align-items: center; height: 26px; border-radius: 8px; background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow 0.15s ease; }
+    .bt-symsel { position: relative; display: inline-flex; align-items: center; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 5%, var(--panel)); box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow 0.15s ease; }
     @media (hover: hover) { .bt-symsel:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 50%, var(--line)); } }
     .bt-symsel select { -webkit-appearance: none; appearance: none; height: 100%; padding: 0 24px 0 9px; border: 0; border-radius: 8px; background: none; color: var(--ink); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
     .bt-symsel select:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
     .bt-symsel option { background: var(--panel); color: var(--ink); }
     .bt-symsel svg { position: absolute; right: 7px; width: 12px; height: 12px; color: var(--muted); pointer-events: none; }
-    .bt-dayrow { display: flex; align-items: center; gap: 8px; margin-top: -3px; }
-    #v-chart .bt-hud > * { min-width: 0; }   /* a grid item sizes to its content by default: "Date hidden until you finish" pushed the clock off the card */
-    .bt-hud .bt-dayrow .bt-day { flex: 1; min-width: 0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bt-dayrow { display: flex; align-items: center; gap: 8px; margin-top: -4px; }
+    .bt-hud .bt-dayrow .bt-day { flex: 1; min-width: 0; margin: 0; font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .bt-tools { display: inline-flex; gap: 2px; padding: 2px; border-radius: 10px; background: color-mix(in srgb, var(--ink) 6%, transparent); }
     .bt-tools button { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease; }
     .bt-tools button svg { width: 15px; height: 15px; }
     @media (hover: hover) { .bt-tools button:hover { background: var(--panel); color: var(--gold); } }
     .bt-tools button:active { transform: scale(0.88); }
+    .bt-acct { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .bt-acct span { display: block; font-size: 11.5px; color: var(--muted); }
+    .bt-acct b { display: block; margin-top: 1px; font-size: 22px; font-weight: 750; letter-spacing: -0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+    .bt-acct .bt-pl { text-align: right; }
+    .bt-hud .up { color: var(--good) !important; } .bt-hud .dn { color: var(--bad) !important; }
+    .bt-spark { display: block; width: 100%; height: 40px; overflow: visible; }
+    .bt-spark .z { stroke: color-mix(in srgb, var(--ink) 16%, transparent); stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
+    .bt-spark .l { fill: none; stroke: var(--good); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+    .bt-spark .f { fill: color-mix(in srgb, var(--good) 14%, transparent); }
+    .bt-spark .d { fill: var(--good); }
+    .bt-spark.dn .l { stroke: var(--bad); } .bt-spark.dn .f { fill: color-mix(in srgb, var(--bad) 14%, transparent); } .bt-spark.dn .d { fill: var(--bad); }
+    .bt-spark.none { display: flex; align-items: center; gap: 10px; height: 40px; color: var(--faint); font-size: 11.5px; }
+    .bt-spark.none i { flex: none; width: 48px; height: 1px; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--ink) 22%, transparent) 0 3px, transparent 3px 6px); }
+    .bt-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+    .bt-nums > div { min-width: 0; } .bt-nums span { display: block; font-size: 11px; color: var(--muted); }
+    .bt-nums b { display: block; margin-top: 1px; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bt-propbar { display: flex; align-items: center; gap: 8px; } .bt-propbar .bt-pr { flex: 1; width: auto; }
     /* loading a session: the chart dims under a small card instead of a form */
     #v-chart .bt-loading { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 40%, transparent); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: bt-fade 0.2s ease both; }
     #v-chart .bt-loading[hidden] { display: none; }
-    #v-chart .bt-loading > div { display: inline-flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line-bright); box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.6); color: var(--ink); font-size: 14px; font-weight: 600; animation: bt-rise 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    #v-chart .bt-loading > div { zoom: var(--bt-z); display: inline-flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line-bright); box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.6); color: var(--ink); font-size: 14px; font-weight: 600; animation: bt-rise 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
     #v-chart .bt-loading i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--gold) 25%, transparent); border-top-color: var(--gold); animation: bt-spin 0.8s linear infinite; }
     @keyframes bt-spin { to { transform: rotate(360deg); } }
     @keyframes bt-fade { from { opacity: 0; } }
@@ -2506,10 +2520,11 @@
     .bt-pr i { position: absolute; inset: 0 auto 0 0; width: var(--p); background: linear-gradient(90deg, var(--gold), color-mix(in srgb, var(--gold) 55%, #fff)); border-radius: inherit; transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
     .bt-st { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 12px; font-weight: 650; }
     .bt-st.ok { color: var(--good); background: color-mix(in srgb, var(--good) 15%, transparent); } .bt-st.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 15%, transparent); }
-    #v-chart .bt-ticket { display: grid; gap: 10px; }
+    /* the ticket */
+    #v-chart .bt-ticket { display: grid; gap: 10px; padding: 14px; border-bottom: 1px solid var(--line); }
     @media (min-width: 841px) { #v-chart .ch-bar > #ch-bt-btn.on { color: var(--gold); } }
     .bt-row1 { display: flex; align-items: center; gap: 10px; }
-    .bt-qty { display: inline-flex; align-items: center; height: 34px; border-radius: 10px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); }
+    .bt-qty { display: inline-flex; align-items: center; height: 34px; border-radius: 10px; background: color-mix(in srgb, var(--ink) 5%, var(--panel)); box-shadow: inset 0 0 0 1px var(--line); }
     .bt-qty button { width: 32px; height: 34px; border: 0; background: none; color: var(--ink); font-size: 17px; cursor: pointer; border-radius: 10px; }
     .bt-qty button:active { transform: scale(0.9); }
     .bt-qty b { min-width: 22px; text-align: center; font-size: 14px; font-variant-numeric: tabular-nums; }
@@ -2523,42 +2538,71 @@
     .bt-sw input:disabled + .track { opacity: 0.55; }
     .bt-bs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .bt-bs .bt-qty.ph { display: none; }
-    .bt-bs button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; height: 54px; padding: 0 14px; justify-content: center; border: 0; border-radius: 13px; cursor: pointer; font: inherit; color: #fff; transition: transform 0.12s ease, filter 0.2s ease, box-shadow 0.2s ease; }
-    .bt-bs button span { font-size: 12px; font-weight: 600; opacity: 0.9; }
-    .bt-bs button b { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-    .bt-sell { background: linear-gradient(160deg, #e0786b, #c2483d); box-shadow: 0 10px 24px -14px #c2483d; }
-    .bt-buy { background: linear-gradient(160deg, #5fbf86, #2f9a5f); box-shadow: 0 10px 24px -14px #2f9a5f; align-items: flex-end !important; }
-    @media (hover: hover) { .bt-bs button:hover { filter: brightness(1.07); } }
+    .bt-bs button { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; height: 58px; padding: 0 14px; justify-content: center; border: 0; border-radius: 14px; cursor: pointer; font: inherit; color: #fff; overflow: hidden; transition: transform 0.12s ease, filter 0.2s ease, box-shadow 0.2s ease; }
+    .bt-bs button::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 55%); pointer-events: none; }
+    .bt-bs button span { font-size: 12px; font-weight: 650; opacity: 0.92; }
+    .bt-bs button b { font-size: 18px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .bt-sell { background: linear-gradient(160deg, #e2796c, #bf4639); box-shadow: 0 12px 26px -16px #c2483d, inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+    .bt-buy { background: linear-gradient(160deg, #5cc488, #2b955a); box-shadow: 0 12px 26px -16px #2f9a5f, inset 0 0 0 1px rgba(255, 255, 255, 0.08); align-items: flex-end !important; }
+    @media (hover: hover) { .bt-bs button:hover { filter: brightness(1.08); } }
     .bt-bs button:active { transform: scale(0.97); }
     .bt-brkrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .bt-brkrow label { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 4px 0 10px; border-radius: 9px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); font-size: 12px; color: var(--muted); }
-    .bt-brkrow input { width: 48px; height: 26px; border: 0; background: none; color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+    .bt-brkrow label { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 4px 0 10px; border-radius: 9px; background: color-mix(in srgb, var(--ink) 5%, var(--panel)); box-shadow: inset 0 0 0 1px var(--line); font-size: 12px; color: var(--muted); }
+    .bt-brkrow label:focus-within { box-shadow: inset 0 0 0 1.5px var(--gold); }
+    .bt-brkrow input { width: 44px; height: 26px; border: 0; background: none; color: var(--ink); font: inherit; font-size: 13px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+    .bt-brkrow input:focus { outline: none; }
     .bt-brkrow input::-webkit-inner-spin-button { -webkit-appearance: none; }
     .bt-brkrow i { font-style: normal; font-size: 11px; color: var(--faint); padding-right: 6px; }
-    .bt-rr { font-size: 11.5px; color: var(--faint); }
-    .bt-pos { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--good) 9%, var(--panel-2)); box-shadow: inset 3px 0 0 var(--good); }
-    .bt-pos.short { background: color-mix(in srgb, var(--bad) 9%, var(--panel-2)); box-shadow: inset 3px 0 0 var(--bad); }
-    .bt-pos-l b, .bt-pos-r b { display: block; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .bt-rr { margin-left: auto; font-size: 11.5px; color: var(--faint); }
+    .bt-pos { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--good) 10%, var(--panel)); box-shadow: inset 3px 0 0 var(--good), inset 0 0 0 1px color-mix(in srgb, var(--good) 22%, transparent); }
+    .bt-pos.short { background: color-mix(in srgb, var(--bad) 10%, var(--panel)); box-shadow: inset 3px 0 0 var(--bad), inset 0 0 0 1px color-mix(in srgb, var(--bad) 22%, transparent); }
+    .bt-pos-l { min-width: 0; } .bt-pos-l b, .bt-pos-r b { display: block; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
     .bt-pos-l span, .bt-pos-r span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; font-variant-numeric: tabular-nums; }
     .bt-pos-r { text-align: right; } .bt-pos-r b.up, .bt-tc-res.up, .bt-s b.up, .bt-sg-c b.up, .bt-gr .up, .bt-tr b.up, .bt-rep-net.up, .bt-br b.up, .bt-mine b.up { color: var(--good); } .bt-pos-r b.dn, .bt-tc-res.dn, .bt-s b.dn, .bt-sg-c b.dn, .bt-gr .dn, .bt-tr b.dn, .bt-rep-net.dn, .bt-br b.dn, .bt-mine b.dn { color: var(--bad); }
     .bt-acts { display: flex; gap: 6px; }
     .bt-pclose { display: none; }
     #v-chart .bt-qty button { color: var(--ink); }
-    .bt-act { flex: 1; height: 32px; border: 0; border-radius: 9px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background 0.15s ease, transform 0.12s ease; }
-    .bt-act:hover { background: color-mix(in srgb, var(--ink) 8%, var(--panel-2)); } .bt-act:active { transform: scale(0.96); }
+    .bt-act { flex: 1; height: 32px; border: 0; border-radius: 9px; background: color-mix(in srgb, var(--ink) 5%, var(--panel)); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background 0.15s ease, transform 0.12s ease; }
+    .bt-act:hover { background: color-mix(in srgb, var(--ink) 10%, var(--panel)); } .bt-act:active { transform: scale(0.96); }
     .bt-act[data-a="close"] { color: var(--gold); }
     .bt-ords { display: grid; gap: 5px; }
-    .bt-ord { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 4px 0 10px; border-radius: 9px; background: var(--panel-2); font-size: 12px; }
+    .bt-ord { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 4px 0 10px; border-radius: 9px; background: color-mix(in srgb, var(--ink) 5%, var(--panel)); font-size: 12px; }
     .bt-ord span { flex: 1; color: var(--muted); } .bt-ord.b span::before, .bt-ord.s span::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 7px; background: var(--good); vertical-align: 1px; } .bt-ord.s span::before { background: var(--bad); }
     .bt-ord b { font-variant-numeric: tabular-nums; } .bt-ord button { width: 26px; height: 26px; border: 0; border-radius: 7px; background: none; color: var(--faint); font-size: 17px; cursor: pointer; } .bt-ord button:hover { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+    /* the session's trades fill the rest of the column, newest first; the shortcuts sit at its foot */
+    #v-chart .bt-log { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .bt-log-h { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 14px 6px; }
+    .bt-log-h b { font-size: 13px; font-weight: 700; } .bt-log-h span { font-size: 11.5px; color: var(--faint); }
+    .bt-log-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 8px 8px; overscroll-behavior: contain; }
+    .bt-lr { display: flex; align-items: center; gap: 10px; padding: 8px 8px; border-radius: 10px; animation: bt-row-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    .bt-lr + .bt-lr { box-shadow: 0 -1px 0 color-mix(in srgb, var(--line) 70%, transparent); }
+    @media (hover: hover) { .bt-lr:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); } }
+    @keyframes bt-row-in { from { opacity: 0; transform: translateY(-6px); } }
+    .bt-ls { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good); }
+    .bt-ls.s { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+    .bt-ls svg { width: 11px; height: 11px; fill: currentColor; }
+    .bt-lm { flex: 1; min-width: 0; } .bt-lm b { display: block; font-size: 13px; font-weight: 650; } .bt-lm span { display: block; margin-top: 1px; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bt-lv { flex: none; text-align: right; } .bt-lv b { display: block; font-size: 13.5px; font-weight: 700; } .bt-lv span { display: block; margin-top: 1px; font-size: 11.5px; color: var(--muted); }
+    .bt-lr.win .bt-lv b { color: var(--good); } .bt-lr.loss .bt-lv b { color: var(--bad); }
+    .bt-log-empty { display: grid; justify-items: center; gap: 6px; margin: 18px 10px; padding: 22px 16px; border-radius: 14px; border: 1px dashed color-mix(in srgb, var(--ink) 14%, transparent); text-align: center; }
+    .bt-log-empty svg { width: 26px; height: 26px; color: var(--gold); opacity: 0.85; }
+    .bt-log-empty b { font-size: 13px; } .bt-log-empty span { font-size: 12px; line-height: 1.5; color: var(--muted); max-width: 230px; }
+    .bt-keys { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 10px 14px 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--faint); }
+    .bt-keys span { display: inline-flex; align-items: center; gap: 4px; }
+    .bt-keys kbd, .bt-hint kbd { font: inherit; font-size: 10.5px; font-weight: 650; min-width: 18px; text-align: center; padding: 1px 5px; border-radius: 5px; background: color-mix(in srgb, var(--ink) 6%, var(--panel)); box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--ink) 14%, transparent), inset 0 0 0 1px var(--line); color: var(--muted); }
     .bt-hint { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--faint); }
-    .bt-hint kbd { font: inherit; font-size: 10.5px; font-weight: 650; padding: 1px 5px; border-radius: 5px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); }
     #v-chart.bt-on .ch-replay #ch-rp-back, #v-chart.bt-on .ch-replay #ch-rp-pick, #v-chart.bt-on .ch-replay .rp-div:first-of-type { display: none; }
     #v-chart.bt-on .ch-replay .rp-tag { color: var(--gold); }
     #v-chart.bt-on .ch-replay #ch-rp-exit { color: var(--gold); }
+    /* the replay dock and the legend change while it plays: kept to themselves */
+    #v-chart .ch-replay, #v-chart .ch-legend { contain: layout style; }
+    @media (min-width: 841px) { #v-chart .ch-replay { zoom: var(--bt-z); } }
 
-    #v-chart .bt-tagcard { position: absolute; left: 14px; bottom: 112px; z-index: 7; width: 340px; max-width: calc(100% - 28px); padding: 14px; border-radius: 18px; background: color-mix(in srgb, var(--panel) 96%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border: 1px solid var(--line-bright); box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.6); opacity: 0; transform: translateY(10px); transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    #v-chart .bt-tagcard { position: absolute; left: 14px; bottom: 112px; z-index: 7; width: 340px; max-width: calc(100% - 28px); zoom: var(--bt-z); padding: 14px; border-radius: 18px; background: color-mix(in srgb, var(--panel) 96%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border: 1px solid var(--line-bright); box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.6); opacity: 0; transform: translateY(10px); transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); contain: layout style; }
     #v-chart .bt-tagcard.in { opacity: 1; transform: none; }
+    #v-chart .bt-side > .bt-tagcard { position: static; zoom: 1; flex: none; width: auto; max-width: none; padding: 12px 14px 14px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: color-mix(in srgb, var(--gold) 6%, var(--panel)); box-shadow: inset 3px 0 0 var(--gold); -webkit-backdrop-filter: none; backdrop-filter: none; transform: translateY(-6px); }
+    #v-chart .bt-side > .bt-tagcard.in { transform: none; }
+    #v-chart .bt-side > .bt-tagcard .bt-chips button { height: 26px; padding: 0 10px; font-size: 11.5px; }
     .bt-tc-h { display: flex; align-items: baseline; gap: 10px; }
     .bt-tc-res { font-size: 20px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; } .bt-tc-res i { font-style: normal; font-size: 13px; font-weight: 650; margin-left: 4px; }
     .bt-tc-why { flex: 1; font-size: 12px; color: var(--muted); }
@@ -2572,22 +2616,22 @@
     .bt-tc-note { width: 100%; box-sizing: border-box; margin-top: 10px; height: 36px; padding: 0 12px; border-radius: 10px; border: 0; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); font: inherit; font-size: 13px; }
     .bt-tc-note:focus { outline: none; box-shadow: inset 0 0 0 1.5px var(--gold); }
 
-    /* phones: the ticket docks across the bottom above the replay dock, the HUD keeps balance and session */
+    /* phones: the ticket docks across the bottom above the replay dock; one line of account (contract, session, tools) */
     @media (max-width: 840px) {
       #v-chart .ch-bar > #ch-bt-btn { display: none; }
-      #v-chart .bt-side { position: absolute; left: 8px; right: 8px; bottom: 112px; z-index: 7; width: auto; max-height: 52%; padding: 8px; gap: 8px; border: 1px solid var(--line-bright); border-radius: 18px; background: color-mix(in srgb, var(--panel) 95%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.3); backdrop-filter: blur(16px) saturate(1.3); box-shadow: 0 20px 44px -22px rgba(0, 0, 0, 0.65); animation-name: bt-rise; }
-      #v-chart .bt-hud { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 12px; }
-      #v-chart .bt-hud .bt-day, #v-chart .bt-hud .bt-wide, #v-chart .bt-hud .bt-badge, #v-chart .bt-hud .bt-propbar, #v-chart .bt-hud .bt-clock, #v-chart .bt-hud .bt-nums > div:first-child { display: none; }
-      .bt-acct-top { flex: none; } #v-chart .bt-hud .bt-nums { order: 2; } #v-chart .bt-hud .bt-dayrow { order: 3; margin: 0; }
+      #v-chart .bt-side { position: absolute; left: 8px; right: 8px; bottom: 112px; z-index: 7; width: auto; max-height: 52%; padding: 8px; gap: 8px; overflow-y: auto; border: 1px solid var(--line-bright); border-radius: 18px; background: color-mix(in srgb, var(--panel) 95%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.3); backdrop-filter: blur(16px) saturate(1.3); box-shadow: 0 20px 44px -22px rgba(0, 0, 0, 0.65); animation-name: bt-rise; }
+      #v-chart .bt-hud { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 12px; border: 0; background: color-mix(in srgb, var(--ink) 4%, transparent); }
+      #v-chart .bt-hud .bt-day, #v-chart .bt-hud .bt-badge, #v-chart .bt-hud .bt-propbar, #v-chart .bt-hud .bt-clock, #v-chart .bt-hud .bt-eq, #v-chart .bt-hud .bt-spark, #v-chart .bt-hud .bt-nums, #v-chart .bt-log { display: none; }
+      .bt-acct-top { flex: none; } #v-chart .bt-hud .bt-acct { order: 2; display: block; margin-left: auto; } #v-chart .bt-hud .bt-dayrow { order: 3; margin: 0; }
+      .bt-acct .bt-pl { display: flex; align-items: baseline; gap: 6px; } .bt-acct .bt-pl span { font-size: 11.5px; } .bt-acct .bt-pl b { margin: 0; font-size: 14px; }
       .bt-tools button { width: 30px; height: 30px; }
-      .bt-nums { display: flex; gap: 14px; margin-left: auto; } .bt-nums > div { display: flex; align-items: baseline; gap: 5px; } .bt-nums span { font-size: 11.5px; } .bt-nums b { margin: 0; font-size: 13.5px; }
-      #v-chart .bt-ticket { gap: 8px; }
-      #v-chart .bt-ticket .bt-row1, #v-chart .bt-ticket .bt-brkrow, #v-chart .bt-ticket .bt-hint, #v-chart .bt-ticket [data-a="rev"], #v-chart .bt-ticket [data-a="be"] { display: none; }
+      #v-chart .bt-ticket { gap: 8px; padding: 0; border: 0; }
+      #v-chart .bt-ticket .bt-row1, #v-chart .bt-ticket .bt-brkrow, #v-chart .bt-ticket [data-a="rev"], #v-chart .bt-ticket [data-a="be"] { display: none; }
       .bt-bs { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; } .bt-bs .bt-qty.ph { display: inline-flex; height: 40px; }
       .bt-pos { padding: 6px 6px 6px 12px; } .bt-pos-l span { display: none; } .bt-pos-r { margin-left: auto; }
       #v-chart .bt-ticket .bt-acts { display: none; }
       .bt-pclose { display: block; height: 36px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--panel); box-shadow: inset 0 0 0 1px var(--line-bright); color: var(--gold); font: inherit; font-size: 13.5px; font-weight: 650; }
-      .bt-bs button { height: 48px; }
+      .bt-bs button { height: 48px; } .bt-bs button b { font-size: 16px; }
       #v-chart .bt-tagcard { left: 8px; right: 8px; width: auto; bottom: auto; top: 46px; }
     }
 
@@ -6701,7 +6745,7 @@
                 <div class="ch-scrim" id="ch-scrim" hidden></div>
                 <div class="ch-menu" id="ch-menu" hidden><div class="ch-menu-head"><span class="l"><button type="button" class="ch-back" id="ch-menu-back" aria-label="Back" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b id="ch-menu-title"></b></span><button type="button" id="ch-menu-close" aria-label="Close">&times;</button></div><div class="ch-menu-body" id="ch-menu-body"></div></div>
               </div>
-              <aside class="bt-side" id="bt-side" aria-label="Backtest" hidden><div class="bt-hud" id="bt-hud"></div><div class="bt-ticket" id="bt-ticket"></div></aside>
+              <aside class="bt-side" id="bt-side" aria-label="Backtest" hidden><div class="bt-hud" id="bt-hud"></div><div class="bt-ticket" id="bt-ticket"></div><div class="bt-log" id="bt-log"></div></aside>
             </div>
             <div class="ch-foot" id="ch-foot"><div class="ch-axl" id="ch-axl"><button type="button" data-range="1D">1D</button><button type="button" data-range="5D">5D</button><button type="button" data-range="1M">1M</button><button type="button" data-range="3M">3M</button><button type="button" data-range="1Y">1Y</button><button type="button" data-range="5Y">5Y</button><button type="button" data-range="ALL">All</button><i class="ch-fsep"></i><button type="button" id="ch-goto" title="Go to date (Alt+G)" aria-label="Go to date"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button></div><span class="ch-sp"></span><button class="ch-tz" id="ch-tz" type="button" title="Timezone"></button><i class="ch-fsep"></i><button type="button" class="ch-fb" id="ch-adj" title="Back-adjust the continuous contract for rollovers">ADJ</button><button type="button" class="ch-fb" id="ch-autobtn" title="Auto-fit the price scale">auto</button></div>
           </div>
@@ -16510,6 +16554,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        The chart's frame steps onto a whole device pixel and the canvas box is sized to whole pixels, so one canvas
        pixel is one screen pixel again. Cheap: it measures only when the stage has changed size or place. */
     function chSnapPx(cv) {
+      if (CH.replay.playing && CH.snapSig && !CH.snapDirty) return   // nothing moves while it plays; a resize says so
+      CH.snapDirty = false
       const st = cv.parentElement, wrap = cv.closest('.ch-wrap'); if (!st || !wrap) return
       const dpr = window.devicePixelRatio || 1, r = st.getBoundingClientRect(), sig = r.left + '|' + r.top + '|' + r.width + '|' + r.height + '|' + dpr
       if (CH.snapSig === sig) return
@@ -16527,6 +16573,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (cv.style.height !== H + 'px') cv.style.height = H + 'px'
       CH.snapSig = r2.left + '|' + r2.top + '|' + r2.width + '|' + r2.height + '|' + dpr
     }
+    { const st = el('ch-canvas')?.parentElement; if (st && 'ResizeObserver' in window) new ResizeObserver(() => { CH.snapDirty = true }).observe(st); addEventListener('resize', () => { CH.snapDirty = true }) }
     function chLayout() {
       const cv = el('ch-canvas'); const W = cv.clientWidth, H = cv.clientHeight
       const ax = W < 520 ? 60 : 78, tx = 24, plotH = H - tx
@@ -16625,7 +16672,24 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // a backtest line on top drops below the legend, so its label never sits on the legend's rows
       let padT = pad
       if (btTop) { const lg = el('ch-legend'), lh = lg && !lg.hidden ? lg.offsetTop + lg.offsetHeight + 16 : 0; if (lh && L.mainH > lh * 2.5) padT = Math.max(pad, lh * (hi - lo + pad) / (L.mainH - lh)) }
-      CH.pMin = lo - pad; CH.pMax = hi + padT
+      let tMin = lo - pad, tMax = hi + padT
+      // a phone's session panel covers the bottom of the chart: the frame fits the part above it
+      if (CH.bt && CH.btCoverY > L.mainH * 0.3 && CH.btCoverY < L.mainH) tMin = tMax - (tMax - tMin) * L.mainH / (CH.btCoverY - 6)
+      // in a session or a replay the frame holds while price stays inside it and glides to a new one (with headroom)
+      // when price leaves; re-fitting to every new tick shook every candle on screen, many times a second
+      if ((CH.bt || CH.replay.on) && CH.scaleAt && isFinite(CH.pMin) && CH.pMax > CH.pMin) {
+        const a = CH.pMin, b = CH.pMax, span = tMax - tMin
+        const fits = tMin >= a && tMax <= b && (b - a) <= span * 1.6   // the padded frame it needs (legend room included) is inside the one it has
+        const now = performance.now(), dt = Math.min(64, Math.max(0, now - CH.scaleAt)); CH.scaleAt = now
+        if (fits && !CH.scaleGlide) return
+        if (!fits) { const head = span * 0.05; CH.scaleTo = [tMin - head, tMax + head] }
+        const [gMin, gMax] = CH.scaleTo || [tMin, tMax], k = 1 - Math.exp(-dt / 55)
+        CH.pMin = a + (gMin - a) * k; CH.pMax = b + (gMax - b) * k
+        CH.scaleGlide = Math.abs(CH.pMin - gMin) > span * 0.003 || Math.abs(CH.pMax - gMax) > span * 0.003
+        if (CH.scaleGlide) chDraw(); else { CH.pMin = gMin; CH.pMax = gMax }
+        return
+      }
+      CH.pMin = tMin; CH.pMax = tMax; CH.scaleAt = performance.now(); CH.scaleGlide = false; CH.scaleTo = null
     }
 
     /* ── indicators ── */
@@ -18598,7 +18662,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.replay.on && !CH.replay.arm && CH.replay.cut != null && lastBar) {
         // where the tape stops: a hairline in the accent past the last bar and a soft glow fading into the hidden future
         const x = Math.round(chX(n - 1, L) + Math.max(3, CH.barW * 0.7)) + 0.5, acc = (/^#[0-9a-f]{6}$/i.test(CH.s.accentC || '') ? CH.s.accentC : T.gold)
-        if (x < L.plotW) { const g = ctx.createLinearGradient(x, 0, x + 56, 0); g.addColorStop(0, alpha(acc, 0.1)); g.addColorStop(1, alpha(acc, 0)); ctx.fillStyle = g; ctx.fillRect(x, 0, Math.min(56, L.plotW - x), L.plotH)
+        if (x < L.plotW) { const g = ctx.createLinearGradient(x, 0, x + 32, 0); g.addColorStop(0, alpha(acc, 0.06)); g.addColorStop(1, alpha(acc, 0)); ctx.fillStyle = g; ctx.fillRect(x, 0, Math.min(32, L.plotW - x), L.plotH)
           ctx.strokeStyle = alpha(acc, 0.55); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, L.plotH); ctx.stroke() }
       }
       // crosshair
@@ -21368,7 +21432,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (at._sig !== sig) { at._sig = sig; const day = chFmtDate(tc), tm = CH.tfSec >= 86400 ? '' : chFmtTime(tc), html = `<span>${day}</span>${tm ? `<b>${tm}</b>` : ''}`; if (at._h !== html) { at._h = html; at.innerHTML = html } }
         const tr = el('ch-rp-track'), pr = (chReplayProgress() * 100).toFixed(1) + '%'; if (tr._p !== pr) { tr._p = pr; tr.style.setProperty('--p', pr) }
       }
-      el('ch-canvas').style.cursor = R.arm ? 'col-resize' : chCursorCss()
+      { const cv = el('ch-canvas'), cur = R.arm ? 'col-resize' : chCursorCss(); if (cv.style.cursor !== cur) cv.style.cursor = cur }
     }
 
     /* ══ Backtest (D1, 10/01: "the best backtesting platform"; round two: "way more smooth ... just straight backtest
@@ -21402,18 +21466,53 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const btDayLabel = (day, long = true) => new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', ...(long ? { year: 'numeric' } : {}) })
     const btHidden = () => !!CH.bt?.cfg.blind && !CH.bt?.revealed
 
-    // ── the session's bars, in a store of their own ──
-    async function btLoadStore(fam, day, blind) {
-      const st = { sym: fam, base: { '1m': [], '5m': [], '60m': [], '1d': [] }, have: { '1m': true, '5m': true, '60m': true, '1d': true }, reach: { '1m': 'end', '5m': 'end', '60m': 'end', '1d': 'end' }, fullAt: Date.now(), tailAt: Date.now(), feedAt: 0, last: null, prevClose: null, polling: false, bt: true }
-      const D = Date.parse(day + 'T00:00:00Z'), iso = (n) => new Date(D + n * 864e5).toISOString().slice(0, 10)
-      // a week of minutes, a quarter of fives, two years of hours, ten years of days; blind keeps the history short
-      const span = blind ? { '1m': 6, '5m': 30, '60m': 120, '1d': 400 } : { '1m': 6, '5m': 90, '60m': 730, '1d': 3650 }
-      const got = await Promise.all(Object.entries(span).map(([src, back]) => chFetch(`interval=${src}&from=${iso(-back)}&to=${iso(2)}`, fam).then((j) => [src, j.bars || []])))
-      // the session ends at 5:00 PM New York on its date: nothing after it is loaded, so nothing after it can leak
-      const end = btNyEpoch(day, 0, 17, 0)
-      for (const [src, bars] of got) st.base[src] = src === '1d' ? bars.filter((b) => b[0] < end) : bars.filter((b) => b[0] + ({ '1m': 60, '5m': 300, '60m': 3600 }[src]) <= end)
+    /* ── the session's bars, in a store of their own ──
+       Loaded in two steps (D1, 10/02: "it's laggy": a session took six seconds to open, four archive reads through the
+       tape function racing the live chart's own). First what the chart shows: three days of minutes and 25 days of
+       fives, straight from the database (bt_bars, members only), about 0.4 s. Then, behind the open session, the rest:
+       a quarter of fives, two years of hours, ten years of days. The next random day is fetched ahead, so New day is
+       instant. */
+    async function btBars(fam, src, from, to) {
+      const { data, error } = await supabase.rpc('bt_bars', { p_sym: fam, p_interval: src, p_from: from, p_to: to })
+      if (!error && Array.isArray(data)) return data
+      const j = await chFetch(`interval=${src}&from=${from.slice(0, 10)}&to=${to.slice(0, 10)}`, fam)   // the old road, if the new one fails
+      return j.bars || []
+    }
+    const BT_STEP = { '1m': 60, '5m': 300, '60m': 3600 }
+    // the session ends at 5:00 PM New York on its date: nothing after it is loaded, so nothing after it can leak
+    const btCut = (src, bars, end) => src === '1d' ? bars.filter((b) => b[0] < end) : bars.filter((b) => b[0] + BT_STEP[src] <= end)
+    function btIso(day, n) { return new Date(Date.parse(day + 'T00:00:00Z') + n * 864e5).toISOString() }
+    async function btLoadFirst(fam, day) {
+      const st = { sym: fam, base: { '1m': [], '5m': [], '60m': [], '1d': [] }, have: { '1m': true, '5m': true, '60m': true, '1d': true }, reach: { '1m': 'end', '5m': 'end', '60m': 'end', '1d': 'end' }, fullAt: Date.now(), tailAt: Date.now(), feedAt: 0, last: null, prevClose: null, polling: false, bt: true, more: false }
+      const end = btNyEpoch(day, 0, 17, 0), to = btIso(day, 1)
+      const [m1, m5] = await Promise.all([btBars(fam, '1m', btIso(day, -3), to), btBars(fam, '5m', btIso(day, -25), to)])
+      st.base['1m'] = btCut('1m', m1, end); st.base['5m'] = btCut('5m', m5, end)
       if (!st.base['1m'].length && !st.base['5m'].length) throw new Error('No bars for that session')
       return st
+    }
+    const BT_PRE = new Map()   // `${fam}|${day}` -> the first step's promise, fetched ahead
+    function btLoadStore(fam, day) {
+      const k = `${fam}|${day}`, hit = BT_PRE.get(k); if (hit) { BT_PRE.delete(k); return hit.catch(() => btLoadFirst(fam, day)) }
+      return btLoadFirst(fam, day)
+    }
+    function btPrefetch(fam, day) { const k = `${fam}|${day}`; if (BT_PRE.has(k)) return; if (BT_PRE.size > 3) BT_PRE.delete(BT_PRE.keys().next().value); const p = btLoadFirst(fam, day); p.catch(() => BT_PRE.delete(k)); BT_PRE.set(k, p) }
+    // the rest of the history, merged in behind the open session; a blind session keeps it short (the era stays vague)
+    async function btLoadMore(st, fam, day, blind) {
+      if (st.more) return; st.more = true
+      const end = btNyEpoch(day, 0, 17, 0), to = btIso(day, 1)
+      const want = blind ? [['5m', -30, -25], ['60m', -120, 1], ['1d', -400, 1]] : [['5m', -90, -25], ['60m', -730, 1], ['1d', -3650, 1]]
+      try {
+        const got = await Promise.all(want.map(([src, a, b]) => btBars(fam, src, btIso(day, a), b === 1 ? to : btIso(day, b)).then((x) => [src, x])))
+        for (const [src, bars] of got) st.base[src] = chMerge(st.base[src], btCut(src, bars, end))
+        if (CH.bt?.store === st) { const keep = CH.auto; chBuild(); CH.auto = keep; chDraw() }
+      } catch { st.more = false }
+    }
+    // the next random day, chosen and fetched ahead
+    const BT_NEXT = {}
+    async function btPickAhead(fam) {
+      const days = await btDays(fam).catch(() => []); if (!days.length) return null
+      let d; do { d = days[Math.floor(Math.random() * days.length)] } while (days.length > 2 && (d === CH.bt?.day || d === BT_NEXT[fam]))
+      BT_NEXT[fam] = d; btPrefetch(fam, d); return d
     }
     // is there a GEX print for the day, in the book that drives this contract? The worker's archive starts in September
     // 2026; a session before that (or a day it missed) does not offer D1 GEX at all (D1, 10/01: "if gex levels cant be
@@ -21467,7 +21566,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       B.trades.push(tr); B.equity.push({ t: Math.round(t), bal: B.bal })
       B.peak = Math.max(B.peak, B.bal)
       btTradeSave(tr)
-      btTagCard(tr)
+      if (!B.quiet) btTagCard(tr)   // a session closing itself out (New day) asks nothing
       btPropCheck()
     }
     function btPropCheck() {
@@ -21567,9 +21666,39 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       return out
     }
     const chGood = () => cssVar('--good') || '#86b57f', chBad = () => cssVar('--bad') || '#d98b7a'
+    // every trade of the session where it happened: an arrow at the entry, a dotted run to the exit, the result beside it
+    function btPaintTrades(ctx, L, light) {
+      const B = CH.bt, up = chGood(), dn = chBad(), ink = light ? '#141311' : '#f4f2ee'
+      const list = B.trades.map((t) => ({ t0: t.entry_t, p0: t.entry_p, t1: t.exit_t, p1: t.exit_p, side: t.side, r: t.r, pnl: t.pnl }))
+      if (B.pos) list.push({ t0: B.pos.t, p0: B.pos.avg, side: B.pos.side, open: true })
+      if (!list.length) return
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip()
+      for (const k of list) {
+        const x0 = chX(chIofT(k.t0), L), y0 = chY(k.p0, L)
+        if (x0 > L.plotW + 40) continue
+        const c = k.open ? (k.side > 0 ? up : dn) : k.pnl > 0 ? up : k.pnl < 0 ? dn : ink
+        if (!k.open) {
+          const x1 = chX(chIofT(k.t1), L), y1 = chY(k.p1, L)
+          if (x1 < -40) continue
+          ctx.strokeStyle = alpha(c, 0.85); ctx.lineWidth = 1.4; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([])
+          ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x1, y1, 3.6, 0, Math.PI * 2); ctx.fill()
+          ctx.strokeStyle = light ? '#ffffff' : '#111111'; ctx.lineWidth = 1.2; ctx.stroke()
+          const txt = k.r != null ? btR(+k.r) : btUsd(k.pnl, true)
+          ctx.font = `700 10.5px ${GEX_FONT}`; const tw = ctx.measureText(txt).width + 10, ly = y1 + (k.side * (k.p1 - k.p0) >= 0 ? -16 : 16)
+          ctx.fillStyle = c; chRoundRect(ctx, x1 + 6, ly - 8, tw, 16, 5); ctx.fill()
+          ctx.fillStyle = light ? '#ffffff' : '#111111'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x1 + 11, ly + 0.5)
+        }
+        // the entry: an arrow pointing the way the trade went in, just off the price
+        const dir = k.side > 0 ? 1 : -1, ay = y0 + dir * 4
+        ctx.fillStyle = k.side > 0 ? up : dn; ctx.strokeStyle = light ? '#ffffff' : '#111111'; ctx.lineWidth = 1.2
+        ctx.beginPath(); ctx.moveTo(x0, ay - dir * 1); ctx.lineTo(x0 - 6, ay + dir * 9); ctx.lineTo(x0 + 6, ay + dir * 9); ctx.closePath(); ctx.fill(); ctx.stroke()
+      }
+      ctx.restore(); ctx.textBaseline = 'alphabetic'
+    }
     function btPaint(ctx, L, T, light) {
       if (!CH.bt) return
       CH.btTags = []
+      btPaintTrades(ctx, L, light)
       for (const ln of btLines()) {
         const y = chY(ln.p, L); if (y < -20 || y > L.mainH + 20) continue
         const yy = Math.round(Math.max(0, Math.min(L.mainH, y))) + 0.5
@@ -21625,15 +21754,19 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('ch-bt-btn')?.classList.toggle('on', !!B)
       if (!B) { el('bt-tagcard').hidden = true; hud._h = tk._s = ''; return }
       const n = B.trades.length, w = B.trades.filter((t) => t.pnl > 0).length
-      const prop = B.cfg.prop ? (B.status === 'passed' ? '<span class="bt-st ok">Passed</span>' : B.status === 'failed' ? '<span class="bt-st bad">Failed</span>' : '<span class="bt-pr"><i data-l="pr"></i></span><span class="bt-k" data-l="left"></span>') : ''
+      const prop = B.cfg.prop ? (B.status === 'passed' ? '<span class="bt-st ok">Evaluation passed</span>' : B.status === 'failed' ? '<span class="bt-st bad">Evaluation failed</span>' : '<span class="bt-pr"><i data-l="pr"></i></span><span class="bt-k" data-l="left"></span>') : ''
       const hudSig = JSON.stringify([B.id, B.sym, B.day, btHidden(), n, w, B.status, B.cfg.prop])
       if (hud._h !== hudSig) {
         hud._h = hudSig
+        const st = n ? btStats(B.trades, B.bal0) : null
         hud.innerHTML = `<div class="bt-acct-top"><span class="bt-badge"><i></i>Backtest</span><label class="bt-symsel" title="Contract"><select data-f="sym" aria-label="Contract">${['NQ', 'MNQ', 'ES', 'MES'].map((s) => `<option value="${s}"${s === B.sym ? ' selected' : ''}>${s}</option>`).join('')}</select><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></label><span class="bt-clock" data-l="clock"></span></div>
           <div class="bt-dayrow"><span class="bt-day">${btHidden() ? 'Date hidden until you finish' : btDayLabel(B.day)}</span><span class="bt-tools"><button type="button" data-a="newday" title="New day: another random session" aria-label="New day">${BT_IC.shuffle}</button><button type="button" data-a="pick" title="Pick a day" aria-label="Pick a day">${BT_IC.cal}</button><button type="button" data-a="settings" title="Session settings" aria-label="Session settings">${BT_IC.gear}</button><button type="button" data-a="stats" title="Your numbers" aria-label="Your numbers">${BT_IC.stats}</button></span></div>
-          <div class="bt-nums"><div><span>Balance</span><b data-l="bal"></b></div><div><span>Session</span><b data-l="ses"></b></div><div class="bt-wide"><span>Trades</span><b>${n}${n ? ` <small>${Math.round(w / n * 100)}% won</small>` : ''}</b></div></div>
+          <div class="bt-acct"><div class="bt-eq"><span>Balance</span><b data-l="bal"></b></div><div class="bt-pl"><span>Session</span><b data-l="ses"></b></div></div>
+          ${btSpark(B)}
+          <div class="bt-nums"><div><span>Trades</span><b>${n}</b></div><div><span>Won</span><b>${n ? Math.round(w / n * 100) + '%' : '–'}</b></div><div><span>Net R</span><b class="${st && st.rn ? (st.r > 0 ? 'up' : st.r < 0 ? 'dn' : '') : ''}">${st && st.rn ? btR(st.r) : '–'}</b></div></div>
           ${prop ? `<div class="bt-propbar">${prop}</div>` : ''}`
       }
+      btLog()
       // the ticket: contracts, the two buttons with the price on them, the bracket, the position and the resting orders
       const P = B.pos
       const sig = JSON.stringify([B.id, B.qty, B.cfg.bracket, B.cfg.sl, B.cfg.tp, P && [P.side, P.qty, P.avg, P.sl, P.tp, !!P.riskUsd], B.orders.map((o) => [o.id, o.price, o.kind]), B.status])
@@ -21647,16 +21780,42 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
             <label class="bt-brk" title="Attach a stop and target to every new position"><input type="checkbox" ${B.cfg.bracket ? 'checked' : ''} data-f="brk"><span class="track"></span></label></div>
           <div class="bt-bs"><button type="button" class="bt-sell" data-s="-1"><span>Sell</span><b data-l="px"></b></button><div class="bt-qty ph" role="group" aria-label="Contracts"><button type="button" data-q="-1" aria-label="One fewer">&minus;</button><b>${B.qty}</b><button type="button" data-q="1" aria-label="One more">+</button></div><button type="button" class="bt-buy" data-s="1"><span>Buy</span><b data-l="px"></b></button></div>
           ${B.cfg.bracket ? `<div class="bt-brkrow"><label>Stop<input type="number" inputmode="decimal" min="0.25" step="0.25" value="${B.cfg.sl}" data-f="sl"><i>pts</i></label><label>Target<input type="number" inputmode="decimal" min="0.25" step="0.25" value="${B.cfg.tp}" data-f="tp"><i>pts</i></label><span class="bt-rr">${(B.cfg.tp / B.cfg.sl || 0).toFixed(1)}R · risk ${btUsd(B.cfg.sl * B.pv * B.qty)}</span></div>` : ''}
-          ${pos}${ords ? `<div class="bt-ords">${ords}</div>` : ''}
-          <p class="bt-hint">${P ? 'Drag the stop and target lines to move them.' : 'Draw on the chart as you go. Right-click it (hold on a phone) for limit and stop orders.'} <kbd>Space</kbd> play, <kbd>B</kbd> buy, <kbd>S</kbd> sell, <kbd>C</kbd> close.</p>`
+          ${pos}${ords ? `<div class="bt-ords">${ords}</div>` : ''}`
         if (focus) { const f = tk.querySelector(`[data-f="${focus}"]`); if (f) { f.focus(); try { f.setSelectionRange?.(f.value.length, f.value.length) } catch {} } }
       }
+      // where a phone's panel starts, in the chart's own pixels, so the price frame stays above it
+      CH.btCoverY = chPhone() ? (() => { const c = el('ch-canvas').getBoundingClientRect(), s = side.getBoundingClientRect(); return s.height ? s.top - c.top : 0 })() : 0
       btLive(true)
+    }
+    // the session's equity, closed trade by closed trade, as a line under the numbers
+    function btSpark(B) {
+      const pts = [B.bal0, ...B.trades.map((t, i) => B.bal0 + B.trades.slice(0, i + 1).reduce((a, x) => a + x.pnl, 0))]
+      if (pts.length < 2) return '<div class="bt-spark none"><i></i><span>Your equity line draws here as trades close</span></div>'
+      const w = 280, h = 44, lo = Math.min(...pts), hi = Math.max(...pts), span = hi - lo || 1
+      const X = (i) => 2 + i * (w - 4) / (pts.length - 1), Y = (v) => 4 + (hi - v) * (h - 8) / span
+      const d = pts.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('')
+      const up = pts[pts.length - 1] >= B.bal0, z = Y(B.bal0).toFixed(1)
+      return `<svg class="bt-spark ${up ? 'up' : 'dn'}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${w}" y1="${z}" y2="${z}" class="z"/><path d="${d}L${X(pts.length - 1).toFixed(1)},${z}L${X(0).toFixed(1)},${z}Z" class="f"/><path d="${d}" class="l" vector-effect="non-scaling-stroke"/><circle cx="${X(pts.length - 1).toFixed(1)}" cy="${Y(pts[pts.length - 1]).toFixed(1)}" r="2.6" class="d"/></svg>`
+    }
+    // this session's trades, newest first, filling the panel under the ticket; the shortcuts sit at its foot
+    function btLog() {
+      const B = CH.bt, host = el('bt-log'); if (!host) return
+      const sig = B ? JSON.stringify([B.id, B.trades.length, B.trades.map((t) => t.tags?.length || 0).join('')]) : ''
+      if (host._s === sig) return
+      host._s = sig
+      if (!B) { host.innerHTML = ''; return }
+      const tm = (t) => new Date(t * 1000).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
+      const why = { stop: 'stop', target: 'target', rule: 'max loss', reverse: 'reversed', end: 'end', manual: 'closed', limit: 'closed', stop_order: 'closed' }
+      const rows = B.trades.slice().reverse().map((t) => `<div class="bt-lr ${t.pnl > 0 ? 'win' : t.pnl < 0 ? 'loss' : ''}"><i class="bt-ls ${t.side > 0 ? 'l' : 's'}" aria-hidden="true"><svg viewBox="0 0 12 12"><path d="${t.side > 0 ? 'M6 2.5l4 6H2z' : 'M6 9.5l4-6H2z'}"/></svg></i><span class="bt-lm"><b>${t.side > 0 ? 'Long' : 'Short'} ${t.qty}</b><span>${tm(t.entry_t)} to ${tm(t.exit_t)} · ${why[t.reason] || 'closed'}</span></span><span class="bt-lv"><b>${btUsd(t.pnl, true)}</b><span>${t.r != null ? btR(+t.r) : chPx(t.entry_p)}</span></span></div>`).join('')
+      host.innerHTML = `<div class="bt-log-h"><b>Trades</b><span>${B.trades.length ? `${B.trades.length} this session` : 'this session'}</span></div>
+        <div class="bt-log-list">${rows || '<div class="bt-log-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/></svg><b>No trades yet</b><span>Mark your levels, press play, and take your setup when it comes. Every trade lands here with its result.</span></div>'}</div>
+        <div class="bt-keys"><span><kbd>Space</kbd>play</span><span><kbd>B</kbd>buy</span><span><kbd>S</kbd>sell</span><span><kbd>C</kbd>close</span><span><kbd>Shift</kbd><kbd>&rarr;</kbd>step</span></div>`
     }
     // the numbers that move with the price, written into the panel in place, a dozen times a second at most
     function btLive(force) {
       const B = CH.bt; if (!B) return
-      const now = performance.now(); if (!force && now - (B.liveAt || 0) < 80) return; B.liveAt = now
+      // throttled to a dozen a second, with a trailing write, so the last step's numbers always land (a paused clock read a step behind)
+      const now = performance.now(); if (!force && now - (B.liveAt || 0) < 80) { if (!B.liveT) B.liveT = setTimeout(() => { B.liveT = null; btLive(true) }, 90); return } B.liveAt = now
       const px = btPx(), open = btOpenPnl(B, px), day = B.bal - B.bal0 + open, side = el('bt-side')
       const put = (k, v, cls) => { for (const n of side.querySelectorAll(`[data-l="${k}"]`)) { if (n.textContent !== v) n.textContent = v; if (cls != null && n.className !== cls) n.className = cls } }
       put('px', px == null ? '' : chPx(px))
@@ -21705,6 +21864,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function btTagCard(tr) {
       const card = el('bt-tagcard'); if (!card) return
       clearTimeout(card._t)
+      // a desktop asks in the column, under the ticket, so the candles stay clear; a phone asks over the chart's top
+      { const side = el('bt-side'), stage = el('ch-replay')?.parentElement
+        if (!chPhone() && side && !side.hidden) { if (card.parentElement !== side) side.insertBefore(card, el('bt-log')) }
+        else if (stage && card.parentElement !== stage) stage.appendChild(card) }
       const win = tr.pnl > 0
       card.innerHTML = `<div class="bt-tc-h"><span class="bt-tc-res ${win ? 'up' : tr.pnl < 0 ? 'dn' : ''}">${btUsd(tr.pnl, true)}${tr.r != null ? ` <i>${btR(tr.r)}</i>` : ''}</span><span class="bt-tc-why">${tr.side > 0 ? 'Long' : 'Short'} ${tr.qty} · ${{ stop: 'stopped out', target: 'target hit', rule: 'closed by the max-loss rule', reverse: 'reversed', end: 'closed at the end' }[tr.reason] || 'closed'}</span><button type="button" class="bt-tc-x" aria-label="Close">&times;</button></div>
         <p class="bt-tc-q">The setup</p><div class="bt-chips" data-g="setup">${BT_SETUPS.map((t) => `<button type="button" data-t="${escH(t)}">${escH(t)}</button>`).join('')}</div>
@@ -21756,10 +21919,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       L.hidden = !text; if (text) L.querySelector('span').textContent = text
     }
     async function btResolveDay(c) {
-      const fam = chFam(c.sym), days = await btDays(fam)
+      const fam = chFam(c.sym)
+      if (c.mode === 'drill') { const { data, error } = await supabase.rpc('bt_drill_day'); if (error || !data) throw new Error('The drill is not ready yet.'); c.blind = true; c.start = 'ny'; return data }
+      // a random day chosen ahead is already on its way (or here)
+      if (c.mode === 'random' && BT_NEXT[fam] && BT_NEXT[fam] !== CH.bt?.day) { const d = BT_NEXT[fam]; BT_NEXT[fam] = null; return d }
+      const days = await btDays(fam)
       if (!days.length) throw new Error('No sessions are ready yet.')
       if (c.mode === 'random') { let d; do { d = days[Math.floor(Math.random() * days.length)] } while (days.length > 1 && d === CH.bt?.day); return d }
-      if (c.mode === 'drill') { const { data, error } = await supabase.rpc('bt_drill_day'); if (error || !data) throw new Error('The drill is not ready yet.'); c.blind = true; c.start = 'ny'; return data }
       if (!days.includes(c.day || c.date)) throw new Error(c.day || c.date ? `No full ${fam} session on ${btDayLabel(c.day || c.date)}. Pick a weekday between ${btDayLabel(days[0])} and ${btDayLabel(days[days.length - 1])}.` : 'Pick a day.')
       return c.day || c.date
     }
@@ -21767,6 +21933,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function btGo(over) { if (!BT_GO) BT_GO = btGoNow(over).finally(() => { BT_GO = null }); return BT_GO }
     async function btGoNow(over) {
       if (CH.bt && !over) { showView('chart'); return }
+      CH.btBoot = true   // the chart opening for a session does not start the live chart's own loads (they raced the session's)
       if (curView() !== 'chart') showView('chart')
       btLoading(over?.mode === 'drill' ? 'Loading today\'s drill…' : CH.bt ? 'Loading another session…' : 'Loading a session…')
       try {
@@ -21774,40 +21941,45 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           const { data } = await supabase.from('bt_sessions').select('id').is('finished_at', null).gte('created_at', new Date(Date.now() - 30 * 864e5).toISOString()).order('created_at', { ascending: false }).limit(1)
           if (data?.[0]) { await btResume(data[0].id); return }
         }
-        // a session with trades is kept (finished quietly); an empty one is dropped
-        if (CH.bt) await btWrapUp()
         const c = { ...btCfg(), mode: 'random', ...(over || {}) }
         if (!c.dayOk) { if (c.mode !== 'pick') delete c.day; c.day = await btResolveDay(c) }
         if (c.mode === 'random' || c.mode === 'pick') btCfgSave({ ...btCfg(), sym: c.sym, start: c.start, date: c.mode === 'pick' ? c.day : btCfg().date })
         await btStart(c)
       } catch (err) { toast(err.message || 'Could not load that session.', 3200) }
-      finally { btLoading('') }
+      finally { CH.btBoot = false; btLoading(''); if (!CH.bt && CH.on) chLiveLoad() }
     }
-    // the running session ends without ceremony: saved with its numbers if it had trades, deleted if it had none
-    async function btWrapUp() {
-      const B = CH.bt; if (!B) return
-      chReplayPlay(false)
-      if (!B.trades.length && !B.pos) { const id = B.id; await btLeave(true); await supabase.from('bt_sessions').delete().eq('id', id); return }
+    // the session being replaced ends without ceremony, in the background: kept (finished) with its numbers if it had
+    // trades, deleted if it had none. Called while it is still CH.bt, so an open position closes at the last price.
+    function btWrapUp(B) {
+      chReplayPlay(false); clearTimeout(B.saveT)
+      if (!B.trades.length && !B.pos) return supabase.from('bt_sessions').delete().eq('id', B.id).then(() => {}, () => {})
+      B.quiet = true
       if (B.pos) btFlatten('end')
-      B.orders = []
+      clearTimeout(B.saveT); B.orders = []
       const st = btStats(B.trades, B.bal0); st.final = B.bal; st.status = B.status; st.blind = !!B.cfg.blind
-      await supabase.from('bt_sessions').update({ at: new Date(B.at * 1000).toISOString(), state: btStateOf(B), stats: st, finished_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', B.id)
-      toast(`Saved ${btDayLabel(B.day, false)}: ${btUsd(st.net, true)}${st.rn ? ' · ' + btR(st.r) : ''}, ${st.n} trade${st.n === 1 ? '' : 's'}.`, 2600)
-      await btLeave(true)
+      toast(`Saved ${btHidden() ? 'the last session' : btDayLabel(B.day, false)}: ${btUsd(st.net, true)}${st.rn ? ' · ' + btR(st.r) : ''}, ${st.n} trade${st.n === 1 ? '' : 's'}.`, 2600)
+      return supabase.from('bt_sessions').update({ at: new Date(B.at * 1000).toISOString(), state: btStateOf(B), stats: st, finished_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', B.id).then(() => {}, () => {})
+    }
+    // the live chart's own data, the archive for its interval and the live minutes (also after a session ends)
+    async function chLiveLoad() {
+      if (CH.bt || CH.btBoot) return
+      if (!CH.have['1m']) { await chTail(true); const [src] = CH_TF[CH.tf]; chLoad('1m'); if (src !== '1m') chLoad(src) }
+      else chTail(true)
     }
 
     // ── start, resume, finish ──
-    async function btEnter(B) {
-      B.gex = await btGexHas(B.fam, B.day)
-      if (CH.replay.on) chReplayExit()
-      if (CH.sym !== B.sym) chSetSymbol(B.sym)   // the family's own drawings come along, as on any symbol switch
-      // the session's own drawings: the live chart's set is put away and comes back when the session ends
-      CH.btLiveDrawings = CH.drawings
+    // on the chart: from the live chart (its drawings and symbol are put away) or straight from another session
+    function btEnter(B) {
+      const prev = CH.bt
+      chReplayPlay(false)
+      if (!prev) { if (CH.replay.on) chReplayExit(); CH.btLive = { drawings: CH.drawings, sym: CH.sym } }
+      CH.bt = B
+      if (CH.sym !== B.sym) { CH.sym = B.sym; CH.err = null; chSymUi() }
+      // the session's own drawings
       B.drawings = Array.isArray(B.drawings) ? B.drawings : []
       CH.drawings = JSON.parse(JSON.stringify(B.drawings)); CH.drawings.forEach((d) => { if (!d.id) d.id = chId() })
-      CH.sel = null; CH.multi.clear(); CH.pending = null; CH.hist = []; CH.redo = []
+      CH.sel = null; CH.multi.clear(); CH.pending = null; CH.measure = null; CH.hist = []; CH.redo = []
       CH.mp?.clear()
-      CH.bt = B
       { const sp = el('ch-sess'); if (sp) sp.hidden = true }   // the live feed's delay says nothing about a past session
       // the day's own print, fetched fresh (a lookup made before the archive list arrived is cached as none)
       if (B.gex && CH.s.gex) { const gs = chGexStore(chGexBook()); if (gs.prints[B.day] === null) delete gs.prints[B.day]; chGexWarm() }
@@ -21816,46 +21988,56 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const R = CH.replay
       R.arm = false; R.on = true; R.done = false; R.startT = B.startAt; R.at = B.at; R.speed = R.speed || 1
       B.px = btPxAt(B.at)
-      CH.offset = 6; CH.auto = true; chSetVis(); chReplayUi(); chHistUi(); chSelBar(); btUi(); chDraw()
-      if (!B.trades.length && !B.resumed) toast(`${btHidden() ? 'A mystery session' : btDayLabel(B.day)}, from ${(BT_START[B.cfg.start] || BT_START.ny)[1]}. Draw your levels, then press play.`, 3400)
+      CH.offset = 6; CH.auto = true; CH.scaleAt = 0; chSetVis(); chReplayUi(); chHistUi(); chSelBar(); btUi(); chDraw()
+      if (!B.trades.length && !B.resumed) toast(`${btHidden() ? 'A mystery session' : btDayLabel(B.day)}, from ${(BT_START[B.cfg.start] || BT_START.ny)[1]}. Mark your levels, then press play.`, 3000)
     }
     async function btStart(cfg) {
-      if (CH.bt) await btLeave(true)
       const fam = chFam(cfg.sym), day = cfg.day
-      const st = await btLoadStore(fam, day, cfg.blind)
       const p = BT_START[cfg.start] || BT_START.ny, startAt = btNyEpoch(day, p[2], p[3], p[4])
       const row = { user_id: state.user.id, sym: cfg.sym, day, kind: cfg.mode === 'drill' ? 'drill' : cfg.mode === 'random' ? 'random' : 'pick', start_at: new Date(startAt * 1000).toISOString(), at: new Date(startAt * 1000).toISOString(), balance0: cfg.bal, settings: cfg }
-      const { data, error } = await supabase.from('bt_sessions').insert(row).select('id').single()
-      if (error) throw new Error(error.message)
-      const B = { id: data.id, fam, sym: cfg.sym, pv: CH_SYMS[cfg.sym].pv, day, kind: row.kind, startAt, at: startAt, cfg: { ...cfg }, store: st, bal: +cfg.bal, bal0: +cfg.bal, peak: +cfg.bal, fees: 0, pos: null, orders: [], trades: [], equity: [{ t: startAt, bal: +cfg.bal }], status: 'live', qty: Math.max(1, +cfg.qty || 1), drawings: [] }
-      await btEnter(B)
-      btSaveSoon(true)
+      // the bars, the session row and the GEX check, together
+      const [stR, insR, gexR] = await Promise.allSettled([btLoadStore(fam, day), supabase.from('bt_sessions').insert(row).select('id').single(), btGexHas(fam, day)])
+      const ins = insR.status === 'fulfilled' ? insR.value : { error: insR.reason }
+      if (stR.status !== 'fulfilled' || ins.error) {
+        if (ins.data?.id) supabase.from('bt_sessions').delete().eq('id', ins.data.id).then(() => {}, () => {})
+        throw new Error(stR.status !== 'fulfilled' ? (stR.reason?.message || 'Could not load that session.') : ins.error.message)
+      }
+      const st = stR.value
+      const B = { id: ins.data.id, fam, sym: cfg.sym, pv: CH_SYMS[cfg.sym].pv, day, kind: row.kind, startAt, at: startAt, cfg: { ...cfg }, store: st, bal: +cfg.bal, bal0: +cfg.bal, peak: +cfg.bal, fees: 0, pos: null, orders: [], trades: [], equity: [{ t: startAt, bal: +cfg.bal }], status: 'live', qty: Math.max(1, +cfg.qty || 1), drawings: [], gex: gexR.status === 'fulfilled' && gexR.value }
+      if (CH.bt) btWrapUp(CH.bt)
+      btEnter(B)
+      btLoadMore(st, fam, day, cfg.blind)
+      setTimeout(() => { if (CH.bt === B) btPickAhead(fam) }, 1500)
     }
     async function btResume(id) {
       if (CH.bt && CH.bt.id === id) { showView('chart'); return }   // it is already running: back to it
-      if (CH.bt) await btLeave(true)
       const { data: s, error } = await supabase.from('bt_sessions').select('*').eq('id', id).single()
       if (error || !s) { toast('Could not open that session.', 2400); return }
-      const { data: trs } = await supabase.from('bt_trades').select('*').eq('session_id', id).order('exit_t')
       const cfg = { ...BT_DEF, ...(s.settings || {}) }, fam = chFam(s.sym)
-      const st = await btLoadStore(fam, s.day, cfg.blind)
+      const [{ data: trs }, st, gex] = await Promise.all([supabase.from('bt_trades').select('*').eq('session_id', id).order('exit_t'), btLoadStore(fam, s.day), btGexHas(fam, s.day)])
       const S = s.state || {}, startAt = Date.parse(s.start_at) / 1000
-      const B = { id: s.id, fam, sym: s.sym, pv: CH_SYMS[s.sym].pv, day: s.day, kind: s.kind, startAt, at: Date.parse(s.at || s.start_at) / 1000, cfg, store: st, bal: S.bal ?? +s.balance0, bal0: +s.balance0, peak: S.peak ?? +s.balance0, fees: S.fees || 0, pos: S.pos || null, orders: S.orders || [], status: S.status || 'live', qty: S.qty || cfg.qty || 1, resumed: true, drawings: S.drawings || [],
+      const B = { id: s.id, fam, sym: s.sym, pv: CH_SYMS[s.sym].pv, day: s.day, kind: s.kind, startAt, at: Date.parse(s.at || s.start_at) / 1000, cfg, store: st, bal: S.bal ?? +s.balance0, bal0: +s.balance0, peak: S.peak ?? +s.balance0, fees: S.fees || 0, pos: S.pos || null, orders: S.orders || [], status: S.status || 'live', qty: S.qty || cfg.qty || 1, resumed: true, drawings: S.drawings || [], gex,
         trades: (trs || []).map((t) => ({ ...t, side: +t.side, entry_t: Date.parse(t.entry_t) / 1000, exit_t: Date.parse(t.exit_t) / 1000, pnl: +t.pnl, r: t.r == null ? null : +t.r, entry_p: +t.entry_p, exit_p: +t.exit_p })), equity: S.equity || [{ t: startAt, bal: +s.balance0 }] }
-      await btEnter(B)
+      if (CH.bt) { clearTimeout(CH.bt.saveT); btSaveSoon(true) }   // the one running is kept as it is, unfinished
+      btEnter(B)
+      btLoadMore(st, fam, s.day, cfg.blind)
       toast(`Back in the session: ${B.trades.length} trade${B.trades.length === 1 ? '' : 's'} so far.`, 2400)
     }
-    // leaving: the live chart comes back as it was, drawings and all
+    // leaving: the live chart comes back as it was, symbol, drawings and alerts
     async function btLeave(quiet) {
       const B = CH.bt; if (!B) return
-      chReplayPlay(false); await btSaveSoon(true)
+      chReplayPlay(false); clearTimeout(B.saveT); const saving = btSaveSoon(true)
       CH.bt = null; CH.btTags = []
-      try { CH.drawings = JSON.parse(localStorage.getItem(chDrKey()) || '[]') } catch { CH.drawings = CH.btLiveDrawings || [] }
-      CH.btLiveDrawings = null; CH.sel = null; CH.multi.clear(); CH.pending = null; CH.hist = []; CH.redo = []
+      const live = CH.btLive || {}; CH.btLive = null
+      try { localStorage.setItem('echelon-chart-sym', CH.sym) } catch {}
+      if (live.sym && chFam(live.sym) !== chFam()) { try { CH.alerts = JSON.parse(localStorage.getItem(chAlKey()) || '[]') } catch { CH.alerts = [] } chAlertsUi() }
+      try { CH.drawings = JSON.parse(localStorage.getItem(chDrKey()) || '[]') } catch { CH.drawings = live.drawings || [] }
+      CH.sel = null; CH.multi.clear(); CH.pending = null; CH.measure = null; CH.hist = []; CH.redo = []
       CH.mp?.clear()
-      chReplayExit(); chBuild(); chHistUi(); chSelBar(); btUi(); chDraw()
-      if (CH.on) chTail(true)
+      chSymUi(); chReplayExit(); chBuild(); chHistUi(); chSelBar(); btUi(); chDraw()
+      if (CH.on) chLiveLoad()
       if (!quiet) toast('Back on the live chart.', 1600)
+      await saving
     }
     async function btFinish() {
       const B = CH.bt; if (!B) return
@@ -21940,11 +22122,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     // ── the setup sheet ──
     let BT_DAYS = {}
+    // the list of full sessions changes once a day: kept on the device for twelve hours (two round trips saved per start)
     async function btDays(fam) {
       if (BT_DAYS[fam]) return BT_DAYS[fam]
+      const today = btNyIso(), key = 'echelon-bt-days-' + fam
+      try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < 12 * 3600e3 && c.days?.length) return (BT_DAYS[fam] = c.days.filter((d) => d < today)) } catch {}
       const out = []; let from = 0
       for (;;) { const { data } = await supabase.from('bt_days').select('day').eq('fam', fam).order('day').range(from, from + 999); if (!data?.length) break; out.push(...data.map((r) => r.day)); if (data.length < 1000) break; from += 1000 }
-      const today = btNyIso()
+      if (out.length) try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), days: out })) } catch {}
       return (BT_DAYS[fam] = out.filter((d) => d < today))
     }
     function btSetupOpen(over = {}) {
@@ -22059,6 +22244,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; for (const id of ['bt-setup', 'bt-report']) { const m = el(id); if (m && !m.hidden) btModal(m, false) } })
     btWireUi()
+    for (const n of document.querySelectorAll('.tab[data-view="backtest"], #ch-bt-btn')) n.addEventListener('pointerenter', () => { const f = chFam(btCfg().sym); if (!CH.bt && !BT_NEXT[f] && state.user) btPickAhead(f) }, { passive: true })
 
     /* ── life cycle ── */
     // the chart fills the window below the top bar, whatever the padding is
@@ -22095,8 +22281,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       chSetTool(CH.s.rail?.cursor || CH.tool); chReplayUi()
       chDraw()
       // the minutes and the interval's own archive side by side: one after the other, a 4H chart waited six seconds for its hourly bars behind a minute archive it barely uses
-      if (!CH.have['1m']) { await chTail(true); const [src] = CH_TF[CH.tf]; chLoad('1m'); if (src !== '1m') chLoad(src) }
-      else chTail(true)
+      await chLiveLoad()
       chSchedule()
     }
     function chartHidden() { CH.on = false; clearTimeout(CH.timer); CH.timer = null; clearInterval(CH.clock); CH.clock = null; clearInterval(CH.volT); CH.volT = null; chMenu(null) }

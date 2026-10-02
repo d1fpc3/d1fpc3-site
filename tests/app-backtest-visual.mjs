@@ -89,14 +89,17 @@ try {
   if ((process.env.ONLY || "desk,iphone").includes("desk")) {
     console.log("== desk");
     const { browser, page, errors } = await open("desk");
-    // the tab: straight into a session, no form
+    // the tab: straight into a session, no form, and quickly (D1, 10/02: "it's laggy": it took 6 to 7 s)
+    const tLoad = Date.now();
     await page.evaluate(() => document.querySelector('.tab[data-view="backtest"]').click());
     await page.waitForFunction(() => window.__bt.state()?.id && document.getElementById("bt-loading").hidden, null, { timeout: 30000 });
+    const loadMs = Date.now() - tLoad;
     await page.waitForTimeout(800);
     let s = await st(page);
-    const first = await page.evaluate(() => ({ view: document.querySelector(".view.on")?.id, side: !document.getElementById("bt-side").hidden, setup: !!document.querySelector("#bt-setup.on"), tools: document.querySelectorAll("#bt-hud .bt-tools button").length, sym: document.querySelector('#bt-hud select[data-f="sym"]')?.value }));
+    const first = await page.evaluate(() => ({ view: document.querySelector(".view.on")?.id, side: !document.getElementById("bt-side").hidden, setup: !!document.querySelector("#bt-setup.on"), tools: document.querySelectorAll("#bt-hud .bt-tools button").length, sym: document.querySelector('#bt-hud select[data-f="sym"]')?.value, empty: !!document.querySelector("#bt-log .bt-log-empty") }));
     const row0 = (await sql(`select kind from bt_sessions where id = '${s.id}'`))[0];
-    ok(first.view === "v-chart" && first.side && !first.setup && first.tools === 4 && first.sym === "NQ" && row0?.kind === "random", `the Backtest tab goes straight into a random session: ${JSON.stringify(first)} kind ${row0?.kind} day ${s.day}`);
+    ok(first.view === "v-chart" && first.side && !first.setup && first.tools === 4 && first.sym === "NQ" && first.empty && row0?.kind === "random", `the Backtest tab goes straight into a random session: ${JSON.stringify(first)} kind ${row0?.kind} day ${s.day}`);
+    ok(loadMs < 3000, `it opens in ${loadMs} ms (was 6 to 7 s)`);
     await page.screenshot({ path: `${OUT}/desk 1 straight in.png` });
     // Pick a day, from the panel
     const randomId = s.id;
@@ -160,6 +163,7 @@ try {
     await page.mouse.move(700, 300); await page.keyboard.press("s");
     s = await st(page);
     ok(s.pos && s.pos.side === -1, "S sells (a short)");
+    await page.waitForTimeout(700);   // the price scale glides to take in the new stop and target
     const at = await page.evaluate((p) => window.__CH.$.pt(window.__bt.state().at - 600, p), s.pos.sl);
     await page.mouse.move(box.x + 300, box.y + at.y); await page.mouse.down(); await page.mouse.move(box.x + 300, box.y + at.y - 30, { steps: 5 }); await page.mouse.up();
     await page.waitForTimeout(300);
@@ -168,6 +172,10 @@ try {
     await page.keyboard.press("c");
     s = await st(page);
     ok(!s.pos && s.trades.length === 2 && s.trades[1].reason === "manual", "C closes the position (trade 2)");
+    await page.waitForTimeout(700);
+    const log = await page.evaluate(() => ({ rows: [...document.querySelectorAll("#bt-log .bt-lr")].map((r) => r.textContent.replace(/\s+/g, " ").trim()), hud: document.getElementById("bt-hud").textContent.replace(/\s+/g, " "), spark: !!document.querySelector("#bt-hud svg.bt-spark") }));
+    ok(log.rows.length === 2 && /^Short 1/.test(log.rows[0]) && /^Long 1/.test(log.rows[1]) && log.spark && /Trades\s*2/.test(log.hud), `the column lists both trades, newest first, under an equity line: ${JSON.stringify(log.rows)}`);
+    await page.screenshot({ path: `${OUT}/desk 5b two trades.png` });
     // a limit order from the chart's menu, then cancelled from the ticket
     const below = await page.evaluate(() => window.__CH.$.pt(window.__bt.state().at - 600, window.__bt.state().px - 15));
     await page.mouse.click(box.x + 350, box.y + below.y, { button: "right" });
@@ -201,7 +209,7 @@ try {
     s = await stepUntil(page, (x) => x.status !== "live" || !x.pos, 160);
     ok((s.status === "failed" && s.trades[0]?.reason === "rule" && Math.abs(s.trades[0].pnl + 300) <= 10) || (s.trades[0] && s.trades[0].pnl > 0), `prop rules: a $300 max loss closes the account at -$300, on the way, before the $400 stop (status ${s.status}, first trade ${s.trades[0]?.pnl} by ${s.trades[0]?.reason})`);
     const hudProp = await page.evaluate(() => document.getElementById("bt-hud").textContent);
-    if (s.status === "failed") ok(/Failed/.test(hudProp), "the panel says Failed");
+    if (s.status === "failed") ok(/Evaluation failed/.test(hudProp), "the panel says the evaluation failed");
     await page.screenshot({ path: `${OUT}/desk 9 prop.png` });
     // the stats button opens the numbers page; the Backtest tab goes back to the running session
     const propId = s.id;
@@ -211,8 +219,11 @@ try {
     await page.waitForFunction(() => document.getElementById("v-chart").classList.contains("on"), null, { timeout: 8000 });
     ok((await st(page))?.id === propId, "the stats button opens the numbers page, and the Backtest tab goes back to the running session");
     // New day: the traded session is kept (finished), a new random one starts
+    const tNew = Date.now();
     await page.click('#bt-hud [data-a="newday"]');
     await waitNew(page, propId);
+    const newMs = Date.now() - tNew;
+    ok(newMs < 2500, `New day opens in ${newMs} ms`);
     const kept = (await sql(`select finished_at is not null f, (stats->>'n')::int n from bt_sessions where id = '${propId}'`))[0];
     s = await st(page);
     ok(kept?.f && kept.n >= 1 && s.id !== propId && !s.trades.length, `New day keeps the traded session finished (${kept?.n} trade) and opens another day (${s.day})`);
