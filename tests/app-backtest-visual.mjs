@@ -56,7 +56,8 @@ const st = (page) => page.evaluate(() => { const s = window.__bt.state(); return
 const stepUntil = async (page, cond, max = 80) => { for (let i = 0; i < max; i++) { const s = await st(page); if (cond(s)) return s; await page.evaluate(() => window.__bt.step()); await page.waitForTimeout(40) } return st(page) };
 const waitNew = (page, old) => page.waitForFunction((o) => { const s = window.__bt.state(); return s && s.id && s.id !== o && document.getElementById("bt-loading").hidden }, old, { timeout: 30000 });
 async function finish(page) {
-  await page.click("#ch-rp-exit");
+  // a desktop finishes from the column; a phone from the dock under the chart
+  if (await page.isVisible("#bt-foot .bt-finish")) await page.click("#bt-foot .bt-finish"); else await page.click("#ch-rp-exit");
   await page.waitForSelector("#cfmodal:not([hidden])", { timeout: 8000 });
   await page.click("#cf-yes");
   await page.waitForSelector("#bt-report.on", { timeout: 20000 });
@@ -103,7 +104,7 @@ try {
     await page.screenshot({ path: `${OUT}/desk 1 straight in.png` });
     // Pick a day, from the panel
     const randomId = s.id;
-    await page.click('#bt-hud [data-a="pick"]');
+    await page.click('#bt-foot [data-a="pick"]');
     await page.waitForSelector("#bt-setup.on", { timeout: 5000 });
     await page.fill("#bt-setup .bt-date", DAY); await page.dispatchEvent("#bt-setup .bt-date", "change");
     await page.screenshot({ path: `${OUT}/desk 2 pick a day.png` });
@@ -111,10 +112,10 @@ try {
     await waitNew(page, randomId);
     await page.waitForTimeout(1200);
     s = await st(page);
-    const ui = await page.evaluate(() => ({ side: !document.getElementById("bt-side").hidden, dock: document.querySelector("#ch-replay .rp-tag")?.textContent.trim(), exit: document.querySelector("#ch-rp-exit b")?.textContent, view: document.querySelector(".view.on")?.id, hud: document.getElementById("bt-hud").textContent.replace(/\s+/g, " ") }));
+    const ui = await page.evaluate(() => ({ side: !document.getElementById("bt-side").hidden, start: !document.getElementById("bt-start").hidden, play: document.querySelector('#bt-play [data-p="play"]')?.textContent.trim(), coach: document.querySelector("#bt-play .bt-coach")?.textContent, finish: !!document.querySelector("#bt-foot .bt-finish"), dockShown: getComputedStyle(document.getElementById("ch-replay")).display !== "none", view: document.querySelector(".view.on")?.id, hud: document.getElementById("bt-hud").textContent.replace(/\s+/g, " ") }));
     const rows = await sql(`select id, day, start_at, sym, kind, balance0 from bt_sessions where user_id = '${ME}'`);
     const row = rows.find((r) => r.id === s.id);
-    ok(ui.view === "v-chart" && ui.side && ui.dock === "Backtest" && ui.exit === "Finish" && /8:00 AM/.test(ui.hud) && /Tue, Sep 15, 2026/.test(ui.hud), `the picked day opens in backtest mode: ${JSON.stringify(ui)}`);
+    ok(ui.view === "v-chart" && ui.side && ui.start && ui.play === "Start" && /Press Start/.test(ui.coach) && ui.finish && !ui.dockShown && /8:00 AM/.test(ui.hud) && /Tue, Sep 15, 2026/.test(ui.hud), `the picked day opens on its start card, with Start, what to do next and Finish in the column (the dock steps aside): ${JSON.stringify(ui)}`);
     ok(rows.length === 1 && row && row.day === DAY && new Date(row.start_at).toISOString() === "2026-09-15T12:00:00.000Z" && row.kind === "pick" && +row.balance0 === 50000, `the empty random session is dropped and the picked one saved at 8:00 New York: ${JSON.stringify(rows.map((r) => [r.kind, r.day]))}`);
     const want = (await sql(`select c from nq_bars where symbol = 'NQ' and interval = '1m' and t = to_timestamp(${s.at - 60})`))[0];
     ok(want && Math.abs(+want.c - s.px) < 0.01, `the price at the replay moment is the archive's 7:59 close (${s.px} vs ${want?.c})`);
@@ -122,12 +123,14 @@ try {
     ok(s.gex === true && await indMenuHasGex(page), `D1 GEX is offered on ${DAY} (a day with a print): gex ${s.gex}`);
     // playback: the clock runs continuously and the forming candle grows
     const play = await page.evaluate(async () => {
-      document.querySelector('#ch-rp-speed button[data-s="1"]').click(); document.getElementById("ch-rp-play").click()
+      document.querySelector('#bt-play [data-sp="1"]').click(); document.querySelector('#bt-start [data-p="start"]').click()
       const out = []; for (let k = 0; k < 14; k++) { await new Promise((r) => setTimeout(r, 85)); const v = window.__CH.vis, b = v[v.length - 1]; out.push({ at: window.__bt.state().at, t: b.t, c: b.c, h: b.h, l: b.l, partial: !!b.partial }) }
-      document.getElementById("ch-rp-play").click(); return out
+      document.querySelector('#bt-play [data-p="play"]').click(); return out
     });
     const mono = play.every((x, i) => !i || x.at > play[i - 1].at), mid = play.filter((x) => x.at % 60 !== 0).length, grew = play.some((x, i) => i && x.t === play[i - 1].t && (x.c !== play[i - 1].c || x.h !== play[i - 1].h || x.l !== play[i - 1].l)), span = play[play.length - 1].at - play[0].at;
     ok(mono && mid >= 8 && grew && play.some((x) => x.partial) && span > 120 && span < 900, `playing runs the clock smoothly (${play.length} samples, ${mid} mid-minute, ${Math.round(span)} s of market in ~1.1 s at 1x) and the forming candle moves between samples: ${grew}`);
+    const afterPlay = await page.evaluate(() => ({ start: !document.getElementById("bt-start").hidden, play: document.querySelector('#bt-play [data-p="play"]')?.textContent.trim(), coach: document.querySelector("#bt-play .bt-coach")?.textContent }));
+    ok(!afterPlay.start && afterPlay.play === "Play" && /Paused/.test(afterPlay.coach), `Start puts the card away; paused, the column says so: ${JSON.stringify(afterPlay)}`);
     await page.screenshot({ path: `${OUT}/desk 3 playing.png` });
     // draw: a trendline belongs to the session
     const box = await page.locator("#ch-canvas").boundingBox();
@@ -173,8 +176,8 @@ try {
     s = await st(page);
     ok(!s.pos && s.trades.length === 2 && s.trades[1].reason === "manual", "C closes the position (trade 2)");
     await page.waitForTimeout(700);
-    const log = await page.evaluate(() => ({ rows: [...document.querySelectorAll("#bt-log .bt-lr")].map((r) => r.textContent.replace(/\s+/g, " ").trim()), hud: document.getElementById("bt-hud").textContent.replace(/\s+/g, " "), spark: !!document.querySelector("#bt-hud svg.bt-spark") }));
-    ok(log.rows.length === 2 && /^Short 1/.test(log.rows[0]) && /^Long 1/.test(log.rows[1]) && log.spark && /Trades\s*2/.test(log.hud), `the column lists both trades, newest first, under an equity line: ${JSON.stringify(log.rows)}`);
+    const log = await page.evaluate(() => ({ rows: [...document.querySelectorAll("#bt-log .bt-lr")].map((r) => r.textContent.replace(/\s+/g, " ").trim()), head: document.querySelector("#bt-log .bt-log-h")?.textContent.replace(/\s+/g, " "), spark: !!document.querySelector("#bt-hud svg.bt-spark") }));
+    ok(log.rows.length === 2 && /^Short 1/.test(log.rows[0]) && /^Long 1/.test(log.rows[1]) && log.spark && /2 · \d+% won/.test(log.head), `the column lists both trades, newest first, under an equity line: ${JSON.stringify(log.rows)}`);
     await page.screenshot({ path: `${OUT}/desk 5b two trades.png` });
     // a limit order from the chart's menu, then cancelled from the ticket
     const below = await page.evaluate(() => window.__CH.$.pt(window.__bt.state().at - 600, window.__bt.state().px - 15));
@@ -213,14 +216,14 @@ try {
     await page.screenshot({ path: `${OUT}/desk 9 prop.png` });
     // the stats button opens the numbers page; the Backtest tab goes back to the running session
     const propId = s.id;
-    await page.click('#bt-hud [data-a="stats"]');
+    await page.click('#bt-foot [data-a="stats"]');
     await page.waitForFunction(() => document.getElementById("v-backtest").classList.contains("on"), null, { timeout: 8000 });
     await page.evaluate(() => document.querySelector('.tab[data-view="backtest"]').click());
     await page.waitForFunction(() => document.getElementById("v-chart").classList.contains("on"), null, { timeout: 8000 });
     ok((await st(page))?.id === propId, "the stats button opens the numbers page, and the Backtest tab goes back to the running session");
     // New day: the traded session is kept (finished), a new random one starts
     const tNew = Date.now();
-    await page.click('#bt-hud [data-a="newday"]');
+    await page.click('#bt-foot [data-a="newday"]');
     await waitNew(page, propId);
     const newMs = Date.now() - tNew;
     ok(newMs < 2500, `New day opens in ${newMs} ms`);
@@ -229,7 +232,7 @@ try {
     ok(kept?.f && kept.n >= 1 && s.id !== propId && !s.trades.length, `New day keeps the traded session finished (${kept?.n} trade) and opens another day (${s.day})`);
     // an empty session leaves without a trace
     const emptyId = s.id;
-    await page.click("#ch-rp-exit"); await page.waitForSelector("#cfmodal:not([hidden])", { timeout: 8000 }); await page.click("#cf-yes");
+    await page.click("#bt-foot .bt-finish"); await page.waitForSelector("#cfmodal:not([hidden])", { timeout: 8000 }); await page.click("#cf-yes");
     await page.waitForFunction(() => !window.__bt.state(), null, { timeout: 10000 }); await page.waitForTimeout(1200);
     const gone = await sql(`select count(*)::int n from bt_sessions where id = '${emptyId}'`);
     ok(gone[0].n === 0, "an empty session asked to leave is deleted");
