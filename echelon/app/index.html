@@ -2477,6 +2477,30 @@
     #v-chart.bt-play .bt-badge i { animation: bt-blink 1.1s ease-in-out infinite; }
     @keyframes bt-blink { 50% { opacity: 0.35; } }
     .bt-sym { font-weight: 700; }
+    /* the contract, the day and the session tools ride the account card: another day is one tap, never a form */
+    .bt-symsel { position: relative; display: inline-flex; align-items: center; height: 26px; border-radius: 8px; background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow 0.15s ease; }
+    @media (hover: hover) { .bt-symsel:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 50%, var(--line)); } }
+    .bt-symsel select { -webkit-appearance: none; appearance: none; height: 100%; padding: 0 24px 0 9px; border: 0; border-radius: 8px; background: none; color: var(--ink); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .bt-symsel select:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+    .bt-symsel option { background: var(--panel); color: var(--ink); }
+    .bt-symsel svg { position: absolute; right: 7px; width: 12px; height: 12px; color: var(--muted); pointer-events: none; }
+    .bt-dayrow { display: flex; align-items: center; gap: 8px; margin-top: -3px; }
+    #v-chart .bt-hud > * { min-width: 0; }   /* a grid item sizes to its content by default: "Date hidden until you finish" pushed the clock off the card */
+    .bt-hud .bt-dayrow .bt-day { flex: 1; min-width: 0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bt-tools { display: inline-flex; gap: 2px; padding: 2px; border-radius: 10px; background: color-mix(in srgb, var(--ink) 6%, transparent); }
+    .bt-tools button { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease; }
+    .bt-tools button svg { width: 15px; height: 15px; }
+    @media (hover: hover) { .bt-tools button:hover { background: var(--panel); color: var(--gold); } }
+    .bt-tools button:active { transform: scale(0.88); }
+    /* loading a session: the chart dims under a small card instead of a form */
+    #v-chart .bt-loading { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 40%, transparent); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: bt-fade 0.2s ease both; }
+    #v-chart .bt-loading[hidden] { display: none; }
+    #v-chart .bt-loading > div { display: inline-flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line-bright); box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.6); color: var(--ink); font-size: 14px; font-weight: 600; animation: bt-rise 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    #v-chart .bt-loading i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--gold) 25%, transparent); border-top-color: var(--gold); animation: bt-spin 0.8s linear infinite; }
+    @keyframes bt-spin { to { transform: rotate(360deg); } }
+    @keyframes bt-fade { from { opacity: 0; } }
+    #v-backtest .bt-hero-go { display: flex; align-items: center; gap: 10px; flex: none; }
+    #v-backtest .bt-hero-go .bt-ghost { height: 46px; padding: 0 20px; }
     .bt-k { color: var(--muted); font-size: 12px; }
     .bt-pr { position: relative; width: 70px; height: 6px; border-radius: 6px; background: color-mix(in srgb, var(--ink) 10%, transparent); overflow: hidden; flex: none; }
     .bt-pr i { position: absolute; inset: 0 auto 0 0; width: var(--p); background: linear-gradient(90deg, var(--gold), color-mix(in srgb, var(--gold) 55%, #fff)); border-radius: inherit; transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
@@ -2553,8 +2577,9 @@
       #v-chart .ch-bar > #ch-bt-btn { display: none; }
       #v-chart .bt-side { position: absolute; left: 8px; right: 8px; bottom: 112px; z-index: 7; width: auto; max-height: 52%; padding: 8px; gap: 8px; border: 1px solid var(--line-bright); border-radius: 18px; background: color-mix(in srgb, var(--panel) 95%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.3); backdrop-filter: blur(16px) saturate(1.3); box-shadow: 0 20px 44px -22px rgba(0, 0, 0, 0.65); animation-name: bt-rise; }
       #v-chart .bt-hud { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 12px; }
-      #v-chart .bt-hud .bt-day, #v-chart .bt-hud .bt-wide, #v-chart .bt-hud .bt-badge, #v-chart .bt-hud .bt-propbar { display: none; }
-      .bt-acct-top { flex: none; } .bt-acct-top .bt-clock { margin-left: 4px; color: var(--muted); font-size: 12.5px; }
+      #v-chart .bt-hud .bt-day, #v-chart .bt-hud .bt-wide, #v-chart .bt-hud .bt-badge, #v-chart .bt-hud .bt-propbar, #v-chart .bt-hud .bt-clock, #v-chart .bt-hud .bt-nums > div:first-child { display: none; }
+      .bt-acct-top { flex: none; } #v-chart .bt-hud .bt-nums { order: 2; } #v-chart .bt-hud .bt-dayrow { order: 3; margin: 0; }
+      .bt-tools button { width: 30px; height: 30px; }
       .bt-nums { display: flex; gap: 14px; margin-left: auto; } .bt-nums > div { display: flex; align-items: baseline; gap: 5px; } .bt-nums span { font-size: 11.5px; } .bt-nums b { margin: 0; font-size: 13.5px; }
       #v-chart .bt-ticket { gap: 8px; }
       #v-chart .bt-ticket .bt-row1, #v-chart .bt-ticket .bt-brkrow, #v-chart .bt-ticket .bt-hint, #v-chart .bt-ticket [data-a="rev"], #v-chart .bt-ticket [data-a="be"] { display: none; }
@@ -2623,7 +2648,7 @@
     .bt-s-d b { display: block; font-size: 13.5px; } .bt-s-d span, .bt-s-n { display: block; font-size: 12px; color: var(--muted); } .bt-s b { font-variant-numeric: tabular-nums; }
     .bt-sessions { grid-column: 1 / -1; }
     @media (max-width: 1100px) { .bt-grid { grid-template-columns: minmax(0, 1fr); } .bt-sg { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 560px) { #v-backtest .bt-hero { flex-direction: column; align-items: stretch; } .bt-go#bt-new { width: 100%; } .bt-sg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bt-gr { grid-template-columns: minmax(0, 1fr) 40px 44px 54px 70px; gap: 6px; font-size: 12.5px; } .bt-hours span { font-size: 9px; } }
+    @media (max-width: 560px) { #v-backtest .bt-hero { flex-direction: column; align-items: stretch; } .bt-go#bt-new { flex: 1; } #v-backtest .bt-hero-go { width: 100%; } .bt-sg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bt-gr { grid-template-columns: minmax(0, 1fr) 40px 44px 54px 70px; gap: 6px; font-size: 12.5px; } .bt-hours span { font-size: 9px; } }
 
     /* ── the setup sheet and the report: one modal shell ── */
     .bt-modal { position: fixed; inset: 0; z-index: 320; display: grid; place-items: center; padding: 20px; background: rgba(0, 0, 0, 0); transition: background 0.24s ease; }
@@ -6664,7 +6689,7 @@
                       <button type="button" class="rp-play" id="ch-rp-play" aria-label="Play" data-tip="Play" data-tipk="Space"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.5 5.9v12.2a1 1 0 0 0 1.5.86l9.7-6.1a1 1 0 0 0 0-1.72L10 5.04a1 1 0 0 0-1.5.86z"/></svg></button>
                       <button type="button" class="rp-ib" id="ch-rp-fwd" aria-label="Forward one bar" data-tip="Forward one bar" data-tipk="Shift+&rarr;"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="16.1" y="5.5" width="2.4" height="13" rx="1"/><path d="M5.5 6.4v11.2a.9.9 0 0 0 1.4.74l7.8-5.6a.9.9 0 0 0 0-1.48l-7.8-5.6a.9.9 0 0 0-1.4.74z"/></svg></button>
                       <i class="rp-div"></i>
-                      <span class="rp-speed" id="ch-rp-speed" role="group" aria-label="Speed"><button type="button" data-s="0.5">0.5&times;</button><button type="button" data-s="1" class="on">1&times;</button><button type="button" data-s="3">3&times;</button><button type="button" data-s="10">10&times;</button></span>
+                      <span class="rp-speed" id="ch-rp-speed" role="group" aria-label="Speed"><button type="button" data-s="0.5">0.5&times;</button><button type="button" data-s="1" class="on">1&times;</button><button type="button" data-s="3">3&times;</button><button type="button" data-s="10">10&times;</button><button type="button" data-s="30">30&times;</button></span>
                     </div>
                     <button type="button" class="rp-exit" id="ch-rp-exit" aria-label="Exit replay" data-tip="Back to the live chart"><i></i><b>Exit</b></button>
                   </div>
@@ -6672,6 +6697,7 @@
                 </div>
                 <div class="ch-rp-hint" id="ch-rp-hint" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3.5v17" stroke-dasharray="2 2.6"/><rect x="4.5" y="8" width="4.5" height="8" rx="1.2"/><path d="M6.75 5v3M6.75 16v3M16 12h5M19 9.5l2.5 2.5-2.5 2.5"/></svg><span id="ch-rp-hint-t">Click the bar to replay from</span><button type="button" id="ch-rp-cancel">Cancel</button></div>
                 <div class="bt-tagcard" id="bt-tagcard" hidden></div>
+                <div class="bt-loading" id="bt-loading" hidden><div><i></i><span>Loading a session…</span></div></div>
                 <div class="ch-scrim" id="ch-scrim" hidden></div>
                 <div class="ch-menu" id="ch-menu" hidden><div class="ch-menu-head"><span class="l"><button type="button" class="ch-back" id="ch-menu-back" aria-label="Back" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b id="ch-menu-title"></b></span><button type="button" id="ch-menu-close" aria-label="Close">&times;</button></div><div class="ch-menu-body" id="ch-menu-body"></div></div>
               </div>
@@ -7986,6 +8012,9 @@
     if ('ResizeObserver' in window) { const n = el('nextup'); if (n) new ResizeObserver(() => nextupReserve()).observe(n) }
     { let lastY = 0; addEventListener('scroll', () => { const y = window.scrollY; if (performance.now() - (globalThis.__navJumpAt || 0) < 500) { lastY = y; return }; if (Math.abs(y - lastY) < 8) return; document.body.classList.toggle('nu-away', y > lastY && y > 120); lastY = y }, { passive: true }) }
     function showView(view) {
+      // the Backtest tab goes straight into a session (D1, 10/01: "make it to where u just straight backtest"); its numbers
+      // page opens from the session's panel, the report and Today. Back and forward, and a #backtest link, still land on it.
+      if (view === 'backtest' && !navSilent && !globalThis.__btPage && state.user) { btGo(); return }
       const prev = curView()
       if (prev !== view) VIEW_SCROLL[prev] = window.scrollY
       if (!navSilent && view !== prev) navPush({ view })
@@ -16188,7 +16217,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     if (!['off', 'weak', 'strong'].includes(CH.s.magnet)) CH.s.magnet = 'off'
     if (!['cross', 'dot', 'arrow'].includes(CH.s.cursor)) CH.s.cursor = 'cross'
     { const saved = localStorage.getItem('echelon-chart-tf'); for (const label of CH.s.customTfs || []) { const m = /^(\d+)([mhDW])$/.exec(label); if (m && !CH_TF[label]) { const mins = m[2] === 'h' ? +m[1] * 60 : m[2] === 'D' ? +m[1] * 1440 : m[2] === 'W' ? +m[1] * 10080 : +m[1]; CH_TF[label] = [mins >= 1440 ? '1d' : mins % 60 === 0 ? '60m' : mins % 5 === 0 ? '5m' : '1m', mins] } } if (saved && CH_TF[saved]) CH.tf = saved }
-    const chSave = () => { try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)); localStorage.setItem(chDrKey(), JSON.stringify(CH.drawings, (k, v) => k.startsWith('_') ? undefined : v)) } catch {} }
+    const chSave = () => { try { localStorage.setItem('echelon-chart-settings', JSON.stringify(CH.s)); const dr = JSON.stringify(CH.drawings, (k, v) => k.startsWith('_') ? undefined : v); if (CH.bt) { CH.bt.drawings = JSON.parse(dr); btSaveSoon() } else localStorage.setItem(chDrKey(), dr) } catch {} }
     /* ── layouts: a whole chart under a name ──────────────────
        The chart already remembered ONE state, the last one you left it in. A layout is that
        whole state saved under a name and switched between: the symbol, the interval, every
@@ -16511,7 +16540,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     let chOscCache = { key: '', v: null }
     function chOsc() {
       const bars = chVisible(), n = bars.length, S = CH.s
-      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${S.rsiN}|${S.macdF}|${S.macdS}|${S.macdSig}|${S.atrN}`
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${chBarC(bars)}|${S.rsiN}|${S.macdF}|${S.macdS}|${S.macdSig}|${S.atrN}`
       if (chOscCache.key === key) return chOscCache.v
       const v = {}
       { const N = Math.max(2, Math.round(S.rsiN || 14)), out = new Array(n); let ag = 0, al = 0; for (let i = 1; i < n; i++) { const ch = bars[i].c - bars[i - 1].c, g = Math.max(ch, 0), l = Math.max(-ch, 0); if (i <= N) { ag += g / N; al += l / N; out[i] = i === N ? (al ? 100 - 100 / (1 + ag / al) : 100) : null } else { ag = (ag * (N - 1) + g) / N; al = (al * (N - 1) + l) / N; out[i] = al ? 100 - 100 / (1 + ag / al) : 100 } } v.rsi = out }
@@ -16589,10 +16618,14 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       for (let i = i0; i <= i1; i++) { if (bars[i].l < lo) lo = bars[i].l; if (bars[i].h > hi) hi = bars[i].h }
       if (CH.s.emaOn) for (const e of chEmas()) for (let i = i0; i <= i1; i++) { const v = e.v[i]; if (v != null) { if (v < lo) lo = v; if (v > hi) hi = v } }
       // a backtest's stop, target and resting orders stay on screen (within reach of the candles, so a far order does not flatten them)
-      if (CH.bt && isFinite(lo)) { const reach = (hi - lo) * 1.5; for (const ln of btLines()) if (Math.abs(ln.p - (lo + hi) / 2) <= reach) { lo = Math.min(lo, ln.p); hi = Math.max(hi, ln.p) } }
+      let btTop = false
+      if (CH.bt && isFinite(lo)) { const reach = (hi - lo) * 1.5; for (const ln of btLines()) if (Math.abs(ln.p - (lo + hi) / 2) <= reach) { lo = Math.min(lo, ln.p); if (ln.p > hi) { hi = ln.p; btTop = true } } }
       if (!isFinite(lo)) return
       const pad = (hi - lo) * 0.08 || 5
-      CH.pMin = lo - pad; CH.pMax = hi + pad
+      // a backtest line on top drops below the legend, so its label never sits on the legend's rows
+      let padT = pad
+      if (btTop) { const lg = el('ch-legend'), lh = lg && !lg.hidden ? lg.offsetTop + lg.offsetHeight + 16 : 0; if (lh && L.mainH > lh * 2.5) padT = Math.max(pad, lh * (hi - lo + pad) / (L.mainH - lh)) }
+      CH.pMin = lo - pad; CH.pMax = hi + padT
     }
 
     /* ── indicators ── */
@@ -16637,7 +16670,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function chGexLevels() {
       if (!chGexBook()) return []
-      const g = chGexLiveFor(); if (!g || !CH.s.gex || !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return []
+      const g = chGexLiveFor(); if (!g || !CH.s.gex || chGexOff() || !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return []
       const z = g.zdte || {}, out = []
       const put = (name, px, color) => { if (px != null && !isNaN(px)) out.push({ name, px: +px, color }) }
       put('Call wall', z.callWall?.nq, 'good'); put('Put wall', z.putWall?.nq, 'bad'); put('Flip', z.flip?.nq, 'gold'); put('Major wall', g.majorWall?.nq, 'gold')
@@ -16783,7 +16816,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     const CH_WD_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     function chLit() {
       const bars = chVisible(), n = bars.length
-      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${bars[n - 1]?.t}|${CH.s.litDays}|${CH.s.litDsWeek}|${CH.vixDay}|${CH.replay?.on ? 1 : 0}`
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${chBarC(bars)}|${bars[n - 1]?.t}|${CH.s.litDays}|${CH.s.litDsWeek}|${CH.vixDay}|${CH.replay?.on ? 1 : 0}`
       if (chLitCache.key === key) return chLitCache.v
       const tf = CH.tfSec, S = CH.s, intra = tf <= 3600
       const v = { pd: [], pw: null, pm: null, wo: null, asia: [], ny: [], ldn: [], open18: [], open22: [], marks: [], ko: [], po3: [], gold: null, nwog: [], sig: null, days: [] }
@@ -16792,13 +16825,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // 1. isWithinLookback: "the last X days" counts back from the wall clock, not from the last bar, so on a
       // weekend Friday already fills most of the window (a replay counts back from the replay point)
       const since = (CH.replay?.on ? lastT : Math.max(lastT, Date.now() / 1000)) - (S.litDays || 3) * 86400
-      const mOf = (i) => chMin(bars[i].t)
+      const mOf = (i) => { const b = bars[i]; return b._m ?? (b._m = chMin(b.t)) }   // memoised on the bar: a replay recomputes once a bar
       // 2. f_atTime: the first bar at or past hh:mm, so on a coarse chart a straddled minute lands on the next bar
       const atTime = (i, mm) => mOf(i) >= mm && (i === 0 || mOf(i - 1) < mm)
       const calDay = (t) => Math.floor((t + chEtOff(t)) / 86400)
       // per-session extremes with the bar index that made them (a session runs 18:00 to 17:00)
       const days = new Map()
-      for (let i = 0; i < n; i++) { const b = bars[i], k = chDayKey(b.t); let d = days.get(k); if (!d) { d = { k, i0: i, h: b.h, hi: i, l: b.l, li: i, open: b.o }; days.set(k, d) } d.i1 = i; d.c = b.c; if (b.h > d.h) { d.h = b.h; d.hi = i } if (b.l < d.l) { d.l = b.l; d.li = i } }
+      for (let i = 0; i < n; i++) { const b = bars[i], k = b._dk ?? (b._dk = chDayKey(b.t)); let d = days.get(k); if (!d) { d = { k, i0: i, h: b.h, hi: i, l: b.l, li: i, open: b.o }; days.set(k, d) } d.i1 = i; d.c = b.c; if (b.h > d.h) { d.h = b.h; d.hi = i } if (b.l < d.l) { d.l = b.l; d.li = i } }
       const dayList = [...days.values()].sort((a, b) => a.k - b.k)
       // 3. PDH / PDL: the prior session's high and low, the latest pair only (every day change deletes the last
       // one), each a ray from the bar that made it to the bar that sweeps it, or to the current bar while it stands
@@ -16810,7 +16843,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       // 4. PWH / PWL: the prior week's, the same rays; 5. the weekly open: the week's first bar
       const weeks = new Map()
-      for (let i = 0; i < n; i++) { const b = bars[i], k = chWeekKey(b.t); let w = weeks.get(k); if (!w) { w = { k, i0: i, h: b.h, hi: i, l: b.l, li: i, open: b.o }; weeks.set(k, w) } w.i1 = i; if (b.h > w.h) { w.h = b.h; w.hi = i } if (b.l < w.l) { w.l = b.l; w.li = i } }
+      for (let i = 0; i < n; i++) { const b = bars[i], k = b._wk ?? (b._wk = chWeekKey(b.t)); let w = weeks.get(k); if (!w) { w = { k, i0: i, h: b.h, hi: i, l: b.l, li: i, open: b.o }; weeks.set(k, w) } w.i1 = i; if (b.h > w.h) { w.h = b.h; w.hi = i } if (b.l < w.l) { w.l = b.l; w.li = i } }
       const weekList = [...weeks.values()].sort((a, b) => a.k - b.k)
       if (weekList.length >= 2) {
         const pw = weekList[weekList.length - 2], cw = weekList[weekList.length - 1]
@@ -16822,7 +16855,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // 4b. PMH / PML: the prior month's (a month by trade date, so the Sunday 18:00 session belongs to Monday's month)
       { const mk = (t) => { const d = chEtDate(t + 6 * 3600); return d.getUTCFullYear() * 12 + d.getUTCMonth() }
         const months = new Map()
-        for (let i = 0; i < n; i++) { const b = bars[i], k = mk(b.t); let m = months.get(k); if (!m) { m = { k, i0: i, h: b.h, hi: i, l: b.l, li: i }; months.set(k, m) } if (b.h > m.h) { m.h = b.h; m.hi = i } if (b.l < m.l) { m.l = b.l; m.li = i } }
+        for (let i = 0; i < n; i++) { const b = bars[i], k = b._mo ?? (b._mo = mk(b.t)); let m = months.get(k); if (!m) { m = { k, i0: i, h: b.h, hi: i, l: b.l, li: i }; months.set(k, m) } if (b.h > m.h) { m.h = b.h; m.hi = i } if (b.l < m.l) { m.l = b.l; m.li = i } }
         const ml = [...months.values()].sort((a, b) => a.k - b.k)
         if (ml.length >= 2) { const pm = ml[ml.length - 2], cm = ml[ml.length - 1]; let hEnd = n - 1, lEnd = n - 1, hs = false, ls = false; for (let i = cm.i0; i < n; i++) { if (!hs && bars[i].h >= pm.h) { hEnd = i; hs = true } if (!ls && bars[i].l <= pm.l) { lEnd = i; ls = true } if (hs && ls) break } v.pm = { h: pm.h, hi: pm.hi, hEnd, hs, l: pm.l, li: pm.li, lEnd, ls } }
       }
@@ -16835,7 +16868,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const open = []
         for (let i = 0; i < n; i++) {
           const b = bars[i]
-          if (i > 0 && chWeekKey(b.t) !== chWeekKey(bars[i - 1].t)) {
+          if (i > 0 && b._wk !== bars[i - 1]._wk) {
             const fri = bars[i - 1].c, sun = b.o
             if (Math.abs(sun - fri) >= 4 * LIT_TICK - 1e-9) { open.push({ iL: i - 1, i0: i, t: b.t, o: sun, c: fri, fill: sun }); if (open.length > 10) open.shift() }
           }
@@ -16851,7 +16884,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       let asia = null, ny = null, ldn = null, o18 = null, o22 = null
       const marks = [[60, 'FF'], [180, 'LO'], [210, 'MM1'], [330, 'MM2'], [660, 'LC']]
       if (intra) for (let i = 0; i < n; i++) {
-        const b = bars[i], m = mOf(i), k = chDayKey(b.t), fresh = b.t > since
+        const b = bars[i], m = mOf(i), k = b._dk, fresh = b.t > since
         // 5. Asia 18:00 to 01:00
         if (m >= 1080 || m < 60) { if (!asia || asia.k !== k) { asia = { k, i0: i, i1: i, h: b.h, l: b.l }; if (fresh) v.asia.push(asia) } else { asia.i1 = i; if (b.h > asia.h) asia.h = b.h; if (b.l < asia.l) asia.l = b.l } }
         // 6. NYT 08:00 to 09:00
@@ -16914,7 +16947,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // 9. HOW / LOW window, Tue 02:00 to Wed 11:00 NY: its highest high floated 0.05% up, across the window and
       // no further; only the latest window
       { let w = null, was = false
-        for (let i = 0; i < n; i++) { const d = chEtDate(bars[i].t), dow = d.getUTCDay(), hr = d.getUTCHours(), on = (dow === 2 && hr >= 2) || (dow === 3 && hr < 11); if (on) { if (!was) w = { i0: i, i1: i, h: bars[i].h }; else { w.i1 = i; if (bars[i].h > w.h) w.h = bars[i].h } } was = on }
+        for (let i = 0; i < n; i++) { const b = bars[i], dh = b._dh ?? (b._dh = ((d) => d.getUTCDay() * 100 + d.getUTCHours())(chEtDate(b.t))), dow = Math.floor(dh / 100), hr = dh % 100, on = (dow === 2 && hr >= 2) || (dow === 3 && hr < 11); if (on) { if (!was) w = { i0: i, i1: i, h: bars[i].h }; else { w.i1 = i; if (bars[i].h > w.h) w.h = bars[i].h } } was = on }
         v.gold = w }
       // 9d. σ bands: the prior session's close ± the VIX-implied daily move (VIX/100 / sqrt 252), from the session open
       if (tf <= 86400 && dayList.length >= 2 && CH.vixDay != null) { const prev = dayList[dayList.length - 2], cur = dayList[dayList.length - 1]; const s1 = prev.c * (CH.vixDay / 100) / Math.sqrt(252); v.sig = { anchor: prev.c, s1, i0: cur.i0 } }
@@ -16961,7 +16994,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     let chVecCache = { key: '', v: null }
     function chLitVectors() {   // volume >= 1.2 x SMA20 and body >= 1.5 x SMA20 body, per the Pine
-      const bars = chVisible(), n = bars.length, key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}`
+      const bars = chVisible(), n = bars.length, key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${chBarC(bars)}`
       if (chVecCache.key === key) return chVecCache.v
       const v = new Array(n).fill(false); let sv = 0, sb = 0
       for (let i = 0; i < n; i++) {
@@ -17204,7 +17237,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     let chIctCache = { key: '', v: null }
     function chIct() {
       const bars = chVisible(), n = bars.length, S = CH.s, tf = CH.tfSec
-      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${S.ictDays}`
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${chBarC(bars)}|${S.ictDays}`
       if (chIctCache.key === key) return chIctCache.v
       const v = { mid: null, pc: null, rth: null, macros: [] }
       if (!n || tf > 3600) { chIctCache = { key, v }; return v }
@@ -17272,7 +17305,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     let chSdCache = { key: '', v: null }
     function chSd() {
       const bars = chVisible(), n = bars.length, S = CH.s
-      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${S.sdBase}|${S.sdBasePct}|${S.sdExpl}|${S.sdMax}|${S.sdKeep}|${S.sdBack}`
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${chBarC(bars)}|${S.sdBase}|${S.sdBasePct}|${S.sdExpl}|${S.sdMax}|${S.sdKeep}|${S.sdBack}`
       if (chSdCache.key === key) return chSdCache.v
       if (n < 40) { chSdCache = { key, v: [] }; return [] }
       const maxBase = +S.sdBase || 5, basePct = +S.sdBasePct || 0.5, expl = +S.sdExpl || 1.5, perSide = +S.sdMax || 10, legLen = 3
@@ -17341,7 +17374,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     let chPendCache = { key: '', v: null }
     function chPend() {
       const bars = chVisible(), n = bars.length, S = CH.s
-      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${S.pendLen}|${S.pendTol}|${S.pendMax}|${S.pendClose}|${S.pendKeep}|${S.pendBack}|${S.pendHi}|${S.pendLo}`
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${chBarC(bars)}|${S.pendLen}|${S.pendTol}|${S.pendMax}|${S.pendClose}|${S.pendKeep}|${S.pendBack}|${S.pendHi}|${S.pendLo}`
       if (chPendCache.key === key) return chPendCache.v
       if (n < 30) { chPendCache = { key, v: [] }; return [] }
       const len = Math.max(1, +S.pendLen || 5), tol = Math.max(0, S.pendTol == null ? 5 : +S.pendTol), cap = +S.pendMax || 12
@@ -17403,7 +17436,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     let chAmitCache = { key: '', v: null }
     function chAmit() {
       const bars = chVisible(), n = bars.length, S = CH.s, tf = CH.tfSec
-      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${S.amitMax}|${S.amitBack}`
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${chBarC(bars)}|${S.amitMax}|${S.amitBack}`
       if (chAmitCache.key === key) return chAmitCache.v
       if (n < 10 || tf > 3600) { chAmitCache = { key, v: [] }; return [] }
       const cap = +S.amitMax || 5, from = chScanFrom(n, S.amitBack || 3000)
@@ -17482,7 +17515,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     let chEngCache = { key: '', v: null }
     function chLitEng() {
       const bars = chVisible(), n = bars.length, S = CH.s
-      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${S.engBack}|${S.engMinPb}|${S.engIdmMode}|${S.engFbos}|${S.engObLookback}|${S.engObBody}|${S.engObMaxExt}|${S.engVecMult}|${S.engSlBuf}|${S.engMinRR}|${S.engRisk}|${S.engTarget}|${S.engNeedWin}|${S.engNeedVec}|${S.engRsiLen}|${S.engEdmPivot}|${S.engEdmSpan}|${S.engEmaLen}|${S.engLetWindow}`
+      const key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${chBarC(bars)}|${S.engBack}|${S.engMinPb}|${S.engIdmMode}|${S.engFbos}|${S.engObLookback}|${S.engObBody}|${S.engObMaxExt}|${S.engVecMult}|${S.engSlBuf}|${S.engMinRR}|${S.engRisk}|${S.engTarget}|${S.engNeedWin}|${S.engNeedVec}|${S.engRsiLen}|${S.engEdmPivot}|${S.engEdmSpan}|${S.engEmaLen}|${S.engLetWindow}`
       if (chEngCache.key === key) return chEngCache.v
       const blank = { events: [], idms: [], obs: [], trades: [], edm: [], let: [], eq: null, trend: 0, bos: null, choch: null, idm: null, idmPend: false, cyc: 'Build Up', cycTarget: null, last: '-', win: null }
       if (n < 60) { chEngCache = { key, v: blank }; return blank }
@@ -18154,6 +18187,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       return p.wd !== 'Sat' && p.wd !== 'Sun' && p.min >= 9 * 60 + 30 && p.min < 16 * 60
     }
     const chGexHidden = () => CH.s.gexHideClosed !== false && !chGexOpenNow()
+    function chGexOff() { return !!CH.bt && !CH.bt.gex }   // a backtest day the worker has no print for: no D1 GEX at all
     function chPaintGex(ctx, L, T, R) {
       if (!chGexBook()) return
       if (!(state.owned.has('d1-gex') || state.isMod || state.isAdmin)) return
@@ -18463,7 +18497,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (S.lit || S.gex || S.news || S.ict || S.sd || S.pend || S.amit || S.eng) {
         ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip()
         const lbl = chLabelLane(ctx), R = { bars, n, i0, i1, light, lbl }
-        for (const [on, paint] of [[S.lit, chPaintLit], [S.ict, chPaintIct], [S.sd, chPaintSd], [S.pend, chPaintPend], [S.amit, chPaintAmit], [S.eng, chPaintLitEng], [S.gex, chPaintGex], [S.news, chPaintNews]]) { lbl.part = null; if (on) paint(ctx, L, T, R) }
+        for (const [on, paint] of [[S.lit, chPaintLit], [S.ict, chPaintIct], [S.sd, chPaintSd], [S.pend, chPaintPend], [S.amit, chPaintAmit], [S.eng, chPaintLitEng], [S.gex && !chGexOff(), chPaintGex], [S.news, chPaintNews]]) { lbl.part = null; if (on) paint(ctx, L, T, R) }
         lbl.part = null; lbl.flush(L); ctx.restore()
       }
       chPanels(L)
@@ -18581,8 +18615,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (sn && sn.snapped && cur !== 'arrow') { ctx.strokeStyle = T.gold; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = T.gold; ctx.beginPath(); ctx.arc(x, y, 1.5, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 1 }
         const tt = b ? b.t : chTofI(chI(hv.x, L)); const text = chFmtFull(tt)
         if (cur !== 'arrow') { ctx.font = `600 10.5px ${GEX_FONT}`; const tw = ctx.measureText(text).width + 12; const tx0 = Math.min(Math.max(0, x - tw / 2), L.W - tw); ctx.fillStyle = T.panel2; ctx.fillRect(tx0, L.H - L.tx + 2, tw, L.tx - 4); ctx.fillStyle = T.ink; ctx.textAlign = 'center'; ctx.fillText(text, tx0 + tw / 2, L.H - L.tx / 2); ctx.font = `11px ${GEX_FONT}` }
-        chLegend(b || lastBar, b ? i : n - 1)
-      } else chLegend(lastBar, n - 1)
+        if (chLegendDue()) chLegend(b || lastBar, b ? i : n - 1)
+      } else if (chLegendDue()) chLegend(lastBar, n - 1)
       if (CH.measure?.b) chPaintMeasure(ctx, L, T)
       if (CH.replay.arm && hv && hv.x <= L.plotW && n) {
         // choosing a start: the bars after the pointer fade under the canvas colour, a line in the accent marks the cut,
@@ -18615,6 +18649,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         }
       }
     }
+    function chLegendDue() { if (!CH.replay.playing) return true; const t = performance.now(); if (t - (CH.lgAt || 0) < 100) return false; CH.lgAt = t; return true }
     function chLegend(b, i) {
       const lg = el('ch-legend'); if (!lg) return
       lg.hidden = !CH.s.legend
@@ -18622,8 +18657,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const bars = chVisible(); const prev = bars[i - 1]; const d = b.c - b.o; const chg = prev ? b.c - prev.c : d
       const up = d >= 0
       // the phone's short legend has no GEX row, so its chip carries the old-levels word
-      const gexOld = CH.s.gex && chGexBook() && (state.owned.has('d1-gex') || state.isMod || state.isAdmin) && !!gexAge(chGexNow(bars[bars.length - 1]?.t))?.old
-      const inds = `${CH.s.lit ? '<span class="ind">D1 LIT</span>' : ''}${CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin) ? `<span class="ind${gexOld ? ' gx-old' : ''}">D1 GEX${gexOld ? ' · old' : ''}</span>` : ''}`
+      const gexOld = CH.s.gex && !chGexOff() && chGexBook() && (state.owned.has('d1-gex') || state.isMod || state.isAdmin) && !!gexAge(chGexNow(bars[bars.length - 1]?.t))?.old
+      const inds = `${CH.s.lit ? '<span class="ind">D1 LIT</span>' : ''}${CH.s.gex && !chGexOff() && (state.owned.has('d1-gex') || state.isMod || state.isAdmin) ? `<span class="ind${gexOld ? ' gx-old' : ''}">D1 GEX${gexOld ? ' · old' : ''}</span>` : ''}`
       // a phone either way up gets the short legend: on its side the long one ate 40% of the chart
       const shortLg = window.innerWidth < 520 || window.innerHeight < 500
       if (shortLg && !CH.hover) { const h = `<b>${CH.sym}</b><span class="tf">${CH.tf}</span><span class="ohlc">C <i class="${up ? 'up' : 'down'}">${chPx(b.c)}</i></span><span class="${up ? 'up' : 'down'}">${chPts(d)} (${(d / b.o * 100).toFixed(2)}%)</span>${inds}`; if (lg._html !== h) { lg._html = h; lg._shape = 'short'; lg.innerHTML = h; requestAnimationFrame(chWmRecheck) } return }
@@ -18647,8 +18682,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (CH.s.cmp) { const cmp = chCompare(); const cv = cmp?.v[i]; const c0 = cmp ? [...cmp.v].slice(0, Math.max(0, i)).reverse().find((x) => x != null) : null; rows.push(`<div class="ln" data-ind="cmp"><span class="nm" style="color:${CH.s.cmpC || '#ff9800'}">${cmp?.peer || chCmpSym()}</span><i>${cv != null ? chPx(cv) : '–'}</i>${cv != null && c0 != null ? `<span class="${cv >= c0 ? 'up' : 'down'}">${chPts(cv - c0)}</span>` : ''}${ic('cmp', 'ind:cmp')}</div>`) }
       if (CH.s.smt) rows.push(`<div class="ln" data-ind="smt"><span class="nm">SMT</span><span>${chSmtPeer()} ${CH.s.smtLen || 5}</span>${ic('smt', 'ind:smt')}</div>`)
       if (CH.s.prevDay && !CH.s.lit) rows.push(`<div class="ln" data-ind="prev"><span class="nm">PDH / PDL</span>${ic('prevDay', 'ind:prev')}</div>`)
-      if (CH.s.gex && chGexManOn() && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) rows.push(`<div class="ln" data-ind="gex"><span class="nm">D1 GEX</span><span>your own levels</span>${ic('gex', 'ind:gex')}</div>`)
-      else if (CH.s.gex && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(bars[bars.length - 1]?.t), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${[chGexRead(g, last), chVolRead(last)].filter(Boolean).join(' ')}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${chVolBits(last)}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${chGexHidden() ? '<span class="gx-at">off after hours</span>' : ''}${ic('gex', 'ind:gex')}</div>`) }
+      if (CH.s.gex && !chGexOff() && chGexManOn() && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) rows.push(`<div class="ln" data-ind="gex"><span class="nm">D1 GEX</span><span>your own levels</span>${ic('gex', 'ind:gex')}</div>`)
+      else if (CH.s.gex && !chGexOff() && (state.owned.has('d1-gex') || state.isMod || state.isAdmin)) { const g = chGexNow(bars[bars.length - 1]?.t), z = g?.zdte || {}; const last = bars[bars.length - 1]?.c, lt = chGexLight(g, last), fl = z.flip?.nq ?? g?.swing?.flip?.nq; rows.push(`<div class="ln" data-ind="gex" title="${[chGexRead(g, last), chVolRead(last)].filter(Boolean).join(' ')}"><span class="nm">D1 GEX</span>${lt ? `<i class="gx-rg" data-k="${lt.k}">${lt.label}</i>` : ''}${chVolBits(last)}${fl ? `<span>Flip <i>${Math.round(fl).toLocaleString()}</i>${last != null ? ` <em class="gx-d">${last >= fl ? '+' : '−'}${Math.round(Math.abs(last - fl))}</em>` : ''}</span>` : ''}${z.callWall?.nq ? `<span>CW <i>${Math.round(z.callWall.nq).toLocaleString()}</i></span>` : ''}${z.putWall?.nq ? `<span>PW <i>${Math.round(z.putWall.nq).toLocaleString()}</i></span>` : ''}${chGexAt(g)}${chGexHidden() ? '<span class="gx-at">off after hours</span>' : ''}${ic('gex', 'ind:gex')}</div>`) }
       const html = rows.join('')
       const shape = (CH.s.legendOhlc === false ? 'o' : '') + (CH.s.legendInds === false ? 'i' : '') + (CH.s.legendVals === false ? 'v' : '')
       if (lg._html !== html || lg._shape !== shape) { lg._html = html; lg._shape = shape; lg.innerHTML = html; chLegendTrim(lg); requestAnimationFrame(chWmRecheck) }
@@ -19546,7 +19581,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     let chBbCache = { key: '', v: null }
     function chBands() {   // Bollinger: SMA of the close and k standard deviations
-      const bars = chVisible(), n = bars.length, N = Math.max(2, Math.round(CH.s.bbN || 20)), K = +CH.s.bbK || 2, key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}|${N}|${K}`
+      const bars = chVisible(), n = bars.length, N = Math.max(2, Math.round(CH.s.bbN || 20)), K = +CH.s.bbK || 2, key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${chBarC(bars)}|${N}|${K}`
       if (chBbCache.key === key) return chBbCache.v
       const mid = new Array(n), up = new Array(n), lo = new Array(n); let s = 0, s2 = 0
       for (let i = 0; i < n; i++) { const c = bars[i].c; s += c; s2 += c * c; if (i >= N) { const o = bars[i - N].c; s -= o; s2 -= o * o } if (i >= N - 1) { const m = s / N, sd = Math.sqrt(Math.max(0, s2 / N - m * m)); mid[i] = m; up[i] = m + K * sd; lo[i] = m - K * sd } else mid[i] = up[i] = lo[i] = null }
@@ -19846,7 +19881,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
     let chHaCache = { key: '', v: [] }
     function chHeikin() {
-      const bars = chVisible(), n = bars.length, key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${bars[n - 1]?.c}`
+      const bars = chVisible(), n = bars.length, key = `${CH.sym}|${CH.s.badj ? 1 : 0}|${CH.tf}|${n}|${chBarC(bars)}`
       if (chHaCache.key === key) return chHaCache.v
       const v = new Array(n); let po = null, pc = null
       for (let i = 0; i < n; i++) { const b = bars[i]; const c = (b.o + b.h + b.l + b.c) / 4, o = po == null ? (b.o + b.c) / 2 : (po + pc) / 2; v[i] = { t: b.t, o, c, h: Math.max(b.h, o, c), l: Math.min(b.l, o, c), v: b.v }; po = o; pc = c }
@@ -20718,8 +20753,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         gearRow('cmp', 'Compare', `${chCmpSym()} as a line over ${CH.sym}, fitted to the pane`, 'ind:cmp', () => chSmtWarm())
         gearRow('smt', 'SMT divergence', 'NQ against ES: one takes its swing high or low, the other fails to', 'ind:smt', () => chSmtWarm())
         gearRow('lit', 'D1 LIT', 'Levels and timing: PDH/PDL, PWH/PWL, weekly open, Asia box, NYT box, 18:00 open, FF/LO/MM markers, key opens, PO3 candles, weekly eighths, the golden window, vector candles', 'ind:lit')
-        if (hasGex) gearRow('gex', 'D1 GEX', 'Gamma flip, call and put walls, major wall, top gamma strikes and the GTBR band, per session from the 9:30 print', 'ind:gex', () => { if (S.gex) chGexWarm() })
-        else { const r = document.createElement('div'); r.className = 'ch-row'; r.innerHTML = '<div class="ch-row-t">D1 GEX<small>Part of the D1 GEX indicator</small></div>'; const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn'; b.textContent = 'Unlock'; b.addEventListener('click', () => { chMenu(null); showView('indicators') }); r.appendChild(b); body.appendChild(r) }
+        if (hasGex && !chGexOff()) gearRow('gex', 'D1 GEX', 'Gamma flip, call and put walls, major wall, top gamma strikes and the GTBR band, per session from the 9:30 print', 'ind:gex', () => { if (S.gex) chGexWarm() })
+        else if (!hasGex) { const r = document.createElement('div'); r.className = 'ch-row'; r.innerHTML = '<div class="ch-row-t">D1 GEX<small>Part of the D1 GEX indicator</small></div>'; const b = document.createElement('button'); b.type = 'button'; b.className = 'rowbtn'; b.textContent = 'Unlock'; b.addEventListener('click', () => { chMenu(null); showView('indicators') }); r.appendChild(b); body.appendChild(r) }
         gearRow('eng', 'D1 LIT Engine', 'The mechanical IDM-gated structure read: BoS, F-BoS, CHoCH, inducement levels and sweeps, order blocks, and the retap entry with its stop, target and size', 'ind:eng')
         gearRow('ict', 'D1 ICT', 'Midnight open, the 16:14 settlement close, the RTH quadrants between them, and the eight macro windows. PO3 candles and the key opens live in D1 LIT', 'ind:ict')
         gearRow('sd', 'D1 SD Zones', 'Supply and demand from a base plus an explosive departure, classified RBR / DBR / DBD / RBD and scored in ATR multiples', 'ind:sd')
@@ -21205,6 +21240,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        happened by then, so switching from 5m to 1h mid-replay builds the hour so far from the minutes instead of
        handing over the whole hour (it used to: 25 minutes of the future on a 1h chart). Stepping moves the moment
        one bar of the chart's interval; playing steps on a timer; the live tape keeps arriving underneath. */
+    // the last bar's part of a study's cache key: its close, or while a replay plays only which bar it is (the forming bar
+    // changes every frame, and recomputing D1 LIT on each one cost a dropped frame every time)
+    function chBarC(bars) { const b = bars[bars.length - 1]; return CH.replay?.playing ? 'p' + b?.t : b?.c }
     const chBarStart = (b) => CH.tfSec >= 86400 ? b.t - 6 * 3600 : b.t   // a day opens at 18:00 the evening before its date
     function chBarEnd(bars, i) { const b = bars[i], m = CH.tfSec; if (m < 86400) return b.t + m; if (m === 86400) return b.t + 17 * 3600; return bars[i + 1] ? chBarStart(bars[i + 1]) : b.t + m }
     function chReplayCount(at) { const bars = CH.bars; let lo = 0, hi = bars.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (chBarStart(bars[mid]) < at) lo = mid + 1; else hi = mid } return lo }
@@ -21212,10 +21250,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function chReplayPartial(b, at) {
       const st = chStoreFor(CH.sym), m = CH.tfSec / 60, start = chBarStart(b)
       for (const [src, g] of [['1m', 60], ['5m', 300], ['60m', 3600]]) {
-        if (g >= CH.tfSec) break
+        if (g > CH.tfSec || (g === CH.tfSec && g !== 60)) break
         const rows = chAdjBase(st, src); if (!rows.length || rows[0][0] > start) continue
         let lo = 0, hi = rows.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (rows[mid][0] < start) lo = mid + 1; else hi = mid }
-        const take = []; for (let i = lo; i < rows.length && rows[i][0] + g <= at; i++) take.push(rows[i])
+        const take = []; let i = lo; for (; i < rows.length && rows[i][0] + g <= at; i++) take.push(rows[i])
+        // the minute playing now, as far along its path as the clock is: the candle grows instead of landing whole
+        if (g === 60 && rows[i] && rows[i][0] < at) take.push(chMinAt(rows[i], (at - rows[i][0]) / 60))
         if (!take.length) continue
         const p = chAggregate(take, m).find((x) => x.k === b.k); if (p) return { ...p, t: b.t, partial: true }
       }
@@ -21248,16 +21288,45 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (n <= 1) return
       chReplayGo(chBarEnd(bars, n - 2))
     }
+    /* A minute's path: open, one extreme, the other, close, a third of the minute each. While a backtest position is
+       open the adverse extreme comes first (a stop and a target inside one minute: the stop), otherwise the low comes
+       first on an up minute and the high first on a down one. The order is fixed the first time the minute is asked
+       for, so the candle on screen and the fills on the ticket always agree. */
+    function chMinPath(r) {
+      const M = CH.mp || (CH.mp = new Map()); let lf = M.get(r[0])
+      if (lf === undefined) { const P = CH.bt?.pos; lf = P ? P.side > 0 : r[4] >= r[1]; if (M.size > 20000) M.clear(); M.set(r[0], lf) }
+      return lf ? [r[1], r[3], r[2], r[4]] : [r[1], r[2], r[3], r[4]]
+    }
+    // the minute so far, a fraction f along its path, as a bar row: [t, open, high so far, low so far, now, volume so far]
+    function chMinAt(r, f) {
+      const p = chMinPath(r), x = Math.max(0, Math.min(1, f)) * 3, s = Math.min(2, Math.floor(x)), now = Math.round((p[s] + (p[s + 1] - p[s]) * (x - s)) * 4) / 4
+      let hi = now, lo = now; for (let k = 0; k <= s; k++) { if (p[k] > hi) hi = p[k]; if (p[k] < lo) lo = p[k] }
+      return [r[0], r[1], hi, lo, now, Math.round((r[5] || 0) * f)]
+    }
+    // playing runs the clock every frame, one bar of the chart's interval a second at 1x, so the forming candle moves the
+    // way the price did (D1, 10/01: "make the play through a lot smoother"); the hours with nothing trading (the 5:00 PM
+    // break, a weekend) are skipped, not waited out
+    function chReplayAdvance(dt) {
+      const R = CH.replay, bars = CH.bars; if (!bars.length || R.at == null) return
+      let at = R.at; const n = chReplayCount(at)
+      if (n < bars.length && (!n || chBarEnd(bars, n - 1) <= at)) at = Math.max(at, chBarStart(bars[n]))
+      chReplayGo(Math.min(chBarEnd(bars, bars.length - 1), at + dt * R.speed * CH.tfSec))
+      if (R.done) chReplayPlay(false)
+    }
     function chReplayPlay(on) {
-      const R = CH.replay; clearTimeout(R.timer); R.timer = null
+      const R = CH.replay; clearTimeout(R.timer); cancelAnimationFrame(R.raf); R.timer = R.raf = null
       R.playing = !!on && R.on && !R.arm && !R.done
-      const tick = () => {
-        if (!R.playing) return
-        if (!CH.on || document.hidden) { R.playing = false; chReplayUi(); return }   // off the chart, it waits
-        chReplayStep(1)
-        if (R.playing) R.timer = setTimeout(tick, 1000 / R.speed)
-      }
-      if (R.playing) R.timer = setTimeout(tick, Math.min(350, 1000 / R.speed))
+      if (R.playing) {
+        let last = performance.now()
+        const tick = (now) => {
+          if (!R.playing) return
+          if (!CH.on || document.hidden) { R.playing = false; chReplayUi(); return }   // off the chart, it waits
+          const dt = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now
+          if (dt > 0) chReplayAdvance(dt)
+          if (R.playing) R.raf = requestAnimationFrame(tick)
+        }
+        R.raf = requestAnimationFrame(tick)
+      } else chDraw()
       chReplayUi()
     }
     // choose a start: from scratch, or again mid-replay (Esc or Cancel goes back to where it was)
@@ -21266,8 +21335,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // how far the replay has come, from its start to the live bar, 0 to 1
     function chReplayProgress() {
       const R = CH.replay, bars = CH.bars; if (!R.on || R.at == null || !bars.length) return 0
-      let s = bars.findIndex((b) => b.t >= (R.startT ?? 0)); if (s < 0) s = 0
-      const n = chReplayCount(R.at), span = bars.length - 1 - s
+      if (R._sB !== bars || R._sT !== R.startT) { R._sB = bars; R._sT = R.startT; R._s = Math.max(0, bars.findIndex((b) => b.t >= (R.startT ?? 0))) }
+      const s = R._s, n = chReplayCount(R.at), span = bars.length - 1 - s
       return span <= 0 ? 1 : Math.max(0, Math.min(1, (n - 1 - s) / span))
     }
     function chReplaySeek(frac) {
@@ -21294,29 +21363,32 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       { const tg = rp.querySelector('.rp-tag'); if (tg && tg._bt !== !!CH.bt) { tg._bt = !!CH.bt; tg.lastChild.textContent = CH.bt ? 'Backtest' : 'Replay' } }
       const ex = el('ch-rp-exit'); if (ex) { const t = CH.bt ? 'Finish' : R.done ? 'Back to live' : 'Exit'; if (ex.querySelector('b').textContent !== t) ex.querySelector('b').textContent = t }
       if (R.on && R.cut != null) {
-        const at = el('ch-rp-at'), day = chFmtDate(R.cut), tm = CH.tfSec >= 86400 ? '' : chFmtTime(R.cut)
-        const html = `<span>${day}</span>${tm ? `<b>${tm}</b>` : ''}`; if (at._h !== html) { at._h = html; at.innerHTML = html }
-        el('ch-rp-track').style.setProperty('--p', (chReplayProgress() * 100).toFixed(2) + '%')
+        // a backtest's dock reads the clock, minute by minute; a replay's the bar it stands on
+        const at = el('ch-rp-at'), tc = CH.bt && R.at != null ? Math.floor(R.at / 60) * 60 : R.cut, sig = `${tc}|${CH.tfSec}|${CH.s.tz}|${chBlind()}`
+        if (at._sig !== sig) { at._sig = sig; const day = chFmtDate(tc), tm = CH.tfSec >= 86400 ? '' : chFmtTime(tc), html = `<span>${day}</span>${tm ? `<b>${tm}</b>` : ''}`; if (at._h !== html) { at._h = html; at.innerHTML = html } }
+        const tr = el('ch-rp-track'), pr = (chReplayProgress() * 100).toFixed(1) + '%'; if (tr._p !== pr) { tr._p = pr; tr.style.setProperty('--p', pr) }
       }
       el('ch-canvas').style.cursor = R.arm ? 'col-resize' : chCursorCss()
     }
 
-    /* ══ Backtest (D1, 10/01: "make the best backtesting platform, so easy to use people rely on it") ══════════════
-       Replay trading on Echelon's own archive (NQ minutes back to 2019): pick a session (random, the daily drill or a
-       date), replay it, and trade it with market, limit and stop orders and a stop and target you drag. Fills are
-       simulated on the 1-minute bars between one replay moment and the next: a limit fills when price trades through
-       it, a stop or limit gapped through fills at the bar's open, and a stop and target hit in the same minute count
-       the STOP first (the honest assumption). TradingView's replay trading keeps nothing after the session (its own
-       help says so); here every trade is saved, tagged and rolled into stats, which is the point of backtesting.
-       The session's bars live in their own store (CH.bt.store, served by chStoreFor), so the live chart's archive and
-       its live tail are never touched; the live tail and history paging stand down while it runs. */
+    /* ══ Backtest (D1, 10/01: "the best backtesting platform"; round two: "way more smooth ... just straight backtest
+       and draw shit up ... make the play through a lot smoother") ══════════════
+       One click and you are trading a past session on the chart: the Backtest tab, the chart's Backtest button and the
+       Today drill all go straight in (an unfinished session comes back, otherwise a random full NQ session from 2019 on).
+       Playback runs the clock continuously: every minute is played along its path (open, one extreme, the other,
+       close), so the candle grows in front of you instead of appearing whole, and the orders fill on that same path at
+       the price you watch it touch. While a position is open the adverse extreme comes first in each minute, so a stop
+       and target inside one minute count the stop first (the honest assumption). Every trade is saved, tagged and rolled
+       into stats; each session keeps its own drawings. The session's bars live in their own store (CH.bt.store, served
+       by chStoreFor), so the live chart's archive and its live tail are never touched. */
     const BT_START = { asia: ['Asia open', 'the evening before, 6:00 PM', -1, 18, 0], london: ['London', '3:00 AM', 0, 3, 0], ny: ['New York', '8:00 AM', 0, 8, 0], open: ['The open', '9:30 AM', 0, 9, 30] }
     const BT_SETUPS = ['Liquidity sweep', 'LB trap', 'POI', 'Inducement', 'GEX wall', 'Gamma flip', 'Asia range', 'PDH / PDL', 'News']
     const BT_MISTAKES = ['Chased', 'Early', 'Late', 'Moved stop', 'No setup', 'Oversized']
     const BT_DEF = { sym: 'NQ', mode: 'random', date: '', start: 'ny', bal: 50000, qty: 1, bracket: true, sl: 20, tp: 40, fee: 0, slip: 0, blind: false, prop: false, target: 3000, maxLoss: 2000 }
     const BT_FAM_PTS = { NQ: { sl: 20, tp: 40 }, ES: { sl: 5, tp: 10 } }
-    function btCfg() { try { return { ...BT_DEF, ...JSON.parse(localStorage.getItem('echelon-bt-cfg') || '{}') } } catch { return { ...BT_DEF } } }
-    function btCfgSave(c) { try { localStorage.setItem('echelon-bt-cfg', JSON.stringify(c)) } catch {} }
+    // the settings carry over from session to session; the day never does (a stale one would win over a picked date)
+    function btCfg() { let c; try { c = { ...BT_DEF, ...JSON.parse(localStorage.getItem('echelon-bt-cfg') || '{}') } } catch { c = { ...BT_DEF } } delete c.day; delete c.dayOk; return c }
+    function btCfgSave(c) { try { const { day, dayOk, ...keep } = c; localStorage.setItem('echelon-bt-cfg', JSON.stringify(keep)) } catch {} }
     const btUsd = (v, sign = false) => { const n = Math.round(Number(v) || 0); const s = '$' + Math.abs(n).toLocaleString('en-US'); return n < 0 ? '−' + s : sign && n > 0 ? '+' + s : s }
     const btR = (v) => v == null || !isFinite(v) ? '' : (v < 0 ? '−' : v > 0 ? '+' : '') + Math.abs(v).toFixed(1) + 'R'
     const btTick = (v) => Math.round(v * 4) / 4
@@ -21343,21 +21415,35 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (!st.base['1m'].length && !st.base['5m'].length) throw new Error('No bars for that session')
       return st
     }
+    // is there a GEX print for the day, in the book that drives this contract? The worker's archive starts in September
+    // 2026; a session before that (or a day it missed) does not offer D1 GEX at all (D1, 10/01: "if gex levels cant be
+    // pulled for that day dont offer the indicator")
+    const BT_GEXDAYS = {}
+    async function btGexHas(fam, day) {
+      const b = CH_GEX_BOOK[fam]; if (!b) return false
+      try {
+        if (!BT_GEXDAYS[b]) { const r = await fetch(`${GEX_URL}/history.json${b === 'nq' ? '' : '?book=' + b}`, { cache: 'no-cache' }); const j = r.ok ? await r.json() : {}; BT_GEXDAYS[b] = new Set((j.days || []).filter((d) => d.times?.length).map((d) => d.date)) }
+        return BT_GEXDAYS[b].has(day)
+      } catch { return false }
+    }
 
-    // ── the engine ──
+    // ── the engine: the minutes played along their path ──
     const btRows = () => { const st = CH.bt?.store; if (!st) return [[], 60]; const m1 = chAdjBase(st, '1m'); return m1.length ? [m1, 60] : [chAdjBase(st, '5m'), 300] }
-    // the price at the replay moment: the close of the last whole minute
-    function btPx(at = CH.bt?.at) {
+    // the price where the clock is: on the path of the minute playing, else the close of the last one
+    function btPxAt(at) {
       const [rows, g] = btRows(); let lo = 0, hi = rows.length
       while (lo < hi) { const mid = (lo + hi) >> 1; if (rows[mid][0] + g <= at) lo = mid + 1; else hi = mid }
+      const r = rows[lo]
+      if (r && r[0] < at) return btTick(chMinAt(r, (at - r[0]) / g)[4])
       return lo ? rows[lo - 1][4] : chLastClose()
     }
+    const btPx = () => CH.bt ? (CH.bt.px ?? btPxAt(CH.bt.at)) : null
     const btOpenPnl = (B = CH.bt, px = btPx()) => B?.pos ? (px - B.pos.avg) * B.pos.side * B.pos.qty * B.pv : 0
     function btFee(qty) { return (Number(CH.bt.cfg.fee) || 0) * qty }
     function btSlip(side) { return side * (Number(CH.bt.cfg.slip) || 0) * 0.25 }
     // a fill: opens, adds to, reduces, closes or reverses the one net position
     function btFill(side, qty, px, t, why) {
-      const B = CH.bt; px = btTick(px); B.bal -= btFee(qty); B.fees += btFee(qty)
+      const B = CH.bt; px = btTick(px); B.bal -= btFee(qty); B.fees += btFee(qty); B.dirty = true
       if (!B.pos) { btOpen(side, qty, px, t); return }
       const P = B.pos
       if (P.side === side) { P.avg = (P.avg * P.qty + px * qty) / (P.qty + qty); P.qty += qty; P.maxQty = Math.max(P.maxQty, P.qty); P.fees += btFee(qty); return }
@@ -21368,16 +21454,17 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function btOpen(side, qty, px, t) {
       const B = CH.bt, c = B.cfg
-      B.pos = { side, qty, maxQty: qty, avg: px, t, sl: null, tp: null, sl0: null, realized: 0, exitSum: 0, exitQty: 0, fees: btFee(qty), mae: 0, mfe: 0 }
+      B.pos = { side, qty, maxQty: qty, avg: px, t: Math.round(t), sl: null, tp: null, sl0: null, realized: 0, exitSum: 0, exitQty: 0, fees: btFee(qty), mae: 0, mfe: 0 }
       if (c.bracket) { const sl = Number(c.sl), tp = Number(c.tp); if (sl > 0) B.pos.sl = B.pos.sl0 = btTick(px - side * sl); if (tp > 0) B.pos.tp = btTick(px + side * tp) }
+      btRiskSet()
     }
     // the position is flat: one trade, whatever partials made it
     function btDone(px, t, why) {
       const B = CH.bt, P = B.pos; B.pos = null
       const exit = P.exitQty ? P.exitSum / P.exitQty : px, gross = P.realized, fees = P.fees
-      const tr = { id: null, side: P.side, qty: P.maxQty, entry_t: P.t, entry_p: +P.avg.toFixed(2), exit_t: t, exit_p: +exit.toFixed(2), sl: P.sl0, tp: P.tp, pnl: +(gross - fees).toFixed(2), fees: +fees.toFixed(2),
+      const tr = { id: null, side: P.side, qty: P.maxQty, entry_t: P.t, entry_p: +P.avg.toFixed(2), exit_t: Math.round(t), exit_p: +exit.toFixed(2), sl: P.sl0, tp: P.tp, pnl: +(gross - fees).toFixed(2), fees: +fees.toFixed(2),
         r: P.riskUsd ? +((gross - fees) / P.riskUsd).toFixed(2) : null, mae: +P.mae.toFixed(2), mfe: +P.mfe.toFixed(2), reason: why, tags: [], note: '' }
-      B.trades.push(tr); B.equity.push({ t, bal: B.bal })
+      B.trades.push(tr); B.equity.push({ t: Math.round(t), bal: B.bal })
       B.peak = Math.max(B.peak, B.bal)
       btTradeSave(tr)
       btTagCard(tr)
@@ -21385,76 +21472,85 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function btPropCheck() {
       const B = CH.bt, c = B.cfg; if (!c.prop || B.status !== 'live') return
-      if (B.bal - B.bal0 >= Number(c.target)) { B.status = 'passed'; toast(`Target reached: ${btUsd(B.bal - B.bal0, true)}. Evaluation passed.`, 4200); chBeep() }
-      else if (B.bal + btOpenPnl() <= B.peak - Number(c.maxLoss)) { if (B.pos) btFill(-B.pos.side, B.pos.qty, btPx(), B.at, 'rule'); B.status = 'failed'; toast(`Max loss hit (${btUsd(c.maxLoss)} from the high). Evaluation failed. The replay keeps going for practice.`, 5200) }
+      if (B.bal - B.bal0 >= Number(c.target)) { B.status = 'passed'; B.dirty = true; toast(`Target reached: ${btUsd(B.bal - B.bal0, true)}. Evaluation passed.`, 4200); chBeep() }
     }
-    // a market order, now, at the last whole minute's close (plus any slippage set)
-    function btMarket(side, qty = CH.bt.qty) {
+    // a market order, now, at the price on the chart (plus any slippage set)
+    function btMarket(side, qty = CH.bt?.qty) {
       const B = CH.bt; if (!B || B.at == null) return
-      if (B.status === 'failed') { toast('This evaluation has failed. Finish the session to start a new one.', 2600); return }
-      const px = btPx() + btSlip(side)
-      const had = B.pos; btFill(side, qty, px, B.at, 'manual')
-      if (B.pos && !had && B.pos.sl0 != null) btRiskSet()
+      if (B.status === 'failed') { toast('This evaluation has failed. Start a new session with New day.', 2600); return }
+      btFill(side, qty, btPx() + btSlip(side), B.at, 'manual')
       hap('light'); btUi(); chDraw(); btSaveSoon()
     }
     function btRiskSet() { const P = CH.bt.pos; if (!P || P.sl == null) return; P.sl0 = P.sl0 ?? P.sl; P.avg0 = P.avg0 ?? P.avg; P.riskUsd = Math.abs(P.avg0 - P.sl0) * CH.bt.pv * P.maxQty }
     function btFlatten(why = 'manual') { const B = CH.bt; if (!B?.pos) return; btFill(-B.pos.side, B.pos.qty, btPx() + btSlip(-B.pos.side), B.at, why); hap('light'); btUi(); chDraw(); btSaveSoon() }
-    function btReverse() { const B = CH.bt; if (!B?.pos) return; const s = -B.pos.side, q = B.pos.qty; btFill(s, q * 2, btPx() + btSlip(s), B.at, 'reverse'); if (B.pos) btRiskSet(); btUi(); chDraw(); btSaveSoon() }
+    function btReverse() { const B = CH.bt; if (!B?.pos) return; const s = -B.pos.side, q = B.pos.qty; btFill(s, q * 2, btPx() + btSlip(s), B.at, 'reverse'); btUi(); chDraw(); btSaveSoon() }
     // limit and stop orders: the kind follows from where the price is against the market
-    function btOrder(side, price, qty = CH.bt.qty) {
+    function btOrder(side, price, qty = CH.bt?.qty) {
       const B = CH.bt; if (!B) return; price = btTick(price)
       const px = btPx(), kind = side > 0 ? (price < px ? 'limit' : 'stop') : (price > px ? 'limit' : 'stop')
-      B.orders.push({ id: chId(), side, qty, price, kind })
+      B.orders.push({ id: chId(), side, qty, price, kind }); B.dirty = true
       toast(`${side > 0 ? 'Buy' : 'Sell'} ${kind} ${qty} at ${chPx(price)} placed.`, 1800)
       btUi(); chDraw(); btSaveSoon()
     }
-    function btCancel(id) { const B = CH.bt; B.orders = B.orders.filter((o) => o.id !== id); btUi(); chDraw(); btSaveSoon() }
+    function btCancel(id) { const B = CH.bt; B.orders = B.orders.filter((o) => o.id !== id); B.dirty = true; btUi(); chDraw(); btSaveSoon() }
     function btSetLevel(which, price) {
       const P = CH.bt?.pos; if (!P) return; price = btTick(price)
       const px = btPx(), wrong = which === 'sl' ? (P.side > 0 ? price >= px : price <= px) : (P.side > 0 ? price <= px : price >= px)
       if (wrong) { toast(which === 'sl' ? 'A stop has to sit on the losing side of price.' : 'A target has to sit on the winning side of price.', 2400); return }
-      P[which] = price; if (which === 'sl') btRiskSet(); btUi(); chDraw(); btSaveSoon()
+      P[which] = price; if (which === 'sl') btRiskSet(); CH.bt.dirty = true; btUi(); chDraw(); btSaveSoon()
     }
-    // the moment moved forward: everything that happened in the whole minutes between
+    // the clock moved forward: play every minute between, segment by segment
     function btAdvance(from, to) {
       const B = CH.bt; if (!B || to <= from) return
       const [rows, g] = btRows(); let lo = 0, hi = rows.length
-      while (lo < hi) { const mid = (lo + hi) >> 1; if (rows[mid][0] < from) lo = mid + 1; else hi = mid }
-      for (let i = lo; i < rows.length && rows[i][0] + g <= to; i++) {
-        const [t, o, h, l, c] = rows[i], tEnd = t + g
-        // resting orders first; a fill in this minute starts its stop and target on the next one
-        let filledNow = false
-        for (const od of [...B.orders]) {
-          const hit = od.kind === 'limit' ? (od.side > 0 ? l <= od.price : h >= od.price) : (od.side > 0 ? h >= od.price : l <= od.price)
-          if (!hit) continue
-          const gap = od.side > 0 ? (od.kind === 'limit' ? o < od.price : o > od.price) : (od.kind === 'limit' ? o > od.price : o < od.price)
-          const px = (gap ? o : od.price) + (od.kind === 'stop' ? btSlip(od.side) : 0)
-          B.orders = B.orders.filter((x) => x !== od)
-          const had = B.pos; btFill(od.side, od.qty, px, tEnd, od.kind); if (B.pos && B.pos !== had) { btRiskSet(); filledNow = true }
-          toast(`${od.side > 0 ? 'Bought' : 'Sold'} ${od.qty} at ${chPx(btTick(px))} (${od.kind}).`, 1800)
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (rows[mid][0] + g <= from) lo = mid + 1; else hi = mid }
+      for (let i = lo; i < rows.length && rows[i][0] < to; i++) {
+        const row = rows[i], t0 = row[0], fa = Math.max(0, (from - t0) / g), fb = Math.min(1, (to - t0) / g)
+        if (fa === 0 && i) btSeg(rows[i - 1][4], row[1], t0, t0, true)   // the open: a gap from the last close fills at the open
+        const p = chMinPath(row), px = (f, s) => p[s] + (p[s + 1] - p[s]) * (f * 3 - s)
+        for (let s = Math.min(2, Math.floor(fa * 3)); s < 3; s++) {
+          const a = Math.max(fa, s / 3), b = Math.min(fb, (s + 1) / 3); if (b <= a) break
+          btSeg(px(a, s), px(b, s), t0 + a * g, t0 + b * g, false)
         }
-        // prop rules: the account is closed out the moment its max loss is reached, inside the minute, unless the stop comes first
-        if (B.pos && !filledNow && B.cfg.prop && B.status === 'live') {
-          const Q = B.pos, room = B.bal - (B.peak - Number(B.cfg.maxLoss)), liq = Q.avg - Q.side * room / (B.pv * Q.qty)
-          const hitLiq = Q.side > 0 ? l <= liq : h >= liq, stopFirst = Q.sl != null && (Q.side > 0 ? Q.sl >= liq : Q.sl <= liq)
-          if (hitLiq && !stopFirst) { const px = (Q.side > 0 ? o <= liq : o >= liq) ? o : liq; B.status = 'failed'; btFill(-Q.side, Q.qty, px, tEnd, 'rule'); toast(`Max loss reached (${btUsd(B.cfg.maxLoss)} from your best balance). Evaluation failed. The replay keeps going for practice.`, 5200) }
-        }
-        const P = B.pos
-        if (P && !filledNow) {
-          P.mae = Math.max(P.mae, P.side > 0 ? P.avg - l : h - P.avg); P.mfe = Math.max(P.mfe, P.side > 0 ? h - P.avg : P.avg - l)
-          const slHit = P.sl != null && (P.side > 0 ? l <= P.sl : h >= P.sl), tpHit = P.tp != null && (P.side > 0 ? h >= P.tp : l <= P.tp)
-          const gapSl = P.sl != null && (P.side > 0 ? o <= P.sl : o >= P.sl), gapTp = P.tp != null && (P.side > 0 ? o >= P.tp : o <= P.tp)
-          let exit = null, why = ''
-          if (gapSl) { exit = o; why = 'stop' } else if (gapTp) { exit = o; why = 'target' }
-          else if (slHit) { exit = P.sl + btSlip(-P.side); why = 'stop' } else if (tpHit) { exit = P.tp; why = 'target' }
-          if (exit != null) { const s = -P.side; btFill(s, P.qty, exit, tEnd, why); toast(why === 'stop' ? `Stopped out at ${chPx(btTick(exit))}.` : `Target hit at ${chPx(btTick(exit))}.`, 1800) }
-        }
-        B.at = tEnd
-        btPropCheck()
       }
-      B.at = to
-      if (CH.replay.done && !B.overSaid) { B.overSaid = true; toast('That is the end of the session (5:00 PM New York). Finish to see your report.', 4200) }
-      btUi(); btSaveSoon()
+      B.at = to; B.px = btPxAt(to)
+      if (CH.replay.done && !B.overSaid) { B.overSaid = true; chReplayPlay(false); toast('That is the end of the session (5:00 PM New York). Finish to see your report, or New day for another.', 4600) }
+      if (B.dirty) { B.dirty = false; btUi(); btSaveSoon() } else btLive()
+    }
+    /* one straight piece of the path, price pa at time ta to pb at tb (a jump is the gap from one minute's close to the
+       next one's open: whatever sits inside it fills at the open). Walked in the order the price meets things: a resting
+       order, the position's stop or target, the prop max-loss line; each fill happens at the moment the price touched it,
+       and a position opened on the way can meet its own bracket further along the same piece. */
+    function btSeg(pa, pb, ta, tb, jump) {
+      const B = CH.bt, dir = pb >= pa ? 1 : -1
+      const when = (x) => jump || pb === pa ? tb : ta + (tb - ta) * Math.min(1, Math.max(0, (x - pa) / (pb - pa)))
+      const swing = (P, u, v) => { if (!P) return; const lo = Math.min(u, v), hi = Math.max(u, v); P.mae = Math.max(P.mae, P.side > 0 ? P.avg - lo : hi - P.avg); P.mfe = Math.max(P.mfe, P.side > 0 ? hi - P.avg : P.avg - lo) }
+      let a = pa
+      for (let guard = 0; guard < 24; guard++) {
+        const lo = Math.min(a, pb), hi = Math.max(a, pb), P = B.pos, ev = [], on = (x) => x >= lo && x <= hi
+        for (const od of B.orders) if (on(od.price)) ev.push({ k: od.kind, od, x: od.price })
+        if (P) {
+          if (P.sl != null && on(P.sl)) ev.push({ k: 'stop', x: P.sl })
+          if (P.tp != null && on(P.tp)) ev.push({ k: 'target', x: P.tp })
+          // prop rules: the account closes out the moment the max loss is reached, on the way, unless the stop comes first
+          if (B.cfg.prop && B.status === 'live') { const x = P.avg - P.side * (B.bal - (B.peak - Number(B.cfg.maxLoss))) / (B.pv * P.qty); if (on(x)) ev.push({ k: 'rule', x }) }
+        }
+        if (!ev.length) { swing(P, a, pb); return }
+        ev.sort((u, v) => dir * (u.x - v.x) || (u.k === 'stop' && !u.od ? -1 : v.k === 'stop' && !v.od ? 1 : 0))
+        const e = ev[0], t = when(e.x); swing(P, a, e.x)
+        if (e.od) {
+          const od = e.od, px = (jump ? pb : od.price) + (od.kind === 'stop' ? btSlip(od.side) : 0)
+          B.orders = B.orders.filter((x) => x !== od)
+          btFill(od.side, od.qty, px, t, od.kind)
+          toast(`${od.side > 0 ? 'Bought' : 'Sold'} ${od.qty} at ${chPx(btTick(px))} (${od.kind}).`, 1800)
+        } else {
+          const px = jump ? pb : e.x + (e.k === 'stop' ? btSlip(-P.side) : 0)
+          if (e.k === 'rule') B.status = 'failed'
+          btFill(-P.side, P.qty, px, t, e.k)
+          toast(e.k === 'stop' ? `Stopped out at ${chPx(btTick(px))}.` : e.k === 'target' ? `Target hit at ${chPx(btTick(px))}.` : `Max loss reached (${btUsd(B.cfg.maxLoss)} from your best balance). Evaluation failed.`, e.k === 'rule' ? 5000 : 1800)
+        }
+        a = jump ? pb : e.x
+      }
     }
 
     // ── on the chart: the position, its stop and target, and the resting orders ──
@@ -21479,13 +21575,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const yy = Math.round(Math.max(0, Math.min(L.mainH, y))) + 0.5
         ctx.save(); ctx.beginPath(); ctx.rect(0, 0, L.plotW, L.mainH); ctx.clip()
         ctx.strokeStyle = ln.c; ctx.lineWidth = ln.k === 'pos' ? 1.6 : 1.2; ctx.setLineDash(ln.dash || []); ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(L.plotW, yy); ctx.stroke(); ctx.setLineDash([])
-        // the label rides the line near the right edge, on a pill of its colour
         ctx.font = `600 11px ${GEX_FONT}`; const tw = ctx.measureText(ln.label).width, pw = tw + 16, px = 22, ph = 20   // left, so the newest candles stay clear
         ctx.fillStyle = ln.c; chRoundRect(ctx, px, yy - ph / 2, pw, ph, 6); ctx.fill()
         ctx.fillStyle = light ? '#fff' : '#111'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(ln.label, px + 8, yy + 0.5)
         if (ln.drag) { ctx.fillStyle = alpha(light ? '#ffffff' : '#111111', 0.7); for (let k = 0; k < 3; k++) ctx.fillRect(px - 8, yy - 3 + k * 3, 4, 1.2) }
         ctx.restore()
-        // and its price on the scale
         ctx.fillStyle = ln.c; ctx.fillRect(L.plotW + 2, yy - 8, L.ax - 4, 16); ctx.fillStyle = light ? '#fff' : '#111'; ctx.font = `600 10px ${GEX_FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(chPx(ln.p), L.plotW + 8, yy + 0.5)
         CH.btTags.push({ ln, y: yy, x0: px - 12, x1: px + pw })
       }
@@ -21501,7 +21595,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     function btDragEnd(ln) {
       const P = CH.bt?.pos
       if (P && (ln.k === 'sl' || ln.k === 'tp')) { const v = P[ln.k]; P[ln.k] = null; btSetLevel(ln.k, v); if (P[ln.k] == null) P[ln.k] = ln.k === 'sl' ? P.sl0 : null }
-      btUi(); btSaveSoon()
+      CH.bt.dirty = true; btUi(); btSaveSoon()
     }
     // the chart's own menu, on the plot, while a session runs
     function btCtxItems(price) {
@@ -21514,40 +21608,65 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       return [...items, { sep: true }]
     }
 
-    // ── the HUD and the order ticket ──
+    // ── the panel: drawn when something changes, its numbers updated in place while the session plays (a rebuild
+    //    every frame swapped the Buy button out from under the cursor and dropped clicks) ──
+    const BT_IC = {
+      shuffle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>',
+      cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+      gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>',
+      stats: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/></svg>',
+    }
     function btUi() {
       const B = CH.bt, hud = el('bt-hud'), tk = el('bt-ticket'), side = el('bt-side'); if (!hud) return
       if (side.hidden !== !B) { side.hidden = !B; chDraw(); setTimeout(chDraw, 220) }   // the chart gives the panel its width back
       // a phone docks the panel just above the replay dock, whatever height the dock has
       if (B && chPhone()) { const rp = el('ch-replay'), bb = side.parentElement.getBoundingClientRect(), rb = rp && !rp.hidden ? rp.getBoundingClientRect() : null; side.style.bottom = rb && rb.height ? Math.max(12, Math.round(bb.bottom - rb.top + 8)) + 'px' : '' } else side.style.bottom = ''
       el('v-chart').classList.toggle('bt-on', !!B)
-      if (!B) { el('bt-tagcard').hidden = true; return }
-      const px = btPx(), open = btOpenPnl(B, px), day = B.bal - B.bal0 + open, n = B.trades.length, w = B.trades.filter((t) => t.pnl > 0).length
-      const prop = B.cfg.prop ? (B.status === 'passed' ? '<span class="bt-st ok">Passed</span>' : B.status === 'failed' ? '<span class="bt-st bad">Failed</span>' : `<span class="bt-pr"><i style="--p:${Math.max(0, Math.min(100, (B.bal - B.bal0) / Number(B.cfg.target) * 100))}%"></i></span><span class="bt-k">${btUsd(Math.max(0, Number(B.cfg.target) - (B.bal - B.bal0)))} to target</span>`) : ''
-      const clock = B.at ? new Date(B.at * 1000).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' }) : ''
-      const html = `<div class="bt-acct-top"><span class="bt-badge"><i></i>Backtest</span><b class="bt-sym">${B.sym}</b><span class="bt-clock">${clock}</span></div><div class="bt-day">${btHidden() ? 'Date hidden until you finish' : btDayLabel(B.day)}</div>
-        <div class="bt-nums"><div><span>Balance</span><b>${btUsd(B.bal + open)}</b></div><div><span>Session</span><b class="${day > 0 ? 'up' : day < 0 ? 'dn' : ''}">${btUsd(day, true)}</b></div><div class="bt-wide"><span>Trades</span><b>${n}${n ? ` <small>${Math.round(w / n * 100)}% won</small>` : ''}</b></div></div>
-        ${prop ? `<div class="bt-propbar">${prop}</div>` : ''}`
-      if (hud._h !== html) { hud._h = html; hud.innerHTML = html }
+      el('ch-bt-btn')?.classList.toggle('on', !!B)
+      if (!B) { el('bt-tagcard').hidden = true; hud._h = tk._s = ''; return }
+      const n = B.trades.length, w = B.trades.filter((t) => t.pnl > 0).length
+      const prop = B.cfg.prop ? (B.status === 'passed' ? '<span class="bt-st ok">Passed</span>' : B.status === 'failed' ? '<span class="bt-st bad">Failed</span>' : '<span class="bt-pr"><i data-l="pr"></i></span><span class="bt-k" data-l="left"></span>') : ''
+      const hudSig = JSON.stringify([B.id, B.sym, B.day, btHidden(), n, w, B.status, B.cfg.prop])
+      if (hud._h !== hudSig) {
+        hud._h = hudSig
+        hud.innerHTML = `<div class="bt-acct-top"><span class="bt-badge"><i></i>Backtest</span><label class="bt-symsel" title="Contract"><select data-f="sym" aria-label="Contract">${['NQ', 'MNQ', 'ES', 'MES'].map((s) => `<option value="${s}"${s === B.sym ? ' selected' : ''}>${s}</option>`).join('')}</select><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></label><span class="bt-clock" data-l="clock"></span></div>
+          <div class="bt-dayrow"><span class="bt-day">${btHidden() ? 'Date hidden until you finish' : btDayLabel(B.day)}</span><span class="bt-tools"><button type="button" data-a="newday" title="New day: another random session" aria-label="New day">${BT_IC.shuffle}</button><button type="button" data-a="pick" title="Pick a day" aria-label="Pick a day">${BT_IC.cal}</button><button type="button" data-a="settings" title="Session settings" aria-label="Session settings">${BT_IC.gear}</button><button type="button" data-a="stats" title="Your numbers" aria-label="Your numbers">${BT_IC.stats}</button></span></div>
+          <div class="bt-nums"><div><span>Balance</span><b data-l="bal"></b></div><div><span>Session</span><b data-l="ses"></b></div><div class="bt-wide"><span>Trades</span><b>${n}${n ? ` <small>${Math.round(w / n * 100)}% won</small>` : ''}</b></div></div>
+          ${prop ? `<div class="bt-propbar">${prop}</div>` : ''}`
+      }
       // the ticket: contracts, the two buttons with the price on them, the bracket, the position and the resting orders
       const P = B.pos
-      const pos = P ? `<div class="bt-pos ${P.side > 0 ? 'long' : 'short'}"><div class="bt-pos-l"><b>${P.side > 0 ? 'Long' : 'Short'} ${P.qty}</b><span>at ${chPx(P.avg)}${P.sl != null ? ` · stop ${chPx(P.sl)}` : ''}${P.tp != null ? ` · target ${chPx(P.tp)}` : ''}</span></div><div class="bt-pos-r"><b class="${open > 0 ? 'up' : open < 0 ? 'dn' : ''}">${btUsd(open, true)}</b><span>${P.riskUsd ? btR(open / P.riskUsd) : 'no stop'}</span></div><button type="button" class="bt-pclose" data-a="close">Close</button></div>
-        <div class="bt-acts"><button type="button" class="bt-act" data-a="close">Close</button><button type="button" class="bt-act" data-a="rev">Reverse</button>${P.sl == null ? '<button type="button" class="bt-act" data-a="be">Add stop</button>' : '<button type="button" class="bt-act" data-a="be">Stop to entry</button>'}</div>` : ''
-      const ords = B.orders.map((o) => `<div class="bt-ord ${o.side > 0 ? 'b' : 's'}"><span>${o.side > 0 ? 'Buy' : 'Sell'} ${o.kind} ${o.qty}</span><b>${chPx(o.price)}</b><button type="button" data-x="${o.id}" aria-label="Cancel order">&times;</button></div>`).join('')
-      const sig = JSON.stringify([B.qty, B.cfg.bracket, B.cfg.sl, B.cfg.tp, px, P && [P.side, P.qty, P.avg, P.sl, P.tp, Math.round(open)], B.orders.map((o) => [o.id, o.price, o.kind]), B.status])
-      if (tk._s === sig) return
-      tk._s = sig
-      const focus = document.activeElement && tk.contains(document.activeElement) ? document.activeElement.dataset.f : null
-      tk.innerHTML = `<div class="bt-row1"><div class="bt-qty" role="group" aria-label="Contracts"><button type="button" data-q="-1" aria-label="One fewer">&minus;</button><b>${B.qty}</b><button type="button" data-q="1" aria-label="One more">+</button></div><span class="bt-qlab">contract${B.qty === 1 ? '' : 's'} · ${btUsd(B.pv * B.qty)}/pt</span>
-          <label class="bt-brk" title="Attach a stop and target to every new position"><input type="checkbox" ${B.cfg.bracket ? 'checked' : ''} data-f="brk"><span class="track"></span></label></div>
-        <div class="bt-bs"><button type="button" class="bt-sell" data-s="-1"><span>Sell</span><b>${chPx(px)}</b></button><div class="bt-qty ph" role="group" aria-label="Contracts"><button type="button" data-q="-1" aria-label="One fewer">&minus;</button><b>${B.qty}</b><button type="button" data-q="1" aria-label="One more">+</button></div><button type="button" class="bt-buy" data-s="1"><span>Buy</span><b>${chPx(px)}</b></button></div>
-        ${B.cfg.bracket ? `<div class="bt-brkrow"><label>Stop<input type="number" inputmode="decimal" min="0.25" step="0.25" value="${B.cfg.sl}" data-f="sl"><i>pts</i></label><label>Target<input type="number" inputmode="decimal" min="0.25" step="0.25" value="${B.cfg.tp}" data-f="tp"><i>pts</i></label><span class="bt-rr">${(B.cfg.tp / B.cfg.sl || 0).toFixed(1)}R · risk ${btUsd(B.cfg.sl * B.pv * B.qty)}</span></div>` : ''}
-        ${pos}${ords ? `<div class="bt-ords">${ords}</div>` : ''}
-        <p class="bt-hint">${P ? 'Drag the stop and target lines to move them.' : 'Right-click the chart (hold on a phone) for limit and stop orders.'} <kbd>B</kbd> buy, <kbd>S</kbd> sell, <kbd>C</kbd> close.</p>`
-      if (focus) { const f = tk.querySelector(`[data-f="${focus}"]`); if (f) { f.focus(); try { f.setSelectionRange?.(f.value.length, f.value.length) } catch {} } }
+      const sig = JSON.stringify([B.id, B.qty, B.cfg.bracket, B.cfg.sl, B.cfg.tp, P && [P.side, P.qty, P.avg, P.sl, P.tp, !!P.riskUsd], B.orders.map((o) => [o.id, o.price, o.kind]), B.status])
+      if (tk._s !== sig) {
+        tk._s = sig
+        const pos = P ? `<div class="bt-pos ${P.side > 0 ? 'long' : 'short'}"><div class="bt-pos-l"><b>${P.side > 0 ? 'Long' : 'Short'} ${P.qty}</b><span>at ${chPx(P.avg)}${P.sl != null ? ` · stop ${chPx(P.sl)}` : ''}${P.tp != null ? ` · target ${chPx(P.tp)}` : ''}</span></div><div class="bt-pos-r"><b data-l="pnl"></b><span data-l="r"></span></div><button type="button" class="bt-pclose" data-a="close">Close</button></div>
+          <div class="bt-acts"><button type="button" class="bt-act" data-a="close">Close</button><button type="button" class="bt-act" data-a="rev">Reverse</button>${P.sl == null ? '<button type="button" class="bt-act" data-a="be">Add stop</button>' : '<button type="button" class="bt-act" data-a="be">Stop to entry</button>'}</div>` : ''
+        const ords = B.orders.map((o) => `<div class="bt-ord ${o.side > 0 ? 'b' : 's'}"><span>${o.side > 0 ? 'Buy' : 'Sell'} ${o.kind} ${o.qty}</span><b>${chPx(o.price)}</b><button type="button" data-x="${o.id}" aria-label="Cancel order">&times;</button></div>`).join('')
+        const focus = document.activeElement && tk.contains(document.activeElement) ? document.activeElement.dataset.f : null
+        tk.innerHTML = `<div class="bt-row1"><div class="bt-qty" role="group" aria-label="Contracts"><button type="button" data-q="-1" aria-label="One fewer">&minus;</button><b>${B.qty}</b><button type="button" data-q="1" aria-label="One more">+</button></div><span class="bt-qlab">contract${B.qty === 1 ? '' : 's'} · ${btUsd(B.pv * B.qty)}/pt</span>
+            <label class="bt-brk" title="Attach a stop and target to every new position"><input type="checkbox" ${B.cfg.bracket ? 'checked' : ''} data-f="brk"><span class="track"></span></label></div>
+          <div class="bt-bs"><button type="button" class="bt-sell" data-s="-1"><span>Sell</span><b data-l="px"></b></button><div class="bt-qty ph" role="group" aria-label="Contracts"><button type="button" data-q="-1" aria-label="One fewer">&minus;</button><b>${B.qty}</b><button type="button" data-q="1" aria-label="One more">+</button></div><button type="button" class="bt-buy" data-s="1"><span>Buy</span><b data-l="px"></b></button></div>
+          ${B.cfg.bracket ? `<div class="bt-brkrow"><label>Stop<input type="number" inputmode="decimal" min="0.25" step="0.25" value="${B.cfg.sl}" data-f="sl"><i>pts</i></label><label>Target<input type="number" inputmode="decimal" min="0.25" step="0.25" value="${B.cfg.tp}" data-f="tp"><i>pts</i></label><span class="bt-rr">${(B.cfg.tp / B.cfg.sl || 0).toFixed(1)}R · risk ${btUsd(B.cfg.sl * B.pv * B.qty)}</span></div>` : ''}
+          ${pos}${ords ? `<div class="bt-ords">${ords}</div>` : ''}
+          <p class="bt-hint">${P ? 'Drag the stop and target lines to move them.' : 'Draw on the chart as you go. Right-click it (hold on a phone) for limit and stop orders.'} <kbd>Space</kbd> play, <kbd>B</kbd> buy, <kbd>S</kbd> sell, <kbd>C</kbd> close.</p>`
+        if (focus) { const f = tk.querySelector(`[data-f="${focus}"]`); if (f) { f.focus(); try { f.setSelectionRange?.(f.value.length, f.value.length) } catch {} } }
+      }
+      btLive(true)
+    }
+    // the numbers that move with the price, written into the panel in place, a dozen times a second at most
+    function btLive(force) {
+      const B = CH.bt; if (!B) return
+      const now = performance.now(); if (!force && now - (B.liveAt || 0) < 80) return; B.liveAt = now
+      const px = btPx(), open = btOpenPnl(B, px), day = B.bal - B.bal0 + open, side = el('bt-side')
+      const put = (k, v, cls) => { for (const n of side.querySelectorAll(`[data-l="${k}"]`)) { if (n.textContent !== v) n.textContent = v; if (cls != null && n.className !== cls) n.className = cls } }
+      put('px', px == null ? '' : chPx(px))
+      put('bal', btUsd(B.bal + open)); put('ses', btUsd(day, true), day > 0 ? 'up' : day < 0 ? 'dn' : '')
+      put('clock', B.at ? new Date(B.at * 1000).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' }) : '')
+      if (B.pos) { put('pnl', btUsd(open, true), open > 0 ? 'up' : open < 0 ? 'dn' : ''); put('r', B.pos.riskUsd ? btR(open / B.pos.riskUsd) : 'no stop') }
+      if (B.cfg.prop && B.status === 'live') { const pr = side.querySelector('[data-l="pr"]'); if (pr) pr.style.setProperty('--p', Math.max(0, Math.min(100, (B.bal - B.bal0) / Number(B.cfg.target) * 100)).toFixed(1) + '%'); put('left', btUsd(Math.max(0, Number(B.cfg.target) - (B.bal - B.bal0))) + ' to target') }
     }
     function btWireUi() {
-      const tk = el('bt-ticket'); if (!tk || tk._w) return; tk._w = true
+      const tk = el('bt-ticket'), hud = el('bt-hud'); if (!tk || tk._w) return; tk._w = true
       tk.addEventListener('click', (e) => {
         const B = CH.bt; if (!B) return
         const q = e.target.closest('[data-q]'); if (q) { B.qty = Math.max(1, Math.min(50, B.qty + +q.dataset.q)); hap('light'); btUi(); return }
@@ -21565,32 +21684,47 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         btCfgSave({ ...btCfg(), bracket: B.cfg.bracket, sl: B.cfg.sl, tp: B.cfg.tp }); tk._s = ''; btUi(); btSaveSoon()
       })
       tk.addEventListener('keydown', (e) => e.stopPropagation())   // typing a number is not a chart shortcut
+      // the session row: another day, a picked day, the settings, the numbers, the contract
+      hud.addEventListener('click', (e) => {
+        const a = e.target.closest('[data-a]'); if (!a || !CH.bt) return
+        hap('light')
+        if (a.dataset.a === 'newday') btGo({ mode: 'random' })
+        else if (a.dataset.a === 'pick') btSetupOpen({ mode: 'pick', sym: CH.bt.sym })
+        else if (a.dataset.a === 'settings') btSetupOpen({ sym: CH.bt.sym })
+        else if (a.dataset.a === 'stats') btStatsOpen()
+      })
+      hud.addEventListener('change', (e) => {
+        if (e.target.dataset.f !== 'sym' || !CH.bt) return
+        const sym = e.target.value, same = chFam(sym) === CH.bt.fam
+        // NQ and MNQ are one price, so the same day carries on with the new contract size; the other family needs another day
+        btGo(same ? { mode: 'pick', day: CH.bt.day, sym, start: CH.bt.cfg.start } : { mode: 'random', sym })
+      })
     }
 
-    // ── after a trade: why it was taken, what went wrong, a line of notes ──
+    // ── after a trade: why it was taken, what went wrong, a line of notes (out of the way; it never stops the replay) ──
     function btTagCard(tr) {
       const card = el('bt-tagcard'); if (!card) return
       clearTimeout(card._t)
       const win = tr.pnl > 0
       card.innerHTML = `<div class="bt-tc-h"><span class="bt-tc-res ${win ? 'up' : tr.pnl < 0 ? 'dn' : ''}">${btUsd(tr.pnl, true)}${tr.r != null ? ` <i>${btR(tr.r)}</i>` : ''}</span><span class="bt-tc-why">${tr.side > 0 ? 'Long' : 'Short'} ${tr.qty} · ${{ stop: 'stopped out', target: 'target hit', rule: 'closed by the max-loss rule', reverse: 'reversed', end: 'closed at the end' }[tr.reason] || 'closed'}</span><button type="button" class="bt-tc-x" aria-label="Close">&times;</button></div>
-        <p class="bt-tc-q">What was the setup?</p><div class="bt-chips" data-g="setup">${BT_SETUPS.map((t) => `<button type="button" data-t="${escH(t)}">${escH(t)}</button>`).join('')}</div>
+        <p class="bt-tc-q">The setup</p><div class="bt-chips" data-g="setup">${BT_SETUPS.map((t) => `<button type="button" data-t="${escH(t)}">${escH(t)}</button>`).join('')}</div>
         <p class="bt-tc-q">Anything off?</p><div class="bt-chips mis" data-g="mis">${BT_MISTAKES.map((t) => `<button type="button" data-t="${escH(t)}">${escH(t)}</button>`).join('')}</div>
         <input class="bt-tc-note" type="text" maxlength="300" placeholder="One line on it (optional)">`
       card.hidden = false; card.classList.remove('out'); void card.offsetWidth; card.classList.add('in')
-      const close = () => { card.classList.remove('in'); card.classList.add('out'); setTimeout(() => { card.hidden = true }, 220) }
+      const close = () => { card.classList.remove('in'); card.classList.add('out'); setTimeout(() => { if (!card.classList.contains('in')) card.hidden = true }, 220) }
       const save = () => { tr.tags = [...card.querySelectorAll('.bt-chips button.on')].map((b) => b.dataset.t); tr.note = card.querySelector('.bt-tc-note').value.trim(); btTradeUpdate(tr) }
       card.onclick = (e) => {
         if (e.target.closest('.bt-tc-x')) { save(); close(); return }
-        const b = e.target.closest('.bt-chips button'); if (b) { b.classList.toggle('on'); hap('light'); save(); clearTimeout(card._t) }
+        const b = e.target.closest('.bt-chips button'); if (b) { b.classList.toggle('on'); hap('light'); save(); clearTimeout(card._t); card._t = setTimeout(() => { save(); close() }, 6000) }
       }
       const note = card.querySelector('.bt-tc-note')
       note.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { save(); close() } })
       note.addEventListener('input', () => clearTimeout(card._t))
       note.addEventListener('blur', save)
-      card._t = setTimeout(() => { save(); close() }, 14000)
+      card._t = setTimeout(() => { save(); close() }, 10000)
     }
 
-    // ── saving: the session row (where it is, the open position) and one row per trade ──
+    // ── saving: the session row (where it is, the position, the drawings) and one row per trade ──
     async function btTradeSave(tr) {
       const B = CH.bt; if (!B?.id) return
       const row = { session_id: B.id, user_id: state.user.id, sym: B.sym, side: tr.side, qty: tr.qty, entry_t: new Date(tr.entry_t * 1000).toISOString(), entry_p: tr.entry_p, exit_t: new Date(tr.exit_t * 1000).toISOString(), exit_p: tr.exit_p, sl: tr.sl, tp: tr.tp, pnl: tr.pnl, fees: tr.fees, r: tr.r, mae: tr.mae, mfe: tr.mfe, reason: tr.reason, tags: tr.tags, note: tr.note || null }
@@ -21604,7 +21738,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       tr._dirty = false
       await supabase.from('bt_trades').update({ tags: tr.tags, note: tr.note || null }).eq('id', tr.id)
     }
-    const btStateOf = (B) => ({ bal: B.bal, peak: B.peak, fees: B.fees, pos: B.pos, orders: B.orders, status: B.status, qty: B.qty, cfg: B.cfg, equity: B.equity.slice(-400) })
+    const btStateOf = (B) => ({ bal: B.bal, peak: B.peak, fees: B.fees, pos: B.pos, orders: B.orders, status: B.status, qty: B.qty, cfg: B.cfg, equity: B.equity.slice(-400), drawings: B.drawings || [] })
     function btSaveSoon(now = false) {
       const B = CH.bt; if (!B?.id) return
       clearTimeout(B.saveT)
@@ -21614,30 +21748,88 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     document.addEventListener('visibilitychange', () => { if (document.hidden && CH.bt) { chReplayPlay(false); btSaveSoon(true) } })
 
+    // ── straight in: one tap from the tab, the chart's button, Today's drill or New day ──
+    // the numbers page: the Backtest tab itself goes straight to a session, so the panel, the report and Today open it
+    function btStatsOpen() { globalThis.__btPage = true; try { showView('backtest') } finally { globalThis.__btPage = false } }
+    function btLoading(text) {
+      const L = el('bt-loading'); if (!L) return
+      L.hidden = !text; if (text) L.querySelector('span').textContent = text
+    }
+    async function btResolveDay(c) {
+      const fam = chFam(c.sym), days = await btDays(fam)
+      if (!days.length) throw new Error('No sessions are ready yet.')
+      if (c.mode === 'random') { let d; do { d = days[Math.floor(Math.random() * days.length)] } while (days.length > 1 && d === CH.bt?.day); return d }
+      if (c.mode === 'drill') { const { data, error } = await supabase.rpc('bt_drill_day'); if (error || !data) throw new Error('The drill is not ready yet.'); c.blind = true; c.start = 'ny'; return data }
+      if (!days.includes(c.day || c.date)) throw new Error(c.day || c.date ? `No full ${fam} session on ${btDayLabel(c.day || c.date)}. Pick a weekday between ${btDayLabel(days[0])} and ${btDayLabel(days[days.length - 1])}.` : 'Pick a day.')
+      return c.day || c.date
+    }
+    var BT_GO = null   // var: the Backtest tab can be clicked before this line has run
+    function btGo(over) { if (!BT_GO) BT_GO = btGoNow(over).finally(() => { BT_GO = null }); return BT_GO }
+    async function btGoNow(over) {
+      if (CH.bt && !over) { showView('chart'); return }
+      if (curView() !== 'chart') showView('chart')
+      btLoading(over?.mode === 'drill' ? 'Loading today\'s drill…' : CH.bt ? 'Loading another session…' : 'Loading a session…')
+      try {
+        if (!over && !CH.bt) {
+          const { data } = await supabase.from('bt_sessions').select('id').is('finished_at', null).gte('created_at', new Date(Date.now() - 30 * 864e5).toISOString()).order('created_at', { ascending: false }).limit(1)
+          if (data?.[0]) { await btResume(data[0].id); return }
+        }
+        // a session with trades is kept (finished quietly); an empty one is dropped
+        if (CH.bt) await btWrapUp()
+        const c = { ...btCfg(), mode: 'random', ...(over || {}) }
+        if (!c.dayOk) { if (c.mode !== 'pick') delete c.day; c.day = await btResolveDay(c) }
+        if (c.mode === 'random' || c.mode === 'pick') btCfgSave({ ...btCfg(), sym: c.sym, start: c.start, date: c.mode === 'pick' ? c.day : btCfg().date })
+        await btStart(c)
+      } catch (err) { toast(err.message || 'Could not load that session.', 3200) }
+      finally { btLoading('') }
+    }
+    // the running session ends without ceremony: saved with its numbers if it had trades, deleted if it had none
+    async function btWrapUp() {
+      const B = CH.bt; if (!B) return
+      chReplayPlay(false)
+      if (!B.trades.length && !B.pos) { const id = B.id; await btLeave(true); await supabase.from('bt_sessions').delete().eq('id', id); return }
+      if (B.pos) btFlatten('end')
+      B.orders = []
+      const st = btStats(B.trades, B.bal0); st.final = B.bal; st.status = B.status; st.blind = !!B.cfg.blind
+      await supabase.from('bt_sessions').update({ at: new Date(B.at * 1000).toISOString(), state: btStateOf(B), stats: st, finished_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', B.id)
+      toast(`Saved ${btDayLabel(B.day, false)}: ${btUsd(st.net, true)}${st.rn ? ' · ' + btR(st.r) : ''}, ${st.n} trade${st.n === 1 ? '' : 's'}.`, 2600)
+      await btLeave(true)
+    }
+
     // ── start, resume, finish ──
     async function btEnter(B) {
+      B.gex = await btGexHas(B.fam, B.day)
       if (CH.replay.on) chReplayExit()
       if (CH.sym !== B.sym) chSetSymbol(B.sym)   // the family's own drawings come along, as on any symbol switch
+      // the session's own drawings: the live chart's set is put away and comes back when the session ends
+      CH.btLiveDrawings = CH.drawings
+      B.drawings = Array.isArray(B.drawings) ? B.drawings : []
+      CH.drawings = JSON.parse(JSON.stringify(B.drawings)); CH.drawings.forEach((d) => { if (!d.id) d.id = chId() })
+      CH.sel = null; CH.multi.clear(); CH.pending = null; CH.hist = []; CH.redo = []
+      CH.mp?.clear()
       CH.bt = B
-      showView('chart')
+      { const sp = el('ch-sess'); if (sp) sp.hidden = true }   // the live feed's delay says nothing about a past session
+      // the day's own print, fetched fresh (a lookup made before the archive list arrived is cached as none)
+      if (B.gex && CH.s.gex) { const gs = chGexStore(chGexBook()); if (gs.prints[B.day] === null) delete gs.prints[B.day]; chGexWarm() }
+      if (curView() !== 'chart') showView('chart')
       chBuild()
       const R = CH.replay
       R.arm = false; R.on = true; R.done = false; R.startT = B.startAt; R.at = B.at; R.speed = R.speed || 1
-      CH.offset = 6; CH.auto = true; chSetVis(); chReplayUi(); btUi(); chDraw()
-      if (!CH.bt.trades.length && !CH.bt.resumed) toast('Session ready. Press play, or step with Shift and the right arrow.', 3200)
+      B.px = btPxAt(B.at)
+      CH.offset = 6; CH.auto = true; chSetVis(); chReplayUi(); chHistUi(); chSelBar(); btUi(); chDraw()
+      if (!B.trades.length && !B.resumed) toast(`${btHidden() ? 'A mystery session' : btDayLabel(B.day)}, from ${(BT_START[B.cfg.start] || BT_START.ny)[1]}. Draw your levels, then press play.`, 3400)
     }
     async function btStart(cfg) {
       if (CH.bt) await btLeave(true)
-      const fam = chFam(cfg.sym)
-      let day = cfg.day
+      const fam = chFam(cfg.sym), day = cfg.day
       const st = await btLoadStore(fam, day, cfg.blind)
       const p = BT_START[cfg.start] || BT_START.ny, startAt = btNyEpoch(day, p[2], p[3], p[4])
       const row = { user_id: state.user.id, sym: cfg.sym, day, kind: cfg.mode === 'drill' ? 'drill' : cfg.mode === 'random' ? 'random' : 'pick', start_at: new Date(startAt * 1000).toISOString(), at: new Date(startAt * 1000).toISOString(), balance0: cfg.bal, settings: cfg }
       const { data, error } = await supabase.from('bt_sessions').insert(row).select('id').single()
       if (error) throw new Error(error.message)
-      const B = { id: data.id, fam, sym: cfg.sym, pv: CH_SYMS[cfg.sym].pv, day, kind: row.kind, startAt, at: startAt, cfg: { ...cfg }, store: st, bal: +cfg.bal, bal0: +cfg.bal, peak: +cfg.bal, fees: 0, pos: null, orders: [], trades: [], equity: [{ t: startAt, bal: +cfg.bal }], status: 'live', qty: Math.max(1, +cfg.qty || 1) }
-      btSaveSoon(true)
+      const B = { id: data.id, fam, sym: cfg.sym, pv: CH_SYMS[cfg.sym].pv, day, kind: row.kind, startAt, at: startAt, cfg: { ...cfg }, store: st, bal: +cfg.bal, bal0: +cfg.bal, peak: +cfg.bal, fees: 0, pos: null, orders: [], trades: [], equity: [{ t: startAt, bal: +cfg.bal }], status: 'live', qty: Math.max(1, +cfg.qty || 1), drawings: [] }
       await btEnter(B)
+      btSaveSoon(true)
     }
     async function btResume(id) {
       if (CH.bt && CH.bt.id === id) { showView('chart'); return }   // it is already running: back to it
@@ -21648,17 +21840,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const cfg = { ...BT_DEF, ...(s.settings || {}) }, fam = chFam(s.sym)
       const st = await btLoadStore(fam, s.day, cfg.blind)
       const S = s.state || {}, startAt = Date.parse(s.start_at) / 1000
-      const B = { id: s.id, fam, sym: s.sym, pv: CH_SYMS[s.sym].pv, day: s.day, kind: s.kind, startAt, at: Date.parse(s.at || s.start_at) / 1000, cfg, store: st, bal: S.bal ?? +s.balance0, bal0: +s.balance0, peak: S.peak ?? +s.balance0, fees: S.fees || 0, pos: S.pos || null, orders: S.orders || [], status: S.status || 'live', qty: S.qty || cfg.qty || 1, resumed: true,
+      const B = { id: s.id, fam, sym: s.sym, pv: CH_SYMS[s.sym].pv, day: s.day, kind: s.kind, startAt, at: Date.parse(s.at || s.start_at) / 1000, cfg, store: st, bal: S.bal ?? +s.balance0, bal0: +s.balance0, peak: S.peak ?? +s.balance0, fees: S.fees || 0, pos: S.pos || null, orders: S.orders || [], status: S.status || 'live', qty: S.qty || cfg.qty || 1, resumed: true, drawings: S.drawings || [],
         trades: (trs || []).map((t) => ({ ...t, side: +t.side, entry_t: Date.parse(t.entry_t) / 1000, exit_t: Date.parse(t.exit_t) / 1000, pnl: +t.pnl, r: t.r == null ? null : +t.r, entry_p: +t.entry_p, exit_p: +t.exit_p })), equity: S.equity || [{ t: startAt, bal: +s.balance0 }] }
       await btEnter(B)
       toast(`Back in the session: ${B.trades.length} trade${B.trades.length === 1 ? '' : 's'} so far.`, 2400)
     }
-    // leaving: the live chart comes back as it was
+    // leaving: the live chart comes back as it was, drawings and all
     async function btLeave(quiet) {
       const B = CH.bt; if (!B) return
       chReplayPlay(false); await btSaveSoon(true)
       CH.bt = null; CH.btTags = []
-      chReplayExit(); chBuild(); btUi(); chDraw()
+      try { CH.drawings = JSON.parse(localStorage.getItem(chDrKey()) || '[]') } catch { CH.drawings = CH.btLiveDrawings || [] }
+      CH.btLiveDrawings = null; CH.sel = null; CH.multi.clear(); CH.pending = null; CH.hist = []; CH.redo = []
+      CH.mp?.clear()
+      chReplayExit(); chBuild(); chHistUi(); chSelBar(); btUi(); chDraw()
       if (CH.on) chTail(true)
       if (!quiet) toast('Back on the live chart.', 1600)
     }
@@ -21733,8 +21928,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         ${btCurve(btCum(trades), 640, 150)}
         ${btStatGrid(st)}
         <h4>Trades</h4>${btTradeRows(trades)}`
-      m.querySelector('[data-a="again"]').onclick = () => { btModal(m, false); btSetupOpen() }
-      m.querySelector('[data-a="home"]').onclick = () => { btModal(m, false); showView('backtest') }
+      m.querySelector('[data-a="again"]').onclick = () => { btModal(m, false); btGo({ mode: 'random' }) }
+      m.querySelector('[data-a="home"]').onclick = () => { btModal(m, false); btStatsOpen() }
       btModal(m, true)
       if (curView() === 'backtest') btHome()
     }
@@ -21790,15 +21985,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         c.qty = Math.max(1, Math.min(50, Math.round(c.qty || 1))); c.fee = Math.max(0, +c.fee || 0); c.slip = Math.max(0, Math.round(+c.slip || 0))
         go.disabled = true; go.querySelector('span').textContent = 'Loading the session…'
         try {
-          const fam = chFam(c.sym), days = await btDays(fam)
-          if (!days.length) throw new Error('No sessions are ready yet.')
-          let day = c.date
-          if (c.mode === 'random') day = days[Math.floor(Math.random() * days.length)]
-          else if (c.mode === 'drill') { const { data, error } = await supabase.rpc('bt_drill_day'); if (error || !data) throw new Error('The drill is not ready yet.'); day = data; c.blind = true; c.start = 'ny' }
-          else if (!days.includes(day)) throw new Error(day ? `No full ${fam} session on ${btDayLabel(day)}. Pick a weekday between ${btDayLabel(days[0])} and ${btDayLabel(days[days.length - 1])}.` : 'Pick a day.')
-          btCfgSave({ ...c, date: c.mode === 'pick' ? day : c.date })
-          await btStart({ ...c, day })
+          delete c.day; c.day = await btResolveDay(c)   // a readable reason when the day has no session
+          btCfgSave({ ...c, date: c.mode === 'pick' ? c.day : c.date })
           btModal(m, false)
+          await btGo({ ...c, dayOk: true })
         } catch (err) { bad(err.message) }
         finally { go.disabled = false; go.querySelector('span').textContent = 'Start the session' }
       }
@@ -21830,8 +22020,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       const wdOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sun']
       const tagRow = (g) => `<div class="bt-gr"><span class="bt-gr-k ${BT_MISTAKES.includes(g.k) ? 'mis' : ''}">${escH(g.k)}</span><span>${g.n}</span><span>${Math.round(g.w / g.n * 100)}%</span><span class="${g.rn ? (g.r > 0 ? 'up' : g.r < 0 ? 'dn' : '') : ''}">${g.rn ? btR(g.r / g.rn) : '–'}</span><b class="${g.net > 0 ? 'up' : g.net < 0 ? 'dn' : ''}">${btUsd(g.net, true)}</b></div>`
       host.innerHTML = `
-        <div class="bt-hero"><div><p class="label">Backtest</p><h2>Replay a session. <em>Trade it.</em> Keep every result.</h2><p class="bt-lede">Any NQ session back to 2019, minute by minute, with D1 LIT on the chart. Orders fill on the real minutes, every trade is saved and tagged, and the numbers below show where your edge is.</p></div>
-          <div class="bt-hero-go"><button type="button" class="bt-go" id="bt-new"><span>New session</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div></div>
+        <div class="bt-hero"><div><p class="label">Backtest</p><h2>Replay a session. <em>Trade it.</em> Keep every result.</h2><p class="bt-lede">One tap puts you in a past NQ session on the chart, any day back to 2019. Draw your levels, press play and the candles build minute by minute. Orders fill where the price touches them, every trade is saved and tagged, and the numbers below show where your edge is.</p></div>
+          <div class="bt-hero-go"><button type="button" class="bt-ghost" id="bt-pick">Pick a day</button><button type="button" class="bt-go" id="bt-new"><span>${open ? 'New session' : 'Start trading'}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div></div>
         ${open ? `<div class="bt-cont"><div class="bt-cont-l"><span class="bt-pulse"></span><div><b>Unfinished session · ${open.sym}</b><span>${open.settings?.blind ? 'Date hidden' : btDayLabel(open.day)} · stopped at ${chFmtTime(Date.parse(open.at || open.start_at) / 1000)} New York</span></div></div><div class="bt-cont-r"><button type="button" class="bt-ghost" data-end="${open.id}">Finish it</button><button type="button" class="bt-go sm" data-resume="${open.id}"><span>Continue</span></button></div></div>` : ''}
         <div class="bt-grid">
           <section class="bt-card bt-stats"><div class="bt-card-h"><h3>Your numbers</h3><span class="bt-range" role="radiogroup">${[['all', 'All time'], ['d30', '30 days'], ['d7', '7 days']].map(([k, l]) => `<button type="button" data-r="${k}" class="${BTH.range === k ? 'on' : ''}">${l}</button>`).join('')}</span></div>
@@ -21847,8 +22037,9 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           <section class="bt-card bt-sessions"><div class="bt-card-h"><h3>Sessions</h3><span class="bt-k">${sessions.filter((s) => s.finished_at).length} finished</span></div>
             ${sessions.filter((s) => s.finished_at).length ? `<div class="bt-ses">${sessions.filter((s) => s.finished_at).slice(0, 40).map((s) => `<button type="button" class="bt-s" data-rep="${s.id}"><span class="bt-s-d"><b>${btDayLabel(s.day, true)}</b><span>${s.sym} · ${s.kind === 'drill' ? 'Daily drill' : s.kind === 'random' ? 'Random' : 'Picked'}</span></span><span class="bt-s-n">${s.stats?.n || 0} trade${(s.stats?.n || 0) === 1 ? '' : 's'}${s.stats?.n ? ' · ' + Math.round((s.stats.win || 0) * 100) + '%' : ''}</span><b class="${(s.stats?.net || 0) > 0 ? 'up' : (s.stats?.net || 0) < 0 ? 'dn' : ''}">${btUsd(s.stats?.net || 0, true)}</b></button>`).join('')}</div>` : '<p class="bt-k">Finished sessions land here with their report.</p>'}</section>
         </div>`
-      el('bt-new').onclick = () => { hap('light'); btSetupOpen() }
-      el('bt-drill-go')?.addEventListener('click', () => { hap('light'); btSetupOpen({ mode: 'drill', sym: chFam(btCfg().sym) === 'NQ' ? btCfg().sym : 'NQ', start: 'ny', blind: true }) })
+      el('bt-new').onclick = () => { hap('light'); btGo({ mode: 'random' }) }
+      el('bt-pick').onclick = () => { hap('light'); btSetupOpen({ mode: 'pick' }) }
+      el('bt-drill-go')?.addEventListener('click', () => { hap('light'); btGo(BT_DRILL()) })
       host.querySelectorAll('[data-r]').forEach((b) => b.addEventListener('click', () => { BTH.range = b.dataset.r; btHome() }))
       host.querySelectorAll('[data-rep]').forEach((b) => b.addEventListener('click', () => btReportOpen(b.dataset.rep)))
       host.querySelector('[data-resume]')?.addEventListener('click', (e) => { const b = e.currentTarget; b.disabled = true; btResume(b.dataset.resume).catch((err) => toast(err.message, 2600)).finally(() => { b.disabled = false }) })
@@ -21856,10 +22047,11 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function btHomeShown() { btHome().catch((e) => console.warn('backtest page', e)) }
     // harness hooks (tests/app-backtest-visual.mjs)
-    globalThis.__bt = { start: (c) => btStart({ ...btCfg(), ...c }), state: () => CH.bt && { at: CH.bt.at, bal: CH.bt.bal, pos: CH.bt.pos, orders: CH.bt.orders, trades: CH.bt.trades, status: CH.bt.status, px: btPx(), id: CH.bt.id, day: CH.bt.day }, market: btMarket, order: btOrder, level: btSetLevel, flatten: btFlatten, finish: btFinish, leave: btLeave, home: btHome, setup: btSetupOpen, step: () => chReplayStep(1), stats: btStats }
+    const BT_DRILL = () => ({ mode: 'drill', sym: chFam(btCfg().sym) === 'NQ' ? btCfg().sym : 'NQ', start: 'ny', blind: true })
+    globalThis.__bt = { start: (c) => btStart({ ...btCfg(), ...c }), go: btGo, state: () => CH.bt && { at: CH.bt.at, bal: CH.bt.bal, pos: CH.bt.pos, orders: CH.bt.orders, trades: CH.bt.trades, status: CH.bt.status, px: btPx(), id: CH.bt.id, day: CH.bt.day, sym: CH.bt.sym, gex: CH.bt.gex, drawings: (CH.bt.drawings || []).length }, market: btMarket, order: btOrder, level: btSetLevel, flatten: btFlatten, finish: btFinish, leave: btLeave, home: btHome, stats: btStatsOpen, setup: btSetupOpen, step: () => chReplayStep(1), calc: btStats }
 
 
-    el('ch-bt-btn')?.addEventListener('click', () => { hap('light'); if (CH.bt) btFinishAsk(); else btSetupOpen() })
+    el('ch-bt-btn')?.addEventListener('click', () => { hap('light'); if (CH.bt) btFinishAsk(); else btGo() })
     for (const id of ['bt-setup', 'bt-report']) {
       const m = el(id); if (!m) continue
       document.body.appendChild(m)   // a modal must not live inside a page that hides
@@ -21929,7 +22121,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (min >= 17 * 60 && min < 18 * 60) return { key: 'closed', label: 'Closed' }
       return { key: min < 570 && min >= 240 ? 'pre' : 'globex', label: min < 570 && min >= 240 ? 'Pre-market' : 'Globex' }
     }
-    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const lag = trading && CH.feedAt ? Math.floor((Date.now() / 1000 - CH.feedAt) / 60) : 0; const dly = lag >= 3 && lag <= 12; sp.textContent = lag >= 3 ? (dly ? `Delayed ${lag} min` : window.innerWidth < 520 ? `${lag} min behind` : `Feed ${lag} min behind`) : ''; sp.hidden = lag < 3; sp.className = 'ch-sess' + (dly ? ' dly' : lag >= 3 ? ' lag' : ''); sp.title = dly ? 'Yahoo serves CME futures about ten minutes behind the exchange.' : lag >= 3 ? 'Yahoo\x27s feed has stalled; it backfills when it catches up.' : '' } const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const ms = trading ? 3000 : st.key === 'weekend' ? 5 * 60 * 1000 : 60 * 1000; CH.timer = setTimeout(chTick, ms) }
+    function chSchedule() { clearTimeout(CH.timer); if (!CH.on) return; const st = chSession(); const sp = el('ch-sess'); if (sp) { const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const lag = trading && CH.feedAt && !CH.bt ? Math.floor((Date.now() / 1000 - CH.feedAt) / 60) : 0; const dly = lag >= 3 && lag <= 12; sp.textContent = lag >= 3 ? (dly ? `Delayed ${lag} min` : window.innerWidth < 520 ? `${lag} min behind` : `Feed ${lag} min behind`) : ''; sp.hidden = lag < 3; sp.className = 'ch-sess' + (dly ? ' dly' : lag >= 3 ? ' lag' : ''); sp.title = dly ? 'Yahoo serves CME futures about ten minutes behind the exchange.' : lag >= 3 ? 'Yahoo\x27s feed has stalled; it backfills when it catches up.' : '' } const trading = st.key === 'open' || st.key === 'pre' || st.key === 'globex'; const ms = trading ? 3000 : st.key === 'weekend' ? 5 * 60 * 1000 : 60 * 1000; CH.timer = setTimeout(chTick, ms) }
     async function chTick() { if (!CH.on) return; if (document.hidden) { chSchedule(); return } await chTail(Date.now() - (CH.fullAt || 0) > 5 * 60 * 1000); for (const peer of new Set([CH.s.smt ? chSmtPeer() : null, CH.s.cmp ? chCmpSym() : null].filter(Boolean))) { const ps = chStoreFor(peer); if (ps.have['1m'] === true) chTail(Date.now() - (ps.fullAt || 0) > 5 * 60 * 1000, peer) } chSchedule() }
 
     function renderGex() {
@@ -23921,7 +24113,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         : `<b>A mystery NQ session</b><span>Trade it from 8:00 AM with the date hidden. ${n ? `${n} member${n === 1 ? ' has' : 's have'} finished it.` : 'Be the first on the board.'}</span>`
       const html = `<span class="tdd-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4v4.5H8"/><path d="M12 7.5v4.8l3.2 1.9"/></svg></span><span class="tdd-tx">${tx}</span><span class="tdd-go">${me ? 'The board' : 'Start'}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></span>`
       if (host.dataset.html !== html) { host.dataset.html = html; host.innerHTML = html }
-      host.onclick = () => { hap('light'); if (me) showView('backtest'); else btSetupOpen({ mode: 'drill', sym: chFam(btCfg().sym) === 'NQ' ? btCfg().sym : 'NQ', start: 'ny', blind: true }) }
+      host.onclick = () => { hap('light'); if (me) btStatsOpen(); else btGo(BT_DRILL()) }
     }
     // harness hooks (tests/app-engage-loop-visual.mjs)
     globalThis.__engage = { bias: tdLoadBias, live: tdLoadLive, study: tdStudyPaint, studyDone: (on) => { TD.forceDone = !!on; el('ts-done').dataset.on = ''; tdStudyPaint() }, ics: (s) => tlIcs(s), set: (k, v) => { TD[k] = v; tdRenderBias(); tdRenderLive() } }
