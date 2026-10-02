@@ -942,7 +942,7 @@
     details.evidence[open] summary::before { transform: rotate(45deg); }
     .evidence-body { padding-top: 14px; }
     .evidence-body .hero5 { margin-bottom: 14px; } .evidence-body .hero5 .v { font-size: 22px; }
-    .evidence-body .edge-grid { grid-template-columns: 1fr; gap: 18px; margin-top: 16px; }
+    .evidence-body .edge-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; margin-top: 16px; }   /* minmax: a bare 1fr let the wide proof table push the page 2-32px past a phone screen */
     .evidence-body .egate { margin-top: 0; }
 
     #s-calls .why { color: var(--faint); font-size: 12px; max-width: 18ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1270,7 +1270,9 @@
       .wh-table tr:last-child { border-bottom: 0; }
       .wh-table tr.wh-grp { display: block; padding: 16px 0 4px; border-bottom: 0; }
       .wh-table td { border: 0 !important; padding: 0 !important; box-shadow: none !important; background: none !important; }
-      .wh-table tr.next { background: var(--tint-2); border-radius: 12px; padding: 11px 12px; margin: 0 -12px; }
+      .wh-table tr.next { background: var(--tint-2); border-radius: 12px; padding: 11px 10px; margin: 0; }   /* no negative margin: it pushed a phone page 2px sideways */
+      .wh-table { width: 100%; max-width: 100%; }
+      .wh-table td.wh-what, .wh-table td.wh-what .wh-buy, .wh-table td.wh-days { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
       .wh-table td.wh-when { grid-column: 1; grid-row: 1; }
       .wh-table td.wh-in { grid-column: 2; grid-row: 1; }
       .wh-table td.wh-days { grid-column: 1 / -1; grid-row: 2; margin-top: 6px; font-size: 12.5px; }
@@ -1408,6 +1410,7 @@
           <div><dt>Skips</dt><dd id="rl-skips">the 9:45, 10:15 and 10:30 New York closes on stock-market days</dd></div>
           <div><dt>Hourly</dt><dd id="rl-hourly">the BTC and ETH hourly ladders</dd></div>
           <div><dt>Dog</dt><dd id="rl-dog">the 9:45 New York close on stock-market days</dd></div>
+          <div><dt>Gas, rain</dt><dd id="rl-gasrain">the AAA gas ladder and the daily rain markets</dd></div>
         </dl>
         <div class="hstat-row">
           <div class="hstat"><div class="v" id="rl-edge7">–</div><div class="k">edge, 7 days</div></div>
@@ -2659,6 +2662,19 @@
       const mtl = mm === 'off' ? '' : ` Gold, silver and palladium drift, ${mm === 'live' ? 'live' : 'on paper'}: NO on the 5:30 and 16:15 New York rounds and YES on the 17:15 round, bought one minute in at ${(100 * (Number(sw?.metal_drift_frac) > 0 ? Math.min(0.10, Math.max(0.01, Number(sw.metal_drift_frac))) : frac)).toFixed(0)}% of the account a round${Number(sw?.metal_drift_frac) > 0 ? '' : ' (the open-dog size)'} (the 17:00 round and palladium on paper) (Aug-Sep +16c a leg over 317 legs; a 2026 regime, it has its own switch and its own -25% stop)${md.length ? `; paper ${fmt.format(md.length)} legs graded, ${mdc >= 0 ? '+' : ''}${mdc.toFixed(2)}c a leg` : '; no paper leg graded yet'}${ml.length ? `; live ${ml.length} settled, ${mlp >= 0 ? '+' : '-'}${Math.abs(mlp).toFixed(2)}` : ''}.`
       el('rl-dog').textContent = head + pp + lv + '.' + bell.replace('(backtest +5.3c a leg)', `(backtest +5.3c a leg; ${(100 * bf).toFixed(0)}% of the account a morning, x1.5 calm, x0.5 busy)`) + wkd + idx + mtl
     }
+    // the AAA gas late NO and the dry-day rain NO (worker src/gasrain.mjs), live since 2026-10-02 on their own switches
+    function renderGasRain(sw, paper = [], live = []) {
+      const part = (key, src, rule, frac, def, text) => {
+        const m = String(sw?.[key] ?? 'off').toLowerCase(); if (m === 'off') return ''
+        const f = Number(sw?.[key + '_frac']) > 0 ? Number(sw[key + '_frac']) : def
+        const lf = live.filter((o) => o.source === src && Number(o.filled) > 0 && o.pnl != null), w = lf.filter((o) => Number(o.pnl) > 0).length, pl = lf.reduce((t, o) => t + Number(o.pnl), 0)
+        const pg = paper.filter((r) => r.rule === rule), pc = pg.length ? pg.reduce((t, r) => t + Number(r.pnl_c ?? 0), 0) / pg.length : null
+        return `${text}, ${m === 'live' ? 'live' : 'on paper'} at ${(100 * f).toFixed(1).replace('.0', '')}% of the account ${frac}${lf.length ? `; live ${w} won of ${lf.length}, ${pl >= 0 ? '+' : '-'}${Math.abs(pl).toFixed(2)}` : '; no live trade settled yet'}${pg.length ? `; ${fmt.format(pg.length)} graded, ${pc >= 0 ? '+' : ''}${pc.toFixed(2)}c a contract` : ''}.`
+      }
+      const g = part('gas_late', 'gas', 'gaslate', 'a night', 0.03, 'AAA gas: an hour before the 23:59 ET close, NO on every strike priced 70 to 90c NO (backtest +14c a contract, t 5.2)')
+      const r = part('rain_dry', 'rain', 'raindry', 'a city', 0.015, 'Rain: 9 hours before each city closes, NO where its weather station has had no measurable rain yet, up to 97c (backtest +4.1c, t 3.8; weakest in September)')
+      el('rl-gasrain').textContent = [g, r].filter(Boolean).join(' ') || 'off.'
+    }
     function renderSizing(sw, rt = [], equity = null) {
       if (sw?.risk_model === 'live' && sw?.risk_segments === 'table' && rt?.length) {
         const eq = Number(equity), next = nextCloseAt(), seg = segmentAt(next), by = Object.fromEntries(rt.map((r) => [r.segment, r]))
@@ -2732,6 +2748,9 @@
     }
     // the timed rules, earliest first. sw = the switch column that arms them; paper = records only, never money
     const WH_FIXED = [
+      // rain (src/gasrain.mjs RAIN_RULE): 9 h before each city's close = 3 PM local standard time, so 4/5/6/7 PM ET in summer, an hour earlier in winter
+      ...[['Eastern', 16], ['Central', 17], ['Mountain', 18], ['Pacific', 19]].flatMap(([zone, h]) => [['edt', h], ['est', h - 1]].map(([dst, hh]) => ({ k: `rain${zone}${dst}`, sw: 'rain_dry', at: [hh, 0], days: 'every', dst, short: `rain ${zone}`, say: `Rain NO, ${zone} cities`, mkt: `Rain today, ${zone} cities`, buy: 'NO where the station has had no measurable rain yet, up to 97c', round: 'held to local midnight' }))),
+      { k: 'gaslate', sw: 'gas_late', at: [22, 59], days: 'every', short: 'gas', say: 'AAA gas ladder, NO', mkt: 'AAA gas price tomorrow', buy: 'NO on every strike priced 70 to 90c NO', round: 'held to the 23:59 close' },
       { k: 'metal0530', sw: 'metal_drift', at: [5, 15], days: 'weekday', metal: true, short: 'metals NO', say: 'Gold and silver, NO', mkt: 'Gold and silver', buy: 'NO, if it is priced 20 to 80c', round: 'the 5:15 to 5:30 round' },
       { k: 'pd0530', sw: 'metal_drift', paper: true, at: [5, 15], days: 'weekday', metal: true, short: 'palladium', say: 'Palladium, NO', mkt: 'Palladium', buy: 'NO, 20 to 80c', round: 'the 5:15 to 5:30 round' },
       { k: 'cu0730', sw: 'metal_drift', paper: true, at: [7, 15], days: 'weekday', metal: true, short: 'copper', say: 'Copper, YES', mkt: 'Copper', buy: 'YES, 20 to 80c', round: 'the 7:15 to 7:30 round' },
@@ -2755,7 +2774,7 @@
     function whFlip(now) {
       const e0 = whNy(now).edt
       for (let k = 1; k < 370; k++) {
-        const p = whNy(now + k * 864e5)
+        const b = whNy(now), dt = new Date(Date.UTC(b.y, b.mo - 1, b.d + k)), p = whNy(whAt(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate(), 12, 0))
         if (p.edt !== e0) {
           const day = (dd) => new Date(Date.UTC(p.y, p.mo - 1, dd)).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })
           return { last: day(p.d - 1), first: day(p.d) }
@@ -2799,11 +2818,14 @@
       const mdf = Number(sw.metal_drift_frac) > 0 ? Math.min(0.10, Math.max(0.01, Number(sw.metal_drift_frac))) : odf
       const bf = Number(sw.open_dog_bell_frac) > 0 ? Number(sw.open_dog_bell_frac) : 0.04
       const rows = []
+      const edtNow = whNy(Date.now()).edt
       for (const r of WH_FIXED) {
-        const m = mode(r.sw, r.sw === 'open_dog_bell' ? 'off' : 'paper')
+        if (r.sw === 'rain_dry' && (r.dst === 'edt') !== edtNow) continue
+        const m = mode(r.sw, ['open_dog_bell', 'gas_late', 'rain_dry'].includes(r.sw) ? 'off' : 'paper')
         if (m === 'off') continue
         const live = !r.paper && m === 'live'
-        rows.push({ ...r, live, f: live ? (r.sw === 'metal_drift' ? mdf : r.sw === 'open_dog_bell' ? bf : odf) : null, per: r.sw === 'open_dog_bell' ? 'a morning' : 'a round' })
+        const fr = r.sw === 'metal_drift' ? mdf : r.sw === 'open_dog_bell' ? bf : r.sw === 'gas_late' ? (Number(sw.gas_late_frac) > 0 ? Number(sw.gas_late_frac) : 0.03) : r.sw === 'rain_dry' ? (Number(sw.rain_dry_frac) > 0 ? Number(sw.rain_dry_frac) : 0.015) : odf
+        rows.push({ ...r, live, f: live ? fr : null, per: r.sw === 'open_dog_bell' ? 'a morning' : r.sw === 'gas_late' ? 'a night' : r.sw === 'rain_dry' ? 'a city' : 'a round' })
       }
       // the rule: one row per risk-table segment that trades (fraction above zero and not switched off)
       const sitOut = []
@@ -3146,7 +3168,7 @@
     async function loadStatus() {
       const et = (d) => new Date(d).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' })
       const [sw, st, h, rt] = await Promise.all([
-        q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price,risk_model,risk_segments,open_skip,tokyo_skip,sol_btc_skip,hourly_rule,hourly_frac,seg_off,polyus,open_dog,open_dog_frac,open_dog_bell,open_dog_bell_frac,metal_drift,metal_drift_frac').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
+        q('kalshi_switch', (b) => b.select('fav_rule,clip,daily_stop,stop_from,min_price,risk_model,risk_segments,open_skip,tokyo_skip,sol_btc_skip,hourly_rule,hourly_frac,seg_off,polyus,open_dog,open_dog_frac,open_dog_bell,open_dog_bell_frac,metal_drift,metal_drift_frac,gas_late,gas_late_frac,rain_dry,rain_dry_frac').eq('id', 1)).then((r) => r[0] ?? {}).catch(() => ({})),
         q('kalshi_executor_state', (b) => b.select('at,halted,realized_today,cash,at_risk,equity').eq('id', 1)).then((r) => r[0] ?? null).catch(() => null),
         supabase.rpc('kalshi_edge_health_desk').then((r) => r.data ?? null).catch(() => null),
         q('kalshi_risk_table', (b) => b.select('segment,n,mean,fraction,computed_at,kelly_mult,cap')).catch(() => []),
@@ -3188,6 +3210,10 @@
         q('kalshi_open_dog_paper', (b) => b.select('rule,won,price,pnl_c').not('won', 'is', null).order('created_at', { ascending: false }).limit(5000)).catch(() => []),
         q('kalshi_live_orders', (b) => b.select('pnl,filled,tag').eq('source', 'opendog')).catch(() => []),
       ]).then(([p, l]) => renderOpenDog(sw, p, l))
+      Promise.all([
+        q('kalshi_open_dog_paper', (b) => b.select('rule,won,pnl_c').in('rule', ['gaslate', 'raindry']).not('won', 'is', null).limit(5000)).catch(() => []),
+        q('kalshi_live_orders', (b) => b.select('pnl,filled,source').in('source', ['gas', 'rain'])).catch(() => []),
+      ]).then(([p, l]) => renderGasRain(sw, p, l))
       const setH = (id, v, cls) => { const e = el(id); e.textContent = v; e.className = 'v ' + (cls ?? '') }
       setH('rl-edge7', e7 == null ? '–' : `${e7 >= 0 ? '+' : ''}${e7.toFixed(2)}c`, e7 == null ? '' : e7 >= 0 ? 'up' : 'down')
       setH('rl-win7', d7 ? `${Number(d7.win_pct).toFixed(1)}%` : '–')
