@@ -1451,14 +1451,11 @@
           <div class="risk-h">Notifications</div>
           <label class="nf master"><input type="checkbox" id="n-enabled"><span>Phone notifications</span></label>
           <div class="nf-grid" id="n-grid">
-            <label class="nf"><input type="checkbox" id="n-fills"><span>Fills<em>what a win pays, what a loss costs</em></span></label>
-            <label class="nf"><input type="checkbox" id="n-settles"><span>Won and lost<em>each one as it settles</em></span></label>
-            <label class="nf"><input type="checkbox" id="n-rounds"><span>Round totals<em>one per 15 minutes instead</em></span></label>
-            <label class="nf"><input type="checkbox" id="n-exits"><span>Exits<em>a position closed early</em></span></label>
+            <label class="nf"><input type="checkbox" id="n-fills"><span>Entered<em>one per round, what it wins and loses</em></span></label>
+            <label class="nf"><input type="checkbox" id="n-rounds"><span>Round result<em>that round's total P&amp;L</em></span></label>
             <label class="nf alarm"><input type="checkbox" id="n-halts"><span>Stopped for the day<em>the daily stop fired</em></span></label>
             <label class="nf alarm"><input type="checkbox" id="n-broke"><span>Out of cash<em>nothing can place</em></span></label>
             <label class="nf alarm"><input type="checkbox" id="n-health"><span>Edge turned<em>decay, crowding or a wide spread</em></span></label>
-            <label class="nf"><input type="checkbox" id="n-reports"><span>Daily report<em>the day, week and month</em></span></label>
           </div>
           <div class="nf-quiet">
             <span class="rk">quiet hours</span>
@@ -3090,7 +3087,9 @@
     /* ── notifications: what the phone is allowed to buzz about (kalshi_notify) ── */
     async function initNotify() {
       const host = el('notify'), note = el('n-note'), save = el('n-save')
-      const KINDS = ['fills', 'settles', 'rounds', 'exits', 'halts', 'broke', 'health', 'reports']
+      // two per round since 2026-10-05 (entered, result) plus the alarms; the bot no longer sends
+      // per-leg settles, exits or reports, so those columns have no toggle
+      const KINDS = ['fills', 'rounds', 'halts', 'broke', 'health']
       const box = Object.fromEntries([['enabled', el('n-enabled')], ...KINDS.map((k) => [k, el('n-' + k)])])
       const qf = el('n-qfrom'), qt = el('n-qto')
       const rows = await q('kalshi_notify', (b) => b.select('*').eq('id', 1)).catch(() => [])
