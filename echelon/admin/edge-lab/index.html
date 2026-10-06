@@ -284,6 +284,8 @@
       .tbar { width: 80px; }
     }
     @media (pointer: coarse) { .seg button { height: 36px; padding: 0 14px; } .seg .thumb { height: 36px; } .seg.sm button { height: 32px; } .seg.sm .thumb { height: 32px; } }
+    /* four curves on a phone: one even row, no hidden overflow */
+    @media (max-width: 700px) { #cv-seg { display: flex; width: 100%; } #cv-seg button { flex: 1 1 0; min-width: 0; padding: 0 4px; white-space: nowrap; } }
   </style>
 </head>
 <body>
@@ -369,11 +371,15 @@
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
     const STATUS = { live: 'Live', pass: 'Passed', candidate: 'Candidate', paper: 'Paper', fail: 'Failed' }
     const ORDER = { live: 0, pass: 1, candidate: 2, paper: 3, fail: 4 }
+    const SAME_AS = { D3: 'C4', I1: 'C4' }
     const cls = (v) => !Number.isFinite(v) || Math.abs(v) < 1e-9 ? 'flat' : v > 0 ? 'pos' : 'neg'
     const sgn = (v) => (v > 0 ? '+' : v < 0 ? '−' : '')
     const fmtV = (v, unit) => {
       if (!Number.isFinite(v)) return '–'
-      return unit === 'R' ? sgn(v) + Math.abs(v).toFixed(2) + 'R' : sgn(v) + Math.abs(v).toFixed(Math.abs(v) < 10 ? 1 : 0) + ' bps'
+      if (unit === 'R') return sgn(v) + Math.abs(v).toFixed(2) + 'R'
+      if (unit === '%') return sgn(v) + Math.abs(v).toFixed(1) + '%'
+      if (unit === 'sharpe') return v.toFixed(2) + ' Sharpe'
+      return sgn(v) + Math.abs(v).toFixed(Math.abs(v) < 10 ? 1 : 0) + ' bps'
     }
     const usd = (v) => (v < 0 ? '−$' : '$') + Math.abs(Math.round(v)).toLocaleString()
     const ago = (iso) => {
@@ -459,12 +465,12 @@
       const n = S.tests.length
       const by = (st) => S.tests.filter((x) => x.status === st).length
       const live = by('live') + by('pass')
-      // D3 is C4 with a different entry, the same edge, so it is not counted twice
-      const edges = S.tests.filter((x) => (x.status === 'live' || x.status === 'pass') && x.id !== 'D3').length
+      // D3 (prop entry) and I1 (other markets) are C4's own edge, so they are not counted twice
+      const passed = S.tests.filter((x) => (x.status === 'live' || x.status === 'pass') && !SAME_AS[x.id]).sort((a, b) => a.sort - b.sort)
+      const edges = passed.length
       $('hero-big').innerHTML = `${edges} edge${edges === 1 ? '' : 's'} <small>passed of ${n} tested</small>`
-      const c4 = S.tests.find((x) => x.id === 'C4')
-      $('hero-sub').innerHTML = c4
-        ? `<b>${esc(c4.name)}.</b> ${esc(c4.rule.split('.')[0])}. On the unseen 2023-26 holdout it made <b>+44 bps a trade</b> (t 2.7), and over 17 years it beat holding an average day by <b>+17 bps</b>.`
+      $('hero-sub').innerHTML = passed.length
+        ? passed.map((t) => { const k = keyCell(t); return `<b>${esc(t.name)}:</b> ` + (k ? `<b>${fmtV(k.v, k.unit)}</b> a trade on the unseen ${esc(k.label.replace(/^(NQ|ES) /, '').replace(/ holdout$/, ''))} holdout${k.t != null ? ` (t ${k.t})` : ''}.` : esc(t.verdict)) }).join(' ')
         : 'No live edge yet.'
       const tiles = [['live', 'Live', 'var(--good)', live], ['candidate', 'Candidate', 'var(--gold)', by('candidate')], ['paper', 'Paper', 'var(--blue)', by('paper')], ['fail', 'Failed', 'var(--faint)', by('fail')]]
       $('tally').innerHTML = tiles.map(([k, l, c, v]) => `<button class="tile" data-k="${k}"><div class="n num">${v}</div><div class="l"><i style="background:${c}"></i>${l}</div></button>`).join('')
@@ -476,7 +482,7 @@
     }
 
     /* curve */
-    const CURVES = [['c4_nq_1mnq', 'Three down'], ['book_nq_1mnq', 'Live book'], ['g6_nq_1mnq', 'Low gamma']]
+    const CURVES = [['c4_nq_1mnq', 'Three down'], ['i3_nq_1mnq', 'Close fade'], ['book_nq_1mnq', 'Live book'], ['g6_nq_1mnq', 'Low gamma']]
     function drawCurveSeg() { seg($('cv-seg'), CURVES.filter(([id]) => S.series.some((x) => x.id === id)), S.curve, (v) => { S.curve = v; drawCurve() }) }
     function drawCurve() {
       const s = S.series.find((x) => x.id === S.curve), svg = $('cv')
@@ -506,7 +512,7 @@
       return { rows, done, vals, unit, last: rows[0] }
     }
     function renderCards() {
-      const run = S.tests.filter((x) => ['live', 'pass', 'candidate', 'paper'].includes(x.status)).sort((a, b) => ORDER[a.status] - ORDER[b.status] || a.sort - b.sort)
+      const run = S.tests.filter((x) => ['live', 'pass', 'candidate', 'paper'].includes(x.status) && x.id !== 'I1').sort((a, b) => ORDER[a.status] - ORDER[b.status] || a.sort - b.sort)
       if (!run.length) { $('cards').innerHTML = '<div class="empty">Nothing running.</div>'; return }
       $('cards').innerHTML = run.map((t, i) => {
         const k = keyCell(t), f = forward({ D3: 'C4', 'LIT-LIVE': 'LIT' }[t.id] || t.id)
