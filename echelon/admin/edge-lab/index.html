@@ -371,7 +371,7 @@
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
     const STATUS = { live: 'Live', pass: 'Passed', candidate: 'Candidate', paper: 'Paper', fail: 'Failed' }
     const ORDER = { live: 0, pass: 1, candidate: 2, paper: 3, fail: 4 }
-    // variants and replications of a passed rule: counted once, and only D3 (a different way to trade it) gets a card
+    // variants and replications of a passed rule are counted once
     const SAME_AS = { D3: 'C4', I1: 'C4', J4: 'I3', J5: 'I3' }
     const cls = (v) => !Number.isFinite(v) || Math.abs(v) < 1e-9 ? 'flat' : v > 0 ? 'pos' : 'neg'
     const sgn = (v) => (v > 0 ? '+' : v < 0 ? '−' : '')
@@ -513,7 +513,7 @@
       return { rows, done, vals, unit, last: rows[0] }
     }
     function renderCards() {
-      const run = S.tests.filter((x) => ['live', 'pass', 'candidate', 'paper'].includes(x.status) && (x.id === 'D3' || !SAME_AS[x.id])).sort((a, b) => ORDER[a.status] - ORDER[b.status] || a.sort - b.sort)
+      const run = S.tests.filter((x) => ['live', 'candidate', 'paper'].includes(x.status))  // 'pass' = passed but not wired to an alert, so no running card.sort((a, b) => ORDER[a.status] - ORDER[b.status] || a.sort - b.sort)
       if (!run.length) { $('cards').innerHTML = '<div class="empty">Nothing running.</div>'; return }
       $('cards').innerHTML = run.map((t, i) => {
         const k = keyCell(t), f = forward({ D3: 'C4', 'LIT-LIVE': 'LIT' }[t.id] || t.id)
