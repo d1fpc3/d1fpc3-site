@@ -1,5 +1,5 @@
-// Sidebar navigation (2026-09-22): eight destinations with labels in a
-// sidebar that stays open on desktop, a Tools group, the member row (avatar =
+// Navigation. 2026-10-06: on desktop the rows run across a TOP BAR (the sidebar is gone), the tools and
+// your profile/settings sit behind the avatar. Before that (2026-09-22): a labeled sidebar, a Tools group, the member row (avatar =
 // Profile, gear = Settings), Chat and Study as families whose pages share the
 // top-bar segment, a dock of five on phones plus a quick row on Today.
 // Manual harness, not a node:test.
@@ -46,7 +46,7 @@ async function ctxFor(kind) {
   await page.waitForTimeout(1500);
   return { ctx, page };
 }
-const ROWS = ["overview", "chart", "gex", "news", "feed", "chat", "course", "journal"];
+const ROWS = ["overview", "chart", "backtest", "gex", "news", "feed", "chat", "course", "journal"];
 const curView = (page) => page.$eval(".view.on", (el) => el.id.replace(/^v-/, ""));
 const go = async (page, v, ms = 700) => { await page.evaluate((v) => document.querySelector(`.tab[data-view="${v}"]`).click(), v); await page.waitForTimeout(ms); };
 const noOverflow = async (page, label) => {
@@ -56,38 +56,44 @@ const noOverflow = async (page, label) => {
 const segLabels = (page) => page.$$eval("#tb-seg button", (bs) => bs.map((b) => [...b.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim()));   // text only, not the unread mark
 const segLit = (page) => page.$$eval("#tb-seg button.on", (bs) => bs.map((b) => b.dataset.view));
 const litRows = (page) => page.$$eval("#tabs .grp:not([hidden]) .tab.on", (ts) => ts.map((t) => t.dataset.view));
-const barCentred = async (page) => page.$eval("#tabs", (nav) => { const on = nav.querySelector(".grp:not([hidden]) .tab.on"), ind = nav.querySelector(".side-ind"); if (!on || !ind) return -1; const a = on.getBoundingClientRect(), b = ind.getBoundingClientRect(); return Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)); });
+const barCentred = async (page) => page.$eval("#tabs", (nav) => { const on = nav.querySelector(".grp:not([hidden]) .tab.on"), ind = nav.querySelector(".side-ind"); if (!on || !ind) return -1; const a = on.getBoundingClientRect(), b = ind.getBoundingClientRect(); return Math.round(Math.max(Math.abs(a.left - b.left), Math.abs(a.width - b.width), Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)))); });   // the top bar pill: same left, width and centre line as the lit row
 
 // ── desktop 1440 ────────────────────────────────────────────────
+// 2026-10-06: the sidebar became a top bar on desktop (D1: "I don't like the side nav on desktop"). The rows sit in one
+// capsule with a pill that slides to the lit page; search and the bell live at the bar's right end; the avatar opens a
+// menu with Profile, Settings and the tools (Indicators, Prop firms, Discord, Admin). Phones keep the dock.
 {
   const { ctx, page } = await ctxFor("desk");
   const shot = (n) => page.screenshot({ path: `${OUT}/desk-${n}.png` });
-  const sideW = await page.$eval(".side", (n) => n.getBoundingClientRect().width);
-  if (sideW < 200 || sideW > 260) fails.push("sidebar width odd: " + sideW);
+  const bar = await page.$eval(".side", (n) => { const r = n.getBoundingClientRect(); return { w: r.width, h: r.height, top: r.top, pos: getComputedStyle(n).position }; });
+  if (bar.w < 1400 || bar.h < 48 || bar.h > 72 || bar.top !== 0 || bar.pos !== "sticky") fails.push("top bar shape odd: " + JSON.stringify(bar));
   const rows = await page.$$eval("#tabs .grp-main .tab", (ts) => ts.filter((t) => !t.hidden).map((t) => t.dataset.view));
-  if (rows.join() !== ROWS.filter((r) => rows.includes(r)).join() || rows.length < 7) fails.push("sidebar rows wrong: " + rows);
-  const labelled = await page.$eval('#tabs .tab[data-view="news"]', (t) => getComputedStyle(t).fontSize !== "0px" && t.getBoundingClientRect().width > 150);
-  if (!labelled) fails.push("sidebar rows have no labels");
-  if (!(await page.locator("#tabs .grp-tools .side-cap").isVisible())) fails.push("Tools caption missing");
-  for (const v of ["indicators", "propfirms"]) if (!(await page.locator(`#tabs .grp-tools .tab[data-view="${v}"]`).isVisible())) fails.push(`tools row ${v} hidden`);
+  if (rows.join() !== ROWS.filter((r) => rows.includes(r)).join() || rows.length < 8) fails.push("top bar rows wrong: " + rows);
+  const oneLine = await page.$$eval("#tabs .grp-main .tab", (ts) => new Set(ts.filter((t) => !t.hidden).map((t) => Math.round(t.getBoundingClientRect().top))).size);
+  if (oneLine !== 1) fails.push("top bar rows are not on one line");
+  const labelled = await page.$eval('#tabs .tab[data-view="news"]', (t) => getComputedStyle(t).fontSize !== "0px" && t.textContent.trim() === "News");
+  if (!labelled) fails.push("top bar rows have no labels");
+  for (const v of ["indicators", "propfirms"]) if (await page.locator(`#tabs .grp-tools .tab[data-view="${v}"]`).isVisible()) fails.push(`tools row ${v} still in the bar`);
   if (await page.locator("#admin-link").isVisible()) fails.push("admin link visible for a member");
-  for (const v of ["members", "library", "set-profile", "settings"]) if (await page.locator(`#tabs .tab[data-view="${v}"]`).isVisible()) fails.push(`${v} still has a sidebar row`);
-  if (!(await page.locator("#u-hit").isVisible()) || !(await page.locator("#u-gear").isVisible())) fails.push("member row or gear missing");
-  if (await page.locator("#signout").isVisible()) fails.push("sign out button still in the sidebar");
-  if (await page.locator("#tb-seg-row").isVisible()) fails.push("segment shown on Today");
+  for (const v of ["members", "library", "set-profile", "settings"]) if (await page.locator(`#tabs .tab[data-view="${v}"]`).isVisible()) fails.push(`${v} has a row in the bar`);
+  if (await page.locator("#u-hit").isVisible() || await page.locator("#u-gear").isVisible()) fails.push("sidebar member row still showing");
+  if (!(await page.locator("#acct-btn").isVisible())) fails.push("avatar button missing");
+  if (!(await page.$eval("#tb-search", (n) => n.closest("#nav-acts") !== null)) || !(await page.$eval("#tb-bell", (n) => n.closest("#nav-acts") !== null))) fails.push("search and bell not in the bar");
+  if (await page.locator(".topbar").isVisible()) fails.push("Today keeps a second bar");
   if (await page.locator("#td-chips").isVisible()) fails.push("Today chips shown on desktop");
   await shot("01-today"); await noOverflow(page, "desk today");
 
-  // every row lands on its page and lights itself with the bar centred on it
+  // every row lands on its page, lights itself, and the pill sits exactly under it
   for (const v of rows) {
-    await page.click(`#tabs .tab[data-view="${v}"]`); await page.waitForTimeout(v === "chart" ? 1200 : 700);
-    if (await curView(page) !== v) fails.push(`row ${v} opened ${await curView(page)}`);
-    if ((await litRows(page)).join() !== v) fails.push(`row lit ${await litRows(page)} after ${v}`);
-    const off = await barCentred(page); if (off < 0 || off > 3) fails.push(`bar off centre on ${v}: ${off}`);
+    await page.click(`#tabs .tab[data-view="${v}"]`); await page.waitForTimeout(v === "chart" || v === "backtest" ? 2500 : 700);
+    const want = v === "backtest" ? "chart" : v;   // a session runs in the chart view
+    if (await curView(page) !== want) fails.push(`row ${v} opened ${await curView(page)}`);
+    if ((await litRows(page)).filter((r) => rows.includes(r)).join() !== v) fails.push(`row lit ${await litRows(page)} after ${v}`);
+    const off = await barCentred(page); if (off < 0 || off > 2) fails.push(`pill off its row on ${v}: ${off}`);
   }
-  // Chat is a family: the top bar stays and the segment switches to Members
+  // Chat is a family: its page bar names it and carries the segment
   await page.click('#tabs .tab[data-view="chat"]'); await page.waitForTimeout(900);
-  if (!(await page.locator(".topbar").isVisible())) fails.push("top bar hidden in chat on desktop");
+  if (!(await page.locator(".topbar").isVisible())) fails.push("chat lost its page bar");
   if ((await page.textContent("#pane-title")).trim() !== "Chat") fails.push("chat title wrong");
   const chatSeg = await segLabels(page);
   if (chatSeg.join() !== "Channels,Members") fails.push("chat segment: " + chatSeg);
@@ -96,7 +102,7 @@ const barCentred = async (page) => page.$eval("#tabs", (nav) => { const on = nav
   await shot("02-chat");
   await page.click('#tb-seg button[data-view="members"]'); await page.waitForTimeout(800);
   if (await curView(page) !== "members") fails.push("segment members failed");
-  if ((await litRows(page)).join() !== "chat") fails.push("members did not light Chat: " + (await litRows(page)));
+  if ((await litRows(page)).filter((r) => rows.includes(r)).join() !== "chat") fails.push("members did not light Chat: " + (await litRows(page)));
   if ((await page.textContent("#pane-title")).trim() !== "Chat") fails.push("members title should read Chat");
   if ((await segLit(page)).join() !== "members") fails.push("members not lit in segment");
   await shot("03-chat-members"); await noOverflow(page, "desk members");
@@ -106,23 +112,35 @@ const barCentred = async (page) => page.$eval("#tabs", (nav) => { const on = nav
   if (st[0] !== "Lessons" || !st.includes("Library")) fails.push("study segment: " + st);
   await page.click('#tb-seg button[data-view="library"]'); await page.waitForTimeout(1200);
   if (await curView(page) !== "library") fails.push("segment library failed");
-  if ((await litRows(page)).join() !== "course") fails.push("library did not light Study");
+  if ((await litRows(page)).filter((r) => rows.includes(r)).join() !== "course") fails.push("library did not light Study");
   if ((await page.textContent("#pane-title")).trim() !== "Study") fails.push("library title should read Study");
   await shot("04-study-library");
-  // member row and gear
-  await page.click("#u-hit"); await page.waitForTimeout(700);
-  if (await curView(page) !== "set-profile") fails.push("member row did not open the profile");
-  if (!(await page.$eval("#u-hit", (n) => n.classList.contains("on")))) fails.push("member row not lit on profile");
-  if ((await litRows(page)).length) fails.push("a sidebar row lit on profile: " + (await litRows(page)));
-  if (await page.$eval("#tabs .side-ind", (i) => i.classList.contains("live"))) fails.push("bar still live on profile");
-  await shot("05-profile");
-  await page.click("#u-gear"); await page.waitForTimeout(700);
-  if (await curView(page) !== "settings") fails.push("gear did not open settings");
-  if (!(await page.$eval("#u-gear", (n) => n.classList.contains("on")))) fails.push("gear not lit on settings");
+  // the avatar menu: you, then the tools; Escape and an outside click close it
+  await page.click("#acct-btn"); await page.waitForTimeout(400);
+  const items = await page.$$eval("#acct-menu .am-it span", (ns) => ns.map((n) => n.textContent));
+  for (const want of ["Profile", "Settings", "Indicators", "Prop firms", "Sign out"]) if (!items.includes(want)) fails.push("account menu lacks " + want + ": " + items);
+  if (items.includes("Admin")) fails.push("account menu offers Admin to a member");
+  if ((await page.getAttribute("#acct-btn", "aria-expanded")) !== "true") fails.push("avatar button not expanded");
+  await shot("05-account-menu");
+  await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+  if (await page.locator("#acct-menu").isVisible()) fails.push("Escape did not close the account menu");
+  await page.click("#acct-btn"); await page.waitForTimeout(300); await page.click("#pane-title"); await page.waitForTimeout(300);   // an outside click on something inert (700,700 opened a library video)
+  if (await page.locator("#acct-menu").isVisible()) fails.push("outside click did not close the account menu");
+  await page.click("#acct-btn"); await page.waitForTimeout(300); await page.locator("#acct-menu .am-it", { hasText: "Profile" }).click(); await page.waitForTimeout(700);
+  if (await curView(page) !== "set-profile") fails.push("menu Profile did not open the profile");
+  if (!(await page.$eval("#acct-btn", (n) => n.classList.contains("on")))) fails.push("avatar not lit on profile");
+  if ((await litRows(page)).filter((r) => rows.includes(r)).length) fails.push("a bar row lit on profile: " + (await litRows(page)));
+  if (await page.$eval("#tabs .side-ind", (i) => i.classList.contains("live"))) fails.push("pill still live on profile");
+  await shot("06-profile");
+  await page.click("#acct-btn"); await page.waitForTimeout(300); await page.locator("#acct-menu .am-it", { hasText: "Indicators" }).click(); await page.waitForTimeout(700);
+  if (await curView(page) !== "indicators") fails.push("menu Indicators did not open the store");
+  await page.click("#acct-btn"); await page.waitForTimeout(300); await page.locator("#acct-menu .am-it", { hasText: "Settings" }).click(); await page.waitForTimeout(700);
+  if (await curView(page) !== "settings") fails.push("menu Settings did not open settings");
+  if (!(await page.$eval("#acct-btn", (n) => n.classList.contains("on")))) fails.push("avatar not lit on settings");
   await go(page, "set-appearance");
   const t2 = (await page.textContent("#pane-title")).trim(), c2 = (await page.textContent("#pane-crumb")).trim();
   if (t2 !== "Appearance" || c2 !== "Settings") fails.push(`sub-page title/crumb: ${t2} / ${c2}`);
-  if (!(await page.$eval("#u-gear", (n) => n.classList.contains("on")))) fails.push("gear not lit on appearance");
+  if (!(await page.$eval("#acct-btn", (n) => n.classList.contains("on")))) fails.push("avatar not lit on appearance");
   await shot("06-appearance");
   // the max pass: aria-current, tooltips with jump keys, tablist arrows, title rise, compact chat bar, the bell popover
   await page.click('#tabs .tab[data-view="chat"]'); await page.waitForTimeout(800);

@@ -73,7 +73,8 @@ async function checkToday(page, label) {
       community: vis("td-room-sec"), communityLabel: document.querySelector("#td-room-sec .label")?.textContent.trim(), communityText: q("td-room")?.textContent.trim().slice(0, 80),
       gone: ["td-tape", "td-lv", "td-lane-sec", "td-fresh-sec", "quotemodal", "set-quotes"].filter((id) => !!q(id)),
       anim: (() => { for (const ss of document.styleSheets) { try { for (const r of ss.cssRules) if (r.selectorText === "#v-overview.on.fresh .td-in") return "td-in"; } catch {} } return "none"; })(),
-      gridCols: +getComputedStyle(document.querySelector(".td-grid")).columnCount || 1,
+      // 2026-10-06: the cards sit in a grid of two column stacks (was CSS columns)
+      gridCols: (() => { const g = getComputedStyle(document.querySelector(".td-grid")); return g.display === "grid" ? g.gridTemplateColumns.split(" ").filter(Boolean).length : (+g.columnCount || 1) })(),
       overviewText: q("v-overview")?.textContent,
     };
   });

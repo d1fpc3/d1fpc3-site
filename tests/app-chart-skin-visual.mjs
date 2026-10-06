@@ -3,8 +3,8 @@
 //   2. node tests/app-chart-skin-visual.mjs        (APP_URL / OUT / EMAIL / THEME env)
 // Signs in, opens the Chart and proves: the chrome follows the canvas
 // background (D1's grey by default, light or dark the moment the
-// background is set light), the sidebar folds away from the bar button with a
-// real transition and stays folded on the next visit, the settings dialog has
+// background is set light), the top bar (2026-10-06; it was the sidebar) folds away
+// from the bar button, the chart takes its height, and it stays folded on the next visit, the settings dialog has
 // no presets, every colour is a pill that opens the shared picker (swatches,
 // hex, any colour, default), the switches and segments work, the accent can be
 // any colour, and Done plays the dialog out. Desk 1440, wide 2560, phone 390.
@@ -50,7 +50,8 @@ const skin = (page) => page.evaluate(() => {
   const cv = document.getElementById("ch-canvas"), d = cv.getContext("2d").getImageData(2, 2, 1, 1).data, bgNow = window.__CH.bgNow;
   return { skin: v.dataset.skin, panel: cs.getPropertyValue("--panel").trim(), acc: v.style.getPropertyValue("--acc"), bar: getComputedStyle(document.querySelector(".ch-bar")).backgroundColor, foot: getComputedStyle(document.querySelector(".ch-foot")).backgroundColor, px: `rgb(${d[0]}, ${d[1]}, ${d[2]})`, bgNow, menu: getComputedStyle(document.getElementById("ch-menu")).backgroundColor };
 });
-const geo = (page) => page.evaluate(() => ({ side: document.querySelector("aside.side").getBoundingClientRect().width, stage: document.getElementById("ch-stage").getBoundingClientRect().width, canvas: document.getElementById("ch-canvas").width, stageClient: document.getElementById("ch-stage").clientWidth, dpr: Math.min(devicePixelRatio || 1, 2), hid: document.body.classList.contains("side-hid") }));
+// 2026-10-06: the desktop nav is a TOP BAR now; the panel button folds it away and the chart grows in height
+const geo = (page) => page.evaluate(() => ({ side: document.querySelector("aside.side").getBoundingClientRect().height, stage: document.getElementById("ch-stage").getBoundingClientRect().height, canvas: document.getElementById("ch-canvas").height, stageClient: document.getElementById("ch-stage").clientHeight, dpr: Math.min(devicePixelRatio || 1, 2), hid: document.body.classList.contains("side-hid"), bottom: document.querySelector("#v-chart .ch-wrap").getBoundingClientRect().bottom, vh: innerHeight }));
 
 async function open(page) {
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
@@ -78,25 +79,14 @@ async function run(vpName) {
   await page.screenshot({ path: `${OUT}/${tag}-chart.png` });
 
   if (vpName !== "phone") {
-    // 2. the sidebar folds with a transition, the stage grows, the canvas repaints at the new width
+    // 2. the top bar folds away from the panel button: the chart takes its height, fills to the window bottom, repaints
     const g0 = await geo(page);
-    check(g0.side > 100 && !g0.hid, `sidebar open at ${Math.round(g0.side)}px`);
-    // sampled in the page every frame: the fold is a steep ease-out (90% done by ~140ms), so one sample taken
-    // 140ms after a Playwright click landed on 0 whenever the round trip ran long, and read a smooth fold as none
-    // and the running width transition is read straight off the aside, so a loaded machine dropping frames cannot fail it
-    const fold = await page.evaluate(() => new Promise((res) => {
-      const side = document.querySelector("aside.side"), w0 = side.getBoundingClientRect().width, t0 = performance.now(), m = [];
-      document.getElementById("ch-side").click();
-      getComputedStyle(side).width;
-      const tr = side.getAnimations().some((a) => a.transitionProperty === "width");
-      const tick = () => { const w = side.getBoundingClientRect().width; if (w > 0.5 && w < w0 - 0.5) m.push(Math.round(w)); if (performance.now() - t0 < 320) requestAnimationFrame(tick); else res({ tr, m }) };
-      requestAnimationFrame(tick);
-    }));
-    await page.waitForTimeout(700);
+    check(g0.side > 40 && !g0.hid, `top bar open at ${Math.round(g0.side)}px`);
+    await page.click("#ch-side"); await page.waitForTimeout(700);
     const g1 = await geo(page);
-    check(fold.tr && fold.m.length >= 1, `sidebar animates (width transition ${fold.tr ? "running" : "missing"}, ${fold.m.length} in-between frames: ${fold.m.slice(0, 5).join(", ")}px of ${Math.round(g0.side)})`);
-    check(g1.side === 0 && g1.hid && g1.stage - g0.stage > g0.side * 0.9, `sidebar folded: stage ${Math.round(g0.stage)} to ${Math.round(g1.stage)}px`);
-    check(g1.canvas === Math.round(g1.stageClient * g1.dpr), `canvas repainted at the new width (${g1.canvas} = ${g1.stageClient} x ${g1.dpr})`);
+    check(g1.side === 0 && g1.hid && g1.stage - g0.stage > g0.side * 0.9, `top bar folded: stage ${Math.round(g0.stage)} to ${Math.round(g1.stage)}px tall`);
+    check(Math.abs(g1.bottom - g1.vh) <= 2, `the chart still ends at the window bottom (${Math.round(g1.bottom)} of ${g1.vh})`);
+    check(g1.canvas === Math.round(g1.stageClient * g1.dpr), `canvas repainted at the new height (${g1.canvas} = ${g1.stageClient} x ${g1.dpr})`);
     check(await page.evaluate(() => document.getElementById("ch-side").getAttribute("aria-pressed") === "true" && localStorage.getItem("echelon-chart-side") === "1"), "fold state saved");
     await page.screenshot({ path: `${OUT}/${tag}-side-hidden.png` });
     // 3. it stays folded on the next visit, and unfolds from the same button
@@ -104,9 +94,10 @@ async function run(vpName) {
     await open(page);
     const g2 = await geo(page);
     check(g2.side === 0 && g2.hid, "still folded after a reload");
+    check(Math.abs(g2.bottom - g2.vh) <= 2, `after a reload the folded chart ends at the window bottom (${Math.round(g2.bottom)} of ${g2.vh})`);
     await page.click("#ch-side"); await page.waitForTimeout(700);
     const g3 = await geo(page);
-    check(Math.abs(g3.side - g0.side) < 2 && !g3.hid, `unfolded to ${Math.round(g3.side)}px`);
+    check(Math.abs(g3.side - g0.side) < 2 && !g3.hid && Math.abs(g3.bottom - g3.vh) <= 2, `unfolded to ${Math.round(g3.side)}px, chart still to the bottom`);
   } else {
     check(await page.evaluate(() => getComputedStyle(document.getElementById("ch-side")).display === "none"), "no sidebar button on a phone");
   }
