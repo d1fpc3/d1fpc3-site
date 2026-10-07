@@ -8902,7 +8902,8 @@
        re-cuts the segment and the chips; the top bar's height feeds the chat */
     {
       const nav = el('tabs')
-      new MutationObserver(() => { segRender(); syncBnav(); syncRail(); tdChips() }).observe(nav, { attributes: true, attributeFilter: ['hidden'], subtree: true })
+      // a badge or a page appearing re-cuts the nav once per frame: run straight from the observer, syncRail's offset reads forced a full layout of whatever page was busy (38ms on a first GEX open)
+      { let q = 0; new MutationObserver(() => { if (q) return; q = requestAnimationFrame(() => { q = 0; segRender(); syncBnav(); syncRail(); tdChips() }) }).observe(nav, { attributes: true, attributeFilter: ['hidden'], subtree: true }) }
       const ua = el('u-avatar'); if (ua) new MutationObserver(mirrorAvatar).observe(ua, { childList: true, characterData: true, subtree: true })
       el('u-hit')?.addEventListener('click', () => { hap('light'); showView('set-profile') })
       el('u-hit')?.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showView('set-profile') } })
@@ -23655,6 +23656,8 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
        One rAF is not enough: that callback still runs before the paint it was queued for. */
     const drawGexSoon = () => {
       if (GEX.soon) return
+      // a page change still animating (navTo) keeps its frames: the board paints the moment it settles (10-07)
+      if (VT.cur) { const t = VT.cur; GEX.soon = -1; t.finished.catch(() => {}).finally(() => { GEX.soon = 0; drawGexSoon() }); return }
       GEX.soon = requestAnimationFrame(() => { GEX.soon = requestAnimationFrame(() => { GEX.soon = 0; drawGex() }) })
     }
 
