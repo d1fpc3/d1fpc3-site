@@ -23882,8 +23882,10 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.font = `600 11.5px ${GEX_FONT}`
       rows.forEach((k, ri) => {
         const y = y0 + ri * rowH + rowH / 2
-        if (!(inGrid(spotY) && Math.abs(y - spotY) < 13)) { ctx.fillStyle = T.muted; ctx.fillText(label(k), x0 - 8, y + 0.5) }   // the price tag owns its band, the way a chart's last-price tag does
-        const tg = tags.get(k); if (!tg) return
+        const tg = tags.get(k)
+        // a phone has no room for the CW / PW / MW pills: the strike itself takes the wall's colour
+        if (!(inGrid(spotY) && Math.abs(y - spotY) < 13)) { ctx.fillStyle = phone && tg ? tg[0][1] : T.muted; ctx.fillText(label(k), x0 - 8, y + 0.5) }   // the price tag owns its band, the way a chart's last-price tag does
+        if (!tg || phone) return
         let tx = 6; ctx.textAlign = 'left'; ctx.font = `700 9.5px ${GEX_FONT}`
         for (const [txt, col] of tg) { const w = ctx.measureText(txt).width + 8; ctx.fillStyle = alpha(col, 0.18); ctx.beginPath(); ctx.roundRect(tx, y - 7, w, 14, 7); ctx.fill(); ctx.fillStyle = col; ctx.fillText(txt, tx + 4, y + 0.5); tx += w + 3 }
         ctx.textAlign = 'right'; ctx.font = `600 11.5px ${GEX_FONT}`
@@ -23910,7 +23912,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (GH.view === 'exp' && netW) {
         const nx = x0 + gridW + 8, nw = netW - 12, mid = nx + nw / 2
         const nets = rows.map((k) => cols.reduce((a, _, ci) => a + val(ci, k), 0)), nmax = Math.max(1, ...nets.map(Math.abs))
-        ctx.fillStyle = T.faint; ctx.font = `600 11px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText('All expiries', mid, 20)
+        ctx.fillStyle = T.faint; ctx.font = `600 11px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText(phone ? 'All' : 'All expiries', mid, 20)
         ctx.strokeStyle = T.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(mid + 0.5, y0); ctx.lineTo(mid + 0.5, y0 + gridH); ctx.stroke()
         ctx.textBaseline = 'middle'; ctx.font = `600 10px ${GEX_FONT}`
         nets.forEach((v, ri) => {
@@ -23929,7 +23931,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (net == null) return
         ctx.globalAlpha = c.pre ? 0.45 : 1; ctx.fillStyle = net >= 0 ? GH_POS : GH_NEG; ctx.fillText(ghFmt(net), x0 + ci * colW + colW / 2, y0 + gridH + 19); ctx.globalAlpha = 1
       })
-      ctx.fillStyle = T.faint; ctx.textAlign = 'right'; ctx.fillText('Net', x0 - 8, y0 + gridH + 19)
+      if (!phone) { ctx.fillStyle = T.faint; ctx.textAlign = 'right'; ctx.fillText('Net', x0 - 8, y0 + gridH + 19) }   // a phone's first net sits where the word would
 
       // overlays: spot and flip (a line now, a path through the day)
       ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, gridW, gridH); ctx.clip()
