@@ -6223,6 +6223,10 @@
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Admin
         </a>
+        <a class="tab" id="edge-link" href="/echelon/admin/edge-lab/" hidden>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 3v6.5L4.6 18.2A1.9 1.9 0 0 0 6.2 21h11.6a1.9 1.9 0 0 0 1.6-2.8L14 9.5V3"/><path d="M7.5 15h9"/></svg>
+          Edge lab
+        </a>
         </div>
         <!-- pages with no row of their own: Members lives in Chat, Library and
              Homework in Study, the profile is the member row, settings the
@@ -8921,16 +8925,16 @@
       if (!ind.classList.contains('live')) requestAnimationFrame(() => requestAnimationFrame(() => ind.classList.add('live')))
     }
     /* Today, phones: chips for the pages without a dock slot */
-    const TD_CHIPS = [['chart', 'Chart'], ['backtest', 'Backtest'], ['gex', 'GEX'], ['news', 'News'], ['journal', 'Journal'], ['indicators', 'Indicators'], ['propfirms', 'Prop firms'], ['library', 'Library'], ['members', 'Members']]
+    const TD_CHIPS = [['#edge-link', 'Edge lab'], ['chart', 'Chart'], ['backtest', 'Backtest'], ['gex', 'GEX'], ['news', 'News'], ['journal', 'Journal'], ['indicators', 'Indicators'], ['propfirms', 'Prop firms'], ['library', 'Library'], ['members', 'Members']]
     function tdChips() {
       const host = el('td-chips'); if (!host) return
       host.textContent = ''
       for (const [v, label] of TD_CHIPS) {
-        const t = tabOf(v); if (!t || t.hidden) continue
+        const t = v.startsWith('#') ? document.querySelector(v) : tabOf(v); if (!t || t.hidden) continue
         const b = document.createElement('button'); b.type = 'button'; b.className = 'td-chip'; b.dataset.view = v
         const ic = t.querySelector('.ic')?.cloneNode(true); if (ic) b.appendChild(ic)
         b.appendChild(document.createTextNode(label))
-        b.addEventListener('click', () => { hap('light'); navTo(v) })
+        b.addEventListener('click', () => { hap('light'); if (v.startsWith('#')) location.href = t.getAttribute('href'); else navTo(v) })
         host.appendChild(b)
       }
     }
@@ -9011,6 +9015,7 @@
         ...[['indicators', 'Indicators'], ['propfirms', 'Prop firms']].filter(([id]) => tool(id)).map(([id, l]) => [tabOf(id).querySelector('.ic')?.outerHTML || '', l, () => navTo(id), v === id]),
         ...(tool('#discord-link') ? [[el('discord-link').querySelector('.ic')?.outerHTML || '', 'Discord', () => el('discord-link').click(), false, true]] : []),
         ...(tool('#admin-link') ? [[el('admin-link').querySelector('.ic')?.outerHTML || '', 'Admin', () => { location.href = '/echelon/admin/' }, false]] : []),
+        ...(tool('#edge-link') ? [[el('edge-link').querySelector('.ic')?.outerHTML || '', 'Edge lab', () => { location.href = '/echelon/admin/edge-lab/' }, false]] : []),
         null,
         ['out', 'Sign out', () => el('signout')?.click(), false],
       ]
@@ -27635,7 +27640,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       renderSidebarUser()
 
-      el('admin-link').hidden = !state.isAdmin; const sar = el('set-admin-row'); if (sar) sar.hidden = !state.isAdmin
+      el('admin-link').hidden = !state.isAdmin; el('edge-link').hidden = !state.isAdmin; const sar = el('set-admin-row'); if (sar) sar.hidden = !state.isAdmin
       el('gex-tab').hidden = !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)
       if (!el('gex-tab').hidden && !shellShow.gex) { shellShow.gex = true; watchGexNews() }
       if (DISCORD_INVITE) {
