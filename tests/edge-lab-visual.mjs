@@ -25,6 +25,7 @@ const link = await (await fetch(`${SB}/auth/v1/admin/generate_link`, { method: '
 const session = await (await fetch(`${SB}/auth/v1/verify`, { method: 'POST', headers: { apikey: anon, 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'magiclink', token_hash: link.hashed_token }) })).json()
 if (!session.access_token) throw new Error('verify failed')
 const total = (await (await fetch(`${SB}/rest/v1/edge_lab_tests?select=id`, { headers: { apikey: service, Authorization: `Bearer ${service}` } })).json()).length
+const gammaRows = (await (await fetch(`${SB}/rest/v1/edge_lab_tests?select=id&family=eq.Dealer%20gamma`, { headers: { apikey: service, Authorization: `Bearer ${service}` } })).json()).length
 
 const fails = [], ok = (c, w) => { console.log((c ? '  ok   ' : '  FAIL ') + w); if (!c) fails.push(w) }
 const THEMES = (process.env.THEMES || 'dark,light').split(',')
@@ -61,7 +62,7 @@ for (const [vp, launcher, opts] of VPS) for (const theme of THEMES) {
   await page.locator('#st-seg button').first().click()
   await page.locator('#fam-seg button', { hasText: 'Dealer gamma' }).click(); await page.waitForTimeout(300)
   const fams = await page.locator('#ledger tr.t').count()
-  ok(fams >= 5 && fams <= 8, `family filter (Dealer gamma ${fams})`)
+  ok(fams === gammaRows, `family filter (Dealer gamma ${fams} of ${gammaRows})`)
   await page.locator('#fam-seg button').first().click()
   await page.fill('#q', 'resweep'); await page.waitForTimeout(300)
   ok((await page.locator('#ledger tr.t').count()) >= 2, 'search finds the resweep tests')
