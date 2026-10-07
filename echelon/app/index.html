@@ -11,6 +11,11 @@
   <link rel="apple-touch-icon" href="/echelon/assets/logo-mark.png">
   <!-- a Home Screen app on iPhone (and an installable one elsewhere): Safari only allows web push inside one -->
   <link rel="manifest" href="/echelon/app/manifest.json">
+  <!-- the faces the first screen sets come down with the page instead of after the CSS asks; the data hosts are warmed up -->
+  <link rel="preload" href="/echelon/assets/fonts/inter-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/echelon/assets/fonts/instrument-serif-italic-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preconnect" href="https://cqdignbleethroyxxvzr.supabase.co" crossorigin>
+  <link rel="preconnect" href="https://gex-worker.d1fpc3.workers.dev" crossorigin>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -6322,9 +6327,9 @@
             <p class="td-date td-in" id="td-date"></p>
             <h1 class="td-h1 td-in" id="td-h1">Welcome back.</h1>
             <p class="td-sub td-in" id="td-sub" hidden></p>
+            <p class="td-streak td-in" id="td-streak" hidden><svg class="fl" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.8 2.2c.3 2.4-.6 4-1.9 5.5-1.4 1.6-3.4 3.3-3.4 6.2 0 1.4.5 2.6 1.3 3.5-.1-.4-.2-.8-.2-1.2 0-1.9 1.3-3 2.4-4.1.9-.9 1.7-1.9 1.9-3.3 1.8 1.4 3.3 3.6 3.3 6.3 0 .8-.2 1.6-.5 2.3 1.5-1 2.5-2.7 2.5-4.7 0-4.8-3.4-8.5-5.4-10.5z"/><path d="M12 22c-2.5 0-4.5-1.9-4.5-4.3 0-.6.1-1.1.3-1.6.6 1.7 2.2 2.5 3.4 2.5-.6-.6-.9-1.4-.9-2.3 0-1.7 1.2-2.7 2.1-3.6.6 1.3 2.2 2.4 2.2 4.6 0 2.6-1.1 4.7-2.6 4.7z" opacity=".55"/></svg><span><b>0</b> trading days in a row</span></p>
             <!-- the futures day, 6 PM to 5 PM New York: what is behind us lit, a gold mark at now -->
             <div class="td-sess td-in" id="td-sess" aria-hidden="true"></div>
-            <p class="td-streak td-in" id="td-streak" hidden><svg class="fl" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.8 2.2c.3 2.4-.6 4-1.9 5.5-1.4 1.6-3.4 3.3-3.4 6.2 0 1.4.5 2.6 1.3 3.5-.1-.4-.2-.8-.2-1.2 0-1.9 1.3-3 2.4-4.1.9-.9 1.7-1.9 1.9-3.3 1.8 1.4 3.3 3.6 3.3 6.3 0 .8-.2 1.6-.5 2.3 1.5-1 2.5-2.7 2.5-4.7 0-4.8-3.4-8.5-5.4-10.5z"/><path d="M12 22c-2.5 0-4.5-1.9-4.5-4.3 0-.6.1-1.1.3-1.6.6 1.7 2.2 2.5 3.4 2.5-.6-.6-.9-1.4-.9-2.3 0-1.7 1.2-2.7 2.1-3.6.6 1.3 2.2 2.4 2.2 4.6 0 2.6-1.1 4.7-2.6 4.7z" opacity=".55"/></svg><span><b>0</b> trading days in a row</span></p>
             <button class="rc-btn" id="rc-open" type="button" title="Calculators" aria-label="Calculators">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8.01" y2="11"/><line x1="12" y1="11" x2="12.01" y2="11"/><line x1="16" y1="11" x2="16.01" y2="11"/><line x1="8" y1="15" x2="8.01" y2="15"/><line x1="12" y1="15" x2="12.01" y2="15"/><line x1="16" y1="15" x2="16.01" y2="15"/><line x1="8" y1="19" x2="8.01" y2="19"/><line x1="12" y1="19" x2="12.01" y2="19"/><line x1="16" y1="19" x2="16.01" y2="19"/></svg>
               <span class="rc-lab">Calculator</span>
@@ -7683,8 +7688,10 @@
     #v-overview { position: relative; isolation: isolate; }
     @media (min-width: 841px) { #v-overview { max-width: 1320px; margin: 0 auto; padding-top: 14px; } }
     /* gold light falling from above the headline, the landing's horizon in miniature (painted, no blur filter) */
-    #v-overview::before { content: ''; position: absolute; z-index: -1; left: -12%; right: -12%; top: -180px; height: 560px; pointer-events: none; background: radial-gradient(52% 58% at 22% 18%, color-mix(in srgb, var(--gold) 13%, transparent), transparent 72%), radial-gradient(40% 40% at 82% 0%, color-mix(in srgb, var(--gold) 6%, transparent), transparent 70%); }
-    :root[data-theme="light"] #v-overview::before { opacity: 0.6; }
+    /* gold light falling from above the headline, the landing's horizon in miniature (painted, no blur filter); it hangs off the page column, full width, so nothing pokes out sideways */
+    body.in-today .main { position: relative; }
+    body.in-today .main::before { content: ''; position: absolute; z-index: -1; left: 0; right: 0; top: calc(-1 * var(--navh)); height: 640px; pointer-events: none; background: radial-gradient(52% 58% at 26% 16%, color-mix(in srgb, var(--gold) 13%, transparent), transparent 72%), radial-gradient(40% 40% at 80% 0%, color-mix(in srgb, var(--gold) 6%, transparent), transparent 70%); }
+    :root[data-theme="light"] body.in-today .main::before { opacity: 0.6; }
     .td-hero { position: relative; padding: 0 2px; }
     .td-date { font-size: 13.5px; color: var(--muted); margin-bottom: 14px; padding-right: 150px; font-variant-numeric: tabular-nums; }
     .td-h1 { font-size: clamp(42px, calc(4.4 * var(--vw)), 66px); font-weight: 700; letter-spacing: -0.048em; line-height: 1.02; padding-right: 0; }
@@ -7799,7 +7806,7 @@
       .td-gx-levels .v { font-size: 19px; }
       .ts-num { font-size: 44px; min-width: 42px; }
       .td-video .vth { width: 120px; }
-      #v-overview::before { top: -120px; height: 420px; left: -16px; right: -16px; }   /* inside the pane padding: a wider glow scrolled the page sideways */
+      body.in-today .main::before { height: 460px; }
     }
 
     /* ── the chart's chrome: Echelon's near black instead of TradingView navy, rounder controls ── */
@@ -7880,7 +7887,7 @@
     /* the page name lines up with the column it names (settings, profile, indicators share a centred column) */
     @media (min-width: 1000px) {
       body:has(#v-settings.on) .topbar, body:has(.view.setpage.on) .topbar, body:has(#v-homework.on) .topbar, body:has(#v-inbox.on) .topbar { width: 100%; max-width: calc(820px + 2 * clamp(20px, calc(3 * var(--vw)), 34px)); margin-inline: auto; }
-      body:has(#v-set-modtools.on) .topbar, body:has(#v-set-stats.on) .topbar, body:has(#v-set-affiliate.on) .topbar, body:has(#v-indicators.on) .topbar { max-width: calc(1040px + 2 * clamp(20px, calc(3 * var(--vw)), 34px)); }
+      body:has(#v-set-modtools.on) .topbar, body:has(#v-set-stats.on) .topbar, body:has(#v-set-affiliate.on) .topbar, body:has(#v-indicators.on) .topbar { width: 100%; margin-inline: auto; max-width: calc(1040px + 2 * clamp(20px, calc(3 * var(--vw)), 34px)); }
     }
     .td-study { padding-bottom: 26px; }
     /* the follow-us cards under Today: the same surface as the cards above, the close a quiet circle */
@@ -7897,6 +7904,198 @@
     @media (min-width: 841px) {
       #v-journal > .block { border-radius: 22px; }
     }
+    /* ════ Revamp, 2026-10-07 ════════════════════════════════════════════════
+       D1: "do even more ... way more of a revamp ... insanely good, load quickly, all the transitions
+       smooth, function like a beautiful app." One surface language for every page on a desktop (the
+       Today cards: a step up from the page, a 7% rim, 20 to 22px corners, the title inside), the page
+       change as one motion (View Transitions), and the controls (buttons, fields, segments) brought to
+       the same finish. Phones keep their iOS grouped lists. */
+    :root {
+      --surface: linear-gradient(180deg, color-mix(in srgb, var(--ink) 3%, var(--panel)), var(--panel) 72%);
+      --surface-rim: inset 0 0 0 1px var(--rim), inset 0 1px 0 var(--rim-hi);
+      --surface-lift: 0 22px 44px -34px rgba(0, 0, 0, 0.75);
+      --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    :root[data-theme="light"] { --surface: var(--panel); --surface-rim: inset 0 0 0 1px var(--line); --surface-lift: 0 1px 2px rgba(0, 0, 0, 0.04), 0 18px 40px -30px rgba(0, 0, 0, 0.18); }
+
+    /* the page change: the bar, the dock and What's next hold still, the page crossfades and the new one lifts in */
+    .vt .main { view-transition-name: page; }
+    .vt .side { view-transition-name: topnav; }
+    .vt .bnav { view-transition-name: dock; }
+    .vt .nextup { view-transition-name: nextup; }
+    ::view-transition-group(*) { animation-duration: 0s; }
+    ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+    ::view-transition-old(topnav), ::view-transition-old(dock), ::view-transition-old(nextup) { display: none; }
+    ::view-transition-new(topnav), ::view-transition-new(dock), ::view-transition-new(nextup) { animation: none; }
+    ::view-transition-old(page) { animation: vt-out 0.13s ease-out both; }
+    ::view-transition-new(page) { animation: vt-in 0.32s var(--ease-out) both; }
+    @keyframes vt-out { to { opacity: 0; } }
+    @keyframes vt-in { from { opacity: 0; transform: translateY(10px); } }
+
+    /* controls: one finish everywhere */
+    .btn { background: var(--btn-gold); color: #17130a; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 10px 22px -14px rgba(201, 162, 74, 0.8); font-weight: 650; letter-spacing: -0.005em; }
+    @media (min-width: 841px) {
+      .btn { border-radius: 12px; }
+      .inp { border-radius: 12px; border-color: transparent; background: color-mix(in srgb, var(--ink) 4.5%, var(--bg)); box-shadow: inset 0 0 0 1px var(--rim); transition: box-shadow 0.18s ease, background 0.18s ease; }
+      .inp:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 14%, transparent); }
+      .inp:focus { border-color: transparent; background: color-mix(in srgb, var(--ink) 3%, var(--bg)); box-shadow: inset 0 0 0 1.5px var(--gold), 0 0 0 4px color-mix(in srgb, var(--gold) 16%, transparent); }
+      .rowbtn { border: 0; border-radius: 10px; padding: 7px 14px; background: color-mix(in srgb, var(--ink) 5%, transparent); box-shadow: inset 0 0 0 1px var(--rim); color: var(--ink); font-size: 12.5px; font-weight: 550; }
+      @media (hover: hover) { .rowbtn:hover:not(:disabled) { color: var(--ink); background: color-mix(in srgb, var(--ink) 9%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 40%, transparent); } }
+      button.rowbtn.set-back { display: none; }   /* the crumb above the title goes back on a desktop */
+    }
+    /* the day groups and notification days in plain case (D1: no small caps labels) */
+    .nb-day { letter-spacing: -0.005em; text-transform: none; font-size: 13px; font-weight: 600; color: var(--muted); }
+
+    @media (min-width: 841px) {
+      /* the page bar: a breadcrumb above the name on sub-pages, the name set larger */
+      .topbar { padding-top: 30px; padding-bottom: 6px; }
+      .topbar .tb-title { display: flex; flex-direction: column-reverse; }
+      .topbar h2 { font-size: 30px; letter-spacing: -0.04em; line-height: 1.1; }
+      .topbar .crumb:not(:empty) { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; margin: 0 0 8px -2px; padding: 3px 10px 3px 6px; border-radius: 999px; font-size: 12.5px; font-weight: 550; color: var(--muted); cursor: pointer; transition: color 0.15s ease, background 0.15s ease; }
+      .topbar .crumb:not(:empty)::before { content: ''; width: 7px; height: 7px; margin: 0 3px 0 4px; border-left: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor; transform: rotate(45deg); }
+      .topbar .crumb:not(:empty):hover { color: var(--gold); background: color-mix(in srgb, var(--gold) 9%, transparent); }
+      body.in-chat .topbar h2 { font-size: 24px; }
+
+      /* News: each day a card, today lit gold */
+      #v-news .block-head { padding: 6px 2px 18px; border: 0; }
+      #v-news .block-head h3 { font-size: 26px; font-weight: 700; letter-spacing: -0.035em; }
+      #v-news .news-nav { padding: 3px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 4%, transparent); box-shadow: inset 0 0 0 1px var(--rim); }
+      #v-news .news-nav .label { min-width: 120px; font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: -0.005em; }
+      #v-news .news-arrow { width: 32px; height: 30px; padding: 0 0 3px; border-radius: 999px; }
+      #news-list { display: grid; gap: 14px; padding: 0; }
+      .news-group { padding: 4px 22px 6px; border-radius: 20px; background: var(--surface); box-shadow: var(--surface-rim), var(--surface-lift); }
+      .news-group .news-day { padding: 16px 0 6px; font-size: 13.5px; font-weight: 650; letter-spacing: -0.01em; color: var(--ink); }
+      .news-group.today { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 34%, transparent), inset 0 1px 0 var(--rim-hi), 0 22px 44px -30px rgba(201, 162, 74, 0.25); }
+      .news-group.today .news-day { color: var(--gold); }
+      .news-group .news-row { padding: 13px 0; border-bottom: 1px solid var(--rim); font-size: 14px; }
+      .news-group .news-row:last-child { border-bottom: 0; }
+      .news-group .news-row.major { margin: 0 -22px; padding-left: 19px; padding-right: 22px; box-shadow: inset 3px 0 0 var(--gold); background: color-mix(in srgb, var(--gold) 5%, transparent); }
+      .news-dot.high { box-shadow: 0 0 0 4px color-mix(in srgb, #d06a5a 18%, transparent); }
+      .news-dot.med { box-shadow: 0 0 0 4px color-mix(in srgb, #d9953c 16%, transparent); }
+      .news-when { width: 78px; font-size: 13px; color: var(--muted); }
+
+      /* Notifications: grouped cards per day */
+      #v-inbox .inbox { display: block; }
+      #v-inbox .nb-day { padding: 22px 4px 8px; }
+      #v-inbox .nb-day:first-child { padding-top: 2px; }
+      #v-inbox .nb-row { position: relative; margin: 0; padding: 14px 18px; border-radius: 0; background: var(--panel); }
+      #v-inbox .nb-row + .nb-row::after { content: ''; position: absolute; left: 70px; right: 18px; top: 0; height: 1px; background: var(--rim); }
+      #v-inbox .nb-day + .nb-row, #v-inbox .inbox > .nb-row:first-child { border-radius: 18px 18px 0 0; }
+      #v-inbox .nb-row:has(+ .nb-day), #v-inbox .nb-row:last-child { border-radius: 0 0 18px 18px; }
+      #v-inbox .nb-day + .nb-row:has(+ .nb-day), #v-inbox .nb-day + .nb-row:last-child { border-radius: 18px; }
+      @media (hover: hover) { #v-inbox .nb-row:hover { background: color-mix(in srgb, var(--ink) 4%, var(--panel)); } }
+
+      /* Settings: one grouped card, gold-tinted icon tiles */
+      #v-settings .set-index { max-width: none; padding: 6px; border-radius: 22px; background: var(--surface); box-shadow: var(--surface-rim), var(--surface-lift); }
+      #v-settings .set-row { position: relative; min-height: 58px; padding: 10px 14px; border-radius: 14px; gap: 14px; }
+      #v-settings .set-row + .set-row::before { content: ''; position: absolute; left: 64px; right: 14px; top: 0; height: 1px; background: var(--rim); }
+      #v-settings .set-row:hover::before, #v-settings .set-row:hover + .set-row::before { opacity: 0; }
+      #v-settings .set-row .ico { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(160deg, color-mix(in srgb, var(--gold) 24%, var(--panel-2)), color-mix(in srgb, var(--gold) 10%, var(--panel-2))); color: var(--gold); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 22%, transparent); }
+      #v-settings .set-row .ico svg { width: 18px; height: 18px; }
+      #v-settings .set-row .txt b { font-size: 14.5px; font-weight: 550; letter-spacing: -0.01em; }
+      #v-settings .set-row:hover { background: color-mix(in srgb, var(--ink) 4.5%, transparent); }
+      #v-settings #set-rate-row { min-height: 58px; padding: 10px 14px; }
+      #v-settings #set-rate-row .ico { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(160deg, color-mix(in srgb, var(--gold) 24%, var(--panel-2)), color-mix(in srgb, var(--gold) 10%, var(--panel-2))); color: var(--gold); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 22%, transparent); }
+      #v-settings #set-rate-row b { font-size: 14.5px; font-weight: 550; letter-spacing: -0.01em; }
+      #v-settings .set-group { margin: 22px 6px 8px; font-size: 13px; color: var(--muted); }
+
+      /* the pages under Settings: the form in one card */
+      .setpage .block, .setpage .block:not(:has(.setgrid > .filters > .tgl)) { max-width: none; padding: 6px 24px; border-radius: 22px; background: var(--surface); box-shadow: var(--surface-rim), var(--surface-lift); }
+      .setpage .block + .block { margin-top: 16px; }
+      .setpage .setgrid { max-width: none; padding: 8px 0; gap: 0; }
+      .setpage .setgrid > .filters { min-height: 62px; padding: 10px 0; border-bottom: 1px solid var(--rim); }
+      .setpage .setgrid > .filters:last-child { border-bottom: 0; }
+      .setpage .setgrid > .filters .label { font-size: 14.5px; font-weight: 550; color: var(--ink); letter-spacing: -0.01em; }
+      .setpage .setgrid > p.label { margin: 18px 0 2px !important; font-size: 13px; color: var(--muted); }
+      .setpage .seg { padding: 3px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 5%, transparent); box-shadow: inset 0 0 0 1px var(--rim); }
+      .setpage .seg button { padding: 6px 13px; border: 0; border-radius: 999px; color: var(--muted); font-size: 12.5px; font-weight: 600; transition: background 0.2s ease, color 0.2s ease; }
+      .setpage .seg .seg-thumb { display: none; }
+      .setpage .seg button.on { background: color-mix(in srgb, var(--ink) 13%, transparent); color: var(--ink); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 10%, transparent), 0 1px 3px rgba(0, 0, 0, 0.3); }
+
+      /* Indicators: each one a card */
+      #v-indicators #store-tv, #v-indicators .st-row { padding: 24px 28px; margin-bottom: 16px; border: 0; border-radius: 22px; background: var(--surface); box-shadow: var(--surface-rim), var(--surface-lift); }
+      #v-indicators .st-row { gap: 6px 48px; }
+      #v-indicators .st-head h3 { font-size: 21px; letter-spacing: -0.03em; }
+
+      /* Members: a grid of cards */
+      #v-members .members-wrap { max-width: none; }
+      #member-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+      #member-grid .mcard { padding: 14px 16px; border-radius: 18px; background: var(--surface); box-shadow: var(--surface-rim); transition: background 0.25s var(--ease-out), transform 0.25s var(--ease-out), box-shadow 0.25s ease; }
+      @media (hover: hover) { #member-grid .mcard:hover { background: color-mix(in srgb, var(--ink) 5%, var(--panel)); transform: translateY(-1px); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 30%, transparent), var(--surface-lift); } }
+      #v-members .member-search { max-width: 460px; }
+
+      /* Profile: the head on a card */
+      #v-set-profile .pro-head { max-width: none; padding: 26px 28px; border: 0; border-radius: 22px; background: var(--surface); box-shadow: var(--surface-rim), var(--surface-lift); }
+      #v-set-profile .pro-av { box-shadow: 0 0 0 3px var(--bg), 0 0 0 4.5px color-mix(in srgb, var(--gold) 55%, transparent), 0 16px 40px -18px rgba(201, 162, 74, 0.5); }
+
+      /* the Library: segmented filters, thumbnails that lift */
+      .lib-bar { border-bottom: 0; margin-bottom: 22px; }
+      .lib-bar .lib-chips { flex: 0 0 auto; }
+      .lib-chips { gap: 2px; margin: 0; padding: 3px; border: 0; border-radius: 999px; background: color-mix(in srgb, var(--ink) 4%, transparent); box-shadow: inset 0 0 0 1px var(--rim); }
+      .lib-chip, .lib-chip:first-child { margin: 0; padding: 7px 15px; border: 0; border-radius: 999px; font-size: 13px; font-weight: 550; color: var(--muted); transition: background 0.2s ease, color 0.2s ease; }
+      .lib-chip.on { color: var(--ink); background: color-mix(in srgb, var(--ink) 12%, transparent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 10%, transparent), 0 1px 3px rgba(0, 0, 0, 0.3); }
+      .lib-thumb { border-radius: 16px; border: 0; box-shadow: inset 0 0 0 1px var(--rim), 0 18px 36px -26px rgba(0, 0, 0, 0.8); }
+      @media (hover: hover) { .lib-card:hover .lib-thumb { transform: translateY(-2px); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 34%, transparent), 0 24px 44px -24px rgba(0, 0, 0, 0.85); } }
+      .lib-card .t { font-size: 15px; letter-spacing: -0.012em; }
+
+      /* the Journal sheet */
+      #v-journal > .block { background: none; border: 0; box-shadow: none; }
+      #v-journal .j-page { border: 0; border-radius: 22px; background: var(--surface); box-shadow: var(--surface-rim), var(--surface-lift); overflow: hidden; }
+
+      /* Chat: the conversation list as quiet pills */
+      .cr-item { border-radius: 14px; transition: background 0.2s ease; }
+      .chat-composer .inp, #chat-input { border-radius: 16px; }
+    }
+    /* floating surfaces: the palette, the shortcuts sheet and the bell's list in the account menu's glass */
+    .pal-box, .keys-box, .nbp { border: 0; border-radius: 20px; background: color-mix(in srgb, var(--panel) 94%, transparent); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent), inset 0 1px 0 color-mix(in srgb, var(--ink) 7%, transparent), 0 30px 90px -20px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.3); }
+    :root[data-theme="light"] .pal-box, :root[data-theme="light"] .keys-box, :root[data-theme="light"] .nbp { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.07), 0 30px 80px -20px rgba(0, 0, 0, 0.25); }
+    .pal-h { padding: 12px 12px 6px; font-size: 12px; font-weight: 600; letter-spacing: -0.005em; text-transform: none; color: var(--muted); }
+    .pal-it { border-radius: 12px; transition: background 0.12s ease; }
+    .pal-it.on { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+    .pal-it .ic { border-radius: 10px; background: color-mix(in srgb, var(--ink) 6%, transparent); }
+    .pal-it.on .ic { color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, transparent); }
+    .pal-in input { font-size: 17px; letter-spacing: -0.01em; }
+    .pal-in kbd, .pal-foot kbd { border: 0; border-radius: 6px; background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--muted); }
+    .pal-foot, .pal-in { border-color: var(--rim); }
+
+    /* a light that follows the pointer across a card (desktop only; JS sets --mx/--my on the card under the pointer) */
+    @media (hover: hover) and (pointer: fine) {
+      .td-sec, .news-group, #member-grid .mcard, #v-indicators .st-row, #v-indicators #store-tv, .setpage .block, #v-settings .set-index { position: relative; isolation: isolate; }
+      .td-sec::after, .news-group::after, #member-grid .mcard::after, #v-indicators .st-row::after, #v-indicators #store-tv::after, .setpage .block::after, #v-settings .set-index::after {
+        content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 0.35s ease;
+        background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--gold) 9%, transparent), transparent 62%);
+      }
+      .td-sec:hover::after, .news-group:hover::after, #member-grid .mcard:hover::after, #v-indicators .st-row:hover::after, #v-indicators #store-tv:hover::after, .setpage .block:hover::after, #v-settings .set-index:hover::after { opacity: 1; }
+      #td-start-sec::after, #td-push-sec::after { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) { .td-sec::after, .news-group::after { transition: none; } }
+    /* chat polls: the card language, softer options */
+    .m-poll { border: 0; border-radius: 18px; padding: 14px 16px 12px; background: var(--surface); box-shadow: var(--surface-rim); }
+    .m-poll .pl-q { font-size: 14px; letter-spacing: -0.01em; }
+    .m-poll .pl-opt { border: 0; border-radius: 12px; background: color-mix(in srgb, var(--ink) 4%, transparent); box-shadow: inset 0 0 0 1px var(--rim); transition: box-shadow 0.15s ease, background 0.15s ease; }
+    .m-poll .pl-opt:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent); }
+    .m-poll .pl-opt.mine { box-shadow: inset 0 0 0 1.5px var(--gold); }
+    /* phones: the news week as iOS inset groups, the page name says News once */
+    @media (max-width: 840px) {
+      #v-news .block-head { padding: 2px 0 6px; border-bottom: 0; justify-content: center; }
+      #v-news .block-head h3 { display: none; }
+      .news-group .news-row { position: relative; margin: 0; padding: 12px 14px; border-bottom: 0; background: var(--panel); }
+      .news-group .news-day + .news-row { border-radius: 18px 18px 0 0; }
+      .news-group .news-row:last-child { border-radius: 0 0 18px 18px; }
+      .news-group .news-day + .news-row:last-child { border-radius: 18px; }
+      .news-group .news-row + .news-row::after { content: ''; position: absolute; left: 38px; right: 0; top: 0; height: 0.5px; background: var(--line); }
+      .news-group .news-row.major { box-shadow: inset 3px 0 0 var(--gold); padding-left: 14px; }
+      .news-group .news-day { padding: 20px 4px 7px; }
+    }
+    /* a page opened for the first time lays its cards in one after another (the same rise as Today), short enough to never wait on */
+    .view.on.fresh #news-list .news-group, .view.on.fresh #member-grid .mcard, .view.on.fresh .st-row, .view.on.fresh #store-tv, .view.on.fresh .lib-grid > .lib-card, .view.on.fresh .inbox > .nb-row { animation: td-in 0.5s var(--ease-out) both; }
+    .view.on.fresh #news-list .news-group:nth-child(2), .view.on.fresh .st-row:nth-of-type(2), .view.on.fresh .lib-grid > .lib-card:nth-child(2), .view.on.fresh #member-grid .mcard:nth-child(2) { animation-delay: 40ms; }
+    .view.on.fresh #news-list .news-group:nth-child(3), .view.on.fresh .st-row:nth-of-type(3), .view.on.fresh .lib-grid > .lib-card:nth-child(3), .view.on.fresh #member-grid .mcard:nth-child(3) { animation-delay: 80ms; }
+    .view.on.fresh #news-list .news-group:nth-child(4), .view.on.fresh .st-row:nth-of-type(4), .view.on.fresh .lib-grid > .lib-card:nth-child(4), .view.on.fresh #member-grid .mcard:nth-child(4) { animation-delay: 120ms; }
+    .view.on.fresh #news-list .news-group:nth-child(n+5), .view.on.fresh .lib-grid > .lib-card:nth-child(n+5), .view.on.fresh #member-grid .mcard:nth-child(n+5) { animation-delay: 160ms; }
+    @media (prefers-reduced-motion: reduce) { .view.on.fresh #news-list .news-group, .view.on.fresh #member-grid .mcard, .view.on.fresh .st-row, .view.on.fresh #store-tv, .view.on.fresh .lib-grid > .lib-card, .view.on.fresh .inbox > .nb-row { animation: none; } }
+    /* the toast: a glass capsule */
+    .co-toast { border: 0; border-radius: 22px; padding: 12px 20px; background: color-mix(in srgb, #141311 92%, transparent); -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 18px 44px -14px rgba(0, 0, 0, 0.7); font-weight: 500; }
   </style>
   <div class="co-scrim" id="co-scrim" role="dialog" aria-modal="true" aria-label="Checkout">
     <div class="co-panel">
@@ -8521,7 +8720,7 @@
       tabs.forEach((t) => { const on = t.dataset.view === view || t.dataset.view === rowOf(view); t.classList.toggle('on', on); if (on) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current') })
       document.querySelectorAll('.view').forEach((v) => { const on = v.id === `v-${view}`; v.classList.toggle('on', on); if (!on && v.style.animation) v.style.animation = '' })
       markFresh(`v-${view}`)
-      if (prev !== view && !swipeNav && !['chart', 'chat', 'feed'].includes(view)) { const nv = el(`v-${view}`); if (nv && !nv.classList.contains('fresh')) { nv.classList.remove('enter'); void nv.offsetWidth; nv.classList.add('enter'); setTimeout(() => nv.classList.remove('enter'), 240) } }
+      if (prev !== view && !swipeNav && !document.documentElement.classList.contains('vt') && !['chart', 'chat', 'feed'].includes(view)) { const nv = el(`v-${view}`); if (nv && !nv.classList.contains('fresh')) { nv.classList.remove('enter'); void nv.offsetWidth; nv.classList.add('enter'); setTimeout(() => nv.classList.remove('enter'), 240) } }
       // a view left behind must not keep narrating in the background
       document.querySelectorAll('.view:not(.on) video').forEach((v) => v.pause())
       const tab = tabs.find((t) => t.dataset.view === view)
@@ -8571,7 +8770,25 @@
       el('pro-settings').hidden = view !== 'set-profile'
       if (view !== 'gex') endGexTour(false)
     }
-    tabs.forEach((tab) => tab.addEventListener('click', () => showView(tab.dataset.view)))
+    tabs.forEach((tab) => tab.addEventListener('click', () => navTo(tab.dataset.view)))
+
+    /* ── a page change is one motion (View Transitions, 10-07) ──
+       D1: "all the transitions are smooth, function like a beautiful app." A tap on the bar, the dock, a
+       segment or a card link crossfades the page and lifts the new one in while the bar and the dock hold
+       still (CSS under html.vt in the refine block). Only taps go through here: code that calls showView()
+       and then works on the new page keeps the synchronous swap it was written for. */
+    const VT = { cur: null }
+    function navTo(view) {
+      const ok = typeof document.startViewTransition === 'function' && !matchMedia('(prefers-reduced-motion: reduce)').matches && document.visibilityState === 'visible' && view !== curView() && !document.body.classList.contains('watching')
+      if (!ok) return showView(view)
+      VT.cur?.skipTransition?.()
+      const root = document.documentElement
+      root.classList.add('vt')
+      let t
+      try { t = document.startViewTransition(() => showView(view)) } catch { root.classList.remove('vt'); return showView(view) }
+      VT.cur = t
+      t.finished.catch(() => {}).finally(() => { if (VT.cur === t) { VT.cur = null; root.classList.remove('vt') } })
+    }
 
     /* ── navigation model ──
        Eight destinations in the sidebar, a Tools group, the member row.
@@ -8639,7 +8856,7 @@
           b.textContent = SEG_LABEL[p] ?? t.dataset.title
           const badge = SEG_BADGE[p]
           if (badge) { const i = document.createElement('i'); i.className = badge[1]; i.hidden = true; b.appendChild(i); mirrorBadge(badge[0], i) }
-          b.addEventListener('click', () => { hap('light'); showView(p) })
+          b.addEventListener('click', () => { hap('light'); navTo(p) })
           seg.appendChild(b)
         }
       }
@@ -8677,7 +8894,7 @@
         const b = document.createElement('button'); b.type = 'button'; b.className = 'td-chip'; b.dataset.view = v
         const ic = t.querySelector('.ic')?.cloneNode(true); if (ic) b.appendChild(ic)
         b.appendChild(document.createTextNode(label))
-        b.addEventListener('click', () => { hap('light'); showView(v) })
+        b.addEventListener('click', () => { hap('light'); navTo(v) })
         host.appendChild(b)
       }
     }
@@ -8694,7 +8911,7 @@
       const tb = document.querySelector('.topbar')
       if (tb && 'ResizeObserver' in window) new ResizeObserver(() => document.documentElement.style.setProperty('--tbh', tb.offsetHeight + 'px')).observe(tb)
       const brand = document.querySelector('.side-brand')
-      if (brand) { brand.tabIndex = 0; brand.setAttribute('role', 'link'); brand.title = 'Today'; brand.addEventListener('click', () => showView('overview')); brand.addEventListener('keydown', (e) => { if (e.key === 'Enter') showView('overview') }) }
+      if (brand) { brand.tabIndex = 0; brand.setAttribute('role', 'link'); brand.title = 'Today'; brand.addEventListener('click', () => navTo('overview')); brand.addEventListener('keydown', (e) => { if (e.key === 'Enter') showView('overview') }) }
       // hovering a row warms its data, so the click lands on content rather than a spinner
       if (matchMedia('(hover: hover)').matches) {
         const WARM = { chat: () => { if (!chat.loaded) loadChat() }, course: () => { if (typeof LIB !== 'undefined' && !LIB.loaded) loadLibrary() } }
@@ -8751,10 +8968,10 @@
       const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ACCT_ICON[k]}</svg>`
       const tool = (id) => { const t = id.startsWith('#') ? document.querySelector(id) : tabOf(id); return t && !t.hidden ? t : null }
       const items = [
-        ['profile', 'Profile', () => showView('set-profile'), row === 'profile'],
-        ['settings', 'Settings', () => showView('settings'), row === 'gear'],
+        ['profile', 'Profile', () => navTo('set-profile'), row === 'profile'],
+        ['settings', 'Settings', () => navTo('settings'), row === 'gear'],
         null,
-        ...[['indicators', 'Indicators'], ['propfirms', 'Prop firms']].filter(([id]) => tool(id)).map(([id, l]) => [tabOf(id).querySelector('.ic')?.outerHTML || '', l, () => showView(id), v === id]),
+        ...[['indicators', 'Indicators'], ['propfirms', 'Prop firms']].filter(([id]) => tool(id)).map(([id, l]) => [tabOf(id).querySelector('.ic')?.outerHTML || '', l, () => navTo(id), v === id]),
         ...(tool('#discord-link') ? [[el('discord-link').querySelector('.ic')?.outerHTML || '', 'Discord', () => el('discord-link').click(), false, true]] : []),
         ...(tool('#admin-link') ? [[el('admin-link').querySelector('.ic')?.outerHTML || '', 'Admin', () => { location.href = '/echelon/admin/' }, false]] : []),
         null,
@@ -8796,6 +9013,14 @@
       const ua = el('u-avatar'); if (ua) new MutationObserver(acctAvatar).observe(ua, { childList: true, characterData: true, subtree: true })
       acctAvatar()
       TOPNAV.addEventListener('change', navActsPlace)
+      // a light that follows the pointer across a card (CSS reads --mx/--my); one listener, one write a frame, ratios so the root zoom does not matter
+      if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        const SPOT = '.td-sec, .news-group, #member-grid .mcard, #v-indicators .st-row, #v-indicators #store-tv, .setpage .block, #v-settings .set-index'
+        let raf = 0, ev = null
+        document.addEventListener('pointermove', (e) => { ev = e; if (raf) return; raf = requestAnimationFrame(() => { raf = 0; const c = ev.target.closest?.(SPOT); if (!c) return; const r = c.getBoundingClientRect(); if (!r.width || !r.height) return; c.style.setProperty('--mx', ((ev.clientX - r.left) / r.width * 100).toFixed(1) + '%'); c.style.setProperty('--my', ((ev.clientY - r.top) / r.height * 100).toFixed(1) + '%') }) }, { passive: true })
+      }
+      // the crumb over a sub-page's name goes back to it (the in-page back link is a phone thing now)
+      el('pane-crumb')?.addEventListener('click', (e) => { const t = e.currentTarget.textContent.trim(); if (t === 'Settings') { hap('light'); navTo('settings') } else if (t === 'Profile') { hap('light'); navTo('set-profile') } })
       navActsPlace()
     }
 
@@ -8815,7 +9040,7 @@
         else { const ic = tab?.querySelector('.ic')?.cloneNode(true); if (ic) b.appendChild(ic) }
         if (v === 'chat') { const d = document.createElement('i'); d.className = 'bcount'; d.hidden = true; b.appendChild(d); mirrorBadge('n-chat', d) }
         if (v === 'course') { const d = document.createElement('i'); d.className = 'bdot'; d.hidden = true; b.appendChild(d); mirrorBadge('n-recaps', d) }
-        b.addEventListener('click', () => { hap('light'); if (curView() === v) window.scrollTo({ top: 0, behavior: 'smooth' }); else showView(v) })
+        b.addEventListener('click', () => { hap('light'); if (curView() === v) window.scrollTo({ top: 0, behavior: 'smooth' }); else navTo(v) })
         nav.appendChild(b)
       }
       mirrorAvatar()
@@ -11932,16 +12157,18 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       el('news-empty').hidden = list.length > 0
       el('news-empty').textContent = 'Nothing scheduled.'
       host.textContent = ''
-      let lastDay = ''
+      // each day is its own card: the day on top, its releases under it (10-07)
+      let lastDay = '', grp = null
       for (const e of list) {
         const dk = ET_DAY.format(e.at)
         if (dk !== lastDay) {
           lastDay = dk
+          grp = document.createElement('section'); grp.className = 'news-group' + (live && dk === today ? ' today' : '')
           const h = document.createElement('div'); h.className = 'news-day'
           h.textContent = live && dk === today ? 'Today' : e.at.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })
-          host.appendChild(h)
+          grp.appendChild(h); host.appendChild(grp)
         }
-        host.appendChild(newsRow(e, now))
+        grp.appendChild(newsRow(e, now))
       }
     }
     // the Overview carries just today's slate; the News tab has the week
@@ -15957,7 +16184,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     }
     function tdHidden() { TD.on = false; clearInterval(TD.timer); clearInterval(TD.clock); TD.timer = TD.clock = 0 }
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && TD.on) tdRefresh(false) })
-    document.querySelectorAll('.td-more').forEach((b) => b.addEventListener('click', () => { hap('light'); showView(b.dataset.go) }))
+    document.querySelectorAll('.td-more').forEach((b) => b.addEventListener('click', () => { hap('light'); navTo(b.dataset.go) }))
     // QA hook (tests/app-today-visual.mjs): force the locked Context card, refresh the briefing
     globalThis.__TD = { refresh: () => tdRefresh(true), lock: (on) => { TD.forceLock = !!on; tdRenderGex() }, session: tdSession }
 
@@ -16600,7 +16827,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (jumpAt && performance.now() - jumpAt < 1500) {
         jumpAt = 0
         const v = JUMP[k.toLowerCase()]
-        if (v && (v !== 'gex' || pageVisible('gex'))) { e.preventDefault(); hap('light'); showView(v) }
+        if (v && (v !== 'gex' || pageVisible('gex'))) { e.preventDefault(); hap('light'); navTo(v) }
         return
       }
       if (k === 'g' || k === 'G') { jumpAt = performance.now(); return }
@@ -25168,7 +25395,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
       ntUpdateState()
       ntRenderChannels()
-      document.querySelectorAll('.set-row[data-go]').forEach((b) => b.addEventListener('click', () => showView(b.dataset.go)))
+      document.querySelectorAll('.set-row[data-go]').forEach((b) => b.addEventListener('click', () => navTo(b.dataset.go)))
       el('set-tour-row')?.addEventListener('click', () => startSiteTour())
       document.querySelectorAll('.set-back, #notifs-back').forEach((b) => b.addEventListener('click', () => showView('settings')))
     }
@@ -27045,10 +27272,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     })
     el('lock-after')?.addEventListener('click', (e) => { const b = e.target.closest('button[data-m]'); const v = lockGet(); if (!b || !v) return; v.after = +b.dataset.m; localStorage.setItem(LOCK_KEY, JSON.stringify(v)); lockSettingsUi() })
 
-    async function loadCourse() {
-      lockCheck(); lockSettingsUi()
-      // Show the shell straight away, everything the session already knows
-      // renders now, and skeletons hold every seat data has not filled yet.
+    /* The shell, shown straight away: everything the session already knows renders now, and skeletons
+       hold every seat data has not filled yet. boot() can call it BEFORE its queries return, from the last
+       visit's facts (bootCacheRead), so a returning member sees the app at parse time, not a round trip later. */
+    let shellShown = false
+    function shellShow() {
+      if (!shellShown) { shellShown = true; lockCheck(); lockSettingsUi() }
       el('gate').style.display = 'none'
       el('app').classList.add('on')
       // the home paints its last snapshot the instant the shell shows; the boot queries only ever swap in fresher data
@@ -27058,7 +27287,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
 
       el('admin-link').hidden = !state.isAdmin; const sar = el('set-admin-row'); if (sar) sar.hidden = !state.isAdmin
       el('gex-tab').hidden = !(state.owned.has('d1-gex') || state.isMod || state.isAdmin)
-      if (!el('gex-tab').hidden) watchGexNews()
+      if (!el('gex-tab').hidden && !shellShow.gex) { shellShow.gex = true; watchGexNews() }
       if (DISCORD_INVITE) {
         const link = el('discord-link')
         link.href = DISCORD_INVITE
@@ -27072,9 +27301,15 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // (migration 0045 + media-url v21 match this server-side).
       document.querySelector('.tab[data-view="library"]').hidden = false
       syncBnav()
-
+    }
+    async function loadCourse() {
+      shellShow()
       await fetchAndRender()
     }
+    // the facts the shell needs (who you are, what you hold), kept from the last boot on this device
+    const BOOT_CACHE = 'echelon-boot'
+    function bootCacheRead(uid) { try { const c = JSON.parse(localStorage.getItem(BOOT_CACHE) || 'null'); return c && c.uid === uid && Date.now() - c.at < 14 * 864e5 ? c : null } catch { return null } }
+    function bootCacheWrite() { try { localStorage.setItem(BOOT_CACHE, JSON.stringify({ uid: state.user.id, at: Date.now(), isAdmin: state.isAdmin, isMod: state.isMod, realAdmin: state.realAdmin, owned: [...state.owned] })) } catch {} }
 
     /**
      * Paint skeletons into every data seat, fetch everything, render. Used by
@@ -27348,6 +27583,13 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       booted = true
 
       state.user = session.user
+      // a member seen on this device before gets the shell now; the queries below confirm it a beat later
+      { const bc = bootCacheRead(session.user.id)
+        if (bc && (bc.owned?.length || bc.isAdmin || bc.isMod || bc.realAdmin)) {
+          state.isAdmin = !!bc.isAdmin; state.isMod = !!bc.isMod; state.realAdmin = !!bc.realAdmin
+          state.owned = new Set(bc.owned || []); state.hasCourse = state.owned.size > 0 || state.isAdmin || state.isMod
+          try { shellShow() } catch (e) { console.warn('early shell', e) }
+        } }
 
       // Paid, staff, or a plain member. Admins and mods get in without a
       // purchase row; members without the course still get the community.
@@ -27381,6 +27623,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       // reads the lessons, so the Study room is on every member's nav, not
       // just course buyers. Mods hold GEX + LIT comps, so they pass too.
       state.hasCourse = state.owned.size > 0 || state.isAdmin || state.isMod
+      bootCacheWrite()
       el('set-modtools-row').hidden = !(state.isMod || state.isAdmin)
       // Stay close tabs (Instagram, Discord, BackTrader), everywhere, native
       // shells included (D1 accepted the App Review look of an external offer

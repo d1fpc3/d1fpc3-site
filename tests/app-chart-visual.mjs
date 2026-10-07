@@ -415,7 +415,7 @@ async function run(vpName) {
     await page.screenshot({ path: `${OUT}/${vpName}-${theme}-chart-legend-rows.png` });
     await page.click('#ch-legend .ln[data-ind="ma"] button[data-act="eye"]'); await page.waitForTimeout(200);
     const emaOff = await page.evaluate(() => JSON.parse(localStorage.getItem("echelon-chart-settings")).emaOn === false);
-    check(rows >= 4 && icOpacity === "1" && emaOff, `legend rows (${rows}) show icons on hover, the eye hides the averages`);
+    check(rows >= 4 && icOpacity === "1" && emaOff, `legend rows (${rows}) show icons on hover (${icOpacity}), the eye hides the averages (${emaOff})`);
     await page.evaluate(() => { const s2 = JSON.parse(localStorage.getItem("echelon-chart-settings")); s2.emaOn = true; localStorage.setItem("echelon-chart-settings", JSON.stringify(s2)); window.__CH.s.emaOn = true; });
     await page.click("#ch-ind-btn"); await page.waitForTimeout(150);
   }
@@ -510,6 +510,7 @@ async function run(vpName) {
     }
     await page.setViewportSize(VP.phone.viewport); await page.waitForTimeout(200);
     await page.click('#bnav button.on');   // the tab the chart was opened from stays lit and takes you back
+    await page.waitForTimeout(450);   // 10-07: a dock tap is a View Transition now, the swap lands a frame later
     check(await page.evaluate(() => !document.body.classList.contains('in-chart') && getComputedStyle(document.getElementById('bnav')).display !== 'none'), 'the lit tab takes you back to the app');
   } else await page.evaluate(() => document.querySelector('.tab[data-view="overview"]').click());
   await ctx.close();
