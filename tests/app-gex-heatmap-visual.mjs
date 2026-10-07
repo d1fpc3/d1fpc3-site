@@ -7,13 +7,15 @@
 // one), Change is zero at the first print after 9:50, a click on a column opens that print on the board; the
 // previous day loads its own prints; the ES book draws its own strikes; Wide shows more strikes; the phone map
 // fits the card without scrolling the page sideways. Never clicks Refresh (it re-prints the live board).
+// 10-07 regression (D1: "i dont see it"): the chart with D1 GEX on loads the board in the background; opening the GEX
+// tab after that never drew the heatmap. Every pass opens the chart first. The iPhone pass runs in WebKit.
 import { createRequire } from "module";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import { tmpdir, homedir } from "os";
 import { join } from "path";
 const require = createRequire(import.meta.url);
 const PW_PATHS = ["C:/Users/Deb/Desktop/Projects/outback-running-club/client/node_modules/playwright", "C:/Users/clari/OneDrive/Desktop/Projects/clients/outback-running-club/client/node_modules/playwright"];
-const { chromium, devices } = require(PW_PATHS.find((p) => existsSync(p)) || "playwright");
+const { chromium, webkit, devices } = require(PW_PATHS.find((p) => existsSync(p)) || "playwright");
 
 const OUT = process.env.OUT || `${tmpdir()}/app-gex-heatmap`;
 mkdirSync(OUT, { recursive: true });
@@ -28,20 +30,23 @@ if (!session.access_token) throw new Error("verify failed");
 
 const fails = [];
 const check = (ok, msg) => { console.log(`  ${ok ? "ok  " : "FAIL"} ${msg}`); if (!ok) fails.push(msg); };
-const browser = await chromium.launch();
-for (const sz of [{ name: "2560", opts: { viewport: { width: 2560, height: 1400 } } }, { name: "phone", opts: { ...devices["iPhone 13"] } }]) {
+const browser = await chromium.launch(), wk = await webkit.launch();
+for (const sz of [{ name: "2560", opts: { viewport: { width: 2560, height: 1400 } } }, { name: "phone", opts: { ...devices["iPhone 13"] } }, { name: "iphone-webkit", b: "wk", opts: { ...devices["iPhone 13"] } }]) {
   console.log("== " + sz.name);
-  const ctx = await browser.newContext(sz.opts);
+  const ctx = await (sz.b === "wk" ? wk : browser).newContext(sz.opts);
   await ctx.addInitScript(([k, v]) => {
     localStorage.setItem(k, v); localStorage.setItem("echelon-splash-day", new Date().toDateString()); localStorage.setItem("echelon-site-tour", "done"); localStorage.setItem("echelon-gex-tour", "1")
     for (const x of ["view", "set", "mode", "px", "range"]) localStorage.removeItem("echelon-gex-heat-" + x)
     localStorage.setItem("echelon-gex-book", "NQ"); localStorage.setItem("echelon-gex-fut", "NQ")
+    try { const c = JSON.parse(localStorage.getItem("echelon-chart-settings") || "{}"); c.gex = true; localStorage.setItem("echelon-chart-settings", JSON.stringify(c)) } catch {}
   }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
   const page = await ctx.newPage();
   page.on("pageerror", (e) => fails.push(`${sz.name} pageerror: ${e.message}`));
   await page.route(/gex-worker\.d1fpc3\.workers\.dev\/refresh/, (route) => route.abort());
   await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#td-h1", { timeout: 25000 }); await page.waitForTimeout(1500);
+  // the chart first: with D1 GEX on it loads the board in the background
+  await page.evaluate(() => document.querySelector('.tab[data-view="chart"]').click()); await page.waitForTimeout(6000);
   await page.evaluate(() => document.querySelector('.tab[data-view="gex"]').click());
   await page.waitForFunction(() => globalThis.__GH?.state.geo?.cols.length > 0, null, { timeout: 30000 }).catch(() => {});
   await page.$eval("#gex-heatcard", (n) => n.scrollIntoView({ block: "center" })); await page.waitForTimeout(500);
@@ -60,7 +65,7 @@ for (const sz of [{ name: "2560", opts: { viewport: { width: 2560, height: 1400 
   await card.screenshot({ path: `${OUT}/${sz.name}-by-expiry.png` });
   const hs = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
   check(!hs, "the page does not scroll sideways");
-  if (sz.name === "phone") { const fit = await page.evaluate(() => { const s = document.getElementById("gex-heat-scroll"); return s.scrollWidth <= s.clientWidth + 1 }); check(fit, "the phone map fits its card"); }
+  if (sz.name !== "2560") { const fit = await page.evaluate(() => { const s = document.getElementById("gex-heat-scroll"); return s.scrollWidth <= s.clientWidth + 1 }); check(fit, "the phone map fits its card"); }
 
   // wide
   await page.click('#gex-heat-range [data-r="wide"]'); await page.waitForTimeout(500);
@@ -108,7 +113,7 @@ for (const sz of [{ name: "2560", opts: { viewport: { width: 2560, height: 1400 
   }
   await ctx.close();
 }
-await browser.close();
+await browser.close(); await wk.close();
 console.log(fails.length ? `\n${fails.length} FAILED:\n - ` + fails.join("\n - ") : "\nall ok");
 console.log("shots: " + OUT);
 process.exitCode = fails.length ? 1 : 0;

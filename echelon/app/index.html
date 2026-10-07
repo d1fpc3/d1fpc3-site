@@ -8812,8 +8812,10 @@
        still (CSS under html.vt in the refine block). Only taps go through here: code that calls showView()
        and then works on the new page keeps the synchronous swap it was written for. */
     const VT = { cur: null }
+    const VT_OK = /Chrome\/\d+/.test(navigator.userAgent) && !/CriOS|EdgiOS|FxiOS/.test(navigator.userAgent) && !globalThis.Capacitor?.getPlatform?.()?.startsWith?.('ios')
     function navTo(view) {
-      const ok = typeof document.startViewTransition === 'function' && !matchMedia('(prefers-reduced-motion: reduce)').matches && document.visibilityState === 'visible' && view !== curView() && !document.body.classList.contains('watching')
+      // Chromium only: WebKit (Safari, the iPhone app's WKWebView) CRASHED the page on chart -> GEX with a transition running (10-07)
+      const ok = VT_OK && typeof document.startViewTransition === 'function' && !matchMedia('(prefers-reduced-motion: reduce)').matches && document.visibilityState === 'visible' && view !== curView() && !document.body.classList.contains('watching')
       if (!ok) return showView(view)
       VT.cur?.skipTransition?.()
       const root = document.documentElement
@@ -24459,7 +24461,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
           if (t && !t.rows.length) t.innerHTML = '<tbody>' + '<tr class="sk-row"><td><i class="skel"></i></td><td><i class="skel"></i></td><td><i class="skel"></i></td></tr>'.repeat(8) + '</tbody>'
         }
         loadGex().catch((err) => { const e = el('gex-empty'); e.hidden = false; e.textContent = `Could not reach gex-worker: ${err.message}` })
-      } else drawGexSoon()
+      } else { drawGexSoon(); ghSoon() }   // the board may have loaded while another page was up (the chart's GEX overlay does): the heatmap paints now
       if (!GEX.days.length) loadGexHistory()
       clearTimeout(GEX.timer)
       GEX.timer = setTimeout(gexPrintPoll, gexPrintHours() ? 60 * 1000 : 5 * 60 * 1000)
