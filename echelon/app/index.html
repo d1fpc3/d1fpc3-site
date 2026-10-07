@@ -8125,6 +8125,8 @@
     .gh-l { display: inline-block; width: 18px; height: 0; margin-right: 7px; vertical-align: middle; border-top: 2px solid #f3d892; }
     .gh-l.flip { border-top: 1.5px dashed color-mix(in srgb, var(--ink) 70%, transparent); }
     :root[data-theme="light"] .gh-l.spot { border-top-color: #9a7522; }
+    .gh-warn { color: #eba444; font-weight: 600; }
+    :root[data-theme="light"] .gh-warn { color: #a8620f; }
     .gh-t { font-size: 9.5px; font-weight: 700; padding: 1px 5px; border-radius: 6px; margin-right: 4px; }
     .gh-t.cw { color: #2fbf71; background: rgba(47, 191, 113, 0.16); } .gh-t.pw { color: #e5484d; background: rgba(229, 72, 77, 0.16); } .gh-t.mw { color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, transparent); }
     @media (max-width: 840px) { .gex-heat-ctl { margin-left: 0; } .gex-heat-scroll { padding: 8px 8px 4px; } .gex-heat-key { padding: 10px 16px 14px; gap: 8px 16px; } .gh-scale i { width: 110px; } }
@@ -23702,8 +23704,12 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
          brightest cells and the bars beside them.
        - Through the day: the same strikes against every archived print of the day on screen (each print keeps
          the whole surface), 0DTE or all expiries. Walls building, fading and moving show as colour drifting across
-         the session, with the price path and the flip drawn over it. Change shows each print against the day's
-         first, so where dealers added or shed gamma lights up. A click on a column opens that print on the board.
+         the session, with the price path and the flip drawn over it. A click on a column opens that print on the board.
+         What the numbers are (the worker, computeLevels): CBOE's gamma x open interest x 100 x spot^2 x 1%, calls +, puts -
+         (the naive dealer convention), from CBOE's ~15 min delayed file. Open interest is set once a day (OCC, overnight),
+         so through the day the same positions are REPRICED as price, volatility and time move: Change is repricing, not
+         new positions. Prints before ~9:50 are priced off the prior close (pre-open), and a print that repeats the one
+         before it exactly is the feed sending the same file again (09-24 morning, 09-07 Labor Day): both are faded.
        The canvas draws at the screen's real pixel density under the root zoom (dpr x UIZ) so the numbers stay sharp. */
     const ghPref = (k, d) => { try { return localStorage.getItem('echelon-gex-heat-' + k) || d } catch { return d } }
     const GH = { view: ghPref('view', 'exp'), set: ghPref('set', 'zdte'), mode: ghPref('mode', 'level'), px: ghPref('px', 'fut'), range: ghPref('range', 'near'), days: new Map(), busy: null, geo: null, hover: null, soon: 0, histAt: 0 }
@@ -23797,16 +23803,20 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const prints = cached.prints
         if (!prints.length) { sub.textContent = 'No archived prints for this day yet'; ghCanvas(10, 10); return }
         dayRef = { day, prints }
-        // until the delayed feed shows the open (~9:50) a print carries the prior close's open interest: marked, and Change starts after it
-        const b0 = Math.max(0, prints.findIndex((p) => p.t >= '0950'))
-        cols = prints.map((p, i) => ({ p, pre: i < b0, top: gexTimeLabel(p.t).replace(' AM', '').replace(' PM', ''), sub: p.live ? 'live' : i < b0 ? 'prior OI' : '' }))
+        // until the delayed feed shows the open (~9:50) a print is priced off the prior close (pre-open); a print identical to the
+        // one before it is the feed sending the same file again (the 09-24 freeze, Labor Day). Both fade; Change starts at the first real one.
+        const same = (a, b) => a && b && a.spot === b.spot && a.zdte.length === b.zdte.length && a.zdte.every((v, j) => v === b.zdte[j])
+        const repeat = prints.map((p, i) => i > 0 && !p.live && same(p, prints[i - 1]))
+        let b0 = prints.findIndex((p, i) => p.t >= '0950' && !repeat[i]); if (b0 < 0) b0 = Math.max(0, prints.findIndex((p) => p.t >= '0950'))
+        cols = prints.map((p, i) => ({ p, pre: i < b0 || repeat[i], why: i < b0 && p.t < '0950' ? 'pre' : repeat[i] ? 'repeat' : '', top: gexTimeLabel(p.t).replace(' AM', '').replace(' PM', ''), sub: p.live ? 'live' : i < b0 && p.t < '0950' ? 'pre-open' : repeat[i] ? 'repeat' : '' }))
+        GH.frozen = prints.length > 2 && repeat.filter(Boolean).length >= prints.length / 2
         strikesAll = [...new Set(prints.flatMap((p) => p.strikes))].sort((a, b) => a - b)
         const first = prints[b0], arr = (p) => (GH.set === 'all' ? p.all : p.zdte)
         const at = (p, k) => { const j = p.strikes.indexOf(k); return j < 0 ? 0 : arr(p)[j] }
         val = (ci, k) => GH.mode === 'change' ? (ci < b0 ? 0 : at(prints[ci], k) - at(first, k)) : at(prints[ci], k)
         spotNow = prints[prints.length - 1].spot; conv = prints[prints.length - 1].conv || conv
         pathSpot = prints.map((p) => p.spot); pathFlip = prints.map((p) => p.flip)
-        sub.textContent = `${fut} ${gexDayLabel(day)}, ${prints.length} prints, ${GH.set === 'all' ? 'all expiries' : '0DTE'}${GH.mode === 'change' ? `, change since ${gexTimeLabel(first.t)}` : ''}`
+        sub.textContent = `${fut} ${gexDayLabel(day)}, ${prints.length} prints${GH.frozen ? ' (feed froze)' : ''}, ${GH.set === 'all' ? 'all expiries' : '0DTE'}${GH.mode === 'change' ? `, change since ${gexTimeLabel(first.t)}` : ''}`
       }
       // the strikes nearest the price, by count, so QQQ's 1-point strikes and SPX's 5-point ones read at the same density
       const rows = [...strikesAll].sort((a, b) => Math.abs(a - spotNow) - Math.abs(b - spotNow)).slice(0, GH.range === 'wide' ? 61 : 25).sort((a, b) => b - a)
@@ -23915,7 +23925,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         const sum = (p) => (GH.set === 'all' ? p.all : p.zdte).reduce((a, b) => a + b, 0)
         const net = GH.view === 'exp' ? c.net : GH.mode === 'change' ? (c.pre ? null : sum(c.p) - sum(cols.find((x) => !x.pre).p)) : sum(c.p)
         if (net == null) return
-        ctx.fillStyle = net >= 0 ? GH_POS : GH_NEG; ctx.fillText(ghFmt(net), x0 + ci * colW + colW / 2, y0 + gridH + 19)
+        ctx.globalAlpha = c.pre ? 0.45 : 1; ctx.fillStyle = net >= 0 ? GH_POS : GH_NEG; ctx.fillText(ghFmt(net), x0 + ci * colW + colW / 2, y0 + gridH + 19); ctx.globalAlpha = 1
       })
       ctx.fillStyle = T.faint; ctx.textAlign = 'right'; ctx.fillText('Net', x0 - 8, y0 + gridH + 19)
 
@@ -23949,7 +23959,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
     // the key under the map: the colour scale with its ends, and what the lines are
     function ghKey(max) {
       const k = el('gex-heat-key'); if (!k) return
-      k.innerHTML = `<span class="gh-scale"><em>${ghFmt(-max)}</em><i></i><em>${ghFmt(max)}</em></span><span><i class="gh-l spot"></i>${GH.view === 'day' ? 'price through the day' : 'price now'}</span><span><i class="gh-l flip"></i>gamma flip</span>${GH.view === 'exp' ? '<span><b class="gh-t cw">CW</b><b class="gh-t pw">PW</b><b class="gh-t mw">MW</b>0DTE walls, major wall</span>' : '<span>Click a time to open that print</span>'}`
+      k.innerHTML = `<span class="gh-scale"><em>${ghFmt(-max)}</em><i></i><em>${ghFmt(max)}</em></span><span><i class="gh-l spot"></i>${GH.view === 'day' ? 'price through the day' : 'price now'}</span><span><i class="gh-l flip"></i>gamma flip</span>${GH.view === 'exp' ? '<span><b class="gh-t cw">CW</b><b class="gh-t pw">PW</b><b class="gh-t mw">MW</b>0DTE walls, major wall</span>' : `<span>${GH.mode === 'change' ? 'Open interest is set once a day: a change is the same positions repriced, not new ones' : 'Click a time to open that print'}</span>${GH.frozen ? '<span class="gh-warn">The options feed repeated itself most of this day: faded columns are copies</span>' : ''}`}`
     }
     // hover and tap: the cell under the pointer, a card with what it is
     {
@@ -23961,7 +23971,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (GH.hover?.ci === h.ci && GH.hover?.ri === h.ri && !tip.hidden) return
         GH.hover = h
         const k = g.rows[h.ri], v = g.val(h.ci, k), col = g.cols[h.ci], d = GEX.data, fut = gexFut(d), und = d.undName ?? 'QQQ'
-        const where = GH.view === 'exp' ? `${col.top === '0DTE' ? '0DTE, ' + col.wd : col.wd + ' expiry, ' + col.sub + ' out'}` : `${gexTimeLabel(col.p.t)} ET print${col.p.live ? ' (live)' : col.pre ? ', still the prior close’s open interest' : ''}`
+        const where = GH.view === 'exp' ? `${col.top === '0DTE' ? '0DTE, ' + col.wd : col.wd + ' expiry, ' + col.sub + ' out'}` : `${gexTimeLabel(col.p.t)} ET print${col.p.live ? ' (live)' : col.why === 'pre' ? ', priced off the prior close (before the delayed feed shows the open)' : col.why === 'repeat' ? ', the same data as the print before (the options feed did not update)' : ''}`
         const cls = v >= 0 ? 'pos' : 'neg'
         let extra = ''
         if (GH.view === 'exp') { const net = g.cols.reduce((a, _, ci) => a + g.val(ci, k), 0); extra = `<br>All expiries at this strike <b class="${net >= 0 ? 'pos' : 'neg'}">${fmtM(net)}</b>` }
