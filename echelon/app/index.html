@@ -6925,6 +6925,22 @@
             <div class="gex-rail" id="gex-rail"></div>
             <div class="gex-rail-key"><span><i class="k-neg"></i>below the flip, hedging chases price</span><span><i class="k-pos"></i>above the flip, hedging leans against it</span><span><i class="k-band"></i>GTBR band, one expected daily move</span></div>
           </div>
+          <!-- the heatmap (10-07): GEX by strike against expiry, or by strike through the session -->
+          <div class="gex-card gex-heatcard" id="gex-heatcard" hidden>
+            <div class="gex-card-head gex-heat-head">
+              <h3>Heatmap</h3>
+              <span class="gex-card-sub" id="gex-heat-sub"></span>
+              <span class="gex-heat-ctl">
+                <span class="seg gex-pill" id="gex-heat-view" role="tablist" aria-label="Heatmap"><button class="on" data-v="exp" type="button">By expiry</button><button data-v="day" type="button">Through the day</button></span>
+                <span class="seg gex-pill" id="gex-heat-set" aria-label="Expiries" hidden><button class="on" data-s="zdte" type="button">0DTE</button><button data-s="all" type="button">All</button></span>
+                <span class="seg gex-pill" id="gex-heat-mode" aria-label="Values" hidden><button class="on" data-m="level" type="button">Level</button><button data-m="change" type="button">Change</button></span>
+                <span class="seg gex-pill" id="gex-heat-px" aria-label="Prices"><button class="on" data-p="fut" type="button">NQ</button><button data-p="und" type="button">QQQ</button></span>
+                <span class="seg gex-pill" id="gex-heat-range" aria-label="Range"><button class="on" data-r="near" type="button">Near</button><button data-r="wide" type="button">Wide</button></span>
+              </span>
+            </div>
+            <div class="gex-heat-scroll" id="gex-heat-scroll"><canvas id="gex-heat" aria-label="Gamma exposure heatmap by strike"></canvas><div class="gex-tip" id="gex-heat-tip" hidden></div></div>
+            <div class="gex-heat-key" id="gex-heat-key"></div>
+          </div>
           <div class="gex-grid" id="gex-grid">
           <div class="block gex-card gex-chartcard">
             <div class="block-head">
@@ -8096,6 +8112,22 @@
     @media (prefers-reduced-motion: reduce) { .view.on.fresh #news-list .news-group, .view.on.fresh #member-grid .mcard, .view.on.fresh .st-row, .view.on.fresh #store-tv, .view.on.fresh .lib-grid > .lib-card, .view.on.fresh .inbox > .nb-row { animation: none; } }
     /* the toast: a glass capsule */
     .co-toast { border: 0; border-radius: 22px; padding: 12px 20px; background: color-mix(in srgb, #141311 92%, transparent); -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 18px 44px -14px rgba(0, 0, 0, 0.7); font-weight: 500; }
+    /* the GEX heatmap (10-07) */
+    #v-gex .gex-heat-head { align-items: center; padding-bottom: 6px; row-gap: 10px; }
+    .gex-heat-ctl { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .gex-heat-scroll { position: relative; overflow-x: auto; overscroll-behavior-x: contain; padding: 10px 14px 4px; }
+    .gex-heat-scroll canvas { display: block; cursor: crosshair; }
+    #v-gex .gex-heat-scroll .gex-tip { min-width: 210px; }
+    .gex-heat-key { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; padding: 10px 20px 16px; border-top: 1px solid var(--rim); font-size: 12px; color: var(--muted); }
+    .gh-scale { display: inline-flex; align-items: center; gap: 8px; }
+    .gh-scale i { width: 170px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #e5484d, rgba(229, 72, 77, 0.12) 46%, rgba(47, 191, 113, 0.12) 54%, #2fbf71); }
+    .gh-scale em { font-style: normal; font-variant-numeric: tabular-nums; color: var(--faint); }
+    .gh-l { display: inline-block; width: 18px; height: 0; margin-right: 7px; vertical-align: middle; border-top: 2px solid #f3d892; }
+    .gh-l.flip { border-top: 1.5px dashed color-mix(in srgb, var(--ink) 70%, transparent); }
+    :root[data-theme="light"] .gh-l.spot { border-top-color: #9a7522; }
+    .gh-t { font-size: 9.5px; font-weight: 700; padding: 1px 5px; border-radius: 6px; margin-right: 4px; }
+    .gh-t.cw { color: #2fbf71; background: rgba(47, 191, 113, 0.16); } .gh-t.pw { color: #e5484d; background: rgba(229, 72, 77, 0.16); } .gh-t.mw { color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, transparent); }
+    @media (max-width: 840px) { .gex-heat-ctl { margin-left: 0; } .gex-heat-scroll { padding: 8px 8px 4px; } .gex-heat-key { padding: 10px 16px 14px; gap: 8px 16px; } .gh-scale i { width: 110px; } }
   </style>
   <div class="co-scrim" id="co-scrim" role="dialog" aria-modal="true" aria-label="Checkout">
     <div class="co-panel">
@@ -16568,7 +16600,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         el('gex-histnote').hidden = true
         el('gex-grid').hidden = false
         try {
-          const r = await fetch(`${GEX_URL}/gex.json?day=${day}${GEX.hist.t ? `&t=${GEX.hist.t}` : ''}`, { cache: 'no-cache' })
+          const r = await fetch(`${GEX_URL}/gex.json?day=${day}${GEX.hist.t ? `&t=${GEX.hist.t}` : ''}${gexBookQ(false)}`, { cache: 'no-cache' })
           if (!r.ok) throw new Error(`gex-worker ${r.status}`)
           const d = await r.json()
           if (GEX.hist?.day !== day) return
@@ -16601,7 +16633,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (sm.net0 == null) delete el('gex-hero').dataset.tone; else el('gex-hero').dataset.tone = pos ? 'pos' : 'neg'
       GEX.shownKey = null
       el('gex-grid').hidden = true
-      el('gex-railcard').hidden = true; el('gex-signals').hidden = true
+      el('gex-railcard').hidden = true; el('gex-signals').hidden = true; el('gex-heatcard').hidden = true
       const sess = el('gex-sess'); sess.hidden = true; sess.parentElement.classList.remove('has-sess')
       el('gex-sheet').hidden = true; el('gex-sheetcard').hidden = true
       gexTvCard()
@@ -23246,6 +23278,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       renderGexTable()
       syncGexControls()
       drawGexSoon()
+      ghSoon()
     }
 
     const gexTidy = (h) => String(h).replace(/<\/b>\s*\u2014\s*/g, '</b>: ').replace(/\s*\u2014\s*/g, ', ')
@@ -23660,6 +23693,306 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       if (VT.cur) { const t = VT.cur; GEX.soon = -1; t.finished.catch(() => {}).finally(() => { GEX.soon = 0; drawGexSoon() }); return }
       GEX.soon = requestAnimationFrame(() => { GEX.soon = requestAnimationFrame(() => { GEX.soon = 0; drawGex() }) })
     }
+
+    /* ── the heatmap (D1, 10-07: "a full in depth heatmap and everything for GEX") ──
+       Two maps on one canvas, both off data the worker already keeps:
+       - By expiry: every strike near spot against every expiry the print carries. A cell is that strike's GEX at
+         that expiry ($M per 1% move): green positive, red negative, stronger colour for more gamma. The net per
+         expiry runs along the foot and the net per strike (all expiries) down the right, so the walls read as the
+         brightest cells and the bars beside them.
+       - Through the day: the same strikes against every archived print of the day on screen (each print keeps
+         the whole surface), 0DTE or all expiries. Walls building, fading and moving show as colour drifting across
+         the session, with the price path and the flip drawn over it. Change shows each print against the day's
+         first, so where dealers added or shed gamma lights up. A click on a column opens that print on the board.
+       The canvas draws at the screen's real pixel density under the root zoom (dpr x UIZ) so the numbers stay sharp. */
+    const ghPref = (k, d) => { try { return localStorage.getItem('echelon-gex-heat-' + k) || d } catch { return d } }
+    const GH = { view: ghPref('view', 'exp'), set: ghPref('set', 'zdte'), mode: ghPref('mode', 'level'), px: ghPref('px', 'fut'), range: ghPref('range', 'near'), days: new Map(), busy: null, geo: null, hover: null, soon: 0, histAt: 0 }
+    const GH_POS = '#2fbf71', GH_NEG = '#e5484d'
+    const ghFmt = (v) => { const a = Math.abs(v), s = a >= 1000 ? (a / 1000).toFixed(1) + 'B' : a >= 10 ? Math.round(a).toString() : a.toFixed(1); return (v < 0 ? '−' : '') + s }
+    const ghEt = (iso) => { const p = gexNy(Date.parse(iso)); return { day: p.day, t: String(Math.floor(p.min / 60)).padStart(2, '0') + String(p.min % 60).padStart(2, '0') } }
+    // one print reduced to what the day map needs: strikes, the 0DTE row and the all-expiry sum, price, flip, conversion
+    function ghSlim(p, t) {
+      const S = p.surface; if (!S?.strikes?.length) return null
+      const i0 = Math.max(0, S.expiries.findIndex((e) => e.dte === 0))
+      const zd = S.gexM[i0] || []
+      return { t, spot: p.spot, conv: p.conversion, flip: p.zdte?.flip?.qqq ?? null, strikes: S.strikes, zdte: S.strikes.map((_, j) => zd[j] || 0), all: S.strikes.map((_, j) => S.gexM.reduce((a, r) => a + (r[j] || 0), 0)) }
+    }
+    // every archived print of a day, eight requests at a time; a past day is kept, today only fetches what is new
+    async function ghDay(day) {
+      const book = GEX.book, cfg = gexBookCfg(), key = book + ':' + day
+      const have = GH.days.get(key) || { day, prints: [] }
+      const entry = GEX.days.find((x) => x.date === day)
+      const want = (entry?.times || []).filter((t) => !have.prints.some((p) => p.t === t))
+      for (let i = 0; i < want.length; i += 8) {
+        const batch = await Promise.all(want.slice(i, i + 8).map((t) => fetch(`${GEX_URL}/gex.json?day=${day}&t=${t}${cfg.id === 'nq' ? '' : '&book=' + cfg.id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null)))
+        batch.forEach((p, k) => { const s = p && ghSlim(p, want[i + k]); if (s) have.prints.push(s) })
+      }
+      // the live print, if it is newer than the archive's last one
+      const live = GEX.live
+      if (live?.surface && ghEt(live.generatedAt).day === day) {
+        const lt = ghEt(live.generatedAt).t
+        have.prints = have.prints.filter((p) => !p.live)
+        if (!have.prints.some((p) => p.t >= lt)) { const s = ghSlim(live, lt); if (s) { s.live = true; have.prints.push(s) } }
+      }
+      have.prints.sort((a, b) => a.t.localeCompare(b.t))
+      GH.days.set(key, have)
+      return have
+    }
+    // the day the board is on: a picked past day, or the live print's own day
+    const ghDayOnScreen = () => GEX.hist?.day || (GEX.live ? (gexAge(GEX.live)?.day || ghEt(GEX.live.generatedAt).day) : null)
+
+    function ghCanvas(cssW, cssH) {
+      const c = el('gex-heat'), z = UIZ(), dpr = Math.min(3, (window.devicePixelRatio || 1) * z)
+      const W = Math.round(cssW * dpr), H = Math.round(cssH * dpr)
+      if (c.width !== W || c.height !== H) { c.width = W; c.height = H }
+      c.style.width = cssW + 'px'; c.style.height = cssH + 'px'
+      const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cssW, cssH)
+      return ctx
+    }
+    function ghSoon() {
+      if (GH.soon) return
+      if (VT.cur) { const t = VT.cur; GH.soon = -1; t.finished.catch(() => {}).finally(() => { GH.soon = 0; ghSoon() }); return }
+      GH.soon = requestAnimationFrame(() => { GH.soon = requestAnimationFrame(() => { GH.soon = 0; ghDraw() }) })
+    }
+    async function ghDraw() {
+      const card = el('gex-heatcard'), d = GEX.data
+      if (!card || !d?.surface || !el('v-gex').classList.contains('on')) return
+      card.hidden = false
+      const T = gexTokens(), fut = gexFut(d), und = d.undName ?? 'QQQ'
+      const light = document.documentElement.dataset.theme === 'light', SPOT = light ? '#9a7522' : '#f3d892', FLIP = light ? 'rgba(26,24,21,0.7)' : 'rgba(255,255,255,0.7)', HOV = light ? 'rgba(26,24,21,0.85)' : 'rgba(255,255,255,0.85)'
+      // controls follow the book's names and the view
+      const pxSeg = el('gex-heat-px'); if (pxSeg) { pxSeg.querySelector('[data-p="fut"]').textContent = fut; pxSeg.querySelector('[data-p="und"]').textContent = und }
+      for (const [id, k, v] of [['gex-heat-view', 'v', GH.view], ['gex-heat-set', 's', GH.set], ['gex-heat-mode', 'm', GH.mode], ['gex-heat-px', 'p', GH.px], ['gex-heat-range', 'r', GH.range]]) el(id)?.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset[k] === v))
+      el('gex-heat-set').hidden = el('gex-heat-mode').hidden = GH.view !== 'day'
+      const sub = el('gex-heat-sub')
+
+      // ── the matrix: columns, row strikes, a value per cell ──
+      let cols = [], strikesAll = [], val, spotNow, conv = d.conversion, pathSpot = null, pathFlip = null, dayRef = null
+      if (GH.view === 'exp') {
+        const S = d.surface
+        cols = S.expiries.map((e, i) => ({ i, top: e.dte === 0 ? '0DTE' : expLabel(e.expiry, false), sub: e.dte === 0 ? expLabel(e.expiry, false) : `${e.dte}d`, wd: expLabel(e.expiry), net: e.netGexM }))
+        strikesAll = S.strikes
+        val = (ci, k) => { const j = S.strikes.indexOf(k); return j < 0 ? 0 : (S.gexM[cols[ci].i][j] || 0) }
+        spotNow = d.spot
+        sub.textContent = `${fut} ${GEX.hist ? 'print' : 'now'}, $M of GEX per 1% move, ${S.expiries.length} expiries`
+      } else {
+        const day = ghDayOnScreen(); if (!day) return
+        const key = GEX.book + ':' + day, cached = GH.days.get(key)
+        // stale: never loaded, or the live print has moved on from the column the map holds
+        const liveT = !GEX.hist && GEX.live ? ghEt(GEX.live.generatedAt) : null
+        // the book's list of archived days arrives on its own; wait for it once rather than drawing the live print alone
+        if (!GEX.days.length && GH.daysFor !== GEX.book) { GH.daysFor = GEX.book; sub.textContent = 'Loading the day’s prints…'; await loadGexHistory().catch(() => {}); return ghDraw() }
+        const archived = GEX.days.find((x) => x.date === day)?.times.length || 0
+        const stale = !cached || cached.prints.filter((p) => !p.live).length < archived || (liveT && liveT.day === day && !cached.prints.some((p) => p.t === liveT.t || (!p.live && p.t > liveT.t)))
+        if (stale) {
+          if (GH.busy !== key) {
+            GH.busy = key; if (!cached) sub.textContent = 'Loading the day’s prints…'
+            // today's archive grows through the session: re-read the list of prints now and then
+            if (liveT && Date.now() - GH.histAt > 5 * 60_000) { GH.histAt = Date.now(); await loadGexHistory().catch(() => {}) }
+            try { await ghDay(day) } finally { GH.busy = null }
+            return ghDraw()
+          }
+          if (!cached) return
+        }
+        const prints = cached.prints
+        if (!prints.length) { sub.textContent = 'No archived prints for this day yet'; ghCanvas(10, 10); return }
+        dayRef = { day, prints }
+        // until the delayed feed shows the open (~9:50) a print carries the prior close's open interest: marked, and Change starts after it
+        const b0 = Math.max(0, prints.findIndex((p) => p.t >= '0950'))
+        cols = prints.map((p, i) => ({ p, pre: i < b0, top: gexTimeLabel(p.t).replace(' AM', '').replace(' PM', ''), sub: p.live ? 'live' : i < b0 ? 'prior OI' : '' }))
+        strikesAll = [...new Set(prints.flatMap((p) => p.strikes))].sort((a, b) => a - b)
+        const first = prints[b0], arr = (p) => (GH.set === 'all' ? p.all : p.zdte)
+        const at = (p, k) => { const j = p.strikes.indexOf(k); return j < 0 ? 0 : arr(p)[j] }
+        val = (ci, k) => GH.mode === 'change' ? (ci < b0 ? 0 : at(prints[ci], k) - at(first, k)) : at(prints[ci], k)
+        spotNow = prints[prints.length - 1].spot; conv = prints[prints.length - 1].conv || conv
+        pathSpot = prints.map((p) => p.spot); pathFlip = prints.map((p) => p.flip)
+        sub.textContent = `${fut} ${gexDayLabel(day)}, ${prints.length} prints, ${GH.set === 'all' ? 'all expiries' : '0DTE'}${GH.mode === 'change' ? `, change since ${gexTimeLabel(first.t)}` : ''}`
+      }
+      // the strikes nearest the price, by count, so QQQ's 1-point strikes and SPX's 5-point ones read at the same density
+      const rows = [...strikesAll].sort((a, b) => Math.abs(a - spotNow) - Math.abs(b - spotNow)).slice(0, GH.range === 'wide' ? 61 : 25).sort((a, b) => b - a)
+      if (!rows.length || !cols.length) return
+      const futOf = (k, cv = conv) => Math.round(k * cv.divisor + cv.basis)
+      const label = (k) => GH.px === 'fut' ? futOf(k).toLocaleString() : (Number.isInteger(k) ? String(k) : k.toFixed(1))
+
+      // ── geometry ──
+      const scroll = el('gex-heat-scroll'), scs = getComputedStyle(scroll), availW = Math.max(280, scroll.clientWidth - parseFloat(scs.paddingLeft) - parseFloat(scs.paddingRight))
+      const phone = availW < 600
+      const labW = phone ? 70 : 104, netW = GH.view === 'exp' ? (phone ? 44 : 124) : (phone ? 0 : 92), headH = 46, footH = 30
+      const minCol = phone ? 10 : GH.view === 'exp' ? 38 : 30
+      const colW = Math.max(minCol, (availW - labW - netW - 8) / cols.length)
+      const gridW = colW * cols.length, cssW = Math.floor(labW + gridW + netW + 8)
+      const rowH = Math.max(15, Math.min(phone ? 20 : 24, Math.floor((Math.min(VH() - 260, phone ? 520 : 760)) / rows.length)))
+      const gridH = rowH * rows.length, cssH = headH + gridH + footH
+      const ctx = ghCanvas(cssW, cssH)
+      const x0 = labW, y0 = headH
+      GH.geo = { x0, y0, colW, rowH, rows, cols, cssW, cssH, val, label, futOf, conv, dayRef }
+
+      // ── the colour scale: 97th percentile of what is on screen, so one giant strike does not wash out the rest ──
+      const all = []; for (let c = 0; c < cols.length; c++) for (const k of rows) { const v = val(c, k); if (v) all.push(Math.abs(v)) }
+      all.sort((a, b) => a - b)
+      const max = Math.max(0.1, all.length ? all[Math.min(all.length - 1, Math.floor(all.length * 0.97))] : 1)
+      GH.geo.max = max
+      const tone = (v) => { const t = Math.min(1, Math.sqrt(Math.abs(v) / max)); return { t, c: alpha(v > 0 ? GH_POS : GH_NEG, 0.07 + 0.83 * t) } }
+
+      // header: expiry or time per column
+      ctx.font = `600 11.5px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'
+      const every = Math.max(1, Math.ceil(46 / colW)), shown = (ci) => GH.view === 'exp' ? ci % every === 0 : (cols.length - 1 - ci) % every === 0   // 0DTE always named by expiry, the newest print through the day
+      cols.forEach((c, ci) => {
+        const cx = x0 + ci * colW + colW / 2
+        if (!shown(ci)) return
+        ctx.fillStyle = c.top === '0DTE' || c.sub === 'live' ? T.gold : T.ink; ctx.fillText(c.top, cx, 20)
+        if (c.sub) { ctx.font = `500 10.5px ${GEX_FONT}`; ctx.fillStyle = c.sub === 'live' ? T.gold : T.faint; ctx.fillText(c.sub, cx, 35); ctx.font = `600 11.5px ${GEX_FONT}` }
+      })
+      // cells: the fills first; a speck under 1% of the scale stays a neutral tile; a column from before the open is faded
+      const showNums = colW >= 34 && rowH >= 15, speck = alpha(light ? '#1a1815' : '#ffffff', 0.03), r = Math.min(4, rowH / 4)
+      rows.forEach((k, ri) => {
+        const y = y0 + ri * rowH
+        cols.forEach((c, ci) => {
+          const v = val(ci, k), x = x0 + ci * colW
+          ctx.globalAlpha = c.pre ? 0.38 : 1
+          ctx.fillStyle = !v || Math.abs(v) < max * 0.01 ? speck : tone(v).c; ctx.beginPath(); ctx.roundRect(x + 1, y + 1, colW - 2, rowH - 2, r); ctx.fill()
+        })
+      })
+      ctx.globalAlpha = 1
+      // price to y: between the centres of the two strikes around it
+      const yOf = (px) => {
+        if (px == null) return null
+        if (px >= rows[0]) return y0 + rowH / 2 - (px - rows[0]) / ((rows[0] - (rows[1] ?? rows[0] - 1)) || 1) * rowH
+        for (let i = 0; i < rows.length - 1; i++) if (px <= rows[i] && px >= rows[i + 1]) return y0 + (i + 0.5 + (rows[i] - px) / (rows[i] - rows[i + 1])) * rowH
+        return y0 + gridH - rowH / 2
+      }
+      const inGrid = (y) => y != null && y >= y0 && y <= y0 + gridH
+      const spotY = yOf(spotNow)
+      // strike labels, the walls tagged
+      const z = d.zdte || {}, tags = new Map()
+      const tag = (k, txt, col) => { if (k == null) return; const near = rows.reduce((b, r) => Math.abs(r - k) < Math.abs(b - k) ? r : b, rows[0]); if (Math.abs(near - k) > (rows[0] - rows[rows.length - 1]) / rows.length * 0.75) return; (tags.get(near) || tags.set(near, []).get(near)).push([txt, col]) }
+      if (GH.view === 'exp') { tag(z.callWall?.qqq, 'CW', GH_POS); tag(z.putWall?.qqq, 'PW', GH_NEG); tag(d.majorWall?.strike, 'MW', T.gold) }
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.font = `600 11.5px ${GEX_FONT}`
+      rows.forEach((k, ri) => {
+        const y = y0 + ri * rowH + rowH / 2
+        if (!(inGrid(spotY) && Math.abs(y - spotY) < 13)) { ctx.fillStyle = T.muted; ctx.fillText(label(k), x0 - 8, y + 0.5) }   // the price tag owns its band, the way a chart's last-price tag does
+        const tg = tags.get(k); if (!tg) return
+        let tx = 6; ctx.textAlign = 'left'; ctx.font = `700 9.5px ${GEX_FONT}`
+        for (const [txt, col] of tg) { const w = ctx.measureText(txt).width + 8; ctx.fillStyle = alpha(col, 0.18); ctx.beginPath(); ctx.roundRect(tx, y - 7, w, 14, 7); ctx.fill(); ctx.fillStyle = col; ctx.fillText(txt, tx + 4, y + 0.5); tx += w + 3 }
+        ctx.textAlign = 'right'; ctx.font = `600 11.5px ${GEX_FONT}`
+      })
+      // by expiry: the flip and the price as straight lines, under the numbers so a row stays readable
+      if (GH.view === 'exp') {
+        const fy = yOf(z.flip?.qqq), sy0 = yOf(d.spot)
+        ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, gridW, gridH); ctx.clip(); ctx.lineWidth = 1.4
+        if (inGrid(fy)) { ctx.strokeStyle = FLIP; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(x0, fy); ctx.lineTo(x0 + gridW, fy); ctx.stroke(); ctx.setLineDash([]) }
+        if (inGrid(sy0)) { ctx.strokeStyle = SPOT; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0, sy0); ctx.lineTo(x0 + gridW, sy0); ctx.stroke() }
+        ctx.restore()
+      }
+      // the numbers
+      if (showNums) {
+        ctx.font = `600 ${rowH >= 20 ? 11 : 10}px ${GEX_FONT}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'center'
+        rows.forEach((k, ri) => cols.forEach((c, ci) => {
+          const v = val(ci, k); if (!v || Math.abs(v) < max * 0.06) return
+          const t = tone(v).t; ctx.globalAlpha = c.pre ? 0.5 : 1
+          ctx.fillStyle = t > 0.55 ? '#ffffff' : alpha(T.ink.startsWith('#') ? T.ink : '#f4f2ee', 0.82); ctx.fillText(ghFmt(v), x0 + ci * colW + colW / 2, y0 + ri * rowH + rowH / 2 + 0.5)
+        }))
+        ctx.globalAlpha = 1
+      }
+      // the net down the right (by expiry): every expiry summed per strike, a bar from the middle
+      if (GH.view === 'exp' && netW) {
+        const nx = x0 + gridW + 8, nw = netW - 12, mid = nx + nw / 2
+        const nets = rows.map((k) => cols.reduce((a, _, ci) => a + val(ci, k), 0)), nmax = Math.max(1, ...nets.map(Math.abs))
+        ctx.fillStyle = T.faint; ctx.font = `600 11px ${GEX_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText('All expiries', mid, 20)
+        ctx.strokeStyle = T.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(mid + 0.5, y0); ctx.lineTo(mid + 0.5, y0 + gridH); ctx.stroke()
+        ctx.textBaseline = 'middle'; ctx.font = `600 10px ${GEX_FONT}`
+        nets.forEach((v, ri) => {
+          if (!v) return
+          const y = y0 + ri * rowH, len = Math.abs(v) / nmax * (nw / 2 - 2)
+          ctx.fillStyle = alpha(v > 0 ? GH_POS : GH_NEG, 0.75); ctx.beginPath(); ctx.roundRect(v > 0 ? mid : mid - len, y + rowH * 0.22, Math.max(1.5, len), rowH * 0.56, 3); ctx.fill()
+          if (Math.abs(v) >= nmax * 0.18 && !phone) { ctx.fillStyle = T.muted; ctx.textAlign = v > 0 ? 'right' : 'left'; ctx.fillText(ghFmt(v), v > 0 ? mid - 4 : mid + 4, y + rowH / 2 + 0.5) }
+        })
+      }
+      // the foot: net per column
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.font = `600 10.5px ${GEX_FONT}`
+      cols.forEach((c, ci) => {
+        if (!shown(ci)) return
+        const sum = (p) => (GH.set === 'all' ? p.all : p.zdte).reduce((a, b) => a + b, 0)
+        const net = GH.view === 'exp' ? c.net : GH.mode === 'change' ? (c.pre ? null : sum(c.p) - sum(cols.find((x) => !x.pre).p)) : sum(c.p)
+        if (net == null) return
+        ctx.fillStyle = net >= 0 ? GH_POS : GH_NEG; ctx.fillText(ghFmt(net), x0 + ci * colW + colW / 2, y0 + gridH + 19)
+      })
+      ctx.fillStyle = T.faint; ctx.textAlign = 'right'; ctx.fillText('Net', x0 - 8, y0 + gridH + 19)
+
+      // overlays: spot and flip (a line now, a path through the day)
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, gridW, gridH); ctx.clip()
+      const line = (ys, color, dash, w) => { ctx.strokeStyle = color; ctx.lineWidth = w; ctx.setLineDash(dash); ctx.lineJoin = 'round'; ctx.beginPath(); let on = false; ys.forEach((y, i) => { if (y == null) { on = false; return } const x = GH.view === 'exp' ? (i ? x0 + gridW : x0) : x0 + i * colW + colW / 2; if (!on) { ctx.moveTo(x, y); on = true } else ctx.lineTo(x, y) }); ctx.stroke(); ctx.setLineDash([]) }
+      if (GH.view === 'day') {
+        line(pathFlip.map(yOf), FLIP, [5, 4], 1.4)
+        const ys = pathSpot.map(yOf)
+        ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 4; line(ys, SPOT, [], 2.2); ctx.shadowBlur = 0
+        ys.forEach((y, i) => { if (y == null) return; ctx.fillStyle = SPOT; ctx.beginPath(); ctx.arc(x0 + i * colW + colW / 2, y, i === ys.length - 1 ? 4 : 2.2, 0, Math.PI * 2); ctx.fill() })
+      }
+      ctx.restore()
+      // the spot tag at the left edge
+      const sy = spotY
+      if (inGrid(sy)) {
+        const txt = GH.px === 'fut' ? futOf(spotNow).toLocaleString() : spotNow.toFixed(2)
+        ctx.font = `700 11px ${GEX_FONT}`; const w = ctx.measureText(txt).width + 12
+        ctx.fillStyle = '#e3bd62'; ctx.beginPath(); ctx.roundRect(x0 - w - 4, sy - 9, w, 18, 9); ctx.fill()
+        ctx.fillStyle = '#17130a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x0 - 4 - w / 2, sy + 0.5)
+      }
+      // the hovered row and column
+      const h = GH.hover
+      if (h && h.ri < rows.length && h.ci < cols.length) {
+        ctx.strokeStyle = HOV; ctx.lineWidth = 1.5
+        ctx.beginPath(); ctx.roundRect(x0 + h.ci * colW + 1, y0 + h.ri * rowH + 1, colW - 2, rowH - 2, 4); ctx.stroke()
+        ctx.fillStyle = alpha('#ffffff', 0.04); ctx.fillRect(x0, y0 + h.ri * rowH, gridW, rowH); ctx.fillRect(x0 + h.ci * colW, y0, colW, gridH)
+      }
+      ghKey(max)
+    }
+    // the key under the map: the colour scale with its ends, and what the lines are
+    function ghKey(max) {
+      const k = el('gex-heat-key'); if (!k) return
+      k.innerHTML = `<span class="gh-scale"><em>${ghFmt(-max)}</em><i></i><em>${ghFmt(max)}</em></span><span><i class="gh-l spot"></i>${GH.view === 'day' ? 'price through the day' : 'price now'}</span><span><i class="gh-l flip"></i>gamma flip</span>${GH.view === 'exp' ? '<span><b class="gh-t cw">CW</b><b class="gh-t pw">PW</b><b class="gh-t mw">MW</b>0DTE walls, major wall</span>' : '<span>Click a time to open that print</span>'}`
+    }
+    // hover and tap: the cell under the pointer, a card with what it is
+    {
+      const c = el('gex-heat'), tip = el('gex-heat-tip')
+      const at = (e) => { const g = GH.geo; if (!g) return null; const r = c.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * g.cssW, y = (e.clientY - r.top) / r.height * g.cssH; const ci = Math.floor((x - g.x0) / g.colW), ri = Math.floor((y - g.y0) / g.rowH); return ci >= 0 && ri >= 0 && ci < g.cols.length && ri < g.rows.length ? { ci, ri, x, y } : null }
+      const show = (e) => {
+        const h = at(e), g = GH.geo
+        if (!h) { if (GH.hover) { GH.hover = null; tip.hidden = true; ghDraw() } return }
+        if (GH.hover?.ci === h.ci && GH.hover?.ri === h.ri && !tip.hidden) return
+        GH.hover = h
+        const k = g.rows[h.ri], v = g.val(h.ci, k), col = g.cols[h.ci], d = GEX.data, fut = gexFut(d), und = d.undName ?? 'QQQ'
+        const where = GH.view === 'exp' ? `${col.top === '0DTE' ? '0DTE, ' + col.wd : col.wd + ' expiry, ' + col.sub + ' out'}` : `${gexTimeLabel(col.p.t)} ET print${col.p.live ? ' (live)' : col.pre ? ', still the prior close’s open interest' : ''}`
+        const cls = v >= 0 ? 'pos' : 'neg'
+        let extra = ''
+        if (GH.view === 'exp') { const net = g.cols.reduce((a, _, ci) => a + g.val(ci, k), 0); extra = `<br>All expiries at this strike <b class="${net >= 0 ? 'pos' : 'neg'}">${fmtM(net)}</b>` }
+        else if (GH.mode === 'level') { const bi = g.cols.findIndex((c) => !c.pre); if (h.ci > bi) { const dv = v - g.val(bi, k); extra = `<br>Since ${gexTimeLabel(g.cols[bi].p.t)} <b class="${dv >= 0 ? 'pos' : 'neg'}">${fmtM(dv)}</b>` } }
+        tip.innerHTML = `<b>${fut} ${g.futOf(k).toLocaleString()}</b> &middot; ${und} ${k}<br>${where}<br>${GH.mode === 'change' && GH.view === 'day' ? 'Change ' : 'GEX '}<b class="${cls}">${fmtM(v)}</b>${extra}`
+        tip.hidden = false
+        const sc = el('gex-heat-scroll'), sr = sc.getBoundingClientRect(), z = UIZ()
+        const px = (e.clientX - sr.left) / z + sc.scrollLeft, py = (e.clientY - sr.top) / z
+        const tw = tip.offsetWidth, th = tip.offsetHeight
+        tip.style.left = Math.min(sc.scrollLeft + sc.clientWidth - tw - 6, Math.max(sc.scrollLeft + 6, px + 14)) + 'px'
+        tip.style.top = Math.max(4, py - th - 12) + 'px'
+        ghDraw()
+      }
+      c?.addEventListener('pointermove', show)
+      c?.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') show(e) })
+      c?.addEventListener('pointerleave', () => { GH.hover = null; tip.hidden = true; ghDraw() })
+      c?.addEventListener('click', (e) => {
+        if (GH.view !== 'day') return
+        const h = at(e), g = GH.geo; if (!h || !g.dayRef) return
+        const p = g.cols[h.ci].p; if (p.live) { if (GEX.hist) showGexDay(null); return }
+        hap('light'); showGexDay(g.dayRef.day, p.t)
+      })
+      const wire = (id, key, attr) => el(id)?.addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b) return
+        GH[key] = b.dataset[attr]; try { localStorage.setItem('echelon-gex-heat-' + key, GH[key]) } catch {}
+        hap('light'); GH.hover = null; el('gex-heat-tip').hidden = true; ghDraw()
+      })
+      wire('gex-heat-view', 'view', 'v'); wire('gex-heat-set', 'set', 's'); wire('gex-heat-mode', 'mode', 'm'); wire('gex-heat-px', 'px', 'p'); wire('gex-heat-range', 'range', 'r')
+      addEventListener('resize', () => { if (el('v-gex')?.classList.contains('on')) ghSoon() })
+    }
+    globalThis.__GH = { state: GH, draw: ghDraw }   // for the harness
 
     function haloText(ctx, txt, x, y, color, panel, align = 'left', base = 'alphabetic') {
       ctx.textAlign = align; ctx.textBaseline = base
