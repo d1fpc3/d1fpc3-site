@@ -31,7 +31,8 @@ returns boolean language sql security definer set search_path = public as $$
 $$;
 revoke execute on function public.tv_sync_claim(integer) from public, anon, authenticated;
 
--- kick the function (pg_net, async, sends after commit)
+-- kick the function (pg_net, async, sends after commit). The secret is read from Vault
+-- (push_webhook_secret, same value as the PUSH_WEBHOOK_SECRET edge secret), never a literal.
 create or replace function public.tv_sync_kick(p_reason text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
@@ -39,7 +40,7 @@ begin
     url     := 'https://cqdignbleethroyxxvzr.supabase.co/functions/v1/tv-sync',
     body    := jsonb_build_object('action', 'sync', 'reason', p_reason),
     headers := jsonb_build_object('Content-Type', 'application/json',
-                                  'x-webhook-secret', '825447c027f748392987d5242c5f883b7a913f463ff0bd2d'));
+                                  'x-webhook-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'push_webhook_secret')));
 end $$;
 
 create or replace function public.tv_access_kick()

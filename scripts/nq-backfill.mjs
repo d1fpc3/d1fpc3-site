@@ -15,11 +15,11 @@ const mgmt = process.env.SUPABASE_ACCESS_TOKEN || (existsSync(tokenFile) ? readF
 if (!mgmt) throw new Error("no Supabase access token");
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
 const anon = keys.find((k) => k.name === "anon").api_key;
-// the cron key lives in the database's nq_store function (the Management API only
-// returns a digest of the secret), so read it from there: nothing to commit
-const def = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, { method: "POST", headers: { Authorization: `Bearer ${mgmt}`, "Content-Type": "application/json" }, body: JSON.stringify({ query: "select pg_get_functiondef('public.nq_store'::regproc) as d" }) })).json();
-const secret = process.env.TAPE_STORE_SECRET || /x-webhook-secret', '([0-9a-f]+)'/.exec(def[0]?.d ?? "")?.[1];
-if (!secret) throw new Error("cron secret not found in nq_store()");
+// the cron key lives in Vault as push_webhook_secret (the Management API only
+// returns a digest of the edge secret), so read it from there: nothing to commit
+const v = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, { method: "POST", headers: { Authorization: `Bearer ${mgmt}`, "Content-Type": "application/json" }, body: JSON.stringify({ query: "select decrypted_secret as s from vault.decrypted_secrets where name = 'push_webhook_secret'" }) })).json();
+const secret = process.env.TAPE_STORE_SECRET || v[0]?.s;
+if (!secret) throw new Error("push_webhook_secret not found in Vault");
 
 async function pull(body) {
   const r = await fetch(`${SB}/functions/v1/tape?store=1`, { method: "POST", headers: { "Content-Type": "application/json", apikey: anon, Authorization: `Bearer ${anon}`, "x-webhook-secret": secret }, body: JSON.stringify({ symbol: SYMBOL, ...body }) });
