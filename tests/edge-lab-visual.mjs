@@ -75,7 +75,8 @@ for (const [vp, launcher, opts] of VPS) for (const theme of THEMES) {
   ok((await page.locator('#signals tr').count()) >= 1 && !(await page.textContent('#signals')).includes('No signals yet'), 'signal log has rows')
   await page.locator('#signals').scrollIntoViewIfNeeded(); await page.waitForTimeout(300)
   await page.screenshot({ path: `${OUT}/${vp}-${theme}-signals.png` })
-  await page.screenshot({ path: `${OUT}/${vp}-${theme}-full.png`, fullPage: true })
+  // with every row shown the phone page passes Chromium/WebKit's 32767 px screenshot limit; keep the run going
+  await page.screenshot({ path: `${OUT}/${vp}-${theme}-full.png`, fullPage: true }).catch(() => console.log('  (full-page shot skipped: page taller than 32767 px)'))
   ok(errs.length === 0, `no page errors ${errs.slice(0, 2).join(' | ')}`)
   await browser.close()
 }
