@@ -238,6 +238,26 @@ FIG["msnr-key-level-gap"] = () => {
   return title(W / 2, 110, "Which candle did the eating?") + p.svg() + note(W / 2, 845, "Always ask whose close actually went past the open.", { size: 19 });
 };
 
+// The eaten candle can sit further back: two eaters, two key levels (Ariff T EP5, gold 1H, Dec 16 2025).
+FIG["msnr-key-level-far"] = () => {
+  const p = new Panel();
+  const x = (i) => 250 + i * 66;
+  //        o    h    l    c
+  const k = [[610, 395, 622, 410], [410, 398, 488, 470], [470, 462, 552, 540], [540, 505, 556, 515], [515, 508, 612, 600],
+    [600, 590, 676, 660], [660, 498, 676, 510], [510, 500, 548, 538], [538, 360, 552, 372]];
+  k.forEach(([o, h, l, c], i) => p.candle(x(i), o, h, l, c, 42));
+  p.level(x(1) - 30, x(8) + 10, 410, { dash: true, w: 1.8 });
+  p.text(x(2) - 16, 410, "open of the down candle that started the drop", { pos: "above", size: 16, anchor: "start" });
+  p.level(x(6) - 24, 1320, 660, { label: "key level 1" });
+  p.level(x(8) - 24, 1320, 538, { label: "key level 2" });
+  p.text(x(6), 498, "1", { pos: "above", size: 22, weight: 700 }).text(x(8), 360, "2", { pos: "above", size: 22, weight: 700 });
+  p.path([[x(8) + 22, 372], [900, 318], [1010, 538], [1190, 230]], { arrow: true }).ring(1010, 538);
+  p.text(1010, 538, "the retest Ariff trades", { pos: "below", size: 17, off: 26 });
+  p.raw(lines(250, 760, ["1. Closes above the small down candles at the bottom.", "It ate them, so its open is a key level."], { anchor: "start", size: 18 }));
+  p.raw(lines(830, 760, ["2. Closes above the open of the down candle that started", "the drop. Nobody had eaten that one, so it is an eater too."], { anchor: "start", size: 18 }));
+  return title(W / 2, 110, "The candle it ate can sit further back") + p.svg();
+};
+
 FIG["msnr-timeframes"] = () => {
   const cols = [[330, "Swing", ["Monthly", "Weekly", "Daily"], ["Trades held for days", "or longer."]], [800, "Intraday", ["4 hour", "1 hour", "30 minute"], ["Where NQ day trades", "get their direction."]], [1270, "Confirmation", ["15 minute", "5 minute", "1 minute"], ["Entries at the level only.", "Never for direction."]]];
   const out = [title(W / 2, 110, "Direction is read on a timeframe")];

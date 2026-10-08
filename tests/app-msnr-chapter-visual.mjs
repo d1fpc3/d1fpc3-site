@@ -34,7 +34,7 @@ await toc();
 const rows = await page.evaluate(() => [...document.querySelectorAll("#index .ch-list button .tx")].map((t) => t.textContent));
 const want = ["Read the close", "Classic levels and the miss", "Gap and breakout", "HNS and broken HNS", "Key levels", "Direction", "The process"];
 ok(JSON.stringify(rows) === JSON.stringify(want), "chapter 08 lists the seven new lessons: " + rows.join(" | "));
-const imgsPer = [2, 3, 2, 2, 2, 3, 2];
+const imgsPer = [2, 3, 2, 2, 3, 3, 2];
 for (let i = 0; i < rows.length; i++) {
   if (i) await toc();
   await page.locator("#index .ch-list button").nth(i).click();

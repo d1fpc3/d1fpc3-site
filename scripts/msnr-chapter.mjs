@@ -1,6 +1,7 @@
 // Chapter 08 (MSNR): the lesson content, kept here as the source of truth.
 //   node scripts/msnr-chapter.mjs          prints the SQL
-//   node scripts/msnr-chapter.mjs --apply  runs it on the Echelon project (Management API)
+//   node scripts/msnr-chapter.mjs --apply  runs it on the Echelon project (Management API), new lesson rows
+//   node scripts/msnr-chapter.mjs --update rewrites the existing lessons in place (keeps member progress)
 // Replaces every lesson in the msnr module. Images live in lesson-files under
 // image/course/msnr-*.png (drawn by scripts/msnr-diagrams.mjs).
 import { readFileSync } from "fs";
@@ -170,7 +171,7 @@ If you cannot find a reason on the 30 minute, look one timeframe down. It was pr
   {
     slug: "msnr-key-levels",
     title: "Key levels",
-    summary: "The open of the candle that closed past the one before it. The levels worth trading.",
+    summary: "The open of the candle that closed past an opposite candle's open. The levels worth trading.",
     blocks: [
       text(`
 ## Too many levels
@@ -179,7 +180,7 @@ Mark all five basic levels and your chart fills up with lines. They are not all 
 
 ## The engulfing open
 
-A key level comes from one candle **closing past the open of the candle before it**, when the two are opposite colours. It ate that candle, so call it the eater. Its open is the key level.
+A key level comes from a candle **closing past the open of an earlier candle of the opposite colour**. It ate that candle, so call it the eater. Its open is the key level. Most of the time the candle it ate is the one right before it, so start there.
 
 - **Bearish key level.** An up candle, then a down candle that **closes below the up candle's open**. Mark the down candle's **open**. When price comes back up to that line, expect sellers.
 - **Bullish key level.** A down candle, then an up candle that **closes above the down candle's open**. Mark the up candle's **open**. When price comes back down to it, expect buyers.`),
@@ -197,12 +198,25 @@ Sometimes one candle is not enough. Picture an up candle, then two down candles,
 - B closes **below** the up candle's open. **B is the eater.**
 - So the key level is **B's open**, which is also the seam between A and B.
 
-Always ask the same question: whose close actually went past the open?`),
+Always ask the same question: whose close actually went past the open?
+
+## The candle it ate can sit further back
+
+Every opposite candle gets eaten once, by the **first** candle whose close gets past its open. That does not have to be the next candle.
+
+- Price sells off from a classic A, grinds lower for a few hours, then turns up. The first strong up candle eats the small down candles near the bottom, so its open is a key level.
+- A few candles later, another up candle closes above the open of the **down candle that started the sell-off**, the one at the classic A on top. Nobody had eaten it yet, so this candle is an eater too, and **its open is a key level as well**.
+- That second one is often the best of the lot. It is the candle that broke out the classic, and the pullback to its open is exactly the retest Ariff trades.
+
+So for every candle, ask: did its close get past the open of **any** opposite candle that nobody has eaten yet? If it did, its open is a key level.`),
+      img("msnr-key-level-far", "A sell-off from a classic A, then two up candles. Candle 1 closes above the small down candles at the bottom and its open is key level 1. Candle 2 closes above the open of the down candle that started the drop and its open is key level 2, which price retests and then rallies from.", "Both are eaters. Candle 2 is the one that broke out the classic, and the pullback to its open is the trade. This is how Ariff marked gold on December 16, 2025."),
       img("msnr-key-level-gap", "An up candle followed by two down candles, A and B. A closes above the up candle's open, B closes below it. The key level is drawn at B's open and price returns to it and sells off.", "A did not close past the open, B did. So B is the engulfing candle and its open, the seam between A and B, is the key level."),
       text(`
 ## What to expect from them
 
-Key levels tend to react, and often more than once. Mark every one you find on the NQ 1 hour chart for a week and watch what price does each time it comes back. That is how you learn to trust them.`),
+We measured it. On NQ from 2019 to 2026, 1.8 million first touches: an MSNR level holds its first touch about one point more often than a random price right next to it (48.7% against 47.6% on the 15 minute to 1 hour), and a key level holds about as often as any other MSNR level.
+
+So the level only gives you the **place**. What makes it a trade is the other two pillars: the direction, and the confirmation on the small timeframe when price gets there. Mark every key level you find on the NQ 1 hour chart for a week and watch what price does each time it comes back.`),
     ],
   },
   {
@@ -298,11 +312,18 @@ insert into public.lessons (module_id, slug, title, summary, position, kind, blo
 ${rows.join(",\n")};
 commit;`;
 
-for (const l of LESSONS) for (const b of l.blocks) if (b.md && /—/.test(b.md)) throw new Error("em dash in " + l.slug);
+// --update: rewrite the existing lessons in place, matched by slug, so lesson ids and member progress survive.
+const UPDATE = `begin;
+update public.modules set summary = ${q(MODULE_SUMMARY)} where id = ${q(MODULE)};
+${LESSONS.map((l, i) => `update public.lessons set title = ${q(l.title)}, summary = ${q(l.summary)}, position = ${i + 1}, blocks = ${q(JSON.stringify(l.blocks))}::jsonb where module_id = ${q(MODULE)} and slug = ${q(l.slug)};`).join("\n")}
+commit;`;
 
-if (process.argv.includes("--apply")) {
+for (const l of LESSONS) for (const b of l.blocks) if ((b.md && /—/.test(b.md)) || /—/.test(b.caption || "") || /—/.test(b.alt || "")) throw new Error("em dash in " + l.slug);
+
+if (process.argv.includes("--apply") || process.argv.includes("--update")) {
   const tok = readFileSync(join(homedir(), ".supabase", "access-token"), "utf8").trim();
-  const r = await fetch("https://api.supabase.com/v1/projects/cqdignbleethroyxxvzr/database/query", { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" }, body: JSON.stringify({ query: SQL }) });
+  const query = process.argv.includes("--update") ? UPDATE : SQL;
+  const r = await fetch("https://api.supabase.com/v1/projects/cqdignbleethroyxxvzr/database/query", { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" }, body: JSON.stringify({ query }) });
   console.log(r.status, await r.text());
   if (!r.ok) process.exit(1);
 } else console.log(SQL);
