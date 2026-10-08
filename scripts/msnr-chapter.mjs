@@ -214,7 +214,7 @@ So for every candle, ask: did its close get past the open of **any** opposite ca
       text(`
 ## What to expect from them
 
-We measured it. On NQ from 2019 to 2026, 1.8 million first touches: an MSNR level holds its first touch about one point more often than a random price right next to it (48.7% against 47.6% on the 15 minute to 1 hour), and a key level holds about as often as any other MSNR level.
+We measured it. On NQ from 2019 to 2026, 1.8 million first touches: an MSNR level holds its first touch about one point more often than a random price right next to it (47.4% against 46.4% on the 15 minute to 1 hour since 2023), and a key level holds about as often as any other MSNR level.
 
 So the level only gives you the **place**. What makes it a trade is the other two pillars: the direction, and the confirmation on the small timeframe when price gets there. Mark every key level you find on the NQ 1 hour chart for a week and watch what price does each time it comes back.`),
     ],
