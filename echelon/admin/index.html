@@ -5079,7 +5079,7 @@
     async function loadLibraryAdmin() {
       const [{ data }, { data: views }, { data: access }, { data: dir }] = await Promise.all([
         supabase.from('library_videos').select('*').order('created_at', { ascending: false }),
-        supabase.from('library_views').select('video_id, view_count'),
+        supabase.from('library_views').select('video_id, view_count, user_id'),
         supabase.from('library_video_access').select('video_id, user_id'),
         supabase.from('member_directory').select('user_id, username, is_mod, is_admin'),
       ])
@@ -5092,6 +5092,7 @@
       // Two numbers per video: how many members opened it, and total opens.
       LIBVIEWS = {}
       for (const v of views ?? []) {
+        if (houseOf(v.user_id, null)) continue   // your own and the review account's plays are not members watching
         const t = LIBVIEWS[v.video_id] ?? (LIBVIEWS[v.video_id] = { people: 0, opens: 0 })
         t.people += 1; t.opens += v.view_count
       }
