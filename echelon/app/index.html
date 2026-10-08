@@ -8780,6 +8780,7 @@
       if (view === 'course' && prev !== 'course') studyShowMap()
       if (view === 'set-appearance') { showOnlineInit(); showOnlineInit.paint?.() }
       syncBnav(view); segRender(view); syncRail(view); recentPush(view)
+      globalThis.__usageOpen?.(view)
       // a navigation's own scroll is not a reading scroll: the dock and the pill stay put
       globalThis.__navJumpAt = performance.now(); document.body.classList.remove('nu-away')
       // sub-pages always open at the top (a push); top-level views resume where you were
@@ -10074,6 +10075,22 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
         if (p && p.d && p.t > 10 && p.t / p.d < 0.95 && Math.abs(video.duration - p.d) < 2) { video.currentTime = p.t; toast(`Resumed at ${vpTime(p.t)}`) }
       }, { once: true })
       if (videoId) { let last = 0; video.addEventListener('timeupdate', () => { const now = Date.now(); if (now - last < 4000 || !video.duration) return; last = now; try { localStorage.setItem(libPosKey(videoId), JSON.stringify({ t: video.currentTime, d: video.duration })) } catch {} }) }
+      // watch time for Admin > Insights: seconds actually played (a seek is not watching) and the furthest point reached
+      if (videoId) {
+        let acc = 0, prevT = null, maxF = 0, sentF = 0
+        const send = (keep = false) => { const s = Math.floor(acc); if (s < 1 && maxF <= sentF + 0.01) return; acc -= s; sentF = maxF; globalThis.__libWatch?.(videoId, s, maxF, keep) }
+        video.addEventListener('timeupdate', () => {
+          const t = video.currentTime
+          if (prevT !== null && !video.paused && !video.seeking) { const d = t - prevT; if (d > 0 && d < 2.5) acc += d }
+          prevT = t
+          if (video.duration) maxF = Math.max(maxF, Math.min(1, t / video.duration))
+          if (acc >= 30) send()
+        })
+        video.addEventListener('seeking', () => { prevT = null })
+        video.addEventListener('pause', () => send())
+        video.addEventListener('ended', () => send())
+        globalThis.__libWatchFlush = send
+      }
     }
 
     /* ── the player ──
@@ -25334,6 +25351,57 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       host.appendChild(st)
     }
 
+    /* ── what members use (app_usage via track_usage, read in Admin > Insights) ──
+       D1, 10-07: "who's using the pages, who's using the videos". Page opens and the seconds a page is on screen are
+       summed here and sent once a minute and when the app is hidden: a page name, opens and seconds, nothing else.
+       Time stops while the app is hidden, and after 10 idle minutes unless a video is playing. Library videos report
+       the seconds actually played and the furthest point reached (record_library_watch). Wired through globalThis so
+       showView can call it before this block has run. */
+    {
+      const U = { view: null, at: performance.now(), acc: new Map(), act: Date.now(), tok: null, paused: document.hidden }
+      const IDLE = 10 * 60 * 1000
+      const keyOf = (v) => document.body.classList.contains('watching') ? 'watching' : (v === 'chart' && document.getElementById('v-chart')?.classList.contains('bt-on') ? 'backtest' : v)
+      const slot = (k) => { let a = U.acc.get(k); if (!a) U.acc.set(k, a = { o: 0, s: 0 }); return a }
+      const playing = () => [...document.querySelectorAll('video')].some((v) => !v.paused && !v.ended)
+      function charge() {
+        const now = performance.now()
+        if (U.view && !U.paused && state.user && (Date.now() - U.act < IDLE || playing())) slot(keyOf(U.view)).s += Math.min((now - U.at) / 1000, 60)
+        U.at = now
+      }
+      const rpc = (name, body, keep) => {
+        if (keep && U.tok) { try { fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: 'Bearer ' + U.tok }, body: JSON.stringify(body) }).catch(() => {}) } catch {} return }
+        supabase.rpc(name, body).then(() => {}, () => {})
+      }
+      function flush(keep = false) {
+        charge()
+        if (!state.user) { U.acc.clear(); return }
+        const rows = [...U.acc].map(([v, a]) => ({ v, o: a.o, s: Math.round(a.s) })).filter((r) => /^[a-z0-9-]{1,24}$/.test(r.v) && (r.o || r.s))
+        U.acc.clear()
+        if (rows.length) rpc('track_usage', { p_rows: rows.slice(0, 40) }, keep)
+      }
+      globalThis.__usageOpen = (view) => {
+        charge()
+        if (!view || view === U.view) return
+        U.view = view; U.act = Date.now()
+        setTimeout(() => { slot(keyOf(view)).o += 1 }, 400)   // after a Backtest tap has turned the chart into a session
+      }
+      globalThis.__libWatch = (id, secs, frac, keep = false) => {
+        if (!state.user || !id) return
+        rpc('record_library_watch', { p_video: id, p_secs: Math.max(0, Math.min(900, Math.round(secs))), p_frac: frac > 0 ? Math.min(1, Math.round(frac * 1e4) / 1e4) : null }, keep)
+      }
+      for (const ev of ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll']) addEventListener(ev, () => { U.act = Date.now() }, { passive: true, capture: true })
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { charge(); U.paused = true; globalThis.__libWatchFlush?.(true); flush(true) }
+        else { U.paused = false; U.at = performance.now(); U.act = Date.now() }
+      })
+      addEventListener('pagehide', () => { globalThis.__libWatchFlush?.(true); flush(true) })
+      setInterval(charge, 15000)
+      setInterval(() => { if (!U.paused) flush() }, 60000)
+      supabase.auth.getSession().then(({ data }) => { U.tok = data?.session?.access_token ?? null }, () => {})
+      supabase.auth.onAuthStateChange((_e, s) => { U.tok = s?.access_token ?? null })
+      globalThis.__usageOpen(curView())
+    }
+
     /* ── Today: your study ──
        Study is the habit members already have (5 of 15 studied in the week before 9/30), so Today puts it one tap
        away: the lesson you are on (or the first one not done), where it sits in its chapter, how much of the course
@@ -27091,7 +27159,7 @@ Used simply: keep the 30 minute, 4 hour and daily opens on your chart. One side 
       }
     }
     document.body.appendChild(el('libmodal'))
-    const libClose = () => { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); el('libmodal').hidden = true; el('lib-player').textContent = ''; LIB.current = null; document.body.classList.remove('watching') }
+    const libClose = () => { globalThis.__libWatchFlush?.(); globalThis.__libWatchFlush = null; if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); el('libmodal').hidden = true; el('lib-player').textContent = ''; LIB.current = null; document.body.classList.remove('watching') }
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !el('libmodal').hidden && !document.fullscreenElement && !document.querySelector('.vp-menu')) { e.preventDefault(); el('lib-x').click() } })
     el('lib-x').addEventListener('click', libClose)
     el('lib-share').addEventListener('click', () => { if (LIB.current) openVideoCard(LIB.current) })

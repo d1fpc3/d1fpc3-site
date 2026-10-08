@@ -30,7 +30,7 @@ const session = await (await fetch(`${SB}/auth/v1/verify`, { method: 'POST', hea
 if (!session.access_token) throw new Error('verify failed')
 
 const fails = [], ok = (c, w) => { console.log((c ? '  ok   ' : '  FAIL ') + w); if (!c) fails.push(w) }
-const PLACES = ['overview', 'members', 'money', 'course', 'community', 'desk', 'settings']
+const PLACES = ['overview', 'insights', 'members', 'money', 'course', 'community', 'settings']
 const THEMES = (process.env.THEMES || 'dark,light').split(',')
 const VPS = [['wide', PW.chromium, { viewport: { width: 2560, height: 1440 } }], ['desk', PW.chromium, { viewport: { width: 1440, height: 900 } }], ['phone', PW.webkit, { ...PW.devices['iPhone 15 Pro'] }]]
   .filter(([n]) => !process.env.ONLY || process.env.ONLY.split(',').includes(n))
@@ -70,7 +70,7 @@ for (const [vp, launcher, opts] of VPS) for (const theme of THEMES) {
   ok(shell.places === 7, `seven places (${shell.places})`)
   if (!phone) {
     ok(shell.r[0] >= 8 && shell.r[1] >= 8 && shell.radius >= 20 && /blur/.test(shell.blur), `the sidebar floats, rounded and glass: at ${shell.r[0]},${shell.r[1]} radius ${shell.radius}, ${shell.blur}`)
-    ok(shell.links.join() === 'Kalshi,Memecoin bot' && shell.linksShown === 2, `the rail leads to both desks: ${shell.links.join(', ')}`)
+    ok(shell.links.length === 0, 'no desk links in the rail (the Desk went on 10-07)')
   } else {
     ok(shell.r[3] <= shell.vh - 8 && shell.r[1] > shell.vh - 90 && shell.r[0] > 0 && shell.r[2] < shell.vw, `a floating tab bar at the bottom: ${shell.r.join(',')} in ${shell.vw}x${shell.vh}`)
     ok(shell.hits.every(([w, h]) => w >= 40 && h >= 44), `every tab is thumb-sized: ${shell.hits.map((h) => h.join('x')).join(' ')}`)
@@ -94,8 +94,6 @@ for (const [vp, launcher, opts] of VPS) for (const theme of THEMES) {
       if (theme === 'dark' || name === 'overview' || name === 'users') await page.screenshot({ path: `${OUT}/${vp}-${theme}-${name}.png` })
     }
   }
-  const deskLinks = await page.evaluate(() => { document.querySelector('.grp[data-grp="desk"]').click(); return new Promise((f) => setTimeout(() => f([...document.querySelectorAll('#subnav .seg-link')].map((a) => [a.textContent.trim(), a.getAttribute('href'), !!a.offsetParent])), 600)) })
-  ok(deskLinks.length === 2 && deskLinks.every((l) => l[2]) && deskLinks.some((l) => /memecoin-bot/.test(l[1])), `Desk's segments carry both desks: ${deskLinks.map((l) => l[0]).join(', ')}`)
 
   // the overview's "Statistics" link used to switch the page and leave the rail on Overview
   await page.evaluate(() => document.querySelector('.grp[data-grp="overview"]').click()); await page.waitForTimeout(700)

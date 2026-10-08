@@ -65,19 +65,19 @@ const openView = () => page.evaluate(() => [...document.querySelectorAll('.view'
 const title = () => page.evaluate(() => document.getElementById('pane-title').textContent)
 
 const bar = await rail()
-// 09-28: the memecoin bot desk got its link too (it had none that anyone could see)
-check(bar.length === 9 && bar.filter((b) => b.link).length === 2, `the rail holds seven places and the two desk links (${bar.length} rows: ${bar.map((b) => b.label).join(', ')})`)
+// 10-07: the Desk and its links are gone (D1: "we don't need the desk"); Insights took its seat
+check(bar.length === 7 && !bar.some((b) => b.link) && bar.map((b) => b.label).join() === 'Overview,Insights,Members,Money,Course,Community,Settings', `the rail holds seven places and no desk links (${bar.length} rows: ${bar.map((b) => b.label).join(', ')})`)
 check(bar[0].on && bar[0].label === 'Overview', `Overview is where you land (${bar.find((b) => b.on)?.label})`)
 await page.screenshot({ path: `${OUT}/rail.png` })
 
 // the sixteen views are all still reachable, through seven places
 const PLACES = {
   Overview: ['Overview'],
+  Insights: ['Activity', 'Pages', 'Videos', 'People'],
   Members: ['Users', 'Applications', 'Statistics', 'Access codes', 'TV access'],
   Money: ['Billing', 'Growth'],
   Course: ['Content', 'Homework', 'Video library'],
   Community: ['Community', 'Permissions'],
-  Desk: ['GEX', 'Memecoins'],
   Settings: ['Settings'],
 }
 let reached = 0
@@ -103,24 +103,26 @@ for (const [place, pages] of Object.entries(PLACES)) {
   }
   await page.screenshot({ path: `${OUT}/place-${place.toLowerCase()}.png` })
 }
-check(reached === 14, `every page inside a place opens a view (${reached} of 14)`)
+check(reached === 16, `every page inside a place opens a view (${reached} of 16)`)
 
 // a place remembers where you were
-await page.evaluate(() => [...document.querySelectorAll('.sub-seg button')].find((b) => /Memecoins/.test(b.textContent))?.click())
+await page.evaluate(() => [...document.querySelectorAll('#side-groups .grp')].find((b) => b.querySelector('span:not(.gc)')?.textContent === 'Insights')?.click())
+await page.waitForTimeout(600)
+await page.evaluate(() => [...document.querySelectorAll('.sub-seg button')].find((b) => /People/.test(b.textContent))?.click())
 await page.waitForTimeout(600)
 await page.evaluate(() => [...document.querySelectorAll('#side-groups .grp')].find((b) => b.querySelector('span:not(.gc)')?.textContent === 'Members')?.click())
 await page.waitForTimeout(600)
-await page.evaluate(() => [...document.querySelectorAll('#side-groups .grp')].find((b) => b.querySelector('span:not(.gc)')?.textContent === 'Desk')?.click())
+await page.evaluate(() => [...document.querySelectorAll('#side-groups .grp')].find((b) => b.querySelector('span:not(.gc)')?.textContent === 'Insights')?.click())
 await page.waitForTimeout(700)
-check(await openView() === 'v-memes', `a place comes back to the page you left it on (${await openView()})`)
+check(await openView() === 'v-ins-people', `a place comes back to the page you left it on (${await openView()})`)
 
 // and across a reload
 await page.reload({ waitUntil: 'domcontentloaded' })
 await page.waitForSelector('.app.on', { timeout: 40000 })
 await page.waitForTimeout(3000)
-await page.evaluate(() => [...document.querySelectorAll('#side-groups .grp')].find((b) => b.querySelector('span:not(.gc)')?.textContent === 'Desk')?.click())
+await page.evaluate(() => [...document.querySelectorAll('#side-groups .grp')].find((b) => b.querySelector('span:not(.gc)')?.textContent === 'Insights')?.click())
 await page.waitForTimeout(800)
-check(await openView() === 'v-memes', `and remembers it after a reload (${await openView()})`)
+check(await openView() === 'v-ins-people', `and remembers it after a reload (${await openView()})`)
 
 // ── the bell ──
 const bell = await page.evaluate(() => {
