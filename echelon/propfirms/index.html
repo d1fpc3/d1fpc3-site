@@ -180,6 +180,10 @@
     return /\b(all|every)\b[^.;]*\b(plans?|products?|accounts?|purchases?)\b/.test(a) || /\b(instant|direct)\b[^.;]*\b(too|also|includ|as well|eligible|apply|applies|yes|and)\b/.test(a)
   }
   function firmDeal(f, live) {
+    // a code the nightly refresher read on the firm's own site this week wins outright: the bot reported MFFU at
+    // 50% (its "new traders" line) while the banner said 40%, and the bigger number used to win (10/8/26)
+    const own = f.discount && f.discount.checked && f.discount.pct != null && Date.now() - Date.parse(f.discount.checked + 'T12:00:00Z') < 8 * 864e5
+    if (own) return f.discount
     const lv = live && live[f.slug] && live[f.slug].code && live[f.slug].pct != null ? live[f.slug] : null
     const better = lv && (!f.discount || !f.discount.code || f.discount.pct == null || lv.pct > f.discount.pct)
     return better ? { code: lv.code, pct: lv.pct, applies_to: f.discount?.applies_to || null, expires: null, live: true } : (f.discount || null)
@@ -187,7 +191,8 @@
   function priced(p, d) {
     const pd = p.discount === false ? null : (p.discount ? { ...(d || {}), ...p.discount } : d)
     const ok = applies(pd, p)
-    const withCode = ok && p.price != null ? (p.promo_price ?? (p.net ? p.price : Math.round(p.price * (1 - pd.pct / 100)))) : null
+    // to the cent, as the firm's checkout charges it ($249 at 92% off is $19.92, not $20)
+    const withCode = ok && p.price != null ? (p.promo_price ?? (p.net ? p.price : Math.round(p.price * (100 - pd.pct)) / 100)) : null
     return { ...p, code: ok ? pd.code : null, pct: ok ? pd.pct : null, withCode, eff: withCode ?? p.price }
   }
 
@@ -201,7 +206,8 @@
     const cols = FIRMS.map((f) => {
       const d = firmDeal(f, LIVE && LIVE.deals)
       const plans = (f.plans || []).filter((p) => p.size === size).map((p) => priced(p, d)).sort((a, b) => (a.eff ?? 1e9) - (b.eff ?? 1e9))
-      const evals = plans.filter((p) => p.type === 'evaluation' && p.price != null)
+      // a row the firm's site no longer lists stays in "All plans" under its check marker, but never headlines the card
+      const evals = plans.filter((p) => p.type === 'evaluation' && p.price != null && !p.price_stale)
       return { f, d, plans, best: evals[0] || null }
     })
     const cheapest = Math.min(...cols.filter((c) => c.best).map((c) => c.best.eff))

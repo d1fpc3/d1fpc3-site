@@ -1,9 +1,12 @@
 name: Prop firm prices
 
-# Nightly: read each firm's official plan pages and correct list prices in
-# echelon/propfirms/propfirms.json (scripts/propfirms-refresh.mjs). A change
-# is committed and the site deploy is dispatched, so the sheet cannot drift
-# the way MFFU did on 9/6/26. A probe failure fails the run on purpose.
+# Nightly: read each firm's official plan pages and correct list prices AND
+# promo codes in echelon/propfirms/propfirms.json (scripts/propfirms-refresh.mjs).
+# A change is committed and the site deploy is dispatched, so the sheet cannot
+# drift the way MFFU did on 9/6/26. Playwright drives the runner's Chrome for
+# the Cloudflare-walled firms (Apex, Lucid). One probe failing no longer throws
+# away every other firm's corrections (it did 9/29 to 10/8/26): the good ones
+# are committed first, then the run goes red.
 
 on:
   schedule:
@@ -22,8 +25,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Refresh prices from the firms' pages
-        run: node scripts/propfirms-refresh.mjs
+      - name: Playwright (drives the runner's own Chrome)
+        run: npm install --no-save --no-package-lock --ignore-scripts playwright@1.60.0
+      - name: Refresh prices and codes from the firms' pages
+        id: refresh
+        run: node scripts/propfirms-refresh.mjs || echo "failed=1" >> "$GITHUB_OUTPUT"
       - name: Commit and deploy if anything moved
         env:
           GH_TOKEN: ${{ github.token }}
@@ -35,6 +41,12 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add echelon/propfirms/propfirms.json
           git commit -m "propfirms: prices refreshed from the firms' pages"
+          git pull --rebase origin main
           git push
           # a push made with GITHUB_TOKEN does not trigger the deploy workflow on its own
           gh workflow run deploy.yml --ref main
+      - name: Fail the run when a probe broke (after the good prices landed)
+        if: steps.refresh.outputs.failed == '1'
+        run: |
+          echo "::error::a prop firm probe failed or a price went stale; read the refresh step log"
+          exit 1
