@@ -27,6 +27,20 @@ for (const [name, path] of [['chat messages', 'messages?select=id&limit=3'], ['m
   const wp = await fetch(`${SB}/rest/v1/memecoin_posts`, { method: 'POST', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify({ kind: 'note', title: 'leak probe', body: 'must be refused' }) })
   if (wp.status < 300) leaks++; console.log('    write memecoin_posts', wp.status, wp.status < 300 ? 'LEAK' : 'refused')
 }
+{ // owner_money is D1's own finances: only his login reads it. A signed-in stranger and anon both get nothing,
+  // and a stranger's update must leave the row untouched (RLS turns it into a no-op, so read it back as service).
+  const before = await (await fetch(`${SB}/rest/v1/owner_money?select=id,updated_at&order=id.desc&limit=1`, { headers: SH })).json()
+  for (const [who, hdr] of [['non-member', H], ['anon', { apikey: anon, Authorization: `Bearer ${anon}` }]]) {
+    const r = await fetch(`${SB}/rest/v1/owner_money?select=id&limit=3`, { headers: hdr }); const j = await r.json().catch(() => null); const n = Array.isArray(j) ? j.length : -1; if (n > 0) leaks++
+    console.log('    owner_money', who.padEnd(11), r.status, n >= 0 ? `${n} rows` : JSON.stringify(j).slice(0, 70))
+  }
+  if (before[0]) {
+    await fetch(`${SB}/rest/v1/owner_money?id=eq.${before[0].id}`, { method: 'PATCH', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify({ updated_at: '2001-01-01T00:00:00Z' }) })
+    const after = await (await fetch(`${SB}/rest/v1/owner_money?select=updated_at&id=eq.${before[0].id}`, { headers: SH })).json()
+    const moved = after[0]?.updated_at !== before[0].updated_at; if (moved) leaks++
+    console.log('    write owner_money', moved ? 'LEAK' : 'refused')
+  }
+}
 for (const [name, fn, body] of [['search_messages', 'search_messages', { p_q: 'patient' }], ['chat_previews', 'chat_previews', {}], ['feed_posts', 'feed_posts', { p_scope: 'all', p_before: new Date().toISOString(), p_limit: 5 }]]) {
   const r = await fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: H, body: JSON.stringify(body) }); const j = await r.json().catch(() => null); const n = Array.isArray(j) ? j.length : -1; if (n > 0) leaks++
   console.log('    rpc', name.padEnd(14), r.status, n >= 0 ? `${n} rows` : JSON.stringify(j).slice(0, 70))

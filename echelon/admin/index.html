@@ -1742,6 +1742,139 @@
       .ip-who, .iv-who { animation: none; }
     }
   </style>
+  <style id="owner-money">
+    /* ═══════════════════════════════════════════════════════════════════
+       Money > Personal, 2026-10-07 (D1: "save all this in an echelon page in
+       admin or somewhere even more secure"). His own money from his
+       statements: inset grouped lists like the rest of the admin, gold only
+       for what still needs him. Data is owner_money, his login only.
+       ═══════════════════════════════════════════════════════════════════ */
+    .om [hidden] { display: none !important; }
+    .om .cards { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 900px) { .om .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .scard .d b.bad { color: var(--bad); }
+    .om-read {
+      background: var(--panel); border: 1px solid var(--rim); border-top-color: var(--rim-top); border-radius: var(--r-card);
+      box-shadow: var(--lift); padding: 18px 22px; margin: 0 0 16px; font-size: 15px; line-height: 1.62; color: var(--muted); letter-spacing: -0.008em;
+    }
+    :root[data-theme="light"] .om-read { border-top-color: var(--rim); }
+    .om-read b { color: var(--ink); font-weight: 600; }
+    .om-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    .om-stack { display: grid; gap: 16px; min-width: 0; }
+    .om-stack > .block + .block, .om-grid > .block + .block { margin-top: 0; }
+    .om-flow-block { margin-top: 16px; }
+    @media (max-width: 1100px) {
+      .om-grid { grid-template-columns: minmax(0, 1fr); }
+      .om-stack { display: contents; }
+      .om-b-plan { order: 1; } .om-b-dates { order: 2; } .om-b-acct { order: 3; } .om-b-prop { order: 4; } .om-b-rules { order: 5; } .om-b-bills { order: 6; }
+    }
+
+    /* rows: hairlines that start where the text does, like an iOS list */
+    .om-list { list-style: none; margin: 0; padding: 4px 0; }
+    .om-row { position: relative; display: flex; align-items: center; gap: 14px; min-height: 54px; padding: 11px 20px; }
+    .om-row + .om-row::before { content: ""; position: absolute; top: 0; right: 0; left: var(--sep, 20px); height: 1px; background: var(--line); }
+    .om-t { flex: 1; min-width: 0; }
+    .om-t .n { font-size: 15px; font-weight: 500; letter-spacing: -0.012em; color: var(--ink); }
+    .om-t .s { font-size: 13px; line-height: 1.42; color: var(--faint); margin-top: 2px; }
+    .om-tail { font-size: 12.5px; color: var(--faint); font-variant-numeric: tabular-nums; margin-left: 6px; font-weight: 400; }
+    .om-amt { flex: none; font-size: 15px; font-weight: 600; letter-spacing: -0.012em; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .om-amt.good { color: var(--good); }
+    .om-amt.bad { color: var(--bad); }
+    .om-amt.off { color: var(--faint); font-weight: 500; text-decoration: line-through; }
+    .om-pill { flex: none; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 600; letter-spacing: -0.005em; white-space: nowrap; background: var(--fill-2); color: var(--muted); }
+    .om-pill.good { background: var(--good-t); color: var(--good); }
+    .om-pill.bad { background: var(--bad-t); color: var(--bad); }
+    .om-pill.gold { background: var(--tint); color: var(--gold); }
+    .om-grp { padding: 14px 20px 2px; font-size: 13px; font-weight: 600; letter-spacing: -0.005em; color: var(--muted); }
+    .om-grp + .om-row::before { display: none; }
+    .om-row.total .n { font-weight: 650; }
+    .om-row.total .om-amt { font-size: 18px; color: var(--gold); letter-spacing: -0.02em; }
+
+    /* the plan: a round check that fills gold and draws its tick */
+    .om-prog { height: 4px; margin: 14px 20px 4px; border-radius: 999px; background: var(--fill-3); overflow: hidden; }
+    .om-prog i { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gold-deep), var(--gold)); transition: width 0.6s var(--ease); }
+    #om-plan .om-row { --sep: 58px; cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; }
+    .om-check {
+      flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border-radius: 50%;
+      border: 1.75px solid var(--line-bright); background: transparent; cursor: pointer;
+      transition: background 0.22s var(--ease), border-color 0.22s var(--ease);
+    }
+    .om-check svg { width: 13px; height: 13px; fill: none; stroke: var(--on-gold); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 20; stroke-dashoffset: 20; transition: stroke-dashoffset 0.3s var(--ease) 0.05s; }
+    #om-plan .om-row:hover .om-check { border-color: var(--gold); }
+    .om-check:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    #om-plan .done .om-check { background: var(--gold); border-color: var(--gold); }
+    #om-plan .done .om-check svg { stroke-dashoffset: 0; }
+    #om-plan .pop .om-check { animation: om-pop 0.38s var(--ease); }
+    @keyframes om-pop { 45% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    #om-plan .om-t .n { transition: color 0.2s var(--ease); }
+    #om-plan .done .om-t .n { color: var(--faint); text-decoration: line-through; text-decoration-color: var(--line-bright); }
+    .om-save { flex: none; font-size: 12.5px; font-weight: 500; color: var(--faint); white-space: nowrap; font-variant-numeric: tabular-nums; transition: color 0.2s var(--ease); }
+    #om-plan .done .om-save { color: var(--good); font-weight: 600; }
+
+    /* dates: a little calendar tile, then how far away it is */
+    #om-dates .om-row { --sep: 80px; }
+    .om-day { flex: none; display: grid; place-content: center; width: 46px; height: 50px; border-radius: 13px; background: var(--fill-3); text-align: center; line-height: 1.08; }
+    .om-day .m { font-size: 11px; font-weight: 650; color: var(--gold); }
+    .om-day .d { font-size: 19px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .om-day .y { font-size: 9.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+    /* in and out: two thin bars per line, faint for Oct to Mar, gold for Apr to Sep */
+    .om-key { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--faint); white-space: nowrap; }
+    .om-key i { display: inline-block; width: 14px; height: 5px; border-radius: 999px; margin-left: 10px; }
+    .om-key i.a { background: var(--fill); margin-left: 0; }
+    .om-key i.b { background: var(--gold); }
+    .om-flow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 44px; padding: 4px 20px 16px; }
+    .om-cap { padding: 12px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+    .om-fl { padding: 10px 0 11px; border-top: 1px solid var(--line); }
+    #om-in > .om-fl:first-child, #om-out > .om-fl:first-child { border-top: 0; }
+    #om-prop .om-pill { min-width: 72px; text-align: center; }
+    #om-bills .om-amt, #om-acct .om-amt { min-width: 70px; text-align: right; }
+    .om-fl-top { display: flex; align-items: baseline; gap: 10px; }
+    .om-fl-top .l { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; letter-spacing: -0.01em; color: var(--ink); }
+    .om-fl-top .v { font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .om-fl-top .v b { color: var(--ink); font-weight: 600; }
+    .om-dl { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; background: var(--fill-2); color: var(--muted); }
+    .om-dl.good { background: var(--good-t); color: var(--good); }
+    .om-dl.bad { background: var(--bad-t); color: var(--bad); }
+    .om-bars { display: grid; gap: 3px; margin-top: 8px; }
+    .om-bars i { display: block; height: 5px; width: var(--w); border-radius: 999px; transform: scaleX(0); transform-origin: left center; transition: transform 0.75s var(--ease); }
+    .om-bars i.a { background: var(--fill); }
+    :root[data-theme="light"] .om-bars i.a, :root[data-theme="light"] .om-key i.a { background: rgba(118, 118, 128, 0.3); }
+    @media (max-width: 640px) { .om .scard .d { white-space: normal; line-height: 1.35; } }
+    .om-bars i.b { background: var(--gold); transition-delay: 0.08s; }
+    .om.in .om-bars i { transform: scaleX(1); }
+    .om-fl-note { font-size: 12px; color: var(--faint); margin-top: 6px; }
+    .om-fl.total .l { font-weight: 650; }
+    .om-fl.total .om-bars { display: none; }
+
+    /* rules: numbered, gold rings */
+    .om-rules { list-style: none; counter-reset: om; margin: 0; padding: 6px 0; }
+    .om-rules li { position: relative; counter-increment: om; padding: 12px 20px 12px 58px; font-size: 14.5px; line-height: 1.5; letter-spacing: -0.01em; color: var(--ink); }
+    .om-rules li + li::after { content: ""; position: absolute; top: 0; right: 0; left: 58px; height: 1px; background: var(--line); }
+    .om-rules li::before { content: counter(om); position: absolute; left: 20px; top: 11px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--tint); color: var(--gold); font-size: 12.5px; font-weight: 700; }
+
+    .om-foot { display: flex; gap: 10px; align-items: flex-start; max-width: 860px; margin: 20px 4px 4px; font-size: 12.5px; line-height: 1.6; color: var(--faint); }
+    .om-foot svg { flex: none; width: 15px; height: 15px; margin-top: 2px; stroke: var(--gold); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    @media (max-width: 900px) { .om-flow { grid-template-columns: 1fr; } }
+    @media (max-width: 840px) {
+      .om-row { padding: 11px 16px; --sep: 16px; }
+      #om-plan .om-row { --sep: 54px; }
+      #om-dates .om-row { --sep: 76px; }
+      .om-grp { padding: 14px 16px 2px; }
+      .om-prog { margin: 12px 16px 4px; }
+      .om-flow { padding: 2px 16px 14px; }
+      .om-rules li { padding: 12px 16px 12px 54px; }
+      .om-rules li + li::after { left: 54px; }
+      .om-rules li::before { left: 16px; }
+      .om-read { padding: 16px 18px; font-size: 14.5px; border-radius: 20px; }
+      .om-flow-block .block-head { flex-wrap: wrap; row-gap: 6px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .om-prog i, .om-check, .om-check svg, .om-bars i, .om-save { transition: none; }
+      #om-plan .pop .om-check { animation: none; }
+    }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 </head>
 <body>
@@ -1832,6 +1965,10 @@
         <button class="tab" data-view="billing" data-title="Billing" data-crumb="Revenue and Stripe events">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           Billing
+        </button>
+        <button class="tab" data-view="mine" data-title="Personal" data-crumb="Your own money. Only your login opens this">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3v3a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg>
+          Personal
         </button>
         <div class="side-cap">Course</div>
         <button class="tab" data-view="content" data-title="Content" data-crumb="Curriculum and publishing">
@@ -2001,6 +2138,53 @@
             <div class="gw-cap"><h4>Where they stop</h4><span class="label" id="gw-stop-n"></span></div>
             <div class="gw-chart" id="gw-lessons"></div>
           </div>
+        </section>
+
+        <!-- PERSONAL: D1's own money from his statements (owner_money, readable by his login only) -->
+        <section class="view om" id="v-mine">
+          <div class="cards om-cards" id="om-cards"></div>
+          <p class="om-read" id="om-read" hidden></p>
+          <!-- two stacks on a wide screen; one column below 1100px, where the blocks are re-ordered by importance -->
+          <div class="om-grid">
+            <div class="om-stack">
+              <div class="block om-b-plan">
+                <div class="block-head"><h3>Do this</h3><span class="label" id="om-plan-n"></span></div>
+                <div class="om-prog" aria-hidden="true"><i id="om-prog"></i></div>
+                <ul class="om-list" id="om-plan"></ul>
+              </div>
+              <div class="block om-b-bills">
+                <div class="block-head"><h3>Monthly bills</h3><span class="label" id="om-bills-n"></span></div>
+                <ul class="om-list" id="om-bills"></ul>
+              </div>
+            </div>
+            <div class="om-stack">
+              <div class="block om-b-dates">
+                <div class="block-head"><h3>Coming up</h3><span class="label" id="om-dates-n"></span></div>
+                <ul class="om-list" id="om-dates"></ul>
+              </div>
+              <div class="block om-b-acct">
+                <div class="block-head"><h3>Accounts</h3><span class="label" id="om-acct-n"></span></div>
+                <ul class="om-list" id="om-acct"></ul>
+              </div>
+              <div class="block om-b-prop">
+                <div class="block-head"><h3>Prop firms</h3><span class="label" id="om-prop-n"></span></div>
+                <ul class="om-list" id="om-prop"></ul>
+              </div>
+              <div class="block om-b-rules">
+                <div class="block-head"><h3>Trading account rules</h3><span class="label">4679</span></div>
+                <ol class="om-rules" id="om-rules"></ol>
+              </div>
+            </div>
+          </div>
+          <div class="block om-flow-block">
+            <div class="block-head"><h3>Where it comes from, where it goes</h3><span class="om-key"><i class="a"></i>Oct to Mar<i class="b"></i>Apr to Sep, a month</span></div>
+            <div class="om-flow">
+              <div class="om-col"><div class="om-cap">Coming in</div><div id="om-in"></div></div>
+              <div class="om-col"><div class="om-cap">Going out</div><div id="om-out"></div></div>
+            </div>
+          </div>
+          <p class="om-foot" id="om-foot"></p>
+          <div class="empty" id="om-empty" hidden>Nothing to show. This page only opens for the owner's login.</div>
         </section>
 
         <!-- USERS -->
@@ -2647,6 +2831,7 @@
       if (view === 'growth') loadGrowth()
       if (view === 'perms') loadPerms()
       if (view === 'library') loadLibraryAdmin()
+      if (view === 'mine') loadMine()
       if (view?.startsWith('ins-') && typeof insShown === 'function') insShown(view)
     }))
 
@@ -2659,7 +2844,7 @@
       { id: 'overview', label: 'Overview', views: ['overview'] },
       { id: 'insights', label: 'Insights', views: ['ins-activity', 'ins-pages', 'ins-videos', 'ins-people'] },
       { id: 'members', label: 'Members', views: ['users', 'applications', 'stats', 'codes', 'access'] },
-      { id: 'money', label: 'Money', views: ['billing', 'growth'] },
+      { id: 'money', label: 'Money', views: ['billing', 'growth', 'mine'] },
       { id: 'course', label: 'Course', views: ['content', 'homework', 'library'] },
       { id: 'community', label: 'Community', views: ['community', 'perms'] },
       { id: 'settings', label: 'Settings', views: ['settings'] },
@@ -6220,6 +6405,185 @@
       await Promise.all([
         loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadApps(), loadReviews(), loadTvAccess(), loadCommunity(), loadPerms(), loadOnboarding(), loadHomework(),
       ])
+    }
+
+    /* ── Money > Personal: D1's own money (owner_money) ────────────────────
+       Summarised from his statements and written with the Management API. The
+       policy is his user id, not is_admin(), so a second admin reads nothing.
+       The page only ticks the plan. Everything goes in through textContent. */
+    const OM = { row: null, shown: false }
+    const omNode = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n }
+    const omUsd = (n, dp) => {
+      const v = Math.abs(+n || 0), d = dp ?? (Math.round(v * 100) % 100 ? 2 : 0)
+      return (n < 0 ? '−' : '') + '$' + v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
+    }
+    const omRound = (n) => omUsd(Math.round(n), 0)
+    const omSigned = (n) => (n > 0 ? '+' : '') + omRound(n)
+    const omDate = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+    async function loadMine() {
+      const sec = el('v-mine'), host = el('om-cards')
+      if (!OM.row) skelCards(host, 4)
+      const { data, error } = await supabase.from('owner_money').select('id, as_of, data, updated_at')
+        .order('as_of', { ascending: false }).order('id', { ascending: false }).limit(1)
+      if (error || !data?.length) {
+        host.textContent = ''
+        sec.querySelectorAll('.om-read, .om-grid, .om-flow-block, .om-foot').forEach((n) => { n.hidden = true })
+        el('om-empty').hidden = false
+        return
+      }
+      OM.row = data[0]
+      renderMine()
+    }
+
+    function renderMine() {
+      const D = OM.row.data, sec = el('v-mine')
+      el('om-empty').hidden = true
+      sec.querySelectorAll('.om-grid, .om-flow-block, .om-foot').forEach((n) => { n.hidden = false })
+
+      const c = D.cards, host = el('om-cards'); host.textContent = ''
+      scard(host, 'Net worth', omRound(c.net_worth), `Schwab ${omRound(c.schwab)} · cash ${omRound(c.cash)}`)
+      scard(host, 'Coming in, a month', omRound(c.income_now), c.income_note)
+      scard(host, 'Going out, a month', omRound(c.spend_h2), delta(omSigned(c.spend_h2 - c.spend_h1), ' since April', c.spend_h2 > c.spend_h1 ? 'bad' : ''))
+      scard(host, 'Trading, after fees', omRound(c.trading_net), `${omRound(c.trading_got)} paid out · ${omRound(c.trading_paid)} on evals`)
+
+      const read = el('om-read'), txt = String(D.read || ''), cut = txt.indexOf('. ')
+      read.textContent = ''
+      if (cut > 0) read.append(omNode('b', '', txt.slice(0, cut + 1)), ' ' + txt.slice(cut + 2)); else read.textContent = txt
+      read.hidden = !txt
+
+      omPlan()
+
+      const dl = el('om-dates'); dl.textContent = ''
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      let soon = 0
+      for (const d of D.dates || []) {
+        const at = new Date(d.date + 'T00:00:00'), days = Math.round((at - today) / 864e5), near = days >= 0 && days <= 30
+        const li = omNode('li', 'om-row'), tile = omNode('div', 'om-day')
+        tile.append(omNode('span', 'm', at.toLocaleDateString('en-US', { month: 'short' })), omNode('span', 'd', String(at.getDate())))
+        if (at.getFullYear() !== today.getFullYear()) tile.append(omNode('span', 'y', String(at.getFullYear())))
+        const t = omNode('div', 'om-t'); t.append(omNode('div', 'n', d.title)); if (d.sub) t.append(omNode('div', 's', d.sub))
+        const when = days < 0 ? 'Passed' : days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : days < 60 ? `In ${days} days` : `In ${Math.round(days / 30.44)} months`
+        li.append(tile, t, omNode('span', 'om-pill' + (near ? ' gold' : ''), when))
+        if (near) soon++
+        dl.appendChild(li)
+      }
+      el('om-dates-n').textContent = soon ? `${soon} in the next 30 days` : ''
+
+      const all = [...(D.income || []), ...(D.spend || [])], max = Math.max(1, ...all.flatMap((r) => [r.h1, r.h2]))
+      omFlow(el('om-in'), D.income || [], max, false)
+      omFlow(el('om-out'), D.spend || [], max, true)
+
+      const pl = el('om-prop'); pl.textContent = ''
+      const VERD = { keep: ['Keep', 'good'], stop: ['Stopped', 'bad'], quit: ['Quit', ''], once: ['One time', ''] }
+      let paid = 0, got = 0
+      for (const f of D.prop || []) {
+        paid += f.paid; got += f.got
+        const li = omNode('li', 'om-row'), t = omNode('div', 'om-t'), net = f.got - f.paid, [vl, vc] = VERD[f.verdict] || [f.verdict, '']
+        t.append(omNode('div', 'n', f.firm), omNode('div', 's', `paid ${omUsd(f.paid)} · got ${omUsd(f.got)}`))
+        li.append(t, omNode('span', 'om-amt ' + (net >= 0 ? 'good' : 'bad'), omSigned(net)), omNode('span', 'om-pill ' + vc, vl))
+        pl.appendChild(li)
+      }
+      el('om-prop-n').textContent = `net ${omSigned(got - paid)}`
+
+      const rl = el('om-rules'); rl.textContent = ''
+      for (const r of D.rules || []) rl.appendChild(omNode('li', '', r))
+
+      const bl = el('om-bills'); bl.textContent = ''
+      const ST = { cancelled: ['Cancelled', 'good'], cancel: ['Cancel it', 'gold'], decide: ['Decide', 'gold'] }
+      let grp = '', monthly = 0
+      for (const b of D.bills || []) {
+        if (b.group !== grp) { grp = b.group; bl.appendChild(omNode('li', 'om-grp', grp)) }
+        const li = omNode('li', 'om-row'), t = omNode('div', 'om-t'), st = ST[b.status]
+        t.append(omNode('div', 'n', b.name)); if (b.note) t.append(omNode('div', 's', b.note))
+        li.append(t)
+        if (st) li.append(omNode('span', 'om-pill ' + st[1], st[0]))
+        li.append(omNode('span', 'om-amt' + (b.status === 'cancelled' ? ' off' : ''), omUsd(b.amt)))
+        if (b.status === 'keep' || b.status === 'decide') monthly += b.amt
+        bl.appendChild(li)
+      }
+      el('om-bills-n').textContent = `${omRound(monthly)} a month to keep`
+
+      const al = el('om-acct'); al.textContent = ''
+      let worth = 0
+      for (const a of D.accounts || []) {
+        worth += a.amt
+        const li = omNode('li', 'om-row'), t = omNode('div', 'om-t'), n = omNode('div', 'n', a.name)
+        n.append(omNode('span', 'om-tail', '••' + a.tail))
+        t.append(n); if (a.amt < 0) t.append(omNode('div', 's', 'owed on the card'))
+        li.append(t, omNode('span', 'om-amt', omUsd(a.amt))); al.appendChild(li)
+      }
+      const tot = omNode('li', 'om-row total'), tt = omNode('div', 'om-t'); tt.append(omNode('div', 'n', 'Net worth'))
+      tot.append(tt, omNode('span', 'om-amt', omUsd(worth))); al.appendChild(tot)
+      el('om-acct-n').textContent = 'on ' + omDate(OM.row.as_of)
+
+      const foot = el('om-foot')
+      foot.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'
+      foot.append(omNode('span', '', `Snapshot from ${omDate(OM.row.as_of)}: ${D.source} No account or routing numbers are kept here, and only your own login can open this page, not other admins. Send new statements to refresh it.`))
+
+      if (!OM.shown) { OM.shown = true; sec.classList.remove('in'); requestAnimationFrame(() => requestAnimationFrame(() => sec.classList.add('in'))) }
+    }
+
+    function omPlan() {
+      const plan = OM.row.data.plan || [], list = el('om-plan'); list.textContent = ''
+      plan.forEach((p, i) => {
+        const li = omNode('li', 'om-row' + (p.done ? ' done' : ''))
+        const b = omNode('button', 'om-check'); b.type = 'button'
+        b.setAttribute('role', 'checkbox'); b.setAttribute('aria-checked', String(!!p.done)); b.setAttribute('aria-label', p.text)
+        b.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>'
+        const t = omNode('div', 'om-t'); t.append(omNode('div', 'n', p.text)); if (p.sub) t.append(omNode('div', 's', p.sub))
+        li.append(b, t)
+        if (p.save) li.append(omNode('span', 'om-save', omUsd(p.save) + '/mo'))
+        li.addEventListener('click', () => omTick(i, li))
+        list.appendChild(li)
+      })
+      omProgress()
+    }
+
+    function omProgress() {
+      const plan = OM.row.data.plan || [], done = plan.filter((p) => p.done), freed = done.reduce((s, p) => s + (+p.save || 0), 0)
+      el('om-prog').style.width = (plan.length ? (done.length / plan.length) * 100 : 0) + '%'
+      el('om-plan-n').textContent = `${done.length} of ${plan.length} done` + (freed ? ` · ${omRound(freed)} a month freed` : '')
+    }
+
+    function omPaintTask(li, on) {
+      li.classList.toggle('done', on)
+      li.querySelector('.om-check').setAttribute('aria-checked', String(on))
+    }
+    async function omTick(i, li) {
+      const row = OM.row, p = row.data.plan[i]; if (!p) return
+      p.done = !p.done
+      omPaintTask(li, p.done)
+      li.classList.remove('pop'); void li.offsetWidth; if (p.done) li.classList.add('pop')
+      omProgress()
+      const { error } = await supabase.from('owner_money').update({ data: row.data, updated_at: new Date().toISOString() }).eq('id', row.id)
+      if (error) {
+        p.done = !p.done
+        omPaintTask(li, p.done); omProgress()
+        el('om-plan-n').textContent = 'Not saved. Check the connection and tap it again'
+      }
+    }
+
+    function omFlow(host, rows, max, out) {
+      host.textContent = ''
+      const line = (r, total) => {
+        const row = omNode('div', 'om-fl' + (total ? ' total' : '')), top = omNode('div', 'om-fl-top'), v = omNode('span', 'v')
+        v.append(omRound(r.h1) + ' → ', omNode('b', '', omRound(r.h2)))
+        const diff = Math.round(r.h2 - r.h1)
+        if (diff) v.append(omNode('span', 'om-dl ' + ((diff > 0) !== out ? 'good' : 'bad'), omSigned(diff)))
+        top.append(omNode('span', 'l', r.label), v)
+        row.append(top)
+        if (!total) {
+          const bars = omNode('div', 'om-bars'), a = omNode('i', 'a'), b = omNode('i', 'b')
+          a.style.setProperty('--w', (r.h1 / max * 100).toFixed(1) + '%')
+          b.style.setProperty('--w', (r.h2 / max * 100).toFixed(1) + '%')
+          bars.append(a, b); row.append(bars)
+        }
+        if (r.note) row.append(omNode('div', 'om-fl-note', r.note))
+        host.appendChild(row)
+      }
+      for (const r of rows) line(r)
+      line({ label: 'Total', h1: rows.reduce((s, r) => s + r.h1, 0), h2: rows.reduce((s, r) => s + r.h2, 0) }, true)
     }
 
     // Magic-link returns land with tokens in the URL fragment; supabase-js
