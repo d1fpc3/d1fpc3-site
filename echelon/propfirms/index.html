@@ -183,7 +183,10 @@
     // a code the nightly refresher read on the firm's own site this week wins outright: the bot reported MFFU at
     // 50% (its "new traders" line) while the banner said 40%, and the bigger number used to win (10/8/26)
     const own = f.discount && f.discount.checked && f.discount.pct != null && Date.now() - Date.parse(f.discount.checked + 'T12:00:00Z') < 8 * 864e5
-    if (own) return f.discount
+    // a promo with a published end (Apex SAVENOW, Oct 12) stops counting the minute it ends, refresher or not
+    const ended = f.discount && /^\d{4}-\d{2}-\d{2}$/.test(f.discount.expires || '') && Date.now() > Date.parse(f.discount.expires + 'T23:59:59-04:00')
+    if (own && !ended) return f.discount
+    if (ended) f = { ...f, discount: null }
     const lv = live && live[f.slug] && live[f.slug].code && live[f.slug].pct != null ? live[f.slug] : null
     const better = lv && (!f.discount || !f.discount.code || f.discount.pct == null || lv.pct > f.discount.pct)
     return better ? { code: lv.code, pct: lv.pct, applies_to: f.discount?.applies_to || null, expires: null, live: true } : (f.discount || null)

@@ -42,8 +42,14 @@ const today = new Date().toISOString().slice(0, 10)
 const WALL = /<title>(Just a moment|Attention Required)|Performing security verification/i
 
 // curl, not fetch: a couple of WAFs (Lucid's) 403 node's TLS fingerprint but let curl through
-function curlGet(url, accept) {
-  const out = execFileSync('curl', ['-sL', '--max-time', '60', '-A', UA, '-H', `Accept: ${accept}`, '-w', String.fromCharCode(10) + '@@%{http_code}', url], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+// one retry on a curl that dies mid-transfer (MFFU's 200KB pages reset a runner's connection on 10/8/26)
+function curlGet(url, accept, retry = 1) {
+  let out
+  try { out = execFileSync('curl', ['-sSL', '--max-time', '60', '-A', UA, '-H', `Accept: ${accept}`, '-w', String.fromCharCode(10) + '@@%{http_code}', url], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }) }
+  catch (e) {
+    if (retry > 0) { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 3000); return curlGet(url, accept, retry - 1) }
+    throw new Error(`${url} -> curl exit ${e.status}: ${String(e.stderr || '').trim().slice(0, 120)}`)
+  }
   const at = out.lastIndexOf(String.fromCharCode(10) + '@@'), status = Number(out.slice(at + 3)), body = out.slice(0, at)
   if (status < 200 || status >= 300) throw new Error(`${url} -> ${status}`)
   if (WALL.test(body)) throw new Error(`${url} -> bot wall`)
@@ -383,7 +389,14 @@ for (const firm of data.firms) {
     try { rows = await PROBES[firm.slug]() } catch (e) {
       // Lucid's WAF lets a home connection through but 403s cloud runners: not a
       // parser failure, so the run stays green and the sheet says hand-checked.
-      if (/-> 403|bot wall/.test(e.message)) { log(`blocked ${firm.slug}: ${e.message} (hand-check it)`); if (!DRY) firm.verify = 'manual'; continue }
+      if (/-> 403|bot wall/.test(e.message)) {
+        // a cloud runner is walled where D1's PC is not (propfirms-local.ps1, 06:40 ET): a read from there in the last
+        // three days still stands, so the sheet keeps saying the firm is read automatically
+        const fresh = firm.plans.some((p) => p.price_checked && Date.now() - Date.parse(p.price_checked) < 3 * 864e5)
+        log(`blocked ${firm.slug}: ${e.message}${fresh ? ' (read from the home PC recently, kept)' : ' (hand-check it)'}`)
+        if (!DRY && !fresh) firm.verify = 'manual'
+        continue
+      }
       failures++; log(`FAIL ${firm.slug}: ${e.message}`); continue
     }
     let matched = 0
