@@ -1,0 +1,53 @@
+// MSNR chapter (manual): chapter 08 opens, every lesson renders its prose and every drawing loads.
+//   node tests/app-msnr-chapter-visual.mjs   (APP_URL / OUT env, PHONE=1 for 390x844, W for desktop width)
+import { createRequire } from "module";
+import { existsSync, mkdirSync, readFileSync } from "fs";
+import { homedir, tmpdir } from "os";
+import { join } from "path";
+const require = createRequire(import.meta.url);
+const PW_PATHS = ["C:/Users/Deb/Desktop/Projects/outback-running-club/client/node_modules/playwright", "C:/Users/clari/OneDrive/Desktop/Projects/clients/outback-running-club/client/node_modules/playwright"];
+const { chromium } = require(PW_PATHS.find((p) => existsSync(p)) || "playwright");
+const OUT = process.env.OUT || join(tmpdir(), "app-msnr"); mkdirSync(OUT, { recursive: true });
+const REF = "cqdignbleethroyxxvzr", SB = `https://${REF}.supabase.co`;
+const mgmt = readFileSync(join(homedir(), ".supabase", "access-token"), "utf8").trim();
+const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
+const service = keys.find((k) => k.name === "service_role").api_key, anon = keys.find((k) => k.name === "anon").api_key;
+const link = await (await fetch(`${SB}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email: "appreview@d1fpc3.com" }) })).json();
+const session = await (await fetch(`${SB}/auth/v1/verify`, { method: "POST", headers: { apikey: anon, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: link.hashed_token }) })).json();
+if (!session.access_token) throw new Error("verify failed");
+const browser = await chromium.launch();
+const PHONE = process.env.PHONE === "1", PRE = PHONE ? "p-" : "d-";
+const ctx = await browser.newContext(PHONE ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } : { viewport: { width: Number(process.env.W || 2560), height: Number(process.env.HGT || 1300) } });
+await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem("echelon-gex-tour", "1"); localStorage.setItem("echelon-quotes-off", "1"); localStorage.setItem("echelon-splash-day", new Date().toDateString()); }, [`sb-${REF}-auth-token`, JSON.stringify(session)]);
+const page = await ctx.newPage();
+const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+await page.goto(process.env.APP_URL || "https://d1fpc3.com/echelon/app/", { waitUntil: "domcontentloaded" });
+await page.waitForSelector("#td-h1", { timeout: 30000 });
+await page.waitForTimeout(1500);
+const fails = []; const ok = (c, w) => { console.log((c ? "ok   " : "FAIL ") + w); if (!c) fails.push(w) };
+await page.evaluate(() => document.querySelector('.tab[data-view="course"]')?.click()); await page.waitForTimeout(2500);
+const cards = await page.evaluate(() => [...document.querySelectorAll("#study-map .sm-card")].map((c) => c.querySelector(".sm-num")?.textContent));
+ok(cards.includes("08"), "the study map has chapter 08: " + cards.join(" "));
+await page.locator("#study-map .sm-card").nth(cards.indexOf("08")).click(); await page.waitForTimeout(2000);
+const toc = async () => { if (PHONE) { await page.click("#toc-toggle"); await page.waitForTimeout(600) } };
+await toc();
+const rows = await page.evaluate(() => [...document.querySelectorAll("#index .ch-list button .tx")].map((t) => t.textContent));
+const want = ["Read the close", "Classic levels and the miss", "Gap and breakout", "HNS and broken HNS", "Key levels", "Direction", "The process"];
+ok(JSON.stringify(rows) === JSON.stringify(want), "chapter 08 lists the seven new lessons: " + rows.join(" | "));
+const imgsPer = [2, 3, 2, 2, 2, 3, 2];
+for (let i = 0; i < rows.length; i++) {
+  if (i) await toc();
+  await page.locator("#index .ch-list button").nth(i).click();
+  await page.waitForFunction((n) => { const imgs = [...document.querySelectorAll("#lesson figure.media-img img")]; return imgs.length >= n && imgs.every((im) => im.complete && im.naturalWidth > 0) }, imgsPer[i], { timeout: 20000 }).catch(() => {});
+  const r = await page.evaluate(() => ({ h1: document.querySelector("#lesson .lesson-h")?.textContent, imgs: [...document.querySelectorAll("#lesson figure.media-img img")].map((im) => im.naturalWidth), caps: document.querySelectorAll("#lesson figure.media-img figcaption").length, h2: [...document.querySelectorAll("#lesson .prose h2")].map((h) => h.textContent), em: /\u2014/.test(document.getElementById("lesson").innerText), oldTerms: /\bQML\b|\bOCL\b|Quasimodo|inside LIT/.test(document.getElementById("lesson").innerText) }));
+  ok(r.h1 === want[i], `lesson ${i + 1} opens: ${r.h1}`);
+  ok(r.imgs.length === imgsPer[i] && r.imgs.every((w) => w > 1000), `  ${r.imgs.length}/${imgsPer[i]} drawings loaded (${r.imgs.join(", ")}px), ${r.caps} captions`);
+  ok(r.h2.length >= 2, "  sections: " + r.h2.join(" / "));
+  ok(!r.em && !r.oldTerms, "  no em dash, nothing left from the old chapter");
+  await page.screenshot({ path: `${OUT}/${PRE}${String(i + 1).padStart(2, "0")}-top.png` });
+  await page.locator("#lesson figure.media-img").first().scrollIntoViewIfNeeded(); await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}/${PRE}${String(i + 1).padStart(2, "0")}-figure.png` });
+}
+ok(errors.length === 0, "no page errors" + (errors.length ? ": " + errors.join(" | ") : ""));
+await browser.close();
+if (fails.length) { console.log(["FAILS", ...fails].join(String.fromCharCode(10) + " - ")); process.exit(1) } else console.log("ALL OK");
