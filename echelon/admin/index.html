@@ -1874,6 +1874,139 @@
       .om-prog i, .om-check, .om-check svg, .om-bars i, .om-save { transition: none; }
       #om-plan .pop .om-check { animation: none; }
     }
+
+    /* ── Radar: deals and events (D1, 10-08). Built from the Personal page's parts: inset grouped
+       lists, the calendar tile, capsule pills; plus a small capsule segment for filters, thumbnails
+       for deals, and rows that fold away when dismissed. ── */
+    .rd-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    .rd-grid > .block + .block, .rd-grid .om-stack > .block + .block { margin-top: 0; }
+    .rd .block + .block { margin-top: 16px; }
+    .rd .block-head { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap; }
+    .rd-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .rd-seg { position: relative; display: inline-flex; padding: 3px; border-radius: 999px; background: var(--fill); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+    .rd-seg::-webkit-scrollbar { display: none; }
+    .rd-seg .thumb {
+      position: absolute; top: 3px; bottom: 3px; left: 3px; border-radius: 999px; background: var(--seg-on); pointer-events: none;
+      width: var(--w, 0px); transform: translateX(var(--x, 0px));
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04), inset 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+      transition: transform 0.34s var(--ease), width 0.34s var(--ease);
+    }
+    .rd-seg button {
+      position: relative; z-index: 1; border: 0; background: none; cursor: pointer; font: inherit; white-space: nowrap;
+      font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; color: var(--muted); padding: 5px 13px; border-radius: 999px;
+      transition: color 0.2s var(--ease); -webkit-tap-highlight-color: transparent;
+    }
+    .rd-seg button.on { color: var(--ink); }
+    .rd-seg .sc { margin-left: 5px; font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+    .rd-seg button.on .sc { color: var(--gold); }
+    .rd-scan { display: inline-flex; align-items: center; gap: 7px; }
+    .rd-scan svg { width: 14px; height: 14px; color: var(--gold); flex: none; }
+    .rd-scan.busy svg { animation: rd-spin 0.9s linear infinite; }
+    .rd-scan:disabled { cursor: default; }
+    @keyframes rd-spin { to { transform: rotate(360deg); } }
+
+    .rd-list { min-height: 64px; }
+    .rd-row { --sep: 86px; gap: 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background 0.18s var(--ease), opacity 0.28s var(--ease), transform 0.28s var(--ease); }
+    @media (hover: hover) { .rd-row:hover { background: var(--fill-3); } }
+    .rd-row:active { background: var(--fill-2); }
+    .rd-row:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; border-radius: 12px; }
+    .rd-img { flex: none; width: 52px; height: 52px; border-radius: 13px; object-fit: contain; background: #fff; box-shadow: inset 0 0 0 1px var(--rim); }
+    .rd-img.ph { display: grid; place-items: center; object-fit: initial; background: var(--tint-2); color: var(--gold); font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+    .rd-row .om-t .n { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.32; }
+    .rd-row .om-t .s { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .rd-row .om-t .s .why { color: var(--gold); font-weight: 600; }
+    .rd-row .om-t .s i { font-style: normal; color: var(--line-bright); }
+    .rd-dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 3px var(--tint-2); vertical-align: 2px; }
+    .rd-price { flex: none; min-width: 66px; text-align: right; font-variant-numeric: tabular-nums; line-height: 1.25; }
+    .rd-price b { display: block; font-size: 16.5px; font-weight: 650; letter-spacing: -0.02em; color: var(--ink); }
+    .rd-price s { font-size: 12px; color: var(--faint); }
+    .rd-price .rd-pp { display: none; font-size: 12px; font-weight: 600; color: var(--gold); }
+    .rd-off { min-width: 70px; text-align: center; }
+    .rd-acts { flex: none; display: flex; gap: 2px; opacity: 0.5; transition: opacity 0.18s var(--ease); }
+    .rd-row:hover .rd-acts, .rd-row:focus-within .rd-acts { opacity: 1; }
+    .rd-ic {
+      display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer;
+      transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease);
+    }
+    .rd-ic svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    @media (hover: hover) { .rd-ic:hover { background: var(--fill-2); color: var(--ink); } .rd-ic.x:hover { background: var(--bad-t); color: var(--bad); } }
+    .rd-ic:active { transform: scale(0.9); }
+    .rd-ic:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+    /* dismissed: the row slides a touch right and fades, then folds its height away */
+    .rd-row.out { opacity: 0; transform: translateX(16px); }
+    .rd-row.fold { overflow: hidden; transition: height 0.3s var(--ease), min-height 0.3s var(--ease), padding 0.3s var(--ease), opacity 0.2s var(--ease); }
+    .rd-row.fold.gone { height: 0 !important; min-height: 0; padding-top: 0; padding-bottom: 0; }
+    .rd-row.in { animation: rd-in 0.42s var(--ease) both; animation-delay: calc(var(--i, 0) * 26ms); }
+    @keyframes rd-in { from { opacity: 0; transform: translateY(6px); } }
+    .rd-empty { padding: 34px 20px; color: var(--faint); font-size: 14px; text-align: center; line-height: 1.55; }
+    .rd-empty b { display: block; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+
+    /* watchlist: a filled field row, then the terms with their switch */
+    .rd-add { display: flex; gap: 8px; padding: 14px 20px 6px; }
+    .rd-add input {
+      flex: 1; min-width: 0; height: 40px; border: 0; border-radius: var(--r-ctl); background: var(--fill-2); color: var(--ink);
+      padding: 0 12px; font: inherit; font-size: 14px; letter-spacing: -0.01em; transition: background 0.18s var(--ease), box-shadow 0.18s var(--ease);
+    }
+    .rd-add input::placeholder { color: var(--faint); }
+    .rd-add input:focus { outline: 0; background: var(--fill-3); box-shadow: 0 0 0 2px var(--gold); }
+    .rd-max { position: relative; flex: 0 0 88px; display: flex; }
+    .rd-max i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 14px; color: var(--faint); pointer-events: none; z-index: 1; }
+    .rd-max input { width: 100%; padding-left: 22px; font-variant-numeric: tabular-nums; }
+    .rd-add .btn { min-height: 40px; padding: 0 18px; flex: none; }
+    .rd-add.shake { animation: rd-shake 0.32s var(--ease); }
+    @keyframes rd-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+    .rd-w { --sep: 20px; gap: 12px; }
+    .rd-w .om-t .n { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .rd-tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--fill-2); color: var(--muted); }
+    .rd-tag.gold { background: var(--tint); color: var(--gold); }
+    .rd-w.off .om-t .n { color: var(--faint); }
+    .rd-w .tgl { flex: none; }
+    .rd-w.in { animation: rd-in 0.36s var(--ease) both; }
+
+    /* pickers: a capsule track with the chosen value lifted out of it */
+    .rd-pick { flex: none; display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--fill); }
+    .rd-pick button {
+      border: 0; background: none; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--muted); padding: 5px 11px; border-radius: 999px;
+      font-variant-numeric: tabular-nums; transition: background 0.22s var(--ease), color 0.22s var(--ease), box-shadow 0.22s var(--ease);
+    }
+    .rd-pick button.on { background: var(--seg-on); color: var(--ink); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14), 0 1px 1px rgba(0, 0, 0, 0.05); }
+    @media (hover: hover) { .rd-pick button:not(.on):hover { color: var(--ink); } }
+
+    /* events: the Personal page's calendar tile, a car meet's tile in gold */
+    .re-row { --sep: 80px; }
+    .re-row .om-day.car { background: var(--tint); }
+    .re-row .om-day.car .d { color: var(--gold); }
+    .rd-pills { flex: none; display: flex; gap: 6px; }
+    .rd .om-pill.car { background: var(--tint); color: var(--gold); }
+    .rd .om-grp { padding-top: 16px; }
+    .rd-m { display: none; font-weight: 600; }
+    .rd-m.car { color: var(--gold); }
+    .rd-m.free { color: var(--good); }
+
+    @media (max-width: 1100px) { .rd-grid { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 840px) {
+      .rd-row { --sep: 16px; }
+      .re-row { --sep: 76px; }
+      .rd-add { padding: 12px 16px 6px; }
+    }
+    @media (max-width: 640px) {
+      .rd .block-head .rd-tools { width: 100%; justify-content: space-between; }
+      .rd-row { gap: 11px; }
+      .rd-img { width: 46px; height: 46px; border-radius: 12px; }
+      .rd-off, .rd-price s { display: none; }
+      .rd-price { min-width: 0; }
+      .rd-row .om-t .s { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .rd-row .om-t .s i { margin: 0 4px; }
+      .rd-price .rd-pp { display: block; }
+      .rd-acts { opacity: 1; }
+      .rd-pills { display: none; }
+      .rd-m { display: inline; }
+      .rd .om-row > .rd-pick { transform: scale(0.94); transform-origin: right center; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .rd-row, .rd-row.fold, .rd-seg .thumb, .rd-pick button { transition: none; }
+      .rd-row.in, .rd-w.in, .rd-scan.busy svg { animation: none; }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 </head>
@@ -1969,6 +2102,15 @@
         <button class="tab" data-view="mine" data-title="Personal" data-crumb="Your own money. Only your login opens this">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3v3a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5"/></svg>
           Personal
+        </button>
+        <div class="side-cap">Radar</div>
+        <button class="tab" data-view="deals" data-title="Deals" data-crumb="Amazon and Walmart deals worth a look. Only your login opens this">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 8A10 10 0 1 0 22 12"/><path d="M17.5 9.5A6 6 0 1 0 18 12"/><circle cx="12" cy="12" r="1.6"/><path d="M12 12l7.5-7.5"/></svg>
+          Deals <span class="count" id="c-deals">–</span>
+        </button>
+        <button class="tab" data-view="events" data-title="Events" data-crumb="Free, community and car events around Joppa and Bel Air">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+          Events <span class="count" id="c-events">–</span>
         </button>
         <div class="side-cap">Course</div>
         <button class="tab" data-view="content" data-title="Content" data-crumb="Curriculum and publishing">
@@ -2185,6 +2327,69 @@
           </div>
           <p class="om-foot" id="om-foot"></p>
           <div class="empty" id="om-empty" hidden>Nothing to show. This page only opens for the owner's login.</div>
+        </section>
+
+        <!-- RADAR > DEALS: Amazon and Walmart deals for D1 (radar_items / radar_watch / radar_prefs, his login only) -->
+        <section class="view rd" id="v-deals">
+          <div class="cards rd-cards" id="rd-cards"></div>
+          <div class="rd-grid">
+            <div class="block rd-feed">
+              <div class="block-head">
+                <h3>Deals</h3>
+                <div class="rd-tools">
+                  <div class="rd-seg" id="rd-filter"><span class="thumb"></span></div>
+                  <button class="rowbtn rd-scan" type="button" data-scan="deals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg><span>Scan now</span></button>
+                </div>
+              </div>
+              <ul class="om-list rd-list" id="rd-deals"></ul>
+            </div>
+            <div class="om-stack">
+              <div class="block">
+                <div class="block-head"><h3>Watchlist</h3><span class="label" id="rd-watch-n"></span></div>
+                <form class="rd-add" id="rd-add" autocomplete="off">
+                  <input id="rd-term" placeholder="Add something you buy" maxlength="40" aria-label="Item to watch" required>
+                  <span class="rd-max"><i>$</i><input id="rd-maxp" placeholder="Max" inputmode="decimal" maxlength="7" aria-label="Most you would pay (optional)"></span>
+                  <button class="btn" type="submit">Add</button>
+                </form>
+                <ul class="om-list" id="rd-watch"></ul>
+              </div>
+              <div class="block">
+                <div class="block-head"><h3>Alerts</h3><span class="label" id="rd-pushed-n"></span></div>
+                <ul class="om-list">
+                  <li class="om-row"><div class="om-t"><div class="n">Push me deals</div><div class="s">To your phone through Echelon, 8 am to 10 pm</div></div><label class="tgl"><input type="checkbox" id="rd-push" aria-label="Push me deals"><span class="track"></span></label></li>
+                  <li class="om-row"><div class="om-t"><div class="n">Hot deal bar</div><div class="s">Front page deals ping at this much off</div></div><div class="rd-pick" id="rd-pct"></div></li>
+                  <li class="om-row"><div class="om-t"><div class="n">Pushes a day</div><div class="s">Watchlist first, then hot deals. The rest wait here</div></div><div class="rd-pick" id="rd-cap"></div></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <p class="om-foot"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Read from Slickdeals' public front page, popular deals and one search per watchlist item, every 30 minutes. Amazon and Walmart only. No account, no email, nothing about you is sent anywhere, and only your login opens this page.</span></p>
+        </section>
+
+        <!-- RADAR > EVENTS: free, community and car events around Joppa and Bel Air -->
+        <section class="view rd" id="v-events">
+          <div class="cards rd-cards" id="re-cards"></div>
+          <div class="block" id="re-wk-block">
+            <div class="block-head"><h3>This weekend</h3><span class="label" id="re-wk-n"></span></div>
+            <ul class="om-list rd-list" id="re-weekend"></ul>
+          </div>
+          <div class="block">
+            <div class="block-head">
+              <h3>Coming up</h3>
+              <div class="rd-tools">
+                <div class="rd-seg" id="re-filter"><span class="thumb"></span></div>
+                <button class="rowbtn rd-scan" type="button" data-scan="events"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg><span>Scan now</span></button>
+              </div>
+            </div>
+            <ul class="om-list rd-list" id="re-list"></ul>
+          </div>
+          <div class="block">
+            <div class="block-head"><h3>Alerts</h3></div>
+            <ul class="om-list">
+              <li class="om-row"><div class="om-t"><div class="n">Push me events</div><div class="s">New ones at 8 am, and this weekend's on Friday at 4 pm. Never one push per event</div></div><label class="tgl"><input type="checkbox" id="re-push" aria-label="Push me events"><span class="track"></span></label></li>
+            </ul>
+          </div>
+          <p class="om-foot"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Joppa, Bel Air and the Harford County towns around them, read twice a day from AllEvents and Eventbrite's public pages. Car meets count a ring further out, into Baltimore County. Times are on the event's own page.</span></p>
         </section>
 
         <!-- USERS -->
@@ -2832,6 +3037,8 @@
       if (view === 'perms') loadPerms()
       if (view === 'library') loadLibraryAdmin()
       if (view === 'mine') loadMine()
+      if (view === 'deals') loadDeals()
+      if (view === 'events') loadRadarEvents()
       if (view?.startsWith('ins-') && typeof insShown === 'function') insShown(view)
     }))
 
@@ -2845,6 +3052,7 @@
       { id: 'insights', label: 'Insights', views: ['ins-activity', 'ins-pages', 'ins-videos', 'ins-people'] },
       { id: 'members', label: 'Members', views: ['users', 'applications', 'stats', 'codes', 'access'] },
       { id: 'money', label: 'Money', views: ['billing', 'growth', 'mine'] },
+      { id: 'radar', label: 'Radar', views: ['deals', 'events'] },
       { id: 'course', label: 'Course', views: ['content', 'homework', 'library'] },
       { id: 'community', label: 'Community', views: ['community', 'perms'] },
       { id: 'settings', label: 'Settings', views: ['settings'] },
@@ -6401,6 +6609,10 @@
 
       recapEditor(null)
       paintSkeletons()
+      // a push opens its page (/echelon/admin/?view=deals): the Radar pushes land on the list they talk about
+      const want = new URLSearchParams(location.search).get('view')
+      if (want && want !== 'overview' && tabFor(want)) openView(want)
+      radarCounts().catch(() => {})
       await loadHouse(session.user.id).catch(() => {})
       await Promise.all([
         loadBuyers(), loadEvents(), loadContent(), loadSettings(), loadRecaps(), loadCodes(), loadApps(), loadReviews(), loadTvAccess(), loadCommunity(), loadPerms(), loadOnboarding(), loadHomework(),
@@ -6584,6 +6796,326 @@
       }
       for (const r of rows) line(r)
       line({ label: 'Total', h1: rows.reduce((s, r) => s + r.h1, 0), h2: rows.reduce((s, r) => s + r.h2, 0) }, true)
+    }
+
+    /* ── Radar: deals and events near Joppa and Bel Air (D1, 10-08) ─────────
+       radar_items / radar_watch / radar_prefs are owner-only (his uid, like owner_money). The radar
+       edge function fills them on pg_cron and pushes; this page reads them, dismisses rows, edits the
+       watchlist and the push settings, and can ask for a scan with his own session. textContent only. */
+    const RD = { deals: [], events: [], watch: [], prefs: null, fDeal: 'worth', fEv: 'all', seen: {}, painted: {} }
+    const RD_SEEN = 'echelon-radar-seen'
+    try { RD.seen = JSON.parse(localStorage.getItem(RD_SEEN) || '{}') } catch {}
+    const rdMark = (k) => { RD.seen[k] = new Date().toISOString(); try { localStorage.setItem(RD_SEEN, JSON.stringify(RD.seen)) } catch {} }
+    const rdNew = (k, iso) => !!RD.seen[k] && iso > RD.seen[k]
+    const rdAgo = (iso) => { const m = Math.round((Date.now() - Date.parse(iso)) / 6e4); return m < 60 ? `${Math.max(1, m)}m ago` : m < 1440 ? `${Math.round(m / 60)}h ago` : `${Math.round(m / 1440)}d ago` }
+    // "[SnS] $4.52 | 12-Pk Gatorade ... at Amazon" -> "12-Pk Gatorade ..."; the price has its own column
+    const rdName = (t) => String(t).replace(/^(?:\[[^\]]*\]\s*)?(?:\$\s?[\d,.]+\s*\|\s*)?/, '').replace(/^Select Accounts:\s*/i, '')
+      .replace(/\s+\$\s?[\d,.]+(?:\s.*)?$/, '').replace(/\s+at (Amazon|Walmart)\b.*$/i, '').trim() || String(t)
+    const RD_WORTH = ['watch', 'hot', 'food']
+    const rdIcon = (paths) => `<svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`
+    const RD_OPEN = rdIcon('<path d="M7 17L17 7"/><path d="M8 7h9v9"/>'), RD_X = rdIcon('<path d="M18 6L6 18"/><path d="M6 6l12 12"/>')
+
+    // the sidebar badge: what landed since you last looked (deals worth it, new events)
+    async function radarCounts() {
+      const since = (k) => RD.seen[k] || new Date(Date.now() - 864e5).toISOString()
+      const [d, e] = await Promise.all([
+        supabase.from('radar_items').select('id', { count: 'exact', head: true }).eq('kind', 'deal').in('category', RD_WORTH).is('dismissed_at', null).gt('first_seen', since('deals')),
+        supabase.from('radar_items').select('id', { count: 'exact', head: true }).eq('kind', 'event').is('dismissed_at', null).gt('first_seen', since('events')).gte('starts_at', new Date().toISOString()),
+      ])
+      // a page already open has cleared its own badge: an answer that lands after it must not bring it back
+      if (!RD.painted.deals) rdBadge('c-deals', d.count)
+      if (!RD.painted.events) rdBadge('c-events', e.count)
+    }
+    function rdBadge(id, n) { const c = el(id); if (!c) return; c.textContent = n ? String(n) : ''; c.classList.toggle('hot', !!n) }
+
+    // a capsule segment with a sliding thumb (placeThumb is the subnav's)
+    function rdSeg(host, opts, cur, onPick) {
+      host.querySelectorAll('button').forEach((b) => b.remove())
+      for (const o of opts) {
+        const b = omNode('button', o.v === cur ? 'on' : ''); b.type = 'button'; b.dataset.v = o.v
+        b.append(o.label); if (o.n != null) b.append(omNode('span', 'sc', String(o.n)))
+        b.addEventListener('click', () => { if (b.classList.contains('on')) return; host.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); placeThumb(host, true); onPick(o.v) })
+        host.appendChild(b)
+      }
+      placeThumb(host, false); requestAnimationFrame(() => placeThumb(host, false))
+    }
+    function rdPick(host, values, cur, fmt, onPick) {
+      host.textContent = ''
+      for (const v of values) {
+        const b = omNode('button', v === cur ? 'on' : '', fmt(v)); b.type = 'button'; b.setAttribute('aria-pressed', String(v === cur))
+        b.addEventListener('click', async () => {
+          if (b.classList.contains('on')) return
+          const prev = host.querySelector('.on')
+          host.querySelectorAll('button').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)) })
+          if (!(await onPick(v))) { host.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === prev)) }
+        })
+        host.appendChild(b)
+      }
+    }
+    async function rdPrefs(patch) {
+      const { error } = await supabase.from('radar_prefs').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', 1)
+      if (!error) Object.assign(RD.prefs || {}, patch)
+      return !error
+    }
+    function rdToggle(id, key) {
+      const box = el(id); box.checked = !!RD.prefs?.[key]
+      box.onchange = async () => { box.disabled = true; if (!(await rdPrefs({ [key]: box.checked }))) box.checked = !box.checked; box.disabled = false }
+    }
+
+    // dismiss: fade and slide, then fold the height so the list closes up under it
+    // an event can sit in This weekend and in Coming up at once: both rows go
+    async function rdDismiss(li, id, list) {
+      const rows = [...document.querySelectorAll(`.rd-row[data-rid="${id}"]`)]; if (!rows.includes(li)) rows.push(li)
+      for (const r of rows) { r.style.height = r.offsetHeight + 'px'; r.classList.add('fold', 'out') }
+      requestAnimationFrame(() => requestAnimationFrame(() => rows.forEach((r) => r.classList.add('gone'))))
+      const { error } = await supabase.from('radar_items').update({ dismissed_at: new Date().toISOString() }).eq('id', id)
+      if (error) { for (const r of rows) { r.classList.remove('fold', 'out', 'gone'); r.style.height = '' } return }
+      const i = list.findIndex((r) => r.id === id); if (i >= 0) list.splice(i, 1)
+      setTimeout(() => rows.forEach((r) => r.remove()), 340)
+    }
+    function rdRowBase(li, url, id) {
+      li.dataset.rid = String(id)
+      li.tabIndex = 0; li.setAttribute('role', 'link')
+      const go = () => window.open(url, '_blank', 'noopener,noreferrer')
+      li.addEventListener('click', (e) => { if (!e.target.closest('.rd-ic')) go() })
+      li.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target === li) go() })
+    }
+    function rdActs(li, url, onX) {
+      const acts = omNode('div', 'rd-acts')
+      const o = omNode('a', 'rd-ic'); o.href = url; o.target = '_blank'; o.rel = 'noopener noreferrer'; o.title = 'Open'; o.setAttribute('aria-label', 'Open'); o.innerHTML = RD_OPEN
+      const x = omNode('button', 'rd-ic x'); x.type = 'button'; x.title = 'Not for me'; x.setAttribute('aria-label', 'Dismiss'); x.innerHTML = RD_X
+      x.addEventListener('click', (e) => { e.stopPropagation(); onX() })
+      acts.append(o, x); li.append(acts)
+    }
+    async function rdScan(btn, kind) {
+      if (btn.disabled) return
+      const lab = btn.querySelector('span'), was = lab.textContent
+      btn.disabled = true; btn.classList.add('busy'); lab.textContent = 'Scanning'
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/radar`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ''}` }, body: JSON.stringify({ scan: kind }) })
+        const j = await r.json().catch(() => ({}))
+        lab.textContent = r.ok && j.ok ? `${j.kept} found` : 'Try again'
+        if (r.ok) await (kind === 'deals' ? loadDeals() : loadRadarEvents())
+      } catch { lab.textContent = 'Try again' }
+      btn.classList.remove('busy')
+      setTimeout(() => { lab.textContent = was; btn.disabled = false }, 1800)
+    }
+    document.querySelectorAll('.rd-scan').forEach((b) => b.addEventListener('click', () => rdScan(b, b.dataset.scan)))
+
+    /* ── Deals ── */
+    async function loadDeals() {
+      if (!RD.painted.deals) { skelCards(el('rd-cards'), 4); skelList(el('rd-deals'), 6) }
+      const since = new Date(Date.now() - 4 * 864e5).toISOString()
+      const [items, watch, prefs] = await Promise.all([
+        supabase.from('radar_items').select('id, title, url, store, price, was_price, pct_off, category, score, reason, image, pushed_at, first_seen')
+          .eq('kind', 'deal').is('dismissed_at', null).gte('first_seen', since).order('score', { ascending: false }).order('first_seen', { ascending: false }).limit(160),
+        supabase.from('radar_watch').select('*').order('id'),
+        supabase.from('radar_prefs').select('*').eq('id', 1).maybeSingle(),
+      ])
+      if (items.error) { el('rd-cards').textContent = ''; el('rd-deals').innerHTML = ''; el('rd-deals').append(rdEmptyNode('Nothing to show', 'This page only opens for the owner\'s login.')); return }
+      RD.deals = items.data || []; RD.watch = watch.data || []; RD.prefs = prefs.data || RD.prefs
+      const seenAt = RD.seen.deals
+      renderDealCards(); renderDeals(seenAt); renderWatch(); renderDealPrefs()
+      rdMark('deals'); rdBadge('c-deals', 0)
+      RD.painted.deals = true
+    }
+    function skelList(host, n) {
+      host.textContent = ''
+      for (let i = 0; i < n; i++) { const li = omNode('li', 'om-row'); const t = omNode('div', 'om-t'); t.append(skel('70%', 11), skel('40%', 9, 8)); li.append(skel('52px', 52), t); host.appendChild(li) }
+    }
+    const rdEmptyNode = (b, s) => { const li = omNode('li', 'rd-empty'); li.append(omNode('b', '', b), s); return li }
+    function renderDealCards() {
+      const host = el('rd-cards'); host.textContent = ''
+      const worth = RD.deals.filter((d) => RD_WORTH.includes(d.category))
+      const best = worth.filter((d) => d.pct_off != null).sort((a, b) => b.pct_off - a.pct_off)[0]
+      const hits = RD.deals.filter((d) => d.category === 'watch')
+      const midnight = new Date(); midnight.setHours(0, 0, 0, 0)
+      const pushed = RD.deals.filter((d) => d.pushed_at && Date.parse(d.pushed_at) >= +midnight).length
+      scard(host, 'Worth a look', String(worth.length), `of ${RD.deals.length} Amazon and Walmart deals this week`, { animate: !RD.painted.deals })
+      scard(host, 'Best right now', best ? `${best.pct_off}% off` : 'None', best ? rdName(best.title) : 'Nothing 40% off yet')
+      scard(host, 'Watchlist hits', String(hits.length), hits[0] ? `latest: ${rdName(hits[0].title)}` : 'Nothing on your list this week', { animate: !RD.painted.deals })
+      scard(host, 'Pushed today', `${pushed} of ${RD.prefs?.deal_cap ?? 3}`, RD.prefs?.deals_push === false ? 'Deal pushes are off' : '8 am to 10 pm, New York')
+    }
+    function renderDeals(seenAt) {
+      const F = RD.fDeal, all = RD.deals
+      const pick = (f) => (f === 'worth' ? all.filter((d) => RD_WORTH.includes(d.category)) : f === 'all' ? all : all.filter((d) => d.store?.toLowerCase() === f))
+      rdSeg(el('rd-filter'), [
+        { v: 'worth', label: 'Worth it', n: pick('worth').length }, { v: 'all', label: 'All', n: all.length },
+        { v: 'amazon', label: 'Amazon', n: pick('amazon').length }, { v: 'walmart', label: 'Walmart', n: pick('walmart').length },
+      ], F, (v) => { RD.fDeal = v; renderDeals(RD.seen.deals) })
+      const host = el('rd-deals'); host.textContent = ''
+      const rows = pick(F)
+      if (!rows.length) { host.append(rdEmptyNode(F === 'worth' ? 'Nothing worth a push yet' : 'No deals here yet', 'The front page is read every 30 minutes. Add things you buy to the watchlist and they get searched too.')); return }
+      rows.slice(0, 80).forEach((d, i) => {
+        const li = omNode('li', 'om-row rd-row in'); li.style.setProperty('--i', String(Math.min(i, 14)))
+        rdRowBase(li, d.url, d.id)
+        if (d.image) { const im = omNode('img', 'rd-img'); im.src = d.image; im.alt = ''; im.loading = 'lazy'; im.referrerPolicy = 'no-referrer'; im.onerror = () => im.replaceWith(rdPh(d)); li.append(im) } else li.append(rdPh(d))
+        const t = omNode('div', 'om-t'), n = omNode('div', 'n')
+        if (seenAt && d.first_seen > seenAt) n.append(omNode('span', 'rd-dot'))
+        n.append(rdName(d.title)); n.title = d.title
+        const s = omNode('div', 's'); s.append(d.store)
+        // a hot deal's reason is its % off, which the price column already says: name it once
+        const why = d.category === 'hot' && /% off$/.test(d.reason || '') ? 'Hot deal' : d.reason
+        if (why && why !== 'Front page') { s.append(omNode('i', '', '·'), omNode('span', d.category === 'watch' || d.category === 'hot' ? 'why' : '', why)) }
+        s.append(omNode('i', '', '·'), rdAgo(d.first_seen))
+        if (d.pushed_at) s.append(omNode('i', '', '·'), 'pushed')
+        t.append(n, s); li.append(t)
+        const p = omNode('div', 'rd-price'); p.append(omNode('b', '', d.price != null ? omUsd(d.price) : 'See deal'))
+        if (d.was_price) p.append(omNode('s', '', omUsd(d.was_price)))
+        if (d.pct_off) p.append(omNode('span', 'rd-pp', `${d.pct_off}% off`))
+        li.append(p)
+        li.append(omNode('span', 'om-pill rd-off' + (d.pct_off >= (RD.prefs?.min_pct ?? 40) ? ' gold' : ''), d.pct_off ? `${d.pct_off}% off` : d.category === 'watch' ? 'On list' : 'Deal'))
+        rdActs(li, d.url, () => rdDismiss(li, d.id, RD.deals).then(() => { renderDealCards(); rdSegCounts() }))
+        host.append(li)
+      })
+    }
+    // after a dismiss the filter counts move, the list stays put (re-rendering would cut the fold short)
+    function rdSegCounts() {
+      const all = RD.deals, n = { worth: all.filter((d) => RD_WORTH.includes(d.category)).length, all: all.length,
+        amazon: all.filter((d) => d.store === 'Amazon').length, walmart: all.filter((d) => d.store === 'Walmart').length }
+      el('rd-filter').querySelectorAll('button').forEach((b) => { const c = b.querySelector('.sc'); if (c) c.textContent = String(n[b.dataset.v] ?? '') })
+      placeThumb(el('rd-filter'), true)
+    }
+    const rdPh = (d) => omNode('div', 'rd-img ph', d.store === 'Walmart' ? 'W' : 'a')
+
+    function renderWatch() {
+      const host = el('rd-watch'); host.textContent = ''
+      const hits = (w) => RD.deals.filter((d) => d.reason === `Watchlist: ${w.term}` || (w.category && d.category === 'food' && d.reason === w.term)).length
+      el('rd-watch-n').textContent = `${RD.watch.filter((w) => w.active).length} on`
+      if (!RD.watch.length) host.append(rdEmptyNode('Nothing on the list', 'Add what you buy. Each item is searched every 30 minutes.'))
+      for (const w of RD.watch) host.append(rdWatchRow(w, hits(w)))
+    }
+    function rdWatchRow(w, n, fresh) {
+      const li = omNode('li', 'om-row rd-w' + (w.active ? '' : ' off') + (fresh ? ' in' : ''))
+      const t = omNode('div', 'om-t'), nm = omNode('div', 'n', w.term)
+      if (w.category) nm.append(omNode('span', 'rd-tag', 'Category'))
+      if (n) nm.append(omNode('span', 'rd-tag gold', `${n} this week`))
+      t.append(nm, omNode('div', 's', [w.max_price != null ? `Under ${omUsd(w.max_price)}` : 'Any price', w.category ? 'from front page deals' : `searches "${w.query || w.term}"`].join(' · ')))
+      const tg = omNode('label', 'tgl'), box = omNode('input'), tr = omNode('span', 'track'); box.type = 'checkbox'; box.checked = !!w.active; box.setAttribute('aria-label', `Watch ${w.term}`)
+      box.addEventListener('change', async () => {
+        box.disabled = true
+        const { error } = await supabase.from('radar_watch').update({ active: box.checked }).eq('id', w.id)
+        if (error) box.checked = !box.checked; else { w.active = box.checked; li.classList.toggle('off', !w.active); el('rd-watch-n').textContent = `${RD.watch.filter((x) => x.active).length} on` }
+        box.disabled = false
+      })
+      tg.append(box, tr)
+      const x = omNode('button', 'rd-ic x'); x.type = 'button'; x.title = 'Remove'; x.setAttribute('aria-label', `Remove ${w.term}`); x.innerHTML = RD_X
+      x.addEventListener('click', async () => {
+        li.style.height = li.offsetHeight + 'px'; li.classList.add('rd-row', 'fold', 'out'); requestAnimationFrame(() => requestAnimationFrame(() => li.classList.add('gone')))
+        const { error } = await supabase.from('radar_watch').delete().eq('id', w.id)
+        if (error) { li.classList.remove('rd-row', 'fold', 'out', 'gone'); li.style.height = ''; return }
+        RD.watch = RD.watch.filter((r) => r.id !== w.id); setTimeout(() => { li.remove(); el('rd-watch-n').textContent = `${RD.watch.filter((r) => r.active).length} on` }, 340)
+      })
+      li.append(t, tg, x)
+      return li
+    }
+    el('rd-add')?.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const form = el('rd-add'), term = el('rd-term').value.trim().replace(/\s+/g, ' '), raw = el('rd-maxp').value.replace(/[$,\s]/g, '')
+      const max = raw ? Number(raw) : null
+      if (!term || (raw && !(max > 0)) || RD.watch.some((w) => w.term.toLowerCase() === term.toLowerCase())) { form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake'); return }
+      const esc = term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+')
+      const btn = form.querySelector('button'); btn.disabled = true
+      const { data, error } = await supabase.from('radar_watch').insert({ term, query: term.toLowerCase(), match: `\\b${esc}s?\\b`, max_price: max }).select().single()
+      btn.disabled = false
+      if (error) { form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake'); return }
+      RD.watch.push(data); el('rd-term').value = ''; el('rd-maxp').value = ''
+      el('rd-watch').querySelector('.rd-empty')?.remove()
+      el('rd-watch').append(rdWatchRow(data, 0, true))
+      el('rd-watch-n').textContent = `${RD.watch.filter((w) => w.active).length} on`
+    })
+    function renderDealPrefs() {
+      const P = RD.prefs || {}
+      rdToggle('rd-push', 'deals_push')
+      rdPick(el('rd-pct'), [30, 40, 50, 60], P.min_pct ?? 40, (v) => `${v}%`, (v) => rdPrefs({ min_pct: v }))
+      rdPick(el('rd-cap'), [1, 2, 3, 5], P.deal_cap ?? 3, String, async (v) => { const ok = await rdPrefs({ deal_cap: v }); if (ok) renderDealCards(); return ok })
+      const midnight = new Date(); midnight.setHours(0, 0, 0, 0)
+      const n = RD.deals.filter((d) => d.pushed_at && Date.parse(d.pushed_at) >= +midnight).length
+      el('rd-pushed-n').textContent = n ? `${n} sent today` : ''
+    }
+
+    /* ── Events ── */
+    async function loadRadarEvents() {
+      if (!RD.painted.events) { skelCards(el('re-cards'), 4); skelList(el('re-list'), 5); el('re-weekend').textContent = '' }
+      const [items, prefs] = await Promise.all([
+        supabase.from('radar_items').select('id, title, url, starts_at, all_day, venue, town, free, category, reason, first_seen')
+          .eq('kind', 'event').is('dismissed_at', null).gte('starts_at', new Date(Date.now() - 6 * 3600e3).toISOString()).order('starts_at').limit(200),
+        RD.prefs ? Promise.resolve({ data: RD.prefs }) : supabase.from('radar_prefs').select('*').eq('id', 1).maybeSingle(),
+      ])
+      if (items.error) { el('re-cards').textContent = ''; el('re-list').textContent = ''; el('re-list').append(rdEmptyNode('Nothing to show', 'This page only opens for the owner\'s login.')); return }
+      RD.events = items.data || []; RD.prefs = prefs.data || RD.prefs
+      const seenAt = RD.seen.events
+      renderEventCards(); renderWeekend(seenAt); renderEvents(seenAt); rdToggle('re-push', 'events_push')
+      rdMark('events'); rdBadge('c-events', 0)
+      RD.painted.events = true
+    }
+    // Saturday and Sunday of this week, on this device's clock (D1 is in New York); on a Sunday, the rest of today
+    function rdWeekend() {
+      const now = new Date(), day = now.getDay()
+      const sat = new Date(now); sat.setHours(0, 0, 0, 0); sat.setDate(sat.getDate() + (day === 0 ? -1 : 6 - day))
+      const end = new Date(sat); end.setDate(end.getDate() + 2)
+      return [sat, end]
+    }
+    const rdWhen = (r) => {
+      const d = new Date(r.starts_at)
+      const day = d.toLocaleDateString('en-US', { weekday: 'short' })
+      return r.all_day ? day : `${day} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).replace(':00', '')}`
+    }
+    function renderEventCards() {
+      const host = el('re-cards'); host.textContent = ''
+      const [a, b] = rdWeekend(), wk = RD.events.filter((r) => Date.parse(r.starts_at) >= +a && Date.parse(r.starts_at) < +b)
+      const cars = RD.events.filter((r) => r.category === 'car'), free = RD.events.filter((r) => r.free)
+      const next = RD.events.find((r) => Date.parse(r.starts_at) >= Date.now() - 6 * 3600e3)
+      scard(host, 'This weekend', String(wk.length), wk.length ? `${wk.filter((r) => r.category === 'car').length} car, ${wk.length - wk.filter((r) => r.category === 'car').length} community` : 'Quiet weekend so far', { animate: !RD.painted.events })
+      scard(host, 'Car meets', String(cars.length), cars[0] ? `next: ${cars[0].title}` : 'None listed yet', { animate: !RD.painted.events })
+      scard(host, 'Free', String(free.length), 'marked free by the listing', { animate: !RD.painted.events })
+      scard(host, 'Next up', next ? next.title : 'Nothing listed', next ? `${new Date(next.starts_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${next.town}` : '')
+    }
+    function rdEventRow(r, i, seenAt, list) {
+      const li = omNode('li', 'om-row rd-row re-row in'); li.style.setProperty('--i', String(Math.min(i, 14)))
+      rdRowBase(li, r.url, r.id)
+      const d = new Date(r.starts_at), tile = omNode('div', 'om-day' + (r.category === 'car' ? ' car' : ''))
+      tile.append(omNode('span', 'm', d.toLocaleDateString('en-US', { month: 'short' })), omNode('span', 'd', String(d.getDate())))
+      const t = omNode('div', 'om-t'), n = omNode('div', 'n')
+      if (seenAt && r.first_seen > seenAt) n.append(omNode('span', 'rd-dot'))
+      n.append(r.title)
+      const s = omNode('div', 's')
+      // on a phone the pills give way to the same words at the head of the line
+      if (r.category === 'car') s.append(omNode('span', 'rd-m car', 'Car meet'), omNode('i', 'rd-m', '·'))
+      if (r.free) s.append(omNode('span', 'rd-m free', 'Free'), omNode('i', 'rd-m', '·'))
+      s.append(rdWhen(r), omNode('i', '', '·'), r.town)
+      if (r.venue && !r.venue.toLowerCase().startsWith(r.town.toLowerCase()) && !/^\d/.test(r.venue)) s.append(omNode('i', '', '·'), r.venue)
+      t.append(n, s)
+      const pills = omNode('div', 'rd-pills')
+      if (r.category === 'car') pills.append(omNode('span', 'om-pill car', 'Car meet'))
+      if (r.free) pills.append(omNode('span', 'om-pill good', 'Free'))
+      li.append(tile, t, pills)
+      rdActs(li, r.url, () => rdDismiss(li, r.id, list).then(() => renderEventCards()))
+      return li
+    }
+    function renderWeekend(seenAt) {
+      const [a, b] = rdWeekend(), wk = RD.events.filter((r) => Date.parse(r.starts_at) >= +a && Date.parse(r.starts_at) < +b)
+      const host = el('re-weekend'); host.textContent = ''
+      el('re-wk-n').textContent = `${a.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} and ${new Date(+a + 864e5).getDate()}`
+      if (!wk.length) { host.append(rdEmptyNode('Nothing listed for this weekend yet', 'The Friday 4 pm push rounds it up when there is.')); return }
+      wk.sort((x, y) => (x.category === 'car' ? 0 : 1) - (y.category === 'car' ? 0 : 1) || x.starts_at.localeCompare(y.starts_at))
+        .forEach((r, i) => host.append(rdEventRow(r, i, seenAt, RD.events)))
+    }
+    function renderEvents(seenAt) {
+      const F = RD.fEv, all = RD.events
+      const pick = (f) => (f === 'car' ? all.filter((r) => r.category === 'car') : f === 'free' ? all.filter((r) => r.free) : all)
+      rdSeg(el('re-filter'), [{ v: 'all', label: 'All', n: all.length }, { v: 'car', label: 'Car meets', n: pick('car').length }, { v: 'free', label: 'Free', n: pick('free').length }],
+        F, (v) => { RD.fEv = v; renderEvents(RD.seen.events) })
+      const host = el('re-list'); host.textContent = ''
+      const rows = pick(F)
+      if (!rows.length) { host.append(rdEmptyNode(F === 'car' ? 'No car meets listed yet' : 'Nothing listed yet', 'Read twice a day. Car season picks up again in spring.')); return }
+      let month = ''
+      rows.forEach((r, i) => {
+        const m = new Date(r.starts_at).toLocaleDateString('en-US', { month: 'long', year: new Date(r.starts_at).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined })
+        if (m !== month) { month = m; host.append(omNode('li', 'om-grp', m)) }
+        host.append(rdEventRow(r, i, seenAt, RD.events))
+      })
     }
 
     // Magic-link returns land with tokens in the URL fragment; supabase-js
