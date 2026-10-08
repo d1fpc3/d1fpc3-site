@@ -82,15 +82,15 @@ for (const [vp, launcher, opts] of VPS) for (const theme of THEMES) {
   await browser.close()
 }
 
-// the admin rail links here
+// the Echelon app links here for the owner (the admin rail dropped its trading links on 2026-10-07 with the Desk)
 {
   const browser = await PW.chromium.launch({ channel: 'chrome' })
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
-  await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v); localStorage.setItem('echelon-admin-tour-done', '1'); localStorage.setItem('echelon-admin-tour', 'done') }, [`sb-${REF}-auth-token`, JSON.stringify(session)])
+  await ctx.addInitScript(([k, v]) => { localStorage.setItem(k, v) }, [`sb-${REF}-auth-token`, JSON.stringify(session)])
   const page = await ctx.newPage()
-  await page.goto(ADMIN, { waitUntil: 'domcontentloaded' })
-  await page.waitForSelector('#app.on', { timeout: 60000 }).catch(() => {})
-  ok(await page.locator('a.grp[href="/echelon/admin/edge-lab/"]').count() >= 1, 'admin rail has an Edge lab link')
+  await page.goto(ADMIN.replace(/admin\/?$/, 'app/'), { waitUntil: 'domcontentloaded' })
+  const shown = await page.waitForSelector('#edge-link:not([hidden])', { state: 'attached', timeout: 60000 }).then(() => true).catch(() => false)
+  ok(shown && (await page.locator('#edge-link').getAttribute('href')) === '/echelon/admin/edge-lab/', 'Echelon app shows the owner an Edge lab link')
   await browser.close()
 }
 
