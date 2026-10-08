@@ -38,7 +38,10 @@ if (/127\.0\.0\.1|localhost/.test(URL)) await ctx.route('**/functions/v1/admin-a
 await ctx.addInitScript(([k, v, theme]) => { if (sessionStorage.getItem('seeded')) return; sessionStorage.setItem('seeded', '1'); localStorage.setItem(k, v); localStorage.setItem('echelon-theme', theme); localStorage.removeItem('echelon-admin-group:money') }, [`sb-${REF}-auth-token`, JSON.stringify(session), THEME])
 const page = await ctx.newPage(), errs = []
 page.on('pageerror', (e) => errs.push(e.message))
-page.on('console', (m) => { if (m.type() === 'error' && !/favicon|ERR_|404/.test(m.text())) errs.push('console: ' + m.text().slice(0, 160)) })
+page.on('console', (m) => { if (m.type() === 'error' && !/favicon|ERR_|404|Failed to load resource/.test(m.text())) errs.push('console: ' + m.text().slice(0, 160)) })
+// a failed request is named by its URL, so a 403 says which call it was
+// (Hostinger's bot check answers a headless browser's first page load with a 403 and then lets it through: not ours)
+page.on('response', (r) => { if (r.status() >= 400 && !/favicon/.test(r.url()) && !(r.status() === 403 && r.request().isNavigationRequest())) errs.push(`${r.status()} ${r.request().method()} ${r.url().replace(/\?.*/, '').slice(0, 120)}`) })
 await page.goto(URL, { waitUntil: 'domcontentloaded' })
 await page.waitForSelector('#app.on', { timeout: 60000 })
 await page.waitForTimeout(1500)
