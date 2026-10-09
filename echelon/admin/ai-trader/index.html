@@ -499,6 +499,7 @@
       return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'
     }
     const STATUS = { running: 'Running', pass: 'Passed', fail: 'Failed', aborted: 'Stopped' }
+    const TAPE = { right: 'direction right', wrong: 'direction wrong', neither: 'chop' }
     const PIECES = [['draw', 'The draw'], ['buildup', 'Buildup'], ['inducement', 'Inducement'], ['mitigation', 'Mitigation']]
     const day = (d) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
     const hm = (ts) => String(ts || '').slice(11, 16)
@@ -695,7 +696,7 @@
       $('lessons').innerHTML = shown.map((t, i) => `<div class="lz glass in" style="animation-delay:${Math.min(i, 10) * 25}ms">
           <div class="hd"><span class="tag ${cls(+t.pts)}">${+t.pts > 0 ? 'Win' : 'Loss'} ${pts(+t.pts, 1)}</span><span>${esc(day(t.day))}, ${esc(t.session)} ${hm(t.t_in)}</span></div>
           <p>${esc(t.lessons[S.piece] || t.lessons.lesson || '')}</p>
-          <div class="vd">${esc(sideTxt(t.side))} ${esc(t.entry_kind || '')}, risk ${t.risk != null ? (+t.risk).toFixed(0) : '–'} pts${t.lessons.verdict ? ', verdict: ' + esc(t.lessons.verdict) : ''}${t.stream ? ', stream ' + esc(streamName(t.stream)) : ''}</div>
+          <div class="vd">${esc(sideTxt(t.side))} ${esc(t.entry_kind || '')}, risk ${t.risk != null ? (+t.risk).toFixed(0) : '–'} pts${t.lessons.verdict ? ', verdict: ' + esc(t.lessons.verdict) : ''}${t.lessons.direction ? ', tape: ' + TAPE[t.lessons.direction] : ''}${t.stream ? ', stream ' + esc(streamName(t.stream)) : ''}</div>
         </div>`).join('') || '<div class="empty">Nothing here yet.</div>'
       $('lnote').textContent = T.length > shown.length ? `Newest ${shown.length} of ${T.length}. Every one is also in its trade below.` : ''
     }
@@ -791,7 +792,7 @@
           ${t.story ? `<h4>Its read of the day</h4><p>${esc(t.story)}</p>` : ''}
           ${t.read ? `<h4>Why it entered</h4><p>${esc(t.read)}</p>` : ''}
           ${Object.keys(U).some((k) => U[k] && k !== 'story' && k !== 'read') ? `<h4>The setup it named</h4><div class="four">${four(U, [['draw', 'Draw'], ['buildup', 'Buildup'], ['inducement', 'Inducement'], ['mitigation', 'Mitigation']])}</div>` : ''}
-          ${Object.keys(L).length ? `<h4>What it learned${L.verdict ? ' (' + esc(L.verdict) + ')' : ''}</h4><div class="four">${four(L, [['draw', 'Draw'], ['buildup', 'Buildup'], ['inducement', 'Inducement'], ['mitigation', 'Mitigation'], ['explanation', 'Why'], ['lesson', 'Lesson']])}</div>` : ''}
+          ${Object.keys(L).length ? `<h4>What it learned${L.verdict ? ' (' + esc(L.verdict) + ')' : ''}</h4><div class="four">${L.direction ? `<div><b>Tape</b>${TAPE[L.direction] || esc(L.direction)}</div>` : ''}${four(L, [['draw', 'Draw'], ['buildup', 'Buildup'], ['inducement', 'Inducement'], ['mitigation', 'Mitigation'], ['explanation', 'Why'], ['lesson', 'Lesson']])}</div>` : ''}
           <p class="src">${esc(t.session)}, ${esc(day(t.day))}, in ${hm(t.t_in)} ${esc(t.entry_kind || '')}, out ${hm(t.t_out)} on ${esc(t.exit_why || '')}${t.playbook_version != null ? ', playbook v' + t.playbook_version : ''}${t.stream ? ', stream ' + esc(streamName(t.stream)) : ''}</p>
         </div></div>`
     }
