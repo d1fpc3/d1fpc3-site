@@ -50,7 +50,7 @@ for (const [vp, launcher, opts] of VPS) for (const theme of THEMES) {
   const running = runs.find((r) => r.status === 'running')
   if (running) {
     ok((await page.textContent('#h-name')).includes(running.id), `opens on the running version ${running.id}`)
-    ok((await page.textContent('#tally')).includes('of 751'), 'live session count shows "of 751"')
+    ok((await page.textContent('#tally')).includes('of 751') && (await page.textContent('#tally')).includes('Win rate') && (await page.textContent('#tally')).includes('Average RR'), 'tiles lead with win rate, average RR, PnL and the live count')
     ok((await page.textContent('#legend')).includes('LD11'), 'curve carries the LD11 line')
   }
   ok((await page.locator('#ladder .card').count()) === runs.length, `ladder shows all ${runs.length} versions`)
@@ -101,7 +101,7 @@ for (const [vp, launcher, opts] of VPS) for (const theme of THEMES) {
   await page.locator('#ladder .card[data-id="LD11"]').click()
   await page.waitForFunction(() => document.getElementById('h-name').textContent.includes('LD11') && document.querySelectorAll('#trades tr.t').length > 0, null, { timeout: 20000 })
   await page.waitForTimeout(900)
-  ok((await page.textContent('#tally')).includes('19%'), 'LD11 shows its 19% coin-flip result')
+  ok((await page.textContent('#tally')).includes('27%') && (await page.textContent('#tally')).includes('1:2.9'), 'LD11 shows its 27% win rate and 1:2.9 RR')
   ok((await page.textContent('#tr-say')).includes(ld11Trades.toLocaleString('en-US')), `LD11 counts all ${ld11Trades} trades`)
   await page.screenshot({ path: `${OUT}/${vp}-${theme}-ld11.png` })
   await page.click('#more'); await page.waitForTimeout(300)

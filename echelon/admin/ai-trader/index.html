@@ -586,7 +586,7 @@
     function ladder() {
       $('ladder').innerHTML = S.runs.slice().reverse().map((r, i) => {
         const s = r.stats || {}
-        const v = Number.isFinite(+s.pts) ? `<span class="v num ${cls(+s.pts)}">${pts(+s.pts)}</span><span class="c">points over ${(+s.traded || 0).toLocaleString()} traded sessions</span>`
+        const v = Number.isFinite(+s.pts) ? `<span class="v num ${cls(+s.pts)}">${usd(2 * s.pts)}</span><span class="c">${(s.fills ?? s.traded).toLocaleString()} trades${s.trade_win != null ? `, ${Math.round(s.trade_win * 100)}% won, 1:${(+s.rr_planned).toFixed(1)} RR` : ''}</span>`
           : (s.samples && s.samples[0]) ? `<span class="v num ${cls(+s.samples[0].v)}">${sgn(+s.samples[0].v)}${Math.abs(+s.samples[0].v).toFixed(2)}${s.samples[0].unit === 'R' ? 'R' : ''}</span><span class="c">${esc(s.samples[0].label)}</span>` : ''
         return `<div class="card glass in ${r.id === S.sel ? 'sel' : ''}" data-id="${esc(r.id)}" role="button" tabindex="0" style="animation-delay:${Math.min(i, 8) * 30}ms">
           <div class="row"><span class="nm">${esc(r.id)}</span><span class="pill ${esc(r.status)}"><i></i>${STATUS[r.status] || esc(r.status)}</span></div>
@@ -613,11 +613,12 @@
       if (Number.isFinite(+s.pts)) {
         big.className = 'big num ' + cls(+s.pts)
         big.innerHTML = `${pts(+s.pts)}<small>points, ${usd(2 * s.pts)} a MNQ</small>`
+        const tw = s.trade_win != null ? +s.trade_win : (s.traded ? s.wins / s.traded : NaN)
         const tiles = [
-          [s.sessions + (r.status === 'running' ? ' of 751' : ''), 'Sessions so far'],
-          [`${s.traded}`, `Traded, ${s.wins} won`],
-          [Number.isFinite(+s.coin_pct) ? Math.round(s.coin_pct) + '%' : '–', 'Beats coin flips'],
-          s.baseline_same != null ? [pts(+s.baseline_same), 'LD11, same sessions'] : [pts(+s.hold_same), 'Holding long, same'],
+          [Number.isFinite(tw) ? Math.round(tw * 100) + '%' : '–', 'Win rate'],
+          [s.rr_planned != null ? '1:' + (+s.rr_planned).toFixed(1) : '–', 'Average RR'],
+          [usd(2 * s.pts), 'PnL, 1 MNQ'],
+          [`${(s.fills ?? s.traded).toLocaleString()}`, r.status === 'running' ? `Trades, ${s.sessions} of 751 sessions` : `Trades in ${s.sessions} sessions`],
         ]
         $('tally').innerHTML = tiles.map(([n, l]) => `<div class="tile" style="cursor:default"><div class="n num">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join('')
         $('h-right').hidden = false
