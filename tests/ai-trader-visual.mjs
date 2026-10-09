@@ -50,10 +50,17 @@ for (const [vp, launcher, opts] of VPS) for (const theme of THEMES) {
   const running = runs.find((r) => r.status === 'running')
   if (running) {
     ok((await page.textContent('#h-name')).includes(running.id), `opens on the running version ${running.id}`)
-    ok((await page.textContent('#tally')).includes('of 751') && (await page.textContent('#tally')).includes('Win rate') && (await page.textContent('#tally')).includes('Average RR'), 'tiles lead with win rate, average RR, PnL and the live count')
+    ok((await page.textContent('#h-sub')).includes('of 751') && (await page.textContent('#tally')).includes('Win rate') && (await page.textContent('#tally')).includes('Average RR'), 'tiles lead with win rate, average RR, PnL; the live count is in the line above')
     ok((await page.textContent('#legend')).includes('LD11'), 'curve carries the LD11 line')
   }
   ok((await page.locator('#ladder .card').count()) === runs.length, `ladder shows all ${runs.length} versions`)
+  // contract size: defaults to 3 minis, switching to a micro rescales the dollars by 1/30
+  ok((await page.textContent('#tally')).includes('3 minis') && (await page.textContent('#tally')).includes('Max drawdown'), 'tiles sized for 3 minis with a max drawdown')
+  const usd3 = await page.evaluate(() => +document.querySelector('#h-big').firstChild.textContent.replace(/[^0-9.]/g, ''))
+  await page.locator('#size-seg button', { hasText: '1 micro' }).click(); await page.waitForTimeout(300)
+  const usd1 = await page.evaluate(() => +document.querySelector('#h-big').firstChild.textContent.replace(/[^0-9.]/g, ''))
+  ok(usd3 > 0 && Math.abs(usd3 / usd1 - 30) < 0.5, `size switch rescales the PnL (3 minis ${usd3} vs micro ${usd1})`)
+  await page.locator('#size-seg button', { hasText: '3 minis' }).click(); await page.waitForTimeout(250)
   ok((await page.locator('#cv path.ln').count()) === 1, 'cumulative curve drawn')
   // lessons
   if (await page.locator('#learn-sec').isVisible()) {
@@ -101,7 +108,7 @@ for (const [vp, launcher, opts] of VPS) for (const theme of THEMES) {
   await page.locator('#ladder .card[data-id="LD11"]').click()
   await page.waitForFunction(() => document.getElementById('h-name').textContent.includes('LD11') && document.querySelectorAll('#trades tr.t').length > 0, null, { timeout: 20000 })
   await page.waitForTimeout(900)
-  ok((await page.textContent('#tally')).includes('27%') && (await page.textContent('#tally')).includes('1:2.9'), 'LD11 shows its 27% win rate and 1:2.9 RR')
+  ok((await page.textContent('#tally')).includes('27%') && (await page.textContent('#tally')).includes('1:2.9') && (await page.textContent('#h-big')).includes('94,'), 'LD11 shows 27%, 1:2.9 and about -$94k on 3 minis')
   ok((await page.textContent('#tr-say')).includes(ld11Trades.toLocaleString('en-US')), `LD11 counts all ${ld11Trades} trades`)
   await page.screenshot({ path: `${OUT}/${vp}-${theme}-ld11.png` })
   await page.click('#more'); await page.waitForTimeout(300)

@@ -297,6 +297,10 @@
     .pill.aborted { background: var(--fill-2); color: var(--faint); }
     @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
     .hero .big.pos { color: var(--good); } .hero .big.neg { color: var(--bad); }
+    .sizer { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; flex-wrap: wrap; }
+    .sizer > span { font-size: 12.5px; color: var(--muted); }
+    #tally .tile .n { white-space: nowrap; }
+    #tally .tile .l2 { font-size: 11.5px; color: var(--faint); margin-top: 1px; line-height: 1.35; }
     .hero .runk { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
     .hero .runk b { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
     .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
@@ -405,6 +409,7 @@
       <div>
         <div class="runk"><span class="pill" id="h-pill"></span><b id="h-name">&nbsp;</b></div>
         <div class="k" id="h-per">&nbsp;</div>
+        <div class="sizer" id="sizer"><span>Sized for</span><div class="seg sm" id="size-seg" role="group" aria-label="Contract size"><span class="thumb"></span></div></div>
         <div class="big num" id="h-big">&nbsp;</div>
         <div class="sub" id="h-sub">&nbsp;</div>
         <div class="tally" id="tally"></div>
@@ -415,7 +420,7 @@
           <div class="legend" id="legend"></div>
         </div>
         <svg id="cv" viewBox="0 0 520 150" preserveAspectRatio="none" aria-label="Cumulative points"></svg>
-        <div class="cap"><span id="cv-a"></span><span>1 MNQ, 1 point a round trip</span><span id="cv-b"></span></div>
+        <div class="cap"><span id="cv-a"></span><span>Points, 1 point a round trip</span><span id="cv-b"></span></div>
       </div>
     </div>
 
@@ -543,8 +548,15 @@
     }
 
     /* state */
+    const SIZES = [['mnq1', '1 micro', 2], ['nq1', '1 mini', 20], ['nq2', '2 minis', 40], ['nq3', '3 minis', 60], ['nq5', '5 minis', 100]]
+    let size = 'nq3'; try { size = localStorage.getItem('ai-size') || 'nq3' } catch (e) {}
+    if (!SIZES.some((x) => x[0] === size)) size = 'nq3'
+    const dpp = () => SIZES.find((x) => x[0] === size)[2]
+    const sizeName = () => SIZES.find((x) => x[0] === size)[1]
     const S = { runs: [], sel: null, trades: {}, books: {}, piece: 'draw', wl: 'all', res: 'all', ses: 'all', q: '', shown: 40, open: new Set(), stream: null, ver: null, bars: {} }
     const cur = () => S.runs.find((r) => r.id === S.sel)
+    // after the state above: a const used before its line throws (TDZ)
+    seg($('size-seg'), SIZES.map(([v, l]) => [v, l]), size, (v) => { size = v; try { localStorage.setItem('ai-size', v) } catch (e) {} ladder(); hero() })
     let loading = false
     async function load(quiet) {
       if (loading) return
@@ -579,14 +591,14 @@
         ])
         S.trades[id] = t.data || []; S.books[id] = p.data || []
       }
-      learn(); books(); trades(); months()
+      hero(); learn(); books(); trades(); months()
     }
 
     /* the version ladder */
     function ladder() {
       $('ladder').innerHTML = S.runs.slice().reverse().map((r, i) => {
         const s = r.stats || {}
-        const v = Number.isFinite(+s.pts) ? `<span class="v num ${cls(+s.pts)}">${usd(2 * s.pts)}</span><span class="c">${(s.fills ?? s.traded).toLocaleString()} trades${s.trade_win != null ? `, ${Math.round(s.trade_win * 100)}% won, 1:${(+s.rr_planned).toFixed(1)} RR` : ''}</span>`
+        const v = Number.isFinite(+s.pts) ? `<span class="v num ${cls(+s.pts)}">${usd(dpp() * s.pts)}</span><span class="c">${(s.fills ?? s.traded).toLocaleString()} trades${s.trade_win != null ? `, ${Math.round(s.trade_win * 100)}% won, 1:${(+s.rr_planned).toFixed(1)} RR` : ''}</span>`
           : (s.samples && s.samples[0]) ? `<span class="v num ${cls(+s.samples[0].v)}">${sgn(+s.samples[0].v)}${Math.abs(+s.samples[0].v).toFixed(2)}${s.samples[0].unit === 'R' ? 'R' : ''}</span><span class="c">${esc(s.samples[0].label)}</span>` : ''
         return `<div class="card glass in ${r.id === S.sel ? 'sel' : ''}" data-id="${esc(r.id)}" role="button" tabindex="0" style="animation-delay:${Math.min(i, 8) * 30}ms">
           <div class="row"><span class="nm">${esc(r.id)}</span><span class="pill ${esc(r.status)}"><i></i>${STATUS[r.status] || esc(r.status)}</span></div>
@@ -601,6 +613,17 @@
       })
     }
 
+    /* peak-to-trough in points over the trades in time order, and the longest run of losers */
+    function drawdown(T) {
+      if (!T || !T.length) return null
+      let cum = 0, peak = 0, dd = 0, run = 0, streak = 0
+      for (const t of T.slice().sort((a, b) => String(a.t_in).localeCompare(String(b.t_in)))) {
+        cum += +t.pts || 0; peak = Math.max(peak, cum); dd = Math.max(dd, peak - cum)
+        run = (+t.pts || 0) <= 0 ? run + 1 : 0; streak = Math.max(streak, run)
+      }
+      return { dd, streak }
+    }
+
     /* hero */
     function hero() {
       const r = cur(); if (!r) return
@@ -612,18 +635,21 @@
       const big = $('h-big')
       if (Number.isFinite(+s.pts)) {
         big.className = 'big num ' + cls(+s.pts)
-        big.innerHTML = `${pts(+s.pts)}<small>points, ${usd(2 * s.pts)} a MNQ</small>`
+        big.innerHTML = `${usd(dpp() * s.pts)}<small>${pts(+s.pts)} points on ${sizeName()}</small>`
+        const dd = drawdown(S.trades[r.id])
         const tw = s.trade_win != null ? +s.trade_win : (s.traded ? s.wins / s.traded : NaN)
         const tiles = [
           [Number.isFinite(tw) ? Math.round(tw * 100) + '%' : '–', 'Win rate'],
           [s.rr_planned != null ? '1:' + (+s.rr_planned).toFixed(1) : '–', 'Average RR'],
-          [usd(2 * s.pts), 'PnL, 1 MNQ'],
-          [`${(s.fills ?? s.traded).toLocaleString()}`, r.status === 'running' ? `Trades, ${s.sessions} of 751 sessions` : `Trades in ${s.sessions} sessions`],
+          [usd(dpp() * s.pts), 'PnL, ' + sizeName()],
+          dd ? [usd(-dpp() * dd.dd), 'Max drawdown', `worst run: ${dd.streak} losers in a row`] : ['–', 'Max drawdown'],
         ]
-        $('tally').innerHTML = tiles.map(([n, l]) => `<div class="tile" style="cursor:default"><div class="n num">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join('')
+        $('sizer').hidden = false
+        $('tally').innerHTML = tiles.map(([n, l, l2]) => `<div class="tile" style="cursor:default"><div class="n num">${esc(n)}</div><div class="l">${esc(l)}</div>${l2 ? `<div class="l2">${esc(l2)}</div>` : ''}</div>`).join('')
         $('h-right').hidden = false
         curve(r)
       } else {
+        $('sizer').hidden = true
         const sm = s.samples || []
         big.className = 'big num ' + cls(+(sm[0] || {}).v)
         big.innerHTML = sm[0] ? `${sgn(+sm[0].v)}${Math.abs(+sm[0].v).toFixed(2)}${sm[0].unit === 'R' ? 'R' : ''}<small>${esc(sm[0].label)}</small>` : '&nbsp;'
