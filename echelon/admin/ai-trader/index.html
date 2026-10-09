@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <style>html{touch-action:manipulation;-webkit-text-size-adjust:100%}</style>
+  <script>(function(){var p=function(e){e.preventDefault()};['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,p,{passive:false})});document.addEventListener('touchmove',function(e){if(typeof e.scale==='number'&&e.scale!==1)p(e)},{passive:false});window.__zoomLock=true})()</script>
+  <title>AI trader | Echelon</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#000000">
+  <script>
+    /* Interface scale and theme: the same rule as the rest of Echelon admin. */
+    (function () {
+      function pick() {
+        var ok = window.top === window && /Chrome\/\d+/.test(navigator.userAgent) && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+        var pref = 'auto'; try { pref = localStorage.getItem('echelon-ui-scale') || 'auto' } catch (e) {}
+        var w = window.innerWidth, z = 1;
+        if (ok && w >= 1500) z = pref === 'auto' ? Math.min(1.6, Math.max(1, Math.round(w / 1500 * 20) / 20)) : (parseFloat(pref) || 1);
+        if (ok && w / z < 1180) z = Math.max(1, Math.floor(w / 1180 * 20) / 20);
+        window.__uiz = z; document.documentElement.style.setProperty('--ui', String(z));
+      }
+      pick(); window.addEventListener('resize', pick);
+      try {
+        var t = localStorage.getItem('echelon-theme');
+        var dark = t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    :root { --ui: 1; --vh: calc(1vh / var(--ui)); --dvh: calc(1dvh / var(--ui)); --vw: calc(1vw / var(--ui)); }
+    html { zoom: var(--ui); }
+  </style>
+  <style>
+    /* ─────────────────────────────────────────────────────────
+       d1fpc3.com | echelon | admin | ai trader
+
+       Every version of the AI discretionary LIT agent (LD1 on), every session it traded or sat
+       out, every trade with the chart around it, its read and what it learned, and every playbook
+       it rewrote for itself. Same shell and tokens as the Edge lab. Public file; the rows only come
+       back when Postgres says the signed-in user is an Echelon admin (RLS on ai_runs / ai_sessions /
+       ai_trades / ai_playbooks). Data: apps/lit-alerts/tools/publish_ai.py.
+       ───────────────────────────────────────────────────────── */
+    @font-face { font-family: 'Inter var'; src: url('/echelon/assets/fonts/inter-var-latin.woff2') format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+    :root {
+      --bg: #000000; --panel: #1c1c1e; --panel-2: #2c2c2e; --panel-3: #3a3a3c;
+      --ink: #f5f5f7; --muted: #aeaeb2; --faint: #8e8e93;
+      --line: #38383a; --line-bright: #48484a;
+      --gold: #c9a24a; --gold-deep: #a8842c; --gold-glow: rgba(201, 162, 74, 0.2);
+      --bad: #ff6961; --good: #30d158; --blue: #64a8ff;
+      --rim: rgba(255, 255, 255, 0.07); --rim-top: rgba(255, 255, 255, 0.12);
+      --fill-2: rgba(118, 118, 128, 0.16); --fill: rgba(118, 118, 128, 0.24);
+      --seg-on: #636366;
+      --lift: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 14px 34px -20px rgba(0, 0, 0, 0.85);
+      --ease: cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    :root[data-theme="light"] {
+      --bg: #f2f2f7; --panel: #ffffff; --panel-2: #efeff4; --panel-3: #e5e5ea;
+      --ink: #1d1d1f; --muted: #6e6e73; --faint: #8e8e93;
+      --line: #e5e5ea; --line-bright: #d1d1d6;
+      --gold: #a8842c; --gold-deep: #8a6a1e; --gold-glow: rgba(168, 132, 44, 0.14);
+      --bad: #d70015; --good: #248a3d; --blue: #0a64d8;
+      --rim: rgba(0, 0, 0, 0.06); --rim-top: rgba(0, 0, 0, 0.06);
+      --fill-2: rgba(118, 118, 128, 0.09); --fill: rgba(118, 118, 128, 0.14);
+      --seg-on: #ffffff;
+      --lift: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 30px -20px rgba(0, 0, 0, 0.25);
+    }
+    html, body { min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--ink);
+      font: 14px/1.55 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter var', 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+      letter-spacing: -0.006em; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: radial-gradient(1100px 620px at 6% -14%, rgba(201, 162, 74, 0.1), transparent 62%),
+                  radial-gradient(900px 540px at 104% -10%, rgba(10, 132, 255, 0.05), transparent 60%);
+    }
+    a { color: inherit; }
+    .num { font-variant-numeric: tabular-nums; }
+    .mono { font-family: ui-monospace, 'SF Mono', Consolas, monospace; }
+    .pos { color: var(--good); } .neg { color: var(--bad); } .flat { color: var(--muted); }
+
+    /* shell */
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 24px 96px; }
+    .top { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
+    .back {
+      display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px 0 10px; border-radius: 999px;
+      color: var(--gold); background: var(--fill-2); text-decoration: none; font-size: 15px; font-weight: 500;
+      transition: background .15s, transform .1s;
+    }
+    .back svg { width: 16px; height: 16px; }
+    @media (hover: hover) { .back:hover { background: var(--fill); } }
+    .back:active { transform: scale(.97); }
+    .top h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.028em; }
+    .fresh { margin-left: auto; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+    .fresh button {
+      height: 32px; padding: 0 14px; border-radius: 999px; border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600;
+      background: var(--fill-2); color: var(--ink); transition: background .15s, transform .1s, color .15s;
+    }
+    @media (hover: hover) { .fresh button:hover { background: var(--fill); } }
+    .fresh button:active { transform: scale(.97); }
+    .fresh button.spin { color: var(--gold); }
+
+    .glass { background-color: var(--panel); border: 1px solid var(--rim); border-top-color: var(--rim-top); box-shadow: var(--lift); }
+
+    /* hero */
+    .hero {
+      position: relative; overflow: hidden; border-radius: 26px; padding: 28px 28px 24px;
+      background-image: radial-gradient(120% 140% at 0% 0%, var(--gold-glow), transparent 55%);
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 520px); gap: 32px; align-items: stretch;
+    }
+    .hero .k { color: var(--muted); font-size: 13.5px; margin-bottom: 8px; }
+    .hero .big { font-size: 56px; line-height: 1; font-weight: 700; letter-spacing: -0.04em; }
+    .hero .big small { font-size: 19px; font-weight: 600; color: var(--muted); letter-spacing: -0.01em; margin-left: 8px; }
+    .hero .sub { margin-top: 12px; color: var(--muted); font-size: 14.5px; max-width: 58ch; line-height: 1.5; }
+    .hero .sub b { color: var(--ink); font-weight: 600; }
+    .tally { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 22px; max-width: 520px; }
+    .tile {
+      border: 0; cursor: pointer; text-align: left; font: inherit; color: inherit; border-radius: 16px; padding: 11px 12px 10px;
+      background: var(--fill-2); transition: background .18s var(--ease), transform .12s var(--ease);
+    }
+    @media (hover: hover) { .tile:hover { background: var(--fill); } }
+    .tile:active { transform: scale(.97); }
+    .tile .n { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+    .tile .l { font-size: 12px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+    .tile .l i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .curve { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .curve .head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .curve .head .lbl { font-size: 13px; color: var(--muted); }
+    .curve .head .val { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
+    .curve svg { width: 100%; height: 150px; display: block; overflow: visible; }
+    .curve .cap { display: flex; justify-content: space-between; font-size: 12px; color: var(--faint); }
+    .curve path.ln { fill: none; stroke: var(--gold); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    .curve path.ar { fill: url(#cg); stroke: none; }
+    .curve .zero { stroke: var(--line-bright); stroke-width: 1; stroke-dasharray: 3 4; }
+    .draw { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: draw 1.1s var(--ease) forwards; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+
+    /* segmented control */
+    .seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--fill); max-width: 100%; overflow-x: auto; scrollbar-width: none; position: relative; }
+    .seg::-webkit-scrollbar { display: none; }
+    .seg button {
+      position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted); cursor: pointer;
+      height: 30px; padding: 0 13px; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap;
+      transition: color .15s, transform .1s;
+    }
+    .seg button[aria-pressed="true"] { color: var(--ink); }
+    .seg button:active { transform: scale(.97); }
+    @media (hover: hover) { .seg button:hover { color: var(--ink); } }
+    .seg .thumb { position: absolute; z-index: 0; top: 3px; height: 30px; border-radius: 999px; background: var(--seg-on); box-shadow: 0 3px 8px rgba(0,0,0,.14), 0 3px 1px rgba(0,0,0,.04); transition: transform .32s var(--ease), width .32s var(--ease); }
+    .seg.sm button { height: 26px; font-size: 12px; padding: 0 11px; } .seg.sm .thumb { height: 26px; }
+
+    /* sections */
+    section { margin-top: 40px; }
+    .sh { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .sh h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.026em; }
+    .sh p { color: var(--muted); font-size: 13.5px; }
+
+    /* pills */
+    .pill { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--fill-2); color: var(--muted); }
+    .pill i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .pill.live { background: color-mix(in srgb, var(--good) 17%, transparent); color: var(--good); }
+    .pill.pass { background: color-mix(in srgb, var(--good) 17%, transparent); color: var(--good); }
+    .pill.candidate { background: color-mix(in srgb, var(--gold) 19%, transparent); color: var(--gold); }
+    .pill.paper { background: color-mix(in srgb, var(--blue) 17%, transparent); color: var(--blue); }
+    .pill.fail { background: var(--fill-2); color: var(--faint); }
+
+    /* running-now cards */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(214px, 1fr)); gap: 12px; }
+    .card { border-radius: 22px; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; cursor: pointer; transition: background-color .18s var(--ease), transform .12s var(--ease); }
+    @media (hover: hover) { .card:hover { background-color: var(--panel-2); } }
+    .card:active { transform: scale(.985); }
+    .card .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .card .nm { font-weight: 650; font-size: 15px; line-height: 1.3; letter-spacing: -0.01em; }
+    .card .rl { color: var(--muted); font-size: 13px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    .card .ev { display: flex; align-items: baseline; gap: 4px 8px; flex-wrap: wrap; margin-top: auto; }
+    .card .ev .v { font-size: 30px; font-weight: 700; letter-spacing: -0.035em; line-height: 1; }
+    .card .ev .c { flex-basis: 100%; }
+    .card .ev .c { color: var(--faint); font-size: 12.5px; }
+    .fwd { border-top: 1px solid var(--line); padding-top: 11px; display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--muted); }
+    .fwd b { color: var(--ink); font-weight: 600; }
+    .fwd span:last-child { white-space: nowrap; }
+
+    /* controls */
+    .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .search { position: relative; margin-left: auto; }
+    .search input {
+      height: 36px; width: 240px; border-radius: 999px; border: 0; background: var(--fill); color: var(--ink);
+      font: inherit; font-size: 13.5px; padding: 0 14px 0 34px; outline: 0; transition: box-shadow .15s, width .3s var(--ease);
+    }
+    .search input::placeholder { color: var(--faint); }
+    .search input:focus { box-shadow: 0 0 0 3px var(--gold-glow); width: 280px; }
+    .search svg { position: absolute; left: 11px; top: 10px; width: 16px; height: 16px; color: var(--faint); pointer-events: none; }
+    .fams { margin-bottom: 14px; }
+
+    /* ledger table */
+    .tbl { border-radius: 22px; overflow: hidden; }
+    .tbl .scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th { text-align: left; font-weight: 500; color: var(--faint); font-size: 12px; padding: 13px 16px 9px; white-space: nowrap; }
+    td { padding: 12px 16px; border-top: 1px solid var(--line); vertical-align: middle; }
+    th.r, td.r { text-align: right; }
+    tr.t { cursor: pointer; transition: background .15s; }
+    @media (hover: hover) { tr.t:hover { background: var(--panel-2); } }
+    tr.t[aria-expanded="true"] { background: var(--panel-2); }
+    .tn { font-weight: 600; letter-spacing: -0.01em; }
+    .tid { color: var(--faint); font-size: 12px; margin-left: 6px; font-weight: 500; }
+    .fam { color: var(--muted); white-space: nowrap; }
+    .evid { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .evid .tt { color: var(--faint); font-size: 12px; margin-left: 6px; }
+    .chev { width: 16px; height: 16px; color: var(--faint); transition: transform .3s var(--ease); vertical-align: middle; }
+    tr.t[aria-expanded="true"] .chev { transform: rotate(90deg); }
+    tr.d td { padding: 0; border-top: 0; }
+    .drawer { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .36s var(--ease); background: var(--panel-2); }
+    .drawer.open { grid-template-rows: 1fr; }
+    .drawer > div { overflow: hidden; }
+    .dz { padding: 4px 16px 20px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 22px; }
+    .dz h4 { font-size: 12px; font-weight: 600; color: var(--faint); margin: 14px 0 5px; }
+    .dz p { color: var(--ink); font-size: 13.5px; line-height: 1.55; }
+    .dz .muted { color: var(--muted); }
+    .samples { width: 100%; font-size: 13px; margin-top: 10px; }
+    .samples th { padding: 6px 8px; font-size: 11.5px; }
+    .samples td { padding: 7px 8px; border-top: 1px solid var(--line); white-space: nowrap; }
+    .tbar { position: relative; height: 14px; width: 120px; display: inline-block; vertical-align: middle; }
+    .tbar .axis { position: absolute; left: 50%; top: 2px; width: 1px; height: 10px; background: var(--line-bright); }
+    .tbar .two { position: absolute; top: 3px; width: 1px; height: 8px; background: var(--faint); opacity: .5; }
+    .tbar .b { position: absolute; top: 4px; height: 6px; border-radius: 3px; }
+    .tbar .b.pos { background: var(--good); } .tbar .b.neg { background: var(--bad); }
+    .src { margin-top: 12px; font-size: 12px; color: var(--faint); word-break: break-all; }
+    .empty { padding: 30px 16px; text-align: center; color: var(--faint); font-size: 13.5px; }
+    .more { display: block; width: 100%; height: 46px; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--gold); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background .15s; }
+    @media (hover: hover) { .more:hover { background: var(--panel-2); } }
+
+    /* method */
+    .method { border-radius: 22px; padding: 20px 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px 26px; }
+    .method div b { display: block; font-size: 14px; font-weight: 650; margin-bottom: 3px; letter-spacing: -0.01em; }
+    .method div span { color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+    /* skeleton + entrance */
+    .skel { position: relative; overflow: hidden; background: var(--panel); border-radius: 22px; }
+    .skel::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.05), transparent); animation: sh 1.3s infinite; }
+    :root[data-theme="light"] .skel::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent); }
+    @keyframes sh { to { transform: translateX(100%); } }
+    .in { opacity: 0; transform: translateY(10px); animation: rise .42s var(--ease) forwards; }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .in { animation: fade .2s forwards; transform: none; } @keyframes fade { to { opacity: 1; } } .seg .thumb, .drawer { transition: none; } .draw { animation: none; stroke-dashoffset: 0; } }
+
+    /* gate */
+    .gate { min-height: 100vh; min-height: var(--dvh, 100vh); display: grid; place-items: center; padding: 24px; background: #000; color: #f5f5f7; }
+    .gate .box { width: min(380px, 100%); background: #1c1c1e; border-radius: 22px; padding: 28px; border: 1px solid rgba(255,255,255,.07); box-shadow: 0 30px 80px -30px rgba(0,0,0,.9); }
+    .gate h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; }
+    .gate p { color: #aeaeb2; font-size: 13.5px; margin-bottom: 18px; }
+    .gate input { width: 100%; height: 44px; margin-bottom: 10px; padding: 0 14px; border-radius: 12px; border: 1px solid #38383a; background: #000; color: #f5f5f7; font: inherit; font-size: 14.5px; outline: 0; transition: border-color .15s, box-shadow .15s; }
+    .gate input:focus { border-color: #c9a24a; box-shadow: 0 0 0 3px rgba(201,162,74,.2); }
+    .gate button { width: 100%; height: 44px; border: 0; border-radius: 12px; background: #c9a24a; color: #000; font: 600 14.5px/1 inherit; font-family: inherit; cursor: pointer; transition: transform .1s; }
+    .gate button:active { transform: scale(.98); }
+    .gate button:disabled { opacity: .6; }
+    .gate .err { color: #ff6961; font-size: 13px; margin-top: 10px; min-height: 18px; }
+
+    @media (max-width: 980px) { .hero { grid-template-columns: 1fr; } .dz { grid-template-columns: 1fr; gap: 6px; } }
+    @media (max-width: 700px) {
+      .wrap { padding: 16px 16px 80px; }
+      .top { margin-bottom: 18px; gap: 10px; }
+      .top h1 { font-size: 26px; }
+      .fresh span { display: none; }
+      .back { font-size: 0; gap: 0; width: 36px; justify-content: center; padding: 0; }
+      .hero { padding: 22px 18px 18px; border-radius: 22px; gap: 22px; }
+      .hero .big { font-size: 46px; }
+      .hero .big small { display: block; margin: 8px 0 0; font-size: 17px; }
+      .tile { padding: 9px 11px 8px; } .tile .n { font-size: 20px; }
+      .tally { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .curve svg { height: 120px; }
+      section { margin-top: 30px; }
+      .cards { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: none; }
+      .cards::-webkit-scrollbar { display: none; }
+      .cards > * { flex: 0 0 84%; scroll-snap-align: start; scroll-margin-left: 16px; }
+      .controls { flex-direction: column; align-items: stretch; }
+      .search { margin-left: 0; } .search input, .search input:focus { width: 100%; }
+      .hide-sm { display: none; }
+      td, th { padding-left: 12px; padding-right: 12px; }
+      .tbar { width: 80px; }
+    }
+    @media (pointer: coarse) { .seg button { height: 36px; padding: 0 14px; } .seg .thumb { height: 36px; } .seg.sm button { height: 32px; } .seg.sm .thumb { height: 32px; } }
+    /* four curves on a phone: one even row, no hidden overflow */
+    @media (max-width: 700px) { #cv-seg { display: flex; width: 100%; } #cv-seg button { flex: 1 1 0; min-width: 0; padding: 0 4px; white-space: nowrap; } }
+    /* ── AI trader: page-specific ───────────────────────────── */
+    .top .xl svg { width: 16px; height: 16px; color: var(--gold); }
+    .top .xl { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 13px; border-radius: 999px; background: var(--fill-2); color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; transition: background .15s, transform .1s; }
+    @media (hover: hover) { .top .xl:hover { background: var(--fill); } }
+    .top .xl:active { transform: scale(.97); }
+    .pill.running { background: color-mix(in srgb, var(--gold) 19%, transparent); color: var(--gold); }
+    .pill.running i { animation: pulse 1.6s var(--ease) infinite; }
+    .pill.aborted { background: var(--fill-2); color: var(--faint); }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
+    .hero .big.pos { color: var(--good); } .hero .big.neg { color: var(--bad); }
+    .hero .runk { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .hero .runk b { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 14px; height: 2px; border-radius: 2px; display: inline-block; }
+    .curve path.hold { fill: none; stroke: var(--blue); stroke-width: 1.6; opacity: .9; stroke-linejoin: round; }
+    .curve path.base { fill: none; stroke: var(--faint); stroke-width: 1.5; stroke-dasharray: 4 4; stroke-linejoin: round; }
+    .samp { display: grid; gap: 8px; }
+    .samp div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--fill-2); font-size: 13px; }
+    .samp b { font-variant-numeric: tabular-nums; }
+
+    /* version ladder */
+    .card.sel { box-shadow: 0 0 0 2px var(--gold), var(--lift); }
+    .card .ev .v.pos { color: var(--good); } .card .ev .v.neg { color: var(--bad); }
+    .card .per { color: var(--faint); font-size: 12px; }
+
+    /* lessons */
+    .lgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+    .lz { border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+    .lz .hd { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--faint); }
+    .lz .tag { font-weight: 650; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+    .lz .tag.pos { color: var(--good); } .lz .tag.neg { color: var(--bad); }
+    .lz p { font-size: 13.5px; line-height: 1.5; color: var(--ink); }
+    .lz .vd { font-size: 12px; color: var(--muted); }
+    .lnote { color: var(--faint); font-size: 12.5px; margin-top: 10px; }
+
+    /* playbooks */
+    .pbwrap { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 14px; align-items: start; }
+    .streams { border-radius: 22px; overflow: hidden; }
+    .streams table { font-size: 13px; }
+    .streams td, .streams th { padding: 10px 14px; }
+    .streams tr.s { cursor: pointer; transition: background .15s; }
+    @media (hover: hover) { .streams tr.s:hover { background: var(--panel-2); } }
+    .streams tr.s.on { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--gold); }
+    .pb { border-radius: 22px; padding: 18px 22px 22px; min-width: 0; }
+    .pb .pbh { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .pb .pbh .t { font-size: 13px; color: var(--muted); }
+    .pb h4 { font-size: 13px; font-weight: 650; color: var(--gold); margin: 16px 0 6px; letter-spacing: -0.005em; }
+    .pb ul { list-style: none; display: grid; gap: 6px; }
+    .pb li { position: relative; padding-left: 16px; font-size: 13.5px; line-height: 1.55; }
+    .pb li::before { content: ''; position: absolute; left: 2px; top: .62em; width: 5px; height: 5px; border-radius: 50%; background: var(--line-bright); }
+    .pb p { font-size: 13.5px; line-height: 1.55; margin: 6px 0; }
+    .pb .rv { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 4px; }
+    .pb details summary { cursor: pointer; color: var(--gold); font-size: 13px; font-weight: 600; padding: 10px 0 4px; list-style: none; }
+    .pb details summary::-webkit-details-marker { display: none; }
+
+    /* trades */
+    .side { font-weight: 600; } .side.l { color: var(--good); } .side.s { color: var(--bad); }
+    .kind { color: var(--faint); font-size: 12px; margin-left: 6px; }
+    .tz { padding: 6px 16px 20px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 22px; }
+    .tz h4 { font-size: 12px; font-weight: 600; color: var(--faint); margin: 12px 0 4px; }
+    .tz p { font-size: 13.5px; line-height: 1.55; }
+    .tz .kv { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+    .tz .kv div { background: var(--fill-2); border-radius: 12px; padding: 8px 10px; }
+    .tz .kv span { display: block; font-size: 11.5px; color: var(--faint); }
+    .tz .kv b { font-size: 14px; font-variant-numeric: tabular-nums; }
+    .tz .four { display: grid; gap: 8px; margin-top: 4px; }
+    .tz .four div { font-size: 13px; line-height: 1.5; }
+    .tz .four b { color: var(--muted); font-weight: 600; margin-right: 6px; }
+    .cc { width: 100%; height: 280px; display: block; border-radius: 14px; background: var(--fill-2); }
+    .cc .up { fill: var(--ink); } .cc .dn { fill: var(--bad); opacity: .8; } .cc .wk { stroke: var(--muted); stroke-width: 1; }
+    .cc .en { stroke: var(--ink); stroke-width: 1.4; } .cc .sl { stroke: var(--bad); stroke-width: 1.4; } .cc .tg { stroke: var(--good); stroke-width: 1.4; stroke-dasharray: 5 4; }
+    .cc .lb { font-size: 11px; font-weight: 600; } .cc .ax { font-size: 10.5px; fill: var(--faint); }
+    .cc .mk-in { fill: var(--gold); } .cc .mk-out { fill: none; stroke: var(--gold); stroke-width: 2; }
+    .cc .box { opacity: .12; }
+
+    /* months */
+    .mo { border-radius: 22px; padding: 18px 20px 14px; }
+    .mo svg { width: 100%; height: 220px; display: block; overflow: visible; }
+    .mo .ba { fill: var(--gold); } .mo .bh { fill: var(--blue); opacity: .55; }
+    .mo .ax { font-size: 10.5px; fill: var(--faint); } .mo .zero { stroke: var(--line-bright); stroke-width: 1; }
+
+    @media (max-width: 980px) { .pbwrap { grid-template-columns: 1fr; } .tz { grid-template-columns: 1fr; gap: 6px; } }
+    @media (max-width: 700px) {
+      .top .xl span { display: none; }
+      .lgrid { grid-template-columns: 1fr; }
+      .tz .kv { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cc { height: 220px; }
+      .pb { padding: 16px; }
+      #piece-seg { display: flex; width: 100%; } #piece-seg button { flex: 1 1 0; min-width: 0; padding: 0 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="gate" id="gate" hidden>
+    <form class="box" id="gate-form">
+      <h2>AI trader</h2>
+      <p id="gate-say">Sign in with your Echelon admin account.</p>
+      <div id="gate-fields">
+        <input id="gate-email" type="email" placeholder="Email" autocomplete="username" required>
+        <input id="gate-pass" type="password" placeholder="Password" autocomplete="current-password" required>
+        <button id="gate-go" type="submit">Sign in</button>
+      </div>
+      <div class="err" id="gate-err"></div>
+    </form>
+  </div>
+
+  <main class="wrap" id="app" hidden>
+    <div class="top">
+      <a class="back" href="/echelon/admin/edge-lab/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><span>Edge lab</span></a>
+      <h1>AI trader</h1>
+      <div class="fresh"><span id="fresh">Loading</span><button id="refresh" type="button">Refresh</button></div>
+    </div>
+
+    <div class="hero glass in" id="hero">
+      <div>
+        <div class="runk"><span class="pill" id="h-pill"></span><b id="h-name">&nbsp;</b></div>
+        <div class="k" id="h-per">&nbsp;</div>
+        <div class="big num" id="h-big">&nbsp;</div>
+        <div class="sub" id="h-sub">&nbsp;</div>
+        <div class="tally" id="tally"></div>
+      </div>
+      <div class="curve" id="h-right">
+        <div class="head">
+          <div><div class="lbl" id="cv-lbl">Points across the sessions it traded</div><div class="val num" id="cv-val">&nbsp;</div></div>
+          <div class="legend" id="legend"></div>
+        </div>
+        <svg id="cv" viewBox="0 0 520 150" preserveAspectRatio="none" aria-label="Cumulative points"></svg>
+        <div class="cap"><span id="cv-a"></span><span>1 MNQ, 1 point a round trip</span><span id="cv-b"></span></div>
+      </div>
+    </div>
+
+    <section>
+      <div class="sh"><h2>Every version</h2><p>Each one written down before it ran, then scored once. Pick one to see its trades.</p></div>
+      <div class="cards" id="ladder"></div>
+    </section>
+
+    <section id="learn-sec" hidden>
+      <div class="sh"><h2>What it is learning</h2><p>After every win and every loss it reviews the trade on the 4h, 1h, 15m and 5m and writes down what it taught it.</p></div>
+      <div class="controls">
+        <div class="seg" id="piece-seg" role="group" aria-label="Which part of LIT"><span class="thumb"></span></div>
+        <div class="seg sm" id="wl-seg" role="group" aria-label="Wins or losses"><span class="thumb"></span></div>
+      </div>
+      <div class="lgrid" id="lessons"></div>
+      <div class="lnote" id="lnote"></div>
+    </section>
+
+    <section id="pb-sec" hidden>
+      <div class="sh"><h2>Its playbook</h2><p id="pb-say">Rewritten by its coach every 10 trades, from every trade so far, winners against losers.</p></div>
+      <div class="pbwrap">
+        <div class="streams glass" id="streams-box"><div class="scroll"><table>
+          <thead><tr><th>Stream</th><th class="r">Traded</th><th class="r">Points</th><th class="r">Version</th></tr></thead>
+          <tbody id="streams"></tbody>
+        </table></div></div>
+        <div class="pb glass" id="pb">
+          <div class="pbh"><div class="seg sm" id="ver-seg" role="group" aria-label="Playbook version"><span class="thumb"></span></div><span class="t" id="pb-t"></span></div>
+          <div id="pb-body"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sh"><h2>Every trade</h2><p id="tr-say"></p></div>
+      <div class="controls">
+        <div class="seg" id="res-seg" role="group" aria-label="Filter trades"><span class="thumb"></span></div>
+        <div class="seg sm" id="ses-seg" role="group" aria-label="Session"><span class="thumb"></span></div>
+        <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Search its reads" autocomplete="off"></label>
+      </div>
+      <div class="tbl glass"><div class="scroll"><table>
+        <thead><tr><th>When (ET)</th><th class="hide-sm">Session</th><th>Side</th><th class="r hide-sm">Entry</th><th class="r hide-sm">Risk</th><th class="hide-sm">Out</th><th class="r">Points</th><th></th></tr></thead>
+        <tbody id="trades"></tbody>
+      </table></div><button class="more" id="more" type="button" hidden>Show more</button></div>
+    </section>
+
+    <section id="mo-sec">
+      <div class="sh"><h2>Month by month</h2><p>The agent against simply holding long through the same windows it traded.</p></div>
+      <div class="mo glass"><div class="legend" style="margin-bottom:10px"><span><i style="background:var(--gold);height:8px;width:8px;border-radius:2px"></i>Agent</span><span><i style="background:var(--blue);opacity:.55;height:8px;width:8px;border-radius:2px"></i>Holding long, same windows</span></div><svg id="months" viewBox="0 0 1000 220" preserveAspectRatio="none" aria-label="Points by month"></svg></div>
+    </section>
+
+    <section>
+      <div class="sh"><h2>How every version is tested</h2></div>
+      <div class="method glass">
+        <div><b>Written down first</b><span>What changes, the sessions and the pass bar are committed before it trades a single session.</span></div>
+        <div><b>It trades blind</b><span>Charts are drawn minute by minute from the CME tape. It never sees what comes next, and the date and year are hidden.</span></div>
+        <div><b>Costs charged</b><span>1 point a round trip on every trade, one micro contract.</span></div>
+        <div><b>Coin flips</b><span>Its entries, stops and targets are replayed 10,000 times with a random side. Its calls have to beat 95% of those.</span></div>
+        <div><b>Holding long</b><span>It also has to beat just holding long through the same windows, so a long bias in a rising market cannot pass on its own.</span></div>
+        <div><b>Learning in order</b><span>The adaptive version only learns from trades that already happened, one session after another.</span></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+    const SB = createClient('https://cqdignbleethroyxxvzr.supabase.co', 'sb_publishable_bUU5exrU1uS4FKw_Dxnp-w_-dNjAo8x')
+    const $ = (id) => document.getElementById(id)
+    // the agent's own words can carry long dashes; D1 never wants them on screen, a comma reads the same
+    const esc = (s) => String(s ?? '').replace(/\s*\u2014\s*/g, ', ').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+    const cls = (v) => !Number.isFinite(v) || Math.abs(v) < 1e-9 ? 'flat' : v > 0 ? 'pos' : 'neg'
+    const sgn = (v) => (v > 0 ? '+' : v < 0 ? '−' : '')
+    const pts = (v, d = 0) => Number.isFinite(v) ? sgn(v) + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–'
+    const usd = (v) => Number.isFinite(v) ? (v < 0 ? '−$' : '+$') + Math.abs(Math.round(v)).toLocaleString() : '–'
+    const ago = (iso) => {
+      const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000)
+      return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'
+    }
+    const STATUS = { running: 'Running', pass: 'Passed', fail: 'Failed', aborted: 'Stopped' }
+    const PIECES = [['draw', 'The draw'], ['buildup', 'Buildup'], ['inducement', 'Inducement'], ['mitigation', 'Mitigation']]
+    const day = (d) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+    const hm = (ts) => String(ts || '').slice(11, 16)
+    const sideTxt = (s) => (s > 0 ? 'Long' : 'Short')
+    const streamName = (s) => { if (!s || s === 'all') return 'All'; const d = new Date(s + '-15T12:00:00Z'); const e = new Date(d); e.setUTCMonth(e.getUTCMonth() + 1); return d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }) + ' to ' + e.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }) }
+
+    /* gate */
+    async function boot() {
+      const { data: { session } } = await SB.auth.getSession()
+      if (!session) return gate('Sign in with your Echelon admin account.', true)
+      const { data: isAdmin } = await SB.rpc('is_admin')
+      if (!isAdmin) return gate(`${session.user.email} is not an Echelon admin.`, false)
+      $('gate').hidden = true; $('app').hidden = false
+      skeletons()
+      await load()
+      setInterval(() => { if (!document.hidden && cur()?.status === 'running') load(true) }, 120_000)
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && cur()?.status === 'running') load(true) })
+    }
+    function gate(msg, form) { $('gate').hidden = false; $('app').hidden = true; $('gate-say').textContent = msg; $('gate-fields').hidden = !form }
+    $('gate-form').addEventListener('submit', async (e) => {
+      e.preventDefault(); $('gate-go').disabled = true; $('gate-err').textContent = ''
+      const { error } = await SB.auth.signInWithPassword({ email: $('gate-email').value.trim(), password: $('gate-pass').value })
+      $('gate-go').disabled = false
+      if (error) { $('gate-err').textContent = 'That email and password did not match.'; return }
+      boot()
+    })
+    function skeletons() {
+      $('ladder').innerHTML = Array.from({ length: 4 }, () => '<div class="skel" style="height:170px"></div>').join('')
+      $('trades').innerHTML = '<tr><td colspan="8"><div class="skel" style="height:220px"></div></td></tr>'
+    }
+
+    /* segmented control with a sliding thumb (same as the Edge lab) */
+    function seg(el, items, value, onPick) {
+      const thumb = el.querySelector('.thumb')
+      el.querySelectorAll('button').forEach((b) => b.remove())
+      for (const [v, label] of items) {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.dataset.v = v
+        b.setAttribute('aria-pressed', String(v === value))
+        b.addEventListener('click', () => { el.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); place(); onPick(v) })
+        el.appendChild(b)
+      }
+      function place() {
+        const on = el.querySelector('button[aria-pressed="true"]'); if (!on) return
+        thumb.style.width = on.offsetWidth + 'px'; thumb.style.transform = `translateX(${on.offsetLeft - 3}px)`
+      }
+      requestAnimationFrame(place); new ResizeObserver(place).observe(el)
+    }
+
+    /* state */
+    const S = { runs: [], sel: null, trades: {}, books: {}, piece: 'draw', wl: 'all', res: 'all', ses: 'all', q: '', shown: 40, open: new Set(), stream: null, ver: null, bars: {} }
+    const cur = () => S.runs.find((r) => r.id === S.sel)
+    let loading = false
+    async function load(quiet) {
+      if (loading) return
+      loading = true; $('refresh').classList.add('spin')
+      try {
+        const { data, error } = await SB.from('ai_runs').select('*').order('sort')
+        if (error) throw error
+        S.runs = data || []
+        if (!S.sel || !S.runs.some((r) => r.id === S.sel)) S.sel = (S.runs.find((r) => r.status === 'running') || S.runs[S.runs.length - 1] || {}).id
+        if (quiet) { delete S.trades[S.sel]; delete S.books[S.sel] }
+        await pick(S.sel, true)
+        const up = S.runs.map((r) => r.updated_at).sort().pop()
+        $('fresh').textContent = up ? 'Updated ' + ago(up) : ''
+      } catch (e) {
+        $('fresh').textContent = 'Could not load: ' + (e.message || e)
+      } finally { loading = false; $('refresh').classList.remove('spin') }
+    }
+    $('refresh').addEventListener('click', () => { delete S.trades[S.sel]; delete S.books[S.sel]; load() })
+
+    async function pick(id, keep) {
+      S.sel = id
+      if (!keep) { S.open.clear(); S.shown = 40; S.stream = null; S.ver = null }
+      ladder(); hero()
+      const r = cur(); if (!r) return
+      const isSess = !!(r.stats && r.stats.sessions)
+      $('mo-sec').hidden = !isSess
+      if (!isSess) { $('trades').innerHTML = '<tr><td colspan="8"><div class="empty">This version graded single setups, not whole sessions, so there are no session trades to show.</div></td></tr>'; $('tr-say').textContent = ''; $('learn-sec').hidden = true; $('pb-sec').hidden = true; $('more').hidden = true; return }
+      if (!S.trades[id]) {
+        const [t, p] = await Promise.all([
+          SB.from('ai_trades').select('id,day,session,stream,n,side,entry_kind,t_in,t_out,entry,stop,target,exit,exit_why,pts,risk,mfe,mae,story,read,setup,lessons,playbook_version').eq('run', id).order('t_in', { ascending: false }).limit(2000),
+          SB.from('ai_playbooks').select('stream,version,after_trades,text,review').eq('run', id).order('stream').order('version'),
+        ])
+        S.trades[id] = t.data || []; S.books[id] = p.data || []
+      }
+      learn(); books(); trades(); months()
+    }
+
+    /* the version ladder */
+    function ladder() {
+      $('ladder').innerHTML = S.runs.slice().reverse().map((r, i) => {
+        const s = r.stats || {}
+        const v = Number.isFinite(+s.pts) ? `<span class="v num ${cls(+s.pts)}">${pts(+s.pts)}</span><span class="c">points over ${(+s.traded || 0).toLocaleString()} traded sessions</span>`
+          : (s.samples && s.samples[0]) ? `<span class="v num ${cls(+s.samples[0].v)}">${sgn(+s.samples[0].v)}${Math.abs(+s.samples[0].v).toFixed(2)}${s.samples[0].unit === 'R' ? 'R' : ''}</span><span class="c">${esc(s.samples[0].label)}</span>` : ''
+        return `<div class="card glass in ${r.id === S.sel ? 'sel' : ''}" data-id="${esc(r.id)}" role="button" tabindex="0" style="animation-delay:${Math.min(i, 8) * 30}ms">
+          <div class="row"><span class="nm">${esc(r.id)}</span><span class="pill ${esc(r.status)}"><i></i>${STATUS[r.status] || esc(r.status)}</span></div>
+          <div class="rl">${esc(r.name)}</div>
+          <div class="ev">${v}</div>
+          <div class="per">${esc(r.period || '')}</div>
+        </div>`
+      }).join('')
+      $('ladder').querySelectorAll('.card').forEach((c) => {
+        const go = () => { if (c.dataset.id !== S.sel) { pick(c.dataset.id); $('hero').scrollIntoView({ behavior: 'smooth', block: 'start' }) } }
+        c.addEventListener('click', go); c.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go() } })
+      })
+    }
+
+    /* hero */
+    function hero() {
+      const r = cur(); if (!r) return
+      const s = r.stats || {}
+      $('h-pill').className = 'pill ' + r.status; $('h-pill').innerHTML = `<i></i>${STATUS[r.status] || r.status}`
+      $('h-name').textContent = r.id + '  |  ' + r.name
+      $('h-per').textContent = r.period || ''
+      $('h-sub').textContent = r.verdict || r.rule || ''
+      const big = $('h-big')
+      if (Number.isFinite(+s.pts)) {
+        big.className = 'big num ' + cls(+s.pts)
+        big.innerHTML = `${pts(+s.pts)}<small>points, ${usd(2 * s.pts)} a MNQ</small>`
+        const tiles = [
+          [s.sessions + (r.status === 'running' ? ' of 751' : ''), 'Sessions so far'],
+          [`${s.traded}`, `Traded, ${s.wins} won`],
+          [Number.isFinite(+s.coin_pct) ? Math.round(s.coin_pct) + '%' : '–', 'Beats coin flips'],
+          s.baseline_same != null ? [pts(+s.baseline_same), 'LD11, same sessions'] : [pts(+s.hold_same), 'Holding long, same'],
+        ]
+        $('tally').innerHTML = tiles.map(([n, l]) => `<div class="tile" style="cursor:default"><div class="n num">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join('')
+        $('h-right').hidden = false
+        curve(r)
+      } else {
+        const sm = s.samples || []
+        big.className = 'big num ' + cls(+(sm[0] || {}).v)
+        big.innerHTML = sm[0] ? `${sgn(+sm[0].v)}${Math.abs(+sm[0].v).toFixed(2)}${sm[0].unit === 'R' ? 'R' : ''}<small>${esc(sm[0].label)}</small>` : '&nbsp;'
+        $('tally').innerHTML = ''
+        $('h-right').hidden = false
+        $('cv-lbl').textContent = 'What it measured'; $('cv-val').textContent = ''; $('legend').innerHTML = ''; $('cv-a').textContent = ''; $('cv-b').textContent = ''
+        $('cv').outerHTML = `<div class="samp" id="cv">${sm.map((x) => `<div><span>${esc(x.label)}</span><b>${x.n != null ? 'n ' + x.n + ', ' : ''}${Number.isFinite(+x.v) ? (+x.v).toFixed(x.unit === 'R' ? 2 : 1) + (x.unit === 'R' ? 'R' : '') : ''}${x.t != null ? ', t ' + (+x.t).toFixed(2) : ''}</b></div>`).join('')}</div>`
+      }
+    }
+    function curve(r) {
+      if ($('cv').tagName !== 'svg') $('cv').outerHTML = '<svg id="cv" viewBox="0 0 520 150" preserveAspectRatio="none" aria-label="Cumulative points"></svg>'
+      $('cv-lbl').textContent = 'Points across the sessions it traded'
+      const c = r.curve || [], W = 520, H = 150
+      if (!c.length) { $('cv').innerHTML = ''; $('cv-val').textContent = ''; $('legend').innerHTML = ''; return }
+      const cum = (k) => { let a = 0; return c.map((x) => (a += +(x[k] || 0))) }
+      const A = cum(2), Hd = cum(3), hasB = c.some((x) => x[4] != null), B = hasB ? cum(4) : []
+      const all = A.concat(Hd, B, [0]), lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.08 || 1
+      const X = (i) => c.length < 2 ? 0 : (i / (c.length - 1)) * W, Y = (v) => H - ((v - lo + pad) / (hi - lo + 2 * pad)) * H
+      const d = (arr) => arr.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join('')
+      const len = 1400
+      $('cv').innerHTML = `<defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--gold)" stop-opacity=".22"/><stop offset="1" stop-color="var(--gold)" stop-opacity="0"/></linearGradient></defs>
+        <line class="zero" x1="0" x2="${W}" y1="${Y(0)}" y2="${Y(0)}"/>
+        <path class="hold" d="${d(Hd)}"/>${hasB ? `<path class="base" d="${d(B)}"/>` : ''}
+        <path class="ar" d="${d(A)} L${W} ${H} L0 ${H} Z"/>
+        <path class="ln draw" style="--len:${len}" d="${d(A)}"/>`
+      $('cv-val').innerHTML = `<span class="${cls(A[A.length - 1])}">${pts(A[A.length - 1])}</span>`
+      $('legend').innerHTML = `<span><i style="background:var(--gold)"></i>Agent</span><span><i style="background:var(--blue)"></i>Holding long</span>${hasB ? '<span><i style="background:var(--faint)"></i>LD11, same sessions</span>' : ''}`
+      $('cv-a').textContent = day(c[0][0]); $('cv-b').textContent = day(c[c.length - 1][0])
+    }
+
+    /* lessons */
+    function learn() {
+      const T = (S.trades[S.sel] || []).filter((t) => t.lessons && (t.lessons.draw || t.lessons.lesson))
+      $('learn-sec').hidden = !T.length; if (!T.length) return
+      seg($('piece-seg'), PIECES, S.piece, (v) => { S.piece = v; drawLessons() })
+      seg($('wl-seg'), [['all', 'All'], ['win', 'Wins'], ['loss', 'Losses']], S.wl, (v) => { S.wl = v; drawLessons() })
+      drawLessons()
+    }
+    function drawLessons() {
+      const T = (S.trades[S.sel] || []).filter((t) => t.lessons && (t.lessons[S.piece] || (S.piece === 'draw' && t.lessons.lesson)))
+        .filter((t) => S.wl === 'all' || (S.wl === 'win' ? t.pts > 0 : t.pts <= 0))
+      const shown = T.slice(0, 24)
+      $('lessons').innerHTML = shown.map((t, i) => `<div class="lz glass in" style="animation-delay:${Math.min(i, 10) * 25}ms">
+          <div class="hd"><span class="tag ${cls(+t.pts)}">${+t.pts > 0 ? 'Win' : 'Loss'} ${pts(+t.pts, 1)}</span><span>${esc(day(t.day))}, ${esc(t.session)} ${hm(t.t_in)}</span></div>
+          <p>${esc(t.lessons[S.piece] || t.lessons.lesson || '')}</p>
+          <div class="vd">${esc(sideTxt(t.side))} ${esc(t.entry_kind || '')}, risk ${t.risk != null ? (+t.risk).toFixed(0) : '–'} pts${t.lessons.verdict ? ', verdict: ' + esc(t.lessons.verdict) : ''}${t.stream ? ', stream ' + esc(streamName(t.stream)) : ''}</div>
+        </div>`).join('') || '<div class="empty">Nothing here yet.</div>'
+      $('lnote').textContent = T.length > shown.length ? `Newest ${shown.length} of ${T.length}. Every one is also in its trade below.` : ''
+    }
+
+    /* playbooks */
+    function books() {
+      const B = S.books[S.sel] || [], r = cur()
+      $('pb-sec').hidden = !B.length; if (!B.length) return
+      const streams = [...new Set(B.map((b) => b.stream))]
+      if (!S.stream || !streams.includes(S.stream)) S.stream = streams[0]
+      const st = (r.stats && r.stats.streams) || {}
+      $('streams-box').hidden = streams.length < 2
+      $('pb-say').textContent = streams.length > 1 ? 'Rewritten by its coach every 10 trades, from every trade so far, winners against losers. Each two-month stream learns on its own, in time order.' : 'The playbook this version traded with.'
+      $('streams').innerHTML = streams.map((k) => {
+        const x = st[k] || {}
+        return `<tr class="s ${k === S.stream ? 'on' : ''}" data-k="${esc(k)}"><td>${esc(streamName(k))}</td><td class="r num">${x.traded ?? '–'}</td><td class="r num ${cls(+x.pts)}">${pts(+x.pts)}</td><td class="r num">v${Math.max(0, ...B.filter((b) => b.stream === k).map((b) => b.version))}</td></tr>`
+      }).join('')
+      $('streams').querySelectorAll('tr.s').forEach((tr) => tr.addEventListener('click', () => { S.stream = tr.dataset.k; S.ver = null; books() }))
+      const vs = B.filter((b) => b.stream === S.stream)
+      if (S.ver == null || !vs.some((b) => b.version === S.ver)) S.ver = vs[vs.length - 1].version
+      seg($('ver-seg'), vs.map((b) => [b.version, b.version === 0 ? 'Start' : 'v' + b.version]), S.ver, (v) => { S.ver = v; drawBook() })
+      drawBook()
+    }
+    function md(t) {
+      const out = []; let inList = false
+      for (const raw of String(t || '').split('\n')) {
+        const l = raw.trim(); if (!l) { if (inList) { out.push('</ul>'); inList = false } continue }
+        const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+        if (/^#{1,4}\s/.test(l)) { if (inList) { out.push('</ul>'); inList = false } out.push(`<h4>${inline(l.replace(/^#+\s*/, ''))}</h4>`) }
+        else if (/^[-*]\s/.test(l)) { if (!inList) { out.push('<ul>'); inList = true } out.push(`<li>${inline(l.slice(2))}</li>`) }
+        else { if (inList) { out.push('</ul>'); inList = false } out.push(`<p>${inline(l)}</p>`) }
+      }
+      if (inList) out.push('</ul>')
+      return out.join('')
+    }
+    function drawBook() {
+      const b = (S.books[S.sel] || []).find((x) => x.stream === S.stream && x.version === S.ver); if (!b) return
+      $('pb-t').textContent = b.version === 0 ? 'What it started with' : `Written after ${b.after_trades} trades`
+      $('pb-body').innerHTML = md(b.text) + (b.review ? `<div class="rv"><details><summary>The coach's notes behind this version</summary>${md(b.review.split('## Playbook')[0])}</details></div>` : '')
+    }
+
+    /* trades */
+    function filtered() {
+      const q = S.q.toLowerCase()
+      return (S.trades[S.sel] || []).filter((t) => (S.res === 'all' || (S.res === 'win' ? t.pts > 0 : t.pts <= 0))
+        && (S.ses === 'all' || t.session === S.ses)
+        && (!q || [t.story, t.read, JSON.stringify(t.setup || ''), JSON.stringify(t.lessons || '')].join(' ').toLowerCase().includes(q)))
+    }
+    function trades() {
+      const T = S.trades[S.sel] || []
+      const sessions = [...new Set(T.map((t) => t.session))]
+      seg($('res-seg'), [['all', 'All'], ['win', 'Winners'], ['loss', 'Losers']], S.res, (v) => { S.res = v; S.shown = 40; drawTrades() })
+      seg($('ses-seg'), [['all', 'Every session'], ...sessions.map((s) => [s, s])], S.ses, (v) => { S.ses = v; S.shown = 40; drawTrades() })
+      drawTrades()
+    }
+    function drawTrades() {
+      const T = filtered(), shown = T.slice(0, S.shown)
+      const tot = T.reduce((a, t) => a + (+t.pts || 0), 0)
+      $('tr-say').innerHTML = `${T.length.toLocaleString()} trades, <span class="${cls(tot)}">${pts(tot)} points</span>. Open one to see the chart, its read and what it learned.`
+      $('trades').innerHTML = shown.map((t) => `<tr class="t" data-id="${esc(t.id)}" aria-expanded="${S.open.has(t.id)}">
+          <td><span class="num">${esc(day(t.day))}</span> <span class="tid">${hm(t.t_in)}</span></td>
+          <td class="hide-sm fam">${esc(t.session)}</td>
+          <td><span class="side ${t.side > 0 ? 'l' : 's'}">${sideTxt(t.side)}</span><span class="kind">${esc(t.entry_kind || '')}</span></td>
+          <td class="r num hide-sm">${(+t.entry).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+          <td class="r num hide-sm">${t.risk != null ? (+t.risk).toFixed(0) : '–'}</td>
+          <td class="hide-sm fam">${esc(t.exit_why || '')} ${hm(t.t_out)}</td>
+          <td class="r num ${cls(+t.pts)}"><b>${pts(+t.pts, 1)}</b></td>
+          <td class="r"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></td>
+        </tr><tr class="d"><td colspan="8"><div class="drawer ${S.open.has(t.id) ? 'open' : ''}" id="dr-${esc(t.id)}"><div>${S.open.has(t.id) ? drawer(t) : ''}</div></div></td></tr>`).join('')
+        || '<tr><td colspan="8"><div class="empty">No trades match.</div></td></tr>'
+      $('more').hidden = T.length <= S.shown
+      $('trades').querySelectorAll('tr.t').forEach((tr) => tr.addEventListener('click', () => toggle(tr)))
+      S.open.forEach((id) => { const t = T.find((x) => x.id === id); if (t) chart(t) })
+    }
+    $('more').addEventListener('click', () => { S.shown += 60; drawTrades() })
+    let qT; $('q').addEventListener('input', (e) => { clearTimeout(qT); qT = setTimeout(() => { S.q = e.target.value.trim(); S.shown = 40; drawTrades() }, 160) })
+    function toggle(tr) {
+      const id = tr.dataset.id, t = (S.trades[S.sel] || []).find((x) => x.id === id); if (!t) return
+      const dr = document.getElementById('dr-' + id)
+      if (S.open.has(id)) { S.open.delete(id); tr.setAttribute('aria-expanded', 'false'); dr.classList.remove('open'); return }
+      S.open.add(id); tr.setAttribute('aria-expanded', 'true'); dr.firstElementChild.innerHTML = drawer(t)
+      requestAnimationFrame(() => dr.classList.add('open'))
+      chart(t)
+    }
+    function drawer(t) {
+      const L = t.lessons || {}, U = t.setup || {}
+      const four = (o, keys) => keys.filter(([k]) => o[k]).map(([k, l]) => `<div><b>${l}</b>${esc(o[k])}</div>`).join('')
+      return `<div class="tz">
+        <div><svg class="cc" id="cc-${esc(t.id)}" viewBox="0 0 640 280"></svg>
+          <div class="kv"><div><span>Entry</span><b>${(+t.entry).toFixed(2)}</b></div><div><span>Stop</span><b>${t.stop != null ? (+t.stop).toFixed(2) : '–'}</b></div>
+          <div><span>Best for it</span><b class="${cls(+t.mfe)}">${pts(+t.mfe)}</b></div><div><span>Worst against</span><b class="${cls(+t.mae)}">${pts(+t.mae)}</b></div></div></div>
+        <div>
+          ${t.story ? `<h4>Its read of the day</h4><p>${esc(t.story)}</p>` : ''}
+          ${t.read ? `<h4>Why it entered</h4><p>${esc(t.read)}</p>` : ''}
+          ${Object.keys(U).some((k) => U[k] && k !== 'story' && k !== 'read') ? `<h4>The setup it named</h4><div class="four">${four(U, [['draw', 'Draw'], ['buildup', 'Buildup'], ['inducement', 'Inducement'], ['mitigation', 'Mitigation']])}</div>` : ''}
+          ${Object.keys(L).length ? `<h4>What it learned${L.verdict ? ' (' + esc(L.verdict) + ')' : ''}</h4><div class="four">${four(L, [['draw', 'Draw'], ['buildup', 'Buildup'], ['inducement', 'Inducement'], ['mitigation', 'Mitigation'], ['explanation', 'Why'], ['lesson', 'Lesson']])}</div>` : ''}
+          <p class="src">${esc(t.session)}, ${esc(day(t.day))}, in ${hm(t.t_in)} ${esc(t.entry_kind || '')}, out ${hm(t.t_out)} on ${esc(t.exit_why || '')}${t.playbook_version != null ? ', playbook v' + t.playbook_version : ''}${t.stream ? ', stream ' + esc(streamName(t.stream)) : ''}</p>
+        </div></div>`
+    }
+    async function chart(t) {
+      const svg = document.getElementById('cc-' + t.id); if (!svg) return
+      if (!S.bars[t.id]) {
+        const { data } = await SB.from('ai_trades').select('bars').eq('id', t.id).single()
+        S.bars[t.id] = (data && data.bars) || []
+      }
+      const H = svg.clientHeight || 280, W = svg.clientWidth || 640, padR = 104, padB = 20
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`)
+      const B = S.bars[t.id]
+      if (!B.length) { svg.innerHTML = ''; return }
+      const lv = [t.entry, t.stop, t.target, t.exit].filter((v) => v != null).map(Number)
+      let lo = Math.min(...B.map((b) => b[3]), ...lv), hi = Math.max(...B.map((b) => b[2]), ...lv)
+      const pad = (hi - lo) * 0.06; lo -= pad; hi += pad
+      const n = B.length, cw = (W - padR) / n, X = (i) => i * cw + cw / 2, Y = (v) => (H - padB) - ((v - lo) / (hi - lo)) * (H - padB - 6)
+      const ep = (ts) => Math.round(Date.parse(String(ts).replace(' ', 'T') + 'Z') / 60000)
+      const at = (ts) => { const e = ep(ts); let k = 0; for (let i = 0; i < n; i++) if (B[i][0] <= e) k = i; return k }
+      const iIn = at(t.t_in), iOut = at(t.t_out)
+      let g = ''
+      g += `<rect class="box" x="${X(iIn) - cw / 2}" y="${Math.min(Y(t.entry), Y(t.stop ?? t.entry))}" width="${Math.max(cw, X(iOut) - X(iIn) + cw)}" height="${Math.abs(Y(t.entry) - Y(t.stop ?? t.entry))}" fill="var(--bad)"/>`
+      if (t.target != null) g += `<rect class="box" x="${X(iIn) - cw / 2}" y="${Math.min(Y(t.entry), Y(t.target))}" width="${Math.max(cw, X(iOut) - X(iIn) + cw)}" height="${Math.abs(Y(t.entry) - Y(t.target))}" fill="var(--good)"/>`
+      B.forEach((b, i) => {
+        const [, o, h, l, c] = b, up = c >= o, x = X(i), bw = Math.max(1.5, cw * 0.62)
+        g += `<line class="wk" x1="${x}" x2="${x}" y1="${Y(h)}" y2="${Y(l)}"/><rect class="${up ? 'up' : 'dn'}" x="${x - bw / 2}" y="${Y(Math.max(o, c))}" width="${bw}" height="${Math.max(1, Math.abs(Y(o) - Y(c)))}" rx="1"/>`
+      })
+      const line = (v, c, label) => v == null ? '' : `<line class="${c}" x1="${X(iIn) - cw / 2}" x2="${W - padR + 4}" y1="${Y(v)}" y2="${Y(v)}"/><text class="lb" x="${W - padR + 8}" y="${Y(v) + 4}" fill="${c === 'sl' ? 'var(--bad)' : c === 'tg' ? 'var(--good)' : 'var(--ink)'}">${label} ${(+v).toFixed(2)}</text>`
+      g += line(t.stop, 'sl', 'Stop') + line(t.target, 'tg', 'Target') + line(t.entry, 'en', sideTxt(t.side))
+      const yIn = Y(t.entry), yOut = Y(t.exit)
+      g += t.side > 0 ? `<path class="mk-in" d="M${X(iIn)} ${yIn + 4} l-6 10 h12 z"/>` : `<path class="mk-in" d="M${X(iIn)} ${yIn - 4} l-6 -10 h12 z"/>`
+      g += `<circle class="mk-out" cx="${X(iOut)}" cy="${yOut}" r="5"/>`
+      const step = Math.max(1, Math.round(n / 7))
+      for (let i = Math.round(step / 2); i < n; i += step) { const d = new Date(B[i][0] * 60000); g += `<text class="ax" x="${X(i)}" y="${H - 5}" text-anchor="middle">${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}</text>` }
+      svg.innerHTML = g
+    }
+
+    /* months */
+    function months() {
+      const r = cur(), m = (r.stats && r.stats.months) || {}, K = Object.keys(m)
+      $('mo-sec').hidden = !K.length; if (!K.length) return
+      const W = 1000, H = 220, padB = 22, vals = K.flatMap((k) => [m[k].pts, m[k].hold_same]).concat([0])
+      const lo = Math.min(...vals), hi = Math.max(...vals), Y = (v) => 8 + (H - padB - 8) * (hi - v) / ((hi - lo) || 1)
+      const bw = W / K.length, w = Math.max(3, bw * 0.32)
+      let g = `<line class="zero" x1="0" x2="${W}" y1="${Y(0)}" y2="${Y(0)}"/>`
+      K.forEach((k, i) => {
+        const x = i * bw + bw / 2, a = m[k].pts, h = m[k].hold_same
+        g += `<rect class="ba" x="${x - w - 1}" y="${Math.min(Y(a), Y(0))}" width="${w}" height="${Math.max(1, Math.abs(Y(a) - Y(0)))}" rx="2"><title>${k}: agent ${pts(a)} pts on ${m[k].traded} traded sessions</title></rect>`
+        g += `<rect class="bh" x="${x + 1}" y="${Math.min(Y(h), Y(0))}" width="${w}" height="${Math.max(1, Math.abs(Y(h) - Y(0)))}" rx="2"><title>${k}: holding long ${pts(h)} pts</title></rect>`
+        if (K.length <= 12 || i % Math.ceil(K.length / 12) === 0) g += `<text class="ax" x="${x}" y="${H - 5}" text-anchor="middle">${new Date(k + '-15T12:00:00Z').toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' })}</text>`
+      })
+      $('months').innerHTML = g
+    }
+
+    boot()
+  </script>
+  <script>
+    /* phone back gesture: the Edge lab is the parent */
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.activeElement?.id === 'q') document.activeElement.blur() })
+  </script>
+</body>
+</html>
